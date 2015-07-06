@@ -37,6 +37,8 @@ sub execute {
         return;
     }
 
+    my $header = qq[**!!! DO NOT EDIT. This document is generated automatically. !!!**\x0A\x0A];
+
     if ( !-d 'wiki/.hg' ) {
         print qq[no wiki repository was found\n];
     }
@@ -73,8 +75,8 @@ sub execute {
 
                         if ($markdown) {
 
-                            # add TOC link
-                            $markdown = qq[# [TABLE OF CONTENTS](${base_url}POD)\n\n] . $markdown;
+                            # add common header, TOC link
+                            $markdown = $header . qq[# [TABLE OF CONTENTS](${base_url}POD)\x0A\x0A] . $markdown;
 
                             # write markdown to the file
                             my $out_path = $path->dirname =~ s[\Alib/][]smr;
@@ -93,7 +95,7 @@ sub execute {
         );
 
         # generate TOC
-        my $toc_md = q[];
+        my $toc_md = $header;
 
         for my $link ( @{$toc} ) {
             my $package_name = $link =~ s[/][::]smgr;
@@ -136,10 +138,12 @@ sub _get_base_url {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 1                    │ Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 40, 79               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 1                    │ NamingConventions::Capitalization - Package "Dist::Zilla::App::Command::wiki" does not start with a upper case │
 ## │      │                      │ letter                                                                                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 35, 41               │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - print                         │
+## │    1 │ 35, 43               │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - print                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
