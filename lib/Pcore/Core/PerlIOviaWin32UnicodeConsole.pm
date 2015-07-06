@@ -1,7 +1,7 @@
-package PerlIO::via::Win32UnicodeConsole;    ## no critic qw(NamingConventions::Capitalization)
+package Pcore::Core::PerlIOviaWin32UnicodeConsole;
 
 use Pcore;
-use Encode qw[];                             ## no critic qw(Modules::ProhibitEvilModules)
+use Encode qw[];    ## no critic qw(Modules::ProhibitEvilModules)
 
 if ($Pcore::IS_PAR) {
     require DynaLoader;
@@ -39,7 +39,7 @@ my $ANSI_RE           = qr/\e.+?m/sm;
 my $STD_OUTPUT_HANDLE = -11;
 my $STD_ERROR_HANDLE  = -12;
 my $MAX_BUFFER_SIZE   = 20_000;
-my $NULL              = "\x00";
+my $NULL              = qq[\x00];
 my $UTF16             = Encode::find_encoding('UTF-16LE');
 my $STD_HANDLE        = {
     $STD_OUTPUT_HANDLE => get_std_handle($STD_OUTPUT_HANDLE),
@@ -120,7 +120,7 @@ __END__
 
 =head1 NAME
 
-PerlIO::via::Win32UnicodeConsole
+Pcore::Core::PerlIOviaWin32UnicodeConsole
 
 =head1 SYNOPSIS
 

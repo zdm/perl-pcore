@@ -518,11 +518,11 @@ sub _configure_console {
 
     # setup default layers for STD* handles clones
     if ($MSWIN) {
-        require PerlIO::via::Win32UnicodeConsole;
+        require Pcore::Core::PerlIOviaWin32UnicodeConsole;
 
-        binmode $STDIN,  qq[:raw:crlf:encoding($Pcore::ENCODING_CONSOLE)] or die;
-        binmode $STDOUT, q[:raw:via(Win32UnicodeConsole)]                 or die;
-        binmode $STDERR, q[:raw:via(Win32UnicodeConsole)]                 or die;
+        binmode $STDIN,  qq[:raw:crlf:encoding($Pcore::ENCODING_CONSOLE)]       or die;
+        binmode $STDOUT, q[:raw:via(Pcore::Core::PerlIOviaWin32UnicodeConsole)] or die;
+        binmode $STDERR, q[:raw:via(Pcore::Core::PerlIOviaWin32UnicodeConsole)] or die;
 
         select $STDOUT;    ## no critic qw(InputOutput::ProhibitOneArgSelect)
     }
