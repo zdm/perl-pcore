@@ -36,7 +36,9 @@ sub configure {
                     '^_build$',
 
                     # Pcore
+                    '^contrib$',
                     '^data$',
+                    '^examples$',
                     '^log$',
                     '^resources$',
                     '^wiki$',
@@ -88,8 +90,6 @@ sub configure {
         # set no_index to sensible directories
         [   MetaNoIndex => {
                 directory => [    #
-                    'contrib',
-                    'examples',
                     'inc',
                     'share',
                     't',

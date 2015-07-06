@@ -15,8 +15,6 @@
    "name" : "Pcore",
    "no_index" : {
       "directory" : [
-         "contrib",
-         "examples",
          "inc",
          "share",
          "t",
