@@ -1,0 +1,115 @@
+#!/usr/bin/env perl
+
+package main v0.1.0;
+
+use Pcore;
+use Pcore::Src;
+
+P->file->chdir( $PROC->{START_DIR} );
+
+my $exit_code = try {
+    my $src = Pcore::Src->new(
+        {   interactive => 1,
+            action      => $ARGV{action},
+            source      => $ARGV{source},
+            dry_run     => $ARGV{dry_run} || 0,
+            ( $ARGV{type}     ? ( type     => $ARGV{type} )     : () ),
+            ( $ARGV{filename} ? ( filename => $ARGV{filename} ) : () ),
+        }
+    );
+
+    return $src->run;
+}
+catch {
+    my $e = shift;
+
+    say {*STDOUT} $e;
+
+    return Pcore::Src::File->cfg->{EXIT_CODES}->{RUNTIME_ERROR};
+};
+
+if ( $ARGV{pause} ) {
+    print 'Press ENTER to continue...';
+    <STDIN>;
+}
+
+exit $exit_code;
+
+__END__
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+src - source management script
+
+    - convert to uft-8;
+    - strip BOM header;
+    - convert tabs to spaces;
+    - trim trailing spaces;
+    - trim trailing empty strings;
+    - convert line endings to unix style (\x0A);
+
+Exit codes:
+
+    0 - source is valid;
+    1 - run-time error;
+    2 - params error;
+    3 - source error;
+
+=head1 REQUIRED ARGUMENTS
+
+=over
+
+=back
+
+=head1 OPTIONS
+
+=over
+
+=item <source>
+
+Specifies sources for processing. Use "-" for STDIN mode.
+
+=for Euclid:
+    source.default: ''
+
+=item -a [=] <action> | --action [=] <action>
+
+Available actions:
+
+    decompress    - unpack sources, DEFAULT;
+    compress      - pack sources, comments will be deleted;
+    obfuscate     - applied only for javascript and embedded javascripts, comments will be deleted;
+    hg-pre-commit - mercurial pre-commit hook, recognize "#no critic" in commit message;
+
+=for Euclid:
+    action.type: /decompress|compress|obfuscate|hg-pre-commit/
+    action.default: 'decompress'
+
+=item -t [=] <source-type> | --type [=] <source-type>
+
+Define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js.
+
+=for Euclid:
+    source-type.type: /perl|html|css|js/
+
+=item -f [=] <filename> | --filename [=] <filename>
+
+Mandatory, if <source> is a STDIN.
+
+=for Euclid:
+    filename.type: string
+
+=item --dry-run
+
+Don't save changes.
+
+=item --pause
+
+Don't close console after script finished.
+
+=back
+
+=cut

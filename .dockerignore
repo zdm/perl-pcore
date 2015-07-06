@@ -1,0 +1,33 @@
+# mercurial
+.hg/
+.hgignore
+.hgsub
+.hgsubstate
+.hgtags
+
+# git
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+.mailmap
+
+# perl build garbage
+blib/
+_build/
+.build/
+META.yml
+MYMETA.json
+MYMETA.yml
+_build_params
+Build
+Build.bat
+Makefile
+pm_to_blib
+Pcore-*
+
+# pcore
+data/
+log/
+resources/
+wiki/

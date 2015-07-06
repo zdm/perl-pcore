@@ -1,0 +1,17 @@
+# perl build garbage
+/blib/
+/_build/
+/.build/
+/META.yml
+/MYMETA.json
+/MYMETA.yml
+/_build_params
+/Build
+/Build.bat
+/Makefile
+/pm_to_blib
+/<: $dist_name :>-*
+
+# pcore
+/data/
+/log/

@@ -1,0 +1,41 @@
+server {
+    listen                    *:80;
+: if $use_ssl {
+    listen                    *:443 ssl spdy;
+: }
+: if $server_name {
+    server_name               <: $server_name :>;
+: }
+: if $use_ssl {
+    spdy_headers_comp         3;
+    ssl_certificate_key       <: $app_dir :>ca/private/feldman.centos@p-cluster.centos_KEY.pem;
+    ssl_certificate           <: $app_dir :>ca/certs/feldman.centos@p-cluster.centos_SERVER.crt;
+    ssl_dhparam               <: $app_dir :>ca/private/feldman.centos@p-cluster.centos_DH.pem;
+    ssl_protocols             TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers               HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+    ssl_stapling              on;
+    ssl_session_cache         shared:SSL:10m;
+    ssl_session_timeout       10m;
+    add_header                Strict-Transport-Security "max-age=31536000; includeSubDomains";
+: }
+    keepalive_timeout         70;
+    root                      <: $resources_dir :>;
+
+    error_log                 <: $log_dir :><: $app_name :>-nginx-error.log info;
+    access_log                <: $log_dir :><: $app_name :>-nginx-access.log default;
+
+    client_max_body_size      10M;
+: for $x_accel_locations.keys() -> $location {
+
+    location <: $location :> {
+        internal;
+        root <: $x_accel_locations[$location] :>;
+    }
+: }
+: for $ctrl_tmpl -> $item {
+
+    <: $item :>
+    <:--:>
+: }
+}
