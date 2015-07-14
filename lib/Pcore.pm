@@ -574,6 +574,12 @@ __END__
 
 Pcore - perl applications development environment
 
+=begin HTML
+
+<p><a href="https://metacpan.org/pod/Pcore" target="_blank"><img alt="CPAN version" src="https://badge.fury.io/pl/Pcore.svg"></a></p>
+
+=end HTML
+
 =head1 SYNOPSIS
 
     use Pcore qw[-<pragma> <import>], {config};
