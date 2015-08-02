@@ -158,16 +158,22 @@ sub _install {
         print qq[%PCORE_DIST_LIB% updated\n];
 
         # update $ENV{PATH}
-        my $env_path = lc $ENV{PATH} =~ s[/][\\]smgr;
+        require Win32::TieRegistry;
+
+        my $system_path = Win32::TieRegistry->new('LMachine\SYSTEM\CurrentControlSet\Control\Session Manager\Environment')->GetValue('PATH');
+
+        my $env_path = lc $system_path =~ s[/][\\]smgr;
+
+        $canon_bin_dir =~ s[/][\\]smg;
 
         my $bin_dir_lc = lc $canon_bin_dir;
 
-        if ( $env_path !~ m[\Q$bin_dir_lc\E(?:/|)(?:;|\Z)]sm ) {
-            my @path = grep { $_ && !/\A\h+\z/sm } split /;/sm, $ENV{PATH};    # remove empty path tokens, and tokens, consisting only from spaces
+        if ( $env_path !~ m[\Q$bin_dir_lc\E(?:/|)(?:;|\Z)]sm ) {    # check if pcore bin dir is already in the path
+            my @path = grep { $_ && !/\A\h+\z/sm } split /;/sm, $system_path;    # remove empty path tokens, and tokens, consisting only from spaces
 
             push @path, $canon_bin_dir;
 
-            $ENV{PATH} = join q[;], @path;                                     ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+            $ENV{PATH} = join q[;], @path;                                       ## no critic qw(Variables::RequireLocalizedPunctuationVars)
 
             Pcore->sys->system(qq[setx.exe /M PATH "$ENV{PATH};"]) or return;
 
@@ -206,7 +212,9 @@ SH
 ## │      │                      │ case letter                                                                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 39, 59, 84, 125,     │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - print                         │
-## │      │ 137, 153, 158, 174   │                                                                                                                │
+## │      │ 137, 153, 158, 180   │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 163                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
