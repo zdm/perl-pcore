@@ -1,1 +1,1 @@
-wiki = ssh://hg@bitbucket.org/<: $bitbucket_username :>/<: $dist_path :>/wiki
+wiki = https://bitbucket.org/<: $bitbucket_username :>/<: $dist_path :>/wiki
