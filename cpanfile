@@ -46,6 +46,9 @@ requires 'BerkeleyDB';
 # Pcore::Core::CLI
 requires 'Getopt::Euclid';    # TODO remove
 
+# Pcore::HTTP
+requires 'HTTP::Parser::XS';
+
 # Pcore::Src
 requires 'Perl::Tidy';
 on develop => sub {
@@ -57,16 +60,6 @@ on develop => sub {
     requires 'JavaScript::Packer';
     requires 'CSS::Packer';
     requires 'HTML::Packer';
-};
-
-# PSGI
-requires 'HTTP::Parser::XS';
-requires 'HTTP::Body';
-requires 'Plack';
-requires 'HTTP::BrowserDetect';
-feature linux => sub {
-    requires 'Starman';
-    requires 'Feersum';
 };
 
 # Pcore::Util::Base64
