@@ -4,7 +4,7 @@
       "zdm <zdm@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 5.037, CPAN::Meta::Converter version 2.150005",
+   "generated_by" : "Dist::Zilla version 5.038, CPAN::Meta::Converter version 2.150005",
    "license" : [
       "perl_5"
    ],
@@ -32,11 +32,9 @@
             },
             "runtime" : {
                "requires" : {
-                  "Feersum" : "0",
                   "Geo::IP" : "0",
                   "IO::AIO" : "0",
-                  "Proc::ProcessTable" : "0",
-                  "Starman" : "0"
+                  "Proc::ProcessTable" : "0"
                }
             }
          }
@@ -121,8 +119,6 @@
             "Geo::IP::PurePerl" : "0",
             "Getopt::Euclid" : "0",
             "HTML::Entities" : "0",
-            "HTTP::Body" : "0",
-            "HTTP::BrowserDetect" : "0",
             "HTTP::Date" : "0",
             "HTTP::Parser::XS" : "0",
             "IO::Socket::Socks" : "0",
@@ -141,7 +137,6 @@
             "Net::SMTPS" : "0",
             "Perl::Tidy" : "0",
             "PerlIO::Layers" : "0",
-            "Plack" : "0",
             "Sort::Naturally" : "0",
             "Sub::Util" : "0",
             "Sys::CpuAffinity" : "0",
@@ -185,6 +180,6 @@
          "web" : "https://bitbucket.org/softvisio/pcore/overview"
       }
    },
-   "version" : "v0.11.4"
+   "version" : "v0.11.5"
 }
 
