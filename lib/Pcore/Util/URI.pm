@@ -1,6 +1,7 @@
 package Pcore::Util::URI;
 
 use Pcore qw[-class];
+use Pcore::Util::URI::Host;
 use Pcore::Util::File::Path;
 
 use overload    #
@@ -506,12 +507,12 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 41                   │ * Subroutine "NEW" with high complexity score (22)                                                             │
-## │      │ 124                  │ * Subroutine "_parse" with high complexity score (26)                                                          │
+## │      │ 42                   │ * Subroutine "NEW" with high complexity score (22)                                                             │
+## │      │ 125                  │ * Subroutine "_parse" with high complexity score (26)                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 81                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 82                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 181, 297             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 182, 298             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
