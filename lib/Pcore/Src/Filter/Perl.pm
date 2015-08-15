@@ -33,6 +33,10 @@ sub decompress ( $self, % ) {
 
     $perltidy_argv .= ' --logfile-gap=50' if $args{perl_verbose};
 
+    # temporary conver source to the utf8
+    # https://rt.cpan.org/Public/Bug/Display.html?id=32905
+    P->text->decode( $self->buffer );
+
     Perl::Tidy::perltidy(
         source      => $self->buffer,
         destination => $self->buffer,
@@ -41,6 +45,9 @@ sub decompress ( $self, % ) {
         logfile     => \$log,            # for verbose output only
         argv        => $perltidy_argv,
     );
+
+    # convert source back to raw
+    P->text->encode_utf8( $self->buffer );
 
     my $error_log;
 
@@ -355,9 +362,9 @@ sub cut_log ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 8                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (24)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 154                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
+## │    2 │ 161                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 103                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 110                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

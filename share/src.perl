@@ -70,7 +70,7 @@
     DEFAULT_GUESS_ENCODING => ['cp1251'],
 
     # http://perltidy.sourceforge.net/perltidy.html
-    PERLTIDY => q[--perl-best-practices --tight-secret-operators --continuation-indentation=2 --maximum-line-length=0 --format-skipping --format-skipping-begin="# <<<" --format-skipping-end="# >>>" --converge --nostandard-output],
+    PERLTIDY => q[--perl-best-practices --tight-secret-operators --continuation-indentation=2 --maximum-line-length=0 --format-skipping --format-skipping-begin="# <<<" --format-skipping-end="# >>>" --converge --nostandard-output --character-encoding=utf8],
 
     HTML_BEAUTIFY => q[--indent-scripts normal],
 
