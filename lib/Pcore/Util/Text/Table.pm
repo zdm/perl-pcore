@@ -60,9 +60,9 @@ sub render {
 
     my $res = $self->_obj->draw(
         [ q[┌], q[┐], q[─], q[┬] ],    # top line
-        [ q[│], q[│], q[│] ],            # header row
+        [ q[│], q[│], q[│] ],          # header row
         [ q[╞], q[╡], q[═], q[╪] ],    # header row separator
-        [ q[│], q[│], q[│] ],            # row repeated for each row
+        [ q[│], q[│], q[│] ],          # row repeated for each row
         [ q[└], q[┘], q[─], q[┴] ],    # bottom line
         [ q[├], q[┤], q[─], q[┼] ],    # only used if drawRowLine is enabled and to render addRowLine call
     );
