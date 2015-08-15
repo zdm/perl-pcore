@@ -122,7 +122,7 @@ sub _fork_child {
 sub master_proc {
     my $self = shift;
 
-    ...;
+    ...;                             ## no critic qw[ControlStructures::ProhibitYadaOperator]
 
     return;
 }
@@ -130,7 +130,7 @@ sub master_proc {
 sub alien_proc {
     my $self = shift;
 
-    ...;
+    ...;                             ## no critic qw[ControlStructures::ProhibitYadaOperator]
 
     return;
 }
