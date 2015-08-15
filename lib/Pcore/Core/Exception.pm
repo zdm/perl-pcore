@@ -21,9 +21,9 @@ sub CORE_INIT {
     # needed to properly destruct TEMP_DIR
     $SIG->{TERM} = AE::signal TERM => \&SIGTERM;
 
-    $SIG{__DIE__} = \&SIGDIE;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $SIG{__DIE__} = \&SIGDIE;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $SIG{__WARN__} = \&SIGWARN;  ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $SIG{__WARN__} = \&SIGWARN;  ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     *CORE::GLOBAL::die = \&GLOBAL_DIE;
 
@@ -183,7 +183,7 @@ sub try : prototype(&@) {
     my $failed = not eval {
         local $SIG{__DIE__} = \&SIGDIE;
 
-        $@ = $prev_error;    ## no critic qw(Variables::RequireLocalizedPunctuationVars) make previous $@ accesible inside eval, eval clean $@ before start
+        $@ = $prev_error;    ## no critic qw[Variables::RequireLocalizedPunctuationVars] make previous $@ accesible inside eval, eval clean $@ before start
 
         if ($wantarray) {
             @res = $try->();
@@ -215,7 +215,7 @@ sub try : prototype(&@) {
         }
 
         if ( $e->is_propagated ) {
-            $@ = q[];    ## no critic qw(Variables::RequireLocalizedPunctuationVars), clear $@ because handled propagated exception treat as not error
+            $@ = q[];    ## no critic qw[Variables::RequireLocalizedPunctuationVars], clear $@ because handled propagated exception treat as not error
 
             $e->propagate unless $e->_stop_propagate;
         }

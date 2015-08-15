@@ -1,7 +1,7 @@
 package Pcore::Util::File::TempDir;
 
 use Pcore qw[-class];
-use File::Temp qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use File::Temp qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 has base => ( is => 'lazy', isa => Str );
 has tmpl => ( is => 'lazy', isa => Str );

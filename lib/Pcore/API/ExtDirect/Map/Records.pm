@@ -39,7 +39,7 @@ sub add_in_records {
             my $field = $method_fields->{$field_name};
 
             # mark field as allowed
-            delete $fields_strict_keys->@{ $field_name, $field->alias_name };    ## no critic qw(ValuesAndExpressions::ProhibitCommaSeparatedStatements)
+            delete $fields_strict_keys->@{ $field_name, $field->alias_name };    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
             my $val;
 

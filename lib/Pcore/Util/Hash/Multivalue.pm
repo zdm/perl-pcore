@@ -1,7 +1,7 @@
 package Pcore::Util::Hash::Multivalue;
 
 use Pcore;
-use List::Util qw[pairkeys];    ## no critic qw(Modules::ProhibitEvilModules)
+use List::Util qw[pairkeys];    ## no critic qw[Modules::ProhibitEvilModules]
 use Storable qw[dclone];
 
 use overload                    #
@@ -68,7 +68,7 @@ sub add {
     return $self;
 }
 
-sub set {    ## no critic qw(NamingConventions::ProhibitAmbiguousNames)
+sub set {    ## no critic qw[NamingConventions::ProhibitAmbiguousNames]
     my $self = shift;
 
     return $self->clear->add(@_);

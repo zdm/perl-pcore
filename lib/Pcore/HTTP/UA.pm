@@ -22,7 +22,7 @@ use Pcore::AnyEvent::Proxy;
 use Socket;
 use IO::Socket::Socks;
 use AnyEvent::Socket;
-use Scalar::Util qw[blessed];    ## no critic qw(Modules::ProhibitEvilModules)
+use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our $USERAGENT  = "Mozilla/5.0 (compatible; U; P-AnyEvent-UA/$Pcore::VERSION";
 our $RECURSE    = 7;
@@ -1161,14 +1161,14 @@ sub _socks_prepare_connection {
 
         my $timeout = $p_cb->($sock);
 
-        $timer->$* = AnyEvent->timer(    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $timer->$* = AnyEvent->timer(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
             after => $timeout,
             cb    => sub {
                 undef $watcher->$*;
 
                 undef $cv->$*;
 
-                $! = Errno::ETIMEDOUT;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+                $! = Errno::ETIMEDOUT;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
                 $c_cb->();
             }
@@ -1179,7 +1179,7 @@ sub _socks_prepare_connection {
         }
     }
 
-    $cv->$* = AE::cv {                    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $cv->$* = AE::cv {                    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
         _socks_connect( $cv, $watcher, $timer, $sock, $chain, $c_host, $c_port, $c_cb );
     };
 
@@ -1207,7 +1207,7 @@ sub _socks_prepare_connection {
         inet_aton(
             $host->$*,
             sub {
-                $host->$* = format_address(shift);    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+                $host->$* = format_address(shift);    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
                 $cv->$*->end if $cv->$*;
             }
@@ -1267,7 +1267,7 @@ sub _socks_connect {
 
     my ( $poll, $w_type ) = $SOCKS_ERROR == SOCKS_WANT_READ ? ( 'r', $SOCKS_READ_WATCHER ) : ( 'w', $SOCKS_WRITE_WATCHER );
 
-    $watcher->$* = AnyEvent->io(    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $watcher->$* = AnyEvent->io(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
         fh   => $sock,
         poll => $poll,
         cb   => sub { _socks_handshake( $cv, $watcher, $w_type, $timer, $sock, $chain, $c_host, $c_port, $c_cb ) }
@@ -1295,7 +1295,7 @@ sub _socks_handshake {
         if ( $w_type != $SOCKS_WRITE_WATCHER ) {
             undef $watcher->$*;
 
-            $watcher->$* = AnyEvent->io(    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+            $watcher->$* = AnyEvent->io(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
                 fh   => $sock,
                 poll => 'w',
                 cb   => sub { _socks_handshake( $cv, $watcher, $SOCKS_WRITE_WATCHER, $timer, $sock, $chain, $c_host, $c_port, $c_cb ) }
@@ -1306,7 +1306,7 @@ sub _socks_handshake {
         if ( $w_type != $SOCKS_READ_WATCHER ) {
             undef $watcher->$*;
 
-            $watcher->$* = AnyEvent->io(    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+            $watcher->$* = AnyEvent->io(    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
                 fh   => $sock,
                 poll => 'r',
                 cb   => sub { _socks_handshake( $cv, $watcher, $SOCKS_READ_WATCHER, $timer, $sock, $chain, $c_host, $c_port, $c_cb ) }
@@ -1315,7 +1315,7 @@ sub _socks_handshake {
     }
     else {
         # unknown error
-        $@ = "IO::Socket::Socks: $SOCKS_ERROR";    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $@ = "IO::Socket::Socks: $SOCKS_ERROR";    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
         undef $watcher->$*;
 

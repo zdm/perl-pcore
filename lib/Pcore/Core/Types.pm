@@ -3,8 +3,8 @@ package Pcore::Core::Types;
 use Pcore;
 
 use Type::Library -base, -declare => qw[ClassNameStr Default FileNameStr PathStr SnakeCaseStr];
-use Type::Tiny qw[];               ## no critic qw(Modules::ProhibitEvilModules)
-use Types::Standard qw[:types];    ## no critic qw(Modules::ProhibitEvilModules)
+use Type::Tiny qw[];               ## no critic qw[Modules::ProhibitEvilModules]
+use Types::Standard qw[:types];    ## no critic qw[Modules::ProhibitEvilModules]
 
 *Type::Tiny::TO_DUMP = sub {
     my $self = shift;
@@ -36,7 +36,7 @@ use Types::Standard qw[:types];    ## no critic qw(Modules::ProhibitEvilModules)
     my $serializer = shift;
     my $data       = shift;
 
-    return eval $data || $data;    ## no critic qw(BuiltinFunctions::ProhibitStringyEva)
+    return eval $data || $data;    ## no critic qw[BuiltinFunctions::ProhibitStringyEva]
 };
 
 my $meta = __PACKAGE__->meta;

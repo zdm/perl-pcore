@@ -1,7 +1,7 @@
 package Pcore::Util::Text;
 
 use Pcore qw[-autoload];
-use Encode qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
 
 our %ESC_ANSI_CTRL = (
@@ -346,7 +346,7 @@ sub decode {
     if ( defined $scalar_ref->$* && !utf8::is_utf8( $scalar_ref->$* ) ) {
         $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
 
-        $scalar_ref->$* = $encoding->{ $args{encoding} }->decode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $scalar_ref->$* = $encoding->{ $args{encoding} }->decode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
         $self->decode_eol($scalar_ref) if $args{decode_eol};
     }
@@ -363,7 +363,7 @@ sub encode_utf8 {
     my $self = shift;
     my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
 
-    # Encode::_utf8_off( ${$scalar} ) if utf8::is_utf8( ${$scalar} );    ## no critic qw(Subroutines::ProtectPrivateSubs)
+    # Encode::_utf8_off( ${$scalar} ) if utf8::is_utf8( ${$scalar} );    ## no critic qw[Subroutines::ProtectPrivateSubs]
 
     utf8::encode( $scalar_ref->$* ) if utf8::is_utf8( $scalar_ref->$* );
 
@@ -382,7 +382,7 @@ sub encode_stdout {
     state $encoding = Encode::find_encoding($Pcore::ENCODING_CONSOLE);
 
     if ( utf8::is_utf8( $scalar_ref->$* ) ) {
-        $scalar_ref->$* = $encoding->encode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $scalar_ref->$* = $encoding->encode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
 
     if ( defined wantarray ) {
@@ -415,7 +415,7 @@ sub to_snake_case {
         ( defined wantarray ? @_ : splice @_, 1 ),
     );
 
-    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     if ( $args{split} ) {
         my @parts = split /\Q$args{split}\E/sm, $str->$*;
@@ -456,7 +456,7 @@ sub to_camel_case {
         ( defined wantarray ? @_ : splice @_, 1 ),
     );
 
-    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     if ( $args{split} ) {
         my @parts = split /\Q$args{split}\E/sm, $str->$*;

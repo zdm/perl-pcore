@@ -2,7 +2,7 @@ package Pcore::Util::File;
 
 use Pcore;
 use Fcntl qw[:DEFAULT];
-use Cwd qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::File::Path;
 
 # PATH OBJECT CONSTRUCTOR
@@ -21,7 +21,7 @@ sub cwd ($self) {
     return $self->path( Cwd::realpath(q[.]), is_dir => 1 );
 }
 
-sub chdir ( $self, $path ) {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub chdir ( $self, $path ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined wantarray ) {
         my $cwd = $self->cwd->to_string;
 
@@ -40,7 +40,7 @@ sub chdir ( $self, $path ) {    ## no critic qw(Subroutines::ProhibitBuiltinHomo
 }
 
 # change umask and return old umask
-sub umask ( $self, $mode ) {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub umask ( $self, $mode ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return '00' if $MSWIN;
 
     if ( defined wantarray ) {
@@ -97,7 +97,7 @@ sub calc_umask ( $self, $mode, % ) {
 }
 
 # mkdir with chmod support
-sub mkdir ( $self, $path, $mode = undef ) {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub mkdir ( $self, $path, $mode = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined wantarray ) {
         if ( defined $mode ) {
             return mkdir $path, $self->calc_chmod($mode);
@@ -118,7 +118,7 @@ sub mkdir ( $self, $path, $mode = undef ) {    ## no critic qw(Subroutines::Proh
     }
 }
 
-sub chmod ( $self, $mode, @path ) {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub chmod ( $self, $mode, @path ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined wantarray ) {
         return chmod $self->calc_chmod($mode), @path;
     }
@@ -531,7 +531,7 @@ sub mkpath ( $self, $path, % ) {
         @_[ 2 .. $#_ ],
     );
 
-    require File::Path;    ## no critic qw(Modules::ProhibitEvilModules)
+    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
     $args{mode} = $self->calc_chmod( $args{mode} );
 
@@ -547,7 +547,7 @@ sub rmtree ( $self, $path, % ) {
         @_[ 2 .. $#_ ],
     );
 
-    require File::Path;    ## no critic qw(Modules::ProhibitEvilModules)
+    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Path::remove_tree( "$path", \%args );
 }
@@ -559,7 +559,7 @@ sub empty_dir ( $self, $path, % ) {
         keep_root => 1,
     );
 
-    require File::Path;    ## no critic qw(Modules::ProhibitEvilModules)
+    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Path::remove_tree( "$path", \%args );
 }
@@ -673,7 +673,7 @@ sub move ( $self, $from, $to, % ) {
 sub find {
     my $self = shift;
 
-    require File::Find;    ## no critic qw(Modules::ProhibitEvilModules)
+    require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Find::find(@_);
 }
@@ -681,7 +681,7 @@ sub find {
 sub finddepth {
     my $self = shift;
 
-    require File::Find;    ## no critic qw(Modules::ProhibitEvilModules)
+    require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Find::finddepth(@_);
 }

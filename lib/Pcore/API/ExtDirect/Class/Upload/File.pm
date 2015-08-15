@@ -216,7 +216,7 @@ sub on_api_update_write_record {
 
     if ( exists $rec->uploads->{file} ) {    # replace file, if new file uploaded
         if ($old_path) {
-            ## no critic qw(InputOutput::RequireCheckedSyscalls)
+            ## no critic qw[InputOutput::RequireCheckedSyscalls]
             unlink $self->root . $old_path;
             unlink $self->root . $old_path . $self->_thumb_postfix;
         }
@@ -230,7 +230,7 @@ sub on_api_update_write_record {
         P->file->move( $self->root . $old_path, $self->root . $current_path );
 
         # unlink old thumbnail
-        unlink $self->root . $old_path . $self->_thumb_postfix;    ## no critic qw(InputOutput::RequireCheckedSyscalls)
+        unlink $self->root . $old_path . $self->_thumb_postfix;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
         # create thumbnail
         $self->_create_thumb( $self->root . $current_path );
@@ -264,7 +264,7 @@ sub on_api_destroy_write_record {
     if ( $rec->has_orig_fields ) {
         my $path = $self->root . $self->get_folder_path( $rec->orig_fields->{folder_id} ) . $rec->orig_fields->{name};
 
-        ## no critic qw(InputOutput::RequireCheckedSyscalls)
+        ## no critic qw[InputOutput::RequireCheckedSyscalls]
         unlink $path;
         unlink $path . $self->_thumb_postfix;
     }

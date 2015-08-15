@@ -1,8 +1,8 @@
 package Pcore::Util::Hash;
 
 use Pcore qw[-autoload];
-use Hash::Util qw[];      ## no critic qw(Modules::ProhibitEvilModules)
-use Scalar::Util qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Hash::Util qw[];      ## no critic qw[Modules::ProhibitEvilModules]
+use Scalar::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub autoload {
     my $self   = shift;

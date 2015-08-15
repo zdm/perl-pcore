@@ -1,7 +1,7 @@
 package Pcore::Util::Progress;
 
 use Pcore qw[-class];
-use Scalar::Util qw[weaken];    ## no critic qw(Modules::ProhibitEvilModules)
+use Scalar::Util qw[weaken];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $INDICATOR       = {};
 my $INDICATOR_ORDER = 0;
@@ -19,7 +19,7 @@ sub get_indicator ( $self, %args ) {
 
     $INDICATOR = {} if $all_finished;
 
-    my $indicator = P->class->load( $args{type} // 'Bar', ns => 'Pcore::Util::Progress::Indicator' )->new( { %args, id => $INDICATOR_ORDER++ } );    ## no critic qw(ValuesAndExpressions::ProhibitCommaSeparatedStatements)
+    my $indicator = P->class->load( $args{type} // 'Bar', ns => 'Pcore::Util::Progress::Indicator' )->new( { %args, id => $INDICATOR_ORDER++ } );    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
     $INDICATOR->{ $indicator->id } = $indicator;
 

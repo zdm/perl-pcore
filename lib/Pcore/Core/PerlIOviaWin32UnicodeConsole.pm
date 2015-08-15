@@ -1,7 +1,7 @@
 package Pcore::Core::PerlIOviaWin32UnicodeConsole;
 
 use Pcore;
-use Encode qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 if ($Pcore::IS_PAR) {
     require DynaLoader;

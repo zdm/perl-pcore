@@ -89,7 +89,7 @@ sub app_reset {
 # TODO
 # API backend signout
 # return unless defined $self->{_backend};    # _backend can be destroyed first during global destruction
-sub AUTOLOAD {    ## no critic qw(ClassHierarchies::ProhibitAutoloading)
+sub AUTOLOAD {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
     my $self = shift;
 
     my $method = our $AUTOLOAD =~ s/\A.*:://smr;

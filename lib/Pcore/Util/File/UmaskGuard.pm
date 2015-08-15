@@ -17,7 +17,7 @@ no Pcore;
 sub DEMOLISH {
     my $self = shift;
 
-    umask $self->old_umask;    ## no critic qw(InputOutput::RequireCheckedSyscalls)
+    umask $self->old_umask;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
     return;
 }

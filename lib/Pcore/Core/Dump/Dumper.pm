@@ -69,7 +69,7 @@ our $DUMPERS = {
 };
 
 # INTERNAL METHODS
-sub dump {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $self = shift;
     my %args = (
         path    => q[$VAR],

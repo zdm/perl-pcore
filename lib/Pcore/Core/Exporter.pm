@@ -21,7 +21,7 @@ sub import {
     return;
 }
 
-sub unimport {                     ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub unimport {                     ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $self = shift;
 
     # parse tags and pragmas

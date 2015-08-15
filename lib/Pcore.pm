@@ -229,7 +229,7 @@ sub import {
     return;
 }
 
-sub unimport {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $self = shift;
 
     # parse pragmas and tags
@@ -365,10 +365,10 @@ sub _apply_roles {
     Moo::Role->apply_roles_to_package( $args{caller}, $args{roles}->@* );
 
     if ( Moo::Role->is_role( $args{caller} ) ) {
-        Moo::Role->_maybe_reset_handlemoose( $args{caller} );    ## no critic qw(Subroutines::ProtectPrivateSubs)
+        Moo::Role->_maybe_reset_handlemoose( $args{caller} );    ## no critic qw[Subroutines::ProtectPrivateSubs]
     }
     else {
-        Moo->_maybe_reset_handlemoose( $args{caller} );          ## no critic qw(Subroutines::ProtectPrivateSubs)
+        Moo->_maybe_reset_handlemoose( $args{caller} );          ## no critic qw[Subroutines::ProtectPrivateSubs]
     }
 
     return;
@@ -461,7 +461,7 @@ sub _CORE_RUN {
 }
 
 # AUTOLOAD
-sub AUTOLOAD ( $self, @ ) {    ## no critic qw(ClassHierarchies::ProhibitAutoloading)
+sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
     my $method = our $AUTOLOAD =~ s/\A.*:://smr;
 
     die qq[Unregistered Pcore::Util "$method".] unless exists $Pcore::UTIL->{$method};
@@ -507,9 +507,9 @@ sub cv {
 sub _configure_console {
 
     # clone handles
-    open our $STDIN,  '<&STDIN'  or $STDIN  = *STDIN;     ## no critic qw(InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars)
-    open our $STDOUT, '>&STDOUT' or $STDOUT = *STDOUT;    ## no critic qw(InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars)
-    open our $STDERR, '>&STDERR' or $STDERR = *STDERR;    ## no critic qw(InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars)
+    open our $STDIN,  '<&STDIN'  or $STDIN  = *STDIN;     ## no critic qw[InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars]
+    open our $STDOUT, '>&STDOUT' or $STDOUT = *STDOUT;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars]
+    open our $STDERR, '>&STDERR' or $STDERR = *STDERR;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars]
 
     # setup default layers for STD* handles
     binmode STDIN,  q[:raw:encoding(UTF-8)] or die;
@@ -524,7 +524,7 @@ sub _configure_console {
         binmode $STDOUT, q[:raw:via(Pcore::Core::PerlIOviaWin32UnicodeConsole)] or die;
         binmode $STDERR, q[:raw:via(Pcore::Core::PerlIOviaWin32UnicodeConsole)] or die;
 
-        select $STDOUT;    ## no critic qw(InputOutput::ProhibitOneArgSelect)
+        select $STDOUT;    ## no critic qw[InputOutput::ProhibitOneArgSelect]
     }
     else {
         binmode $STDIN,  q[:raw:encoding(UTF-8)] or die;

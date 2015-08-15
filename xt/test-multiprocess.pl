@@ -59,7 +59,7 @@ sub run {
 
         $args{parent}->() if $args{parent};
 
-        waitpid -1, 0;          ## no critic qw(InputOutput::RequireCheckedSyscalls)
+        waitpid -1, 0;          ## no critic qw[InputOutput::RequireCheckedSyscalls]
     }
     else {                      # use threads
         for ( 1 .. $THREADS ) {

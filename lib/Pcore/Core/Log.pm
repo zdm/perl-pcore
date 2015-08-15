@@ -261,7 +261,7 @@ sub send_log {
 
             my $prev_error = $@;
 
-            eval {    ## no critic qw(ErrorHandling::RequireCheckingReturnValueOfEval)
+            eval {    ## no critic qw[ErrorHandling::RequireCheckingReturnValueOfEval]
                 local $SIG{__DIE__} = undef;
 
                 local $SIG{__WARN__} = undef;
@@ -271,7 +271,7 @@ sub send_log {
                 1;
             };
 
-            $@ = $prev_error;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+            $@ = $prev_error;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
         }
     }
 

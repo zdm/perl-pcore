@@ -6,7 +6,7 @@ use Pcore;
 use Const::Fast;
 use Benchmark;
 use WWW::Form::UrlEncoded::XS qw[];
-use URI::Escape qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use URI::Escape qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Mojo::Util qw[];
 
 Const::Fast::const our $COUNT => -5;

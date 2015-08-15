@@ -1,7 +1,7 @@
 package Pcore::Util::Digest;
 
 use Pcore;
-use Digest qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Digest qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $BCRYPT_COST_DEFAULT = 10;
 
@@ -9,7 +9,7 @@ sub md5 {
     my $self = shift;
     my @data = @_;
 
-    require Digest::MD5;    ## no critic qw(Modules::ProhibitEvilModules)
+    require Digest::MD5;    ## no critic qw[Modules::ProhibitEvilModules]
 
     # prepare data for serialization
     for my $item (@data) {
@@ -40,7 +40,7 @@ sub bcrypt {
     my $salt     = shift;
     my $cost     = shift || $BCRYPT_COST_DEFAULT;
 
-    require Digest::Bcrypt;    ## no critic qw(Modules::ProhibitEvilModules)
+    require Digest::Bcrypt;    ## no critic qw[Modules::ProhibitEvilModules]
 
     my $bcrypt = Digest::Bcrypt->new;
     $bcrypt->cost($cost);

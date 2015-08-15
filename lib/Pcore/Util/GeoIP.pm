@@ -153,16 +153,16 @@ sub _get_h {
         my $use_pure_perl = $GEOIP_PURE_PERL;
 
         if ($use_pure_perl) {
-            require Geo::IP::PurePerl;    ## no critic qw(Modules::ProhibitEvilModules)
+            require Geo::IP::PurePerl;    ## no critic qw[Modules::ProhibitEvilModules]
         }
         else {
             $use_pure_perl = try {
-                require Geo::IP;          ## no critic qw(Modules::ProhibitEvilModules)
+                require Geo::IP;          ## no critic qw[Modules::ProhibitEvilModules]
 
                 return 0;
             }
             catch {
-                require Geo::IP::PurePerl;    ## no critic qw(Modules::ProhibitEvilModules)
+                require Geo::IP::PurePerl;    ## no critic qw[Modules::ProhibitEvilModules]
 
                 return 1;
             };

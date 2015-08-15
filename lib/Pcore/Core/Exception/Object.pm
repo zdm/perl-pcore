@@ -2,7 +2,7 @@ package Pcore::Core::Exception::Object;
 
 use Pcore qw[-class !propagate];
 use Devel::StackTrace qw[];
-use Scalar::Util qw[blessed];    ## no critic qw(Modules::ProhibitEvilModules)
+use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 
 # string overloading can happens only from perl internals calls, such as eval in "use" or "require", or not handled "die", so we don't need full trace here
 use overload                     #
@@ -73,7 +73,7 @@ sub new_exception {
     local $@;                                               # handle errors during exception object creation
 
     my $e = eval {
-        __PACKAGE__->new( { %args, msg => "$msg" } );       ## no critic qw(ValuesAndExpressions::ProhibitCommaSeparatedStatements)
+        __PACKAGE__->new( { %args, msg => "$msg" } );       ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
     };
 
     return $e;

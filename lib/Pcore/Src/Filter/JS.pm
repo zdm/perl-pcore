@@ -25,7 +25,7 @@ sub decompress ( $self, % ) {
 
         $process_obj->Wait( Win32::Process::INFINITE() );
 
-        $self->buffer->$* = P->file->read_bin( $temp->filename )->$*;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $self->buffer->$* = P->file->read_bin( $temp->filename )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
 
     my $log;
@@ -60,7 +60,7 @@ sub compress ($self) {
     try {
         require JavaScript::Packer;
 
-        $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'clean' } );    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'clean' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     };
 
     return 0;
@@ -70,7 +70,7 @@ sub obfuscate ($self) {
     try {
         require JavaScript::Packer;
 
-        $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'obfuscate' } );    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'obfuscate' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     };
 
     return 0;
@@ -120,7 +120,7 @@ sub run_js_hint ($self) {
 
         $jshint_output = P->file->read_lines($out_temp);
 
-        unlink $out_temp;    ## no critic qw(InputOutput::RequireCheckedSyscalls)
+        unlink $out_temp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
     }
 
     my $res = {

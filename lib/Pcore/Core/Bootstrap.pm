@@ -1,10 +1,10 @@
 package Pcore::Core::Bootstrap;
 
 use Pcore;
-use File::Spec qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use File::ShareDir qw[];
 use Config qw[];
-use Cwd qw[];           ## no critic qw(Modules::ProhibitEvilModules)
+use Cwd qw[];           ## no critic qw[Modules::ProhibitEvilModules]
 
 # may not work, if executed in one-liner script
 eval { require FindBin; };
@@ -18,12 +18,12 @@ if ($@) {
     # prevent attempts to reload FindBin later
     delete $INC{'FindBin.pm'};
 
-    $INC{'FindBin.pm'} = 'eval()';    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $INC{'FindBin.pm'} = 'eval()';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 }
 else {
-    $ENV{__PCORE_SCRIPT_DIR} = $FindBin::RealBin;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $ENV{__PCORE_SCRIPT_DIR} = $FindBin::RealBin;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $ENV{__PCORE_SCRIPT_NAME} = $FindBin::RealScript;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $ENV{__PCORE_SCRIPT_NAME} = $FindBin::RealScript;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 }
 
 sub CORE_INIT {
@@ -211,7 +211,7 @@ sub _configure_inc {
         }
     }
 
-    @INC = @inc;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    @INC = @inc;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return;
 }

@@ -2,7 +2,7 @@ package Pcore::Util::Data;
 
 use Pcore;
 use Sort::Naturally qw[nsort];
-use Scalar::Util qw[blessed];    ## no critic qw(Modules::ProhibitEvilModules)
+use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our $TOKEN = {
     serializer => {
@@ -55,7 +55,7 @@ sub encode {
 
     # encode
     if ( $args{to} eq 'PERL' ) {
-        require Data::Dumper;    ## no critic qw(Modules::ProhibitEvilModules)
+        require Data::Dumper;    ## no critic qw[Modules::ProhibitEvilModules]
 
         state $sort_keys = sub {
             return [ nsort keys $_[0] ];
@@ -324,7 +324,7 @@ sub decode {
 
         P->text->decode( $data_ref->$* );
 
-        ## no critic qw(BuiltinFunctions::ProhibitStringyEval)
+        ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
         $res = eval <<"CODE";
 package $ns;
 use Pcore qw[-config];
@@ -504,7 +504,7 @@ sub to_json {
         @_,
     );
 
-    require JSON::XS;    ## no critic qw(Modules::ProhibitEvilModules)
+    require JSON::XS;    ## no critic qw[Modules::ProhibitEvilModules]
 
     # create and configure JSON serializer object
     my $json;
@@ -549,7 +549,7 @@ sub from_json {
         @_,
     );
 
-    require JSON::XS;    ## no critic qw(Modules::ProhibitEvilModules)
+    require JSON::XS;    ## no critic qw[Modules::ProhibitEvilModules]
 
     # create and configure JSON deserializer object
     my $json;
@@ -649,7 +649,7 @@ sub from_ini {
 sub to_b64 {
     my $self = shift;
 
-    require MIME::Base64;    ## no critic qw(Modules::ProhibitEvilModules)
+    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::encode_base64( $_[0], $_[1] );
 }
@@ -657,7 +657,7 @@ sub to_b64 {
 sub to_b64_url {
     my $self = shift;
 
-    require MIME::Base64;    ## no critic qw(Modules::ProhibitEvilModules)
+    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::encode_base64url(@_);
 }
@@ -665,7 +665,7 @@ sub to_b64_url {
 sub from_b64 {
     my $self = shift;
 
-    require MIME::Base64;    ## no critic qw(Modules::ProhibitEvilModules)
+    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::decode_base64(@_);
 }
@@ -673,7 +673,7 @@ sub from_b64 {
 sub from_b64_url {
     my $self = shift;
 
-    require MIME::Base64;    ## no critic qw(Modules::ProhibitEvilModules)
+    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::decode_base64url(@_);
 }
@@ -688,7 +688,7 @@ sub to_uri {
         return WWW::Form::UrlEncoded::XS::build_urlencoded( blessed $_[0] && $_[0]->isa('Pcore::Util::Hash::Multivalue') ? $_[0]->get_hash : $_[0] );
     }
     else {
-        require URI::Escape::XS;    ## no critic qw(Modules::ProhibitEvilModules)
+        require URI::Escape::XS;    ## no critic qw[Modules::ProhibitEvilModules]
 
         return URI::Escape::XS::encodeURIComponent( $_[0] );
     }
@@ -702,7 +702,7 @@ sub from_uri {
         splice( @_, 1 ),
     );
 
-    require URI::Escape::XS;    ## no critic qw(Modules::ProhibitEvilModules)
+    require URI::Escape::XS;    ## no critic qw[Modules::ProhibitEvilModules]
 
     state $encodings;
 

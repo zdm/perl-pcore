@@ -4,7 +4,7 @@ use Pcore qw[-role];
 
 # requires qw[autoload]; # cause of "Segmentation fault" unless required method was found
 
-sub AUTOLOAD ( $self, @ ) {    ## no critic qw(ClassHierarchies::ProhibitAutoloading)
+sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
     my $method = our $AUTOLOAD =~ s/\A.*:://smr;
 
     my $class = ref $self || $self;

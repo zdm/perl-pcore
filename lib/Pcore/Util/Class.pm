@@ -1,7 +1,7 @@
 package Pcore::Util::Class;
 
 use Pcore;
-use Sub::Util qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Sub::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub load {
     my $self  = shift;

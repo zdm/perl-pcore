@@ -1,7 +1,7 @@
 package Pcore::Util::Capture;
 
 use Pcore;
-use Capture::Tiny qw[:all];    ## no critic qw(Modules::ProhibitEvilModules)
+use Capture::Tiny qw[:all];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub sys {
     my $self = shift;
@@ -16,7 +16,7 @@ sub code {
     my $self = shift;
     my $code = shift;
 
-    return &Capture::Tiny::capture_merged($code);    ## no critic qw(Subroutines::ProhibitAmpersandSigils)
+    return &Capture::Tiny::capture_merged($code);    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 1;

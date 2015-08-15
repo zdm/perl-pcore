@@ -6,8 +6,8 @@ use Pcore;
 use Const::Fast qw[];
 use Benchmark qw[];
 use Storable qw[];
-use Data::Dumper qw[];    ## no critic qw(Modules::ProhibitEvilModules)
-use JSON::XS qw[];        ## no critic qw(Modules::ProhibitEvilModules)
+use Data::Dumper qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use JSON::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
 use Data::MessagePack qw[];
 use CBOR::XS qw[];
 

@@ -2,7 +2,7 @@ package Pcore::Core::Constants;
 
 use Pcore qw[-export];
 use Const::Fast qw[];
-use Types::Serialiser qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Types::Serialiser qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our @EXPORT_OK   = qw[$MSWIN $CRLF $LF $TRUE $FALSE $P $DIST $PROC $STDIN $STDOUT $STDERR];
 our %EXPORT_TAGS = (                                                                          #
@@ -19,8 +19,8 @@ our $STDOUT;
 our $STDERR;
 
 Const::Fast::const our $MSWIN => $^O =~ /MSWin/sm ? 1 : 0;
-Const::Fast::const our $CRLF  => qq[\x0D\x0A];               ## no critic qw(ValuesAndExpressions::ProhibitEscapedCharacters)
-Const::Fast::const our $LF    => qq[\x0A];                   ## no critic qw(ValuesAndExpressions::ProhibitEscapedCharacters)
+Const::Fast::const our $CRLF  => qq[\x0D\x0A];               ## no critic qw[ValuesAndExpressions::ProhibitEscapedCharacters]
+Const::Fast::const our $LF    => qq[\x0A];                   ## no critic qw[ValuesAndExpressions::ProhibitEscapedCharacters]
 Const::Fast::const our $TRUE  => Types::Serialiser::true;
 Const::Fast::const our $FALSE => Types::Serialiser::false;
 

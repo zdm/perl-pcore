@@ -18,13 +18,13 @@ sub decompress ($self) {
 
     $packer->{_reggrp_declaration} = Regexp::RegGrp->new( { reggrp => $packer->{declaration}->{reggrp_data} } );
 
-    $self->buffer->$* = $packer->minify( $self->buffer, { compress => 'pretty' } );    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $self->buffer->$* = $packer->minify( $self->buffer, { compress => 'pretty' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }
 
 sub compress ($self) {
-    $self->buffer->$* = CSS::Packer->init->minify( $self->buffer, { compress => 'minify' } );    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $self->buffer->$* = CSS::Packer->init->minify( $self->buffer, { compress => 'minify' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }

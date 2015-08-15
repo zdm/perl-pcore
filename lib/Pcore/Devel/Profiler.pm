@@ -5,7 +5,7 @@ use warnings;
 use utf8;
 use v5.20.0;
 
-open my $fh, '>:raw', 'profile.csv' or die;    ## no critic qw(InputOutput::RequireBriefOpen)
+open my $fh, '>:raw', 'profile.csv' or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 say {$fh} 'package,caller,RES before,RES after,RES diff,VSZ before,VSZ after';
 
 our %PACKAGES;
@@ -25,7 +25,7 @@ our %PACKAGES;
         $mem_before         = _get_mem();
     }
 
-    my $sub = eval qq[package $caller; sub { CORE::require( \$_[0] ) }];    ## no critic qw(BuiltinFunctions::ProhibitStringyEval)
+    my $sub = eval qq[package $caller; sub { CORE::require( \$_[0] ) }];    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
     my $res = $sub->($package);
 
     if ($monitor) {

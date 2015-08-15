@@ -74,7 +74,7 @@ Specify the group id or group name that the server should switch to.
 =cut
 POD
 
-        open $linux_pod_fh, '<', \$pod or die;    ## no critic qw(InputOutput::RequireBriefOpen)
+        open $linux_pod_fh, '<', \$pod or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
         unshift $pods, $linux_pod_fh;
     }
@@ -102,7 +102,7 @@ Install systemd unit. Default name is "$PROC->{SERVICE_NAME}".
 =cut
 POD
 
-        open $service_pod_fh, '<', \$pod or die;    ## no critic qw(InputOutput::RequireBriefOpen)
+        open $service_pod_fh, '<', \$pod or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
         unshift $pods, $service_pod_fh;
     }

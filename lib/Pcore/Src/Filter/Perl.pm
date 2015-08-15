@@ -203,7 +203,7 @@ sub compress ( $self, % ) {
         }
     }
 
-    $self->buffer->$* = $cache->{$key} . $data_section;                ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $self->buffer->$* = $cache->{$key} . $data_section;                ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }
@@ -346,7 +346,7 @@ sub _format_sub_signature ( $sub_name, $sub_sign ) {
 }
 
 sub cut_log ($self) {
-    $self->buffer->$* =~ s/^## -----SOURCE FILTER LOG BEGIN-----.*?## -----SOURCE FILTER LOG END-----\n?//sm;    ## no critic qw(RegularExpressions::ProhibitComplexRegexes)
+    $self->buffer->$* =~ s/^## -----SOURCE FILTER LOG BEGIN-----.*?## -----SOURCE FILTER LOG END-----\n?//sm;    ## no critic qw[RegularExpressions::ProhibitComplexRegexes]
 
     P->text->rcut_all( $self->buffer->$* );
 

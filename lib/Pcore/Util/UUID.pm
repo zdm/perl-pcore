@@ -1,7 +1,7 @@
 package Pcore::Util::UUID;
 
 use Pcore;
-use Data::UUID qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Data::UUID qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub str {
     my $self = shift;
@@ -15,7 +15,7 @@ sub bin {
     return Data::UUID->new->create_bin;
 }
 
-sub hex {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub hex {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $self = shift;
 
     return substr Data::UUID->new->create_hex, 2;

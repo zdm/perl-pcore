@@ -173,7 +173,7 @@ sub _install {
 
             push @path, $canon_bin_dir;
 
-            $ENV{PATH} = join q[;], @path;                                       ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+            $ENV{PATH} = join q[;], @path;                                       ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
             Pcore->sys->system(qq[setx.exe /M PATH "$ENV{PATH};"]) or return;
 

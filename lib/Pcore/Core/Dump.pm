@@ -12,7 +12,7 @@ BEGIN {
 
 use Pcore::Core::Dump::Dumper;
 
-sub dump {                                            ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub dump {                                            ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my %args = (
         color       => 1,
         indent      => 4,

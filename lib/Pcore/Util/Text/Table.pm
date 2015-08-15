@@ -1,7 +1,7 @@
 package Pcore::Util::Text::Table;
 
 use Pcore qw[-class];
-use Text::ASCIITable qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Text::ASCIITable qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 has row_line => ( is => 'ro', isa => Bool, default => 1 );
 has _protect_spaces => ( is => 'rw', isa => Bool, default => 0, init_arg => undef );

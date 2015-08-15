@@ -66,7 +66,7 @@ sub _build_params {
         my $param = $method_params->{$param_name};
 
         # mark param as allowed
-        delete $params_strict_keys->@{ $param_name, $param->alias_name };    ## no critic qw(ValuesAndExpressions::ProhibitCommaSeparatedStatements)
+        delete $params_strict_keys->@{ $param_name, $param->alias_name };    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
         my $val;
 

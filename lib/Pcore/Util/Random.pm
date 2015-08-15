@@ -2,7 +2,7 @@ package Pcore::Util::Random;
 
 use Pcore;
 use Math::Random::ISAAC::XS qw[];
-use Bytes::Random::Secure qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Bytes::Random::Secure qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our $SEED_BITS        = 256;
 our $SEED_NONBLOCKING = 1;                                                                       # blocking entropy generator is more secure

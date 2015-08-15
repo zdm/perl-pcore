@@ -3,7 +3,7 @@ package Pcore::Util::Sys;
 use Pcore;
 
 # in case of error return undef
-sub system {    ## no critic qw(Subroutines::ProhibitBuiltinHomonyms)
+sub system {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $self = shift;
 
     CORE::system(@_);
@@ -33,7 +33,7 @@ sub pid {
 sub hostname {
     my $self = shift;
 
-    require Sys::Hostname;    ## no critic qw(Modules::ProhibitEvilModules)
+    require Sys::Hostname;    ## no critic qw[Modules::ProhibitEvilModules]
 
     state $hostname = Sys::Hostname::hostname();
 

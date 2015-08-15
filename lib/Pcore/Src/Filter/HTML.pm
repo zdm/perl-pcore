@@ -22,7 +22,7 @@ sub decompress ($self) {
 
         $process_obj->Wait( Win32::Process::INFINITE() );
 
-        $self->buffer->$* = P->file->read_bin( $temp->filename )->$*;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $self->buffer->$* = P->file->read_bin( $temp->filename )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
 
     return 0;
@@ -42,7 +42,7 @@ sub compress ($self) {
         }
     }
 
-    $self->buffer->$* = join q[], @script;    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $self->buffer->$* = join q[], @script;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     # compress css
     my @css = split m[(<style[^>]*>)(.*?)(</style[^>]*>)]smi, $self->buffer->$*;
@@ -53,14 +53,14 @@ sub compress ($self) {
         }
     }
 
-    $self->buffer->$* = join q[], @css;       ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+    $self->buffer->$* = join q[], @css;       ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     my $html_packer_minify_args = $self->dist_cfg->{HTML_PACKER_MINIFY} || $self->src_cfg->{HTML_PACKER_MINIFY};
 
     try {
         require HTML::Packer;
 
-        $self->buffer->$* = HTML::Packer->init->minify( $self->buffer, $html_packer_minify_args );    ## no critic qw(Variables::RequireLocalizedPunctuationVars)
+        $self->buffer->$* = HTML::Packer->init->minify( $self->buffer, $html_packer_minify_args );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     };
 
     return 0;

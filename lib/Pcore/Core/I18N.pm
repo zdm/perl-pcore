@@ -178,7 +178,7 @@ sub _load_catalog {
 
     # Untaint the plural header.
     # Keep line breaks as is (Perl 5_005 compatibility).
-    if ( $code =~ m[^($s*nplurals$s*=$s*[\d]+$s*;$s*plural$s*=$s*(?:$s|[-\?\|\&=!<>+*/\%:;[:alpha:]\d_\(\)])+)]smx ) {    ## no critic qw(RegularExpressions::ProhibitEscapedMetacharacters)
+    if ( $code =~ m[^($s*nplurals$s*=$s*[\d]+$s*;$s*plural$s*=$s*(?:$s|[-\?\|\&=!<>+*/\%:;[:alpha:]\d_\(\)])+)]smx ) {    ## no critic qw[RegularExpressions::ProhibitEscapedMetacharacters]
         $domain->{po_header}->{plural_forms} = $1;
     }
     else {
@@ -192,7 +192,7 @@ sub _load_catalog {
 
     if ( $domain->{po_header}->{plural_forms} ) {
         my $plural_code = q[ ] . $domain->{po_header}->{plural_forms} . q[ ];
-        $plural_code =~ s/([^_[:alpha:]\d]|\A)([_[:lower:]][_[:alpha:]\d]*)([^_[:alpha:]\d])/$1\$$2$3/g;    ## no critic qw(RegularExpressions::RequireDotMatchAnything RegularExpressions::RequireLineBoundaryMatching)
+        $plural_code =~ s/([^_[:alpha:]\d]|\A)([_[:lower:]][_[:alpha:]\d]*)([^_[:alpha:]\d])/$1\$$2$3/g;    ## no critic qw[RegularExpressions::RequireDotMatchAnything RegularExpressions::RequireLineBoundaryMatching]
 
         $plural_code = "sub { my \$n = shift; my (\$plural, \$nplurals); $plural_code; return (\$nplurals, \$plural ? \$plural : 0); }";
 

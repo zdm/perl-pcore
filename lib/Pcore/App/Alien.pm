@@ -67,7 +67,7 @@ around app_run => sub {
             $self->term_state(1);
 
             # send TERM to child process
-            kill 'TERM', $self->alien_pid;    ## no critic qw(InputOutput::RequireCheckedSyscalls)
+            kill 'TERM', $self->alien_pid;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
             return;
         };
@@ -87,7 +87,7 @@ around app_run => sub {
                 # kill process group
                 $IGNORE_TERM = 1;
 
-                kill '-TERM', $$;    ## no critic qw(InputOutput::RequireCheckedSyscalls)
+                kill '-TERM', $$;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
                 $self->_fork_child;  # re-up child
             }

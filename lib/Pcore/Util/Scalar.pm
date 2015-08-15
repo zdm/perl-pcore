@@ -1,7 +1,7 @@
 package Pcore::Util::Scalar;
 
 use Pcore qw[-autoload];
-use Scalar::Util qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use Scalar::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub is_hash {
     my $self = shift;

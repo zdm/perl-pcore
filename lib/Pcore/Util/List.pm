@@ -1,7 +1,7 @@
 package Pcore::Util::List;
 
 use Pcore qw[-autoload];
-use List::AllUtils qw[];    ## no critic qw(Modules::ProhibitEvilModules)
+use List::AllUtils qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub autoload {
     my $self   = shift;
