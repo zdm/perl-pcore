@@ -55,6 +55,32 @@ sub pub_suffixes {
     return $suffixes;
 }
 
+sub tlds {
+    state $tlds = do {
+        my $path = P->res->get_local('iana_tlds.dat');
+
+        if ( !$path ) {
+            P->ua->request(
+                'https://data.iana.org/TLD/tlds-alpha-by-domain.txt',
+                chunk_size  => 0,
+                on_progress => 0,
+                blocking    => 1,
+                on_finish   => sub ($res) {
+                    if ( $res->status == 200 ) {
+                        $path = P->res->store_local( 'iana_tlds.dat', P->text->encode_utf8( \join $LF, map { lc Net::IDN::Encode::domain_to_unicode($_) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        my $_tlds = { map { $_ => 1 } P->file->read_lines($path)->@* };
+    };
+
+    return $tlds;
+}
+
 sub BUILDARGS ( $self, $args ) {
 
     # try to decode from punycode
