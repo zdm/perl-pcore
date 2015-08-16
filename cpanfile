@@ -143,6 +143,10 @@ requires 'Text::ASCIITable';
 requires 'Text::Xslate';
 requires 'Text::Xslate::Bridge::TT2Like';
 
+# Pcore::Util::URI::Host
+requires 'Regexp::Common';
+requires 'Net::IDN::Encode';
+
 # Pcore::Util::UUID
 requires 'Data::UUID';
 

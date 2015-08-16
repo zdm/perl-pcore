@@ -1,6 +1,8 @@
 package Pcore::Util::URI::Host;
 
 use Pcore qw[-class];
+use Net::IDN::Encode qw[];
+use Regexp::Common qw[net];
 
 use overload    #
   q[""] => sub {
@@ -11,23 +13,86 @@ use overload    #
   },
   fallback => undef;
 
-has name         => ( is => 'ro',   required => 1 );
-has is_ip        => ( is => 'lazy', init_arg => undef );
-has is_domain    => ( is => 'lazy', init_arg => undef );
-has is_valid     => ( is => 'lazy', init_arg => undef );
-has tld          => ( is => 'lazy', init_arg => undef );
-has canon_domain => ( is => 'lazy', init_arg => undef );    # host without www. prefix
-has pub_suffix   => ( is => 'lazy', init_arg => undef );
-has root_domain  => ( is => 'lazy', init_arg => undef );
+has name               => ( is => 'ro',   required => 1 );
+has name_ascii         => ( is => 'lazy', init_arg => undef );
+has is_ip              => ( is => 'lazy', init_arg => undef );
+has is_ipv4            => ( is => 'lazy', init_arg => undef );
+has is_ipv6            => ( is => 'lazy', init_arg => undef );
+has is_domain          => ( is => 'lazy', init_arg => undef );
+has is_valid           => ( is => 'lazy', init_arg => undef );
+has tld                => ( is => 'lazy', init_arg => undef );
+has tld_ascii          => ( is => 'lazy', init_arg => undef );
+has canon_domain       => ( is => 'lazy', init_arg => undef );    # host without www. prefix
+has canon_domain_ascii => ( is => 'lazy', init_arg => undef );
+has pub_suffix         => ( is => 'lazy', init_arg => undef );
+has pub_suffix_ascii   => ( is => 'lazy', init_arg => undef );
+has root_domain        => ( is => 'lazy', init_arg => undef );
+has root_domain_ascii  => ( is => 'lazy', init_arg => undef );
 
 no Pcore;
+
+sub pub_suffixes {
+    state $suffixes = do {
+        my $path = P->res->get_local('effective_tld_names.dat');
+
+        if ( !$path ) {
+            P->ua->request(
+                'https://publicsuffix.org/list/effective_tld_names.dat',
+                chunk_size  => 0,
+                on_progress => 0,
+                blocking    => 1,
+                on_finish   => sub ($res) {
+                    $path = P->res->store_local( 'effective_tld_names.dat', $res->body ) if $res->status == 200;
+
+                    return;
+                }
+            );
+        }
+
+        my $_suffixes = { map { $_ => 1 } grep { index( $_, q[//] ) == -1 } P->file->read_lines($path)->@* };
+    };
+
+    return $suffixes;
+}
+
+sub BUILDARGS ( $self, $args ) {
+
+    # try to decode from punycode
+    if ( index( $args->{name}, 'xn--' ) != -1 ) {
+        $args->{name} = Net::IDN::Encode::domain_to_unicode( $args->{name} );
+    }
+
+    return $args;
+}
 
 sub to_string ($self) {
     return $self->name;
 }
 
+sub _build_name_ascii ($self) {
+    return Net::IDN::Encode::domain_to_ascii( $self->name );
+}
+
 sub _build_is_ip ($self) {
-    if ( $self->name && $self->name =~ /\A\d{1,3}[.]\d{1,3}[.]\d{1,3}[.]\d{1,3}\z/sm ) {
+    if ( $self->name && ( $self->is_ipv4 || $self->is_ipv6 ) ) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+sub _build_is_ipv4 ($self) {
+    if ( $self->name && $self->name =~ /\A$RE{net}{IPv4}\z/sm ) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+sub _build_is_ipv6 ($self) {
+    if ( $self->name && $self->name =~ /\A$RE{net}{IPv6}\z/sm ) {
         return 1;
     }
     else {
@@ -70,6 +135,10 @@ sub _build_tld ($self) {
     }
 }
 
+sub _build_tld_ascii ($self) {
+    return Net::IDN::Encode::domain_to_ascii( $self->tld );
+}
+
 sub _build_canon_domain ($self) {
     return q[] if $self->is_ip;
 
@@ -82,31 +151,13 @@ sub _build_canon_domain ($self) {
     return q[];
 }
 
+sub _build_canon_domain_ascii ($self) {
+    return Net::IDN::Encode::domain_to_ascii( $self->canon_domain );
+}
+
 sub _build_pub_suffix ($self) {
-    state $suffixes = do {
-        my $_suffixes;
-
-        my $path = P->res->get_local('effective_tld_names.dat');
-
-        if ( !$path ) {
-            P->ua->request(
-                'https://publicsuffix.org/list/effective_tld_names.dat',
-                chunk_size  => 0,
-                on_progress => 0,
-                blocking    => 1,
-                on_finish   => sub ($res) {
-                    $path = P->res->store_local( 'effective_tld_names.dat', $res->body ) if $res->status == 200;
-
-                    return;
-                }
-            );
-        }
-
-        $_suffixes = { map { $_ => 1 } grep { index( $_, q[//] ) == -1 } P->file->read_lines($path)->@* };
-    };
-
     if ( my $name = $self->canon_domain ) {
-        return $name if exists $suffixes->{$name};
+        return $name if exists pub_suffixes()->{$name};
 
         my @parts = split /[.]/sm, $name;
 
@@ -115,11 +166,15 @@ sub _build_pub_suffix ($self) {
         while ( shift @parts ) {
             my $subhost = join q[.], @parts;
 
-            return $subhost if exists $suffixes->{$subhost};
+            return $subhost if exists pub_suffixes()->{$subhost};
         }
     }
 
     return q[];
+}
+
+sub _build_pub_suffix_ascii ($self) {
+    return Net::IDN::Encode::domain_to_ascii( $self->pub_suffix );
 }
 
 sub _build_root_domain ($self) {
@@ -132,15 +187,8 @@ sub _build_root_domain ($self) {
     return q[];
 }
 
-# TODO
-sub punycode ($self) {
-    require URI::_idna;
-
-    if ( $self->host && index( $self->host, 'xn--' ) == 0 ) {
-        return URI::_idna::decode( $self->host );
-    }
-
-    return q[];
+sub _build_root_domain_ascii ($self) {
+    return Net::IDN::Encode::domain_to_ascii( $self->root_domain );
 }
 
 1;
