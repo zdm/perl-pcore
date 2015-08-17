@@ -64,31 +64,33 @@ BEGIN {
 
     # configure standard library
     $Pcore::UTIL = {
-        bit      => 'Pcore::Util::Bit',
-        capture  => 'Pcore::Util::Capture',
-        cfg      => 'Pcore::Util::Config',
-        class    => 'Pcore::Util::Class',
-        data     => 'Pcore::Util::Data',
-        date     => 'Pcore::Util::Date',
-        digest   => 'Pcore::Util::Digest',
-        file     => 'Pcore::Util::File',
-        geoip    => 'Pcore::Util::GeoIP',
-        hash     => 'Pcore::Util::Hash',
-        list     => 'Pcore::Util::List',
-        mail     => 'Pcore::Util::Mail',
-        moo      => 'Pcore::Util::Moo',
-        pm       => 'Pcore::Util::PM',
-        progress => 'Pcore::Util::Progress',
-        prompt   => 'Pcore::Util::Prompt',
-        random   => 'Pcore::Util::Random',
-        res      => 'Pcore::Util::Resources',
-        scalar   => 'Pcore::Util::Scalar',
-        sys      => 'Pcore::Util::Sys',
-        text     => 'Pcore::Util::Text',
-        tmpl     => 'Pcore::Util::Template',
-        ua       => 'Pcore::HTTP::UA',
-        uri      => 'Pcore::Util::URI',
-        uuid     => 'Pcore::Util::UUID',
+        bit       => 'Pcore::Util::Bit',
+        capture   => 'Pcore::Util::Capture',
+        cfg       => 'Pcore::Util::Config',
+        class     => 'Pcore::Util::Class',
+        data      => 'Pcore::Util::Data',
+        date      => 'Pcore::Util::Date',
+        digest    => 'Pcore::Util::Digest',
+        file      => 'Pcore::Util::File',
+        geoip     => 'Pcore::Util::GeoIP',
+        hash      => 'Pcore::Util::Hash',
+        host      => 'Pcore::Util::URI::Host',
+        list      => 'Pcore::Util::List',
+        mail      => 'Pcore::Util::Mail',
+        moo       => 'Pcore::Util::Moo',
+        pm        => 'Pcore::Util::PM',
+        progress  => 'Pcore::Util::Progress',
+        prompt    => 'Pcore::Util::Prompt',
+        random    => 'Pcore::Util::Random',
+        res       => 'Pcore::Util::Resources',
+        scalar    => 'Pcore::Util::Scalar',
+        share_dir => 'Pcore::Util::ShareDir',
+        sys       => 'Pcore::Util::Sys',
+        text      => 'Pcore::Util::Text',
+        tmpl      => 'Pcore::Util::Template',
+        ua        => 'Pcore::HTTP::UA',
+        uri       => 'Pcore::Util::URI',
+        uuid      => 'Pcore::Util::UUID',
     };
 }
 
@@ -551,17 +553,17 @@ sub _configure_console {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 97                   │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
+## │    3 │ 99                   │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 158                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 160                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 402, 450, 467, 515,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 516, 517, 523, 524,  │                                                                                                                │
-## │      │ 525, 530, 531, 532   │                                                                                                                │
+## │    3 │ 404, 452, 469, 517,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 518, 519, 525, 526,  │                                                                                                                │
+## │      │ 527, 532, 533, 534   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 405                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 493                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 495                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

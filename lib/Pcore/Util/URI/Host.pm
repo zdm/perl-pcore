@@ -81,6 +81,10 @@ sub tlds {
     return $tlds;
 }
 
+sub NEW ( $self, $host ) {
+    return __PACKAGE__->new( { name => $host } );
+}
+
 sub BUILDARGS ( $self, $args ) {
 
     # try to decode from punycode
