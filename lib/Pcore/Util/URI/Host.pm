@@ -22,6 +22,7 @@ has is_domain          => ( is => 'lazy', init_arg => undef );
 has is_valid           => ( is => 'lazy', init_arg => undef );
 has tld                => ( is => 'lazy', init_arg => undef );
 has tld_ascii          => ( is => 'lazy', init_arg => undef );
+has tld_is_valid       => ( is => 'lazy', init_arg => undef );
 has canon_domain       => ( is => 'lazy', init_arg => undef );    # host without www. prefix
 has canon_domain_ascii => ( is => 'lazy', init_arg => undef );
 has pub_suffix         => ( is => 'lazy', init_arg => undef );
@@ -167,6 +168,10 @@ sub _build_tld ($self) {
 
 sub _build_tld_ascii ($self) {
     return Net::IDN::Encode::domain_to_ascii( $self->tld );
+}
+
+sub _build_tld_is_valid ($self) {
+    return exists tlds()->{ $self->tld } ? 1 : 0;
 }
 
 sub _build_canon_domain ($self) {
