@@ -4,7 +4,7 @@ use Pcore qw[-class];
 
 with qw[Pcore::AnyEvent::Proxy::Source];
 
-has proxies => ( is => 'ro', isa => ArrayRef [HashRef], required => 1 );
+has proxies => ( is => 'ro', isa => ArrayRef [Str], required => 1 );
 
 no Pcore;
 
@@ -15,7 +15,9 @@ sub load {
 
     $cv->begin;
 
-    push $proxies, $self->proxies->@*;
+    for ( $self->proxies->@* ) {
+        push $proxies, { addr => $_ };
+    }
 
     $cv->end;
 
