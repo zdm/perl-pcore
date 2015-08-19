@@ -35,8 +35,8 @@ sub new ( $self, %args ) {
             elsif ( $args_orig{on_connect_error} ) {
                 $args_orig{on_connect_error}->( $h, $message );
             }
-            elsif ( $args_orig{on_error} ) {
-                $args_orig{on_error}->( $h, 1, $message );
+            elsif ( $args{on_error} ) {
+                $args{on_error}->( $h, 1, $message );
             }
             else {
                 die $message;
@@ -58,19 +58,83 @@ sub new ( $self, %args ) {
                 return;
             };
 
-            if ( $proxy_type eq 'socks' ) {
-                if ( $proxy->is_socks5 ) {
-                    _connect_socks5_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+            if ( $proxy_type eq 'http' ) {
+                if ( $proxy->is_http ) {
+                    $on_connect->();
                 }
                 else {
-                    $h->{on_connect_error}->( $h, 'Proxy type is not supported', 1 );
+                    $h->{on_connect_error}->( $h, 'Proxy is not HTTP proxy', 1 );
                 }
             }
             elsif ( $proxy_type eq 'https' ) {
-                _connect_https_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                if ( $args_orig{connect}->[1] == 443 ) {
+                    if ( $proxy->is_https ) {
+                        _connect_https_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                    }
+                    else {
+                        $h->{on_connect_error}->( $h, 'Proxy is not HTTPS proxy', 1 );
+                    }
+                }
+                else {
+                    $h->{on_connect_error}->( $h, 'HTTPS proxy can connect only to port 443', 1 );
+                }
             }
-            elsif ( $proxy_type eq 'http' ) {
-                $on_connect->();
+            elsif ( $proxy_type eq 'connect' ) {
+                if ( $proxy->is_connect ) {
+                    _connect_https_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                }
+                else {
+                    $h->{on_connect_error}->( $h, 'Proxy is not CONNECT proxy', 1 );
+                }
+            }
+            elsif ( index( $proxy_type, 'socks' ) == 0 ) {
+
+                # autimatically define socks proxy type
+                if ( $proxy_type eq 'socks' ) {
+                    if ( $proxy->is_socks5 ) {
+                        _connect_socks5_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                    }
+                    elsif ( $proxy->is_socks4 ) {
+                        _connect_socks4_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                    }
+                    elsif ( $proxy->is_socks4a ) {
+                        _connect_socks4a_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                    }
+                    else {
+                        $h->{on_connect_error}->( $h, 'Proxy is not SOCKS proxy', 1 );
+                    }
+                }
+                elsif ( $proxy_type eq 'socks5' ) {
+                    if ( $proxy->is_socks5 ) {
+                        _connect_socks5_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                    }
+                    else {
+                        $h->{on_connect_error}->( $h, 'Proxy is not SOCKS5 proxy', 1 );
+                    }
+                }
+                elsif ( $proxy_type eq 'socks4' ) {
+                    if ( $proxy->is_socks4 ) {
+                        $h->{on_connect_error}->( $h, 'Proxy type SOCKS4 is not supported', 1 );
+
+                        # _connect_socks4_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                    }
+                    else {
+                        $h->{on_connect_error}->( $h, 'Proxy is not SOCKS4 proxy', 1 );
+                    }
+                }
+                elsif ( $proxy_type eq 'socks4a' ) {
+                    if ( $proxy->is_socks4a ) {
+                        $h->{on_connect_error}->( $h, 'Proxy type SOCKS4a is not supported', 1 );
+
+                        # _connect_socks4a_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
+                    }
+                    else {
+                        $h->{on_connect_error}->( $h, 'Proxy is not SOCKS4a proxy', 1 );
+                    }
+                }
+                else {
+                    $h->{on_connect_error}->( $h, 'Unknown socks proxy type', 1 );
+                }
             }
             else {
                 $h->{on_connect_error}->( $h, 'Unknown proxy type', 1 );
@@ -96,7 +160,7 @@ sub _connect_https_proxy ( $h, $proxy, $connect, $on_connect ) {
         }
     );
 
-    $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.0] . $CRLF . ( $proxy->auth ? q[Proxy-Authorization: Basic ] . $proxy->auth_b64 . $CRLF : $CRLF ) . $CRLF );
+    $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->auth ? q[Proxy-Authorization: Basic ] . $proxy->auth_b64 . $CRLF : $CRLF ) . $CRLF );
 
     $h->push_read(
         line => $qr_nlnl,
@@ -247,6 +311,56 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect ) {
     return;
 }
 
+sub _connect_socks4_proxy ( $h, $proxy, $connect, $on_connect ) {
+    $h->on_timeout(
+        sub($h) {
+            $h->{on_connect_error}->( $h, q[Connection timed out], 0 );
+
+            return;
+        }
+    );
+
+    # start handshake
+    my $ipn4 = AnyEvent::Socket::parse_ipv4( $connect->[0] );
+
+    my $ident = q[];
+
+    $h->push_write( qq[\x04\x01] . pack( 'n', $connect->[1] ) . $ipn4 . $ident . q[\x00] );
+
+    $h->push_read(
+        chunk => 8,
+        sub ( $h, $chunk ) {
+            my ( $vn, $cd ) = unpack 'CC', $chunk;
+
+            if ( $cd == 90 ) {
+                $on_connect->();
+            }
+            if ( $cd == 91 ) {
+                $h->{on_connect_error}->( $h, 'Request rejected or failed', 0 );
+            }
+            elsif ( $cd == 92 ) {
+                $h->{on_connect_error}->( $h, 'Request rejected because SOCKS server cannot connect to identd on the client', 1 );
+            }
+            elsif ( $cd == 93 ) {
+                $h->{on_connect_error}->( $h, 'Request rejected because the client program and identd report different user-ids', 1 );
+            }
+            else {
+                $h->{on_connect_error}->( $h, 'Request rejected', 1 );
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub _connect_socks4a_proxy ( $h, $proxy, $connect, $on_connect ) {
+    $h->{on_connect_error}->( $h, 'Proxy type is not supported', 1 );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -254,10 +368,14 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 140, 143, 170, 173,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 176                  │                                                                                                                │
+## │    3 │ 10                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (39)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 170, 173, 176, 190   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    2 │ 204, 207, 234, 237,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 240, 328             │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 234, 237, 240, 254   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 328                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -268,7 +386,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AnyEvent::Handle
+Pcore::AnyEvent::Handle - AnyEvent::Handle with proxy support
 
 =head1 SYNOPSIS
 

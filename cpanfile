@@ -34,7 +34,6 @@ feature linux => sub {
 };
 requires 'AnyEvent';
 requires 'Net::DNS::Resolver';
-requires 'IO::Socket::Socks';
 
 # Inline
 requires 'Inline';
