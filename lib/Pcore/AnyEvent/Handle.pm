@@ -2,12 +2,10 @@ package Pcore::AnyEvent::Handle;
 
 use Pcore;
 use parent qw[AnyEvent::Handle];
+use AnyEvent::Socket qw[];
 use HTTP::Parser::XS qw[HEADERS_NONE];
 
 no Pcore;
-
-# TODO implement caching
-our $CACHE = {};
 
 sub new ( $self, %args ) {
     if ( !$args{proxy} || $args{fh} ) {
@@ -71,6 +69,9 @@ sub new ( $self, %args ) {
             elsif ( $proxy_type eq 'https' ) {
                 _connect_https_proxy( $h, $proxy, $args_orig{connect}, $on_connect );
             }
+            elsif ( $proxy_type eq 'http' ) {
+                $on_connect->();
+            }
             else {
                 $h->{on_connect_error}->( $h, 'Unknown proxy type', 1 );
             }
@@ -80,8 +81,6 @@ sub new ( $self, %args ) {
 
         return $self->SUPER::new(%args);
     }
-
-    return;
 }
 
 sub _connect_https_proxy ( $h, $proxy, $connect, $on_connect ) {
@@ -147,15 +146,15 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect ) {
     $h->push_read(
         chunk => 2,
         sub ( $h, $chunk ) {
-            my ( $ver, $method ) = unpack( 'C*', $chunk );
+            my ( $ver, $method ) = unpack 'C*', $chunk;
 
-            if ( $method == hex '0xFF' ) {    # no valid auth method was proposed
+            if ( $method == 255 ) {    # no valid auth method was proposed
                 $h->{on_connect_error}->( $h, 'No authorization method was found', 1 );
             }
-            elsif ( $method == hex '0x02' ) {    # start username / password authorization
+            elsif ( $method == 2 ) {    # start username / password authorization
                 $h->{on_connect_error}->( $h, 'Authorization method not supported', 1 );
             }
-            elsif ( $method == 0 ) {             # no authorization needed
+            elsif ( $method == 0 ) {    # no authorization needed
 
                 # timeout - tunnel creation timeout error
                 $h->on_timeout(
@@ -255,11 +254,10 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 141, 144, 171, 174,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 177                  │                                                                                                                │
+## │    2 │ 140, 143, 170, 173,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 176                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 150, 171, 174, 177,  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 191                  │                                                                                                                │
+## │    1 │ 170, 173, 176, 190   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
