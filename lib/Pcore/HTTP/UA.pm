@@ -18,7 +18,6 @@ use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF];
 use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Request;
 use Pcore::HTTP::CookieJar;
-use Pcore::AnyEvent::Proxy;
 use Socket;
 use IO::Socket::Socks;
 use AnyEvent::Socket;
@@ -1335,17 +1334,17 @@ sub _socks_handshake {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 123                  │ * Subroutine "request" with high complexity score (42)                                                         │
-## │      │ 433                  │ * Subroutine "_http_request" with high complexity score (130)                                                  │
+## │      │ 122                  │ * Subroutine "request" with high complexity score (42)                                                         │
+## │      │ 432                  │ * Subroutine "_http_request" with high complexity score (130)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 1133, 1154, 1222,    │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
-## │      │ 1279                 │                                                                                                                │
+## │    3 │ 1132, 1153, 1221,    │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │      │ 1278                 │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 1148                 │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 1147                 │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 324                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 323                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 1123                 │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 1122                 │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
