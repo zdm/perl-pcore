@@ -90,14 +90,14 @@ sub clear ($self) {
 
 sub _load ( $self, $cb ) {
 
-    # retrun, if load process is already running or auto loading disabled
+    # return, if load process is already running or auto loading disabled
     if ( $self->_load_in_progress || ( $self->_last_loaded && !$self->load_timeout ) ) {
         $cb->();
 
         return;
     }
 
-    # retrun, if timeout not reached
+    # return, if timeout not reached
     if ( $self->_last_loaded + $self->load_timeout > time ) {
         $cb->();
 
@@ -128,11 +128,15 @@ sub _load ( $self, $cb ) {
         return;
     };
 
+    $cv->begin;
+
     for my $source ( $self->_source->@* ) {
         $cv->begin;
 
         $source->load( $cv, $temp_pool );
     }
+
+    $cv->end;
 
     return;
 }
@@ -214,9 +218,9 @@ sub get_proxy ( $self, $lists, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 150, 189         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31, 154, 193         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 140                  │ Subroutines::ProhibitExcessComplexity - Subroutine "release" with high complexity score (22)                   │
+## │    3 │ 144                  │ Subroutines::ProhibitExcessComplexity - Subroutine "release" with high complexity score (22)                   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
