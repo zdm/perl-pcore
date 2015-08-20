@@ -14,16 +14,8 @@ no Pcore;
 
 # NOTE it's important to use "persistent" = 0 in AnyEvent::HTTP, otherwise all connections will not use NEWNYM, if NYM changed
 
-sub load {
-    my $self    = shift;
-    my $cv      = shift;
-    my $proxies = shift;
-
-    $cv->begin;
-
-    push $proxies, { addr => $self->host . q[:] . $self->port, socks5 => 1 };
-
-    $cv->end;
+sub load ( $self, $cb ) {
+    $cb->( [ 'socks5://' . $self->host . q[:] . $self->port ] );
 
     return;
 }

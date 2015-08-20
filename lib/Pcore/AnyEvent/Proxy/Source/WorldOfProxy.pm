@@ -15,17 +15,21 @@ sub _build__urls {
     my $self = shift;
 
     return {
-        'http://worldofproxy.com/getx_' . $self->api_key . '_0_______.html' => { http   => 1 },
-        'http://worldofproxy.com/getx_' . $self->api_key . '_1_______.html' => { https  => 1 },
-        'http://worldofproxy.com/getx_' . $self->api_key . '_3_______.html' => { socks4 => 1 },
-        'http://worldofproxy.com/getx_' . $self->api_key . '_4_______.html' => { socks5 => 1 },
+        'http://worldofproxy.com/getx_' . $self->api_key . '_0_______.html' => 'http',
+        'http://worldofproxy.com/getx_' . $self->api_key . '_1_______.html' => 'connect',
+        'http://worldofproxy.com/getx_' . $self->api_key . '_3_______.html' => 'socks4',
+        'http://worldofproxy.com/getx_' . $self->api_key . '_4_______.html' => 'socks5',
     };
 }
 
-sub load {
-    my $self    = shift;
-    my $cv      = shift;
-    my $proxies = shift;
+sub load ( $self, $cb ) {
+    my $proxies;
+
+    my $cv = AE::cv {
+        $cb->($proxies);
+
+        return;
+    };
 
     for my $url ( keys $self->_urls->%* ) {
         P->ua->request(
@@ -37,7 +41,7 @@ sub load {
                     P->text->decode_eol( $res->body );
 
                     for my $addr ( split /\n/sm, $res->body->$* ) {
-                        push $proxies, { $self->_urls->{$url}->%*, addr => $addr };
+                        push $proxies, q[//] . $addr . q[?] . $self->_urls->{$url};
                     }
                 }
 
@@ -56,7 +60,7 @@ sub load {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30, 40               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 34                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

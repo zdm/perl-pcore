@@ -26,49 +26,27 @@ sub BUILD {
 
     if ( $args->{source} ) {
         for my $source ( $args->{source}->@* ) {
-            $self->_add_source( delete $source->{class}, $source->%* );
+            my $class = delete $source->{class};
+
+            my %args = $source->%*;
+
+            $args{_pool} = $self;
+
+            push $self->_source, P->class->load( $class, ns => 'Pcore::AnyEvent::Proxy::Source' )->new( \%args );
         }
     }
 
     return;
 }
 
-sub _add_source {
-    my $self   = shift;
-    my $source = shift;
-    my %args   = @_;
-
-    $args{_pool} = $self;
-
-    my $class = P->class->load( $source, ns => 'Pcore::AnyEvent::Proxy::Source' );
-
-    push $self->_source, $class->new( \%args );
-
-    return;
-}
-
-sub _add_proxy {
-    my $self  = shift;
-    my $proxy = shift;
-
-    if ( !exists $self->_pool->{ $proxy->id } ) {
-        $self->_pool->{ $proxy->id } = $proxy;
-
-        $self->update_proxy_status($proxy);
-    }
-
-    return $proxy;
-}
-
-sub update_proxy_status {
-    my $self  = shift;
-    my $proxy = shift;
-
+sub update_proxy_status ( $self, $proxy ) {
     return unless exists $self->_pool->{ $proxy->id };
 
+    my $id = $proxy->id;
+
+    my $active_lists = $self->_active_lists;
+
     if ( !$proxy->is_active ) {
-        my $id           = $proxy->id;
-        my $active_lists = $self->_active_lists;
 
         # add proxy id to not_active list
         $self->_not_active->{$id} = 1;
@@ -87,8 +65,6 @@ sub update_proxy_status {
         }
     }
     else {
-        my $id           = $proxy->id;
-        my $active_lists = $self->_active_lists;
 
         # remove proxy id from not_active list
         delete $self->_not_active->{$id};
@@ -102,9 +78,7 @@ sub update_proxy_status {
     return;
 }
 
-sub clear {
-    my $self = shift;
-
+sub clear ($self) {
     $self->_clear_pool;
 
     $self->_clear_not_active;
@@ -114,57 +88,56 @@ sub clear {
     return;
 }
 
-sub load {
-    my $self = shift;
-    my %args = (
-        blocking => 0,
-        @_,
-    );
+sub _load ( $self, $cb ) {
 
-    # don't load if load process running or auto loading disabled
-    return if $self->_load_in_progress || ( $self->_last_loaded && !$self->load_timeout );
+    # retrun, if load process is already running or auto loading disabled
+    if ( $self->_load_in_progress || ( $self->_last_loaded && !$self->load_timeout ) ) {
+        $cb->();
 
-    # don't load if timeout not reached
-    return if $self->_last_loaded + $self->load_timeout > time;
+        return;
+    }
+
+    # retrun, if timeout not reached
+    if ( $self->_last_loaded + $self->load_timeout > time ) {
+        $cb->();
+
+        return;
+    }
 
     $self->_load_in_progress(1);
 
-    my $cv = AnyEvent->condvar;
-
     my $temp_pool = [];
 
-    $cv->begin(
-        sub {
-            $self->clear if $self->clear_on_load;
+    my $cv = AE::cv {
+        $self->clear if $self->clear_on_load;
 
-            for my $proxy ( $temp_pool->@* ) {
-                $self->_add_proxy($proxy);
+        for my $proxy ( $temp_pool->@* ) {
+            if ( !exists $self->_pool->{ $proxy->id } ) {
+                $self->_pool->{ $proxy->id } = $proxy;
+
+                $self->update_proxy_status($proxy);
             }
-
-            $cv->send if $args{blocking};
-
-            $self->_last_loaded(time);
-
-            $self->_load_in_progress(0);
-
-            return;
         }
-    );
+
+        $self->_last_loaded(time);
+
+        $self->_load_in_progress(0);
+
+        $cb->();
+
+        return;
+    };
 
     for my $source ( $self->_source->@* ) {
+        $cv->begin;
+
         $source->load( $cv, $temp_pool );
     }
-
-    $cv->end;
-
-    $cv->recv if $args{blocking};
 
     return;
 }
 
-sub release {
-    my $self = shift;
-
+sub release ($self) {
     my $time             = time;
     my $release_disabled = $self->_next_disabled_release_time && $self->_next_disabled_release_time <= time ? 1 : 0;
     my $release_banned   = $self->_next_banned_release_time && $self->_next_banned_release_time <= time ? 1 : 0;
@@ -204,40 +177,34 @@ sub release {
     return;
 }
 
-sub get_proxy {
-    my $self = shift;
-    my %args = (
-        list     => 'http',    # http, https, ...
-        selector => 'rand',    # rand, threads, requests
-        @_,
-    );
+sub get_proxy ( $self, $lists, $cb ) {
+    $lists = [$lists] if ref $lists ne 'ARRAY';
 
-    $self->load;
+    my $load_cb = sub {
+        $self->release;
 
-    $self->release;
+        my $proxy;
 
-    if ( my @ids = keys $self->_active_lists->{ $args{list} }->%* ) {
-        my $id;
+        for my $list ( $lists->@* ) {
+            if ( my @ids = keys $self->_active_lists->{$list}->%* ) {
+                my $id = $ids[ rand @ids ];
 
-        if ( $args{selector} eq 'threads' ) {    # min. threads selector
-            $id = [ sort { $self->_pool->{$a}->threads <=> $self->_pool->{$b}->threads } @ids ]->[0];
-        }
-        elsif ( $args{selector} eq 'requests' ) {    # min. total requests selector
-            $id = [ sort { $self->_pool->{$a}->total_requests <=> $self->_pool->{$b}->total_requests } @ids ]->[0];
-        }
-        else {                                       # random selector
-            $id = $ids[ rand @ids ];
+                $proxy = $self->_pool->{$id};
+
+                $proxy->start_thread;
+
+                last;
+            }
         }
 
-        my $proxy = $self->_pool->{$id};
+        $cb->($proxy);
 
-        $proxy->start_thread;
-
-        return $proxy;
-    }
-    else {
         return;
-    }
+    };
+
+    $self->_load($load_cb);
+
+    return;
 }
 
 1;
@@ -247,9 +214,9 @@ sub get_proxy {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29, 177, 219         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31, 150, 189         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 165                  │ Subroutines::ProhibitExcessComplexity - Subroutine "release" with high complexity score (22)                   │
+## │    3 │ 140                  │ Subroutines::ProhibitExcessComplexity - Subroutine "release" with high complexity score (22)                   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -14,43 +14,30 @@ has '+is_multiproxy' => ( default => 1 );
 
 no Pcore;
 
-sub BUILD {
-    my $self = shift;
-    my $args = shift;
-
+sub BUILD ( $self, $args ) {
     $self->bind_ip if $args->{bind_ip};
 
     return;
 }
 
-sub load {
-    my $self    = shift;
-    my $cv      = shift;
-    my $proxies = shift;
-
+sub load ( $self, $cb ) {
     P->ua->request(
         'http://awmproxy.com/allproxy.php?full=1',
         timeout   => $self->http_timeout,
-        blocking  => $cv,
         on_finish => sub ($res) {
+            my $proxies;
+
             if ( $res->status == 200 && $res->has_body ) {
                 P->text->decode_eol( $res->body );
 
                 for my $addr ( split /\n/sm, $res->body->$* ) {
                     my ( $addr, $real_ip, $country, $speed, $time ) = split /;/sm, $addr;
 
-                    push $proxies,
-                      { addr    => $addr,
-                        http    => 1,
-                        https   => 1,
-                        socks   => 1,
-                        real_ip => $real_ip,
-                        country => $country,
-                        speed   => $speed =~ s/[^\d]//smgr || 0,
-                        time    => $time =~ s/[^\d]//smgr || 0,
-                      };
+                    push $proxies->@*, q[//] . $addr . q[?http&connect&socks];
                 }
             }
+
+            $cb->($proxies);
 
             return;
         },
@@ -59,9 +46,7 @@ sub load {
     return;
 }
 
-sub bind_ip {
-    my $self = shift;
-
+sub bind_ip ($self) {
     die if !$self->has_username || !$self->has_password;
 
     P->ua->request( 'http://awmproxy.com/setmyip.php?Login=' . $self->username . '&Password=' . $self->password, blocking => 1 );

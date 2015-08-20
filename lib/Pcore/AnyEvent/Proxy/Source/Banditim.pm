@@ -11,24 +11,20 @@ has '+is_multiproxy' => ( default => 1 );
 
 no Pcore;
 
-sub load {
-    my $self    = shift;
-    my $cv      = shift;
-    my $proxies = shift;
-
-    $cv->begin;
+sub load ( $self, $cb ) {
+    my $proxies;
 
     if ( $self->type eq 'ANY' ) {
-        push $proxies, { addr => '37.58.52.41:2020', http => 1, https => 1, socks => 1 };
+        push $proxies->@*, '//37.58.52.41:2020?http&connect&socks';
     }
     elsif ( $self->type eq 'FASTEST' ) {
-        push $proxies, { addr => '37.58.52.41:3030', http => 1, https => 1, socks => 1 };
+        push $proxies->@*, '//37.58.52.41:3030?http&connect&socks';
     }
     elsif ( $self->type eq 'TOP10' ) {
-        push $proxies, { addr => '37.58.52.41:4040', http => 1, https => 1, socks => 1 };
+        push $proxies->@*, '//37.58.52.41:4040?http&connect&socks';
     }
 
-    $cv->end;
+    $cb->($proxies);
 
     return;
 }

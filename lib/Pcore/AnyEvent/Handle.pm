@@ -160,7 +160,7 @@ sub _connect_https_proxy ( $h, $proxy, $connect, $on_connect ) {
         }
     );
 
-    $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->auth ? q[Proxy-Authorization: Basic ] . $proxy->auth_b64 . $CRLF : $CRLF ) . $CRLF );
+    $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->userinfo ? q[Proxy-Authorization: Basic ] . $proxy->userinfo_b64 . $CRLF : $CRLF ) . $CRLF );
 
     $h->push_read(
         line => $qr_nlnl,
@@ -200,7 +200,7 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect ) {
     );
 
     # start handshake
-    if ( $proxy->auth ) {
+    if ( $proxy->userinfo ) {
         $h->push_write(qq[\x05\x02\x00\x02]);
     }
     else {
