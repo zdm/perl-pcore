@@ -4,6 +4,7 @@ use Pcore;
 use parent qw[AnyEvent::Handle];
 use AnyEvent::Socket qw[];
 use HTTP::Parser::XS qw[HEADERS_NONE];
+use Pcore::Proxy;
 
 no Pcore;
 
@@ -29,7 +30,7 @@ sub new ( $self, %args ) {
     else {
         my $proxy_type = $args{proxy}->[0];
 
-        my $proxy = $args{proxy}->[1];
+        my $proxy = ref $args{proxy}->[1] eq 'Pcore::Proxy' ? $args{proxy}->[1] : Pcore::Proxy->new( { uri => $args{proxy}->[1] } );
 
         my %args_orig = (
             connect          => $args{connect},
@@ -163,6 +164,10 @@ sub new ( $self, %args ) {
 }
 
 sub store ( $self, $id, $timeout = undef ) {
+
+    # do not cache destroyed handles
+    return if $self->destroyed;
+
     my $cache = $CACHE->{$id} ||= [];
 
     # check, if handle is already cached
@@ -170,11 +175,12 @@ sub store ( $self, $id, $timeout = undef ) {
         return if $_ == $self;
     }
 
-    my $destroy = sub {
+    my $destroy = sub ( $h, @ ) {
+        say 'DESTROYED';
 
         # remove handle from cache
         for ( my $i = 0; $i <= $cache->$#*; $i++ ) {
-            if ( $cache->[$i] == $self ) {
+            if ( $cache->[$i] == $h ) {
                 splice $cache->@*, $i, 1;
 
                 last;
@@ -185,7 +191,7 @@ sub store ( $self, $id, $timeout = undef ) {
         delete $CACHE->{$id} unless $CACHE->{$id}->@*;
 
         # destroy handle
-        $self->destroy;
+        $h->destroy;
 
         return;
     };
@@ -448,16 +454,16 @@ sub _connect_socks4a_proxy ( $h, $proxy, $connect, $on_connect ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 15                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (41)                       │
+## │    3 │ 16                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (42)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 176                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 182                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 284, 287, 314, 317,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 320, 408             │                                                                                                                │
+## │    2 │ 290, 293, 320, 323,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 326, 414             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 314, 317, 320, 334   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 320, 323, 326, 340   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 408                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 414                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
