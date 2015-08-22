@@ -7,7 +7,22 @@ use HTTP::Parser::XS qw[HEADERS_NONE];
 
 no Pcore;
 
+our $CACHE = {};
+
+# dafault cache timeout
+our $CACHE_TIMEOUT = 4;
+
 sub new ( $self, %args ) {
+    if ( $args{connect_timeout} ) {
+        my $on_prepare = $args{on_prepare};
+
+        $args{on_prepare} = sub ($h) {
+            $on_prepare->($h) if $on_prepare;
+
+            return $args{connect_timeout};
+        };
+    }
+
     if ( !$args{proxy} || $args{fh} ) {
         return $self->SUPER::new(%args);
     }
@@ -145,6 +160,71 @@ sub new ( $self, %args ) {
 
         return $self->SUPER::new(%args);
     }
+}
+
+sub store ( $self, $id, $timeout = undef ) {
+    my $cache = $CACHE->{$id} ||= [];
+
+    # check, if handle is already cached
+    for ( $cache->@* ) {
+        return if $_ == $self;
+    }
+
+    my $destroy = sub {
+
+        # remove handle from cache
+        for ( my $i = 0; $i <= $cache->$#*; $i++ ) {
+            if ( $cache->[$i] == $self ) {
+                splice $cache->@*, $i, 1;
+
+                last;
+            }
+        }
+
+        # remove cache id if no more cached handles for this id
+        delete $CACHE->{$id} unless $CACHE->{$id}->@*;
+
+        # destroy handle
+        $self->destroy;
+
+        return;
+    };
+
+    # on error etc., destroy
+    $self->on_error($destroy);
+
+    $self->on_eof($destroy);
+
+    $self->on_read($destroy);
+
+    $self->timeout( $timeout || $CACHE_TIMEOUT );
+
+    # store handle
+    push $cache->@*, $self;
+
+    return;
+}
+
+sub fetch ( $self, $id ) {
+
+    # currently we reuse the MOST RECENTLY USED connection
+    my $h = pop $CACHE->{$id}->@*;
+
+    delete $CACHE->{$id} unless $CACHE->{$id}->@*;
+
+    if ($h) {
+        $h->on_error(undef);
+
+        $h->on_eof(undef);
+
+        $h->on_read(undef);
+
+        $h->timeout_reset;
+
+        $h->timeout(undef);
+    }
+
+    return $h;
 }
 
 sub _connect_https_proxy ( $h, $proxy, $connect, $on_connect ) {
@@ -368,14 +448,16 @@ sub _connect_socks4a_proxy ( $h, $proxy, $connect, $on_connect ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 10                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (39)                       │
+## │    3 │ 15                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (41)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 204, 207, 234, 237,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 240, 328             │                                                                                                                │
+## │    2 │ 176                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 234, 237, 240, 254   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    2 │ 284, 287, 314, 317,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 320, 408             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 328                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 314, 317, 320, 334   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 408                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
