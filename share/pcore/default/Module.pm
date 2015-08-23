@@ -18,13 +18,15 @@ __END__
 
 =head1 DESCRIPTION
 
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
 =head1 SEE ALSO
 
 =head1 AUTHOR
 
 <: $author :> <<: $author_email :>>
-
-=head1 CONTRIBUTORS
 
 =head1 COPYRIGHT AND LICENSE
 
