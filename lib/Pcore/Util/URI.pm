@@ -26,24 +26,16 @@ has userinfo => ( is => 'lazy', init_arg => undef );
 has username => ( is => 'lazy', init_arg => undef );
 has password => ( is => 'lazy', init_arg => undef );
 
-has host_port     => ( is => 'lazy', init_arg => undef );
-has host          => ( is => 'lazy', init_arg => undef );
-has port          => ( is => 'lazy', init_arg => undef );
-has canon_domain  => ( is => 'lazy', init_arg => undef );    # host without www. prefix
-has root_domain   => ( is => 'lazy', init_arg => undef );
-has pub_suffix    => ( is => 'lazy', init_arg => undef );
-has host_is_valid => ( is => 'lazy', init_arg => undef );
+has host_port       => ( is => 'lazy', init_arg => undef );
+has host_port_ascii => ( is => 'lazy', init_arg => undef );
+has host            => ( is => 'lazy', init_arg => undef );
+has port            => ( is => 'lazy', init_arg => undef );
+has fragment        => ( is => 'lazy', writer   => '_set_fragment', init_arg => undef );
 
-has fragment => ( is => 'lazy', writer => '_set_fragment', init_arg => undef );
-
-no Pcore;
-
-sub NEW {
-    my $self = shift;
-    my $uri  = shift;
-    my $base = shift;
-
+around new => sub ( $orig, $self, $uri, $base = undef ) {
     my $args = _parse($uri);
+
+    say dump $args;
 
     # https://tools.ietf.org/html/rfc3986#section-5
     if ( $args->{scheme} eq q[] && defined $base && $base ne q[] ) {
@@ -118,7 +110,13 @@ sub NEW {
         }
     }
 
-    return __PACKAGE__->new($args);
+    return __PACKAGE__->$orig($args);
+};
+
+no Pcore;
+
+sub NEW {
+    goto &new;
 }
 
 sub _parse ( $uri, @ ) {
@@ -148,13 +146,15 @@ sub _parse ( $uri, @ ) {
 
     my $has_authority;
 
+    my $hierarchical_part;
+
     # scheme
     if ( ( my $dbl_slash_idx = index $uri, q[//] ) != -1 ) {    # [scheme:]//[authority][/path]
-        $args{hierarchical_part} = $uri;
+        $hierarchical_part = $uri;
 
         $has_authority = 1;
 
-        $args{scheme} = lc substr $args{hierarchical_part}, 0, $dbl_slash_idx + 2, q[];
+        $args{scheme} = lc substr $hierarchical_part, 0, $dbl_slash_idx + 2, q[];
 
         if ( $dbl_slash_idx > 0 ) {                             # scheme://
             substr $args{scheme}, -3, 3, q[];                   # remove "://" from scheme
@@ -164,12 +164,12 @@ sub _parse ( $uri, @ ) {
         }
     }
     else {
-        $args{hierarchical_part} = $uri;
+        $hierarchical_part = $uri;
 
-        if ( ( my $scheme_idx = index $args{hierarchical_part}, q[:] ) != -1 ) {    # [scheme]:[hierarchical_part]
-            $args{scheme} = lc substr $args{hierarchical_part}, 0, $scheme_idx + 1, q[];
+        if ( ( my $scheme_idx = index $hierarchical_part, q[:] ) != -1 ) {    # [scheme]:[hierarchical_part]
+            $args{scheme} = lc substr $hierarchical_part, 0, $scheme_idx + 1, q[];
 
-            substr $args{scheme}, -1, 1, q[];                                       # remove ":" from scheme
+            substr $args{scheme}, -1, 1, q[];                                 # remove ":" from scheme
         }
         else {
             $args{scheme} = q[];
@@ -177,18 +177,18 @@ sub _parse ( $uri, @ ) {
 
         # additional authority parsing
         # uri has authority if hierarchical part contains "@" or ":" before first "/"
-        if ( $args{hierarchical_part} ) {
-            my $first_slash_idx = index( $args{hierarchical_part}, q[/] );
+        if ($hierarchical_part) {
+            my $first_slash_idx = index( $hierarchical_part, q[/] );
 
-            $first_slash_idx = length $args{hierarchical_part} if $first_slash_idx == -1;
+            $first_slash_idx = length $hierarchical_part if $first_slash_idx == -1;
 
-            my $userinfo_idx = index $args{hierarchical_part}, q[@];
+            my $userinfo_idx = index $hierarchical_part, q[@];
 
             if ( $userinfo_idx != -1 && $userinfo_idx < $first_slash_idx ) {    # [user:password]@[host_port][/path]
                 $has_authority = 1;
             }
             else {
-                my $port_idx = index $args{hierarchical_part}, q[:];
+                my $port_idx = index $hierarchical_part, q[:];
 
                 if ( $port_idx != -1 && $port_idx < $first_slash_idx ) {        # [host]:[port][/path]
                     $has_authority = 1;
@@ -199,19 +199,19 @@ sub _parse ( $uri, @ ) {
 
     # split hierarchical part to authority + path
     if ($has_authority) {
-        if ( ( my $slash_idx = index $args{hierarchical_part}, q[/] ) != -1 ) {
-            $args{authority} = substr $args{hierarchical_part}, 0, $slash_idx;
+        if ( ( my $slash_idx = index $hierarchical_part, q[/] ) != -1 ) {
+            $args{authority} = substr $hierarchical_part, 0, $slash_idx;
 
-            $args{path} = substr $args{hierarchical_part}, $slash_idx;
+            $args{path} = substr $hierarchical_part, $slash_idx;
         }
         else {
-            $args{authority} = $args{hierarchical_part};
+            $args{authority} = $hierarchical_part;
         }
     }
     else {
         $args{authority} = q[];
 
-        $args{path} = $args{hierarchical_part};
+        $args{path} = $hierarchical_part;
     }
 
     if ( !defined $args{path} ) {
@@ -304,27 +304,38 @@ sub _build_host_port ($self) {
     return q[];
 }
 
+sub _build_host_port_ascii ($self) {
+    return $self->host->name_ascii . ( $self->port ? q[:] . $self->port : q[] );
+}
+
 # HOST
 sub _build_host ($self) {
+    my $host = q[];
+
     if ( $self->host_port ) {
         if ( ( my $idx = index $self->host_port, q[:] ) != -1 ) {
-            return substr $self->host_port, 0, $idx;
+            $host = substr $self->host_port, 0, $idx;
         }
         else {
-            return $self->host_port;
+            $host = $self->host_port;
         }
     }
 
-    return q[];
+    return P->host($host);
 }
 
 # PORT
 sub _build_port ($self) {
+    my $port = 0;
+
     if ( $self->host_port && ( my $idx = index $self->host_port, q[:] ) != -1 ) {
-        return substr $self->host_port, $idx + 1;
+        $port = substr $self->host_port, $idx + 1;
+
+        # drop UTF-8 flag
+        utf8::decode($port);
     }
 
-    return 0;
+    return $port;
 }
 
 # QUERY
@@ -357,98 +368,6 @@ sub set_fragment ( $self, $fragment ) {
     $self->_set_fragment_raw( $fragment ? P->data->to_uri($fragment) : q[] );
 
     return;
-}
-
-# UTIL
-sub _build_canon_domain ($self) {
-    if ( my $host = $self->host ) {
-        substr $host, 0, 4, q[] if index( $host, 'www.' ) == 0;
-
-        return $host;
-    }
-
-    return q[];
-}
-
-sub _build_root_domain ($self) {
-    if ( my $pub_suffix = $self->pub_suffix ) {
-        if ( $self->canon_domain =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
-            return $1;
-        }
-    }
-
-    return q[];
-}
-
-sub _build_pub_suffix ($self) {
-    state $suffixes = do {
-        my $_suffixes;
-
-        my $path = P->res->get_local('effective_tld_names.dat');
-
-        if ( !$path ) {
-            P->ua->request(
-                'https://publicsuffix.org/list/effective_tld_names.dat',
-                chunk_size  => 0,
-                on_progress => 0,
-                blocking    => 1,
-                on_finish   => sub ($res) {
-                    $path = P->res->store_local( 'effective_tld_names.dat', $res->body ) if $res->status == 200;
-
-                    return;
-                }
-            );
-        }
-
-        $_suffixes = { map { $_ => 1 } grep { index( $_, q[//] ) == -1 } P->file->read_lines($path)->@* };
-    };
-
-    if ( my $host = $self->canon_domain ) {
-        return $host if exists $suffixes->{$host};
-
-        my @parts = split /[.]/sm, $host;
-
-        return q[] if @parts == 1;
-
-        while ( shift @parts ) {
-            my $subhost = join q[.], @parts;
-
-            return $subhost if exists $suffixes->{$subhost};
-        }
-    }
-
-    return q[];
-}
-
-sub _build_host_is_valid ($self) {
-    if ( my $host = $self->host ) {
-        return 0 if bytes::length($host) > 255;    # max length is 255 octets
-
-        return 0 if $host =~ /[^[:alnum:]._\-]/sm; # allowed chars
-
-        return 0 if $host !~ /\A[[:alnum:]]/sm;    # first character should be letter or digit
-
-        return 0 if $host !~ /[[:alnum:]]\z/sm;    # last character should be letter or digit
-
-        for ( split /[.]/sm, $host ) {
-            return 0 if bytes::length($_) > 63;    # max. label length is 63 octets
-        }
-
-        return 1;
-    }
-
-    return 0;
-}
-
-# TODO
-sub punycode ($self) {
-    require URI::_idna;
-
-    if ( $self->host && index( $self->host, 'xn--' ) == 0 ) {
-        return URI::_idna::decode( $self->host );
-    }
-
-    return q[];
 }
 
 # UTIL
@@ -505,11 +424,11 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 41                   │ * Subroutine "NEW" with high complexity score (22)                                                             │
-## │      │ 124                  │ * Subroutine "_parse" with high complexity score (26)                                                          │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 81                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 73                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 122                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 181, 297             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
