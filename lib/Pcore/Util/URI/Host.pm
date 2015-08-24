@@ -2,7 +2,7 @@ package Pcore::Util::URI::Host;
 
 use Pcore qw[-class];
 use Net::IDN::Encode qw[];
-use Regexp::Common qw[net];
+use AnyEvent::Socket qw[];
 
 use overload    #
   q[""] => sub {
@@ -114,7 +114,7 @@ sub _build_is_ip ($self) {
 }
 
 sub _build_is_ipv4 ($self) {
-    if ( $self->name && $self->name =~ /\A$RE{net}{IPv4}\z/sm ) {
+    if ( $self->name && AnyEvent::Socket::parse_ipv4( $self->name ) ) {
         return 1;
     }
     else {
@@ -123,7 +123,7 @@ sub _build_is_ipv4 ($self) {
 }
 
 sub _build_is_ipv6 ($self) {
-    if ( $self->name && $self->name =~ /\A$RE{net}{IPv6}\z/sm ) {
+    if ( $self->name && AnyEvent::Socket::parse_ipv6( $self->name ) ) {
         return 1;
     }
     else {
