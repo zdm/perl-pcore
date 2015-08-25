@@ -1,6 +1,7 @@
 package Pcore::Util::URI;
 
 use Pcore qw[-class];
+use AnyEvent::Socket qw[];
 use Pcore::Util::File::Path;
 
 use overload    #
@@ -12,30 +13,35 @@ use overload    #
   },
   fallback => undef;
 
-has to_string => ( is => 'lazy', isa => Str, clearer => '_clear_to_string', init_arg => undef );
+has _scheme    => ( is => 'ro', default  => q[], init_arg => 'scheme' );
+has _authority => ( is => 'ro', default  => q[], init_arg => 'authority' );
+has _path      => ( is => 'ro', required => 1,   init_arg => 'path' );
+has _query     => ( is => 'ro', default  => q[], init_arg => 'query' );
+has _fragment  => ( is => 'ro', default  => q[], init_arg => 'fragment' );
 
-has scheme       => ( is => 'ro',  default  => q[] );
-has authority    => ( is => 'ro',  default  => q[] );
-has path         => ( is => 'ro',  required => 1 );
-has query        => ( is => 'rwp', default  => q[] );
-has fragment_raw => ( is => 'rwp', default  => q[] );
+has to_string => ( is => 'lazy', clearer => '_clear_to_string', init_arg => undef );
 
-has scheme_is_valid => ( is => 'lazy', isa => Bool, init_arg => undef );
+has scheme         => ( is => 'lazy', init_arg => undef );
+has authority      => ( is => 'lazy', clearer  => '_clear_authority', init_arg => undef );
+has authority_utf8 => ( is => 'lazy', clearer  => '_clear_authority_utf8', init_arg => undef );
+has path           => ( is => 'lazy', init_arg => undef );
+has query          => ( is => 'rw',   lazy     => 1, init_arg => undef );
+has fragment       => ( is => 'rw',   lazy     => 1, init_arg => undef );
+has fragment_utf8  => ( is => 'lazy', clearer  => '_clear_fragment_utf8', init_arg => undef );
 
-has userinfo => ( is => 'lazy', init_arg => undef );
-has username => ( is => 'lazy', init_arg => undef );
-has password => ( is => 'lazy', init_arg => undef );
+has scheme_is_valid => ( is => 'lazy', init_arg => undef );
 
-has host_port       => ( is => 'lazy', init_arg => undef );
-has host_port_ascii => ( is => 'lazy', init_arg => undef );
-has host            => ( is => 'lazy', init_arg => undef );
-has port            => ( is => 'lazy', init_arg => undef );
-has fragment        => ( is => 'lazy', writer   => '_set_fragment', init_arg => undef );
+has userinfo => ( is => 'lazy', clearer => '_clear_userinfo', init_arg => undef );
+has username => ( is => 'rw',   lazy    => 1,                 init_arg => undef );
+has password => ( is => 'rw',   lazy    => 1,                 init_arg => undef );
+
+has host          => ( is => 'rw',   lazy    => 1,                       init_arg => undef );
+has port          => ( is => 'rw',   lazy    => 1,                       init_arg => undef );
+has hostport      => ( is => 'lazy', clearer => '_clear_host_port',      init_arg => undef );    # in ASCII
+has hostport_utf8 => ( is => 'lazy', clearer => '_clear_host_port_utf8', init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $base = undef ) {
     my $args = _parse($uri);
-
-    say dump $args;
 
     # https://tools.ietf.org/html/rfc3986#section-5
     if ( $args->{scheme} eq q[] && defined $base && $base ne q[] ) {
@@ -113,6 +119,104 @@ around new => sub ( $orig, $self, $uri, $base = undef ) {
     return __PACKAGE__->$orig($args);
 };
 
+around username => sub ( $orig, $self, $username = undef ) {
+    if ( defined $username ) {
+        $self->_clear_userinfo;
+
+        $self->_clear_authority;
+        $self->_clear_authority_utf8;
+
+        $self->_clear_to_string;
+
+        utf8::downgrade($username);
+
+        return $self->$orig($username);
+    }
+    else {
+        return $self->$orig;
+    }
+};
+
+around password => sub ( $orig, $self, $password = undef ) {
+    if ( defined $password ) {
+        $self->_clear_userinfo;
+
+        $self->_clear_authority;
+        $self->_clear_authority_utf8;
+
+        $self->_clear_to_string;
+
+        utf8::downgrade($password);
+
+        return $self->$orig($password);
+    }
+    else {
+        return $self->$orig;
+    }
+};
+
+around host => sub ( $orig, $self, $host = undef ) {
+    if ( defined $host ) {
+        $self->_clear_host_port;
+        $self->_clear_host_port_utf8;
+
+        $self->_clear_authority;
+        $self->_clear_authority_utf8;
+
+        $self->_clear_to_string;
+
+        return $self->$orig( P->host($host) );
+    }
+    else {
+        return $self->$orig;
+    }
+};
+
+around port => sub ( $orig, $self, $port = undef ) {
+    if ( defined $port ) {
+        $self->_clear_host_port;
+        $self->_clear_host_port_utf8;
+
+        $self->_clear_authority;
+        $self->_clear_authority_utf8;
+
+        $self->_clear_to_string;
+
+        utf8::downgrade($port);
+
+        return $self->$orig($port);
+    }
+    else {
+        return $self->$orig;
+    }
+};
+
+around query => sub ( $orig, $self, $query = undef ) {
+    if ( defined $query ) {
+        $self->_clear_to_string;
+
+        return $self->$orig( P->data->to_uri( P->data->from_uri_query($query) ) );
+    }
+    else {
+        return $self->$orig;
+    }
+};
+
+around fragment => sub ( $orig, $self, $fragment = undef ) {
+    if ( defined $fragment ) {
+        $self->_clear_fragment_utf8;
+
+        $self->_clear_to_string;
+
+        $fragment = P->data->to_uri($fragment);
+
+        return $self->$orig($fragment);
+    }
+    else {
+        return $self->$orig;
+    }
+};
+
 no Pcore;
 
 sub NEW {
@@ -126,19 +230,19 @@ sub _parse ( $uri, @ ) {
 
     # fragment
     if ( ( my $fragment_idx = index $uri, q[#] ) != -1 ) {
-        $args{fragment_raw} = substr $uri, $fragment_idx, $len, q[];
+        $args{fragment} = substr $uri, $fragment_idx, $len, q[];
 
-        substr $args{fragment_raw}, 0, 1, q[];    # remove "#" from fragment
+        substr $args{fragment}, 0, 1, q[];    # remove "#" from fragment
     }
     else {
-        $args{fragment_raw} = q[];
+        $args{fragment} = q[];
     }
 
     # query
     if ( ( my $query_idx = index $uri, q[?] ) != -1 ) {
         $args{query} = substr $uri, $query_idx, $len, q[];
 
-        substr $args{query}, 0, 1, q[];           # remove "?" from query
+        substr $args{query}, 0, 1, q[];       # remove "?" from query
     }
     else {
         $args{query} = q[];
@@ -246,23 +350,36 @@ sub _build_to_string ($self) {
 
     $uri .= q[?] . $self->query if $self->query;
 
-    $uri .= q[#] . $self->fragment_raw if $self->fragment_raw;
+    $uri .= q[#] . $self->fragment if $self->fragment;
 
     return $uri;
 }
 
 # SCHEME
+sub _build_scheme ($self) {
+    my $scheme = $self->_scheme;
+
+    utf8::downgrade($scheme) if utf8::is_utf8($scheme);
+
+    return $scheme;
+}
+
 sub _build_scheme_is_valid ($self) {
     return !$self->scheme ? 1 : $self->scheme =~ /\A[[:lower:]][[:lower:][:digit:]+.-]*\z/sm;
 }
 
+# AUTHORITY
+sub _build_authority ($self) {
+    return ( $self->userinfo ? $self->userinfo . q[@] : q[] ) . $self->hostport;
+}
+
+sub _build_authority_utf8 ($self) {
+    return ( $self->userinfo ? $self->userinfo . q[@] : q[] ) . $self->hostport_utf8;
+}
+
 # USERINFO
 sub _build_userinfo ($self) {
-    if ( $self->authority && ( my $idx = index $self->authority, q[@] ) != -1 ) {
-        return substr $self->authority, 0, $idx;
-    }
-
-    return q[];
+    return $self->username . ( $self->password ne q[] ? q[:] . $self->password : q[] );
 }
 
 sub _build_userinfo_b64 ($self) {
@@ -270,102 +387,157 @@ sub _build_userinfo_b64 ($self) {
 }
 
 sub _build_username ($self) {
-    if ( $self->userinfo ) {
-        if ( ( my $idx = index $self->userinfo, q[:] ) != -1 ) {
-            return substr $self->userinfo, 0, $idx;
-        }
-        else {
-            return $self->userinfo;
+    if ( my $authority = $self->_authority ) {
+
+        # remove host_port
+        if ( ( my $idx = index $authority, q[@] ) != -1 ) {
+            substr $authority, $idx, length $authority, q[];
+
+            utf8::downgrade($authority);
+
+            if ( ( my $idx = index $authority, q[:] ) != -1 ) {
+                return substr $authority, 0, $idx;
+            }
+            else {
+                return $authority;
+            }
         }
     }
 
     return q[];
+}
+
+sub clear_username ($self) {
+    $self->username(q[]);
+
+    return;
 }
 
 sub _build_password ($self) {
-    if ( $self->userinfo && ( my $idx = index $self->userinfo, q[:] ) != -1 ) {
-        return substr $self->userinfo, $idx + 1;
-    }
+    if ( my $authority = $self->_authority ) {
 
-    return q[];
-}
+        # remove host_port
+        if ( ( my $idx = index $authority, q[@] ) != -1 ) {
+            substr $authority, $idx, length $authority, q[];
 
-# HOST_PORT
-sub _build_host_port ($self) {
-    if ( $self->authority ) {
-        if ( ( my $idx = index $self->authority, q[@] ) != -1 ) {
-            return substr( $self->authority, $idx + 1 );
-        }
-        else {
-            return $self->authority;
+            utf8::downgrade($authority);
+
+            if ( ( my $idx = index $authority, q[:] ) != -1 ) {
+                return substr $authority, $idx + 1;
+            }
         }
     }
 
     return q[];
 }
 
-sub _build_host_port_ascii ($self) {
-    return $self->host->name_ascii . ( $self->port ? q[:] . $self->port : q[] );
+sub clear_password ($self) {
+    $self->password(q[]);
+
+    return;
 }
 
 # HOST
 sub _build_host ($self) {
-    my $host = q[];
+    my $host = $self->_authority;
 
-    if ( $self->host_port ) {
-        if ( ( my $idx = index $self->host_port, q[:] ) != -1 ) {
-            $host = substr $self->host_port, 0, $idx;
+    if ($host) {
+
+        # remove userinfo
+        if ( ( my $idx = index $host, q[@] ) != -1 ) {
+            substr $host, 0, $idx + 1, q[];
+        }
+
+        if ( my @host_port = AnyEvent::Socket::parse_hostport($host) ) {
+            $host = $host_port[0];
         }
         else {
-            $host = $self->host_port;
+            $host = q[];
         }
     }
 
     return P->host($host);
 }
 
+sub clear_host ($self) {
+    $self->host(q[]);
+
+    return;
+}
+
 # PORT
 sub _build_port ($self) {
     my $port = 0;
 
-    if ( $self->host_port && ( my $idx = index $self->host_port, q[:] ) != -1 ) {
-        $port = substr $self->host_port, $idx + 1;
+    if ( my $authority = $self->_authority ) {
 
-        # drop UTF-8 flag
-        utf8::decode($port);
+        # remove userinfo
+        if ( ( my $idx = index $authority, q[@] ) != -1 ) {
+            substr $authority, 0, $idx + 1, q[];
+        }
+
+        if ( my @host_port = AnyEvent::Socket::parse_hostport($authority) ) {
+            $port = $host_port[1];
+
+            utf8::downgrade($port);
+        }
     }
 
     return $port;
 }
 
+sub clear_port ($self) {
+    $self->port(0);
+
+    return;
+}
+
+# HOSTPORT
+sub _build_hostport ($self) {
+    return $self->host->name . ( $self->port ? q[:] . $self->port : q[] );
+}
+
+sub _build_hostport_utf8 ($self) {
+    return $self->host->name_utf8 . ( $self->port ? q[:] . $self->port : q[] );
+}
+
+# PATH
+sub _build_path ($self) {
+    return $self->_path;
+}
+
 # QUERY
+sub _build_query ($self) {
+    return q[] if $self->_query eq q[];
+
+    return P->data->to_uri( P->data->from_uri_query( $self->_query ) );
+}
+
 sub query_params ($self) {
     return P->data->from_uri_query( $self->query );
 }
 
-sub set_query ( $self, $query ) {
-    $self->_clear_to_string;
-
-    $self->_set_query( P->data->to_uri($query) );
+sub clear_query ($self) {
+    $self->query(q[]);
 
     return;
 }
 
 # FRAGMENT
 sub _build_fragment ($self) {
-    my $fragment = $self->fragment_raw;
+    return q[] if $self->_fragment eq q[];
 
-    P->data->decode_uri($fragment) if $fragment && index( $fragment, q[%] ) != -1;
-
-    return $fragment;
+    return P->data->to_uri( P->data->from_uri( $self->_fragment ) );
 }
 
-sub set_fragment ( $self, $fragment ) {
-    $self->_clear_to_string;
+sub _build_fragment_utf8 ($self) {
+    return q[] if $self->fragment eq q[];
 
-    $self->_set_fragment( $fragment ? P->data->to_uri($fragment) : q[] );
+    return P->data->from_uri( $self->fragment );
+}
 
-    $self->_set_fragment_raw( $fragment ? P->data->to_uri($fragment) : q[] );
+sub clear_fragment ($self) {
+    $self->fragment(q[]);
 
     return;
 }
@@ -387,7 +559,7 @@ sub to_psgi ($self) {
         return $self->path;
     }
     else {
-        return $self->host_port;
+        return $self->hostport;
     }
 }
 
@@ -424,13 +596,13 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (34)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 73                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 79                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 122                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (26)                    │
+## │    3 │ 226                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 181, 297             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 285                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

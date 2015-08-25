@@ -23,8 +23,8 @@ has is_valid         => ( is => 'lazy', init_arg => undef );
 has tld              => ( is => 'lazy', init_arg => undef );
 has tld_utf8         => ( is => 'lazy', init_arg => undef );
 has tld_is_valid     => ( is => 'lazy', init_arg => undef );
-has canon_name       => ( is => 'lazy', init_arg => undef );    # host without www. prefix
-has canon_name_utf8  => ( is => 'lazy', init_arg => undef );
+has canon            => ( is => 'lazy', init_arg => undef );    # host without www. prefix
+has canon_utf8       => ( is => 'lazy', init_arg => undef );
 has pub_suffix       => ( is => 'lazy', init_arg => undef );
 has pub_suffix_utf8  => ( is => 'lazy', init_arg => undef );
 has root_domain      => ( is => 'lazy', init_arg => undef );
@@ -178,7 +178,7 @@ sub _build_tld_is_valid ($self) {
     return exists tlds()->{ $self->tld_utf8 } ? 1 : 0;
 }
 
-sub _build_canon_name ($self) {
+sub _build_canon ($self) {
     my $name = $self->name;
 
     substr $name, 0, 4, q[] if $name && index( $name, 'www.' ) == 0;
@@ -186,8 +186,8 @@ sub _build_canon_name ($self) {
     return $name;
 }
 
-sub _build_canon_name_utf8 ($self) {
-    return Net::IDN::Encode::domain_to_unicode( $self->canon_name );
+sub _build_canon_utf8 ($self) {
+    return Net::IDN::Encode::domain_to_unicode( $self->canon );
 }
 
 sub _build_pub_suffix ($self) {
@@ -195,7 +195,7 @@ sub _build_pub_suffix ($self) {
 
     my $pub_suffix_utf8;
 
-    if ( my $name = $self->canon_name_utf8 ) {
+    if ( my $name = $self->canon_utf8 ) {
         if ( exists pub_suffixes()->{$name} ) {
             $pub_suffix_utf8 = $name;
         }
@@ -233,8 +233,10 @@ sub _build_pub_suffix_utf8 ($self) {
 }
 
 sub _build_root_domain ($self) {
+    return q[] unless $self->is_domain;
+
     if ( my $pub_suffix = $self->pub_suffix ) {
-        if ( $self->canon_name =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
+        if ( $self->canon =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
             return $1;
         }
     }
