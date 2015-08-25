@@ -13,22 +13,26 @@ use overload    #
   },
   fallback => undef;
 
-has name               => ( is => 'ro',   required => 1 );
-has name_ascii         => ( is => 'lazy', init_arg => undef );
-has is_ip              => ( is => 'lazy', init_arg => undef );
-has is_ipv4            => ( is => 'lazy', init_arg => undef );
-has is_ipv6            => ( is => 'lazy', init_arg => undef );
-has is_domain          => ( is => 'lazy', init_arg => undef );
-has is_valid           => ( is => 'lazy', init_arg => undef );
-has tld                => ( is => 'lazy', init_arg => undef );
-has tld_ascii          => ( is => 'lazy', init_arg => undef );
-has tld_is_valid       => ( is => 'lazy', init_arg => undef );
-has canon_domain       => ( is => 'lazy', init_arg => undef );    # host without www. prefix
-has canon_domain_ascii => ( is => 'lazy', init_arg => undef );
-has pub_suffix         => ( is => 'lazy', init_arg => undef );
-has pub_suffix_ascii   => ( is => 'lazy', init_arg => undef );
-has root_domain        => ( is => 'lazy', init_arg => undef );
-has root_domain_ascii  => ( is => 'lazy', init_arg => undef );
+has name             => ( is => 'ro',   required => 1 );
+has name_utf8        => ( is => 'lazy', init_arg => undef );
+has is_ip            => ( is => 'lazy', init_arg => undef );
+has is_ipv4          => ( is => 'lazy', init_arg => undef );
+has is_ipv6          => ( is => 'lazy', init_arg => undef );
+has is_domain        => ( is => 'lazy', init_arg => undef );
+has is_valid         => ( is => 'lazy', init_arg => undef );
+has tld              => ( is => 'lazy', init_arg => undef );
+has tld_utf8         => ( is => 'lazy', init_arg => undef );
+has tld_is_valid     => ( is => 'lazy', init_arg => undef );
+has canon_name       => ( is => 'lazy', init_arg => undef );    # host without www. prefix
+has canon_name_utf8  => ( is => 'lazy', init_arg => undef );
+has pub_suffix       => ( is => 'lazy', init_arg => undef );
+has pub_suffix_utf8  => ( is => 'lazy', init_arg => undef );
+has root_domain      => ( is => 'lazy', init_arg => undef );
+has root_domain_utf8 => ( is => 'lazy', init_arg => undef );
+
+around new => sub ( $orig, $self, $host ) {
+    return __PACKAGE__->$orig( { name => $host } );
+};
 
 no Pcore;
 
@@ -82,15 +86,15 @@ sub tlds {
     return $tlds;
 }
 
-sub NEW ( $self, $host ) {
-    return __PACKAGE__->new( { name => $host } );
+sub NEW {
+    goto &new;
 }
 
 sub BUILDARGS ( $self, $args ) {
+    if ( utf8::is_utf8( $args->{name} ) ) {
+        $args->{name} = Net::IDN::Encode::domain_to_ascii( $args->{name} );
 
-    # try to decode from punycode
-    if ( index( $args->{name}, 'xn--' ) != -1 ) {
-        $args->{name} = Net::IDN::Encode::domain_to_unicode( $args->{name} );
+        utf8::downgrade( $args->{name} );
     }
 
     return $args;
@@ -100,8 +104,8 @@ sub to_string ($self) {
     return $self->name;
 }
 
-sub _build_name_ascii ($self) {
-    return Net::IDN::Encode::domain_to_ascii( $self->name );
+sub _build_name_utf8 ($self) {
+    return Net::IDN::Encode::domain_to_unicode( $self->name );
 }
 
 sub _build_is_ip ($self) {
@@ -166,55 +170,71 @@ sub _build_tld ($self) {
     }
 }
 
-sub _build_tld_ascii ($self) {
-    return Net::IDN::Encode::domain_to_ascii( $self->tld );
+sub _build_tld_utf8 ($self) {
+    return Net::IDN::Encode::domain_to_unicode( $self->tld );
 }
 
 sub _build_tld_is_valid ($self) {
-    return exists tlds()->{ $self->tld } ? 1 : 0;
+    return exists tlds()->{ $self->tld_utf8 } ? 1 : 0;
 }
 
-sub _build_canon_domain ($self) {
-    return q[] if $self->is_ip;
+sub _build_canon_name ($self) {
+    my $name = $self->name;
 
-    if ( my $name = $self->name ) {
-        substr $name, 0, 4, q[] if index( $name, 'www.' ) == 0;
+    substr $name, 0, 4, q[] if $name && index( $name, 'www.' ) == 0;
 
-        return $name;
-    }
-
-    return q[];
+    return $name;
 }
 
-sub _build_canon_domain_ascii ($self) {
-    return Net::IDN::Encode::domain_to_ascii( $self->canon_domain );
+sub _build_canon_name_utf8 ($self) {
+    return Net::IDN::Encode::domain_to_unicode( $self->canon_name );
 }
 
 sub _build_pub_suffix ($self) {
-    if ( my $name = $self->canon_domain ) {
-        return $name if exists pub_suffixes()->{$name};
+    return q[] unless $self->is_domain;
 
-        my @parts = split /[.]/sm, $name;
+    my $pub_suffix_utf8;
 
-        return q[] if @parts == 1;
+    if ( my $name = $self->canon_name_utf8 ) {
+        if ( exists pub_suffixes()->{$name} ) {
+            $pub_suffix_utf8 = $name;
+        }
+        else {
+            my @labels = split /[.]/sm, $name;
 
-        while ( shift @parts ) {
-            my $subhost = join q[.], @parts;
+            if ( @labels > 1 ) {
+                while ( shift @labels ) {
+                    my $subdomain = join q[.], @labels;
 
-            return $subhost if exists pub_suffixes()->{$subhost};
+                    if ( exists pub_suffixes()->{$subdomain} ) {
+                        $pub_suffix_utf8 = $subdomain;
+
+                        last;
+                    }
+                }
+            }
         }
     }
 
-    return q[];
+    if ($pub_suffix_utf8) {
+        $pub_suffix_utf8 = Net::IDN::Encode::domain_to_ascii($pub_suffix_utf8);
+
+        utf8::downgrade($pub_suffix_utf8);
+
+        return $pub_suffix_utf8;
+    }
+    else {
+        return q[];
+    }
 }
 
-sub _build_pub_suffix_ascii ($self) {
-    return Net::IDN::Encode::domain_to_ascii( $self->pub_suffix );
+sub _build_pub_suffix_utf8 ($self) {
+    return Net::IDN::Encode::domain_to_unicode( $self->pub_suffix );
 }
 
 sub _build_root_domain ($self) {
     if ( my $pub_suffix = $self->pub_suffix ) {
-        if ( $self->canon_domain =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
+        if ( $self->canon_name =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
             return $1;
         }
     }
@@ -222,8 +242,8 @@ sub _build_root_domain ($self) {
     return q[];
 }
 
-sub _build_root_domain_ascii ($self) {
-    return Net::IDN::Encode::domain_to_ascii( $self->root_domain );
+sub _build_root_domain_utf8 ($self) {
+    return Net::IDN::Encode::domain_to_unicode( $self->root_domain );
 }
 
 1;
