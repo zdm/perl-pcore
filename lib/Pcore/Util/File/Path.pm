@@ -197,7 +197,8 @@ sub _build_to_uri ($self) {
 
     $uri .= $self->_path;
 
-    return URI::Escape::XS::uri_escape( $uri, '^[:alnum:]/\-._' );
+    # http://tools.ietf.org/html/rfc3986#section-3.3
+    return URI::Escape::XS::uri_escape( $uri, q[^[:alnum:].\-_~!$&'()*+,;=:@/] );
 }
 
 sub _build_is_dir ($self) {
@@ -374,6 +375,8 @@ sub TO_DUMP {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 48                   │ Subroutines::ProhibitExcessComplexity - Subroutine "NEW" with high complexity score (39)                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 201                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
