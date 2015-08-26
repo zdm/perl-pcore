@@ -54,8 +54,13 @@ around new => sub ( $orig, $self, $uri, $base = undef ) {
             $base = _parse($base);
         }
         else {
-            # TODO
-            # extract from base uri object
+            $base = {
+                scheme    => $base->_scheme,
+                authority => $base->_authority,
+                path      => $base->_path,
+                query     => $base->_query,
+                fragment  => $base->_fragment,
+            };
         }
 
         # https://tools.ietf.org/html/rfc3986#section-5.2.1
@@ -72,16 +77,22 @@ around new => sub ( $orig, $self, $uri, $base = undef ) {
             # inherit authority
             $args->{authority} = $base->{authority};
 
-            if ( substr( $args->{path}, 0, 1 ) ne q[/] ) {
+            if ( $args->{path} eq q[] ) {
+                $args->{path} = $base->{path};
 
+                $args->{query} = $base->{query} if !$args->{query};
+            }
+            else {
                 # path is relative, or no path
-                if ( $base->{path} ) {
-                    my $slash_rindex = rindex $base->{path}, q[/];
+                if ( substr( $args->{path}, 0, 1 ) ne q[/] ) {
+                    if ( $base->{path} ) {
+                        my $slash_rindex = rindex $base->{path}, q[/];
 
-                    # remove filename from base path
-                    $base->{path} = substr( $base->{path}, 0, $slash_rindex ) . q[/] if $slash_rindex > 0;
+                        # remove filename from base path
+                        $base->{path} = substr( $base->{path}, 0, $slash_rindex ) . q[/] if $slash_rindex >= 0;
 
-                    $args->{path} = $base->{path} . $args->{path};
+                        $args->{path} = $base->{path} . q[/] . $args->{path};
+                    }
                 }
             }
         }
@@ -590,9 +601,9 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 201                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (25)                    │
+## │    3 │ 212                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (25)                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
