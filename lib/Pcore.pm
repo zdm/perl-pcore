@@ -279,6 +279,9 @@ sub _import_moo {
             # disable type checking
             delete $spec{isa} if $Pcore::NO_ISA_ATTR;
 
+            # auto add builder if lazy and builder or default is not specified
+            $spec{builder} = 1 if $spec{lazy} && !exists $spec{default} && !exists $spec{builder};
+
             $has->( $name_proto, %spec );
         };
     }
@@ -557,13 +560,13 @@ sub _configure_console {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 160                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 404, 452, 469, 517,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 518, 519, 525, 526,  │                                                                                                                │
-## │      │ 527, 532, 533, 534   │                                                                                                                │
+## │    3 │ 407, 455, 472, 520,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 521, 522, 528, 529,  │                                                                                                                │
+## │      │ 530, 535, 536, 537   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 495                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 498                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
