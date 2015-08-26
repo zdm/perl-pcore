@@ -751,8 +751,6 @@ sub from_uri_query {
     my $hash = $res->get_hash;
 
     for my $pair ( P->list->pairs( $array->@* ) ) {
-        next if $pair->[0] eq q[];
-
         $pair->[1] = undef if defined $pair->[1] && $pair->[1] eq q[];
 
         if ( $args{encoding} ) {

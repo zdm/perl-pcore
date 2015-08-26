@@ -2,8 +2,9 @@ package Pcore::Util::File::Path;
 
 use Pcore qw[-class];
 use Storable qw[];
+use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-use overload    #
+use overload                 #
   q[""] => sub {
     return $_[0]->to_string;
   },
@@ -196,11 +197,7 @@ sub _build_to_uri ($self) {
 
     $uri .= $self->_path;
 
-    $uri = P->data->to_uri($uri);
-
-    $uri =~ s[%2F][/]smgi;
-
-    return $uri;
+    return URI::Escape::XS::uri_escape( $uri, '^[:alnum:]/\-._' );
 }
 
 sub _build_is_dir ($self) {
@@ -376,7 +373,7 @@ sub TO_DUMP {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 47                   │ Subroutines::ProhibitExcessComplexity - Subroutine "NEW" with high complexity score (39)                       │
+## │    3 │ 48                   │ Subroutines::ProhibitExcessComplexity - Subroutine "NEW" with high complexity score (39)                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
