@@ -24,7 +24,7 @@ has to_string => ( is => 'lazy', clearer => '_clear_to_string', init_arg => unde
 has scheme         => ( is => 'lazy', init_arg => undef );
 has authority      => ( is => 'lazy', clearer  => '_clear_authority', init_arg => undef );
 has authority_utf8 => ( is => 'lazy', clearer  => '_clear_authority_utf8', init_arg => undef );
-has path           => ( is => 'lazy', init_arg => undef );
+has path           => ( is => 'rw',   lazy     => 1, init_arg => undef );
 has query          => ( is => 'rw',   lazy     => 1, init_arg => undef );
 has fragment       => ( is => 'rw',   lazy     => 1, init_arg => undef );
 has fragment_utf8  => ( is => 'lazy', clearer  => '_clear_fragment_utf8', init_arg => undef );
@@ -171,6 +171,17 @@ around port => sub ( $orig, $self, $port = undef ) {
         utf8::downgrade($port);
 
         return $self->$orig($port);
+    }
+    else {
+        return $self->$orig;
+    }
+};
+
+around path => sub ( $orig, $self, $path = undef ) {
+    if ( defined $path ) {
+        $self->_clear_to_string;
+
+        return $self->$orig( P->file->path($path) );
     }
     else {
         return $self->$orig;
@@ -511,6 +522,12 @@ sub _build_path ($self) {
     return P->file->path( P->data->from_uri( $self->_path ) );
 }
 
+sub clear_path ($self) {
+    $self->path(q[]);
+
+    return;
+}
+
 # QUERY
 sub _build_query ($self) {
     return q[] if $self->_query eq q[];
@@ -601,9 +618,9 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (27)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 212                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (25)                    │
+## │    3 │ 223                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (25)                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
