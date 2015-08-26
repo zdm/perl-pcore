@@ -244,97 +244,53 @@ sub _parse ( $uri, @ ) {
         substr $args{query}, 0, 1, q[];       # remove "?" from query
     }
 
-    my $hierarchical_part;
+    # If a URI contains an authority component, then the path component
+    # must either be empty or begin with a slash ("/") character.  If a URI
+    # does not contain an authority component, then the path cannot begin
+    # with two slash characters ("//").  In addition, a URI reference
+    # (Section 4.1) may be a relative-path reference, in which case the
+    # first path segment cannot contain a colon (":") character.  The ABNF
+    # requires five separate rules to disambiguate these cases, only one of
+    # which will match the path substring within a given URI reference.  We
+    # use the generic term "path component" to describe the URI substring
+    # matched by the parser to one of these rules.
 
-    if ( ( my $dbl_slash_idx = index $uri, q[//] ) != -1 ) {    # [scheme:]//[hierarchical_part]
+    # The authority component is preceded by a double slash ("//") and is
+    # terminated by the next slash ("/"), question mark ("?"), or number
+    # sign ("#") character, or by the end of the URI.
 
-        # URI has "//"
-        $hierarchical_part = $uri;
-
+    if ( ( my $authority_idx = index $uri, q[//] ) != -1 ) {
         $args{has_authority} = 1;
 
-        $args{scheme} = lc substr $hierarchical_part, 0, $dbl_slash_idx + 2, q[];
-
-        if ( $dbl_slash_idx > 0 ) {                             # scheme://
-            substr $args{scheme}, -3, 3, q[];                   # remove "://" from scheme
-        }
-        else {                                                  # //
-            substr $args{scheme}, -2, 2, q[];                   # remove "//" from scheme
-        }
-
-        my $first_slash_idx = index $hierarchical_part, q[/];
-
-        if ( $first_slash_idx == -1 ) {
-
-            # authority
-            $args{authority} = $hierarchical_part;
+        if ( ( my $slash_idx = index $uri, q[/], $authority_idx + 2 ) != -1 ) {
+            $args{authority} = substr $uri, $authority_idx, $slash_idx - $authority_idx, q[];
         }
         else {
-            # authority/path
-            $args{authority} = substr $hierarchical_part, 0, $first_slash_idx, q[];
-
-            $args{path} = $hierarchical_part;
+            $args{authority} = substr $uri, $authority_idx, length $uri, q[];
         }
+
+        # remove "//" from authority
+        substr $args{authority}, 0, 2, q[];
     }
-    else {
 
-        # URI has no "//"
-        $hierarchical_part = $uri;
+    $args{path} = $uri;
 
-        my $first_slash_idx = index $hierarchical_part, q[/];
-        my $first_colon_idx = index $hierarchical_part, q[:];
-        my $first_at_idx    = index $hierarchical_part, q[@];
+    # A path segment that contains a colon character (e.g., "this:that")
+    # cannot be used as the first segment of a relative-path reference, as
+    # it would be mistaken for a scheme name.  Such a segment must be
+    # preceded by a dot-segment (e.g., "./this:that") to make a relative-
+    # path reference.
 
-        if ( $first_slash_idx == -1 ) {
-            if ( $first_colon_idx == -1 and $first_at_idx == -1 ) {
+    if ( ( my $colon_idx = index $args{path}, q[:] ) != -1 ) {
+        my $slash_idx = index $args{path}, q[/];
 
-                # if hierarchical part has no "/" and has no ":" and has no "@" - this is the path:
-                # path
-                $args{path} = $hierarchical_part;
-            }
-            else {
+        if ( $slash_idx == -1 or $colon_idx < $slash_idx ) {
+            $args{scheme} = lc substr $args{path}, 0, $colon_idx + 1, q[];
 
-                # if hierarchical part has no "/" and has ":" or has "@" - this is the authority:
-                # mailto:username@host
-                $args{authority} = $hierarchical_part;
-            }
-        }
-        else {
-            if ( $first_colon_idx == -1 and $first_at_idx == -1 ) {
-
-                # if hierarchical part has "/" and has no ":" and has no "@" - this is the path:
-                # path/path/path
-                $args{path} = $hierarchical_part;
-            }
-            else {
-                if ( ( $first_colon_idx != -1 and $first_colon_idx < $first_slash_idx ) or ( $first_at_idx != -1 and $first_at_idx < $first_slash_idx ) ) {
-
-                    # if hierarchical part has "/" and has ":" or has "@" before first "/" - all before first "/" is the authority:
-                    # username:password@host/part
-                    # file:/path
-                    $args{authority} = substr $hierarchical_part, 0, $first_slash_idx, q[];
-
-                    $args{path} = $hierarchical_part;
-                }
-                else {
-
-                    # if hierarchical part has "/" and has ":" or has "@" after first "/" - this is the path:
-                    $args{path} = $hierarchical_part;
-                }
-            }
-        }
-
-        # if has authority and authority contains ":" - all before ":" is the scheme:
-        # mailto:username@host
-        if ( $args{authority} && $first_colon_idx != -1 ) {
-            $args{scheme} = lc substr $args{authority}, 0, $first_colon_idx + 1, q[];
-
-            # remove last ":" from scheme
+            # remove ":" from scheme
             substr $args{scheme}, -1, 1, q[];
         }
     }
-
-    $args{has_authority} = 1 if $args{authority} ne q[];
 
     return \%args;
 }
@@ -349,7 +305,10 @@ sub _build_to_string ($self) {
     if ( $self->_has_authority or $self->authority ) {
         $uri .= q[//] . $self->authority;
 
-        $uri .= q[/] if $self->path && substr( $self->path->to_uri, 0, 1 ) ne q[/];
+        $uri .= q[/] if $self->path && !$self->path->is_abs;
+    }
+    elsif ( !$self->scheme && $self->path && !$self->path->is_abs && $self->path =~ m[\A[^/]*:]sm ) {
+        $uri .= q[./];
     }
 
     $uri .= $self->path->to_uri;
@@ -619,8 +578,6 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (27)                               │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 223                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse" with high complexity score (25)                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
