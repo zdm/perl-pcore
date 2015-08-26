@@ -316,7 +316,7 @@ sub _parse ( $uri, @ ) {
         # if has authority and authority contains ":" - all before ":" is the scheme:
         # mailto:username@host
         if ( $args{authority} && $first_colon_idx != -1 ) {
-            $args{scheme} = substr $args{authority}, 0, $first_colon_idx + 1, q[];
+            $args{scheme} = lc substr $args{authority}, 0, $first_colon_idx + 1, q[];
 
             # remove last ":" from scheme
             substr $args{scheme}, -1, 1, q[];
