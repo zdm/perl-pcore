@@ -192,7 +192,12 @@ around query => sub ( $orig, $self, $query = undef ) {
     if ( defined $query ) {
         $self->_clear_to_string;
 
-        return $self->$orig( P->data->to_uri( P->data->from_uri_query($query) ) );
+        if ( ref $query ) {
+            return $self->$orig( P->data->to_uri($query) );
+        }
+        else {
+            return $self->$orig( P->data->to_uri( P->data->from_uri_query($query) ) );
+        }
     }
     else {
         return $self->$orig;
@@ -577,7 +582,7 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (27)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (29)                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
