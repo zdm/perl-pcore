@@ -89,7 +89,7 @@ BEGIN {
         text      => 'Pcore::Util::Text',
         tmpl      => 'Pcore::Util::Template',
         ua        => 'Pcore::HTTP::UA',
-        uri       => 'Pcore::Util::URI',
+        uri       => 'Pcore::Util::URI::Builder',
         uuid      => 'Pcore::Util::UUID',
     };
 }

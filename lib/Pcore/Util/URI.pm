@@ -1,6 +1,6 @@
 package Pcore::Util::URI;
 
-use Pcore qw[-class];
+use Pcore qw[-role];
 use AnyEvent::Socket qw[];
 
 use overload    #
@@ -41,65 +41,6 @@ has host          => ( is => 'rw',   lazy    => 1,                       init_ar
 has port          => ( is => 'rw',   lazy    => 1,                       init_arg => undef );
 has hostport      => ( is => 'lazy', clearer => '_clear_host_port',      init_arg => undef );    # in ASCII
 has hostport_utf8 => ( is => 'lazy', clearer => '_clear_host_port_utf8', init_arg => undef );
-
-around new => sub ( $orig, $self, $uri, $base = undef ) {
-    my $args = _parse($uri);
-
-    # https://tools.ietf.org/html/rfc3986#section-5
-    # if URI has no scheme and base URI is specified - merge with base URI
-    if ( $args->{scheme} eq q[] && defined $base ) {
-
-        # parse base URI
-        if ( !ref $base ) {
-            $base = _parse($base);
-        }
-        else {
-            $base = {
-                scheme    => $base->_scheme,
-                authority => $base->_authority,
-                path      => $base->_path,
-                query     => $base->_query,
-                fragment  => $base->_fragment,
-            };
-        }
-
-        # https://tools.ietf.org/html/rfc3986#section-5.2.1
-        # base URI MUST contain scheme
-        return if $base->{scheme} eq q[];
-
-        # https://tools.ietf.org/html/rfc3986#section-5.2.2
-        # inherit scheme from base URI
-        $args->{scheme} = $base->{scheme};
-
-        # inherit from the base URI only if has no own authority
-        if ( !$args->{has_authority} ) {
-
-            # inherit authority
-            $args->{authority} = $base->{authority};
-
-            if ( $args->{path} eq q[] ) {
-                $args->{path} = $base->{path};
-
-                $args->{query} = $base->{query} if !$args->{query};
-            }
-            else {
-                # path is relative, or no path
-                if ( substr( $args->{path}, 0, 1 ) ne q[/] ) {
-                    if ( $base->{path} ) {
-                        my $slash_rindex = rindex $base->{path}, q[/];
-
-                        # remove filename from base path
-                        $base->{path} = substr( $base->{path}, 0, $slash_rindex ) . q[/] if $slash_rindex >= 0;
-
-                        $args->{path} = $base->{path} . q[/] . $args->{path};
-                    }
-                }
-            }
-        }
-    }
-
-    return __PACKAGE__->$orig($args);
-};
 
 around username => sub ( $orig, $self, $username = undef ) {
     if ( defined $username ) {
@@ -221,83 +162,48 @@ around fragment => sub ( $orig, $self, $fragment = undef ) {
 
 no Pcore;
 
-sub NEW {
-    goto &new;
-}
+sub NEW ( $self, $args, $base = undef ) {
 
-sub _parse ( $uri, @ ) {
-    my %args = (
-        has_authority => 0,
-        scheme        => q[],
-        authority     => q[],
-        path          => q[],
-        query         => q[],
-        fragment      => q[],
-    );
+    # https://tools.ietf.org/html/rfc3986#section-5
+    # if URI has no scheme and base URI is specified - merge with base URI
+    if ( $args->{scheme} eq q[] && defined $base ) {
 
-    # fragment
-    if ( ( my $fragment_idx = index $uri, q[#] ) != -1 ) {
-        $args{fragment} = substr $uri, $fragment_idx, length $uri, q[];
+        # https://tools.ietf.org/html/rfc3986#section-5.2.1
+        # base URI MUST contain scheme
+        return if $base->{scheme} eq q[];
 
-        substr $args{fragment}, 0, 1, q[];    # remove "#" from fragment
-    }
+        # https://tools.ietf.org/html/rfc3986#section-5.2.2
+        # inherit scheme from base URI
+        $args->{scheme} = $base->{scheme};
 
-    # query
-    if ( ( my $query_idx = index $uri, q[?] ) != -1 ) {
-        $args{query} = substr $uri, $query_idx, length $uri, q[];
+        # inherit from the base URI only if has no own authority
+        if ( !$args->{has_authority} ) {
 
-        substr $args{query}, 0, 1, q[];       # remove "?" from query
-    }
+            # inherit authority
+            $args->{authority} = $base->{authority};
 
-    # If a URI contains an authority component, then the path component
-    # must either be empty or begin with a slash ("/") character.  If a URI
-    # does not contain an authority component, then the path cannot begin
-    # with two slash characters ("//").  In addition, a URI reference
-    # (Section 4.1) may be a relative-path reference, in which case the
-    # first path segment cannot contain a colon (":") character.  The ABNF
-    # requires five separate rules to disambiguate these cases, only one of
-    # which will match the path substring within a given URI reference.  We
-    # use the generic term "path component" to describe the URI substring
-    # matched by the parser to one of these rules.
+            if ( $args->{path} eq q[] ) {
+                $args->{path} = $base->{path};
 
-    # The authority component is preceded by a double slash ("//") and is
-    # terminated by the next slash ("/"), question mark ("?"), or number
-    # sign ("#") character, or by the end of the URI.
+                $args->{query} = $base->{query} if !$args->{query};
+            }
+            else {
+                # path is relative, or no path
+                if ( substr( $args->{path}, 0, 1 ) ne q[/] ) {
+                    if ( $base->{path} ) {
+                        my $slash_rindex = rindex $base->{path}, q[/];
 
-    if ( ( my $authority_idx = index $uri, q[//] ) != -1 ) {
-        $args{has_authority} = 1;
+                        # remove filename from base path
+                        $base->{path} = substr( $base->{path}, 0, $slash_rindex ) . q[/] if $slash_rindex >= 0;
 
-        if ( ( my $slash_idx = index $uri, q[/], $authority_idx + 2 ) != -1 ) {
-            $args{authority} = substr $uri, $authority_idx, $slash_idx - $authority_idx, q[];
-        }
-        else {
-            $args{authority} = substr $uri, $authority_idx, length $uri, q[];
-        }
-
-        # remove "//" from authority
-        substr $args{authority}, 0, 2, q[];
-    }
-
-    $args{path} = $uri;
-
-    # A path segment that contains a colon character (e.g., "this:that")
-    # cannot be used as the first segment of a relative-path reference, as
-    # it would be mistaken for a scheme name.  Such a segment must be
-    # preceded by a dot-segment (e.g., "./this:that") to make a relative-
-    # path reference.
-
-    if ( ( my $colon_idx = index $args{path}, q[:] ) != -1 ) {
-        my $slash_idx = index $args{path}, q[/];
-
-        if ( $slash_idx == -1 or $colon_idx < $slash_idx ) {
-            $args{scheme} = lc substr $args{path}, 0, $colon_idx + 1, q[];
-
-            # remove ":" from scheme
-            substr $args{scheme}, -1, 1, q[];
+                        $args->{path} = $base->{path} . q[/] . $args->{path};
+                    }
+                }
+            }
         }
     }
 
-    return \%args;
+    return $self->new($args);
 }
 
 sub _build_to_string ($self) {
@@ -576,16 +482,6 @@ sub to_http_req ( $self, $with_auth = undef ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (29)                               │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
