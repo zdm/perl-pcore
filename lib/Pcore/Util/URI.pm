@@ -32,6 +32,7 @@ has fragment_utf8  => ( is => 'lazy', clearer  => '_clear_fragment_utf8', init_a
 has scheme_is_valid => ( is => 'lazy', init_arg => undef );
 
 has userinfo      => ( is => 'lazy', clearer => '_clear_userinfo',      init_arg => undef );
+has userinfo_b64  => ( is => 'lazy', clearer => '_clear_userinfo_b64',  init_arg => undef );
 has username      => ( is => 'rw',   lazy    => 1,                      init_arg => undef );
 has username_utf8 => ( is => 'lazy', clearer => '_clear_username_utf8', init_arg => undef );
 has password      => ( is => 'rw',   lazy    => 1,                      init_arg => undef );
@@ -47,6 +48,7 @@ around username => sub ( $orig, $self, $username = undef ) {
         $self->_clear_username_utf8;
 
         $self->_clear_userinfo;
+        $self->_clear_userinfo_b64;
 
         $self->_clear_authority;
         $self->_clear_authority_utf8;
@@ -67,6 +69,7 @@ around password => sub ( $orig, $self, $password = undef ) {
         $self->_clear_password_utf8;
 
         $self->_clear_userinfo;
+        $self->_clear_userinfo_b64;
 
         $self->_clear_authority;
         $self->_clear_authority_utf8;
