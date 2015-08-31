@@ -27,7 +27,6 @@ has url => ( is => 'ro', isa => Str, required => 1 );
 has recurse    => ( is => 'ro', isa => PositiveOrZeroInt );
 has timeout    => ( is => 'ro', isa => PositiveOrZeroInt );
 has persistent => ( is => 'ro', isa => Bool );
-has keepalive  => ( is => 'ro', isa => Bool );
 has session    => ( is => 'ro', isa => Str );
 has cookie_jar => ( is => 'ro', isa => Ref );
 has tls_ctx    => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::UA::TLS_CTX_LOW, $Pcore::HTTP::UA::TLS_CTX_HIGH ] | HashRef ] );
@@ -93,7 +92,7 @@ sub _get_progress_bar_cb ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 48                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 47                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

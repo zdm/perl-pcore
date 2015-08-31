@@ -4,6 +4,7 @@ use Pcore;
 use Errno qw[];
 use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF];
 use Pcore::AnyEvent::Handle qw[];
+use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
 
 no Pcore;
 
@@ -21,24 +22,73 @@ sub http_request ($args) {
         h        => undef,
         finished => 0,
         finish   => sub ( $error_status = undef, $error_reason = undef ) {
-            if ( !$runtime->{finished} ) {
-                $runtime->{finished} = 1;
+            return if $runtime->{finished};
 
-                if ( $runtime->{h} ) {
-                    if ( $runtime->{cache_id} && ( $runtime->{persistent} || $runtime->{was_persistent} ) ) {    # store persistent connection
-                        $runtime->{h}->store( $runtime->{cache_id}, $runtime->{persistent} );
-                    }
-                    else {
-                        $runtime->{h}->destroy;                                                                  # destroy handle, if connection is not persistent
-                    }
-                }
+            $runtime->{finished} = 1;
 
-                $args->{res}->set_status($error_status) if defined $error_status;
+            my $set_error = sub ( $error_status, $error_reason ) {
+                $args->{res}->set_status($error_status);
 
                 $args->{res}->set_reason($error_reason) if defined $error_reason;
 
-                $args->{on_finish}->();
+                if ( refaddr( $args->{res} ) != refaddr( $runtime->{res} ) ) {
+                    $runtime->{res}->set_status($error_status);
+
+                    $runtime->{res}->set_reason($error_reason) if defined $error_reason;
+                }
+
+                return;
+            };
+
+            if ( defined $error_status ) {    # request was finished with connection / HTTP protocol error
+                $runtime->{h}->destroy if $runtime->{h};
+
+                $set_error->( $error_status, $error_reason );
             }
+            else {                            # request was finished normally
+                my $cache_handle;
+
+                if ( $runtime->{cache_id} && ( $runtime->{persistent} || $runtime->{was_persistent} ) ) {
+                    if ( $runtime->{res}->version < 1.1 ) {
+                        $cache_handle = 1 if exists $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bkeep-?alive\b/smi;
+                    }
+                    else {                    # 1.1
+                        $cache_handle = 1 if !exists $runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bclose\b/smi;
+                    }
+                }
+
+                $cache_handle ? $runtime->{h}->store( $runtime->{cache_id} ) : $runtime->{h}->destroy;
+
+                # process redirect
+                if ( $runtime->{redirect} ) {
+                    if ( $args->{recurse} < 1 ) {
+                        $set_error->( 599, 'Too many redirections' );
+                    }
+                    else {
+                        $args->{recurse}--;
+
+                        if ( $runtime->{res}->status ~~ [ 301, 302, 303 ] ) {
+
+                            # HTTP/1.1 is unclear on how to mutate the method
+                            if ( $args->{method} ne 'HEAD' ) {
+                                $args->{method} = 'GET';
+
+                                # do not resend request body in this case
+                                delete $args->{body};
+                            }
+                        }
+
+                        $args->{url} = $runtime->{res}->headers->{LOCATION};
+
+                        # recursive call on redirect
+                        http_request($args);
+
+                        return;
+                    }
+                }
+            }
+
+            $args->{on_finish}->();
 
             return;
         },
@@ -55,18 +105,21 @@ sub http_request ($args) {
     # define persistent cache key
     # TODO
     if ( $runtime->{persistent} ) {
-
-        # $runtime->{headers}->{CONNECTION} = ( $persistent ? $keepalive ? 'keep-alive, ' : q[] : 'close, ' ) . 'Te';    # 1.1
+        $runtime->{cache_id} = 123;
     }
 
     # add REFERER header
-    $runtime->{headers}->{REFERER} = $args->{url}->to_http_req(1) unless exists $args->{headers}->{REFERER};
+    # TODO need to use ascii authority
+    # $runtime->{headers}->{REFERER} = $args->{url}->to_http_req(1) unless exists $args->{headers}->{REFERER};
 
     # add HOST header
-    $runtime->{headers}->{HOST} = $args->{url}->host unless exists $args->{headers}->{HOST};
+    $runtime->{headers}->{HOST} = $args->{url}->host->name_ascii unless exists $args->{headers}->{HOST};
+
+    # mark, that UA support trailer headers during chunked transfer
+    $runtime->{headers}->{TE} = 'trailers' unless exists $args->{headers}->{TE};
 
     # add COOKIE headers
-    $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url}->host ) if $args->{cookie_jar};
+    $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url}->host->name_ascii ) if $args->{cookie_jar};
 
     # start "connect" phase
     $runtime->{on_error_status} = 595;
@@ -98,11 +151,7 @@ sub http_request ($args) {
                 }
             );
 
-            $h->timeout_reset;
-
             $h->timeout( $args->{timeout} );
-
-            $h->destroyed and die q[AnyEvent::HTTP: unexpectedly got a destructed handle (2), please report.];
 
             # _write_request does not contain async. code
             _write_request( $args, $runtime );
@@ -112,7 +161,7 @@ sub http_request ($args) {
 
             _read_headers(
                 $args, $runtime,
-                sub () {
+                sub {
 
                     # return if error occurred during read response headers
                     return if $runtime->{finished};
@@ -120,45 +169,7 @@ sub http_request ($args) {
                     # start "read body" phase
                     $runtime->{on_error_status} = 597;
 
-                    _read_body(
-                        $args, $runtime,
-                        sub () {
-
-                            # return if error occurred during read response body
-                            return if $runtime->{finished};
-
-                            # process redirect
-                            if ( $runtime->{redirect} ) {
-                                if ( $args->{recurse} > 1 ) {
-                                    $args->{recurse}--;
-
-                                    if ( $runtime->{res}->status ~~ [ 301, 302, 303 ] ) {
-
-                                        # HTTP/1.1 is unclear on how to mutate the method
-                                        if ( $args->{method} ne 'HEAD' ) {
-                                            $args->{method} = 'GET';
-
-                                            # do not resend request body in this case
-                                            delete $args->{body};
-                                        }
-                                    }
-
-                                    $args->{url} = $runtime->{res}->headers->{LOCATION};
-
-                                    # recursive call on redirect
-                                    http_request($args);
-                                }
-                                else {
-                                    $runtime->{finish}->( 599, 'Too many redirections' );
-                                }
-                            }
-                            else {
-                                $runtime->{finish}->();
-                            }
-
-                            return;
-                        }
-                    );
+                    _read_body( $args, $runtime, $runtime->{finish} );
 
                     return;
                 }
@@ -171,6 +182,7 @@ sub http_request ($args) {
     return;
 }
 
+# TODO proxy
 sub _connect ( $args, $runtime, $cb ) {
     my $_connect = sub {
         my $handle;
@@ -182,6 +194,8 @@ sub _connect ( $args, $runtime, $cb ) {
             timeout         => $args->{timeout},
             tls_ctx         => $args->{tls_ctx},
             peername        => $args->{url}->host,
+
+            # TODO detect proxy type
             ( $args->{proxy} ? ( proxy => [ 'socks', $args->{proxy} ] ) : () ),
             on_proxy_connect_error => sub ( $h, $message ) {
                 $runtime->{finish}->( 594, $message );
@@ -211,8 +225,6 @@ sub _connect ( $args, $runtime, $cb ) {
     # get connection handle from cache or create new handle
     if ( $runtime->{persistent} && $runtime->{cache_id} ) {
         if ( my $h = Pcore::AnyEvent::Handle->fetch( $runtime->{cache_id} ) ) {
-            $h->destroyed and die q[AnyEvent::HTTP: unexpectedly got a destructed handle (1), please report.];
-
             $runtime->{was_persistent} = 1;
 
             $cb->($h);
@@ -234,7 +246,6 @@ sub _write_request ( $args, $runtime ) {
     $runtime->{h}->starttls('connect') if $runtime->{starttls} && !exists $runtime->{h}->{tls};
 
     # send request headers
-    # TODO HTTP/1.1 - always??? How to support HTTP/1.0???
     $runtime->{h}->push_write( "$args->{method} $runtime->{request_path} HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
 
     # return if error occurred during send request headers
@@ -340,21 +351,13 @@ sub _read_body ( $args, $runtime, $cb ) {
 
     # call "on_header" callback, do not call during redirects
     if ( !$runtime->{redirect} && $args->{on_header} && !$args->{on_header}->( $runtime->{res} ) ) {
-
-        # do not cache handle, because read buffer can contain tail data
-        $runtime->{persistent} = 0;
-
-        $runtime->{finish}->( 598, q[Request cancelled by "on_header"] );
-
-        $cb->();
+        $cb->( 598, q[Request cancelled by "on_header"] );
 
         return;
     }
 
     # no body expected for the following conditions
     if ( $runtime->{res}->status < 200 || $runtime->{res}->status == 204 || $runtime->{res}->status == 205 || $runtime->{res}->status == 304 || $args->{method} eq 'HEAD' || ( !$chunked && $runtime->{content_length} == 0 ) ) {
-        $runtime->{finish}->();
-
         $cb->();
 
         return;
@@ -469,28 +472,17 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
 
                         if ( !$on_body->($chunk_ref) ) {        # transfer was cancelled by "on_body" call
 
-                            # do not cache handle if canceled by "on_body" callback, because socket can contain tail data
-                            $runtime->{persistent} = 0;
-
                             # set content length to really readed bytes length
                             $runtime->{res}->_set_content_length( $runtime->{total_bytes_readed} );
 
-                            $runtime->{finish}->( 598, q[Request cancelled by "on_body"] );
-
-                            $cb->();
+                            $cb->( 598, q[Request cancelled by "on_body"] );
                         }
                         else {
                             # read trailing chunk $CRLF
                             $h->push_read(
                                 line => sub ( $h, @ ) {
-                                    if ( length $_[1] ) {    # error, chunk traililg can contain only $CRLF
-
-                                        # do not cache handle, because socket can contain tail data
-                                        $runtime->{persistent} = 0;
-
-                                        $runtime->{finish}->( 597, 'Garbled chunked transfer encoding' );
-
-                                        $cb->();
+                                    if ( length $_[1] ) {       # error, chunk traililg can contain only $CRLF
+                                        $cb->( 597, 'Garbled chunked transfer encoding' );
                                     }
                                     else {
                                         $h->push_read( line => $read_chunk );
@@ -517,10 +509,9 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
                                 $runtime->{res}->headers->add( $parsed_headers->{headers} );
                             }
                             else {
-                                # do not cache handle, because socket can contain tail data
-                                $runtime->{persistent} = 0;
+                                $cb->( 597, 'Garbled chunked transfer encoding (invalid trailing headers)' );
 
-                                $runtime->{finish}->( 597, 'Garbled chunked transfer encoding' );
+                                return;
                             }
                         }
 
@@ -532,9 +523,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
             }
         }
         else {    # invalid chunk length
-            $runtime->{finish}->( 597, 'Garbled chunked transfer encoding' );
-
-            $cb->();
+            $cb->( 597, 'Garbled chunked transfer encoding' );
         }
 
         return;
@@ -555,12 +544,7 @@ sub _read_body_length ( $runtime, $on_body, $cb ) {
                 # remove "on_read" callback
                 $h->on_read(undef);
 
-                # do not cache handle if canceled by "on_body" callback, because socket can contain tail data
-                $runtime->{persistent} = 0;
-
-                $runtime->{finish}->( 598, q[Request cancelled by "on_body"] );
-
-                $cb->();
+                $cb->( 598, q[Request cancelled by "on_body"] );
             }
 
             if ( $runtime->{total_bytes_readed} == $runtime->{content_length} ) {
@@ -575,12 +559,7 @@ sub _read_body_length ( $runtime, $on_body, $cb ) {
                 # remove "on_read" callback
                 $h->on_read(undef);
 
-                # do not cache handle if case of this error, because socket can contain tail data
-                $runtime->{persistent} = 0;
-
-                $runtime->{finish}->( 598, q[Readed body length is larger than expected] );
-
-                $cb->();
+                $cb->( 598, q[Readed body length is larger than expected] );
             }
 
             return;
@@ -611,12 +590,7 @@ sub _read_body_eof ( $runtime, $on_body, $cb ) {
                 # remove "on_eof" callback
                 $h->on_eof(undef);
 
-                # do not cache handle if canceled by "on_body" callback, because socket can contain tail data
-                $runtime->{persistent} = 0;
-
-                $runtime->{finish}->( 598, q[Request cancelled by "on_body"] );
-
-                $cb->();
+                $cb->( 598, q[Request cancelled by "on_body"] );
             }
 
             return;
@@ -750,10 +724,10 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 12                   │ * Subroutine "http_request" with high complexity score (26)                                                    │
-## │      │ 331                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 13                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
+## │      │ 342                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 637                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 611                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

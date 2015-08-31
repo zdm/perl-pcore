@@ -22,15 +22,10 @@ our $USERAGENT = "Mozilla/5.0 (compatible; U; P-AnyEvent-UA/$Pcore::VERSION";
 our $RECURSE   = 7;
 our $TIMEOUT   = 300;
 
-# default persistent cache timeout, 0 - disable handle cache, changing this is evil, unused cached connection will be automatically closed after this timeout
-our $PERSISTENT = 4;
-our $KEEPALIVE  = 1;
-
 has useragent  => ( is => 'lazy', isa => Str,               default => $USERAGENT );
 has recurse    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $RECURSE );
 has timeout    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $TIMEOUT );
-has persistent => ( is => 'lazy', isa => PositiveOrZeroInt, default => $PERSISTENT );
-has keepalive  => ( is => 'lazy', isa => Bool,              default => $KEEPALIVE );
+has persistent => ( is => 'lazy', isa => Bool,              default => 1 );
 has session    => ( is => 'ro',   isa => Str );
 
 has cookie_jar => ( is => 'rwp', isa => Ref );
@@ -40,44 +35,6 @@ has tls_ctx => ( is => 'lazy', isa => Enum [ $Pcore::HTTP::UA::TLS_CTX_LOW, $Pco
 has headers => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Message::Headers'], default => sub { Pcore::HTTP::Message::Headers->new }, init_arg => undef );
 
 no Pcore;
-
-our %IDEMPOTENT = (
-    DELETE  => 1,
-    GET     => 1,
-    HEAD    => 1,
-    OPTIONS => 1,
-    PUT     => 1,
-    TRACE   => 1,
-
-    ACL                => 1,
-    'BASELINE-CONTROL' => 1,
-    BIND               => 1,
-    CHECKIN            => 1,
-    CHECKOUT           => 1,
-    COPY               => 1,
-    LABEL              => 1,
-    LINK               => 1,
-    MERGE              => 1,
-    MKACTIVITY         => 1,
-    MKCALENDAR         => 1,
-    MKCOL              => 1,
-    MKREDIRECTREF      => 1,
-    MKWORKSPACE        => 1,
-    MOVE               => 1,
-    ORDERPATCH         => 1,
-    PROPFIND           => 1,
-    PROPPATCH          => 1,
-    REBIND             => 1,
-    REPORT             => 1,
-    SEARCH             => 1,
-    UNBIND             => 1,
-    UNCHECKOUT         => 1,
-    UNLINK             => 1,
-    UNLOCK             => 1,
-    UPDATE             => 1,
-    UPDATEREDIRECTREF  => 1,
-    'VERSION-CONTROL'  => 1,
-);
 
 # 594 - errors during proxy handshake.
 # 595 - errors during connection establishment.
@@ -140,8 +97,7 @@ sub request ( $self, @ ) {
 
         recurse    => $req->recurse    // ( $self_is_obj ? $self->recurse    : $RECURSE ),
         timeout    => $req->timeout    // ( $self_is_obj ? $self->timeout    : $TIMEOUT ),
-        persistent => $req->persistent // ( $self_is_obj ? $self->persistent : $PERSISTENT ),
-        keepalive  => $req->keepalive  // ( $self_is_obj ? $self->keepalive  : $KEEPALIVE ),
+        persistent => $req->persistent // ( $self_is_obj ? $self->persistent : 1 ),
         session    => $req->session    // ( $self_is_obj ? $self->session    : undef ),
         cookie_jar => $req->cookie_jar // ( $self_is_obj ? $self->cookie_jar : undef ),
 
@@ -165,10 +121,6 @@ sub request ( $self, @ ) {
     $args->{headers}->replace( $req_args->{headers} ) if $req_args->{headers};
 
     $args->{headers}->{USER_AGENT} = $self_is_obj ? $self->useragent : $USERAGENT unless exists $args->{headers}->{USER_AGENT};
-
-    $args->{headers}->{TE} = 'trailers' unless exists $args->{headers}->{TE};    # 1.1
-
-    delete $args->{headers}->{CONNECTION};
 
     # prepate TLS context
     if ( !$args->{tls_ctx} ) {
@@ -327,9 +279,9 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 107                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (42)                   │
+## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 311                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 263                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -345,5 +297,15 @@ Pcore::HTTP::UA
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
+
+=head1 ATTRIBUTES
+
+=head2 persistent = Bool
+
+Store connection in cache. C<FALSE> - do not cache connection. C<TRUE> - cache connection. Connection will not be cached in cases where proxies was used or on HTTP protocol errors.
+
+Default value is C<1>.
+
+=head1 METHODS
 
 =cut

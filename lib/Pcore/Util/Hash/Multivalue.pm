@@ -6,30 +6,20 @@ use Storable qw[dclone];
 
 use overload                    #
   q[%{}] => sub {
-    return $_[0]->$*->[0];
+    return $_[0]->[0];
   },
   fallback => undef;
 
 sub new {
     my $self = shift;
 
-    my $hash = {};
+    my $obj = bless [ {} ], $self;
 
-    my $attrs = {};
-
-    my $obj = bless \[ $hash, $attrs ], $self;
-
-    tie $hash->%*, 'Pcore::Util::Hash::Multivalue::_HASH', $obj;
-
-    P->scalar->weaken( tied( $hash->%* )->[1] );
+    tie $obj->[0]->%*, 'Pcore::Util::Hash::Multivalue::_HASH';
 
     $obj->add(@_) if @_;
 
     return $obj;
-}
-
-sub attrs ($self) {
-    return $self->$*->[1];
 }
 
 sub clone ($self) {
@@ -38,8 +28,8 @@ sub clone ($self) {
 
 # return untied $hash->{$key} as ArrayRef
 sub get ( $self, $key ) {
-    if ( exists $self->$*->[0]->{$key} ) {
-        return tied( $self->$*->[0]->%* )->[0]->{$key};
+    if ( exists $self->[0]->{$key} ) {
+        return tied( $self->[0]->%* )->[0]->{$key};
     }
 
     return;
@@ -47,7 +37,7 @@ sub get ( $self, $key ) {
 
 # return untied HashRef
 sub get_hash ($self) {
-    return tied( $self->$*->[0]->%* )->[0];
+    return tied( $self->[0]->%* )->[0];
 }
 
 sub add {
@@ -148,12 +138,11 @@ sub FETCH {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 22, 24, 42, 50, 93,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 101                  │                                                                                                                │
+## │    3 │ 18, 32, 40, 83, 91   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 22                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
+## │    2 │ 18                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 59                   │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 49                   │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

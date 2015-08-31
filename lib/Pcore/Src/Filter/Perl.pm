@@ -330,7 +330,7 @@ sub _format_sub_signature ( $sub_name, $sub_sign ) {
 
             $sign = qq[$var =];
 
-            $sign .= qq[ $val] if $val;
+            $sign .= qq[ $val] if $val ne q[];
         }
 
         push @formatted_signs, $sign;
