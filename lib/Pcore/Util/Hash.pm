@@ -3,6 +3,8 @@ package Pcore::Util::Hash;
 use Pcore qw[-autoload];
 use Hash::Util qw[];      ## no critic qw[Modules::ProhibitEvilModules]
 use Scalar::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Hash::Multivalue;
+use Pcore::Util::Hash::RandKey;
 
 sub autoload {
     my $self   = shift;
@@ -55,16 +57,13 @@ sub _merge {
 sub multivalue {
     my $self = shift;
 
-    require Pcore::Util::Hash::Multivalue;
-
     return Pcore::Util::Hash::Multivalue->new(@_);
 }
 
-sub rand_key {
-    my $self     = shift;
-    my $hash_ref = shift;
+sub randkey {
+    my $self = shift;
 
-    return [ keys %{$hash_ref} ]->[ rand keys %{$hash_ref} ];
+    return Pcore::Util::Hash::RandKey->new;
 }
 
 1;
