@@ -165,7 +165,7 @@ around fragment => sub ( $orig, $self, $fragment = undef ) {
 
 no Pcore;
 
-sub NEW ( $self, $args, $base = undef ) {
+sub NEW ( $self, $args, $base = undef, @ ) {
 
     # https://tools.ietf.org/html/rfc3986#section-5
     # if URI has no scheme and base URI is specified - merge with base URI

@@ -5,7 +5,7 @@ use Pcore::Util::URI::_generic;
 
 no Pcore;
 
-sub NEW ( $self, $uri, $base = undef ) {
+sub NEW ( $self, $uri, $base = undef, @ ) {
     my $args = _parse($uri);
 
     my $scheme = $args->{scheme};
@@ -33,17 +33,20 @@ sub NEW ( $self, $uri, $base = undef ) {
         $scheme = $base->{scheme};
     }
 
-    my $class;
+    state $scheme_cache = {    #
+        q[] => 'Pcore::Util::URI::_generic',
+    };
 
-    if ( $scheme ne q[] ) {
-        $class = try {
-            return P->class->load( $scheme, ns => 'Pcore::Util::URI' );
+    if ( !exists $scheme_cache->{$scheme} ) {
+        try {
+            $scheme_cache->{$scheme} = P->class->load( $scheme, ns => 'Pcore::Util::URI' );
+        }
+        catch {
+            $scheme_cache->{$scheme} = 'Pcore::Util::URI::_generic';
         };
     }
 
-    $class //= 'Pcore::Util::URI::_generic';
-
-    return $class->NEW( $args, $base );
+    return $scheme_cache->{$scheme}->NEW( $args, $base );
 }
 
 sub _parse ( $uri, @ ) {
