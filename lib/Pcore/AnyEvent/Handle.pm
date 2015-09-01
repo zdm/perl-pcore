@@ -14,6 +14,13 @@ const our $PROXY_CONNECT_ERROR   => 1;
 const our $PROXY_HANDSHAKE_ERROR => 2;
 const our $CONNECT_ERROR         => 3;
 
+const our $PROXY_TYPE_CONNECT => 1;
+const our $PROXY_TYPE_HTTPS   => 2;
+const our $PROXY_TYPE_SOCKS5  => 3;
+const our $PROXY_TYPE_SOCKS4  => 4;
+const our $PROXY_TYPE_SOCKS4a => 5;
+const our $PROXY_TYPE_HTTP    => 6;
+
 our $CACHE = {};
 
 # dafault cache timeout
@@ -52,7 +59,17 @@ sub new ( $self, %args ) {
     else {
         my $proxy = $args{proxy};
 
-        my $proxy_type = $args{proxy_type} || $proxy->is_socks5 || $proxy->is_connect || $proxy->is_http;
+        # select proxy type
+        my $proxy_type = $args{proxy_type};
+
+        if ( !$proxy_type ) {
+            if ( $args{connect}->[1] == 443 ) {
+                $proxy_type = $proxy->{is_https} || $proxy->{is_socks5} || $proxy->{is_http};
+            }
+            else {
+                $proxy_type = $proxy->{is_connect} || $proxy->{is_socks5} || $proxy->{is_http};
+            }
+        }
 
         my %args_orig = (
             connect => $args{connect},
@@ -92,7 +109,12 @@ sub new ( $self, %args ) {
 
             return;
         }
-        elsif ( $proxy_type eq 'socks5' or $proxy_type eq 'connect' ) {
+        elsif ( $proxy_type == $PROXY_TYPE_SOCKS4 or $proxy_type == $PROXY_TYPE_SOCKS4a ) {
+            $args{on_connect_error}->( undef, 'Proxy type is not supported', $PROXY_CONNECT_ERROR );
+
+            return;
+        }
+        elsif ( $proxy_type == $PROXY_TYPE_SOCKS5 or $proxy_type == $PROXY_TYPE_CONNECT or $proxy_type = $PROXY_TYPE_HTTPS ) {
             $args{timeout} = $args{connect_timeout} if $args{connect_timeout};
 
             # all proxy connection timeouts will be handled by "on_error" callback
@@ -124,10 +146,10 @@ sub new ( $self, %args ) {
                     return;
                 };
 
-                if ( $proxy_type eq 'socks5' ) {
+                if ( $proxy_type == $PROXY_TYPE_SOCKS5 ) {
                     _connect_socks5_proxy( $h, $proxy, $args_orig{connect}, $on_connect, $args{on_connect_error} );
                 }
-                elsif ( $proxy_type eq 'connect' ) {
+                elsif ( $proxy_type == $PROXY_TYPE_CONNECT or $proxy_type == $PROXY_TYPE_HTTPS ) {
                     _connect_connect_proxy( $h, $proxy, $args_orig{connect}, $on_connect, $args{on_connect_error} );
                 }
 
@@ -391,25 +413,27 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 24                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (25)                       │
+## │    3 │ 31                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (33)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 230, 344             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 252, 366             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 160                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 182                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 234, 237, 264, 267,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 270                  │                                                                                                                │
+## │    2 │ 256, 259, 286, 289,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 292                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 417                  │ * Link L<AnyEvent::Handle> on line 423 does not specify text                                                   │
-## │      │ 417                  │ * Link L<AnyEvent::Handle> on line 431 does not specify text                                                   │
-## │      │ 417                  │ * Link L<AnyEvent::Handle> on line 459 does not specify text                                                   │
-## │      │ 417                  │ * Link L<AnyEvent::Handle> on line 475 does not specify text                                                   │
-## │      │ 417                  │ * Link L<AnyEvent::Socket> on line 475 does not specify text                                                   │
-## │      │ 417, 417             │ * Link L<Pcore::Proxy> on line 441 does not specify text                                                       │
-## │      │ 417                  │ * Link L<Pcore::Proxy> on line 475 does not specify text                                                       │
+## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 447 does not specify text                                                   │
+## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 455 does not specify text                                                   │
+## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 483 does not specify text                                                   │
+## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 499 does not specify text                                                   │
+## │      │ 441                  │ * Link L<AnyEvent::Socket> on line 499 does not specify text                                                   │
+## │      │ 441, 441             │ * Link L<Pcore::Proxy> on line 465 does not specify text                                                       │
+## │      │ 441                  │ * Link L<Pcore::Proxy> on line 499 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 264, 267, 270, 284   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 21                   │ NamingConventions::Capitalization - Constant "$PROXY_TYPE_SOCKS4a" is not all upper case                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 286, 289, 292, 306   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
