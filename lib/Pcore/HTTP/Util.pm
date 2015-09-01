@@ -113,13 +113,13 @@ sub http_request ($args) {
     # $runtime->{headers}->{REFERER} = $args->{url}->to_http_req(1) unless exists $args->{headers}->{REFERER};
 
     # add HOST header
-    $runtime->{headers}->{HOST} = $args->{url}->host->name_ascii unless exists $args->{headers}->{HOST};
+    $runtime->{headers}->{HOST} = $args->{url}->host->name unless exists $args->{headers}->{HOST};
 
     # mark, that UA support trailer headers during chunked transfer
     $runtime->{headers}->{TE} = 'trailers' unless exists $args->{headers}->{TE};
 
     # add COOKIE headers
-    $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url}->host->name_ascii ) if $args->{cookie_jar};
+    $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url}->host->name ) if $args->{cookie_jar};
 
     # start "connect" phase
     $runtime->{on_error_status} = 595;
@@ -196,7 +196,7 @@ sub _connect ( $args, $runtime, $cb ) {
             peername        => $args->{url}->host,
 
             # TODO detect proxy type
-            ( $args->{proxy} ? ( proxy => [ 'socks', $args->{proxy} ] ) : () ),
+            ( $args->{proxy} ? ( proxy => $args->{proxy} ) : () ),
             on_proxy_connect_error => sub ( $h, $message ) {
                 $runtime->{finish}->( 594, $message );
 

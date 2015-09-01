@@ -57,17 +57,15 @@ sub new ( $self, %args ) {
         return $self->SUPER::new(%args);
     }
     else {
-        my $proxy = $args{proxy};
+        my $proxy = ref $args{proxy} ? $args{proxy} : Pcore::Proxy->new( $args{proxy} );
 
         # select proxy type
-        my $proxy_type = $args{proxy_type};
-
-        if ( !$proxy_type ) {
+        if ( !$args{proxy_type} ) {
             if ( $args{connect}->[1] == 443 ) {
-                $proxy_type = $proxy->{is_https} || $proxy->{is_socks5} || $proxy->{is_http};
+                $args{proxy_type} = $proxy->{is_https} || $proxy->{is_socks5} || $proxy->{is_http};
             }
             else {
-                $proxy_type = $proxy->{is_connect} || $proxy->{is_socks5} || $proxy->{is_http};
+                $args{proxy_type} = $proxy->{is_connect} || $proxy->{is_socks5} || $proxy->{is_http};
             }
         }
 
@@ -104,17 +102,17 @@ sub new ( $self, %args ) {
             return;
         };
 
-        if ( !$proxy_type ) {
+        if ( !$args{proxy_type} ) {
             $args{on_connect_error}->( undef, 'Invalid proxy type', $PROXY_CONNECT_ERROR );
 
             return;
         }
-        elsif ( $proxy_type == $PROXY_TYPE_SOCKS4 or $proxy_type == $PROXY_TYPE_SOCKS4a ) {
+        elsif ( $args{proxy_type} == $PROXY_TYPE_SOCKS4 or $args{proxy_type} == $PROXY_TYPE_SOCKS4a ) {
             $args{on_connect_error}->( undef, 'Proxy type is not supported', $PROXY_CONNECT_ERROR );
 
             return;
         }
-        elsif ( $proxy_type == $PROXY_TYPE_SOCKS5 or $proxy_type == $PROXY_TYPE_CONNECT or $proxy_type = $PROXY_TYPE_HTTPS ) {
+        elsif ( $args{proxy_type} == $PROXY_TYPE_SOCKS5 or $args{proxy_type} == $PROXY_TYPE_CONNECT or $args{proxy_type} = $PROXY_TYPE_HTTPS ) {
             $args{timeout} = $args{connect_timeout} if $args{connect_timeout};
 
             # all proxy connection timeouts will be handled by "on_error" callback
@@ -146,10 +144,10 @@ sub new ( $self, %args ) {
                     return;
                 };
 
-                if ( $proxy_type == $PROXY_TYPE_SOCKS5 ) {
+                if ( $args{proxy_type} == $PROXY_TYPE_SOCKS5 ) {
                     _connect_socks5_proxy( $h, $proxy, $args_orig{connect}, $on_connect, $args{on_connect_error} );
                 }
-                elsif ( $proxy_type == $PROXY_TYPE_CONNECT or $proxy_type == $PROXY_TYPE_HTTPS ) {
+                elsif ( $args{proxy_type} == $PROXY_TYPE_CONNECT or $args{proxy_type} == $PROXY_TYPE_HTTPS ) {
                     _connect_connect_proxy( $h, $proxy, $args_orig{connect}, $on_connect, $args{on_connect_error} );
                 }
 
@@ -413,27 +411,27 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (33)                       │
+## │    3 │ 31                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (34)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 252, 366             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 250, 364             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 182                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 180                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 256, 259, 286, 289,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 292                  │                                                                                                                │
+## │    2 │ 254, 257, 284, 287,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 290                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 447 does not specify text                                                   │
-## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 455 does not specify text                                                   │
-## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 483 does not specify text                                                   │
-## │      │ 441                  │ * Link L<AnyEvent::Handle> on line 499 does not specify text                                                   │
-## │      │ 441                  │ * Link L<AnyEvent::Socket> on line 499 does not specify text                                                   │
-## │      │ 441, 441             │ * Link L<Pcore::Proxy> on line 465 does not specify text                                                       │
-## │      │ 441                  │ * Link L<Pcore::Proxy> on line 499 does not specify text                                                       │
+## │      │ 439                  │ * Link L<AnyEvent::Handle> on line 445 does not specify text                                                   │
+## │      │ 439                  │ * Link L<AnyEvent::Handle> on line 453 does not specify text                                                   │
+## │      │ 439                  │ * Link L<AnyEvent::Handle> on line 481 does not specify text                                                   │
+## │      │ 439                  │ * Link L<AnyEvent::Handle> on line 497 does not specify text                                                   │
+## │      │ 439                  │ * Link L<AnyEvent::Socket> on line 497 does not specify text                                                   │
+## │      │ 439, 439             │ * Link L<Pcore::Proxy> on line 463 does not specify text                                                       │
+## │      │ 439                  │ * Link L<Pcore::Proxy> on line 497 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 21                   │ NamingConventions::Capitalization - Constant "$PROXY_TYPE_SOCKS4a" is not all upper case                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 286, 289, 292, 306   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 284, 287, 290, 304   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
