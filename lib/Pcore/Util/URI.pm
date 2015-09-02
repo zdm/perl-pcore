@@ -46,7 +46,7 @@ has hostport      => ( is => 'lazy', clearer => '_clear_host_port',      init_ar
 has hostport_utf8 => ( is => 'lazy', clearer => '_clear_host_port_utf8', init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $base = undef, @ ) {
-    my $args = _parse_uri_string($uri);
+    my $args = $self->_parse_uri_string($uri);
 
     my $scheme = $args->{scheme};
 
@@ -56,7 +56,7 @@ around new => sub ( $orig, $self, $uri, $base = undef, @ ) {
 
         # parse base URI
         if ( !ref $base ) {
-            $base = _parse_uri_string($base);
+            $base = $self->_parse_uri_string($base);
         }
         else {
             $base = {
@@ -222,7 +222,7 @@ sub NEW {
     return __PACKAGE__->new(@_);
 }
 
-sub _parse_uri_string ( $uri, @ ) {
+sub _parse_uri_string ( $self, $uri, @ ) {
     my %args = (
         has_authority => 0,
         scheme        => q[],
@@ -591,7 +591,7 @@ sub to_psgi ($self) {
 }
 
 # convert for using in http requests
-sub to_http_req ( $self, $with_auth = undef ) {
+sub pathquery ( $self, $with_auth = undef ) {
 
     # https://tools.ietf.org/html/rfc3986#section-5.3
     my $uri = q[];
@@ -603,7 +603,7 @@ sub to_http_req ( $self, $with_auth = undef ) {
     }
 
     if ( $self->path ) {
-        $uri .= q[/] if !$self->path->is_abs;
+        $uri .= q[/] if substr $self->path->to_uri, 0, 1 ne q[/];
 
         $uri .= $self->path->to_uri;
     }
@@ -624,6 +624,8 @@ sub to_http_req ( $self, $with_auth = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 606                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

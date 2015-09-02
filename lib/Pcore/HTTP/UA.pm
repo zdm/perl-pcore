@@ -145,10 +145,12 @@ sub request ( $self, @ ) {
     }
 
     # process proxy
-    if ( my $proxy = $req->proxy // ( $self_is_obj ? $self->proxy : undef ) ) {
+    $args->{proxy} = $req->proxy // ( $self_is_obj ? $self->proxy : undef );
+
+    if ( $args->{proxy} && !ref $args->{proxy} ) {
         require Pcore::Proxy;
 
-        $args->{proxy} = ref $proxy ne 'Pcore::Proxy' ? Pcore::Proxy->new( { uri => $proxy } ) : $proxy;
+        $args->{proxy} = Pcore::Proxy->new( $args->{proxy} );
     }
 
     $args->{on_finish} = sub {
@@ -281,7 +283,7 @@ sub mirror ( $self, @ ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 263                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 265                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

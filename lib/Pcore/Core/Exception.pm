@@ -79,7 +79,7 @@ sub SIGDIE {
 }
 
 sub SIGWARN {
-    my $e = Pcore::Core::Exception::Object->new_exception( $_[0], level => 'WARN', skip_frames => 1, trace => 0 );
+    my $e = Pcore::Core::Exception::Object->new_exception( $_[0], level => 'WARN', skip_frames => 1, trace => 1 );
 
     # fallback to standart behavior if exception wasn't created for some reasons
     unless ( defined $e ) {
@@ -110,7 +110,7 @@ sub GLOBAL_DIE {
 sub GLOBAL_WARN {
     my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : q[Warning: something's wrong];
 
-    my $e = Pcore::Core::Exception::Object->new_exception( $msg, level => 'WARN', skip_frames => 1, trace => 0, from_hook => 1 );
+    my $e = Pcore::Core::Exception::Object->new_exception( $msg, level => 'WARN', skip_frames => 1, trace => 1, from_hook => 1 );
 
     if ( defined $e ) {
         return CORE::warn $e;

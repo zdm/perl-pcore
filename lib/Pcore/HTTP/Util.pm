@@ -92,25 +92,24 @@ sub http_request ($args) {
 
             return;
         },
-        headers      => Pcore::HTTP::Message::Headers->new,
-        connect_port => $args->{url}->port || ( $args->{url}->scheme eq 'http' ? 80 : 443 ),
-        start_tls => $args->{url}->scheme eq 'https' ? 1 : 0,
+        headers         => Pcore::HTTP::Message::Headers->new,
+        start_tls       => $args->{url}->is_secure,
         persistent      => $args->{persistent},
         was_persistent  => 0,
         cache_id        => undef,
-        request_path    => $args->{url}->to_http_req,
+        request_path    => $args->{url}->pathquery,
         on_error_status => undef,
     };
 
+    # defined connect port
+    $runtime->{connect_port} = $args->{url}->port || ( $runtime->{start_tls} ? 443 : 80 );
+
     # define persistent cache key
-    # TODO
-    if ( $runtime->{persistent} ) {
-        $runtime->{cache_id} = 123;
-    }
+    $runtime->{cache_id} = $runtime->{start_tls} . q[-] . $args->{url}->hostport;
+    $runtime->{cache_id} .= q[-] . $args->{proxy}->hostport if $args->{proxy};
 
     # add REFERER header
-    # TODO need to use ascii authority
-    # $runtime->{headers}->{REFERER} = $args->{url}->to_http_req(1) unless exists $args->{headers}->{REFERER};
+    $runtime->{headers}->{REFERER} = $args->{url}->pathquery(1) unless exists $args->{headers}->{REFERER};
 
     # add HOST header
     $runtime->{headers}->{HOST} = $args->{url}->host->name unless exists $args->{headers}->{HOST};
@@ -182,22 +181,19 @@ sub http_request ($args) {
     return;
 }
 
-# TODO proxy
 sub _connect ( $args, $runtime, $cb ) {
     my $_connect = sub {
         my $handle;
 
         $handle = Pcore::AnyEvent::Handle->new(
-            %{ $args->{handle_params} },
-            connect         => [ $args->{url}->host, $runtime->{connect_port} ],
-            connect_timeout => $args->{timeout},
-            timeout         => $args->{timeout},
-            tls_ctx         => $args->{tls_ctx},
-            peername        => $args->{url}->host,
-
-            # TODO detect proxy type
-            ( $args->{proxy} ? ( proxy => $args->{proxy} ) : () ),
-            on_proxy_connect_error => sub ( $h, $message ) {
+            $args->{handle_params}->%*,
+            connect                => [ $args->{url}->host, $runtime->{connect_port} ],
+            connect_timeout        => $args->{timeout},
+            timeout                => $args->{timeout},
+            tls_ctx                => $args->{tls_ctx},
+            peername               => $args->{url}->host->name,
+            proxy                  => $args->{proxy},
+            on_proxy_connect_error => sub ( $h, $message, $is_connect_error ) {
                 $runtime->{finish}->( 594, $message );
 
                 return;
@@ -725,9 +721,11 @@ sub get_random_ua {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 13                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 342                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 338                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 611                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    3 │ 189                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 607                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
