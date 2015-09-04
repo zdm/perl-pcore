@@ -39,16 +39,10 @@ sub new ( $self, %args ) {
         };
     }
 
-    if ( $args{fh} ) {
-        return $self->SUPER::new(%args);
-    }
-    elsif ( !$args{proxy} ) {
-        return $self->SUPER::new(%args);
-    }
-    else {
+    if ( !$args{fh} && $args{proxy} ) {
         my $proxy = ref $args{proxy} ? $args{proxy} : Pcore::Proxy->new( $args{proxy} );
 
-        # select proxy type
+        # automatically select proxy type
         if ( !$args{proxy_type} ) {
 
             if ( $args{connect}->[1] == 443 ) {
@@ -144,9 +138,9 @@ sub new ( $self, %args ) {
                 return;
             };
         }
-
-        return $self->SUPER::new(%args);
     }
+
+    return $self->SUPER::new(%args);
 }
 
 sub store ( $self, $id, $timeout = undef ) {
@@ -401,27 +395,27 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (32)                       │
+## │    3 │ 29                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (31)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 240, 354             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 234, 348             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 170                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 164                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 244, 247, 274, 277,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 280                  │                                                                                                                │
+## │    2 │ 238, 241, 268, 271,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 274                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 435 does not specify text                                                   │
-## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 443 does not specify text                                                   │
-## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 471 does not specify text                                                   │
-## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 487 does not specify text                                                   │
-## │      │ 429                  │ * Link L<AnyEvent::Socket> on line 487 does not specify text                                                   │
-## │      │ 429, 429             │ * Link L<Pcore::Proxy> on line 453 does not specify text                                                       │
-## │      │ 429                  │ * Link L<Pcore::Proxy> on line 487 does not specify text                                                       │
+## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 429 does not specify text                                                   │
+## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 437 does not specify text                                                   │
+## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 465 does not specify text                                                   │
+## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 481 does not specify text                                                   │
+## │      │ 423                  │ * Link L<AnyEvent::Socket> on line 481 does not specify text                                                   │
+## │      │ 423, 423             │ * Link L<Pcore::Proxy> on line 447 does not specify text                                                       │
+## │      │ 423                  │ * Link L<Pcore::Proxy> on line 481 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 21                   │ NamingConventions::Capitalization - Constant "$PROXY_TYPE_SOCKS4a" is not all upper case                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 274, 277, 280, 294   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 268, 271, 274, 288   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
