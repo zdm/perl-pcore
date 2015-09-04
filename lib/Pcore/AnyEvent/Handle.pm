@@ -60,7 +60,7 @@ sub new ( $self, %args ) {
         }
 
         my %args_orig = (
-            connect => $args{connect},
+            connect => $args{connect},    # TODO convert hostname to the punycode, if needed
 
             # callbacks
             on_connect_error => $args{on_connect_error},
