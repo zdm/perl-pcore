@@ -43,17 +43,6 @@ sub new ( $self, %args ) {
         return $self->SUPER::new(%args);
     }
     elsif ( !$args{proxy} ) {
-        my $connect = [ $args{connect}->@* ];
-
-        if ( !ref $connect->[0] ) {
-
-            # create host object and retrieve punycoded host name
-            $connect->[0] = P->host( $connect->[0] )->name;
-        }
-        else {
-            $connect->[0] = $connect->[0]->name;
-        }
-
         return $self->SUPER::new(%args);
     }
     else {
@@ -412,27 +401,27 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (34)                       │
+## │    3 │ 29                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (32)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 251, 365             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 240, 354             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 181                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 170                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 255, 258, 285, 288,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 291                  │                                                                                                                │
+## │    2 │ 244, 247, 274, 277,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 280                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 440                  │ * Link L<AnyEvent::Handle> on line 446 does not specify text                                                   │
-## │      │ 440                  │ * Link L<AnyEvent::Handle> on line 454 does not specify text                                                   │
-## │      │ 440                  │ * Link L<AnyEvent::Handle> on line 482 does not specify text                                                   │
-## │      │ 440                  │ * Link L<AnyEvent::Handle> on line 498 does not specify text                                                   │
-## │      │ 440                  │ * Link L<AnyEvent::Socket> on line 498 does not specify text                                                   │
-## │      │ 440, 440             │ * Link L<Pcore::Proxy> on line 464 does not specify text                                                       │
-## │      │ 440                  │ * Link L<Pcore::Proxy> on line 498 does not specify text                                                       │
+## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 435 does not specify text                                                   │
+## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 443 does not specify text                                                   │
+## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 471 does not specify text                                                   │
+## │      │ 429                  │ * Link L<AnyEvent::Handle> on line 487 does not specify text                                                   │
+## │      │ 429                  │ * Link L<AnyEvent::Socket> on line 487 does not specify text                                                   │
+## │      │ 429, 429             │ * Link L<Pcore::Proxy> on line 453 does not specify text                                                       │
+## │      │ 429                  │ * Link L<Pcore::Proxy> on line 487 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 21                   │ NamingConventions::Capitalization - Constant "$PROXY_TYPE_SOCKS4a" is not all upper case                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 285, 288, 291, 305   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 274, 277, 280, 294   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
