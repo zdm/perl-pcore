@@ -3,23 +3,33 @@ package Pcore::Util::Hash::Multivalue;
 use Pcore;
 use List::Util qw[pairkeys];    ## no critic qw[Modules::ProhibitEvilModules]
 use Storable qw[dclone];
-
-use overload                    #
-  q[%{}] => sub {
-    return $_[0]->[0];
-  },
-  fallback => undef;
+use Tie::Hash;
+use base qw[Tie::StdHash];
 
 sub new {
     my $self = shift;
 
-    my $obj = bless [ {} ], $self;
+    my $hash = {};
 
-    tie $obj->[0]->%*, 'Pcore::Util::Hash::Multivalue::_HASH';
+    my $obj = bless $hash, $self;
+
+    tie $hash->%*, $self;
 
     $obj->add(@_) if @_;
 
     return $obj;
+}
+
+sub STORE {
+    $_[0]->{ $_[1] } = ref $_[2] eq 'ARRAY' ? $_[2] : [ $_[2] ];
+
+    return;
+}
+
+sub FETCH {
+    return $_[0]->{ $_[1] }->[-1] if exists $_[0]->{ $_[1] };
+
+    return;
 }
 
 sub clone ($self) {
@@ -28,20 +38,22 @@ sub clone ($self) {
 
 # return untied $hash->{$key} as ArrayRef
 sub get ( $self, $key ) {
-    if ( exists $self->[0]->{$key} ) {
-        return tied( $self->[0]->%* )->[0]->{$key};
+    if ( exists $self->{$key} ) {
+        return tied( $self->%* )->{$key};
     }
-
-    return;
+    else {
+        return;
+    }
 }
 
 # return untied HashRef
 sub get_hash ($self) {
-    return tied( $self->[0]->%* )->[0];
+    return tied $self->%*;
 }
 
 sub add {
     my $self = shift;
+
     my $args = $self->_parse_args(@_);
 
     my $hash = $self->get_hash;
@@ -66,6 +78,7 @@ sub set {    ## no critic qw[NamingConventions::ProhibitAmbiguousNames]
 
 sub replace {
     my $self = shift;
+
     my $args = $self->_parse_args(@_);
 
     return $self->remove( pairkeys $args->@* )->add($args);
@@ -110,25 +123,7 @@ sub to_array ($self) {
 }
 
 sub TO_DUMP ( $self, $dumper, %args ) {
-    return dump $self->get_hash;
-}
-
-package Pcore::Util::Hash::Multivalue::_HASH;
-
-use Pcore;
-use Tie::Hash;
-use base qw[Tie::ExtraHash];
-
-sub STORE {
-    $_[0]->[0]->{ $_[1] } = ref $_[2] eq 'ARRAY' ? $_[2] : [ $_[2] ];
-
-    return;
-}
-
-sub FETCH {
-    return $_[0]->[0]->{ $_[1] }->[-1] if exists $_[0]->[0]->{ $_[1] };
-
-    return;
+    return dump { $self->get_hash->%* };
 }
 
 1;
@@ -138,11 +133,12 @@ sub FETCH {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 18, 32, 40, 83, 91   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 16, 42, 51, 96, 104, │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 126                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 18                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
+## │    2 │ 16                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 49                   │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 61                   │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
