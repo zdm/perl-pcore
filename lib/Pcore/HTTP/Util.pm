@@ -15,25 +15,6 @@ sub http_request ($args) {
 
     my $runtime;
 
-    my $finalize = sub {
-        state $finished = 0;
-
-        return if $finished;
-
-        $finished = 1;
-
-        my $on_finish = $args->{on_finish};
-
-        # cleanup data structures manually
-        $args->%*    = ();
-        $runtime->%* = ();
-        undef $runtime;
-
-        $on_finish->();
-
-        return;
-    };
-
     $runtime = {
         res    => $args->{res},
         h      => undef,
@@ -100,7 +81,6 @@ sub http_request ($args) {
 
                         # cleanup and recursive call on redirect
                         $runtime->%* = ();
-
                         undef $runtime;
 
                         http_request($args);
@@ -110,7 +90,14 @@ sub http_request ($args) {
                 }
             }
 
-            $finalize->();
+            my $on_finish = $args->{on_finish};
+
+            # cleanup data structures manually
+            $args->%*    = ();
+            $runtime->%* = ();
+            undef $runtime;
+
+            $on_finish->();
 
             return;
         },
@@ -743,12 +730,12 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 11                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 359                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 11                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
+## │      │ 346                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 28, 29, 102, 211     │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 83, 96, 97, 198      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 630                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 617                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
