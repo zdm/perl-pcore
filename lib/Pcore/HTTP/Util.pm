@@ -521,7 +521,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
                 $runtime->{res}->_set_content_length( $runtime->{total_bytes_readed} );
 
                 # read trailing headers
-                $runtime->{h}->push_read(
+                $h->push_read(
                     line => $QR_NLNL,
                     sub ( $h, @ ) {
                         if ( length $_[1] ) {
