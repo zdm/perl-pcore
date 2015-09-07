@@ -8,8 +8,6 @@ use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
 
 no Pcore;
 
-my $QR_NLNL = qr/(?<![^\n])\r?\n/sm;
-
 sub http_request ($args) {
 
     # set final url to the last accessed url
@@ -300,11 +298,10 @@ sub _write_request ( $args, $runtime ) {
 
 sub _read_headers ( $args, $runtime, $cb ) {
     $runtime->{h}->push_read(
-        line => $QR_NLNL,
-        sub ( $h, @ ) {
+        http_headers => sub ( $h, @ ) {
 
             # parse response headers
-            my $parsed_headers = _parse_response_headers( $_[1] . $CRLF );
+            my $parsed_headers = _parse_response_headers( $_[1] );
 
             if ( !$parsed_headers ) {
                 $runtime->{finish}->( 599, 'Invalid server response' );
@@ -474,15 +471,17 @@ sub _read_body ( $args, $runtime, $cb ) {
 }
 
 sub _read_body_chunked ( $runtime, $on_body, $cb ) {
+    state $last_chunk = qr/(?<![^\n])\r?\n/sm;    # read last chunk. positive for "\r\n" or "...\n\r\n"
+
     my $read_chunk;
 
     $read_chunk = sub ( $h, @ ) {
         my $chunk_len_ref = \$_[1];
 
-        if ( $chunk_len_ref->$* =~ /\A([\da-fA-F]+)\z/sm ) {    # valid chunk length
+        if ( $chunk_len_ref->$* =~ /\A([[:xdigit:]]+)\z/sm ) {    # valid chunk length
             my $chunk_len = hex $1;
 
-            if ($chunk_len) {                                   # read chunk body
+            if ($chunk_len) {                                     # read chunk body
                 $h->push_read(
                     chunk => $chunk_len,
                     sub ( $h, @ ) {
@@ -490,7 +489,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
 
                         $runtime->{total_bytes_readed} += $chunk_len;
 
-                        if ( !$on_body->($chunk_ref) ) {        # transfer was cancelled by "on_body" call
+                        if ( !$on_body->($chunk_ref) ) {          # transfer was cancelled by "on_body" call
 
                             # set content length to really readed bytes length
                             $runtime->{res}->_set_content_length( $runtime->{total_bytes_readed} );
@@ -501,7 +500,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
                             # read trailing chunk $CRLF
                             $h->push_read(
                                 line => sub ( $h, @ ) {
-                                    if ( length $_[1] ) {       # error, chunk traililg can contain only $CRLF
+                                    if ( length $_[1] ) {         # error, chunk traililg can contain only $CRLF
                                         $cb->( 597, 'Garbled chunked transfer encoding' );
                                     }
                                     else {
@@ -522,10 +521,10 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
 
                 # read trailing headers
                 $h->push_read(
-                    line => $QR_NLNL,
+                    line => $last_chunk,
                     sub ( $h, @ ) {
                         if ( length $_[1] ) {
-                            if ( my $parsed_headers = _parse_response_headers( 'HTTP/1.1 200 Trailer Headers' . $CRLF . $_[1] . $CRLF ) ) {
+                            if ( my $parsed_headers = _parse_response_headers( 'HTTP/1.1 200 OK' . $CRLF . $_[1] . $CRLF ) ) {
                                 $runtime->{res}->headers->add( $parsed_headers->{headers} );
                             }
                             else {
@@ -744,12 +743,12 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 13                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 362                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 11                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
+## │      │ 359                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30, 31, 104, 213     │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 28, 29, 102, 211     │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 631                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 630                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

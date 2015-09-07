@@ -26,6 +26,21 @@ our $CACHE = {};
 # default cache timeout
 our $CACHE_TIMEOUT = 4;
 
+AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
+    return sub {
+        return unless defined $_[0]{rbuf};
+
+        if ( ( my $idx = index $_[0]{rbuf}, qq[\x0A\x0D\x0A] ) >= 0 ) {
+            $cb->( $_[0], substr( $_[0]{rbuf}, 0, $idx + 3, q[] ), $CRLF );
+
+            return 1;
+        }
+        else {
+            return;
+        }
+    };
+};
+
 sub new ( $self, %args ) {
 
     # make copy to prevent memory leaks
@@ -345,7 +360,6 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error
 }
 
 sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error ) {
-    state $qr_nlnl = qr/(?<![^\n])\r?\n/sm;
 
     # TODO how to clarify, what this timeout means, proxy not respond or tunnel creation timeout (target server not respond)?
     # currently we assume, that this is NOT THE PROXY CONNECTION ERROR
@@ -360,11 +374,10 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
     $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->userinfo ? q[Proxy-Authorization: Basic ] . $proxy->userinfo_b64 . $CRLF : $CRLF ) . $CRLF );
 
     $h->push_read(
-        line => $qr_nlnl,
-        sub ( $h, @ ) {
+        http_headers => sub ( $h, @ ) {
 
             # parse HTTP response headers
-            my ( $len, $minor_version, $status, $message ) = HTTP::Parser::XS::parse_http_response( $_[1] . $CRLF, HEADERS_NONE );
+            my ( $len, $minor_version, $status, $message ) = HTTP::Parser::XS::parse_http_response( $_[1], HEADERS_NONE );
 
             if ( $len < 0 ) {    # $len = -1 - incomplete headers, -2 - errors, >= 0 - headers length
                 $on_connect_error->( $h, q[Invalid proxy connect response], $PROXY_HANDSHAKE_ERROR );
@@ -395,27 +408,27 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (32)                       │
+## │    3 │ 44                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (32)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 233, 347             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 248, 362             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 163                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 33, 252, 255, 282,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 285, 288             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 237, 240, 267, 270,  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 273                  │                                                                                                                │
+## │    2 │ 178                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 429 does not specify text                                                   │
-## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 437 does not specify text                                                   │
-## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 465 does not specify text                                                   │
-## │      │ 423                  │ * Link L<AnyEvent::Handle> on line 481 does not specify text                                                   │
-## │      │ 423                  │ * Link L<AnyEvent::Socket> on line 481 does not specify text                                                   │
-## │      │ 423, 423             │ * Link L<Pcore::Proxy> on line 447 does not specify text                                                       │
-## │      │ 423                  │ * Link L<Pcore::Proxy> on line 481 does not specify text                                                       │
+## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 442 does not specify text                                                   │
+## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 450 does not specify text                                                   │
+## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 478 does not specify text                                                   │
+## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 494 does not specify text                                                   │
+## │      │ 436                  │ * Link L<AnyEvent::Socket> on line 494 does not specify text                                                   │
+## │      │ 436, 436             │ * Link L<Pcore::Proxy> on line 460 does not specify text                                                       │
+## │      │ 436                  │ * Link L<Pcore::Proxy> on line 494 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 21                   │ NamingConventions::Capitalization - Constant "$PROXY_TYPE_SOCKS4a" is not all upper case                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 267, 270, 273, 287   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 282, 285, 288, 302   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
