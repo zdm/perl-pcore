@@ -17,14 +17,34 @@ sub http_request ($args) {
 
     my $runtime;
 
-    $runtime = {
-        res      => $args->{res},
-        h        => undef,
-        finished => 0,
-        finish   => sub ( $error_status = undef, $error_reason = undef ) {
-            return if $runtime->{finished};
+    my $finalize = sub {
+        state $finished = 0;
 
-            $runtime->{finished} = 1;
+        return if $finished;
+
+        $finished = 1;
+
+        my $on_finish = $args->{on_finish};
+
+        # cleanup data structures manually
+        $args->%*    = ();
+        $runtime->%* = ();
+        undef $runtime;
+
+        $on_finish->();
+
+        return;
+    };
+
+    $runtime = {
+        res    => $args->{res},
+        h      => undef,
+        finish => sub ( $error_status = undef, $error_reason = undef ) {
+            state $finished = 0;
+
+            return if $finished;
+
+            $finished = 1;
 
             my $set_error = sub ( $error_status, $error_reason ) {
                 $args->{res}->set_status($error_status);
@@ -80,7 +100,11 @@ sub http_request ($args) {
 
                         $args->{url} = $runtime->{res}->headers->{LOCATION};
 
-                        # recursive call on redirect
+                        # cleanup and recursive call on redirect
+                        $runtime->%* = ();
+
+                        undef $runtime;
+
                         http_request($args);
 
                         return;
@@ -88,7 +112,7 @@ sub http_request ($args) {
                 }
             }
 
-            $args->{on_finish}->();
+            $finalize->();
 
             return;
         },
@@ -156,14 +180,14 @@ sub http_request ($args) {
             _write_request( $args, $runtime );
 
             # return if error occurred during send request
-            return if $runtime->{finished};
+            return if !$runtime;
 
             _read_headers(
                 $args, $runtime,
                 sub {
 
                     # return if error occurred during read response headers
-                    return if $runtime->{finished};
+                    return if !$runtime;
 
                     # start "read body" phase
                     $runtime->{on_error_status} = 597;
@@ -245,7 +269,7 @@ sub _write_request ( $args, $runtime ) {
     $runtime->{h}->push_write( "$args->{method} $runtime->{request_path} HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
 
     # return if error occurred during send request headers
-    return if $runtime->{finished};
+    return if !$runtime;
 
     # send request body
     if ( ref $args->{body} eq 'CODE' ) {
@@ -264,7 +288,7 @@ sub _write_request ( $args, $runtime ) {
             }
 
             # return if error occurred during send request body chunk
-            return if $runtime->{finished};
+            return if !$runtime;
         }
     }
     elsif ( exists $args->{body} ) {
@@ -720,12 +744,12 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 13                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 338                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 13                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
+## │      │ 362                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 189                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 31, 104, 213     │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 607                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 631                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
