@@ -100,6 +100,7 @@ sub request ( $self, @ ) {
         persistent => $req->persistent // ( $self_is_obj ? $self->persistent : 1 ),
         session    => $req->session    // ( $self_is_obj ? $self->session    : undef ),
         cookie_jar => $req->cookie_jar // ( $self_is_obj ? $self->cookie_jar : undef ),
+        proxy      => $req->proxy      // ( $self_is_obj ? $self->proxy      : undef ),
 
         tls_ctx => $req->tls_ctx // ( $self_is_obj ? $self->tls_ctx : $Pcore::HTTP::UA::TLS_CTX_LOW ),
 
@@ -145,8 +146,6 @@ sub request ( $self, @ ) {
     }
 
     # process proxy
-    $args->{proxy} = $req->proxy // ( $self_is_obj ? $self->proxy : undef );
-
     if ( $args->{proxy} && !ref $args->{proxy} ) {
         require Pcore::Proxy;
 
@@ -283,7 +282,7 @@ sub mirror ( $self, @ ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 265                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 264                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
