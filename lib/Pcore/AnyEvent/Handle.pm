@@ -180,7 +180,12 @@ sub new ( $self, %args ) {
     return $self->SUPER::new(%args);
 }
 
-sub read_http_headers {
+# TODO
+sub read_eof {
+    return;
+}
+
+sub read_http_res_headers {
     my $cb = pop;
     my ( $self, $headers, $trailing ) = @_;
 
@@ -226,6 +231,167 @@ sub read_http_headers {
             return;
         }
     );
+
+    return;
+}
+
+# TODO
+sub read_http_req_headers {
+    return;
+}
+
+sub read_http_body {
+    my $self    = shift;
+    my $on_read = shift;
+    my %args    = (
+        chunked => 0,
+        length  => undef,    # 0, undef - read until EOF
+        headers => 0,
+        @_,
+    );
+
+    my $total_bytes_readed = 0;
+
+    if ( $args{chunked} ) {    # read chunked body
+        my $read_chunk;
+
+        $read_chunk = sub ( $h, @ ) {
+            my $chunk_len_ref = \$_[1];
+
+            if ( $chunk_len_ref->$* =~ /\A([[:xdigit:]]+)\z/sm ) {    # valid chunk length
+                my $chunk_len = hex $1;
+
+                if ($chunk_len) {                                     # read chunk body
+                    $h->push_read(
+                        chunk => $chunk_len,
+                        sub ( $h, @ ) {
+                            my $chunk_ref = \$_[1];
+
+                            $total_bytes_readed += $chunk_len;
+
+                            if ( !$on_read->( $h, $chunk_ref, $total_bytes_readed, undef ) ) {    # transfer was cancelled by "on_body" call
+                                undef $read_chunk;
+
+                                return;
+                            }
+                            else {
+                                # read trailing chunk $CRLF
+                                $h->push_read(
+                                    line => sub ( $h, @ ) {
+                                        if ( length $_[1] ) {                                     # error, chunk traililg can contain only $CRLF
+                                            undef $read_chunk;
+
+                                            $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding' );
+                                        }
+                                        else {
+                                            $h->push_read( line => $read_chunk );
+                                        }
+
+                                        return;
+                                    }
+                                );
+                            }
+
+                            return;
+                        }
+                    );
+                }
+                else {    # last chunk
+
+                    # read trailing headers
+                    $h->read_http_res_headers(
+                        $args{headers},
+                        1,
+                        sub ( $h, $res ) {
+                            undef $read_chunk;
+
+                            if ($res) {
+                                $on_read->( $h, undef, $total_bytes_readed, undef );
+                            }
+                            else {
+                                $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding (invalid trailing headers)' );
+                            }
+
+                            return;
+                        }
+                    );
+                }
+            }
+            else {    # invalid chunk length
+                undef $read_chunk;
+
+                $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding' );
+            }
+
+            return;
+        };
+
+        $self->push_read( line => $read_chunk );
+    }
+    elsif ( !$args{length} ) {    # read until EOF
+        $self->on_eof(
+            sub ($h) {
+
+                # remove "on_read" callback
+                $h->on_read(undef);
+
+                # remove "on_eof" callback
+                $h->on_eof(undef);
+
+                $on_read->( $h, undef, $total_bytes_readed, undef );
+
+                return;
+            }
+        );
+
+        $self->on_read(
+            sub ($h) {
+                $total_bytes_readed += length $h->{rbuf};
+
+                if ( !$on_read->( $h, \delete $h->{rbuf}, $total_bytes_readed, undef ) ) {
+
+                    # remove "on_read" callback
+                    $h->on_read(undef);
+
+                    # remove "on_eof" callback
+                    $h->on_eof(undef);
+                }
+
+                return;
+            }
+        );
+    }
+    else {    # read body with known length
+        $self->on_read(
+            sub ($h) {
+                $total_bytes_readed += length $h->{rbuf};
+
+                if ( !$on_read->( $h, \delete $h->{rbuf}, $total_bytes_readed, undef ) ) {
+
+                    # remove "on_read" callback
+                    $h->on_read(undef);
+                }
+                else {
+                    if ( $total_bytes_readed == $args{length} ) {
+
+                        # remove "on_read" callback
+                        $h->on_read(undef);
+
+                        $on_read->( $h, undef, $total_bytes_readed, undef );
+                    }
+                    elsif ( $total_bytes_readed > $args{length} ) {
+
+                        # remove "on_read" callback
+                        $h->on_read(undef);
+
+                        $on_read->( $h, undef, $total_bytes_readed, q[Readed body length is larger than expected] );
+                    }
+                }
+
+                return;
+            }
+        );
+    }
 
     return;
 }
@@ -446,7 +612,7 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 
     $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->userinfo ? q[Proxy-Authorization: Basic ] . $proxy->userinfo_b64 . $CRLF : $CRLF ) . $CRLF );
 
-    $h->read_http_headers(
+    $h->read_http_res_headers(
         0,
         sub ( $h, $res ) {
             if ( !$res ) {
@@ -480,24 +646,24 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 321, 435             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 487, 601             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 49, 325, 328, 355,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 358, 361             │                                                                                                                │
+## │    2 │ 49, 491, 494, 521,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 524, 527             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 207, 251             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 212, 417             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 511 does not specify text                                                   │
-## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 519 does not specify text                                                   │
-## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 547 does not specify text                                                   │
-## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 563 does not specify text                                                   │
-## │      │ 505                  │ * Link L<AnyEvent::Socket> on line 563 does not specify text                                                   │
-## │      │ 505, 505             │ * Link L<Pcore::Proxy> on line 529 does not specify text                                                       │
-## │      │ 505                  │ * Link L<Pcore::Proxy> on line 563 does not specify text                                                       │
+## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 677 does not specify text                                                   │
+## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 685 does not specify text                                                   │
+## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 713 does not specify text                                                   │
+## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 729 does not specify text                                                   │
+## │      │ 671                  │ * Link L<AnyEvent::Socket> on line 729 does not specify text                                                   │
+## │      │ 671, 671             │ * Link L<Pcore::Proxy> on line 695 does not specify text                                                       │
+## │      │ 671                  │ * Link L<Pcore::Proxy> on line 729 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 45, 50, 355, 358,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 361, 375             │                                                                                                                │
+## │    1 │ 45, 50, 521, 524,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 527, 541             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

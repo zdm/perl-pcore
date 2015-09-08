@@ -280,7 +280,7 @@ sub _write_request ( $args, $runtime ) {
 }
 
 sub _read_headers ( $args, $runtime, $cb ) {
-    $runtime->{h}->read_http_headers(
+    $runtime->{h}->read_http_res_headers(
         sub( $h, $res ) {
             if ( !$res ) {
                 $runtime->{finish}->( 599, 'Invalid server response' );
@@ -357,9 +357,7 @@ sub _read_body ( $args, $runtime, $cb ) {
         return;
     }
 
-    my $on_body;
-
-    $runtime->{total_bytes_readed} = 0;
+    my $on_read;
 
     # init res body
     if ( $runtime->{redirect} ) {
@@ -370,17 +368,48 @@ sub _read_body ( $args, $runtime, $cb ) {
 
         $runtime->{res}->set_body( \$body );
 
-        $on_body = sub ($content_ref) {
-            $body .= $content_ref->$*;
+        $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+            if ( defined $error_reason ) {
+                $cb->( 597, $error_reason );
+            }
+            elsif ( defined $content_ref ) {
+                $body .= $content_ref->$*;
 
-            return 1;
+                $runtime->{res}->_set_content_length($total_bytes_readed);
+
+                return 1;
+            }
+            else {    # last chunk
+                $cb->();
+            }
+
+            return;
         };
     }
     elsif ( $args->{on_body} ) {
-        $on_body = sub ($content_ref) {
-            $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $runtime->{total_bytes_readed} ) if $args->{on_progress};
+        $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+            if ( defined $error_reason ) {
+                $cb->( 597, $error_reason );
+            }
+            elsif ( defined $content_ref ) {
+                $runtime->{res}->_set_content_length($total_bytes_readed);
 
-            return $args->{on_body}->( $runtime->{res}, $content_ref );
+                $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
+
+                if ( $args->{on_body}->( $runtime->{res}, $content_ref, $total_bytes_readed ) ) {
+                    return 1;
+                }
+                else {
+                    $cb->( 598, q[Request cancelled by "on_body"] );
+                }
+            }
+            else {    # last chunk
+                $args->{on_body}->( $runtime->{res}, $content_ref, $total_bytes_readed );
+
+                $cb->();
+            }
+
+            return;
         };
     }
     else {
@@ -409,12 +438,24 @@ sub _read_body ( $args, $runtime, $cb ) {
         if ($body_is_fh) {
             $runtime->{res}->set_body( P->file->tempfile );
 
-            $on_body = sub ($content_ref) {
-                syswrite $runtime->{res}->body, $content_ref->$* or die;
+            $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+                if ( defined $error_reason ) {
+                    $cb->( 597, $error_reason );
+                }
+                if ( defined $content_ref ) {
+                    syswrite $runtime->{res}->body, $content_ref->$* or die;
 
-                $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $runtime->{total_bytes_readed} ) if $args->{on_progress};
+                    $runtime->{res}->_set_content_length($total_bytes_readed);
 
-                return 1;
+                    $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
+
+                    return 1;
+                }
+                else {    # last chunk
+                    $cb->();
+                }
+
+                return;
             };
         }
         else {
@@ -422,181 +463,43 @@ sub _read_body ( $args, $runtime, $cb ) {
 
             $runtime->{res}->set_body( \$body );
 
-            $on_body = sub ($content_ref) {
-                $body .= $content_ref->$*;
+            $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+                if ( defined $error_reason ) {
+                    $cb->( 597, $error_reason );
+                }
+                elsif ( defined $content_ref ) {
+                    $body .= $content_ref->$*;
 
-                $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $runtime->{total_bytes_readed} ) if $args->{on_progress};
+                    $runtime->{res}->_set_content_length($total_bytes_readed);
 
-                return 1;
+                    $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
+
+                    return 1;
+                }
+                else {    # last chunk
+                    $cb->();
+                }
+
+                return;
             };
         }
     }
 
-    if ($chunked) {    # read chunked body
-        _read_body_chunked( $runtime, $on_body, $cb );
+    if ($chunked) {       # read chunked body
+        $runtime->{h}->read_http_body( $on_read, chunked => 1, headers => $runtime->{res}->headers );
     }
-    else {
-        if ( $runtime->{content_length} ) {    # read body with known content length
-            _read_body_length( $runtime, $on_body, $cb );
-        }
-        else {                                 # read body with unknown content length (until EOF)
-            _read_body_eof( $runtime, $on_body, $cb );
-        }
+    elsif ( $runtime->{content_length} ) {    # read body with known content length
+        $runtime->{h}->read_http_body( $on_read, length => $runtime->{content_length} );
     }
-
-    return;
-}
-
-sub _read_body_chunked ( $runtime, $on_body, $cb ) {
-    my $read_chunk;
-
-    $read_chunk = sub ( $h, @ ) {
-        my $chunk_len_ref = \$_[1];
-
-        if ( $chunk_len_ref->$* =~ /\A([[:xdigit:]]+)\z/sm ) {    # valid chunk length
-            my $chunk_len = hex $1;
-
-            if ($chunk_len) {                                     # read chunk body
-                $h->push_read(
-                    chunk => $chunk_len,
-                    sub ( $h, @ ) {
-                        my $chunk_ref = \$_[1];
-
-                        $runtime->{total_bytes_readed} += $chunk_len;
-
-                        if ( !$on_body->($chunk_ref) ) {          # transfer was cancelled by "on_body" call
-
-                            # set content length to really readed bytes length
-                            $runtime->{res}->_set_content_length( $runtime->{total_bytes_readed} );
-
-                            undef $read_chunk;
-                            $cb->( 598, q[Request cancelled by "on_body"] );
-                        }
-                        else {
-                            # read trailing chunk $CRLF
-                            $h->push_read(
-                                line => sub ( $h, @ ) {
-                                    if ( length $_[1] ) {         # error, chunk traililg can contain only $CRLF
-                                        undef $read_chunk;
-                                        $cb->( 597, 'Garbled chunked transfer encoding' );
-                                    }
-                                    else {
-                                        $h->push_read( line => $read_chunk );
-                                    }
-
-                                    return;
-                                }
-                            );
-                        }
-
-                        return;
-                    }
-                );
-            }
-            else {    # last chunk
-                $runtime->{res}->_set_content_length( $runtime->{total_bytes_readed} );
-
-                # read trailing headers
-                $h->read_http_headers(
-                    $runtime->{res}->headers,
-                    1,
-                    sub ( $h, $res ) {
-                        undef $read_chunk;
-
-                        if ($res) {
-                            $cb->();
-                        }
-                        else {
-                            $cb->( 597, 'Garbled chunked transfer encoding (invalid trailing headers)' );
-                        }
-
-                        return;
-                    }
-                );
-            }
-        }
-        else {    # invalid chunk length
-            undef $read_chunk;
-
-            $cb->( 597, 'Garbled chunked transfer encoding' );
-        }
-
-        return;
-    };
-
-    $runtime->{h}->push_read( line => $read_chunk );
-
-    return;
-}
-
-sub _read_body_length ( $runtime, $on_body, $cb ) {
-    $runtime->{h}->on_read(
-        sub ($h) {
-            $runtime->{total_bytes_readed} += length $h->{rbuf};
-
-            if ( !$on_body->( \delete $h->{rbuf} ) ) {
-
-                # remove "on_read" callback
-                $h->on_read(undef);
-
-                $cb->( 598, q[Request cancelled by "on_body"] );
-            }
-
-            if ( $runtime->{total_bytes_readed} == $runtime->{content_length} ) {
-
-                # remove "on_read" callback
-                $h->on_read(undef);
-
-                $cb->();
-            }
-            elsif ( $runtime->{total_bytes_readed} > $runtime->{content_length} ) {
-
-                # remove "on_read" callback
-                $h->on_read(undef);
-
-                $cb->( 598, q[Readed body length is larger than expected] );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _read_body_eof ( $runtime, $on_body, $cb ) {
-    $runtime->{h}->on_eof(
-        sub ($h) {
-            $cb->();
-
-            return;
-        }
-    );
-
-    $runtime->{h}->on_read(
-        sub ($h) {
-            $runtime->{total_bytes_readed} += length $h->{rbuf};
-
-            if ( !$on_body->( \delete $h->{rbuf} ) ) {
-
-                # remove "on_read" callback
-                $h->on_read(undef);
-
-                # remove "on_eof" callback
-                $h->on_eof(undef);
-
-                $cb->( 598, q[Request cancelled by "on_body"] );
-            }
-
-            return;
-        }
-    );
+    else {                                    # read body with unknown content length (until EOF)
+        $runtime->{h}->read_http_body($on_read);
+    }
 
     return;
 }
 
 sub get_random_ua {
-    state $USER_AGENTS = [    #
+    state $USER_AGENTS = [                    #
         'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36',
         'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:33.0) Gecko/20100101 Firefox/33.0',
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10) AppleWebKit/600.1.25 (KHTML, like Gecko) Version/8.0 Safari/600.1.25',
@@ -701,7 +604,7 @@ sub get_random_ua {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 10                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 336                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 336                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 82, 95, 96, 194      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
