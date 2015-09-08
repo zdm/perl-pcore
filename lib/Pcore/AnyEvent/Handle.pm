@@ -18,8 +18,17 @@ const our $PROXY_TYPE_CONNECT => 1;
 const our $PROXY_TYPE_HTTPS   => 2;
 const our $PROXY_TYPE_SOCKS5  => 3;
 const our $PROXY_TYPE_SOCKS4  => 4;
-const our $PROXY_TYPE_SOCKS4a => 5;
+const our $PROXY_TYPE_SOCKS4A => 5;
 const our $PROXY_TYPE_HTTP    => 6;
+
+const our $PROXY_TYPE_SCHEME => {
+    connect => $PROXY_TYPE_CONNECT,
+    https   => $PROXY_TYPE_HTTPS,
+    socks5  => $PROXY_TYPE_SOCKS5,
+    socks4  => $PROXY_TYPE_SOCKS4,
+    socks4a => $PROXY_TYPE_SOCKS4A,
+    http    => $PROXY_TYPE_HTTP,
+};
 
 our $CACHE = {};
 
@@ -68,6 +77,9 @@ sub new ( $self, %args ) {
             }
         }
 
+        # try to detect proxy type by scheme
+        $args{proxy_type} = $PROXY_TYPE_SCHEME->{ $args{proxy}->scheme } if !$args{proxy_type} && $args{proxy}->scheme && exists $PROXY_TYPE_SCHEME->{ $args{proxy}->scheme };
+
         # redefine "connect"
         $args{connect} = [ $args{proxy}->host->name, $args{proxy}->port ];
 
@@ -102,7 +114,7 @@ sub new ( $self, %args ) {
 
             return;
         }
-        elsif ( $args{proxy_type} == $PROXY_TYPE_SOCKS4 or $args{proxy_type} == $PROXY_TYPE_SOCKS4a ) {
+        elsif ( $args{proxy_type} == $PROXY_TYPE_SOCKS4 or $args{proxy_type} == $PROXY_TYPE_SOCKS4A ) {
             $on_connect_error->( undef, 'Proxy type is not supported', $PROXY_CONNECT_ERROR );
 
             return;
@@ -408,27 +420,25 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 44                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (32)                       │
+## │    3 │ 53                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 248, 362             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 260, 374             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 33, 252, 255, 282,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 285, 288             │                                                                                                                │
+## │    2 │ 42, 264, 267, 294,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 297, 300             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 178                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 190                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 442 does not specify text                                                   │
-## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 450 does not specify text                                                   │
-## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 478 does not specify text                                                   │
-## │      │ 436                  │ * Link L<AnyEvent::Handle> on line 494 does not specify text                                                   │
-## │      │ 436                  │ * Link L<AnyEvent::Socket> on line 494 does not specify text                                                   │
-## │      │ 436, 436             │ * Link L<Pcore::Proxy> on line 460 does not specify text                                                       │
-## │      │ 436                  │ * Link L<Pcore::Proxy> on line 494 does not specify text                                                       │
+## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 452 does not specify text                                                   │
+## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 460 does not specify text                                                   │
+## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 488 does not specify text                                                   │
+## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 504 does not specify text                                                   │
+## │      │ 446                  │ * Link L<AnyEvent::Socket> on line 504 does not specify text                                                   │
+## │      │ 446, 446             │ * Link L<Pcore::Proxy> on line 470 does not specify text                                                       │
+## │      │ 446                  │ * Link L<Pcore::Proxy> on line 504 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 21                   │ NamingConventions::Capitalization - Constant "$PROXY_TYPE_SOCKS4a" is not all upper case                       │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 282, 285, 288, 302   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 294, 297, 300, 314   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
