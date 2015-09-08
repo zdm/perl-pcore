@@ -603,7 +603,7 @@ sub pathquery ( $self, $with_auth = undef ) {
     }
 
     if ( $self->path ) {
-        $uri .= q[/] if substr $self->path->to_uri, 0, 1 ne q[/];
+        $uri .= q[/] if substr( $self->path->to_uri, 0, 1 ) ne q[/];
 
         $uri .= $self->path->to_uri;
     }
@@ -624,8 +624,6 @@ sub pathquery ( $self, $with_auth = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 606                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
