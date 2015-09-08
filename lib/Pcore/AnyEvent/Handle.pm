@@ -166,10 +166,10 @@ sub new ( $self, %args ) {
                 $args_orig{connect}->[0] = P->host( $args_orig{connect}->[0] )->name if utf8::is_utf8( $args_orig{connect}->[0] );
 
                 if ( $h->{proxy_type} == $PROXY_TYPE_SOCKS5 ) {
-                    _connect_socks5_proxy( $h, $h->{proxy}, $args_orig{connect}, $on_connect, $on_connect_error );
+                    $h->_connect_socks5_proxy( $h->{proxy}, $args_orig{connect}, $on_connect, $on_connect_error );
                 }
                 elsif ( $h->{proxy_type} == $PROXY_TYPE_CONNECT or $h->{proxy_type} == $PROXY_TYPE_HTTPS ) {
-                    _connect_connect_proxy( $h, $h->{proxy}, $args_orig{connect}, $on_connect, $on_connect_error );
+                    $h->_connect_connect_proxy( $h->{proxy}, $args_orig{connect}, $on_connect, $on_connect_error );
                 }
 
                 return;
