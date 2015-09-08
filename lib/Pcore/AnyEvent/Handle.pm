@@ -3,8 +3,9 @@ package Pcore::AnyEvent::Handle;
 use Pcore;
 use parent qw[AnyEvent::Handle];
 use AnyEvent::Socket qw[];
-use HTTP::Parser::XS qw[HEADERS_NONE];
 use Pcore::Proxy;
+use Pcore::HTTP::Message::Headers;
+use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF HEADERS_NONE];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
 use Const::Fast qw[const];
 
@@ -39,10 +40,20 @@ AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
     return sub {
         return unless defined $_[0]{rbuf};
 
-        if ( ( my $idx = index $_[0]{rbuf}, qq[\x0A\x0D\x0A] ) >= 0 ) {
-            $cb->( $_[0], substr( $_[0]{rbuf}, 0, $idx + 3, q[] ), $CRLF );
+        if ( ( my $idx_crlf = index $_[0]{rbuf}, $CRLF ) >= 0 ) {
+            if ( $idx_crlf == 0 ) {    # first line is empty, no headers, used to read possible trailing headers
+                $cb->( $_[0], substr( $_[0]{rbuf}, 0, 2, q[] ) );
 
-            return 1;
+                return 1;
+            }
+            elsif ( ( my $idx = index $_[0]{rbuf}, qq[\x0A\x0D\x0A] ) >= 0 ) {
+                $cb->( $_[0], substr( $_[0]{rbuf}, 0, $idx + 3, q[] ) );
+
+                return 1;
+            }
+            else {
+                return;
+            }
         }
         else {
             return;
@@ -167,6 +178,56 @@ sub new ( $self, %args ) {
     }
 
     return $self->SUPER::new(%args);
+}
+
+sub read_http_headers {
+    my $cb = pop;
+    my ( $self, $headers, $trailing ) = @_;
+
+    # headers:
+    # undef - new object will be created
+    # ref - use this object
+    # 0 - do not parse headers
+
+    $self->push_read(
+        http_headers => sub ( $h, @ ) {
+            my $res;
+
+            if ( $_[1] ) {
+
+                # $len = -1 - incomplete headers, -2 - errors, >= 0 - headers length
+                ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, my $headers_arr ) = HTTP::Parser::XS::parse_http_response( $trailing ? 'HTTP/1.1 200 OK' . $CRLF . $_[1] : $_[1], defined $headers && $headers == 0 ? HEADERS_NONE : HEADERS_AS_ARRAYREF );
+
+                if ( $len > 0 ) {
+                    $headers //= Pcore::HTTP::Message::Headers->new;
+
+                    if ($headers) {
+
+                        # repack received headers to the standard format
+                        for ( my $i = 0; $i <= $headers_arr->$#*; $i += 2 ) {
+                            $headers_arr->[$i] = uc $headers_arr->[$i] =~ tr/-/_/r;
+                        }
+
+                        $res->{headers} = $headers;
+
+                        $res->{headers}->add($headers_arr);
+                    }
+                }
+                else {
+                    undef $res;
+                }
+            }
+            elsif ($trailing) {    # trailing headers can be empty, this is not an error
+                $res = {};
+            }
+
+            $cb->( $h, $res );
+
+            return;
+        }
+    );
+
+    return;
 }
 
 sub store ( $self, $id, $timeout = undef ) {
@@ -385,24 +446,21 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 
     $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->userinfo ? q[Proxy-Authorization: Basic ] . $proxy->userinfo_b64 . $CRLF : $CRLF ) . $CRLF );
 
-    $h->push_read(
-        http_headers => sub ( $h, @ ) {
-
-            # parse HTTP response headers
-            my ( $len, $minor_version, $status, $message ) = HTTP::Parser::XS::parse_http_response( $_[1], HEADERS_NONE );
-
-            if ( $len < 0 ) {    # $len = -1 - incomplete headers, -2 - errors, >= 0 - headers length
+    $h->read_http_headers(
+        0,
+        sub ( $h, $res ) {
+            if ( !$res ) {
                 $on_connect_error->( $h, q[Invalid proxy connect response], $PROXY_HANDSHAKE_ERROR );
             }
             else {
-                if ( $status == 200 ) {
+                if ( $res->{status} == 200 ) {
                     $on_connect->($h);
                 }
-                elsif ( $status == 503 ) {    # error creating tunnel
-                    $on_connect_error->( $h, $status . q[ - ] . $message, $CONNECT_ERROR );
+                elsif ( $res->{status} == 503 ) {    # error creating tunnel
+                    $on_connect_error->( $h, $res->{status} . q[ - ] . $res->{reason}, $CONNECT_ERROR );
                 }
                 else {
-                    $on_connect_error->( $h, $status . q[ - ] . $message, $PROXY_HANDSHAKE_ERROR );
+                    $on_connect_error->( $h, $res->{status} . q[ - ] . $res->{reason}, $PROXY_HANDSHAKE_ERROR );
                 }
             }
 
@@ -420,25 +478,26 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 53                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
+## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 260, 374             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 321, 435             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 42, 264, 267, 294,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 297, 300             │                                                                                                                │
+## │    2 │ 49, 325, 328, 355,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 358, 361             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 190                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 207, 251             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 452 does not specify text                                                   │
-## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 460 does not specify text                                                   │
-## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 488 does not specify text                                                   │
-## │      │ 446                  │ * Link L<AnyEvent::Handle> on line 504 does not specify text                                                   │
-## │      │ 446                  │ * Link L<AnyEvent::Socket> on line 504 does not specify text                                                   │
-## │      │ 446, 446             │ * Link L<Pcore::Proxy> on line 470 does not specify text                                                       │
-## │      │ 446                  │ * Link L<Pcore::Proxy> on line 504 does not specify text                                                       │
+## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 511 does not specify text                                                   │
+## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 519 does not specify text                                                   │
+## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 547 does not specify text                                                   │
+## │      │ 505                  │ * Link L<AnyEvent::Handle> on line 563 does not specify text                                                   │
+## │      │ 505                  │ * Link L<AnyEvent::Socket> on line 563 does not specify text                                                   │
+## │      │ 505, 505             │ * Link L<Pcore::Proxy> on line 529 does not specify text                                                       │
+## │      │ 505                  │ * Link L<Pcore::Proxy> on line 563 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 294, 297, 300, 314   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 45, 50, 355, 358,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 361, 375             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

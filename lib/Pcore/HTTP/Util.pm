@@ -2,7 +2,6 @@ package Pcore::HTTP::Util;
 
 use Pcore;
 use Errno qw[];
-use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF];
 use Pcore::AnyEvent::Handle qw[];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
 
@@ -281,33 +280,27 @@ sub _write_request ( $args, $runtime ) {
 }
 
 sub _read_headers ( $args, $runtime, $cb ) {
-    $runtime->{h}->push_read(
-        http_headers => sub ( $h, @ ) {
-
-            # parse response headers
-            my $parsed_headers = _parse_response_headers( $_[1] );
-
-            if ( !$parsed_headers ) {
+    $runtime->{h}->read_http_headers(
+        sub( $h, $res ) {
+            if ( !$res ) {
                 $runtime->{finish}->( 599, 'Invalid server response' );
             }
             else {
                 # TODO
-                die 'HTTP status 100, 101 are not supporteed correctly yet' if $parsed_headers->{status} == 100 or $parsed_headers->{status} == 101;
-
-                my $headers = Pcore::HTTP::Message::Headers->new->add( $parsed_headers->{headers} );
+                die 'HTTP status 100, 101 are not supporteed correctly yet' if $res->{status} == 100 or $res->{status} == 101;
 
                 # parse SET_COOKIE header, add cookies
-                $args->{cookie_jar}->parse_cookies( $args->{url}->host, $headers->get('SET_COOKIE') ) if $args->{cookie_jar} && $headers->{SET_COOKIE};
+                $args->{cookie_jar}->parse_cookies( $args->{url}->host, $res->{headers}->get('SET_COOKIE') ) if $args->{cookie_jar} && $res->{headers}->{SET_COOKIE};
 
                 # handle redirect
                 $runtime->{redirect} = 0;
 
-                if ( exists $headers->{LOCATION} ) {
+                if ( exists $res->{headers}->{LOCATION} ) {
 
                     # parse LOCATION header, create uri object
-                    $headers->{LOCATION} = P->uri( $headers->{LOCATION}, $args->{url} );
+                    $res->{headers}->{LOCATION} = P->uri( $res->{headers}->{LOCATION}, $args->{url} );
 
-                    if ( $parsed_headers->{status} ~~ [ 301, 302, 303, 307, 308 ] ) {
+                    if ( $res->{status} ~~ [ 301, 302, 303, 307, 308 ] ) {
                         $runtime->{redirect} = 1;
 
                         # create new response object and set it as default response for current request
@@ -319,16 +312,16 @@ sub _read_headers ( $args, $runtime, $cb ) {
                     }
                 }
 
-                $runtime->{res}->_set_content_length( delete( $headers->{CONTENT_LENGTH} )->[0] ) if exists $headers->{CONTENT_LENGTH};
+                $runtime->{res}->_set_content_length( delete( $res->{headers}->{CONTENT_LENGTH} )->[0] ) if exists $res->{headers}->{CONTENT_LENGTH};
 
                 # fill response object with HTTP response headers data
-                $runtime->{res}->{headers} = $headers;
+                $runtime->{res}->{headers} = $res->{headers};
 
-                $runtime->{res}->set_version( q[1.] . $parsed_headers->{minor_version} );
+                $runtime->{res}->set_version( q[1.] . $res->{minor_version} );
 
-                $runtime->{res}->set_status( $parsed_headers->{status} );
+                $runtime->{res}->set_status( $res->{status} );
 
-                $runtime->{res}->set_reason( $parsed_headers->{reason} );
+                $runtime->{res}->set_reason( $res->{reason} );
             }
 
             $cb->();
@@ -455,8 +448,6 @@ sub _read_body ( $args, $runtime, $cb ) {
 }
 
 sub _read_body_chunked ( $runtime, $on_body, $cb ) {
-    state $last_chunk = qr/(?<![^\n])\r?\n/sm;    # read last chunk. positive for "\r\n" or "...\n\r\n"
-
     my $read_chunk;
 
     $read_chunk = sub ( $h, @ ) {
@@ -506,23 +497,18 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
                 $runtime->{res}->_set_content_length( $runtime->{total_bytes_readed} );
 
                 # read trailing headers
-                $h->push_read(
-                    line => $last_chunk,
-                    sub ( $h, @ ) {
-                        if ( length $_[1] ) {
-                            if ( my $parsed_headers = _parse_response_headers( 'HTTP/1.1 200 OK' . $CRLF . $_[1] . $CRLF ) ) {
-                                $runtime->{res}->headers->add( $parsed_headers->{headers} );
-                            }
-                            else {
-                                undef $read_chunk;
-                                $cb->( 597, 'Garbled chunked transfer encoding (invalid trailing headers)' );
-
-                                return;
-                            }
-                        }
-
+                $h->read_http_headers(
+                    $runtime->{res}->headers,
+                    1,
+                    sub ( $h, $res ) {
                         undef $read_chunk;
-                        $cb->();
+
+                        if ($res) {
+                            $cb->();
+                        }
+                        else {
+                            $cb->( 597, 'Garbled chunked transfer encoding (invalid trailing headers)' );
+                        }
 
                         return;
                     }
@@ -531,6 +517,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
         }
         else {    # invalid chunk length
             undef $read_chunk;
+
             $cb->( 597, 'Garbled chunked transfer encoding' );
         }
 
@@ -606,25 +593,6 @@ sub _read_body_eof ( $runtime, $on_body, $cb ) {
     );
 
     return;
-}
-
-sub _parse_response_headers {
-    my $res = {};
-
-    ( $res->{len}, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $_[0], HEADERS_AS_ARRAYREF );
-
-    if ( $res->{len} > 0 ) {
-
-        # repack received headers to the standard format
-        for ( my $i = 0; $i <= $res->{headers}->$#*; $i += 2 ) {
-            $res->{headers}->[$i] = uc $res->{headers}->[$i] =~ tr/-/_/r;
-        }
-
-        return $res;
-    }
-    else {
-        return;
-    }
 }
 
 sub get_random_ua {
@@ -732,12 +700,10 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 11                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 343                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 10                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
+## │      │ 336                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 83, 96, 97, 195      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 619                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    3 │ 82, 95, 96, 194      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
