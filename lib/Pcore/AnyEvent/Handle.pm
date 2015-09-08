@@ -186,13 +186,13 @@ sub read_eof {
 }
 
 sub read_http_res_headers {
-    my $cb = pop;
-    my ( $self, $headers, $trailing ) = @_;
-
-    # headers:
-    # undef - new object will be created
-    # ref - use this object
-    # 0 - do not parse headers
+    my $self = shift;
+    my $cb   = pop;
+    my %args = (
+        headers  => 0,    # positive - create new headers obj, 0 - do not parse headers, ref - headers obj to add headers to
+        trailing => 0,    # read trailing headers
+        @_,
+    );
 
     $self->push_read(
         http_headers => sub ( $h, @ ) {
@@ -201,19 +201,18 @@ sub read_http_res_headers {
             if ( $_[1] ) {
 
                 # $len = -1 - incomplete headers, -2 - errors, >= 0 - headers length
-                ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, my $headers_arr ) = HTTP::Parser::XS::parse_http_response( $trailing ? 'HTTP/1.1 200 OK' . $CRLF . $_[1] : $_[1], defined $headers && $headers == 0 ? HEADERS_NONE : HEADERS_AS_ARRAYREF );
+                ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, my $headers_arr ) = HTTP::Parser::XS::parse_http_response( $args{trailing} ? 'HTTP/1.1 200 OK' . $CRLF . $_[1] : $_[1], !$args{headers} ? HEADERS_NONE : HEADERS_AS_ARRAYREF );
 
                 if ( $len > 0 ) {
-                    $headers //= Pcore::HTTP::Message::Headers->new;
-
-                    if ($headers) {
+                    if ( $args{headers} ) {
+                        $args{headers} = Pcore::HTTP::Message::Headers->new if !ref $args{headers};
 
                         # repack received headers to the standard format
                         for ( my $i = 0; $i <= $headers_arr->$#*; $i += 2 ) {
                             $headers_arr->[$i] = uc $headers_arr->[$i] =~ tr/-/_/r;
                         }
 
-                        $res->{headers} = $headers;
+                        $res->{headers} = $args{headers};
 
                         $res->{headers}->add($headers_arr);
                     }
@@ -222,7 +221,7 @@ sub read_http_res_headers {
                     undef $res;
                 }
             }
-            elsif ($trailing) {    # trailing headers can be empty, this is not an error
+            elsif ( $args{trailing} ) {    # trailing headers can be empty, this is not an error
                 $res = {};
             }
 
@@ -300,8 +299,8 @@ sub read_http_body {
 
                     # read trailing headers
                     $h->read_http_res_headers(
-                        $args{headers},
-                        1,
+                        headers  => $args{headers},
+                        trailing => 1,
                         sub ( $h, $res ) {
                             undef $read_chunk;
 
@@ -545,6 +544,9 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error
                                 $h->push_read(                                      # read IPv4 addr (4 bytes) + port (2 bytes)
                                     chunk => 6,
                                     sub ( $h, $chunk ) {
+
+                                        # TODO validate: 4 bytes IP addr, 2 bytes port
+
                                         $on_connect->($h);
 
                                         return;
@@ -558,6 +560,9 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error
                                         $h->push_read(                              # read domain name + port (2 bytes)
                                             chunk => unpack( 'C', $chunk ) + 2,
                                             sub ( $h, $chunk ) {
+
+                                                # TODO validate domain name + port
+
                                                 $on_connect->($h);
 
                                                 return;
@@ -572,6 +577,9 @@ sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error
                                 $h->push_read(     # read IPv6 addr (16 bytes) + port (2 bytes)
                                     chunk => 18,
                                     sub ( $h, $chunk ) {
+
+                                        # TODO validate IPv6 + port
+
                                         $on_connect->($h);
 
                                         return;
@@ -613,7 +621,7 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
     $h->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->userinfo ? q[Proxy-Authorization: Basic ] . $proxy->userinfo_b64 . $CRLF : $CRLF ) . $CRLF );
 
     $h->read_http_res_headers(
-        0,
+        headers => 0,
         sub ( $h, $res ) {
             if ( !$res ) {
                 $on_connect_error->( $h, q[Invalid proxy connect response], $PROXY_HANDSHAKE_ERROR );
@@ -646,24 +654,24 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 487, 601             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 486, 609             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 49, 491, 494, 521,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 524, 527             │                                                                                                                │
+## │    2 │ 49, 490, 493, 520,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 523, 526             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 212, 417             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 211, 416             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 677 does not specify text                                                   │
-## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 685 does not specify text                                                   │
-## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 713 does not specify text                                                   │
-## │      │ 671                  │ * Link L<AnyEvent::Handle> on line 729 does not specify text                                                   │
-## │      │ 671                  │ * Link L<AnyEvent::Socket> on line 729 does not specify text                                                   │
-## │      │ 671, 671             │ * Link L<Pcore::Proxy> on line 695 does not specify text                                                       │
-## │      │ 671                  │ * Link L<Pcore::Proxy> on line 729 does not specify text                                                       │
+## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 685 does not specify text                                                   │
+## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 693 does not specify text                                                   │
+## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 721 does not specify text                                                   │
+## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 737 does not specify text                                                   │
+## │      │ 679                  │ * Link L<AnyEvent::Socket> on line 737 does not specify text                                                   │
+## │      │ 679, 679             │ * Link L<Pcore::Proxy> on line 703 does not specify text                                                       │
+## │      │ 679                  │ * Link L<Pcore::Proxy> on line 737 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 45, 50, 521, 524,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 527, 541             │                                                                                                                │
+## │    1 │ 45, 50, 520, 523,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 526, 540             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -281,6 +281,7 @@ sub _write_request ( $args, $runtime ) {
 
 sub _read_headers ( $args, $runtime, $cb ) {
     $runtime->{h}->read_http_res_headers(
+        headers => 1,
         sub( $h, $res ) {
             if ( !$res ) {
                 $runtime->{finish}->( 599, 'Invalid server response' );
@@ -604,7 +605,7 @@ sub get_random_ua {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 10                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 336                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
+## │      │ 337                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 82, 95, 96, 194      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
