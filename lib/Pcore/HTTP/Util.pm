@@ -481,6 +481,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
                             # set content length to really readed bytes length
                             $runtime->{res}->_set_content_length( $runtime->{total_bytes_readed} );
 
+                            undef $read_chunk;
                             $cb->( 598, q[Request cancelled by "on_body"] );
                         }
                         else {
@@ -488,6 +489,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
                             $h->push_read(
                                 line => sub ( $h, @ ) {
                                     if ( length $_[1] ) {         # error, chunk traililg can contain only $CRLF
+                                        undef $read_chunk;
                                         $cb->( 597, 'Garbled chunked transfer encoding' );
                                     }
                                     else {
@@ -515,12 +517,14 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
                                 $runtime->{res}->headers->add( $parsed_headers->{headers} );
                             }
                             else {
+                                undef $read_chunk;
                                 $cb->( 597, 'Garbled chunked transfer encoding (invalid trailing headers)' );
 
                                 return;
                             }
                         }
 
+                        undef $read_chunk;
                         $cb->();
 
                         return;
@@ -529,6 +533,7 @@ sub _read_body_chunked ( $runtime, $on_body, $cb ) {
             }
         }
         else {    # invalid chunk length
+            undef $read_chunk;
             $cb->( 597, 'Garbled chunked transfer encoding' );
         }
 
@@ -735,7 +740,7 @@ sub get_random_ua {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 83, 96, 97, 198      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 617                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 622                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
