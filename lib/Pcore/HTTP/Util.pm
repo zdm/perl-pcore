@@ -102,19 +102,16 @@ sub http_request ($args) {
             return;
         },
         headers         => Pcore::HTTP::Message::Headers->new,
-        start_tls       => $args->{url}->is_secure,
         persistent      => $args->{persistent},
         was_persistent  => 0,
+        connect_port    => $args->{url}->port || ( $args->{url}->is_secure ? 443 : 80 ),
         cache_id        => undef,
         request_path    => $args->{url}->pathquery,
         on_error_status => undef,
     };
 
-    # defined connect port
-    $runtime->{connect_port} = $args->{url}->port || ( $runtime->{start_tls} ? 443 : 80 );
-
     # define persistent cache key
-    $runtime->{cache_id} = $runtime->{start_tls} . q[-] . $args->{url}->hostport;
+    $runtime->{cache_id} = $args->{url}->is_secure . q[-] . $args->{url}->hostport;
     $runtime->{cache_id} .= q[-] . $args->{proxy}->hostport if $args->{proxy};
 
     # add REFERER header
@@ -248,7 +245,7 @@ sub _connect ( $args, $runtime, $cb ) {
 sub _write_request ( $args, $runtime ) {
 
     # start TLS, only if TLS is required and TLS is not established yet
-    $runtime->{h}->starttls('connect') if $runtime->{starttls} && !exists $runtime->{h}->{tls};
+    $runtime->{h}->starttls('connect') if $args->{url}->is_secure && !exists $runtime->{h}->{tls};
 
     # send request headers
     $runtime->{h}->push_write( "$args->{method} $runtime->{request_path} HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
@@ -736,11 +733,11 @@ sub get_random_ua {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 11                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 346                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
+## │      │ 343                  │ * Subroutine "_read_body" with high complexity score (34)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 83, 96, 97, 198      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 83, 96, 97, 195      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 622                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 619                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

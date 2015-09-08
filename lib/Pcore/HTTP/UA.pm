@@ -17,6 +17,7 @@ use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Request;
 use Pcore::HTTP::CookieJar;
+use Const::Fast qw[const];
 
 our $USERAGENT = "Mozilla/5.0 (compatible; U; P-AnyEvent-UA/$Pcore::VERSION";
 our $RECURSE   = 7;
@@ -35,6 +36,165 @@ has tls_ctx => ( is => 'lazy', isa => Enum [ $Pcore::HTTP::UA::TLS_CTX_LOW, $Pco
 has headers => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Message::Headers'], default => sub { Pcore::HTTP::Message::Headers->new }, init_arg => undef );
 
 no Pcore;
+
+const our $HTTP_METHODS => {
+    ACL => {
+        idempotent => 1,
+        safe       => 0
+    },
+    'BASELINE-CONTROL' => {
+        idempotent => 1,
+        safe       => 0
+    },
+    BIND => {
+        idempotent => 1,
+        safe       => 0
+    },
+    CHECKIN => {
+        idempotent => 1,
+        safe       => 0
+    },
+    CHECKOUT => {
+        idempotent => 1,
+        safe       => 0
+    },
+    CONNECT => {
+        idempotent => 0,
+        safe       => 0
+    },
+    COPY => {
+        idempotent => 1,
+        safe       => 0
+    },
+    DELETE => {
+        idempotent => 1,
+        safe       => 0
+    },
+    GET => {
+        idempotent => 1,
+        safe       => 1
+    },
+    HEAD => {
+        idempotent => 1,
+        safe       => 1
+    },
+    LABEL => {
+        idempotent => 1,
+        safe       => 0
+    },
+    LINK => {
+        idempotent => 1,
+        safe       => 0
+    },
+    LOCK => {
+        idempotent => 0,
+        safe       => 0
+    },
+    MERGE => {
+        idempotent => 1,
+        safe       => 0
+    },
+    MKACTIVITY => {
+        idempotent => 1,
+        safe       => 0
+    },
+    MKCALENDAR => {
+        idempotent => 1,
+        safe       => 0
+    },
+    MKCOL => {
+        idempotent => 1,
+        safe       => 0
+    },
+    MKREDIRECTREF => {
+        idempotent => 1,
+        safe       => 0
+    },
+    MKWORKSPACE => {
+        idempotent => 1,
+        safe       => 0
+    },
+    MOVE => {
+        idempotent => 1,
+        safe       => 0
+    },
+    OPTIONS => {
+        idempotent => 1,
+        safe       => 1
+    },
+    ORDERPATCH => {
+        idempotent => 1,
+        safe       => 0
+    },
+    PATCH => {
+        idempotent => 0,
+        safe       => 0
+    },
+    POST => {
+        idempotent => 0,
+        safe       => 0
+    },
+    PRI => {
+        idempotent => 1,
+        safe       => 1
+    },
+    PROPFIND => {
+        idempotent => 1,
+        safe       => 1
+    },
+    PROPPATCH => {
+        idempotent => 1,
+        safe       => 0
+    },
+    PUT => {
+        idempotent => 1,
+        safe       => 0
+    },
+    REBIND => {
+        idempotent => 1,
+        safe       => 0
+    },
+    REPORT => {
+        idempotent => 1,
+        safe       => 1
+    },
+    SEARCH => {
+        idempotent => 1,
+        safe       => 1
+    },
+    TRACE => {
+        idempotent => 1,
+        safe       => 1
+    },
+    UNBIND => {
+        idempotent => 1,
+        safe       => 0
+    },
+    UNCHECKOUT => {
+        idempotent => 1,
+        safe       => 0
+    },
+    UNLINK => {
+        idempotent => 1,
+        safe       => 0
+    },
+    UNLOCK => {
+        idempotent => 1,
+        safe       => 0
+    },
+    UPDATE => {
+        idempotent => 1,
+        safe       => 0
+    },
+    UPDATEREDIRECTREF => {
+        idempotent => 1,
+        safe       => 0
+    },
+    'VERSION-CONTROL' => {
+        idempotent => 1,
+        safe       => 0
+    }
+};
 
 # 594 - errors during proxy handshake.
 # 595 - errors during connection establishment.
@@ -280,9 +440,9 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
+## │    3 │ 224                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 264                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 424                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
