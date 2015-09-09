@@ -239,14 +239,12 @@ sub read_http_req_headers {
     return;
 }
 
-sub read_http_body {
-    my $self    = shift;
-    my $on_read = shift;
-    my %args    = (
+sub read_http_body ( $self, $on_read, @ ) {
+    my %args = (
         chunked => 0,
         length  => undef,    # 0, undef - read until EOF
         headers => 0,
-        @_,
+        @_[ 2 .. $#_ ],
     );
 
     my $total_bytes_readed = 0;
@@ -654,24 +652,24 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 486, 609             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 484, 607             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 49, 490, 493, 520,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 523, 526             │                                                                                                                │
+## │    2 │ 49, 488, 491, 518,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 521, 524             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 211, 416             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 211, 414             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 685 does not specify text                                                   │
-## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 693 does not specify text                                                   │
-## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 721 does not specify text                                                   │
-## │      │ 679                  │ * Link L<AnyEvent::Handle> on line 737 does not specify text                                                   │
-## │      │ 679                  │ * Link L<AnyEvent::Socket> on line 737 does not specify text                                                   │
-## │      │ 679, 679             │ * Link L<Pcore::Proxy> on line 703 does not specify text                                                       │
-## │      │ 679                  │ * Link L<Pcore::Proxy> on line 737 does not specify text                                                       │
+## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 683 does not specify text                                                   │
+## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 691 does not specify text                                                   │
+## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 719 does not specify text                                                   │
+## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 735 does not specify text                                                   │
+## │      │ 677                  │ * Link L<AnyEvent::Socket> on line 735 does not specify text                                                   │
+## │      │ 677, 677             │ * Link L<Pcore::Proxy> on line 701 does not specify text                                                       │
+## │      │ 677                  │ * Link L<Pcore::Proxy> on line 735 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 45, 50, 520, 523,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 526, 540             │                                                                                                                │
+## │    1 │ 45, 50, 518, 521,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 524, 538             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
