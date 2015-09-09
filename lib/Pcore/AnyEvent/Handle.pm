@@ -15,22 +15,6 @@ const our $PROXY_CONNECT_ERROR   => 1;
 const our $PROXY_HANDSHAKE_ERROR => 2;
 const our $CONNECT_ERROR         => 3;
 
-const our $PROXY_TYPE_CONNECT => 1;
-const our $PROXY_TYPE_HTTPS   => 2;
-const our $PROXY_TYPE_SOCKS5  => 3;
-const our $PROXY_TYPE_SOCKS4  => 4;
-const our $PROXY_TYPE_SOCKS4A => 5;
-const our $PROXY_TYPE_HTTP    => 6;
-
-const our $PROXY_TYPE_SCHEME => {
-    connect => $PROXY_TYPE_CONNECT,
-    https   => $PROXY_TYPE_HTTPS,
-    socks5  => $PROXY_TYPE_SOCKS5,
-    socks4  => $PROXY_TYPE_SOCKS4,
-    socks4a => $PROXY_TYPE_SOCKS4A,
-    http    => $PROXY_TYPE_HTTP,
-};
-
 our $CACHE = {};
 
 # default cache timeout
@@ -89,7 +73,7 @@ sub new ( $self, %args ) {
         }
 
         # try to detect proxy type by scheme
-        $args{proxy_type} = $PROXY_TYPE_SCHEME->{ $args{proxy}->scheme } if !$args{proxy_type} && $args{proxy}->scheme && exists $PROXY_TYPE_SCHEME->{ $args{proxy}->scheme };
+        $args{proxy_type} = $Pcore::Proxy::TYPE_SCHEME->{ $args{proxy}->scheme } if !$args{proxy_type} && $args{proxy}->scheme && exists $Pcore::Proxy::TYPE_SCHEME->{ $args{proxy}->scheme };
 
         # redefine "connect"
         $args{connect} = [ $args{proxy}->host->name, $args{proxy}->port ];
@@ -125,12 +109,12 @@ sub new ( $self, %args ) {
 
             return;
         }
-        elsif ( $args{proxy_type} == $PROXY_TYPE_SOCKS4 or $args{proxy_type} == $PROXY_TYPE_SOCKS4A ) {
+        elsif ( $args{proxy_type} == $Pcore::Proxy::TYPE_SOCKS4 or $args{proxy_type} == $Pcore::Proxy::TYPE_SOCKS4A ) {
             $on_connect_error->( undef, 'Proxy type is not supported', $PROXY_CONNECT_ERROR );
 
             return;
         }
-        elsif ( $args{proxy_type} == $PROXY_TYPE_SOCKS5 or $args{proxy_type} == $PROXY_TYPE_CONNECT or $args{proxy_type} = $PROXY_TYPE_HTTPS ) {
+        elsif ( $args{proxy_type} == $Pcore::Proxy::TYPE_SOCKS5 or $args{proxy_type} == $Pcore::Proxy::TYPE_CONNECT or $args{proxy_type} = $Pcore::Proxy::TYPE_HTTPS ) {
             $args{timeout} = $args{connect_timeout} if $args{connect_timeout};
 
             # all proxy connection timeouts will be handled by "on_error" callback
@@ -165,10 +149,10 @@ sub new ( $self, %args ) {
                 # convert host to the punycode, if needed
                 $args_orig{connect}->[0] = P->host( $args_orig{connect}->[0] )->name if utf8::is_utf8( $args_orig{connect}->[0] );
 
-                if ( $h->{proxy_type} == $PROXY_TYPE_SOCKS5 ) {
+                if ( $h->{proxy_type} == $Pcore::Proxy::TYPE_SOCKS5 ) {
                     $h->_connect_socks5_proxy( $h->{proxy}, $args_orig{connect}, $on_connect, $on_connect_error );
                 }
-                elsif ( $h->{proxy_type} == $PROXY_TYPE_CONNECT or $h->{proxy_type} == $PROXY_TYPE_HTTPS ) {
+                elsif ( $h->{proxy_type} == $Pcore::Proxy::TYPE_CONNECT or $h->{proxy_type} == $Pcore::Proxy::TYPE_HTTPS ) {
                     $h->_connect_connect_proxy( $h->{proxy}, $args_orig{connect}, $on_connect, $on_connect_error );
                 }
 
@@ -180,8 +164,41 @@ sub new ( $self, %args ) {
     return $self->SUPER::new(%args);
 }
 
-# TODO
-sub read_eof {
+sub read_eof ( $self, $on_read ) {
+    my $total_bytes_readed = 0;
+
+    $self->on_eof(
+        sub ($h) {
+
+            # remove "on_read" callback
+            $h->on_read(undef);
+
+            # remove "on_eof" callback
+            $h->on_eof(undef);
+
+            $on_read->( $h, undef, $total_bytes_readed, undef );
+
+            return;
+        }
+    );
+
+    $self->on_read(
+        sub ($h) {
+            $total_bytes_readed += length $h->{rbuf};
+
+            if ( !$on_read->( $h, \delete $h->{rbuf}, $total_bytes_readed, undef ) ) {
+
+                # remove "on_read" callback
+                $h->on_read(undef);
+
+                # remove "on_eof" callback
+                $h->on_eof(undef);
+            }
+
+            return;
+        }
+    );
+
     return;
 }
 
@@ -326,39 +343,9 @@ sub read_http_body ( $self, $on_read, @ ) {
         $self->push_read( line => $read_chunk );
     }
     elsif ( !$args{length} ) {    # read until EOF
-        $self->on_eof(
-            sub ($h) {
-
-                # remove "on_read" callback
-                $h->on_read(undef);
-
-                # remove "on_eof" callback
-                $h->on_eof(undef);
-
-                $on_read->( $h, undef, $total_bytes_readed, undef );
-
-                return;
-            }
-        );
-
-        $self->on_read(
-            sub ($h) {
-                $total_bytes_readed += length $h->{rbuf};
-
-                if ( !$on_read->( $h, \delete $h->{rbuf}, $total_bytes_readed, undef ) ) {
-
-                    # remove "on_read" callback
-                    $h->on_read(undef);
-
-                    # remove "on_eof" callback
-                    $h->on_eof(undef);
-                }
-
-                return;
-            }
-        );
+        $self->read_eof($on_read);
     }
-    else {    # read body with known length
+    else {                        # read body with known length
         $self->on_read(
             sub ($h) {
                 $total_bytes_readed += length $h->{rbuf};
@@ -650,26 +637,26 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 64                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
+## │    3 │ 48                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 484, 607             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 471, 594             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 49, 488, 491, 518,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 521, 524             │                                                                                                                │
+## │    2 │ 33, 475, 478, 505,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 508, 511             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 211, 414             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 228, 401             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 683 does not specify text                                                   │
-## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 691 does not specify text                                                   │
-## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 719 does not specify text                                                   │
-## │      │ 677                  │ * Link L<AnyEvent::Handle> on line 735 does not specify text                                                   │
-## │      │ 677                  │ * Link L<AnyEvent::Socket> on line 735 does not specify text                                                   │
-## │      │ 677, 677             │ * Link L<Pcore::Proxy> on line 701 does not specify text                                                       │
-## │      │ 677                  │ * Link L<Pcore::Proxy> on line 735 does not specify text                                                       │
+## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 670 does not specify text                                                   │
+## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 678 does not specify text                                                   │
+## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 706 does not specify text                                                   │
+## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 722 does not specify text                                                   │
+## │      │ 664                  │ * Link L<AnyEvent::Socket> on line 722 does not specify text                                                   │
+## │      │ 664, 664             │ * Link L<Pcore::Proxy> on line 688 does not specify text                                                       │
+## │      │ 664                  │ * Link L<Pcore::Proxy> on line 722 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 45, 50, 518, 521,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 524, 538             │                                                                                                                │
+## │    1 │ 29, 34, 505, 508,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 511, 525             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
