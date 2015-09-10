@@ -1,23 +1,23 @@
-package Pcore::AnyEvent::Handle::Proxy;
+package Pcore::AE::Handle::Proxy;
 
 use Pcore qw[-class];
-use Pcore::AnyEvent::Handle;
+use Pcore::AE::Handle;
+use Pcore::Proxy qw[:CONST];
+use Const::Fast qw[const];
 
 has cb => ( is => 'ro', isa => CodeRef, required => 1 );
 has proxy => ( is => 'ro', isa => InstanceOf ['Pcore::Proxy'], required => 1 );
-has proxy_type => ( is => 'ro', isa => Enum [qw[http connect socks5 socks4 socks4a]], required => 1 );
-has test_scheme => ( is => 'ro', isa => Str,         required => 1 );
+has proxy_type  => ( is => 'ro', isa => Int,         required => 1 );
 has test_host   => ( is => 'ro', isa => Str,         required => 1 );
 has test_port   => ( is => 'ro', isa => PositiveInt, required => 1 );
-
-has proxy_type_is_supported => ( is => 'lazy', isa => Bool, init_arg => undef );
-has proxy_is_http           => ( is => 'lazy', isa => Bool, init_arg => undef );
+has test_scheme => ( is => 'ro', isa => Str,         default  => q[] );
+has timeout     => ( is => 'ro', isa => Int,         default  => 5 );
 
 no Pcore;
 
 our $TEST_SCHEME = {
-    http  => [ [ 'google.com',     80 ],  \&_test_http, ],
-    https => [ [ 'google.com',     443 ], \&_test_http, ],
+    http  => [ [ 'www.google.com', 80 ],  \&_test_http, ],
+    https => [ [ 'www.google.com', 443 ], \&_test_http, ],
     whois => [ [ 'whois.iana.org', 43 ],  \&_test_whois, ],
 };
 
@@ -27,20 +27,13 @@ sub check ( $self, %args ) {
     return $self->new( \%args )->_run;
 }
 
-sub _build_proxy_type_is_supported ($self) {
-    return $self->proxy_type ~~ [qw[http connect socks5]] ? 1 : 0;
-}
-
-sub _build_proxy_is_tunnel ($self) {
-    return $self->proxy_type eq 'http' ? 1 : 0;
-}
-
 sub _run ($self) {
+    state $supported_types = [ $PROXY_HTTP, $PROXY_CONNECT, $PROXY_SOCKS5 ];
 
     # proxy type is not supported
-    return $self->_finish(0) if !$self->proxy_type_is_supported;
+    return $self->_finish(0) unless $self->proxy_type ~~ $supported_types;
 
-    if ( $self->proxy_is_http ) {
+    if ( $self->proxy_type == $PROXY_HTTP ) {
         $self->_check_http_proxy;
     }
     else {
@@ -50,50 +43,41 @@ sub _run ($self) {
     return;
 }
 
+# TODO
 sub _check_http_proxy ($self) {
-    my $connect;
-
     my $test;
 
     if ( $self->test_scheme eq 'http' ) {
-        $connect = $TEST_SCHEME->{http}->[0];
-
         $test = $TEST_SCHEME->{http}->[1];
     }
     elsif ( $self->test_scheme eq 'https' ) {
-        $connect = $TEST_SCHEME->{https}->[0];
-
         $test = $TEST_SCHEME->{https}->[1];
     }
     else {
+
         # http proxy can work only with http or https schemes
         return $self->_finish(0);
     }
 
     # test connect to the proxy
-    $self->{h} = Pcore::AnyEvent::Handle->new(
-        connect => $connect,
+    $self->{h} = Pcore::AE::Handle->new(
+        connect         => [ $self->proxy->host->name, $self->proxy->port ],
+        connect_timeout => $self->timeout,
+        timeout         => $self->timeout,
 
         # TODO disable proxy
-        on_connect_error => sub () {
-            $self->_finis(0);
+        on_connect_error => sub ( $h, $message ) {
+            $self->_finish(0);
 
             return;
         },
         on_error => sub ( $h, $fatal, $message ) {
-            $self->_finis(0);
+            $self->_finish(0);
 
             return;
         },
         on_connect => sub ( $h, @ ) {
-            $test->(
-                $h,
-                sub ($status) {
-                    $self->_finish($status);
-
-                    return;
-                }
-            );
+            $test->($self);
 
             return;
         }
@@ -102,27 +86,106 @@ sub _check_http_proxy ($self) {
     return;
 }
 
+# TODO
 sub _check_tunnel_proxy ($self) {
+    my $connect;
+
+    my $test_scheme = $TEST_SCHEME->{ $self->test_scheme };
+
+    my $test;
+
+    if ($test_scheme) {
+        if ( $test_scheme->[0]->[1] == $self->test_port ) {
+            $connect = $test_scheme->[0];
+
+            $test = $test_scheme->[1];
+        }
+        else {
+            $connect = [ $self->test_host, $self->test_port ];
+
+            $test = sub ($self) {
+                $self->{h} = Pcore::AE::Handle->new(
+                    connect         => $test_scheme->[0],
+                    connect_timeout => $self->timeout,
+                    timeout         => $self->timeout,
+                    proxy           => $self->proxy,
+                    proxy_type      => $self->proxy_type,
+                    on_connect      => sub ( $h, @ ) {
+                        $test_scheme->[1]->($self);
+
+                        return;
+                    }
+                );
+
+                return;
+            };
+        }
+    }
+    else {
+        $connect = [ $self->test_host, $self->test_port ];
+
+        $test = sub ($self) {
+            $self->_finish(1);
+
+            return;
+        };
+    }
+
+    $self->{h} = Pcore::AE::Handle->new(
+        connect                => $connect,
+        connect_timeout        => $self->timeout,
+        timeout                => $self->timeout,
+        proxy                  => $self->proxy,
+        proxy_type             => $self->proxy_type,
+        on_proxy_connect_error => sub ( $h, $message, $connect_error ) {
+            $self->_finish(0);
+
+            return;
+        },
+        on_connect_error => sub ( $h, $message ) {
+            $self->_finish(0);
+
+            return;
+        },
+        on_connect => sub ( $h, @ ) {
+            $test->($self);
+
+            return;
+        },
+    );
 
     return;
 }
 
 sub _finish ( $self, $status ) {
+    $self->{h}->destroy if $self->{h};
+
     $self->cb->($status);
 
     return;
 }
 
-sub _test_http ( $h, $cb ) {
-    state $req = qq[GET /favicon.ico HTTP/1.1${CRLF}Host: www.google.com${CRLF}${CRLF}];
+sub _test_http ($self) {
+    state $req_http_http = q[GET http://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
 
-    $h->push_write($req);
+    state $req_http_https = q[GET https://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
 
-    $h->read_http_res_headers(
+    state $req_tunnel = qq[GET /favicon.ico HTTP/1.1${CRLF}Host: www.google.com${CRLF}${CRLF}];
+
+    if ( $self->proxy_type == $PROXY_HTTP ) {
+        $self->{h}->push_write( $self->test_scheme eq 'http' ? $req_http_http : $req_http_https );
+    }
+    else {
+        $self->{h}->starttls('connect') if $self->test_scheme eq 'https';
+
+        $self->{h}->push_write($req_tunnel);
+    }
+
+    $self->{h}->read_http_res_headers(
         headers => 0,
         sub ( $h, $res, $error_reason ) {
-            if ($error_reason) {    # headers parsing error
-                $cb->(0);
+            if ( $error_reason || $res->{status} != 200 ) {    # headers parsing error
+                $self->_finish(0);
             }
             else {
                 $h->push_read(
@@ -137,10 +200,10 @@ sub _test_http ( $h, $cb ) {
 
                         # validate .ico header
                         if ( $chunk eq qq[\x00\x00\x01\x00] ) {
-                            $cb->(1);
+                            $self->_finish(1);
                         }
                         else {
-                            $cb->(0);
+                            $self->_finish(0);
                         }
 
                         return;
@@ -156,8 +219,8 @@ sub _test_http ( $h, $cb ) {
 }
 
 # TODO
-sub _test_whois ( $h, $cb ) {
-    $cb->(0);
+sub _test_whois ($self) {
+    $self->_finish(0);
 
     return;
 }
@@ -169,7 +232,7 @@ sub _test_whois ( $h, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 139                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 202                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -180,7 +243,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AnyEvent::Handle::Proxy
+Pcore::AE::Handle::Proxy
 
 =head1 SYNOPSIS
 
