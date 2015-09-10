@@ -61,19 +61,7 @@ sub new ( $self, %args ) {
     if ( !$args{fh} && $args{proxy} ) {
         $args{proxy} = Pcore::Proxy->new( $args{proxy} ) if !ref $args{proxy};
 
-        # automatically select proxy type
-        if ( !$args{proxy_type} ) {
-
-            if ( $args{connect}->[1] == 443 ) {
-                $args{proxy_type} = $args{proxy}->is_https || $args{proxy}->is_socks5 || $args{proxy}->is_http;
-            }
-            else {
-                $args{proxy_type} = $args{proxy}->is_connect || $args{proxy}->is_socks5 || $args{proxy}->is_http;
-            }
-        }
-
-        # try to detect proxy type by scheme
-        $args{proxy_type} = $Pcore::Proxy::TYPE_SCHEME->{ $args{proxy}->scheme } if !$args{proxy_type} && $args{proxy}->scheme && exists $Pcore::Proxy::TYPE_SCHEME->{ $args{proxy}->scheme };
+        $args{proxy_type} = $self->select_proxy_type( $args{proxy}, $args{connect}->[1] ) if !$args{proxy_type};
 
         # redefine "connect"
         $args{connect} = [ $args{proxy}->host->name, $args{proxy}->port ];
@@ -114,7 +102,7 @@ sub new ( $self, %args ) {
 
             return;
         }
-        elsif ( $args{proxy_type} == $Pcore::Proxy::TYPE_SOCKS5 or $args{proxy_type} == $Pcore::Proxy::TYPE_CONNECT or $args{proxy_type} = $Pcore::Proxy::TYPE_HTTPS ) {
+        elsif ( $args{proxy_type} == $Pcore::Proxy::TYPE_SOCKS5 or $args{proxy_type} == $Pcore::Proxy::TYPE_CONNECT or $args{proxy_type} == $Pcore::Proxy::TYPE_HTTPS ) {
             $args{timeout} = $args{connect_timeout} if $args{connect_timeout};
 
             # all proxy connection timeouts will be handled by "on_error" callback
@@ -206,43 +194,46 @@ sub read_http_res_headers {
     my $self = shift;
     my $cb   = pop;
     my %args = (
-        headers  => 0,    # positive - create new headers obj, 0 - do not parse headers, ref - headers obj to add headers to
+        headers  => 0,    # true - create new headers obj, false - do not parse headers, ref - headers obj to add headers to
         trailing => 0,    # read trailing headers
         @_,
     );
 
     $self->push_read(
         http_headers => sub ( $h, @ ) {
-            my $res;
-
             if ( $_[1] ) {
+                my $res;
 
                 # $len = -1 - incomplete headers, -2 - errors, >= 0 - headers length
                 ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, my $headers_arr ) = HTTP::Parser::XS::parse_http_response( $args{trailing} ? 'HTTP/1.1 200 OK' . $CRLF . $_[1] : $_[1], !$args{headers} ? HEADERS_NONE : HEADERS_AS_ARRAYREF );
 
-                if ( $len > 0 ) {
+                if ( $len == -1 ) {
+                    $cb->( $h, undef, q[Headers are incomplete] );
+                }
+                elsif ( $len == -2 ) {
+                    $cb->( $h, undef, q[Headers are corrupt] );
+                }
+                else {
                     if ( $args{headers} ) {
-                        $args{headers} = Pcore::HTTP::Message::Headers->new if !ref $args{headers};
+                        $res->{headers} = ref $args{headers} ? $args{headers} : Pcore::HTTP::Message::Headers->new;
 
                         # repack received headers to the standard format
                         for ( my $i = 0; $i <= $headers_arr->$#*; $i += 2 ) {
                             $headers_arr->[$i] = uc $headers_arr->[$i] =~ tr/-/_/r;
                         }
 
-                        $res->{headers} = $args{headers};
-
                         $res->{headers}->add($headers_arr);
                     }
-                }
-                else {
-                    undef $res;
+
+                    $cb->( $h, $res, undef );
                 }
             }
             elsif ( $args{trailing} ) {    # trailing headers can be empty, this is not an error
-                $res = {};
+                $cb->( $h, undef, undef );
             }
-
-            $cb->( $h, $res );
+            else {
+                $cb->( $h, undef, q[No headers] );
+            }
 
             return;
         }
@@ -251,8 +242,32 @@ sub read_http_res_headers {
     return;
 }
 
-# TODO
-sub read_http_req_headers {
+sub read_http_req_headers ( $self, $cb ) {
+    $self->push_read(
+        http_headers => sub ( $h, @ ) {
+            if ( $_[1] ) {
+                my $env = {};
+
+                my $res = HTTP::Parser::XS::parse_http_request( qq[GET / HTTP/1.0\r\nHost: ...\r\n\r\n], $env );
+
+                if ( $res == -1 ) {
+                    $cb->( $h, undef, 'Request is corrupt' );
+                }
+                elsif ( $res == -2 ) {
+                    $cb->( $h, undef, 'Request is incomplete' );
+                }
+                else {
+                    $cb->( $h, $env, undef );
+                }
+            }
+            else {
+                $cb->( $h, undef, 'No headers' );
+            }
+
+            return;
+        }
+    );
+
     return;
 }
 
@@ -316,14 +331,14 @@ sub read_http_body ( $self, $on_read, @ ) {
                     $h->read_http_res_headers(
                         headers  => $args{headers},
                         trailing => 1,
-                        sub ( $h, $res ) {
+                        sub ( $h, $res, $error_reason ) {
                             undef $read_chunk;
 
-                            if ($res) {
-                                $on_read->( $h, undef, $total_bytes_readed, undef );
+                            if ($error_reason) {
+                                $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding (invalid trailing headers)' );
                             }
                             else {
-                                $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding (invalid trailing headers)' );
+                                $on_read->( $h, undef, $total_bytes_readed, undef );
                             }
 
                             return;
@@ -468,6 +483,21 @@ sub fetch ( $self, $id ) {
     return $h;
 }
 
+sub select_proxy_type ( $self, $proxy, $connect_port ) {
+    my $proxy_type = 0;
+
+    if ( $connect_port == 443 ) {
+        $proxy_type = $proxy->is_https || $proxy->is_socks5 || $proxy->is_http;
+    }
+    else {
+        $proxy_type = $proxy->is_connect || $proxy->is_socks5 || $proxy->is_http;
+    }
+
+    $proxy_type = $Pcore::Proxy::TYPE_SCHEME->{ $proxy->scheme } if !$proxy_type && $proxy->scheme && exists $Pcore::Proxy::TYPE_SCHEME->{ $proxy->scheme };
+
+    return $proxy_type;
+}
+
 sub _connect_socks5_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error ) {
 
     # start handshake
@@ -607,16 +637,13 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 
     $h->read_http_res_headers(
         headers => 0,
-        sub ( $h, $res ) {
-            if ( !$res ) {
+        sub ( $h, $res, $error_reason ) {
+            if ($error_reason) {
                 $on_connect_error->( $h, q[Invalid proxy connect response], $PROXY_HANDSHAKE_ERROR );
             }
             else {
                 if ( $res->{status} == 200 ) {
                     $on_connect->($h);
-                }
-                elsif ( $res->{status} == 503 ) {    # error creating tunnel
-                    $on_connect_error->( $h, $res->{status} . q[ - ] . $res->{reason}, $CONNECT_ERROR );
                 }
                 else {
                     $on_connect_error->( $h, $res->{status} . q[ - ] . $res->{reason}, $PROXY_HANDSHAKE_ERROR );
@@ -637,26 +664,26 @@ sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_erro
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 48                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (35)                       │
+## │    3 │ 48                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (26)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 471, 594             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 501, 624             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 33, 475, 478, 505,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 508, 511             │                                                                                                                │
+## │    2 │ 33, 505, 508, 535,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 538, 541             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 228, 401             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 221, 416             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 670 does not specify text                                                   │
-## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 678 does not specify text                                                   │
-## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 706 does not specify text                                                   │
-## │      │ 664                  │ * Link L<AnyEvent::Handle> on line 722 does not specify text                                                   │
-## │      │ 664                  │ * Link L<AnyEvent::Socket> on line 722 does not specify text                                                   │
-## │      │ 664, 664             │ * Link L<Pcore::Proxy> on line 688 does not specify text                                                       │
-## │      │ 664                  │ * Link L<Pcore::Proxy> on line 722 does not specify text                                                       │
+## │      │ 691                  │ * Link L<AnyEvent::Handle> on line 697 does not specify text                                                   │
+## │      │ 691                  │ * Link L<AnyEvent::Handle> on line 705 does not specify text                                                   │
+## │      │ 691                  │ * Link L<AnyEvent::Handle> on line 733 does not specify text                                                   │
+## │      │ 691                  │ * Link L<AnyEvent::Handle> on line 749 does not specify text                                                   │
+## │      │ 691                  │ * Link L<AnyEvent::Socket> on line 749 does not specify text                                                   │
+## │      │ 691, 691             │ * Link L<Pcore::Proxy> on line 715 does not specify text                                                       │
+## │      │ 691                  │ * Link L<Pcore::Proxy> on line 749 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 29, 34, 505, 508,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 511, 525             │                                                                                                                │
+## │    1 │ 29, 34, 535, 538,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 541, 555             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

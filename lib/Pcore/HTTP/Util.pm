@@ -107,10 +107,18 @@ sub http_request ($args) {
         cache_id        => undef,
         request_path    => $args->{url}->pathquery,
         on_error_status => undef,
+        starttls        => $args->{url}->is_secure,
     };
 
+    # proxy is HTTP
+    if ( $args->{proxy} && Pcore::AnyEvent::Handle->select_proxy_type( $args->{proxy}, $runtime->{connect_port} ) == $Pcore::Proxy::TYPE_HTTP ) {
+        $runtime->{starttls} = 0;
+
+        $runtime->{request_path} = $args->{url}->to_string;
+    }
+
     # define persistent cache key
-    $runtime->{cache_id} = $args->{url}->is_secure . q[-] . $args->{url}->hostport;
+    $runtime->{cache_id} = $runtime->{starttls} . q[-] . $args->{url}->hostport;
     $runtime->{cache_id} .= q[-] . $args->{proxy}->hostport if $args->{proxy};
 
     # add REFERER header
@@ -244,7 +252,7 @@ sub _connect ( $args, $runtime, $cb ) {
 sub _write_request ( $args, $runtime ) {
 
     # start TLS, only if TLS is required and TLS is not established yet
-    $runtime->{h}->starttls('connect') if $args->{url}->is_secure && !exists $runtime->{h}->{tls};
+    $runtime->{h}->starttls('connect') if $runtime->{starttls} && !exists $runtime->{h}->{tls};
 
     # send request headers
     $runtime->{h}->push_write( "$args->{method} $runtime->{request_path} HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
@@ -282,9 +290,9 @@ sub _write_request ( $args, $runtime ) {
 sub _read_headers ( $args, $runtime, $cb ) {
     $runtime->{h}->read_http_res_headers(
         headers => 1,
-        sub( $h, $res ) {
-            if ( !$res ) {
-                $runtime->{finish}->( 599, 'Invalid server response' );
+        sub( $h, $res, $error_reason ) {
+            if ($error_reason) {
+                $runtime->{finish}->( 596, $error_reason );
             }
             else {
                 # TODO
@@ -604,10 +612,10 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 10                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 337                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
+## │      │ 10                   │ * Subroutine "http_request" with high complexity score (34)                                                    │
+## │      │ 345                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 82, 95, 96, 194      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 82, 95, 96, 202      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
