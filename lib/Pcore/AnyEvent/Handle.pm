@@ -248,7 +248,7 @@ sub read_http_req_headers ( $self, $cb ) {
             if ( $_[1] ) {
                 my $env = {};
 
-                my $res = HTTP::Parser::XS::parse_http_request( qq[GET / HTTP/1.0\r\nHost: ...\r\n\r\n], $env );
+                my $res = HTTP::Parser::XS::parse_http_request( $_[1], $env );
 
                 if ( $res == -1 ) {
                     $cb->( $h, undef, 'Request is corrupt' );
