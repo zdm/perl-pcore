@@ -33,6 +33,9 @@ has scheme_is_valid => ( is => 'lazy', init_arg => undef );
 
 has is_secure => ( is => 'ro', default => 0, init_arg => undef );
 
+has default_port => ( is => 'ro', default => 0, init_arg => undef );
+has connect_port => ( is => 'lazy', clearer => '_clear_connect_port', init_arg => undef );
+
 has userinfo      => ( is => 'lazy', clearer => '_clear_userinfo',      init_arg => undef );
 has userinfo_b64  => ( is => 'lazy', clearer => '_clear_userinfo_b64',  init_arg => undef );
 has username      => ( is => 'rw',   lazy    => 1,                      init_arg => undef );
@@ -511,6 +514,10 @@ sub clear_port ($self) {
     $self->port(0);
 
     return;
+}
+
+sub _build_connect_port ($self) {
+    return $self->port || $self->default_port;
 }
 
 # HOSTPORT

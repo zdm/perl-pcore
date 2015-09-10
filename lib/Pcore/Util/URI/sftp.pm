@@ -1,11 +1,11 @@
-package Pcore::Util::URI::https;    ## no critic qw[NamingConventions::Capitalization]
+package Pcore::Util::URI::sftp;    ## no critic qw[NamingConventions::Capitalization]
 
 use Pcore qw[-class];
 
 extends qw[Pcore::Util::URI];
 
 has '+is_secure'    => ( default => 1 );
-has '+default_port' => ( default => 443 );
+has '+default_port' => ( default => 22 );
 
 no Pcore;
 
@@ -17,7 +17,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::URI::https
+Pcore::Util::URI::sftp
 
 =head1 SYNOPSIS
 
