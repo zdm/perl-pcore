@@ -31,6 +31,9 @@ sub _import {
     # find caller
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
 
+    # do not import to myself
+    return if $caller eq $self;
+
     # call Exporter
     Exporter::Heavy::heavy_export( $self, $caller, @{$tags} );
 
@@ -46,7 +49,8 @@ sub _unimport {
     # find caller
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
 
-    return if $self eq $caller;    # protection from unimport from mysqlf
+    # do not unimport from myself
+    return if $caller eq $self;
 
     no strict qw[refs];
 
