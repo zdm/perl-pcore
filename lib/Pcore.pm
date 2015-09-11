@@ -103,7 +103,7 @@ sub import {
     my $caller = caller;
 
     # parse tags and pragmas
-    my ( $tags, $pragma, $data ) = Pcore::Core::Exporter::Helper->parse_import( $self, @_ );
+    my ( $tags, $pragma, $data ) = Pcore::Core::Exporter::parse_import( $self, @_ );
 
     # initialize Pcore if called first time from non-core package
     if ( !$Pcore::INITIALISED && $caller eq $Pcore::CALLER ) {
@@ -163,11 +163,7 @@ sub import {
         }
 
         # install standart import method
-        if ( $pragma->{export} ) {
-            no strict qw[refs];
-
-            push @{ $caller . '::ISA' }, 'Pcore::Core::Exporter';
-        }
+        Pcore::Core::Exporter->import( -caller => $caller ) if $pragma->{export};
 
         # autoload for non-Moo namespaces
         if ( $pragma->{autoload} && !$pragma->{class} && !$pragma->{role} ) {
@@ -226,7 +222,7 @@ sub import {
     }
 
     # cleanup
-    namespace::clean->import( -cleanee => $caller, -except => [qw[AUTOLOAD]] ) unless $pragma->{no_clean};
+    namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] ) unless $pragma->{no_clean};
 
     return;
 }
@@ -235,7 +231,7 @@ sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $self = shift;
 
     # parse pragmas and tags
-    my ( $tags, $pragma ) = Pcore::Core::Exporter::Helper->parse_import( $self, @_ );
+    my ( $tags, $pragma ) = Pcore::Core::Exporter::parse_import( $self, @_ );
 
     # find caller
     my $caller = caller;
@@ -560,13 +556,13 @@ sub _configure_console {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 160                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 407, 455, 472, 520,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 521, 522, 528, 529,  │                                                                                                                │
-## │      │ 530, 535, 536, 537   │                                                                                                                │
+## │    3 │ 403, 451, 468, 516,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 517, 518, 524, 525,  │                                                                                                                │
+## │      │ 526, 531, 532, 533   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 498                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 494                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

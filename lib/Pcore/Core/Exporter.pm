@@ -1,19 +1,34 @@
 package Pcore::Core::Exporter;
 
 use Pcore;
-use Exporter::Heavy qw[];
-use Pcore::Core::Exporter::Helper;
 
 sub import {
     my $self = shift;
 
     # parse tags and pragmas
-    my ( $tags, $pragma ) = Pcore::Core::Exporter::Helper->parse_import( $self, @_ );
+    my ( $tags, $pragma ) = parse_import( $self, @_ );
 
     # find caller
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
 
-    return if $self eq $caller;    # protection from re-export to myself
+    no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
+    no warnings qw[redefine];
+
+    *{ $caller . '::import' } = \&_import;
+
+    *{ $caller . '::unimport' } = \&_unimport;
+
+    return;
+}
+
+sub _import {
+    my $self = shift;
+
+    # parse tags and pragmas
+    my ( $tags, $pragma ) = parse_import( $self, @_ );
+
+    # find caller
+    my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
 
     # call Exporter
     Exporter::Heavy::heavy_export( $self, $caller, @{$tags} );
@@ -21,16 +36,18 @@ sub import {
     return;
 }
 
-sub unimport {                     ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub _unimport {
     my $self = shift;
 
     # parse tags and pragmas
-    my ( $tags, $pragma ) = Pcore::Core::Exporter::Helper->parse_import( $self, @_ );
+    my ( $tags, $pragma ) = parse_import( $self, @_ );
 
     # find caller
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
 
     return if $self eq $caller;    # protection from unimport from mysqlf
+
+    no strict qw[refs];
 
     # unimport all symbols, declared in @EXPORT_OK
     for ( @{ $self . '::EXPORT_OK' } ) {
@@ -38,6 +55,39 @@ sub unimport {                     ## no critic qw[Subroutines::ProhibitBuiltinH
     }
 
     return;
+}
+
+sub parse_import {
+    my $caller = shift;
+
+    my $tags = [];
+
+    my $pragma = {};
+
+    my $data;
+
+    while ( my $arg = shift ) {
+        if ( ref $arg eq 'HASH' ) {
+            $data = $arg;
+        }
+        elsif ( $arg =~ /\A-(.+)\z/sm ) {
+            if ( $1 eq 'level' || $1 eq 'caller' ) {
+                $pragma->{$1} = shift;
+            }
+            elsif ( exists ${ $caller . '::EXPORT_PRAGMAS' }{$1} ) {
+                $pragma->{$1} = ${ $caller . '::EXPORT_PRAGMAS' }{$1} ? shift : 1;
+            }
+            else {
+                die qq[Unknown exporter pragma found "$arg" while importing package "$caller"];
+            }
+
+        }
+        else {
+            push @{$tags}, $arg;
+        }
+    }
+
+    return $tags, $pragma, $data;
 }
 
 1;

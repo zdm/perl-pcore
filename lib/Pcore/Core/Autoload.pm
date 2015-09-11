@@ -7,7 +7,7 @@ sub import {
     my $self = shift;
 
     # parse tags and pragmas
-    my ( $tags, $pragma ) = Pcore::Core::Exporter::Helper->parse_import( $self, @_ );
+    my ( $tags, $pragma ) = Pcore::Core::Exporter::parse_import( $self, @_ );
 
     # find caller
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
