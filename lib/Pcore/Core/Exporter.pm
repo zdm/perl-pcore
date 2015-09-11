@@ -51,6 +51,7 @@ sub _unimport {
     no strict qw[refs];
 
     # unimport all symbols, declared in @EXPORT_OK
+    # NOTE only subroutines can be unimported right now
     for ( @{ $self . '::EXPORT_OK' } ) {
         delete ${ $caller . q[::] }{$_};
     }
@@ -103,9 +104,11 @@ Pcore::Core::Exporter - standard perl Exporter wrapper
 
 =head1 SYNOPSIS
 
-    use Pcore qw[-level => 2]; # export to package, next to caller
+    use Pcore::Core::Exporter qw[];
 
-    use Pcore qw[-caller => 'Package::To::Export::To']; # export symbols to specified package
+    Pcore::Core::Exporter->import( -caller => 'Some::Package' ); # install import methos to target package
+
+    Pcore::Core::Exporter->import( -level => 1 ); # install import methos to package in call stack
 
 =head1 DESCRIPTION
 
