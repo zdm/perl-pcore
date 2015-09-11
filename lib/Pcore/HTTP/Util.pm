@@ -2,7 +2,7 @@ package Pcore::HTTP::Util;
 
 use Pcore;
 use Errno qw[];
-use Pcore::AnyEvent::Handle qw[];
+use Pcore::AE::Handle qw[];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
 
 no Pcore;
@@ -111,7 +111,7 @@ sub http_request ($args) {
     };
 
     # proxy is HTTP
-    if ( $args->{proxy} && Pcore::AnyEvent::Handle->select_proxy_type( $args->{proxy}, $runtime->{connect_port} ) == $Pcore::Proxy::TYPE_HTTP ) {
+    if ( $args->{proxy} && Pcore::AE::Handle->select_proxy_type( $args->{proxy}, $runtime->{connect_port} ) == $Pcore::Proxy::TYPE_HTTP ) {
         $runtime->{starttls} = 0;
 
         $runtime->{request_path} = $args->{url}->to_string;
@@ -198,7 +198,7 @@ sub _connect ( $args, $runtime, $cb ) {
     my $_connect = sub {
         my $handle;
 
-        $handle = Pcore::AnyEvent::Handle->new(
+        $handle = Pcore::AE::Handle->new(
             $args->{handle_params}->%*,
             connect                => [ $args->{url}->host, $runtime->{connect_port} ],
             connect_timeout        => $args->{timeout},
@@ -233,7 +233,7 @@ sub _connect ( $args, $runtime, $cb ) {
 
     # get connection handle from cache or create new handle
     if ( $runtime->{persistent} && $runtime->{cache_id} ) {
-        if ( my $h = Pcore::AnyEvent::Handle->fetch( $runtime->{cache_id} ) ) {
+        if ( my $h = Pcore::AE::Handle->fetch( $runtime->{cache_id} ) ) {
             $runtime->{was_persistent} = 1;
 
             $cb->($h);
