@@ -1,10 +1,10 @@
-package Pcore::AnyEvent::Crawler;
+package Pcore::AE::Crawler;
 
 use Pcore qw[-class];
 use Const::Fast qw[];
 use Pcore::AnyEvent::Proxy::Pool;
 
-with qw[Pcore::AnyEvent::Status];
+with qw[Pcore::AE::Status];
 
 has '+status' => ( isa => Enum [qw[stopped stops running finished]], default => 'stopped' );
 
@@ -182,7 +182,7 @@ sub _start_request ( $self, $req ) {
     };
 
     # try to get proxy from proxy_pool
-    if ( $req->use_proxy != $Pcore::AnyEvent::Crawler::Request::PROXY_NO && $self->has_proxy_pool ) {
+    if ( $req->use_proxy != $Pcore::AE::Crawler::Request::PROXY_NO && $self->has_proxy_pool ) {
         my $get_proxy_args = {};
 
         $get_proxy_args->{list} = $req->url =~ /\Ahttps:/sm ? 'https' : 'http';
@@ -195,10 +195,10 @@ sub _start_request ( $self, $req ) {
             $run_request->();
         }
         else {    # proxy isn't available
-            if ( $req->use_proxy == $Pcore::AnyEvent::Crawler::Request::PROXY_MAYBE ) {    # don't use proxy
+            if ( $req->use_proxy == $Pcore::AE::Crawler::Request::PROXY_MAYBE ) {    # don't use proxy
                 $run_request->();
             }
-            else {                                                                         # wait, while proxy will be available
+            else {                                                                   # wait, while proxy will be available
                 my $t;
 
                 my $timer_cb;

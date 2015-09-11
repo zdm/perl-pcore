@@ -1,10 +1,10 @@
-package Pcore::AnyEvent::Crawler::Request::GoogleSearch;
+package Pcore::AE::Crawler::Request::GoogleSearch;
 
 use Pcore qw[-class];
 use HTML::LinkExtor qw[];
 use Pcore::Captcha::Antigate;
 
-with qw[Pcore::AnyEvent::Crawler::Request];
+with qw[Pcore::AE::Crawler::Request];
 extends qw[Pcore::HTTP::Request];
 
 has start => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );

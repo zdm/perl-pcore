@@ -1,4 +1,4 @@
-package Pcore::AnyEvent::Crawler::Request;
+package Pcore::AE::Crawler::Request;
 
 use Pcore qw[-role];
 use Const::Fast qw[];
@@ -16,7 +16,7 @@ has url => ( is => 'lazy', isa => Str );
 
 has use_proxy => ( is => 'ro', isa => Enum [ $PROXY_NO, $PROXY_MAYBE, $PROXY_ALWAYS ], default => $PROXY_NO );
 
-has crawler => ( is => 'ro', isa => InstanceOf ['Pcore::AnyEvent::Crawler'], writer => 'set_crawler', weak_ref => 1, init_arg => undef );
+has crawler => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Crawler'], writer => 'set_crawler', weak_ref => 1, init_arg => undef );
 
 has type => ( is => 'lazy', isa => Str, init_arg => undef );
 
@@ -64,17 +64,17 @@ sub clear ($self) {
 # EXIT CODES
 # used by default
 sub done ($self) {
-    return $Pcore::AnyEvent::Crawler::REQ_DONE;
+    return $Pcore::AE::Crawler::REQ_DONE;
 }
 
 # repeat request with new proxy
 sub repeat ($self) {
-    return $Pcore::AnyEvent::Crawler::REQ_REPEAT;
+    return $Pcore::AE::Crawler::REQ_REPEAT;
 }
 
 # do not call request store subroutine
 sub reject ($self) {
-    return $Pcore::AnyEvent::Crawler::REQ_REJECT;
+    return $Pcore::AE::Crawler::REQ_REJECT;
 }
 
 # PROXY
@@ -98,7 +98,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AnyEvent::Crawler::Request
+Pcore::AE::Crawler::Request
 
 =head1 SYNOPSIS
 

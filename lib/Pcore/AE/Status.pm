@@ -1,4 +1,4 @@
-package Pcore::AnyEvent::Status;
+package Pcore::AE::Status;
 
 use Pcore qw[-role];
 
