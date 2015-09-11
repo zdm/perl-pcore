@@ -95,6 +95,7 @@ BEGIN {
 }
 
 use Pcore::Core::Exporter qw[];
+use Pcore::Core::Autoload qw[];
 
 sub import {
     my $self = shift;
@@ -162,15 +163,11 @@ sub import {
             );
         }
 
-        # install standart import method
+        # process "export" pragma
         Pcore::Core::Exporter->import( -caller => $caller ) if $pragma->{export};
 
-        # autoload for non-Moo namespaces
-        if ( $pragma->{autoload} && !$pragma->{class} && !$pragma->{role} ) {
-            require Pcore::Core::Autoload;
-
-            Pcore::Core::Autoload->import( -caller => $caller );
-        }
+        # process "autoload" pragma
+        Pcore::Core::Autoload->import( -caller => $caller ) if $pragma->{autoload};
 
         # store significant pragmas for use in run-time
         $Pcore::EMBEDDED = 1 if $pragma->{embedded};
@@ -214,7 +211,7 @@ sub import {
             warnings->unimport('experimental');
 
             # apply default roles
-            $self->_apply_roles( caller => $caller, roles => [qw[Pcore::Core::Autoload::Role]] ) if $pragma->{autoload};
+            # $self->_apply_roles( caller => $caller, roles => [qw[Pcore::Core::Autoload::Role]] );
         }
 
         # export types
@@ -552,17 +549,19 @@ sub _configure_console {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 99                   │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
+## │    3 │ 100                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 160                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 161                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 403, 451, 468, 516,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 517, 518, 524, 525,  │                                                                                                                │
-## │      │ 526, 531, 532, 533   │                                                                                                                │
+## │    3 │ 355                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    3 │ 400, 448, 465, 513,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 514, 515, 521, 522,  │                                                                                                                │
+## │      │ 523, 528, 529, 530   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 494                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 403                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 491                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

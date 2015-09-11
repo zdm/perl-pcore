@@ -1,7 +1,7 @@
 package Pcore::Core::Autoload;
 
 use Pcore;
-use Pcore::Core::Autoload::Package;
+use Pcore::Core::Exporter qw[];
 
 sub import {
     my $self = shift;
@@ -12,14 +12,34 @@ sub import {
     # find caller
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
 
-    # install @ISA relationship
-    {
-        no strict qw[refs];
+    no strict qw[refs];
+    no warnings qw[redefine];
 
-        push @{ $caller . '::ISA' }, 'Pcore::Core::Autoload::Package' unless 'Pcore::Core::Autoload::Package' ~~ @{ $caller . '::ISA' };
-    }
+    *{ $caller . '::AUTOLOAD' } = \&_AUTOLOAD;
 
     return;
+}
+
+sub _AUTOLOAD {
+    my $self = $_[0];
+
+    die qq["autoload" method is required in "$self" by "-autoload" pragma] unless $self->can('autoload');
+
+    my $method = our $AUTOLOAD =~ s/\A.*:://smr;
+
+    my $class = ref $self || $self;
+
+    # request CODEREF
+    my ( $code, %args ) = $self->autoload( $method, @_ );
+
+    # install returned coderef as method
+    if ( !$args{not_create_method} ) {
+        no strict qw[refs];
+
+        *{ $class . q[::] . $method } = $code;
+    }
+
+    goto &{$code};
 }
 
 1;

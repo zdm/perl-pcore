@@ -1,6 +1,7 @@
 package Pcore::Core::Exporter;
 
 use Pcore;
+use Exporter::Heavy qw[];
 
 sub import {
     my $self = shift;
