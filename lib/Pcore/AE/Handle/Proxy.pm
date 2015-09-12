@@ -15,11 +15,23 @@ has timeout     => ( is => 'ro', isa => Int,         default  => 5 );
 
 no Pcore;
 
-our $TEST_SCHEME = {
+const our $TEST_SCHEME => {
     http  => [ [ 'www.google.com', 80 ],  \&_test_http, ],
     https => [ [ 'www.google.com', 443 ], \&_test_http, ],
     whois => [ [ 'whois.iana.org', 43 ],  \&_test_whois, ],
 };
+
+const our $ERROR_NO        => 0;    # all tests are passed
+const our $ERROR_CONNECT   => 1;    # proxy connect error, proxy should be disabled
+const our $ERROR_HANDSHAKE => 2;    # auth error, etc.., proxy should be disabled
+const our $ERROR_PROTOCOL  => 3;    # tunnel error or scheme test error - proxy can be used for other connections types
+
+# TODO
+# check - support for url, string, etc...;
+# process timeout errors - install on_error;
+# differ for connect, handshare and other errors;
+# whois scheme;
+# stack calls with the same args;
 
 sub check ( $self, %args ) {
     $args{proxy} = Pcore::Proxy->new( $args{proxy} ) if !ref $args{proxy};
@@ -157,10 +169,21 @@ sub _check_tunnel_proxy ($self) {
     return;
 }
 
+# TODO
 sub _finish ( $self, $status ) {
     $self->{h}->destroy if $self->{h};
 
-    $self->cb->($status);
+    if ( $status != $ERROR_NO ) {
+        if ( $status == $ERROR_PROTOCOL ) {
+
+            # TODO disable proxy
+        }
+
+        $self->cb->(0);
+    }
+    else {
+        $self->cb->(1);
+    }
 
     return;
 }
@@ -232,7 +255,7 @@ sub _test_whois ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 202                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 225                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
