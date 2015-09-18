@@ -5,7 +5,7 @@ use base qw[AnyEvent::DNS];
 use AnyEvent::Socket qw[];
 
 our $TTL          = 60;
-our $NEGATIVE_TTL = 1;
+our $NEGATIVE_TTL = 5;
 
 our $_CACHE_DNS      = {};
 our $_CACHE_SOCKADDR = {};
@@ -14,18 +14,25 @@ our $_EXPIRE_TIMER;
 
 *AnyEvent::Socket::resolve_sockaddr_nocache = \&AnyEvent::Socket::resolve_sockaddr;
 
+__PACKAGE__->register;
+
+# NOTE
+# google DNS services are used by default from IPv4 and IPv6
+
 sub AnyEvent::Socket::resolve_sockaddr_cache {
     state $calback = {};
 
+    my $code = pop;
+
     my $cache_key = join q[-], map { $_ // q[] } @_;
 
-    push $calback->{$cache_key}->@*, pop;
+    push $calback->{$cache_key}->@*, $code;
 
     return if $calback->{$cache_key}->@* > 1;
 
     if ( exists $_CACHE_SOCKADDR->{$cache_key} ) {
         if ( $_CACHE_SOCKADDR->{$cache_key}->[0] > time ) {
-            while ( my $cb = shift $calback->{$cache_key} ) {
+            while ( my $cb = shift $calback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_SOCKADDR->{$cache_key}->[1]->@* );
             }
 
@@ -45,7 +52,7 @@ sub AnyEvent::Socket::resolve_sockaddr_cache {
 
             $_CACHE_SOCKADDR->{$cache_key}->[1] = [@_];
 
-            while ( my $cb = shift $calback->{$cache_key} ) {
+            while ( my $cb = shift $calback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_SOCKADDR->{$cache_key}->[1]->@* );
             }
 
@@ -63,7 +70,8 @@ sub register ( $self, %args ) {
 
     $_OLD_DNS_RESOLVER = $AnyEvent::DNS::RESOLVER;
 
-    # use google DNS servers for ipv4 and ipv6 by default
+    # use google DNS servers for ipv4 and ipv6 by default, because default resolvers "127.0.0.1" and "::1" may not work in the most cases
+    # TODO parse server addresses with AnyEvent::Socket::parse_address
     $args{server} = \@AnyEvent::DNS::DNS_FALLBACK if !$args{server};
 
     $AnyEvent::DNS::RESOLVER = $self->new(%args);
@@ -136,7 +144,7 @@ sub request ( $self, $req, $cb ) {
 
     if ( exists $_CACHE_DNS->{$cache_key} ) {
         if ( $_CACHE_DNS->{$cache_key}->[0] > time ) {
-            while ( my $cb = shift $calback->{$cache_key} ) {
+            while ( my $cb = shift $calback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_DNS->{$cache_key}->[1]->@* );
             }
 
@@ -156,7 +164,7 @@ sub request ( $self, $req, $cb ) {
 
             $_CACHE_DNS->{$cache_key}->[1] = [@_];
 
-            while ( my $cb = shift $calback->{$cache_key} ) {
+            while ( my $cb = shift $calback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_DNS->{$cache_key}->[1]->@* );
             }
 
@@ -176,7 +184,7 @@ sub request ( $self, $req, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 107, 109, 117, 121   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 115, 117, 125, 129   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
