@@ -16,9 +16,6 @@ our $_EXPIRE_TIMER;
 
 __PACKAGE__->register;
 
-# NOTE
-# google DNS services are used by default from IPv4 and IPv6
-
 sub AnyEvent::Socket::resolve_sockaddr_cache {
     state $calback = {};
 
@@ -70,11 +67,20 @@ sub register ( $self, %args ) {
 
     $_OLD_DNS_RESOLVER = $AnyEvent::DNS::RESOLVER;
 
-    # use google DNS servers for ipv4 and ipv6 by default, because default resolvers "127.0.0.1" and "::1" may not work in the most cases
-    # TODO parse server addresses with AnyEvent::Socket::parse_address
-    $args{server} = \@AnyEvent::DNS::DNS_FALLBACK if !$args{server};
+    $args{untaint} //= 1;
+
+    {
+        no warnings qw[uninitialized];
+
+        $args{max_outstanding} //= $ENV{PERL_ANYEVENT_MAX_OUTSTANDING_DNS} * 1 || 10;
+    }
 
     $AnyEvent::DNS::RESOLVER = $self->new(%args);
+
+    # try to load defailt os config
+    if ( !$args{server} ) {
+        $ENV{PERL_ANYEVENT_RESOLV_CONF} ? $AnyEvent::DNS::RESOLVER->_load_resolv_conf_file( $ENV{PERL_ANYEVENT_RESOLV_CONF} ) : $AnyEvent::DNS::RESOLVER->os_config;
+    }
 
     my $expire_timeout = ( $TTL > $NEGATIVE_TTL ? $TTL : $NEGATIVE_TTL ) * 2;
 
@@ -184,7 +190,7 @@ sub request ( $self, $req, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 115, 117, 125, 129   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 121, 123, 131, 135   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
