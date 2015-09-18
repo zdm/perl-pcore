@@ -3,6 +3,7 @@ package Pcore::AE::Handle;
 use Pcore;
 use parent qw[AnyEvent::Handle];
 use AnyEvent::Socket qw[];
+use Pcore::AE::DNS::Cache;
 use Pcore::AE::Handle::Const qw[:PROXY_TYPE :PROXY_ERROR];
 use Pcore::Proxy;
 use Pcore::HTTP::Message::Headers;
@@ -16,6 +17,7 @@ our $CACHE = {};
 # default cache timeout
 our $CACHE_TIMEOUT = 4;
 
+# register "http_headers" push_read type
 AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
     return sub {
         return unless defined $_[0]{rbuf};
@@ -52,6 +54,23 @@ sub new ( $self, %args ) {
 
             return $args_orig{connect_timeout};
         };
+    }
+
+    # parse connect attribute
+    if ( ref $args{connect} ne 'ARRAY' ) {
+        my $uri = ref $args{connect} ? $args{connect} : P->uri( $args{connect}, 'tcp://' );
+
+        $args{connect} = [ $uri->host->name, $uri->connect_port ];
+
+        $args_orig{connect} = $args{connect};
+    }
+
+    # default scheme is "tcp"
+    $args{scheme} //= 'tcp';
+
+    # DNS cache
+    if ( $args{cache_dns} ) {
+
     }
 
     if ( !$args{fh} && $args{proxy} ) {
@@ -146,6 +165,53 @@ sub new ( $self, %args ) {
     return $self->SUPER::new(%args);
 }
 
+sub new1 ( $self, @ ) {
+    my %args = (
+        cache => 1,
+        @_[ 1 .. $#_ ],
+    );
+
+    # parse connect attribute
+    if ( ref $args{connect} ne 'ARRAY' ) {
+        my $uri = ref $args{connect} ? $args{connect} : P->uri( $args{connect}, 'tcp://' );
+
+        $args{connect} = [ $uri->host->name, $uri->connect_port, $uri->scheme ];
+    }
+
+    # default scheme is "tcp"
+    $args{connect}->[2] ||= 'tcp';
+
+    if ( !$args{fh} ) {
+        $args{cache_id} = ( defined $args{session} ? $args{session} . q[-] : q[] ) . $args{connect}->[2] . q[://] . $args{connect}->[0] . q[:] . $args{connect}->[1];
+
+        if ( $args{proxy} ) {
+            $args{proxy} = Pcore::Proxy->new( $args{proxy} ) if !ref $args{proxy};
+
+            $args{cache_id} .= q[-] . $args{proxy}->hostport;
+        }
+
+        if ( delete $args{cache} && ( my $h = $self->fetch( $args{cache_id} ) ) ) {
+            $args{on_connect}->( $h, undef, undef, undef ) if $args{on_connect};
+
+            return $h;
+        }
+        else {
+            if ( my $conect_timeout = delete $args{connect_timeout} ) {
+                my $on_prepare = $args{on_prepare};
+
+                $args{on_prepare} = sub ($h) {
+                    $on_prepare->($h) if $on_prepare;
+
+                    return $conect_timeout;
+                };
+            }
+        }
+    }
+
+    return $self->SUPER::new(%args);
+}
+
+# READERS
 sub read_eof ( $self, $on_read ) {
     my $total_bytes_readed = 0;
 
@@ -189,7 +255,7 @@ sub read_http_res_headers {
     my $cb   = pop;
     my %args = (
         headers  => 0,    # true - create new headers obj, false - do not parse headers, ref - headers obj to add headers to
-        trailing => 0,    # read trailing headers
+        trailing => 0,    # read trailing headers, mandatory if trailing headers are expected
         @_,
     );
 
@@ -389,7 +455,11 @@ sub read_http_body ( $self, $on_read, @ ) {
     return;
 }
 
-sub store ( $self, $id, $timeout = undef ) {
+# CACHE METHODS
+sub store ( $self, $timeout = undef ) {
+    my $id = $self->{id};
+
+    return unless $id;
 
     # do not cache destroyed handles
     return if $self->destroyed;
@@ -493,6 +563,7 @@ sub select_proxy_type ( $self, $proxy, $connect_port ) {
     return $proxy_type;
 }
 
+# PROXY CONNECTORS
 sub _connect_connect_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error ) {
 
     # TODO how to clarify, what this timeout means, proxy not respond or tunnel creation timeout (target server not respond)?
@@ -704,26 +775,26 @@ sub _connect_socks4_proxy ( $h, $proxy, $connect, $on_connect, $on_connect_error
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 44                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (25)                       │
+## │    3 │ 46                   │ Subroutines::ProhibitExcessComplexity - Subroutine "new" with high complexity score (28)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 496, 532, 655        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 567, 603, 726        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 29, 536, 539, 566,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 569, 572, 667        │                                                                                                                │
+## │    2 │ 31, 607, 610, 637,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 640, 643, 738        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 215, 410             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 281, 480             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 731                  │ * Link L<AnyEvent::Handle> on line 737 does not specify text                                                   │
-## │      │ 731                  │ * Link L<AnyEvent::Handle> on line 745 does not specify text                                                   │
-## │      │ 731                  │ * Link L<AnyEvent::Handle> on line 773 does not specify text                                                   │
-## │      │ 731                  │ * Link L<AnyEvent::Handle> on line 789 does not specify text                                                   │
-## │      │ 731                  │ * Link L<AnyEvent::Socket> on line 789 does not specify text                                                   │
-## │      │ 731, 731             │ * Link L<Pcore::Proxy> on line 755 does not specify text                                                       │
-## │      │ 731                  │ * Link L<Pcore::Proxy> on line 789 does not specify text                                                       │
+## │      │ 802                  │ * Link L<AnyEvent::Handle> on line 808 does not specify text                                                   │
+## │      │ 802                  │ * Link L<AnyEvent::Handle> on line 816 does not specify text                                                   │
+## │      │ 802                  │ * Link L<AnyEvent::Handle> on line 844 does not specify text                                                   │
+## │      │ 802                  │ * Link L<AnyEvent::Handle> on line 860 does not specify text                                                   │
+## │      │ 802                  │ * Link L<AnyEvent::Socket> on line 860 does not specify text                                                   │
+## │      │ 802, 802             │ * Link L<Pcore::Proxy> on line 826 does not specify text                                                       │
+## │      │ 802                  │ * Link L<Pcore::Proxy> on line 860 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 25, 30, 566, 569,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 572, 586, 672        │                                                                                                                │
+## │    1 │ 27, 32, 637, 640,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 643, 657, 743        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
