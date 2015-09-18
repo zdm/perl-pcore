@@ -63,6 +63,9 @@ sub register ( $self, %args ) {
 
     $_OLD_DNS_RESOLVER = $AnyEvent::DNS::RESOLVER;
 
+    # use google DNS servers for ipv4 and ipv6 by default
+    $args{server} = \@AnyEvent::DNS::DNS_FALLBACK if !$args{server};
+
     $AnyEvent::DNS::RESOLVER = $self->new(%args);
 
     my $expire_timeout = ( $TTL > $NEGATIVE_TTL ? $TTL : $NEGATIVE_TTL ) * 2;
@@ -173,7 +176,7 @@ sub request ( $self, $req, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 104, 106, 114, 118   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 107, 109, 117, 121   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
