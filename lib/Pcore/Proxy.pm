@@ -78,6 +78,8 @@ sub finish_thread ($self) {
 }
 
 sub disable ( $self, $timeout = undef ) {
+    say 'DISABLE PROXY';
+
     return;
 }
 
