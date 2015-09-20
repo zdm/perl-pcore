@@ -142,7 +142,20 @@ sub check ( $self, $connect, $cb ) {
 }
 
 sub _check_http ( $self, $proxy_type, $connect, $cb ) {
-    $cb->(0);
+    $self->_test_scheme(
+        $connect->[2],
+        $proxy_type,
+        sub ($scheme_ok) {
+            unless ($scheme_ok) {    # scheme test failed
+                $cb->(0);
+            }
+            else {                   # scheme test passed
+                $cb->($proxy_type);
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -166,7 +179,7 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
                         $proxy_type,
                         sub ($h) {
                             if ($h) {    # tunnel creation ok
-                                $cb->(1);
+                                $cb->($proxy_type);
                             }
                             else {       # tunnel creation failed
                                 $cb->(0);
@@ -178,7 +191,7 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
                 }
                 else {
                     # scheme and tunnel was tested in one connection
-                    $cb->(1);
+                    $cb->($proxy_type);
                 }
             }
 
@@ -359,12 +372,12 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 235, 288             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 248, 301             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 288                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 301                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 269                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 282                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
