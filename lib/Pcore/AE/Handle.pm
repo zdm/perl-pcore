@@ -473,7 +473,14 @@ sub _check_proxy ( $self, $proxy, $connect, $cb ) {
                 $cb->( $proxy, undef );
             }
             else {
-                $proxy->check( $connect, $cb );
+                $proxy->check(
+                    $connect,
+                    sub ($proxy_type) {
+                        $cb->( $proxy, $proxy_type );
+
+                        return;
+                    }
+                );
             }
 
             return;
@@ -835,16 +842,16 @@ sub fetch ( $self, $id ) {
 ## │    2 │ 34, 321, 324, 343,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## │      │ 346, 349, 436        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 553, 752             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 560, 759             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 855                  │ * Link L<AnyEvent::Handle> on line 861 does not specify text                                                   │
-## │      │ 855                  │ * Link L<AnyEvent::Handle> on line 869 does not specify text                                                   │
-## │      │ 855                  │ * Link L<AnyEvent::Handle> on line 897 does not specify text                                                   │
-## │      │ 855                  │ * Link L<AnyEvent::Handle> on line 913 does not specify text                                                   │
-## │      │ 855                  │ * Link L<AnyEvent::Socket> on line 913 does not specify text                                                   │
-## │      │ 855, 855             │ * Link L<Pcore::Proxy> on line 879 does not specify text                                                       │
-## │      │ 855                  │ * Link L<Pcore::Proxy> on line 913 does not specify text                                                       │
+## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 868 does not specify text                                                   │
+## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 876 does not specify text                                                   │
+## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 904 does not specify text                                                   │
+## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 920 does not specify text                                                   │
+## │      │ 862                  │ * Link L<AnyEvent::Socket> on line 920 does not specify text                                                   │
+## │      │ 862, 862             │ * Link L<Pcore::Proxy> on line 886 does not specify text                                                       │
+## │      │ 862                  │ * Link L<Pcore::Proxy> on line 920 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 30, 35, 343, 346,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## │      │ 349, 355, 441        │                                                                                                                │

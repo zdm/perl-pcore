@@ -17,23 +17,23 @@ our $_EXPIRE_TIMER;
 __PACKAGE__->register;
 
 sub AnyEvent::Socket::resolve_sockaddr_cache {
-    state $calback = {};
+    state $callback = {};
 
     my $code = pop;
 
     my $cache_key = join q[-], map { $_ // q[] } @_;
 
-    push $calback->{$cache_key}->@*, $code;
+    push $callback->{$cache_key}->@*, $code;
 
-    return if $calback->{$cache_key}->@* > 1;
+    return if $callback->{$cache_key}->@* > 1;
 
     if ( exists $_CACHE_SOCKADDR->{$cache_key} ) {
         if ( $_CACHE_SOCKADDR->{$cache_key}->[0] > time ) {
-            while ( my $cb = shift $calback->{$cache_key}->@* ) {
+            while ( my $cb = shift $callback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_SOCKADDR->{$cache_key}->[1]->@* );
             }
 
-            delete $calback->{$cache_key};
+            delete $callback->{$cache_key};
 
             return;
         }
@@ -49,11 +49,11 @@ sub AnyEvent::Socket::resolve_sockaddr_cache {
 
             $_CACHE_SOCKADDR->{$cache_key}->[1] = [@_];
 
-            while ( my $cb = shift $calback->{$cache_key}->@* ) {
+            while ( my $cb = shift $callback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_SOCKADDR->{$cache_key}->[1]->@* );
             }
 
-            delete $calback->{$cache_key};
+            delete $callback->{$cache_key};
 
             return;
         }
@@ -140,21 +140,21 @@ sub expire ($self) {
 }
 
 sub request ( $self, $req, $cb ) {
-    state $calback = {};
+    state $callback = {};
 
     my $cache_key = join q[-], $req->{qd}->[0]->@*;
 
-    push $calback->{$cache_key}->@*, $cb;
+    push $callback->{$cache_key}->@*, $cb;
 
-    return if $calback->{$cache_key}->@* > 1;
+    return if $callback->{$cache_key}->@* > 1;
 
     if ( exists $_CACHE_DNS->{$cache_key} ) {
         if ( $_CACHE_DNS->{$cache_key}->[0] > time ) {
-            while ( my $cb = shift $calback->{$cache_key}->@* ) {
+            while ( my $cb = shift $callback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_DNS->{$cache_key}->[1]->@* );
             }
 
-            delete $calback->{$cache_key};
+            delete $callback->{$cache_key};
 
             return;
         }
@@ -170,11 +170,11 @@ sub request ( $self, $req, $cb ) {
 
             $_CACHE_DNS->{$cache_key}->[1] = [@_];
 
-            while ( my $cb = shift $calback->{$cache_key}->@* ) {
+            while ( my $cb = shift $callback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_DNS->{$cache_key}->[1]->@* );
             }
 
-            delete $calback->{$cache_key};
+            delete $callback->{$cache_key};
 
             return;
         }

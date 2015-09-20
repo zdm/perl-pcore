@@ -102,13 +102,26 @@ sub ban ( $self, $key, $timeout = undef ) {
 }
 
 # CHECK PROXY
+# TODO stack similar callbacks
 sub check ( $self, $connect, $cb ) {
+    state $callback = {};
+
     $connect->[3] = $connect->[2] . q[:] . $connect->[1];
+
+    my $cache_key = $self->id . q[-] . $connect->[3];
+
+    push $callback->{$cache_key}->@*, $cb;
+
+    return if $callback->{$cache_key}->@* > 1;
 
     my $proxy_type = $self->{test_connection}->{ $connect->[3] };
 
     if ( defined $proxy_type ) {    # proxy already checked
-        $cb->( $self, $proxy_type );
+        while ( my $cb = shift $callback->{$cache_key}->@* ) {
+            $cb->($proxy_type);
+        }
+
+        delete $callback->{$cache_key};
     }
     else {                          # run proxy check
         my @types = $CHECK_SCHEME->{ $connect->[2] }->[0]->@*;
@@ -126,13 +139,21 @@ sub check ( $self, $connect, $cb ) {
                 else {
                     $self->{test_connection}->{ $connect->[3] } = 0;    # no proxy type found
 
-                    $cb->( $self, 0 );
+                    while ( my $cb = shift $callback->{$cache_key}->@* ) {
+                        $cb->(0);
+                    }
+
+                    delete $callback->{$cache_key};
                 }
             }
             else {
                 $self->{test_connection}->{ $connect->[3] } = $proxy_type;    # cache connection test result
 
-                $cb->( $self, $proxy_type );
+                while ( my $cb = shift $callback->{$cache_key}->@* ) {
+                    $cb->($proxy_type);
+                }
+
+                delete $callback->{$cache_key};
             }
         };
 
@@ -373,12 +394,12 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 249, 302             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 270, 323             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 302                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 323                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 283                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 304                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
