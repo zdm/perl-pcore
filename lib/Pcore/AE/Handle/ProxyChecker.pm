@@ -24,7 +24,7 @@ no Pcore;
 
 const our $CONNECT_SCHEME => {
     tcp => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS ] ],    # default scheme
-    udp => [ [$PROXY_TYPE_SOCKS] ],
+    udp => [ [$PROXY_TYPE_SOCKS5] ],
     http  => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS, $PROXY_TYPE_HTTP ], [ 'www.google.com', 80 ],  \&_test_scheme_http, ],
     https => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS, $PROXY_TYPE_HTTP ], [ 'www.google.com', 443 ], \&_test_scheme_http, ],
     whois => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS ], [ 'whois.iana.org', 43 ], \&_test_whois, ],

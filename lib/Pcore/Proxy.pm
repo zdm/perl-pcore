@@ -1,6 +1,8 @@
 package Pcore::Proxy v0.1.0;
 
 use Pcore qw[-class];
+use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
+use Const::Fast qw[const];
 
 extends qw[Pcore::Util::URI];
 
@@ -17,7 +19,7 @@ has is_socks4  => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
 has is_socks4a => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
 
 # 'scheme:connect_port' => proxy_connect_type || 0, if connection is not suported, !exists || undef - not tested yet
-has tested_connections => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+has supported_connections => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri ) {
     if ( my $args = $self->_parse_uri($uri) ) {
@@ -29,6 +31,14 @@ around new => sub ( $orig, $self, $uri ) {
 };
 
 no Pcore;
+
+const our $CHECK_SCHEME => {
+    tcp => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS ] ],    # default scheme
+    udp => [ [$PROXY_TYPE_SOCKS5] ],
+    http  => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS, $PROXY_TYPE_HTTP ], [ 'www.google.com', 80 ],  \&_test_scheme_http, ],
+    https => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS, $PROXY_TYPE_HTTP ], [ 'www.google.com', 443 ], \&_test_scheme_http, ],
+    whois => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS ], [ 'whois.iana.org', 43 ], \&_test_whois, ],
+};
 
 sub _parse_uri ( $self, $uri ) {
     $uri = q[//] . $uri if index( $uri, q[//] ) == -1;
@@ -65,8 +75,10 @@ sub _build_id ($self) {
     return $self->hostport;
 }
 
-sub start_thread ($self) {
+sub start_thread ( $self, $cb ) {
     $self->{threads}++;
+
+    $cb->($self);
 
     return;
 }
@@ -84,6 +96,25 @@ sub disable ( $self, $timeout = undef ) {
 }
 
 sub ban ( $self, $key, $timeout = undef ) {
+    return;
+}
+
+# CHECK PROXY
+sub check ( $self, $connect, $cb ) {
+    my $connection_id = $connect->[2] . q[:] . $connect->[1];
+
+    my $proxy_type = $self->{supported_connections}->{$connection_id};
+
+    # proxy already checked
+    if ( defined $proxy_type ) {
+        $cb->( $self, $proxy_type );
+    }
+    else {
+        # TODO start check proxy
+
+        $cb->( $self, $PROXY_TYPE_SOCKS5 );
+    }
+
     return;
 }
 
