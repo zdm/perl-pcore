@@ -66,19 +66,23 @@ sub new ( $self, @ ) {
         $args{on_connect}->( $self->SUPER::new(%args), undef, undef, undef );
     }
     else {
-        $args{cache_id} = ( defined $args{session} ? $args{session} . q[-] : q[] ) . $args{connect}->[2] . q[://] . $args{connect}->[0] . q[:] . $args{connect}->[1];
+        $args{cache_id} = $args{connect}->[2] . q[://] . $args{connect}->[0] . q[:] . $args{connect}->[1];
+
+        $args{cache_id} .= q[?session=] . $args{session} if defined $args{session};
 
         if ( $args{proxy} ) {
             $args{proxy} = Pcore::Proxy->new( $args{proxy} ) if !ref $args{proxy};
 
-            $args{cache_id} .= q[-] . $args{proxy}->hostport;
+            $args{cache_id} .= defined $args{session} ? q[&] : q[?];
+
+            $args{cache_id} .= q[proxy=] . $args{proxy}->hostport;
         }
 
         if ( delete $args{cache} && ( my $h = $self->fetch( $args{cache_id} ) ) ) {
             $args{on_connect}->( $h, undef, undef, undef );
         }
         else {
-            if ( my $conect_timeout = delete $args{connect_timeout} ) {
+            if ( my $conect_timeout = $args{connect_timeout} ) {
                 my $on_prepare = $args{on_prepare};
 
                 $args{on_prepare} = sub ($h) {
@@ -188,14 +192,23 @@ sub _connect_proxy ( $self, $args ) {
                 };
             }
             else {
-                my %orig_callbacks = $args->%{ $keys->@* };
+                my %orig_args = $args->%{ $keys->@* };
                 delete $args->@{ $keys->@* };
+
+                if ( $args->{connect_timeout} ) {
+                    $orig_args{timeout}  = delete $args->{timeout};
+                    $orig_args{rtimeout} = delete $args->{rtimeout};
+
+                    $args->{timeout} = $args->{connect_timeout};
+                }
 
                 $args->{on_connect} = sub ( $h, @args ) {
                     delete $hdl->{on_connect_error};
                     delete $hdl->{on_connect};
 
                     $hdl->{connect} = $connect;
+
+                    $hdl->{peername} = $connect->[0];
 
                     my $on_proxy_error = sub ( $h, $message, $disable_proxy = 0 ) {
                         delete $h->{on_error};
@@ -232,8 +245,8 @@ sub _connect_proxy ( $self, $args ) {
                         delete $h->{on_error};
 
                         # restore orig. callbacks
-                        for my $method ( $keys->@* ) {
-                            $h->$method( $orig_callbacks{$method} ) if $orig_callbacks{$method};
+                        for my $method ( grep { $orig_args{$_} } keys %orig_args ) {
+                            $h->$method( $orig_args{$method} );
                         }
 
                         $on_connect->( $hdl, undef, undef, undef );
@@ -715,7 +728,7 @@ sub read_http_body ( $self, $on_read, @ ) {
 
 # CACHE METHODS
 sub store ( $self, $timeout = undef ) {
-    my $id = $self->{id};
+    my $id = $self->{cache_id};
 
     return unless $id;
 
@@ -812,28 +825,28 @@ sub fetch ( $self, $id ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 138                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
+## │    3 │ 142                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 263                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 276                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 272, 300, 407        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 285, 313, 420        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 34, 304, 307, 326,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 329, 332, 419        │                                                                                                                │
+## │    2 │ 34, 317, 320, 339,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 342, 345, 432        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 539, 738             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 552, 751             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 841                  │ * Link L<AnyEvent::Handle> on line 847 does not specify text                                                   │
-## │      │ 841                  │ * Link L<AnyEvent::Handle> on line 855 does not specify text                                                   │
-## │      │ 841                  │ * Link L<AnyEvent::Handle> on line 883 does not specify text                                                   │
-## │      │ 841                  │ * Link L<AnyEvent::Handle> on line 899 does not specify text                                                   │
-## │      │ 841                  │ * Link L<AnyEvent::Socket> on line 899 does not specify text                                                   │
-## │      │ 841, 841             │ * Link L<Pcore::Proxy> on line 865 does not specify text                                                       │
-## │      │ 841                  │ * Link L<Pcore::Proxy> on line 899 does not specify text                                                       │
+## │      │ 854                  │ * Link L<AnyEvent::Handle> on line 860 does not specify text                                                   │
+## │      │ 854                  │ * Link L<AnyEvent::Handle> on line 868 does not specify text                                                   │
+## │      │ 854                  │ * Link L<AnyEvent::Handle> on line 896 does not specify text                                                   │
+## │      │ 854                  │ * Link L<AnyEvent::Handle> on line 912 does not specify text                                                   │
+## │      │ 854                  │ * Link L<AnyEvent::Socket> on line 912 does not specify text                                                   │
+## │      │ 854, 854             │ * Link L<Pcore::Proxy> on line 878 does not specify text                                                       │
+## │      │ 854                  │ * Link L<Pcore::Proxy> on line 912 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 30, 35, 326, 329,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 332, 338, 424        │                                                                                                                │
+## │    1 │ 30, 35, 339, 342,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 345, 351, 437        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
