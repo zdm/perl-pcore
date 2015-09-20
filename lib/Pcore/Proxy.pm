@@ -102,13 +102,6 @@ sub ban ( $self, $key, $timeout = undef ) {
 
 # CHECK PROXY
 sub check ( $self, $connect, $cb ) {
-    state $type_method_map = {
-        $PROXY_TYPE_HTTP    => \&_check_http,
-        $PROXY_TYPE_CONNECT => \&_check_connect,
-        $PROXY_TYPE_SOCKS4  => \&_check_socks4,
-        $PROXY_TYPE_SOCKS5  => \&_check_socks5,
-    };
-
     $connect->[3] = $connect->[2] . q[:] . $connect->[1];
 
     my $proxy_type = $self->{supported_connections}->{ $connect->[3] };
@@ -122,7 +115,12 @@ sub check ( $self, $connect, $cb ) {
         my $test = sub ($proxy_type) {
             if ( !$proxy_type ) {
                 if ( $self->is_enabled && ( $proxy_type = shift @types ) ) {
-                    $type_method_map->{$proxy_type}->( $self, $connect, __SUB__ );
+                    if ( $proxy_type == $PROXY_TYPE_HTTP ) {
+                        $self->_check_http( $proxy_type, $connect, __SUB__ );
+                    }
+                    else {
+                        $self->_check_tunnel( $proxy_type, $connect, __SUB__ );
+                    }
                 }
                 else {
                     $self->{supported_connections}->{ $connect->[3] } = 0;    # no proxy type found
@@ -143,16 +141,16 @@ sub check ( $self, $connect, $cb ) {
     return;
 }
 
-sub _check_http ( $self, $connect, $cb ) {
+sub _check_http ( $self, $proxy_type, $connect, $cb ) {
     $cb->(0);
 
     return;
 }
 
-sub _check_connect ( $self, $connect, $cb ) {
+sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
     $self->_test_scheme(
         $connect->[2],
-        $PROXY_TYPE_CONNECT,
+        $proxy_type,
         sub ($scheme_ok) {
             unless ($scheme_ok) {    # scheme test failed
                 $cb->(0);
@@ -165,91 +163,7 @@ sub _check_connect ( $self, $connect, $cb ) {
                 if ( $CHECK_SCHEME->{ $connect->[2] }->[2] && $CHECK_SCHEME->{ $connect->[2] }->[1]->[1] != $connect->[1] ) {
                     $self->_test_connection(
                         $connect,
-                        $PROXY_TYPE_CONNECT,
-                        sub ($h) {
-                            if ($h) {    # tunnel creation ok
-                                $cb->(1);
-                            }
-                            else {       # tunnel creation failed
-                                $cb->(0);
-                            }
-
-                            return;
-                        }
-                    );
-                }
-                else {
-                    # scheme and tunnel was tested in one connection
-                    $cb->(1);
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _check_socks4 ( $self, $connect, $cb ) {
-    $self->_test_scheme(
-        $connect->[2],
-        $PROXY_TYPE_SOCKS4,
-        sub ($scheme_ok) {
-            unless ($scheme_ok) {    # scheme test failed
-                $cb->(0);
-            }
-            else {                   # scheme test passed
-
-                # scheme was really tested
-                # but connect port is differ from default scheme test port
-                # need to test tunnel creation to the non-standard port separately
-                if ( $CHECK_SCHEME->{ $connect->[2] }->[2] && $CHECK_SCHEME->{ $connect->[2] }->[1]->[1] != $connect->[1] ) {
-                    $self->_test_connection(
-                        $connect,
-                        $PROXY_TYPE_SOCKS4,
-                        sub ($h) {
-                            if ($h) {    # tunnel creation ok
-                                $cb->(1);
-                            }
-                            else {       # tunnel creation failed
-                                $cb->(0);
-                            }
-
-                            return;
-                        }
-                    );
-                }
-                else {
-                    # scheme and tunnel was tested in one connection
-                    $cb->(1);
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _check_socks5 ( $self, $connect, $cb ) {
-    $self->_test_scheme(
-        $connect->[2],
-        $PROXY_TYPE_SOCKS5,
-        sub ($scheme_ok) {
-            unless ($scheme_ok) {    # scheme test failed
-                $cb->(0);
-            }
-            else {                   # scheme test passed
-
-                # scheme was really tested
-                # but connect port is differ from default scheme test port
-                # need to test tunnel creation to the non-standard port separately
-                if ( $CHECK_SCHEME->{ $connect->[2] }->[2] && $CHECK_SCHEME->{ $connect->[2] }->[1]->[1] != $connect->[1] ) {
-                    $self->_test_connection(
-                        $connect,
-                        $PROXY_TYPE_SOCKS5,
+                        $proxy_type,
                         sub ($h) {
                             if ($h) {    # tunnel creation ok
                                 $cb->(1);
@@ -395,7 +309,7 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
                 $cb->($h);
             }
             else {
-                my $on_error = sub ( $h, $message, $disable_proxy ) {
+                my $on_error = sub ( $h, $message, $disable_proxy = 0 ) {
                     $self->disable if $disable_proxy;
 
                     $cb->(undef);
@@ -403,7 +317,7 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
                     return;
                 };
 
-                my $on_connect = sub ($h) {
+                my $on_connect = sub ($hdl) {
                     $cb->($h);
 
                     return;
@@ -445,12 +359,12 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 321, 374             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 235, 288             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 374                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 288                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 355                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 269                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
