@@ -181,7 +181,7 @@ sub _connect_proxy ( $self, $args ) {
             };
 
             if ( !$proxy_type ) {
-                $args->{on_connect_error}->( undef, 'Unknown proxy type', 0 );
+                $args->{on_connect_error}->( undef, q[Proxy doesn't support this connection], 0 );
 
                 return;
             }
