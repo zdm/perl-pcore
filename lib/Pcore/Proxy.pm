@@ -102,7 +102,6 @@ sub ban ( $self, $key, $timeout = undef ) {
 }
 
 # CHECK PROXY
-# TODO stack similar callbacks
 sub check ( $self, $connect, $cb ) {
     state $callback = {};
 
@@ -320,6 +319,7 @@ sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
     return;
 }
 
+# TODO
 sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
     $cb->(0);
 
@@ -394,12 +394,12 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 270, 323             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 269, 323             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 323                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 304                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 303                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
