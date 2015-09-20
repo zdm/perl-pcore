@@ -19,8 +19,7 @@ has is_socks5  => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
 has is_socks4  => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
 has is_socks4a => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
 
-# 'scheme:connect_port' => proxy_connect_type || 0, if connection is not suported, !exists || undef - not tested yet
-has supported_connections => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri ) {
     if ( my $args = $self->_parse_uri($uri) ) {
@@ -104,7 +103,7 @@ sub ban ( $self, $key, $timeout = undef ) {
 sub check ( $self, $connect, $cb ) {
     $connect->[3] = $connect->[2] . q[:] . $connect->[1];
 
-    my $proxy_type = $self->{supported_connections}->{ $connect->[3] };
+    my $proxy_type = $self->{test_connection}->{ $connect->[3] };
 
     if ( defined $proxy_type ) {    # proxy already checked
         $cb->( $self, $proxy_type );
@@ -123,13 +122,13 @@ sub check ( $self, $connect, $cb ) {
                     }
                 }
                 else {
-                    $self->{supported_connections}->{ $connect->[3] } = 0;    # no proxy type found
+                    $self->{test_connection}->{ $connect->[3] } = 0;    # no proxy type found
 
                     $cb->( $self, 0 );
                 }
             }
             else {
-                $self->{supported_connections}->{ $connect->[3] } = $proxy_type;    # cache connection test result
+                $self->{test_connection}->{ $connect->[3] } = $proxy_type;    # cache connection test result
 
                 $cb->( $self, $proxy_type );
             }
@@ -203,26 +202,26 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
 }
 
 sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
-    if ( defined $self->{tested_scheme}->{$scheme}->{$proxy_type} ) {    # scheme was tested
-        $cb->( $self->{tested_scheme}->{$scheme}->{$proxy_type} );       # return cached result
+    if ( defined $self->{test_scheme}->{$scheme}->{$proxy_type} ) {    # scheme was tested
+        $cb->( $self->{test_scheme}->{$scheme}->{$proxy_type} );       # return cached result
     }
-    else {                                                               # scheme wasn't tested
-        unless ( $CHECK_SCHEME->{$scheme}->[2] ) {                       # can't test scheme
-            $self->{tested_scheme}->{$scheme}->{$proxy_type} = 1;        # cache and return positive result
+    else {                                                             # scheme wasn't tested
+        unless ( $CHECK_SCHEME->{$scheme}->[2] ) {                     # can't test scheme
+            $self->{test_scheme}->{$scheme}->{$proxy_type} = 1;        # cache and return positive result
 
             $cb->(1);
         }
-        else {                                                           # start test scheme
+        else {                                                         # start test scheme
             $self->_test_connection(
                 $CHECK_SCHEME->{$scheme}->[1],
                 $proxy_type,
                 sub ($h) {
-                    if ($h) {                                            # proxy connected + tunnel created
-                        $CHECK_SCHEME->{$scheme}->[2]->(                 # run scheme test
+                    if ($h) {                                          # proxy connected + tunnel created
+                        $CHECK_SCHEME->{$scheme}->[2]->(               # run scheme test
                             $self, $scheme, $h,
                             $proxy_type,
                             sub ($scheme_ok) {
-                                $self->{tested_scheme}->{$scheme}->{$proxy_type} = $scheme_ok;
+                                $self->{test_scheme}->{$scheme}->{$proxy_type} = $scheme_ok;
 
                                 $cb->($scheme_ok);
 
@@ -230,8 +229,8 @@ sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
                             }
                         );
                     }
-                    else {                                               # proxy disabled, proxy connect error or tunnel create error
-                        $self->{tested_scheme}->{$scheme}->{$proxy_type} = 0;
+                    else {                                             # proxy disabled, proxy connect error or tunnel create error
+                        $self->{test_scheme}->{$scheme}->{$proxy_type} = 0;
 
                         $cb->(0);
                     }
@@ -372,12 +371,12 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 248, 301             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 247, 300             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 301                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 300                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 282                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 281                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

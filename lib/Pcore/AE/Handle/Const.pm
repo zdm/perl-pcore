@@ -9,9 +9,9 @@ our @EXPORT      = ();
 
 const our $PROXY_TYPE_HTTP    => 1;
 const our $PROXY_TYPE_CONNECT => 2;
-const our $PROXY_TYPE_SOCKS5  => 31;
-const our $PROXY_TYPE_SOCKS4  => 32;
-const our $PROXY_TYPE_SOCKS4A => 33;
+const our $PROXY_TYPE_SOCKS4  => 31;
+const our $PROXY_TYPE_SOCKS4A => 32;
+const our $PROXY_TYPE_SOCKS5  => 33;
 
 1;
 __END__
