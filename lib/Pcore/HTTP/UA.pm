@@ -23,6 +23,8 @@ our $USERAGENT = "Mozilla/5.0 (compatible; U; P-AnyEvent-UA/$Pcore::VERSION";
 our $RECURSE   = 7;
 our $TIMEOUT   = 300;
 
+our $HANDLE_PARAMS = { max_read_size => 1_048_576 };
+
 has useragent  => ( is => 'lazy', isa => Str,               default => $USERAGENT );
 has recurse    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $RECURSE );
 has timeout    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $TIMEOUT );
@@ -34,6 +36,8 @@ has proxy => ( is => 'rw' );
 has tls_ctx => ( is => 'lazy', isa => Enum [ $Pcore::HTTP::UA::TLS_CTX_LOW, $Pcore::HTTP::UA::TLS_CTX_HIGH ] | HashRef, default => $Pcore::HTTP::UA::TLS_CTX_LOW );
 
 has headers => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Message::Headers'], default => sub { Pcore::HTTP::Message::Headers->new }, init_arg => undef );
+
+has handle_params => ( is => 'ro', isa => HashRef, default => sub { { max_read_size => 1_048_576 } } );
 
 no Pcore;
 
@@ -262,6 +266,8 @@ sub request ( $self, @ ) {
         cookie_jar => $req->cookie_jar // ( $self_is_obj ? $self->cookie_jar : undef ),
         proxy      => $req->proxy      // ( $self_is_obj ? $self->proxy      : undef ),
 
+        handle_params => $req->handle_params // ( $self_is_obj ? $self->handle_params : $HANDLE_PARAMS ),
+
         tls_ctx => $req->tls_ctx // ( $self_is_obj ? $self->tls_ctx : $Pcore::HTTP::UA::TLS_CTX_LOW ),
 
         chunk_size => $req_args->{chunk_size} // $req->chunk_size,
@@ -273,8 +279,6 @@ sub request ( $self, @ ) {
         on_header   => $req->on_header,
         on_body     => $req->on_body,
     };
-
-    $args->{handle_params} = { max_read_size => 1_048_576 };
 
     # prepare headers
     $args->{headers}->replace( $self->headers->get_hash ) if $self_is_obj;
@@ -440,9 +444,9 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 224                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
+## │    3 │ 228                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 424                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 428                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

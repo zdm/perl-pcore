@@ -31,6 +31,8 @@ has session    => ( is => 'ro', isa => Str );
 has cookie_jar => ( is => 'ro', isa => Ref );
 has tls_ctx    => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::UA::TLS_CTX_LOW, $Pcore::HTTP::UA::TLS_CTX_HIGH ] | HashRef ] );
 
+has handle_params => ( is => 'ro', isa => HashRef );
+
 has proxy => ( is => 'ro', writer => 'set_proxy', predicate => 1, clearer => 1 );
 
 has on_header   => ( is => 'ro', isa => CodeRef );
@@ -92,7 +94,7 @@ sub _get_progress_bar_cb ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 47                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 49                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
