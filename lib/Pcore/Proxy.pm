@@ -20,6 +20,7 @@ has is_socks4  => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
 has is_socks4a => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
 
 has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri ) {
     if ( my $args = $self->_parse_uri($uri) ) {
@@ -395,12 +396,12 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 270, 324             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 271, 325             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 324                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 325                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 304                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 305                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
