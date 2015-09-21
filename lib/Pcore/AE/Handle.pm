@@ -68,19 +68,19 @@ sub new ( $self, @ ) {
         $args{on_connect}->( $self->SUPER::new(%args), undef, undef, undef );
     }
     else {
-        $args{cache_id} = $args{connect}->[2] . q[://] . $args{connect}->[0] . q[:] . $args{connect}->[1];
+        $args{persistent_id} = $args{connect}->[2] . q[://] . $args{connect}->[0] . q[:] . $args{connect}->[1];
 
-        $args{cache_id} .= q[?session=] . $args{session} if defined $args{session};
+        $args{persistent_id} .= q[?session=] . $args{session} if defined $args{session};
 
         if ( $args{proxy} ) {
             $args{proxy} = Pcore::Proxy->new( $args{proxy} ) if !ref $args{proxy};
 
-            $args{cache_id} .= defined $args{session} ? q[&] : q[?];
+            $args{persistent_id} .= defined $args{session} ? q[&] : q[?];
 
-            $args{cache_id} .= q[proxy=] . $args{proxy}->hostport;
+            $args{persistent_id} .= q[proxy=] . $args{proxy}->hostport;
         }
 
-        if ( delete $args{persistent} && ( my $h = $self->fetch( $args{cache_id} ) ) ) {
+        if ( delete $args{persistent} && ( my $h = $self->fetch( $args{persistent_id} ) ) ) {
             $h->{persistent} = 1;
 
             $args{on_connect}->( $h, undef, undef, undef );
@@ -276,6 +276,8 @@ sub _connect_proxy ( $self, $args ) {
                     return;
                 };
             }
+
+            $args->{proxy_type} = $proxy_type;
 
             $args->{connect} = [ $args->{proxy}->host->name, $args->{proxy}->port ];
 
@@ -746,7 +748,7 @@ sub read_http_body ( $self, $on_read, @ ) {
 
 # CACHE METHODS
 sub store ( $self, $timeout = undef ) {
-    my $id = $self->{cache_id};
+    my $id = $self->{persistent_id};
 
     return unless $id;
 
@@ -845,26 +847,26 @@ sub fetch ( $self, $id ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 146                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 282                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 284                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 291, 319, 434        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 293, 321, 436        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 34, 323, 326, 345,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 348, 351, 446        │                                                                                                                │
+## │    2 │ 34, 325, 328, 347,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 350, 353, 448        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 570, 769             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 572, 771             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 878 does not specify text                                                   │
-## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 886 does not specify text                                                   │
-## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 914 does not specify text                                                   │
-## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 930 does not specify text                                                   │
-## │      │ 872                  │ * Link L<AnyEvent::Socket> on line 930 does not specify text                                                   │
-## │      │ 872, 872             │ * Link L<Pcore::Proxy> on line 896 does not specify text                                                       │
-## │      │ 872                  │ * Link L<Pcore::Proxy> on line 930 does not specify text                                                       │
+## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 880 does not specify text                                                   │
+## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 888 does not specify text                                                   │
+## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 916 does not specify text                                                   │
+## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 932 does not specify text                                                   │
+## │      │ 874                  │ * Link L<AnyEvent::Socket> on line 932 does not specify text                                                   │
+## │      │ 874, 874             │ * Link L<Pcore::Proxy> on line 898 does not specify text                                                       │
+## │      │ 874                  │ * Link L<Pcore::Proxy> on line 932 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 30, 35, 345, 348,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 351, 357, 451        │                                                                                                                │
+## │    1 │ 30, 35, 347, 350,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 353, 359, 453        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

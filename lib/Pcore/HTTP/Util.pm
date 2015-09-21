@@ -2,7 +2,8 @@ package Pcore::HTTP::Util;
 
 use Pcore;
 use Errno qw[];
-use Pcore::AE::Handle qw[];
+use Pcore::AE::Handle;
+use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
 
 no Pcore;
@@ -44,18 +45,18 @@ sub http_request ($args) {
                 $set_error->( $error_status, $error_reason );
             }
             else {                            # request was finished normally
-                my $cache_handle;
+                my $persistent;
 
-                if ( $runtime->{cache_id} && ( $runtime->{persistent} || $runtime->{was_persistent} ) ) {
+                if ( $args->{persistent} || $runtime->{h}->{persistent} ) {
                     if ( $runtime->{res}->version < 1.1 ) {
-                        $cache_handle = 1 if exists $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bkeep-?alive\b/smi;
+                        $persistent = 1 if exists $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bkeep-?alive\b/smi;
                     }
                     else {                    # 1.1
-                        $cache_handle = 1 if !exists $runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bclose\b/smi;
+                        $persistent = 1 if !exists $runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bclose\b/smi;
                     }
                 }
 
-                $cache_handle ? $runtime->{h}->store( $runtime->{cache_id} ) : $runtime->{h}->destroy;
+                $persistent ? $runtime->{h}->store : $runtime->{h}->destroy;
 
                 # process redirect
                 if ( $runtime->{redirect} ) {
@@ -101,25 +102,9 @@ sub http_request ($args) {
             return;
         },
         headers         => Pcore::HTTP::Message::Headers->new,
-        persistent      => $args->{persistent},
-        was_persistent  => 0,
-        connect_port    => $args->{url}->port || ( $args->{url}->is_secure ? 443 : 80 ),
-        cache_id        => undef,
-        request_path    => $args->{url}->pathquery,
         on_error_status => undef,
         starttls        => $args->{url}->is_secure,
     };
-
-    # proxy is HTTP
-    if ( $args->{proxy} && Pcore::AE::Handle->select_proxy_type( $args->{proxy}, $runtime->{connect_port} ) == $Pcore::Proxy::TYPE_HTTP ) {
-        $runtime->{starttls} = 0;
-
-        $runtime->{request_path} = $args->{url}->to_string;
-    }
-
-    # define persistent cache key
-    $runtime->{cache_id} = $runtime->{starttls} . q[-] . $args->{url}->hostport;
-    $runtime->{cache_id} .= q[-] . $args->{proxy}->hostport if $args->{proxy};
 
     # add REFERER header
     $runtime->{headers}->{REFERER} = $args->{url}->pathquery(1) unless exists $args->{headers}->{REFERER};
@@ -195,67 +180,55 @@ sub http_request ($args) {
 }
 
 sub _connect ( $args, $runtime, $cb ) {
-    my $_connect = sub {
-        my $handle;
+    Pcore::AE::Handle->new(
+        $args->{handle_params}->%*,
+        connect                => $args->{url},
+        connect_timeout        => $args->{timeout},
+        timeout                => $args->{timeout},
+        persistent             => $args->{persistent},
+        session                => $args->{session},
+        tls_ctx                => $args->{tls_ctx},
+        proxy                  => $args->{proxy},
+        on_proxy_connect_error => sub ( $h, $message ) {
+            $runtime->{finish}->( 594, $message );
 
-        $handle = Pcore::AE::Handle->new(
-            $args->{handle_params}->%*,
-            connect                => [ $args->{url}->host, $runtime->{connect_port} ],
-            connect_timeout        => $args->{timeout},
-            timeout                => $args->{timeout},
-            tls_ctx                => $args->{tls_ctx},
-            peername               => $args->{url}->host->name,
-            proxy                  => $args->{proxy},
-            on_proxy_connect_error => sub ( $h, $message, $is_connect_error ) {
-                $runtime->{finish}->( 594, $message );
+            return;
+        },
+        on_connect_error => sub ( $h, $message ) {
+            $runtime->{finish}->( $runtime->{on_error_status}, $message );
 
-                return;
-            },
-            on_connect_error => sub ( $h, $message ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $message );
+            return;
+        },
+        on_error => sub ( $h, $fatal, $message ) {
+            $runtime->{finish}->( $runtime->{on_error_status}, $message );
 
-                return;
-            },
-            on_error => sub ( $h, $fatal, $message ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $message );
-
-                return;
-            },
-            on_connect => sub ( $h, $host, $port, $retry ) {
-                $cb->($handle);
-
-                return;
-            },
-        );
-
-        return;
-    };
-
-    # get connection handle from cache or create new handle
-    if ( $runtime->{persistent} && $runtime->{cache_id} ) {
-        if ( my $h = Pcore::AE::Handle->fetch( $runtime->{cache_id} ) ) {
-            $runtime->{was_persistent} = 1;
-
+            return;
+        },
+        on_connect => sub ( $h, $host, $port, $retry ) {
             $cb->($h);
-        }
-        else {
-            $_connect->();
-        }
-    }
-    else {
-        $_connect->();
-    }
+
+            return;
+        },
+    );
 
     return;
 }
 
 sub _write_request ( $args, $runtime ) {
+    my $request_path;
 
-    # start TLS, only if TLS is required and TLS is not established yet
-    $runtime->{h}->starttls('connect') if $runtime->{starttls} && !exists $runtime->{h}->{tls};
+    if ( $runtime->{h}->{proxy} && $runtime->{h}->{proxy_type} == $PROXY_TYPE_HTTP ) {    # proxy is HTTP
+        $request_path = $args->{url}->to_string;
+    }
+    else {
+        $request_path = $args->{url}->pathquery;
+
+        # start TLS, only if TLS is required and TLS is not established yet
+        $runtime->{h}->starttls('connect') if $args->{url}->is_secure && !exists $runtime->{h}->{tls};
+    }
 
     # send request headers
-    $runtime->{h}->push_write( "$args->{method} $runtime->{request_path} HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
+    $runtime->{h}->push_write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
 
     # return if error occurred during send request headers
     return if !$runtime;
@@ -612,10 +585,10 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 10                   │ * Subroutine "http_request" with high complexity score (34)                                                    │
-## │      │ 345                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
+## │      │ 11                   │ * Subroutine "http_request" with high complexity score (28)                                                    │
+## │      │ 318                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 82, 95, 96, 202      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 83, 96, 97, 184      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
