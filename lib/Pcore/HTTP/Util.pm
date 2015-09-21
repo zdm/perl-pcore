@@ -103,7 +103,6 @@ sub http_request ($args) {
         },
         headers         => Pcore::HTTP::Message::Headers->new,
         on_error_status => undef,
-        starttls        => $args->{url}->is_secure,
     };
 
     # add REFERER header
@@ -586,9 +585,9 @@ sub get_random_ua {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 11                   │ * Subroutine "http_request" with high complexity score (28)                                                    │
-## │      │ 318                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
+## │      │ 317                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 83, 96, 97, 184      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 83, 96, 97, 183      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
