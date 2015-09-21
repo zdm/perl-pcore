@@ -1,6 +1,6 @@
 package Pcore::Core::H::Role::Wrapper;
 
-use Pcore qw[-role -autoload];
+use Pcore qw[-role];
 
 with qw[Pcore::Core::H::Role];
 
@@ -21,15 +21,22 @@ around h_disconnect => sub {
     return;
 };
 
-sub autoload {
-    my $self   = shift;
-    my $method = shift;
+sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
+    my $method = our $AUTOLOAD =~ s/\A.*:://smr;
 
-    return sub {
-        my $self = shift;
+    my $class = ref $self || $self;
 
-        return $self->h->$method(@_);
-    }, not_create_method => 0;
+    {
+        no strict qw[refs];
+
+        *{ $class . q[::] . $method } = sub {
+            my $self = shift;
+
+            return $self->h->$method(@_);
+        };
+    }
+
+    goto &{ $class . q[::] . $method };
 }
 
 1;
