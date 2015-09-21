@@ -181,6 +181,8 @@ sub _connect_proxy ( $self, $args ) {
             };
 
             if ( !$proxy_type ) {
+                $proxy->finish_thread;
+
                 $args->{on_connect_error}->( undef, q[Proxy doesn't support this connection type], 0 );
 
                 return;
@@ -843,26 +845,26 @@ sub fetch ( $self, $id ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 146                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 280                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 282                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 289, 317, 432        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 291, 319, 434        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 34, 321, 324, 343,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 346, 349, 444        │                                                                                                                │
+## │    2 │ 34, 323, 326, 345,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 348, 351, 446        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 568, 767             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 570, 769             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 876 does not specify text                                                   │
-## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 884 does not specify text                                                   │
-## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 912 does not specify text                                                   │
-## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 928 does not specify text                                                   │
-## │      │ 870                  │ * Link L<AnyEvent::Socket> on line 928 does not specify text                                                   │
-## │      │ 870, 870             │ * Link L<Pcore::Proxy> on line 894 does not specify text                                                       │
-## │      │ 870                  │ * Link L<Pcore::Proxy> on line 928 does not specify text                                                       │
+## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 878 does not specify text                                                   │
+## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 886 does not specify text                                                   │
+## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 914 does not specify text                                                   │
+## │      │ 872                  │ * Link L<AnyEvent::Handle> on line 930 does not specify text                                                   │
+## │      │ 872                  │ * Link L<AnyEvent::Socket> on line 930 does not specify text                                                   │
+## │      │ 872, 872             │ * Link L<Pcore::Proxy> on line 896 does not specify text                                                       │
+## │      │ 872                  │ * Link L<Pcore::Proxy> on line 930 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 30, 35, 343, 346,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 349, 355, 449        │                                                                                                                │
+## │    1 │ 30, 35, 345, 348,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 351, 357, 451        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
