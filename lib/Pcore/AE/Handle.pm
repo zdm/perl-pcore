@@ -421,6 +421,14 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
     return;
 }
 
+sub DESTROY ($self) {
+    $self->{proxy}->finish_thread if $self->{proxy} && ${^GLOBAL_PHASE} ne 'DESTRUCT';
+
+    $self->SUPER::DESTROY;
+
+    return;
+}
+
 sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_error, $on_connect ) {
     AnyEvent::Socket::resolve_sockaddr $connect->[0], $connect->[1], 'tcp', undef, undef, sub {
         my @target = @_;
@@ -837,24 +845,24 @@ sub fetch ( $self, $id ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 280                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 289, 317, 424        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 289, 317, 432        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 34, 321, 324, 343,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 346, 349, 436        │                                                                                                                │
+## │      │ 346, 349, 444        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 560, 759             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 568, 767             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 868 does not specify text                                                   │
-## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 876 does not specify text                                                   │
-## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 904 does not specify text                                                   │
-## │      │ 862                  │ * Link L<AnyEvent::Handle> on line 920 does not specify text                                                   │
-## │      │ 862                  │ * Link L<AnyEvent::Socket> on line 920 does not specify text                                                   │
-## │      │ 862, 862             │ * Link L<Pcore::Proxy> on line 886 does not specify text                                                       │
-## │      │ 862                  │ * Link L<Pcore::Proxy> on line 920 does not specify text                                                       │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 876 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 884 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 912 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 928 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Socket> on line 928 does not specify text                                                   │
+## │      │ 870, 870             │ * Link L<Pcore::Proxy> on line 894 does not specify text                                                       │
+## │      │ 870                  │ * Link L<Pcore::Proxy> on line 928 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 30, 35, 343, 346,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 349, 355, 441        │                                                                                                                │
+## │      │ 349, 355, 449        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
