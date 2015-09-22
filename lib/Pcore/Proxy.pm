@@ -13,12 +13,6 @@ has refaddr => ( is => 'lazy', isa => Int, init_arg => undef );
 has is_enabled => ( is => 'ro', default => 1, init_arg => undef );    # can connect to the proxy
 has is_deleted => ( is => 'ro', default => 0, init_arg => undef );    # proxy is removed from pool
 
-has is_http    => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );    # undef - not tested
-has is_connect => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
-has is_socks5  => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
-has is_socks4  => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
-has is_socks4a => ( is => 'ro', isa => Maybe [Bool], init_arg => undef );
-
 has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
@@ -268,66 +262,6 @@ sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
     return;
 }
 
-sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
-    state $req_http_http = q[GET http://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
-
-    state $req_http_https = q[GET https://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
-
-    state $req_tunnel = qq[GET /favicon.ico HTTP/1.1${CRLF}Host: www.google.com${CRLF}${CRLF}];
-
-    if ( $proxy_type == $PROXY_TYPE_HTTP ) {
-        $h->push_write( $scheme eq 'http' ? $req_http_http : $req_http_https );
-    }
-    else {
-        $h->starttls('connect') if $scheme eq 'https';
-
-        $h->push_write($req_tunnel);
-    }
-
-    $h->read_http_res_headers(
-        headers => 0,
-        sub ( $hdl, $res, $error_reason ) {
-            if ( $error_reason || $res->{status} != 200 ) {    # headers parsing error
-                $cb->(0);
-            }
-            else {
-                $h->push_read(
-                    chunk => 10,
-                    sub ( $hdl, $chunk ) {
-
-                        # remove chunk size in case of chunked transfer encoding
-                        $chunk =~ s/\A[[:xdigit:]]+\r\n//sm;
-
-                        # cut to 4 chars
-                        substr $chunk, 4, 10, q[];
-
-                        # validate .ico header
-                        if ( $chunk eq qq[\x00\x00\x01\x00] ) {
-                            $cb->(1);
-                        }
-                        else {
-                            $cb->(0);
-                        }
-
-                        return;
-                    }
-                );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-# TODO
-sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
-    $cb->(0);
-
-    return;
-}
-
 sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
     Pcore::AE::Handle->new(
         connect          => [ $self->host->name, $self->port ],
@@ -389,6 +323,66 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
     return;
 }
 
+sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
+    state $req_http_http = q[GET http://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
+
+    state $req_http_https = q[GET https://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
+
+    state $req_tunnel = qq[GET /favicon.ico HTTP/1.1${CRLF}Host: www.google.com${CRLF}${CRLF}];
+
+    if ( $proxy_type == $PROXY_TYPE_HTTP ) {
+        $h->push_write( $scheme eq 'http' ? $req_http_http : $req_http_https );
+    }
+    else {
+        $h->starttls('connect') if $scheme eq 'https';
+
+        $h->push_write($req_tunnel);
+    }
+
+    $h->read_http_res_headers(
+        headers => 0,
+        sub ( $hdl, $res, $error_reason ) {
+            if ( $error_reason || $res->{status} != 200 ) {    # headers parsing error
+                $cb->(0);
+            }
+            else {
+                $h->push_read(
+                    chunk => 10,
+                    sub ( $hdl, $chunk ) {
+
+                        # remove chunk size in case of chunked transfer encoding
+                        $chunk =~ s/\A[[:xdigit:]]+\r\n//sm;
+
+                        # cut to 4 chars
+                        substr $chunk, 4, 10, q[];
+
+                        # validate .ico header
+                        if ( $chunk eq qq[\x00\x00\x01\x00] ) {
+                            $cb->(1);
+                        }
+                        else {
+                            $cb->(0);
+                        }
+
+                        return;
+                    }
+                );
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+# TODO
+sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
+    $cb->(0);
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -396,12 +390,12 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 271, 325             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 326, 380             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 325                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 380                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 305                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 360                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
