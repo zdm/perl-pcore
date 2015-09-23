@@ -8,24 +8,18 @@ has max_connect_errors    => ( is => 'ro', isa => PositiveInt,       default => 
 has ban_timeout           => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 has max_threads_proxy     => ( is => 'ro', isa => PositiveOrZeroInt, default => 20 );
 has max_threads_source    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
-
-# TODO define automatically
-has purge_timeout => ( is => 'ro', isa => PositiveInt, default => 180 );                  # timeout for re-check disabled proxies
+has maintanance_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
 
 has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
-has _load_timer  => ( is => 'ro', init_arg => undef );
-has _purge_timer => ( is => 'ro', init_arg => undef );
+has _timer => ( is => 'ro', init_arg => undef );
 
 has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 no Pcore;
 
-# TODO automatically select purge timeout
 sub BUILD ( $self, $args ) {
     if ( $args->{source} ) {
-        my $min_source_load_timeout = 0;
-
         for my $source_args ( $args->{source}->@* ) {
             my %args = $source_args->%*;
 
@@ -35,40 +29,17 @@ sub BUILD ( $self, $args ) {
 
             # add source to the pool
             push $self->_source, $source;
-
-            # define minimal source load interval, if source is reloadable
-            if ( $source->load_timeout ) {
-                if ( !$min_source_load_timeout ) {
-                    $min_source_load_timeout = $source->load_timeout;
-                }
-                elsif ( $source->load_timeout < $min_source_load_timeout ) {
-                    $min_source_load_timeout = $source->load_timeout;
-                }
-            }
-        }
-
-        if ($min_source_load_timeout) {
-
-            # create reload timer
-            $self->{_load_timer} = AE::timer 0, $min_source_load_timeout, sub {
-                $self->_on_load_timer;
-
-                return;
-            };
-        }
-        else {
-
-            # all sources is not reloadable, run load once
-            $self->_on_load_timer;
         }
     }
 
-    # create check timer
-    $self->{_purge_timer} = AE::timer $self->purge_timeout, $self->purge_timeout, sub {
-        $self->_on_purge_timer;
+    # create timer
+    $self->{_timer} = AE::timer $self->maintanance_timeout, $self->maintanance_timeout, sub {
+        $self->_maintenance;
 
         return;
     };
+
+    $self->_maintenance;
 
     return;
 }
@@ -118,26 +89,30 @@ SQL
     return $dbh;
 }
 
-sub _on_load_timer ($self) {
+# TODO throw event, some proxies was enabled
+# TODO release banned proxies
+sub _maintenance ($self) {
+
+    # load sources
     for my $source ( $self->_source->@* ) {
         $source->load;
     }
 
-    return;
-}
-
-# TODO throw event, some proxies was enabled
-# TODO release banned proxies
-sub _on_purge_timer ($self) {
+    # drop connection errors
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
 
     my $time = time;
 
     if ( $q1->do( bind => [$time] ) ) {
+
+        # TODO throw proxy avail event
+
         for my $proxy ( values $self->list->%* ) {
             $proxy->{connect_error} = 0 if $proxy->{connect_error} && $proxy->{connect_error_time} <= $time;
         }
     }
+
+    # TODO release bans
 
     return;
 }
@@ -186,9 +161,9 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30, 137              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 24, 110              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 86                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 57                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
