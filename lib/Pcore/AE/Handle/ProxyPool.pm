@@ -70,6 +70,7 @@ sub _build_dbh ($self) {
                 `connect_error` INTEGER NOT NULL DEFAULT 0,
                 `connect_error_time` INTEGER NOT NULL DEFAULT 0,
                 `threads` INTEGER NOT NULL DEFAULT 0,
+                `total_threads` INTEGER NOT NULL DEFAULT 0,
                 `max_threads` INTEGER NOT NULL,
                 `http_80` INTEGER NOT NULL DEFAULT -1,       -- -1 = not tested, 0 = not avail. 1 = ok
                 `https_443` INTEGER NOT NULL DEFAULT -1,     -- -1 = not tested, 0 = not avail. 1 = ok
@@ -207,7 +208,7 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 25, 122              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 25, 123              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 58                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

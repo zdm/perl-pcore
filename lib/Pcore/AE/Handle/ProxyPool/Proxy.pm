@@ -198,64 +198,45 @@ sub _finish_thread ($self) {
 }
 
 # CONNECT
-sub can_connect ( $self, $connect, $cb = undef ) {
+sub can_connect ( $self, $connect, $cb ) {
     my $can_connect = !$self->{connect_error} && $self->{source}->can_connect && $self->{threads} < $self->max_threads;
 
-    if ($can_connect) {
-        $self->_start_thread;
+    if ( !$can_connect ) {
 
-        if ($cb) {
-
-            # TODO return proxy type
-            $cb->(1);
-
-            return;
-        }
-        else {
-            return 1;
-        }
+        # TODO cache cb
+        $cb->($PROXY_TYPE_UNDEF);
     }
     else {
-        if ($cb) {
+        state $callback = {};
 
-            # TODO cache callack
-            $cb->(0);
+        $connect->[2] //= 'tcp';
 
-            return;
+        $connect->[3] = $connect->[2] . q[_] . $connect->[1];
+
+        $self->source->pool->_add_connect_id( $connect->[3] );
+
+        my $cache_key = $self->id . q[-] . $connect->[3];
+
+        push $callback->{$cache_key}->@*, $cb;
+
+        return if $callback->{$cache_key}->@* > 1;
+
+        my $proxy_type = $self->{test_connection}->{ $connect->[3] };
+
+        if ( defined $proxy_type ) {    # proxy already checked
+            while ( my $cb = shift $callback->{$cache_key}->@* ) {
+                $cb->($proxy_type);
+            }
+
+            delete $callback->{$cache_key};
         }
-        else {
-            return;
-        }
-    }
-}
+        else {                          # run proxy check
+            my @types = $CHECK_SCHEME->{ $connect->[2] }->[0]->@*;
 
-# CHECK PROXY
-sub check ( $self, $connect, $cb ) {
-    state $callback = {};
+            $self->_start_thread;
 
-    $connect->[3] = $connect->[2] . q[:] . $connect->[1];
-
-    my $cache_key = $self->id . q[-] . $connect->[3];
-
-    push $callback->{$cache_key}->@*, $cb;
-
-    return if $callback->{$cache_key}->@* > 1;
-
-    my $proxy_type = $self->{test_connection}->{ $connect->[3] };
-
-    if ( defined $proxy_type ) {    # proxy already checked
-        while ( my $cb = shift $callback->{$cache_key}->@* ) {
-            $cb->($proxy_type);
-        }
-
-        delete $callback->{$cache_key};
-    }
-    else {                          # run proxy check
-        my @types = $CHECK_SCHEME->{ $connect->[2] }->[0]->@*;
-
-        my $test = sub ($proxy_type) {
-            if ( !$proxy_type ) {
-                if ( $self->is_enabled && ( $proxy_type = shift @types ) ) {
+            my $test = sub ($proxy_type) {
+                if ( !$self->{connect_error} && $proxy_type == $PROXY_TYPE_UNDEF && ( $proxy_type = shift @types ) ) {
                     if ( $proxy_type == $PROXY_TYPE_HTTP ) {
                         $self->_check_http( $proxy_type, $connect, __SUB__ );
                     }
@@ -264,28 +245,83 @@ sub check ( $self, $connect, $cb ) {
                     }
                 }
                 else {
-                    $self->{test_connection}->{ $connect->[3] } = 0;    # no proxy type found
+                    $self->{test_connection}->{ $connect->[3] } = $proxy_type;    # cache connection test result
+
+                    $self->source->pool->dbh->do( qq[UPDATE `proxy` SET `$connect->[3]` = $proxy_type WHERE pool_id = ?], bind => [ $self->pool_id ] );
 
                     while ( my $cb = shift $callback->{$cache_key}->@* ) {
-                        $cb->(0);
+                        $cb->($proxy_type);
                     }
 
                     delete $callback->{$cache_key};
                 }
+            };
+
+            $test->($PROXY_TYPE_UNDEF);
+        }
+    }
+
+    return;
+}
+
+# CHECK PROXY
+sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
+    Pcore::AE::Handle->new(
+        connect          => [ $self->host->name, $self->port ],
+        connect_timeout  => 10,
+        timeout          => 10,
+        persistent       => 0,
+        on_connect_error => sub ( $h, $message ) {
+            $self->connect_failure;
+
+            $cb->($PROXY_TYPE_UNDEF);
+
+            return;
+        },
+        on_connect => sub ( $h, @ ) {
+            if ( $proxy_type == $PROXY_TYPE_HTTP ) {
+                $cb->($h);
             }
             else {
-                $self->{test_connection}->{ $connect->[3] } = $proxy_type;    # cache connection test result
+                my $on_error = sub ( $h, $message, $disable_proxy = 0 ) {
+                    $self->connect_failure if $disable_proxy;
 
-                while ( my $cb = shift $callback->{$cache_key}->@* ) {
-                    $cb->($proxy_type);
+                    $cb->($PROXY_TYPE_UNDEF);
+
+                    return;
+                };
+
+                my $on_connect = sub ($hdl) {
+                    $cb->($h);
+
+                    return;
+                };
+
+                $h->on_error(
+                    sub($h, $fatal, $message) {
+                        $on_error->( $h, $message, 0 );
+
+                        return;
+                    }
+                );
+
+                if ( $proxy_type == $PROXY_TYPE_CONNECT ) {
+                    $h->_connect_proxy_connect( $self, $connect, $on_error, $on_connect );
                 }
-
-                delete $callback->{$cache_key};
+                elsif ( $proxy_type == $PROXY_TYPE_SOCKS4 || $proxy_type == $PROXY_TYPE_SOCKS4A ) {
+                    $h->_connect_proxy_socks4( $self, $connect, $on_error, $on_connect );
+                }
+                elsif ( $proxy_type == $PROXY_TYPE_SOCKS5 ) {
+                    $h->_connect_proxy_socks5( $self, $connect, $on_error, $on_connect );
+                }
+                else {
+                    die 'Invalid proxy type, please report';
+                }
             }
-        };
 
-        $test->(undef);
-    }
+            return;
+        },
+    );
 
     return;
 }
@@ -296,7 +332,7 @@ sub _check_http ( $self, $proxy_type, $connect, $cb ) {
         $proxy_type,
         sub ($scheme_ok) {
             unless ($scheme_ok) {    # scheme test failed
-                $cb->(0);
+                $cb->($PROXY_TYPE_UNDEF);
             }
             else {                   # scheme test passed
                 $cb->($proxy_type);
@@ -315,7 +351,7 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
         $proxy_type,
         sub ($scheme_ok) {
             unless ($scheme_ok) {    # scheme test failed
-                $cb->(0);
+                $cb->($PROXY_TYPE_UNDEF);
             }
             else {                   # scheme test passed
 
@@ -331,7 +367,7 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
                                 $cb->($proxy_type);
                             }
                             else {       # tunnel creation failed
-                                $cb->(0);
+                                $cb->($PROXY_TYPE_UNDEF);
                             }
 
                             return;
@@ -390,67 +426,6 @@ sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
             );
         }
     }
-
-    return;
-}
-
-sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
-    Pcore::AE::Handle->new(
-        connect          => [ $self->host->name, $self->port ],
-        connect_timeout  => 10,
-        timeout          => 10,
-        persistent       => 0,
-        on_connect_error => sub ( $h, $message ) {
-            $self->disable;
-
-            $cb->(undef);
-
-            return;
-        },
-        on_connect => sub ( $h, @ ) {
-            if ( $proxy_type == $PROXY_TYPE_HTTP ) {
-                $cb->($h);
-            }
-            else {
-                my $on_error = sub ( $h, $message, $disable_proxy = 0 ) {
-                    $self->disable if $disable_proxy;
-
-                    $cb->(undef);
-
-                    return;
-                };
-
-                my $on_connect = sub ($hdl) {
-                    $cb->($h);
-
-                    return;
-                };
-
-                $h->on_error(
-                    sub($h, $fatal, $message) {
-                        $on_error->( $h, $message, 0 );
-
-                        return;
-                    }
-                );
-
-                if ( $proxy_type == $PROXY_TYPE_CONNECT ) {
-                    $h->_connect_proxy_connect( $self, $connect, $on_error, $on_connect );
-                }
-                elsif ( $proxy_type == $PROXY_TYPE_SOCKS4 || $proxy_type == $PROXY_TYPE_SOCKS4A ) {
-                    $h->_connect_proxy_socks4( $self, $connect, $on_error, $on_connect );
-                }
-                elsif ( $proxy_type == $PROXY_TYPE_SOCKS5 ) {
-                    $h->_connect_proxy_socks5( $self, $connect, $on_error, $on_connect );
-                }
-                else {
-                    die 'Invalid proxy type, please report';
-                }
-            }
-
-            return;
-        },
-    );
 
     return;
 }
@@ -526,16 +501,18 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
 ## │      │ 188                  │ * Private subroutine/method '_finish_thread' declared but not used                                             │
-## │      │ 512                  │ * Private subroutine/method '_test_scheme_whois' declared but not used                                         │
+## │      │ 487                  │ * Private subroutine/method '_test_scheme_whois' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 458, 512             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 216                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 433, 487             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 106, 110, 142, 162,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 177, 191             │                                                                                                                │
+## │      │ 177, 191, 250        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 492                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 467                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 542                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 546 does not match the package declaration      │
+## │    1 │ 520                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 524 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
