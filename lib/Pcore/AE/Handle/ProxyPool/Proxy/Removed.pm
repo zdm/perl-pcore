@@ -8,8 +8,8 @@ sub removed {
     return 1;
 }
 
-sub enabled {
-    return 0;
+sub connect_error {
+    return 1;
 }
 
 sub AUTOLOAD {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]

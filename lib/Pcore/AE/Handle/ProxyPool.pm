@@ -2,25 +2,26 @@ package Pcore::AE::Handle::ProxyPool;
 
 use Pcore qw[-class];
 
-has load_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - don't re-load proxy sources
-has _load_timer => ( is => 'ro', init_arg => undef );
+has load_timeout          => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );     # 0 - don't re-load proxy sources
+has connect_error_timeout => ( is => 'ro', isa => PositiveInt,       default => 180 );    # timeout for re-check disabled proxies
+has max_connect_errors    => ( is => 'ro', isa => PositiveInt,       default => 3 );      # max. failed check attempts, after proxy will be removed
+has ban_timeout           => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
+has max_threads_proxy     => ( is => 'ro', isa => PositiveOrZeroInt, default => 20 );
+has max_threads_source    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 
-has disable_timeout    => ( is => 'ro', isa => PositiveInt, default => 180 );    # timeout for re-check disabled proxies
-has max_connect_errors => ( is => 'ro', isa => PositiveInt, default => 3 );      # max. failed check attempts, after proxy will be removed from pool
-
-has purge_timeout => ( is => 'ro', isa => PositiveInt, default => 180 );         # timeout for re-check disabled proxies
-has _purge_timer => ( is => 'ro', init_arg => undef );
-
-has ban_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );      # 0 - don't ban proxies
+# TODO define automatically
+has purge_timeout => ( is => 'ro', isa => PositiveInt, default => 180 );                  # timeout for re-check disabled proxies
 
 has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
+has _load_timer  => ( is => 'ro', init_arg => undef );
+has _purge_timer => ( is => 'ro', init_arg => undef );
 
 has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 no Pcore;
 
-# TODO maybe automatically select purge timeout
+# TODO automatically select purge timeout
 sub BUILD ( $self, $args ) {
     if ( $args->{source} ) {
         my $min_source_load_timeout = 0;
@@ -32,8 +33,8 @@ sub BUILD ( $self, $args ) {
 
             my $source = P->class->load( delete $args{class}, ns => 'Pcore::AE::Handle::ProxyPool::Source' )->new( \%args );
 
-            # set source load timeout = pool load timeout, if source timeout is not defined
-            $source->{load_timeout} = $self->load_timeout if !defined $source->load_timeout;
+            # add source to the pool
+            push $self->_source, $source;
 
             # define minimal source load interval, if source is reloadable
             if ( $source->load_timeout ) {
@@ -44,9 +45,6 @@ sub BUILD ( $self, $args ) {
                     $min_source_load_timeout = $source->load_timeout;
                 }
             }
-
-            # add source to the pool
-            push $self->_source, $source;
         }
 
         if ($min_source_load_timeout) {
@@ -96,14 +94,16 @@ sub _build_dbh ($self) {
                 `pool_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `id` TEXT NOT NULL,
                 `source_id` INTEGER NOT NULL,
-                `enabled` INTEGER NOT NULL DEFAULT 1,
-                `enable_ts` INTEGER NOT NULL DEFAULT 0,
-                `threads` INTEGER NOT NULL DEFAULT 0
+                `source_can_connect` INTEGER NOT NULL,
+                `connect_error` INTEGER NOT NULL DEFAULT 0,
+                `connect_error_time` INTEGER NOT NULL DEFAULT 0,
+                `threads` INTEGER NOT NULL DEFAULT 0,
+                `max_threads` INTEGER NOT NULL
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_id` ON `proxy` (`id` ASC);
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_enabled_enable_ts` ON `proxy` (`enabled` ASC, `enable_ts` ASC);
+            CREATE INDEX IF NOT EXISTS `idx_proxy_connect_error_time` ON `proxy` (`connect_error` DESC, `connect_error_time` ASC);
 
             -- CREATE INDEX IF NOT EXISTS `idx_proxy_disabled` ON `proxy` (`disabled` DESC);
 
@@ -127,14 +127,15 @@ sub _on_load_timer ($self) {
 }
 
 # TODO throw event, some proxies was enabled
+# TODO release banned proxies
 sub _on_purge_timer ($self) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `enabled` = 1 WHERE `enabled` = 0 AND `enable_ts` <= ?');
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
 
     my $time = time;
 
     if ( $q1->do( bind => [$time] ) ) {
         for my $proxy ( values $self->list->%* ) {
-            $proxy->{enabled} = 1 if !$proxy->{enabled} && $proxy->{enable_ts} <= $time;
+            $proxy->{connect_error} = 0 if $proxy->{connect_error} && $proxy->{connect_error_time} <= $time;
         }
     }
 
@@ -144,9 +145,9 @@ sub _on_purge_timer ($self) {
 sub add_proxy ( $self, $proxy ) {
     return if exists $self->list->{ $proxy->id };
 
-    state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `source_id`) VALUES (?, ?)');
+    state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `source_id`, `source_can_connect`, `max_threads`) VALUES (?, ?, ?, ?)');
 
-    $q1->do( bind => [ $proxy->id, $proxy->source->id ] );
+    $q1->do( bind => [ $proxy->id, $proxy->source->id, $proxy->source->can_connect, $proxy->max_threads ] );
 
     $proxy->{pool_id} = $self->dbh->last_insert_id;
 
@@ -155,21 +156,21 @@ sub add_proxy ( $self, $proxy ) {
     return;
 }
 
-sub add_connect_id ( $self, $connect_id ) {
-    return if exists $CONNECT_ID->{$connect_id};
-
-    $CONNECT_ID->{connect_id} = 1;
-
-    my $sql = <<"SQL";
-        ALTER TABLE `proxy` ADD COLUMN `$connect_id`;
-
-        CREATE INDEX IF NOT EXISTS `idx_proxy_$connect_id` ON `proxy` (`$connect_id` DESC);
-SQL
-
-    $self->dbh->do($sql);
-
-    return;
-}
+# sub add_connect_id ( $self, $connect_id ) {
+#     return if exists $CONNECT_ID->{$connect_id};
+#
+#     $CONNECT_ID->{connect_id} = 1;
+#
+#     my $sql = <<"SQL";
+#         ALTER TABLE `proxy` ADD COLUMN `$connect_id`;
+#
+#         CREATE INDEX IF NOT EXISTS `idx_proxy_$connect_id` ON `proxy` (`$connect_id` DESC);
+# SQL
+#
+#     $self->dbh->do($sql);
+#
+#     return;
+# }
 
 # TODO
 sub get_proxy ( $self, $connect, $cb ) {
@@ -185,9 +186,9 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29, 136              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 137              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 88                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 86                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

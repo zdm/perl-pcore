@@ -6,22 +6,19 @@ use Pcore::AE::Handle::ProxyPool::Proxy;
 requires qw[load];
 
 has pool => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool'], required => 1, weak_ref => 1 );
-
 has id => ( is => 'lazy', isa => Int, init_arg => undef );
 
-has max_threads_source => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # max. num. of threads, allowed simultaneously to all proxies from this source, 0 - any num. of threads allowed
-has max_threads_proxy  => ( is => 'ro', isa => PositiveOrZeroInt, default => 20 );
+has load_timeout          => ( is => 'lazy', isa => PositiveOrZeroInt );
+has connect_error_timeout => ( is => 'lazy', isa => PositiveInt );
+has max_connect_errors    => ( is => 'lazy', isa => PositiveInt );
+has max_threads_proxy     => ( is => 'lazy', isa => PositiveOrZeroInt );
+has max_threads_source    => ( is => 'lazy', isa => PositiveOrZeroInt );
+has is_multiproxy         => ( is => 'ro',   isa => Bool, default => 0 );    # proxy can not be banned
 
-has load_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );                # undef - use global pool settings, 0 - do not reload
-
-has is_multiproxy => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );   # proxy can not be banned
-
-has threads => ( is => 'ro', default => 0, init_arg => undef );                      # current threads (running request through this source)
+has threads => ( is => 'ro', default => 0, init_arg => undef );              # current threads (running request through this source)
 
 has _load_next_time   => ( is => 'ro', init_arg => undef );
 has _load_in_progress => ( is => 'ro', init_arg => undef );
-
-our $_ID = 0;
 
 around load => sub ( $orig, $self ) {
 
@@ -29,7 +26,7 @@ around load => sub ( $orig, $self ) {
     return if $self->{_load_in_progress};
 
     # not reloadable and already was loaded
-    return if !$self->{load_timeout} && $self->{_load_next_time};
+    return if !$self->load_timeout && $self->{_load_next_time};
 
     # timeout reached
     return if $self->{_load_next_time} && time < $self->{_load_next_time};
@@ -50,7 +47,7 @@ around load => sub ( $orig, $self ) {
             }
 
             # update next source load timeout
-            $self->{_load_next_time} = time + $self->{load_timeout};
+            $self->{_load_next_time} = time + $self->load_timeout;
 
             $self->{_load_in_progress} = 0;
 
@@ -70,11 +67,33 @@ sub BUILD ( $self, $args ) {
 }
 
 sub _build_id ($self) {
-    return ++$_ID;
+    state $id = 0;
+
+    return ++$id;
+}
+
+sub _build_load_timeout ($self) {
+    return $self->pool->load_timeout;
+}
+
+sub _build_connect_error_timeout ($self) {
+    return $self->pool->connect_error_timeout;
+}
+
+sub _build_max_connect_errors ($self) {
+    return $self->pool->max_connect_errors;
+}
+
+sub _build_max_threads_proxy ($self) {
+    return $self->pool->max_threads_proxy;
+}
+
+sub _build_max_threads_source ($self) {
+    return $self->pool->max_threads_source;
 }
 
 sub can_connect ($self) {
-    return if $self->{max_threads_source} && $self->{threads} >= $self->{max_threads_source};
+    return 0 if $self->{max_threads_source} && $self->{threads} >= $self->{max_threads_source};
 
     return 1;
 }
@@ -82,8 +101,8 @@ sub can_connect ($self) {
 sub start_thread ($self) {
     $self->{threads}++;
 
-    if ( $self->{max_threads_source} && $self->{threads} >= $self->{max_threads_source} ) {
-        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_enabled` = 0 WHERE `source_id` = ?');
+    if ( !$self->can_connect ) {
+        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_can_connect` = 0 WHERE `source_id` = ?');
 
         $q1->do( bind => [ $self->id ] );
     }
@@ -91,13 +110,20 @@ sub start_thread ($self) {
     return;
 }
 
+# TODO call waiting callbacks
 sub finish_thread ($self) {
+    my $old_can_connect = $self->can_connect;
+
     $self->{threads}--;
 
-    if ( $self->{max_threads_source} && $self->{threads} < $self->{max_threads_source} ) {
-        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_enabled` = 1 WHERE `source_id` = ?');
+    my $can_connect = $self->can_connect;
+
+    if ( $can_connect && $can_connect != $old_can_connect ) {
+        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_can_connect` = 1 WHERE `source_id` = ?');
 
         $q1->do( bind => [ $self->id ] );
+
+        # TODO source is free, call waiting callbacks
     }
 
     return;

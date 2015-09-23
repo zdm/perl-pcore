@@ -10,7 +10,7 @@ has control_port    => ( is => 'ro', isa => PositiveInt, default   => 9051 );
 has password        => ( is => 'ro', isa => Str,         predicate => 1 );
 has switch_identity => ( is => 'ro', isa => Bool,        default   => 0 );             # switch identity before each connection
 
-has '+load_timeout' => ( default => 0 );
+has '+load_timeout' => ( default => 0, init_arg => undef );
 
 # around start_thread => sub ( $orig, $self, @args ) {
 #     my $proxy = $self->$orig(@args);

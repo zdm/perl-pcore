@@ -7,9 +7,9 @@ with qw[Pcore::AE::Handle::ProxyPool::Source];
 has uri => ( is => 'ro', isa => Str, predicate => 1 );
 has type => ( is => 'ro', isa => Enum [qw[ANY FASTEST TOP10]], default => 'FASTEST' );    # TOP10 - top 10% of all proxies
 
-has '+load_timeout'       => ( default => 0 );
-has '+max_threads_source' => ( isa     => Enum [ 50, 100, 200 ], default => 50 );
-has '+is_multiproxy'      => ( default => 1 );
+has '+load_timeout' => ( default => 0, init_arg => undef );
+has '+max_threads_source' => ( isa => Enum [ 50, 100, 200 ], default => 50 );
+has '+is_multiproxy' => ( default => 1, init_arg => undef );
 
 no Pcore;
 

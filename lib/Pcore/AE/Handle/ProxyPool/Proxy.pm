@@ -13,14 +13,21 @@ has source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::So
 has id      => ( is => 'lazy', isa => Str, init_arg => undef );
 has pool_id => ( is => 'ro',   isa => Int, init_arg => undef );
 
-has removed => ( is => 'ro', default => 0, init_arg => undef );
-has enabled => ( is => 'ro', default => 1, init_arg => undef );
+has connect_error_timeout => ( is => 'lazy', isa => PositiveInt );
+has max_connect_errors    => ( is => 'lazy', isa => PositiveInt );
+has ban_timeout           => ( is => 'lazy', isa => PositiveOrZeroInt );
+has max_threads           => ( is => 'lazy', isa => PositiveOrZeroInt );
+
+has removed       => ( is => 'ro', default => 0, init_arg => undef );
+has connect_error => ( is => 'ro', default => 0, init_arg => undef );
 
 has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-has enable_ts      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
-has connect_errors => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+has connect_error_time => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+has connect_errors     => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+has threads            => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+has total_threads      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
     if ( my $args = $self->_parse_uri($uri) ) {
@@ -78,6 +85,22 @@ sub _build_id ($self) {
     return $self->hostport;
 }
 
+sub _build_connect_error_timeout ($self) {
+    return $self->source->connect_error_timeout;
+}
+
+sub _build_max_connect_errors ($self) {
+    return $self->source->max_connect_errors;
+}
+
+sub _build_ban_timeout ($self) {
+    return $self->source->pool->ban_timeout;
+}
+
+sub _build_max_threads ($self) {
+    return $self->source->max_threads_proxy;
+}
+
 # TODO remove from ban lists
 sub remove ($self) {
     state $q1 = $self->source->pool->dbh->query('DELETE FROM `proxy` WHERE `pool_id` = ?');
@@ -89,8 +112,8 @@ sub remove ($self) {
     # TODO remove from ban lists
 
     $self->%* = (
-        removed => 1,
-        enabled => 0,
+        removed       => 1,
+        connect_error => 1,
     );
 
     bless $self, 'Pcore::AE::Handle::ProxyPool::Proxy::Removed';
@@ -98,90 +121,112 @@ sub remove ($self) {
     return;
 }
 
-sub disable ( $self, $timeout = undef ) {
-    return if !$self->{enabled};
-
-    $self->{enabled} = 0;
-
-    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `enabled` = 0, `enable_ts` = ? WHERE `pool_id` = ?');
-
-    $self->{enable_ts} = time + ( $timeout // $self->source->pool->disable_timeout );
-
-    $q1->do( bind => [ $self->{enable_ts}, $self->pool_id ] );
-
-    return;
-}
-
-sub enable ($self) {
-    return if $self->{is_enabled};
-
-    $self->{is_enabled} = 1;
-
-    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `enabled` = 1 WHERE `pool_id` = ?');
-
-    $q1->do( bind => [ $self->pool_id ] );
-
-    return;
-}
-
 # TODO
-sub ban ( $self, $key, $timeout = undef ) {
+sub ban ( $self, $host, $timeout = undef ) {
+    return if $self->source->is_multiproxy;
+
+    $timeout //= $self->ban_timeout;
+
     return;
 }
 
 # CONNECT METHODS
-sub connect_ok ($self) {
+# TODO should be called AUTOMATICALLY after each connect attempt
+sub post_connect_ok ($self) {
     $self->{connect_errors} = 0;
+
+    # drop "connect_error" flag
+    if ( $self->{connect_error} ) {
+        $self->{connect_error} = 0;
+
+        state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `pool_id` = ?');
+
+        $q1->do( bind => [ $self->pool_id ] );
+    }
 
     return;
 }
 
-sub connect_error ($self) {
-    return if !$self->{enabled};
+sub post_connect_error ($self) {
+    return if $self->{connect_error};
+
+    # set "connect_error" flag
+    $self->{connect_error} = 0;
 
     $self->{connect_errors}++;
 
-    if ( $self->{connect_errors} >= $self->source->pool->max_connect_errors ) {
+    if ( $self->{connect_errors} >= $self->max_connect_errors ) {
         $self->remove;
     }
     else {
-        $self->disable;
+        state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `connect_error` = 1, `connect_error_time` = ? WHERE `pool_id` = ?');
+
+        $self->{connect_error_time} = time + $self->connect_error_timeout;
+
+        $q1->do( bind => [ $self->{connect_error_time}, $self->pool_id ] );
     }
 
     return;
 }
 
-# CONNECT
-sub connect ( $self, $connect, $cb ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    my $can_connect = $self->{enabled} && $self->{source}->can_connect && $self->{threads} < $self->{max_threads};
-
-    if ($can_connect) {
-        $self->start_thread;
-
-        # TODO return proxy type
-        $cb->(1);
-    }
-    else {
-        # store callback
-    }
-
-    return;
-}
-
-sub start_thread ($self) {
+sub _start_thread ($self) {
     $self->{threads}++;
+
+    $self->{total_threads}++;
+
+    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ?, `total_threads` = ? WHERE `pool_id` = ?');
+
+    $q1->do( bind => [ $self->{threads}, $self->{total_threads}, $self->{pool_id} ] );
 
     $self->{source}->start_thread;
 
     return;
 }
 
+# TODO call waiting callbacks
+# if proxy has connect_error - call all callbacks
 sub finish_thread ($self) {
     $self->{threads}--;
+
+    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ? WHERE `pool_id` = ?');
+
+    $q1->do( bind => [ $self->{threads}, $self->{pool_id} ] );
 
     $self->{source}->finish_thread;
 
     return;
+}
+
+# CONNECT
+sub can_connect ( $self, $connect, $cb = undef ) {
+    my $can_connect = !$self->{connect_error} && $self->{source}->can_connect && $self->{threads} < $self->max_threads;
+
+    if ($can_connect) {
+        $self->_start_thread;
+
+        if ($cb) {
+
+            # TODO return proxy type
+            $cb->(1);
+
+            return;
+        }
+        else {
+            return 1;
+        }
+    }
+    else {
+        if ($cb) {
+
+            # TODO cache callack
+            $cb->(0);
+
+            return;
+        }
+        else {
+            return;
+        }
+    }
 }
 
 # CHECK PROXY
@@ -477,18 +522,19 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 91                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 114                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 413, 467             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 458, 512             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 467                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 512                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 83, 87, 106, 120     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 106, 110, 142, 162,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 177, 191             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 447                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 492                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 496                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 500 does not match the package declaration      │
+## │    1 │ 542                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 546 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
