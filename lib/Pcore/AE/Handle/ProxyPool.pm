@@ -11,8 +11,8 @@ has max_threads_source    => ( is => 'ro', isa => PositiveOrZeroInt, default => 
 has maintanance_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
 
 has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
-has _timer => ( is => 'ro', init_arg => undef );
-has _connect_id => ( is => 'ro', default => sub { {} }, init_arg => undef );
+has _timer      => ( is => 'ro',   init_arg => undef );
+has _connect_id => ( is => 'lazy', init_arg => undef );
 
 has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -70,7 +70,10 @@ sub _build_dbh ($self) {
                 `connect_error` INTEGER NOT NULL DEFAULT 0,
                 `connect_error_time` INTEGER NOT NULL DEFAULT 0,
                 `threads` INTEGER NOT NULL DEFAULT 0,
-                `max_threads` INTEGER NOT NULL
+                `max_threads` INTEGER NOT NULL,
+                `http_80` INTEGER NOT NULL DEFAULT -1, -- -1 = not tested, 0 = not avail. 1 = ok
+                `https_443` INTEGER NOT NULL DEFAULT -1 -- -1 = not tested, 0 = not avail. 1 = ok
+                `whois_43` INTEGER NOT NULL DEFAULT -1 -- -1 = not tested, 0 = not avail. 1 = ok
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_id` ON `proxy` (`id` ASC);
@@ -88,6 +91,14 @@ SQL
     $ddl->upgrade;
 
     return $dbh;
+}
+
+sub _build__connect_id ($self) {
+    return {
+        http_80   => 1,
+        https_443 => 1,
+        whois_43  => 1,
+    };
 }
 
 # TODO throw event, some proxies was enabled
@@ -138,7 +149,7 @@ sub _add_connect_id ( $self, $connect_id ) {
     $self->{connect_id}->{$connect_id} = 1;
 
     my $sql = <<"SQL";
-        ALTER TABLE `proxy` ADD COLUMN `$connect_id`;
+        ALTER TABLE `proxy` ADD COLUMN `$connect_id` INTEGER NOT NULL DEFAULT -1; -- -1 = not tested, 0 = not avail. 1 = ok
 
         CREATE INDEX IF NOT EXISTS `idx_proxy_$connect_id` ON `proxy` (`$connect_id` DESC);
 SQL
@@ -162,11 +173,11 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 25, 111              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 25, 122              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 58                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 135                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_add_connect_id' declared but not   │
+## │    3 │ 146                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_add_connect_id' declared but not   │
 ## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
