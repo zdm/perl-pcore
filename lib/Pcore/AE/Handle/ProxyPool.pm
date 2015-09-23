@@ -11,9 +11,12 @@ has _check_timer => ( is => 'ro', init_arg => undef );
 
 has ban_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );     # 0 - don't ban proxies
 
-has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::Proxy::Source'] ], default => sub { [] }, init_arg => undef );
+has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
 
 has _on_proxy_activated => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+
+has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
+has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 no Pcore;
 
@@ -26,7 +29,7 @@ sub BUILD ( $self, $args ) {
 
             $args{pool} = $self;
 
-            my $source = P->class->load( delete $args{class}, ns => 'Pcore::Proxy::Source' )->new( \%args );
+            my $source = P->class->load( delete $args{class}, ns => 'Pcore::AE::Handle::ProxyPool::Source' )->new( \%args );
 
             # set source load timeout = pool load timeout, if source timeout is not defined
             $source->{load_timeout} = $self->load_timeout if !defined $source->load_timeout;
@@ -62,13 +65,48 @@ sub BUILD ( $self, $args ) {
     }
 
     # create check timer
-    $self->{_check_timer} = AE::timer $self->check_timeout, $self->check_timeout, sub {
-        $self->_on_check_timer;
-
-        return;
-    };
+    # $self->{_check_timer} = AE::timer $self->check_timeout, $self->check_timeout, sub {
+    #     $self->_on_check_timer;
+    #
+    #     return;
+    # };
 
     return;
+}
+
+sub _build_dbh ($self) {
+    H->add(
+        __proxy_pool => 'SQLite',
+
+        addr => 'memory://',
+
+        # addr => 'file:./proxy-pool.sqlite',
+    );
+
+    my $dbh = H->__proxy_pool;
+
+    my $ddl = $dbh->ddl;
+
+    $ddl->add_changeset(
+        id  => 1,
+        sql => <<'SQL'
+            CREATE TABLE IF NOT EXISTS `proxy` (
+                `id` TEXT PRIMARY KEY NOT NULL,
+                `disabled` INTEGER NOT NULL DEFAULT 0,
+                `threads` INTEGER NOT NULL DEFAULT 0
+            );
+
+            -- CREATE INDEX IF NOT EXISTS `idx_proxy_disabled` ON `proxy` (`disabled` DESC);
+
+            -- CREATE INDEX IF NOT EXISTS `idx_proxy_threads` ON `proxy` (`threads` ASC);
+
+            CREATE INDEX IF NOT EXISTS `idx_proxy_disabled_threads` ON `proxy` (`disabled` DESC, `threads` ASC);
+SQL
+    );
+
+    $ddl->upgrade;
+
+    return $dbh;
 }
 
 sub _on_load_timer ($self) {
@@ -84,11 +122,6 @@ sub _on_check_timer ($self) {
         $source->on_check_timer;
     }
 
-    return;
-}
-
-# TODO
-sub on_proxy_activated ( $self, $source, $proxy ) {
     return;
 }
 
@@ -140,9 +173,14 @@ sub get_proxy ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 25                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 28                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 96                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    3 │ 86                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 120                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_on_check_timer' declared but not   │
+## │      │                      │ used                                                                                                           │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 129                  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

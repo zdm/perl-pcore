@@ -7,7 +7,7 @@ use Const::Fast qw[const];
 
 extends qw[Pcore::Util::URI];
 
-has _source => ( is => 'ro', isa => ConsumerOf ['Pcore::Proxy::Source'], required => 1, weak_ref => 1 );
+has proxy_source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'], required => 1, weak_ref => 1 );
 
 has id      => ( is => 'lazy', isa => Str, init_arg => undef );
 has refaddr => ( is => 'lazy', isa => Int, init_arg => undef );
@@ -18,8 +18,10 @@ has is_deleted => ( is => 'ro', default => 0, init_arg => undef );    # proxy is
 has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-around new => sub ( $orig, $self, $uri ) {
+around new => sub ( $orig, $self, $uri, $source ) {
     if ( my $args = $self->_parse_uri($uri) ) {
+        $args->{proxy_source} = $source;
+
         $self->$orig($args);
     }
     else {
@@ -392,14 +394,14 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 328, 382             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 330, 384             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 382                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 384                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 362                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 364                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 407                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 411 does not match the package declaration      │
+## │    1 │ 409                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 413 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

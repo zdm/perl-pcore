@@ -12,7 +12,7 @@ has switch_identity => ( is => 'ro', isa => Bool,        default   => 0 );      
 
 has '+load_timeout' => ( default => 0 );
 
-around get_proxy => sub ( $orig, $self, @args ) {
+around start_thread => sub ( $orig, $self, @args ) {
     my $proxy = $self->$orig(@args);
 
     $self->new_identity if $proxy and $self->switch_identity;
