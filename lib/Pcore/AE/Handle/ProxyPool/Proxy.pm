@@ -1,6 +1,7 @@
 package Pcore::AE::Handle::ProxyPool::Proxy;
 
 use Pcore qw[-class];
+use Pcore::AE::Handle::ProxyPool::Proxy::Removed;
 use Pcore::AE::Handle;
 use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
 use Const::Fast qw[const];
@@ -12,10 +13,14 @@ has source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::So
 has id      => ( is => 'lazy', isa => Str, init_arg => undef );
 has pool_id => ( is => 'ro',   isa => Int, init_arg => undef );
 
-has is_disabled => ( is => 'ro', default => 0, init_arg => undef );    # can connect to the proxy
+has removed => ( is => 'ro', default => 0, init_arg => undef );
+has enabled => ( is => 'ro', default => 1, init_arg => undef );
 
 has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+
+has enable_try     => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+has connect_errors => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
     if ( my $args = $self->_parse_uri($uri) ) {
@@ -73,6 +78,79 @@ sub _build_id ($self) {
     return $self->hostport;
 }
 
+# TODO remove from ban lists
+sub remove ($self) {
+    state $q1 = $self->source->pool->dbh->query('DELETE FROM `proxy` WHERE `pool_id` = ?');
+
+    $q1->do( bind => [ $self->pool_id ] );
+
+    delete $self->source->pool->list->{ $self->id };
+
+    # TODO remove from ban lists
+
+    $self->%* = (
+        removed => 1,
+        enabled => 0,
+    );
+
+    bless $self, 'Pcore::AE::Handle::ProxyPool::Proxy::Removed';
+
+    return;
+}
+
+sub disable ( $self, $timeout = undef ) {
+    return if !$self->{enabled};
+
+    $self->{enabled} = 0;
+
+    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `enabled` = 0, `enable_ts` = ? WHERE `pool_id` = ?');
+
+    $self->{enable_ts} = time + ( $timeout // $self->source->pool->disable_timeout );
+
+    $q1->do( bind => [ $self->{enable_ts}, $self->pool_id ] );
+
+    return;
+}
+
+sub enable ($self) {
+    return if $self->{is_enabled};
+
+    $self->{is_enabled} = 1;
+
+    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `enabled` = 1 WHERE `pool_id` = ?');
+
+    $q1->do( bind => [ $self->pool_id ] );
+
+    return;
+}
+
+sub ban ( $self, $key, $timeout = undef ) {
+    return;
+}
+
+# CONNECT METHODS
+sub connect_ok ($self) {
+    $self->{connect_errors} = 0;
+
+    return;
+}
+
+sub connect_error ($self) {
+    return if !$self->{enabled};
+
+    $self->{connect_errors}++;
+
+    if ( $self->{connect_errors} >= $self->source->pool->max_connect_errors ) {
+        $self->remove;
+    }
+    else {
+        $self->disable;
+    }
+
+    return;
+}
+
+# THREADS
 # TODO wait for proxy
 sub start_thread ( $self, $cb ) {
     $self->{threads}++;
@@ -85,34 +163,6 @@ sub start_thread ( $self, $cb ) {
 sub finish_thread ($self) {
     $self->{threads}--;
 
-    return;
-}
-
-sub disable ( $self, $timeout = undef ) {
-    return if $self->{is_disabled};
-
-    $self->{is_disabled} = 1;
-
-    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `disabled` = 1, `disabled_ts` = ? WHERE `pool_id` = ?');
-
-    $q1->do( bind => [ time + $self->source->pool->check_timeout, $self->pool_id ] );
-
-    return;
-}
-
-sub enable ($self) {
-    return if !$self->{is_disabled};
-
-    $self->{is_disabled} = 0;
-
-    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `disabled` = 0 WHERE `pool_id` = ?');
-
-    $q1->do( bind => [ $self->pool_id ] );
-
-    return;
-}
-
-sub ban ( $self, $key, $timeout = undef ) {
     return;
 }
 
@@ -409,16 +459,18 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 345, 399             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 91                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 399                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 395, 449             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 449                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 96, 108              │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 83, 87, 106, 120     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 379                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 429                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 426                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 430 does not match the package declaration      │
+## │    1 │ 478                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 482 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

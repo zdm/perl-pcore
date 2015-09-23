@@ -5,11 +5,12 @@ use Pcore qw[-class];
 has load_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - don't re-load proxy sources
 has _load_timer => ( is => 'ro', init_arg => undef );
 
-has check_timeout => ( is => 'ro', isa => PositiveInt, default => 180 );        # timeout for re-check disabled proxies
-has check_failure => ( is => 'ro', isa => PositiveInt, default => 3 );          # max. failed check attempts, after proxy will be removed from pool
+has disable_timeout    => ( is => 'ro', isa => PositiveInt, default => 180 );    # timeout for re-check disabled proxies
+has max_connect_errors => ( is => 'ro', isa => PositiveInt, default => 3 );      # max. failed check attempts, after proxy will be removed from pool
+
 has _check_timer => ( is => 'ro', init_arg => undef );
 
-has ban_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );     # 0 - don't ban proxies
+has ban_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );      # 0 - don't ban proxies
 
 has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
 
@@ -95,18 +96,20 @@ sub _build_dbh ($self) {
                 `pool_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `id` TEXT NOT NULL,
                 `source_id` INTEGER NOT NULL,
-                `disabled` INTEGER NOT NULL DEFAULT 0,
-                `disabled_ts` INTEGER NOT NULL DEFAULT 0,
+                `enabled` INTEGER NOT NULL DEFAULT 1,
+                `enable_ts` INTEGER NOT NULL DEFAULT 0,
                 `threads` INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_id` ON `proxy` (`id` ASC);
 
+            CREATE INDEX IF NOT EXISTS `idx_proxy_enabled_enable_ts` ON `proxy` (`enabled` ASC, `enable_ts` ASC);
+
             -- CREATE INDEX IF NOT EXISTS `idx_proxy_disabled` ON `proxy` (`disabled` DESC);
 
             -- CREATE INDEX IF NOT EXISTS `idx_proxy_threads` ON `proxy` (`threads` ASC);
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_disabled_threads` ON `proxy` (`disabled` DESC, `threads` ASC);
+            -- CREATE INDEX IF NOT EXISTS `idx_proxy_disabled_threads` ON `proxy` (`disabled` DESC, `threads` ASC);
 SQL
     );
 
@@ -124,8 +127,15 @@ sub _on_load_timer ($self) {
 }
 
 sub _on_check_timer ($self) {
-    for my $source ( $self->_source->@* ) {
-        $source->on_check_timer;
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `enabled` = 1 WHERE `enabled` = 0 AND `enable_ts` <= ?');
+
+    my $time = time;
+
+    # TODO check reetur val
+    if ( $q1->do( bind => [$time] ) ) {
+        for my $proxy ( values $self->list->%* ) {
+            $proxy->{enabled} = 1 if !$proxy->{enabled} && $proxy->{enable_ts} <= $time;
+        }
     }
 
     return;
@@ -158,11 +168,11 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 28                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 29, 136              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 87                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 88                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 126                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_on_check_timer' declared but not   │
+## │    3 │ 129                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_on_check_timer' declared but not   │
 ## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
