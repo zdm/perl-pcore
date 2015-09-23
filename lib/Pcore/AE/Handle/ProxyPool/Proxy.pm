@@ -185,7 +185,7 @@ sub _start_thread ($self) {
 
 # TODO call waiting callbacks
 # if proxy has connect_error - call all callbacks
-sub finish_thread ($self) {
+sub _finish_thread ($self) {
     $self->{threads}--;
 
     state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ? WHERE `pool_id` = ?');
@@ -524,10 +524,11 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 114                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 458, 512             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
+## │      │ 188                  │ * Private subroutine/method '_finish_thread' declared but not used                                             │
+## │      │ 512                  │ * Private subroutine/method '_test_scheme_whois' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 512                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
-## │      │                      │ not used                                                                                                       │
+## │    3 │ 458, 512             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 106, 110, 142, 162,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## │      │ 177, 191             │                                                                                                                │

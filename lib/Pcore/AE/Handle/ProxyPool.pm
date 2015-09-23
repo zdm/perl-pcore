@@ -12,6 +12,7 @@ has maintanance_timeout   => ( is => 'ro', isa => PositiveInt,       default => 
 
 has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
 has _timer => ( is => 'ro', init_arg => undef );
+has _connect_id => ( is => 'ro', default => sub { {} }, init_arg => undef );
 
 has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -131,21 +132,21 @@ sub add_proxy ( $self, $proxy ) {
     return;
 }
 
-# sub add_connect_id ( $self, $connect_id ) {
-#     return if exists $CONNECT_ID->{$connect_id};
-#
-#     $CONNECT_ID->{connect_id} = 1;
-#
-#     my $sql = <<"SQL";
-#         ALTER TABLE `proxy` ADD COLUMN `$connect_id`;
-#
-#         CREATE INDEX IF NOT EXISTS `idx_proxy_$connect_id` ON `proxy` (`$connect_id` DESC);
-# SQL
-#
-#     $self->dbh->do($sql);
-#
-#     return;
-# }
+sub _add_connect_id ( $self, $connect_id ) {
+    return if exists $self->{connect_id}->{$connect_id};
+
+    $self->{connect_id}->{$connect_id} = 1;
+
+    my $sql = <<"SQL";
+        ALTER TABLE `proxy` ADD COLUMN `$connect_id`;
+
+        CREATE INDEX IF NOT EXISTS `idx_proxy_$connect_id` ON `proxy` (`$connect_id` DESC);
+SQL
+
+    $self->dbh->do($sql);
+
+    return;
+}
 
 # TODO
 sub get_proxy ( $self, $connect, $cb ) {
@@ -161,9 +162,12 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 24, 110              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 25, 111              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 57                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 58                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 135                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_add_connect_id' declared but not   │
+## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
