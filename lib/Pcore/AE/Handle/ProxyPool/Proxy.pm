@@ -19,7 +19,7 @@ has enabled => ( is => 'ro', default => 1, init_arg => undef );
 has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-has enable_try     => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+has enable_ts      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
 has connect_errors => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
@@ -124,6 +124,7 @@ sub enable ($self) {
     return;
 }
 
+# TODO
 sub ban ( $self, $key, $timeout = undef ) {
     return;
 }
@@ -461,16 +462,16 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 91                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 395, 449             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 396, 450             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 449                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 450                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 83, 87, 106, 120     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 429                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 430                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 478                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 482 does not match the package declaration      │
+## │    1 │ 479                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 483 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
