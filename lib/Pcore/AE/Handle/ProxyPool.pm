@@ -75,12 +75,13 @@ sub BUILD ( $self, $args ) {
 }
 
 sub _build_dbh ($self) {
+    unlink 'proxy-pool.sqlite' or 1;
+
     H->add(
         __proxy_pool => 'SQLite',
 
-        addr => 'memory://',
-
-        # addr => 'file:./proxy-pool.sqlite',
+        # addr => 'memory://',
+        addr => 'file:./proxy-pool.sqlite',
     );
 
     my $dbh = H->__proxy_pool;
@@ -91,10 +92,15 @@ sub _build_dbh ($self) {
         id  => 1,
         sql => <<'SQL'
             CREATE TABLE IF NOT EXISTS `proxy` (
-                `id` TEXT PRIMARY KEY NOT NULL,
+                `pool_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `id` TEXT NOT NULL,
+                `source_id` INTEGER NOT NULL,
                 `disabled` INTEGER NOT NULL DEFAULT 0,
+                `disabled_ts` INTEGER NOT NULL DEFAULT 0,
                 `threads` INTEGER NOT NULL DEFAULT 0
             );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_id` ON `proxy` (`id` ASC);
 
             -- CREATE INDEX IF NOT EXISTS `idx_proxy_disabled` ON `proxy` (`disabled` DESC);
 
@@ -125,45 +131,24 @@ sub _on_check_timer ($self) {
     return;
 }
 
-sub get_proxy ( $self, @ ) {
-    my %args = (
-        list => 'any',
-        cb   => undef,
-        wait => 0,
-        @_[ 1 .. $#_ ]
-    );
+sub add_proxy ( $self, $proxy ) {
+    return if exists $self->list->{ $proxy->id };
 
-    my $proxy;
+    state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `source_id`) VALUES (?, ?)');
 
-    my $source;
+    $q1->do( bind => [ $proxy->id, $proxy->source->id ] );
 
-    my $weight;
+    $proxy->{pool_id} = $self->dbh->last_insert_id;
 
-    for ( $self->_source->@* ) {
-        if ( my $w = $_->get_weight( $args{list} ) ) {
-            $weight += $w;
+    $self->list->{ $proxy->id } = $proxy;
 
-            $source = $_ if rand($weight) < $w;
-        }
-    }
+    return;
+}
 
-    $proxy = $source->get_proxy( $args{list} ) if $source;
+sub get_proxy ( $self, $connect, $cb ) {
+    $cb->( $self->list->{'192.168.175.1:9050'} );
 
-    if ( $args{cb} ) {
-        if ( !$proxy && $args{wait} ) {
-            push $self->{_on_proxy_activated}->{ $args{list} }->@*, $args{cb};
-        }
-        else {
-            $args{cb}->($proxy);
-        }
-
-        return;
-    }
-    else {
-        return $proxy;
-    }
-
-    return $proxy;
+    return;
 }
 
 1;
@@ -175,12 +160,10 @@ sub get_proxy ( $self, @ ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 28                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 86                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 87                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 120                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_on_check_timer' declared but not   │
+## │    3 │ 126                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_on_check_timer' declared but not   │
 ## │      │                      │ used                                                                                                           │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 129                  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

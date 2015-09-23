@@ -12,13 +12,13 @@ has switch_identity => ( is => 'ro', isa => Bool,        default   => 0 );      
 
 has '+load_timeout' => ( default => 0 );
 
-around start_thread => sub ( $orig, $self, @args ) {
-    my $proxy = $self->$orig(@args);
-
-    $self->new_identity if $proxy and $self->switch_identity;
-
-    return $proxy;
-};
+# around start_thread => sub ( $orig, $self, @args ) {
+#     my $proxy = $self->$orig(@args);
+#
+#     $self->new_identity if $proxy and $self->switch_identity;
+#
+#     return $proxy;
+# };
 
 no Pcore;
 
@@ -44,10 +44,6 @@ sub update_proxy_status ( $self, $proxy ) {
     $self->_pool->update_proxy_status($proxy);
 
     return;
-}
-
-sub id ($self) {
-    return $self->_id;
 }
 
 # TODO connection cache not work

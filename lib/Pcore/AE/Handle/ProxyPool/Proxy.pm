@@ -7,20 +7,19 @@ use Const::Fast qw[const];
 
 extends qw[Pcore::Util::URI];
 
-has proxy_source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'], required => 1, weak_ref => 1 );
+has source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'], required => 1, weak_ref => 1 );
 
 has id      => ( is => 'lazy', isa => Str, init_arg => undef );
-has refaddr => ( is => 'lazy', isa => Int, init_arg => undef );
+has pool_id => ( is => 'ro',   isa => Int, init_arg => undef );
 
-has is_enabled => ( is => 'ro', default => 1, init_arg => undef );    # can connect to the proxy
-has is_deleted => ( is => 'ro', default => 0, init_arg => undef );    # proxy is removed from pool
+has is_disabled => ( is => 'ro', default => 0, init_arg => undef );    # can connect to the proxy
 
 has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
     if ( my $args = $self->_parse_uri($uri) ) {
-        $args->{proxy_source} = $source;
+        $args->{source} = $source;
 
         $self->$orig($args);
     }
@@ -90,9 +89,25 @@ sub finish_thread ($self) {
 }
 
 sub disable ( $self, $timeout = undef ) {
-    $self->{is_enabled} = 0;
+    return if $self->{is_disabled};
 
-    say 'DISABLE PROXY';
+    $self->{is_disabled} = 1;
+
+    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `disabled` = 1, `disabled_ts` = ? WHERE `pool_id` = ?');
+
+    $q1->do( bind => [ time + $self->source->pool->check_timeout, $self->pool_id ] );
+
+    return;
+}
+
+sub enable ($self) {
+    return if !$self->{is_disabled};
+
+    $self->{is_disabled} = 0;
+
+    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `disabled` = 0 WHERE `pool_id` = ?');
+
+    $q1->do( bind => [ $self->pool_id ] );
 
     return;
 }
@@ -394,14 +409,16 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 330, 384             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 345, 399             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 384                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 399                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 364                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 96, 108              │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 409                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 413 does not match the package declaration      │
+## │    2 │ 379                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 426                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 430 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

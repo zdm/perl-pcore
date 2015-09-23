@@ -7,6 +7,8 @@ requires qw[load];
 
 has pool => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool'], required => 1, weak_ref => 1 );
 
+has id => ( is => 'lazy', isa => Int, init_arg => undef );
+
 has max_threads_source => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );     # max. num. of threads, allowed simultaneously to all proxies from this source, 0 - any num. of threads allowed
 has max_threads_proxy  => ( is => 'ro', isa => PositiveOrZeroInt, default => 20 );
 has max_threads_check  => ( is => 'ro', isa => PositiveInt,       default => 20 );    # max. allowed parallel check threads
@@ -20,9 +22,7 @@ has threads => ( is => 'ro', default => 0, init_arg => undef );                 
 has _load_next_time   => ( is => 'ro', init_arg => undef );
 has _load_in_progress => ( is => 'ro', init_arg => undef );
 
-has index => ( is => 'lazy', isa => Int, init_arg => undef );
-
-our $_INDEX = 0;
+our $_ID = 0;
 
 around load => sub ( $orig, $self ) {
 
@@ -39,7 +39,7 @@ around load => sub ( $orig, $self ) {
 
     $self->$orig(
         sub ($uris) {
-            my $list = $self->pool->list;
+            my $pool = $self->pool;
 
             for my $uri ( $uris->@* ) {
                 my $proxy = Pcore::AE::Handle::ProxyPool::Proxy->new( $uri, $self );
@@ -47,11 +47,7 @@ around load => sub ( $orig, $self ) {
                 # proxy object wasn't created, generally due to uri parsing errors
                 next if !$proxy;
 
-                my $id = $proxy->id;
-
-                if ( !exists $list->{$id} ) {
-                    $list->{$id} = $proxy;
-                }
+                $pool->add_proxy($proxy);
             }
 
             # update next source load timeout
@@ -74,8 +70,8 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-sub _build_index ($self) {
-    return ++$_INDEX;
+sub _build_id ($self) {
+    return ++$_ID;
 }
 
 sub start_thread ($self) {
