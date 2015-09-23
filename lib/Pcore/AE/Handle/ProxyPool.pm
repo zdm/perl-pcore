@@ -71,9 +71,9 @@ sub _build_dbh ($self) {
                 `connect_error_time` INTEGER NOT NULL DEFAULT 0,
                 `threads` INTEGER NOT NULL DEFAULT 0,
                 `max_threads` INTEGER NOT NULL,
-                `http_80` INTEGER NOT NULL DEFAULT -1, -- -1 = not tested, 0 = not avail. 1 = ok
-                `https_443` INTEGER NOT NULL DEFAULT -1 -- -1 = not tested, 0 = not avail. 1 = ok
-                `whois_43` INTEGER NOT NULL DEFAULT -1 -- -1 = not tested, 0 = not avail. 1 = ok
+                `http_80` INTEGER NOT NULL DEFAULT -1,       -- -1 = not tested, 0 = not avail. 1 = ok
+                `https_443` INTEGER NOT NULL DEFAULT -1,     -- -1 = not tested, 0 = not avail. 1 = ok
+                `whois_43` INTEGER NOT NULL DEFAULT -1       -- -1 = not tested, 0 = not avail. 1 = ok
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_id` ON `proxy` (`id` ASC);
@@ -144,9 +144,9 @@ sub add_proxy ( $self, $proxy ) {
 }
 
 sub _add_connect_id ( $self, $connect_id ) {
-    return if exists $self->{connect_id}->{$connect_id};
+    return if exists $self->_connect_id->{$connect_id};
 
-    $self->{connect_id}->{$connect_id} = 1;
+    $self->{_connect_id}->{$connect_id} = 1;
 
     my $sql = <<"SQL";
         ALTER TABLE `proxy` ADD COLUMN `$connect_id` INTEGER NOT NULL DEFAULT -1; -- -1 = not tested, 0 = not avail. 1 = ok
@@ -160,8 +160,42 @@ SQL
 }
 
 # TODO
-sub get_proxy ( $self, $connect, $cb ) {
-    $cb->( $self->list->{'192.168.175.1:9050'} );
+sub get_proxy ( $self, $connect, @ ) {
+    my $cb = $_[-1];
+
+    my %args = (
+        ban => 0,
+        @_[ 2 .. $#_ - 1 ],
+    );
+
+    state $cache = {};
+
+    $connect->[2] //= 'tcp';
+
+    $connect->[3] //= $connect->[2] . q[_] . $connect->[1];
+
+    $self->_add_connect_id( $connect->[3] );
+
+    $cache->{ $connect->[3] } //= $self->dbh->query(
+        <<"SQL"
+            SELECT `id`
+            FROM `proxy`
+            WHERE
+                `connect_error` = 0
+                AND `source_can_connect` = 1
+                AND `$connect->[3]` <> 0
+                AND `threads` < `max_threads`
+            ORDER BY `threads` ASC
+            LIMIT 1
+SQL
+    );
+
+    if ( my $res = $cache->{ $connect->[3] }->selectval ) {
+        $cb->( $self->list->{ $res->$* } );
+    }
+    else {
+        $cb->();
+    }
 
     return;
 }
@@ -176,9 +210,6 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## │    3 │ 25, 122              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 58                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 146                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_add_connect_id' declared but not   │
-## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
