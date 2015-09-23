@@ -8,13 +8,12 @@ has _load_timer => ( is => 'ro', init_arg => undef );
 has disable_timeout    => ( is => 'ro', isa => PositiveInt, default => 180 );    # timeout for re-check disabled proxies
 has max_connect_errors => ( is => 'ro', isa => PositiveInt, default => 3 );      # max. failed check attempts, after proxy will be removed from pool
 
-has _check_timer => ( is => 'ro', init_arg => undef );
+has purge_timeout => ( is => 'ro', isa => PositiveInt, default => 180 );         # timeout for re-check disabled proxies
+has _purge_timer => ( is => 'ro', init_arg => undef );
 
 has ban_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );      # 0 - don't ban proxies
 
 has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
-
-has _on_proxy_activated => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -66,11 +65,11 @@ sub BUILD ( $self, $args ) {
     }
 
     # create check timer
-    # $self->{_check_timer} = AE::timer $self->check_timeout, $self->check_timeout, sub {
-    #     $self->_on_check_timer;
-    #
-    #     return;
-    # };
+    $self->{_purge_timer} = AE::timer $self->purge_timeout, $self->purge_timeout, sub {
+        $self->_on_purge_timer;
+
+        return;
+    };
 
     return;
 }
@@ -126,12 +125,12 @@ sub _on_load_timer ($self) {
     return;
 }
 
-sub _on_check_timer ($self) {
+# TODO throw event, if has enabled proxies
+sub _on_purge_timer ($self) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `enabled` = 1 WHERE `enabled` = 0 AND `enable_ts` <= ?');
 
     my $time = time;
 
-    # TODO check reetur val
     if ( $q1->do( bind => [$time] ) ) {
         for my $proxy ( values $self->list->%* ) {
             $proxy->{enabled} = 1 if !$proxy->{enabled} && $proxy->{enable_ts} <= $time;
@@ -168,12 +167,9 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29, 136              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 28, 135              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 88                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 129                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_on_check_timer' declared but not   │
-## │      │                      │ used                                                                                                           │
+## │    3 │ 87                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
