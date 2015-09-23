@@ -1,8 +1,8 @@
-package Pcore::Proxy::Source::WorldOfProxy;
+package Pcore::AE::Handle::ProxyPool::Source::WorldOfProxy;
 
 use Pcore qw[-class];
 
-with qw[Pcore::Proxy::Source];
+with qw[Pcore::AE::Handle::ProxyPool::Source];
 
 has api_key      => ( is => 'ro', isa => Str,         required => 1 );
 has http_timeout => ( is => 'ro', isa => PositiveInt, default  => 10 );
@@ -71,7 +71,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Proxy::Source::WorldOfProxy
+Pcore::AE::Handle::ProxyPool::Source::WorldOfProxy
 
 =head1 SYNOPSIS
 

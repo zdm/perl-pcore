@@ -1,4 +1,4 @@
-package Pcore::Proxy::Source;
+package Pcore::AE::Handle::ProxyPool::Source;
 
 use Pcore qw[-role];
 use Pcore::Proxy::Pool::Proxy;
@@ -418,7 +418,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Proxy::Source
+Pcore::AE::Handle::ProxyPool::Source
 
 =head1 SYNOPSIS
 

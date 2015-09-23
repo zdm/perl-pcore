@@ -5,7 +5,6 @@ use parent qw[AnyEvent::Handle];
 use AnyEvent::Socket qw[];
 use Pcore::AE::DNS::Cache;
 use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
-use Pcore::Proxy;
 use Pcore::HTTP::Message::Headers;
 use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF HEADERS_NONE];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
@@ -73,8 +72,6 @@ sub new ( $self, @ ) {
         $args{persistent_id} .= q[?session=] . $args{session} if defined $args{session};
 
         if ( $args{proxy} ) {
-            $args{proxy} = Pcore::Proxy->new( $args{proxy} ) if !ref $args{proxy};
-
             $args{persistent_id} .= defined $args{session} ? q[&] : q[?];
 
             $args{persistent_id} .= q[proxy=] . $args{proxy}->hostport;
@@ -845,28 +842,28 @@ sub fetch ( $self, $id ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 146                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
+## │    3 │ 143                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 284                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 281                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 293, 321, 436        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 290, 318, 433        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 34, 325, 328, 347,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 350, 353, 448        │                                                                                                                │
+## │    2 │ 33, 322, 325, 344,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 347, 350, 445        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 572, 771             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 569, 768             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 880 does not specify text                                                   │
-## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 888 does not specify text                                                   │
-## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 916 does not specify text                                                   │
-## │      │ 874                  │ * Link L<AnyEvent::Handle> on line 932 does not specify text                                                   │
-## │      │ 874                  │ * Link L<AnyEvent::Socket> on line 932 does not specify text                                                   │
-## │      │ 874, 874             │ * Link L<Pcore::Proxy> on line 898 does not specify text                                                       │
-## │      │ 874                  │ * Link L<Pcore::Proxy> on line 932 does not specify text                                                       │
+## │      │ 871                  │ * Link L<AnyEvent::Handle> on line 877 does not specify text                                                   │
+## │      │ 871                  │ * Link L<AnyEvent::Handle> on line 885 does not specify text                                                   │
+## │      │ 871                  │ * Link L<AnyEvent::Handle> on line 913 does not specify text                                                   │
+## │      │ 871                  │ * Link L<AnyEvent::Handle> on line 929 does not specify text                                                   │
+## │      │ 871                  │ * Link L<AnyEvent::Socket> on line 929 does not specify text                                                   │
+## │      │ 871, 871             │ * Link L<Pcore::Proxy> on line 895 does not specify text                                                       │
+## │      │ 871                  │ * Link L<Pcore::Proxy> on line 929 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 30, 35, 347, 350,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 353, 359, 453        │                                                                                                                │
+## │    1 │ 29, 34, 344, 347,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 350, 356, 450        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

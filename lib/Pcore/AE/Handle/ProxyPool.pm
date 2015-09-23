@@ -1,4 +1,4 @@
-package Pcore::Proxy::Pool;
+package Pcore::AE::Handle::ProxyPool;
 
 use Pcore qw[-class];
 
@@ -153,7 +153,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Proxy::Pool
+Pcore::AE::Handle::ProxyPool
 
 =head1 SYNOPSIS
 

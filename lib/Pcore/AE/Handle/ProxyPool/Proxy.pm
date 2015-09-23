@@ -1,4 +1,4 @@
-package Pcore::Proxy v0.1.0;
+package Pcore::AE::Handle::ProxyPool::Proxy;
 
 use Pcore qw[-class];
 use Pcore::AE::Handle;
@@ -6,6 +6,8 @@ use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
 use Const::Fast qw[const];
 
 extends qw[Pcore::Util::URI];
+
+has _source => ( is => 'ro', isa => ConsumerOf ['Pcore::Proxy::Source'], required => 1, weak_ref => 1 );
 
 has id      => ( is => 'lazy', isa => Str, init_arg => undef );
 has refaddr => ( is => 'lazy', isa => Int, init_arg => undef );
@@ -390,12 +392,14 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 326, 380             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 328, 382             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 380                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 382                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 360                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 362                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 407                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 411 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

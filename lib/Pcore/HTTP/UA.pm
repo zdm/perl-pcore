@@ -17,6 +17,7 @@ use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Request;
 use Pcore::HTTP::CookieJar;
+use Pcore::AE::Handle::ProxyPool;
 use Const::Fast qw[const];
 
 our $USERAGENT = "Mozilla/5.0 (compatible; U; P-AnyEvent-UA/$Pcore::VERSION";
@@ -309,13 +310,6 @@ sub request ( $self, @ ) {
         }
     }
 
-    # process proxy
-    if ( $args->{proxy} && !ref $args->{proxy} ) {
-        require Pcore::Proxy;
-
-        $args->{proxy} = Pcore::Proxy->new( $args->{proxy} );
-    }
-
     $args->{on_finish} = sub {
 
         # rewind body fh
@@ -444,9 +438,9 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 228                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
+## │    3 │ 229                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (39)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 428                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 422                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
