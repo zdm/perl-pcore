@@ -151,18 +151,35 @@ sub connect_error ($self) {
     return;
 }
 
-# THREADS
-# TODO wait for proxy
-sub start_thread ( $self, $cb ) {
+# CONNECT
+sub connect ( $self, $connect, $cb ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    my $can_connect = $self->{enabled} && $self->{source}->can_connect && $self->{threads} < $self->{max_threads};
+
+    if ($can_connect) {
+        $self->start_thread;
+
+        # TODO return proxy type
+        $cb->(1);
+    }
+    else {
+        # store callback
+    }
+
+    return;
+}
+
+sub start_thread ($self) {
     $self->{threads}++;
 
-    $cb->($self);
+    $self->{source}->start_thread;
 
     return;
 }
 
 sub finish_thread ($self) {
     $self->{threads}--;
+
+    $self->{source}->finish_thread;
 
     return;
 }
@@ -462,16 +479,16 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 91                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 396, 450             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 413, 467             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 450                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 467                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 83, 87, 106, 120     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 430                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 447                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 479                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 483 does not match the package declaration      │
+## │    1 │ 496                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 500 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

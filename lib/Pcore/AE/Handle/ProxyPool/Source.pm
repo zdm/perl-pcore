@@ -9,15 +9,14 @@ has pool => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool'], re
 
 has id => ( is => 'lazy', isa => Int, init_arg => undef );
 
-has max_threads_source => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );     # max. num. of threads, allowed simultaneously to all proxies from this source, 0 - any num. of threads allowed
+has max_threads_source => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # max. num. of threads, allowed simultaneously to all proxies from this source, 0 - any num. of threads allowed
 has max_threads_proxy  => ( is => 'ro', isa => PositiveOrZeroInt, default => 20 );
-has max_threads_check  => ( is => 'ro', isa => PositiveInt,       default => 20 );    # max. allowed parallel check threads
 
-has load_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );                 # undef - use global pool settings, 0 - do not reload
+has load_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );                # undef - use global pool settings, 0 - do not reload
 
-has is_multiproxy => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # proxy can not be banned
+has is_multiproxy => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );   # proxy can not be banned
 
-has threads => ( is => 'ro', default => 0, init_arg => undef );                       # current threads (running request through this source)
+has threads => ( is => 'ro', default => 0, init_arg => undef );                      # current threads (running request through this source)
 
 has _load_next_time   => ( is => 'ro', init_arg => undef );
 has _load_in_progress => ( is => 'ro', init_arg => undef );
@@ -74,11 +73,33 @@ sub _build_id ($self) {
     return ++$_ID;
 }
 
+sub can_connect ($self) {
+    return if $self->{max_threads_source} && $self->{threads} >= $self->{max_threads_source};
+
+    return 1;
+}
+
 sub start_thread ($self) {
+    $self->{threads}++;
+
+    if ( $self->{max_threads_source} && $self->{threads} >= $self->{max_threads_source} ) {
+        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_enabled` = 0 WHERE `source_id` = ?');
+
+        $q1->do( bind => [ $self->id ] );
+    }
+
     return;
 }
 
 sub finish_thread ($self) {
+    $self->{threads}--;
+
+    if ( $self->{max_threads_source} && $self->{threads} < $self->{max_threads_source} ) {
+        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_enabled` = 1 WHERE `source_id` = ?');
+
+        $q1->do( bind => [ $self->id ] );
+    }
+
     return;
 }
 

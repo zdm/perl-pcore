@@ -20,6 +20,7 @@ has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => und
 
 no Pcore;
 
+# TODO maybe automatically select purge timeout
 sub BUILD ( $self, $args ) {
     if ( $args->{source} ) {
         my $min_source_load_timeout = 0;
@@ -125,7 +126,7 @@ sub _on_load_timer ($self) {
     return;
 }
 
-# TODO throw event, if has enabled proxies
+# TODO throw event, some proxies was enabled
 sub _on_purge_timer ($self) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `enabled` = 1 WHERE `enabled` = 0 AND `enable_ts` <= ?');
 
@@ -154,6 +155,23 @@ sub add_proxy ( $self, $proxy ) {
     return;
 }
 
+sub add_connect_id ( $self, $connect_id ) {
+    return if exists $CONNECT_ID->{$connect_id};
+
+    $CONNECT_ID->{connect_id} = 1;
+
+    my $sql = <<"SQL";
+        ALTER TABLE `proxy` ADD COLUMN `$connect_id`;
+
+        CREATE INDEX IF NOT EXISTS `idx_proxy_$connect_id` ON `proxy` (`$connect_id` DESC);
+SQL
+
+    $self->dbh->do($sql);
+
+    return;
+}
+
+# TODO
 sub get_proxy ( $self, $connect, $cb ) {
     $cb->( $self->list->{'192.168.175.1:9050'} );
 
@@ -167,9 +185,9 @@ sub get_proxy ( $self, $connect, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 28, 135              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 29, 136              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 87                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 88                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
