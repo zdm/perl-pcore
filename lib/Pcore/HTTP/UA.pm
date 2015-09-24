@@ -20,6 +20,13 @@ use Pcore::HTTP::CookieJar;
 use Pcore::AE::Handle::ProxyPool;
 use Const::Fast qw[const];
 
+# 594 - errors during proxy handshake.
+# 595 - errors during connection establishment.
+# 596 - errors during TLS negotiation, request sending and header processing.
+# 597 - errors during body receiving or processing.
+# 598 - user aborted request via on_header or on_body.
+# 599 - other, usually nonretryable, errors (garbled URL etc.).
+
 our $USERAGENT = "Mozilla/5.0 (compatible; U; P-AnyEvent-UA/$Pcore::VERSION";
 our $RECURSE   = 7;
 our $TIMEOUT   = 300;
@@ -203,13 +210,6 @@ const our $HTTP_METHODS => {
         safe       => 0
     }
 };
-
-# 594 - errors during proxy handshake.
-# 595 - errors during connection establishment.
-# 596 - errors during TLS negotiation, request sending and header processing.
-# 597 - errors during body receiving or processing.
-# 598 - user aborted request via on_header or on_body.
-# 599 - other, usually nonretryable, errors (garbled URL etc.).
 
 sub BUILDARGS {
     my $self = shift;
