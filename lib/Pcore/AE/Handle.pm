@@ -444,7 +444,7 @@ sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_error, $on_connect ) {
 
         my $target = shift @target;
 
-        $self->push_write( qq[\x04\x01] . pack( 'n', $connect->[1] ) . AnyEvent::Socket::unpack_sockaddr( $target->[3] ) . $proxy->username . qq[\x00] );
+        $self->push_write( qq[\x04\x01] . pack( 'n', $connect->[1] ) . AnyEvent::Socket::unpack_sockaddr( $target->[3] ) . $proxy->userinfo . qq[\x00] );
 
         $self->push_read(
             chunk => 8,
