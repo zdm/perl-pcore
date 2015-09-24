@@ -56,22 +56,28 @@ sub _parse_uri ( $self, $uri ) {
     my $args = $self->_parse_uri_string($uri);
 
     if ( $args->{authority} ) {
+        my $userinfo = q[];
+
+        if ( ( my $idx = index $args->{authority}, q[@] ) != -1 ) {
+            $userinfo = substr $args->{authority}, 0, $idx + 1, q[];
+        }
 
         # parse userinfo
         my @token = split /:/sm, $args->{authority};
 
         if ( @token < 2 ) {
-
-            # port should be specified
-            return;
+            die 'Proxy port should be specified';
         }
-        elsif ( @token == 4 ) {
-
-            # host:port:username:password
-            $args->{authority} = $token[2] . q[:] . $token[3] . q[@] . $token[0] . q[:] . $token[1];
+        elsif ( @token == 2 ) {
+            $args->{authority} = $userinfo . $args->{authority};
         }
-        elsif ( @token > 4 ) {
-            return;
+        elsif ( @token == 3 ) {    # host:port:username
+            $args->{authority} = $token[2] . q[@] . $token[0] . q[:] . $token[1];
+        }
+        else {                     # host:port:username:password
+            $args->{authority} = shift(@token) . q[:] . shift(@token);
+
+            $args->{authority} = join( q[:], @token ) . q[@] . $args->{authority};
         }
 
         return $args;
@@ -430,21 +436,21 @@ sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
     return;
 }
 
-# TODO write proxy auth header if proxy is HTTP
 sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
-    state $req_http_http = q[GET http://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
-
-    state $req_http_https = q[GET https://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
-
-    state $req_tunnel = qq[GET /favicon.ico HTTP/1.1${CRLF}Host: www.google.com${CRLF}${CRLF}];
-
     if ( $proxy_type == $PROXY_TYPE_HTTP ) {
-        $h->push_write( $scheme eq 'http' ? $req_http_http : $req_http_https );
+        my $auth_header = $self->userinfo ? q[Proxy-Authorization: Basic ] . $self->userinfo_b64 . $CRLF : q[];
+
+        if ( $scheme eq 'http' ) {
+            $h->push_write(qq[GET http://www.google.com/favicon.ico HTTP/1.0${CRLF}${auth_header}${CRLF}]);
+        }
+        else {
+            $h->push_write(qq[GET https://www.google.com/favicon.ico HTTP/1.0${CRLF}${auth_header}${CRLF}]);
+        }
     }
     else {
         $h->starttls('connect') if $scheme eq 'https';
 
-        $h->push_write($req_tunnel);
+        $h->push_write(qq[GET /favicon.ico HTTP/1.1${CRLF}Host: www.google.com${CRLF}${CRLF}]);
     }
 
     $h->read_http_res_headers(
@@ -498,21 +504,23 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 114                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 120                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 216                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 222                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 434, 488             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 439, 494             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 488                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 494                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 106, 110, 142, 162,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 177, 191, 250        │                                                                                                                │
+## │    2 │ 112, 116, 148, 168,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 183, 197, 256        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 468                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 474                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 521                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 525 does not match the package declaration      │
+## │    1 │ 78                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 528                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 532 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
