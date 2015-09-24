@@ -139,6 +139,16 @@ sub new ( $self, @ ) {
     return;
 }
 
+sub DESTROY ($self) {
+    if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
+        $self->{proxy}->finish_thread if $self->{proxy};
+
+        $self->SUPER::DESTROY;
+    }
+
+    return;
+}
+
 # PROXY CONNECTORS
 sub _connect_proxy ( $self, $args ) {
     state $keys = [qw[on_timeout on_rtimeout on_wtimeout on_error on_eof on_read]];
@@ -418,16 +428,6 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
             }
         }
     );
-
-    return;
-}
-
-sub DESTROY ($self) {
-    if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
-        $self->{proxy}->finish_thread if $self->{proxy};
-
-        $self->SUPER::DESTROY;
-    }
 
     return;
 }
@@ -844,14 +844,14 @@ sub fetch ( $self, $id ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 143                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
+## │    3 │ 153                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 281                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 291                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 290, 318, 435        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 300, 328, 435        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 33, 322, 325, 344,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 347, 350, 447        │                                                                                                                │
+## │    2 │ 33, 332, 335, 354,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 357, 360, 447        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 571, 770             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -864,8 +864,8 @@ sub fetch ( $self, $id ) {
 ## │      │ 873, 873             │ * Link L<Pcore::Proxy> on line 897 does not specify text                                                       │
 ## │      │ 873                  │ * Link L<Pcore::Proxy> on line 931 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 29, 34, 344, 347,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 350, 356, 452        │                                                                                                                │
+## │    1 │ 29, 34, 354, 357,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 360, 366, 452        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
