@@ -1,12 +1,19 @@
 package Pcore::HTTP::Util;
 
 use Pcore;
+use Const::Fast qw[const];
 use Errno qw[];
 use Pcore::AE::Handle;
 use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
+use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
 
 no Pcore;
+
+const our $CONTENT_ENCODING_GZIP     => 1;    # NOTE only gzip is supported now
+const our $CONTENT_ENCODING_COMPRESS => 2;
+const our $CONTENT_ENCODING_DEFLATE  => 3;
+const our $CONTENT_ENCODING_IDENTITY => 4;
 
 sub http_request ($args) {
 
@@ -117,6 +124,9 @@ sub http_request ($args) {
     # add COOKIE headers
     $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url}->host->name ) if $args->{cookie_jar};
 
+    # add ACCEPT_ENCODING headers
+    $runtime->{headers}->{ACCEPT_ENCODING} = 'gzip' if $args->{accept_compressed} && !exists $args->{headers}->{ACCEPT_ENCODING};
+
     # start "connect" phase
     $runtime->{on_error_status} = 595;
 
@@ -178,6 +188,7 @@ sub http_request ($args) {
     return;
 }
 
+# TODO proxy auth header
 sub _connect ( $args, $runtime, $cb ) {
     Pcore::AE::Handle->new(
         $args->{handle_params}->%*,
@@ -204,6 +215,11 @@ sub _connect ( $args, $runtime, $cb ) {
             return;
         },
         on_connect => sub ( $h, $host, $port, $retry ) {
+
+            # TODO add prxoy auth header if proxy is HTTP
+
+            # say dump $h; exit;
+
             $cb->($h);
 
             return;
@@ -338,6 +354,27 @@ sub _read_body ( $args, $runtime, $cb ) {
         return;
     }
 
+    my $decode;
+
+    if ( $args->{decompress} && $runtime->{res}->headers->{CONTENT_ENCODING} && $runtime->{res}->headers->{CONTENT_ENCODING} =~ /\bgzip\b/smi ) {
+        $decode = sub ( $in_buf_ref, $out_buf_ref ) {
+            state $x = Compress::Raw::Zlib::Inflate->new( -AppendOutput => 1, -WindowBits => WANT_GZIP_OR_ZLIB );
+
+            state $status;
+
+            if ( defined $in_buf_ref ) {
+                $status = $x->inflate( $in_buf_ref, $out_buf_ref );
+
+                return if $status != Z_OK && $status != Z_STREAM_END;    # stream error
+            }
+            else {
+                return if !$status == Z_STREAM_END;                      # stream not finished
+            }
+
+            return 1;
+        };
+    }
+
     my $on_read;
 
     # init res body
@@ -350,18 +387,38 @@ sub _read_body ( $args, $runtime, $cb ) {
         $runtime->{res}->set_body( \$body );
 
         $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+            state $total_decoded_bytes_readed = 0;
+
             if ( defined $error_reason ) {
                 $cb->( 597, $error_reason );
             }
-            elsif ( defined $content_ref ) {
-                $body .= $content_ref->$*;
+            else {
+                # append buffer
+                if ($decode) {
+                    if ( !$decode->( $content_ref, \$body ) ) {
+                        $cb->( 597, 'Stream decode error' );
 
-                $runtime->{res}->_set_content_length($total_bytes_readed);
+                        return;    # stop reading
+                    }
+                    else {
+                        $total_decoded_bytes_readed = length $body;
+                    }
+                }
+                elsif ( defined $content_ref ) {
+                    $body .= $content_ref->$*;
 
-                return 1;
-            }
-            else {    # last chunk
-                $cb->();
+                    $total_decoded_bytes_readed = $total_bytes_readed;
+                }
+
+                # process callbacks
+                if ( defined $content_ref ) {
+                    $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
+
+                    return 1;    # continue reading
+                }
+                else {           # last chunk
+                    $cb->();
+                }
             }
 
             return;
@@ -369,25 +426,49 @@ sub _read_body ( $args, $runtime, $cb ) {
     }
     elsif ( $args->{on_body} ) {
         $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+            state $total_decoded_bytes_readed = 0;
+
             if ( defined $error_reason ) {
                 $cb->( 597, $error_reason );
             }
-            elsif ( defined $content_ref ) {
-                $runtime->{res}->_set_content_length($total_bytes_readed);
+            else {
+                # decode buffer
+                if ($decode) {
+                    my $out_buf;
 
-                $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
+                    if ( !$decode->( $content_ref, \$out_buf ) ) {
+                        $cb->( 597, 'Stream decode error' );
 
-                if ( $args->{on_body}->( $runtime->{res}, $content_ref, $total_bytes_readed ) ) {
-                    return 1;
+                        return;    # stop reading
+                    }
+                    elsif ( defined $content_ref ) {
+                        $content_ref = \$out_buf;
+
+                        $total_decoded_bytes_readed += length $content_ref->$*;
+                    }
                 }
                 else {
-                    $cb->( 598, q[Request cancelled by "on_body"] );
+                    $total_decoded_bytes_readed = $total_bytes_readed;
                 }
-            }
-            else {    # last chunk
-                $args->{on_body}->( $runtime->{res}, $content_ref, $total_bytes_readed );
 
-                $cb->();
+                # process callbacks
+                if ( defined $content_ref ) {
+                    $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
+
+                    $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
+
+                    if ( $args->{on_body}->( $runtime->{res}, $content_ref, $total_decoded_bytes_readed ) ) {
+                        return 1;    # continue reading
+                    }
+                    else {
+                        $cb->( 598, q[Request cancelled by "on_body"] );
+                    }
+                }
+                else {               # last chunk
+                    $args->{on_body}->( $runtime->{res}, $content_ref, $total_decoded_bytes_readed );
+
+                    $cb->();
+                }
             }
 
             return;
@@ -420,20 +501,44 @@ sub _read_body ( $args, $runtime, $cb ) {
             $runtime->{res}->set_body( P->file->tempfile );
 
             $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+                state $total_decoded_bytes_readed = 0;
+
                 if ( defined $error_reason ) {
                     $cb->( 597, $error_reason );
                 }
-                if ( defined $content_ref ) {
-                    syswrite $runtime->{res}->body, $content_ref->$* or die;
+                else {
+                    # append buffer
+                    if ($decode) {
+                        my $out_buf;
 
-                    $runtime->{res}->_set_content_length($total_bytes_readed);
+                        if ( !$decode->( $content_ref, \$out_buf ) ) {
+                            $cb->( 597, 'Stream decode error' );
 
-                    $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
+                            return;    # stop reading
+                        }
+                        elsif ( defined $content_ref ) {
+                            syswrite $runtime->{res}->body, $out_buf or die;
 
-                    return 1;
-                }
-                else {    # last chunk
-                    $cb->();
+                            $total_decoded_bytes_readed += length $out_buf;
+                        }
+                    }
+                    elsif ( defined $content_ref ) {
+                        syswrite $runtime->{res}->body, $content_ref->$* or die;
+
+                        $total_decoded_bytes_readed = $total_bytes_readed;
+                    }
+
+                    # process callbacks
+                    if ( defined $content_ref ) {
+                        $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
+
+                        $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
+
+                        return 1;    # continue reading
+                    }
+                    else {           # last chunk
+                        $cb->();
+                    }
                 }
 
                 return;
@@ -445,19 +550,39 @@ sub _read_body ( $args, $runtime, $cb ) {
             $runtime->{res}->set_body( \$body );
 
             $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+                state $total_decoded_bytes_readed = 0;
+
                 if ( defined $error_reason ) {
                     $cb->( 597, $error_reason );
                 }
-                elsif ( defined $content_ref ) {
-                    $body .= $content_ref->$*;
+                else {
+                    # append buffer
+                    if ($decode) {
+                        if ( !$decode->( $content_ref, \$body ) ) {
+                            $cb->( 597, 'Stream decode error' );
 
-                    $runtime->{res}->_set_content_length($total_bytes_readed);
+                            return;    # stop reading
+                        }
+                        elsif ( defined $content_ref ) {
+                            $total_decoded_bytes_readed = length $body;
+                        }
+                    }
+                    elsif ( defined $content_ref ) {
+                        $body .= $content_ref->$*;
+
+                        $total_decoded_bytes_readed = $total_bytes_readed;
+                    }
+                }
+
+                # process callbacks
+                if ( defined $content_ref ) {
+                    $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
 
                     $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
 
-                    return 1;
+                    return 1;    # continue reading
                 }
-                else {    # last chunk
+                else {           # last chunk
                     $cb->();
                 }
 
@@ -466,7 +591,7 @@ sub _read_body ( $args, $runtime, $cb ) {
         }
     }
 
-    if ($chunked) {       # read chunked body
+    if ($chunked) {              # read chunked body
         $runtime->{h}->read_http_body( $on_read, chunked => 1, headers => $runtime->{res}->headers );
     }
     elsif ( $runtime->{content_length} ) {    # read body with known content length
@@ -584,10 +709,10 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 11                   │ * Subroutine "http_request" with high complexity score (28)                                                    │
-## │      │ 317                  │ * Subroutine "_read_body" with high complexity score (47)                                                      │
+## │      │ 18                   │ * Subroutine "http_request" with high complexity score (30)                                                    │
+## │      │ 333                  │ * Subroutine "_read_body" with high complexity score (76)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 83, 96, 97, 183      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 90, 103, 104, 194    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

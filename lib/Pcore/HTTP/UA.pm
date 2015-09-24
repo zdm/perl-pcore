@@ -40,6 +40,9 @@ has headers => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Message::Headers
 
 has handle_params => ( is => 'ro', isa => HashRef, default => sub { { max_read_size => 1_048_576 } } );
 
+has accept_compressed => ( is => 'ro', default => 1 );
+has decompress        => ( is => 'ro', default => 1 );
+
 no Pcore;
 
 const our $HTTP_METHODS => {
@@ -269,6 +272,9 @@ sub request ( $self, @ ) {
 
         handle_params => $req->handle_params // ( $self_is_obj ? $self->handle_params : $HANDLE_PARAMS ),
 
+        accept_compressed => $req->accept_compressed // ( $self_is_obj ? $self->accept_compressed : 1 ),
+        decompress        => $req->decompress        // ( $self_is_obj ? $self->decompress        : 1 ),
+
         tls_ctx => $req->tls_ctx // ( $self_is_obj ? $self->tls_ctx : $Pcore::HTTP::UA::TLS_CTX_LOW ),
 
         chunk_size => $req_args->{chunk_size} // $req->chunk_size,
@@ -438,9 +444,9 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 229                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (39)                   │
+## │    3 │ 232                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 422                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 428                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

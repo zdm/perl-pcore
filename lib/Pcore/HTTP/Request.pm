@@ -33,6 +33,9 @@ has tls_ctx    => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::UA::TLS_CTX_
 
 has handle_params => ( is => 'ro', isa => HashRef );
 
+has accept_compressed => ( is => 'ro', default => 1 );
+has decompress        => ( is => 'ro', default => 1 );
+
 has proxy => ( is => 'ro', writer => 'set_proxy', predicate => 1, clearer => 1 );
 
 has on_header   => ( is => 'ro', isa => CodeRef );
@@ -94,7 +97,7 @@ sub _get_progress_bar_cb ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 49                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 52                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
