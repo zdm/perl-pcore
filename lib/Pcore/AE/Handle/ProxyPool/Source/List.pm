@@ -4,14 +4,14 @@ use Pcore qw[-class];
 
 with qw[Pcore::AE::Handle::ProxyPool::Source];
 
-has proxies => ( is => 'ro', isa => ArrayRef [Str], required => 1 );
+has proxy => ( is => 'ro', isa => ArrayRef [Str], required => 1 );
 
 has '+load_timeout' => ( default => 0, init_arg => undef );
 
 no Pcore;
 
 sub load ( $self, $cb ) {
-    $cb->( $self->proxies );
+    $cb->( $self->proxy );
 
     return;
 }

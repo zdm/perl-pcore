@@ -4,11 +4,10 @@ use Pcore qw[-class];
 
 with qw[Pcore::AE::Handle::ProxyPool::Source];
 
-has host            => ( is => 'ro', isa => Str,         default   => '127.0.0.1' );
-has port            => ( is => 'ro', isa => PositiveInt, default   => 9050 );
+has proxy           => ( is => 'ro', isa => Str,         default   => '127.0.0.1:9050' );
 has control_port    => ( is => 'ro', isa => PositiveInt, default   => 9051 );
 has password        => ( is => 'ro', isa => Str,         predicate => 1 );
-has switch_identity => ( is => 'ro', isa => Bool,        default   => 0 );             # switch identity before each connection
+has switch_identity => ( is => 'ro', isa => Bool,        default   => 0 );                  # switch identity before each connection
 
 has '+load_timeout' => ( default => 0, init_arg => undef );
 
@@ -25,7 +24,7 @@ no Pcore;
 # NOTE it's important to use "persistent" = 0 in AnyEvent::HTTP, otherwise all connections will not use NEWNYM, if NYM changed
 
 sub load ( $self, $cb ) {
-    $cb->( [ q[//] . $self->host . q[:] . $self->port ] );
+    $cb->( [ $self->proxy ] );
 
     return;
 }
