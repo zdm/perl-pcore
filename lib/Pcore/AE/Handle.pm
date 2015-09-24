@@ -344,88 +344,111 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
                 $on_error->( $h, 'No authorization method was found', $DISABLE_PROXY );
             }
             elsif ( $method == 2 ) {    # start username / password authorization
-                                        # TODO
-                $on_error->( $h, 'Authorization method not supported', $DISABLE_PROXY );
-            }
-            elsif ( $method == 0 ) {    # no authorization needed
-
-                # detect destination addr type
-                if ( my $ipn4 = AnyEvent::Socket::parse_ipv4( $connect->[0] ) ) {    # IPv4 addr
-                    $h->push_write( qq[\x05\x01\x00\x01] . $ipn4 . pack( 'n', $connect->[1] ) );
-                }
-                elsif ( my $ipn6 = AnyEvent::Socket::parse_ipv6( $connect->[0] ) ) {    # IPv6 addr
-                    $h->push_write( qq[\x05\x01\x00\x04] . $ipn6 . pack( 'n', $connect->[1] ) );
-                }
-                else {                                                                  # domain name
-                    $h->push_write( qq[\x05\x01\x00\x03] . pack( 'C', length $connect->[0] ) . $connect->[0] . pack( 'n', $connect->[1] ) );
-                }
+                $h->push_write( qq[\x01] . pack( 'C', length $proxy->username ) . $proxy->username . pack( 'C', length $proxy->password ) . $proxy->password );
 
                 $h->push_read(
-                    chunk => 4,
+                    chunk => 2,
                     sub ( $h, $chunk ) {
-                        my ( $ver, $rep, $rsv, $atyp ) = unpack( 'C*', $chunk );        ## no critic qw[Variables::ProhibitReusedNames]
+                        my ( $auth_ver, $auth_status ) = unpack 'C*', $chunk;
 
-                        if ( $rep == 0 ) {
-                            if ( $atyp == 1 ) {                                         # IPv4 addr, 4 bytes
-                                $h->push_read(                                          # read IPv4 addr (4 bytes) + port (2 bytes)
-                                    chunk => 6,
-                                    sub ( $h, $chunk ) {
-
-                                        # TODO validate: 4 bytes IP addr, 2 bytes port
-
-                                        $on_connect->($h);
-
-                                        return;
-                                    }
-                                );
-                            }
-                            elsif ( $atyp == 3 ) {                                      # domain name
-                                $h->push_read(                                          # read domain name length
-                                    chunk => 1,
-                                    sub ( $h, $chunk ) {
-                                        $h->push_read(                                  # read domain name + port (2 bytes)
-                                            chunk => unpack( 'C', $chunk ) + 2,
-                                            sub ( $h, $chunk ) {
-
-                                                # TODO validate domain name + port
-
-                                                $on_connect->($h);
-
-                                                return;
-                                            }
-                                        );
-
-                                        return;
-                                    }
-                                );
-                            }
-                            if ( $atyp == 4 ) {    # IPv6 addr, 16 bytes
-                                $h->push_read(     # read IPv6 addr (16 bytes) + port (2 bytes)
-                                    chunk => 18,
-                                    sub ( $h, $chunk ) {
-
-                                        # TODO validate IPv6 + port
-
-                                        $on_connect->($h);
-
-                                        return;
-                                    }
-                                );
-                            }
+                        if ( $auth_status != 0 ) {    # auth error
+                            $on_error->( $h, 'Authorization failure', $DISABLE_PROXY );
                         }
                         else {
-                            $on_error->( $h, q[Tunnel creation error] );
+                            $h->_socks5_establish_tunnel( $proxy, $connect, $on_error, $on_connect );
                         }
 
                         return;
                     }
                 );
+            }
+            elsif ( $method == 0 ) {                  # no authorization needed
+                $h->_socks5_establish_tunnel( $proxy, $connect, $on_error, $on_connect );
 
                 return;
             }
             else {
                 $on_error->( $h, 'Authorization method is not supported', $DISABLE_PROXY );
             }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_error, $on_connect ) {
+
+    # detect destination addr type
+    if ( my $ipn4 = AnyEvent::Socket::parse_ipv4( $connect->[0] ) ) {    # IPv4 addr
+        $self->push_write( qq[\x05\x01\x00\x01] . $ipn4 . pack( 'n', $connect->[1] ) );
+    }
+    elsif ( my $ipn6 = AnyEvent::Socket::parse_ipv6( $connect->[0] ) ) {    # IPv6 addr
+        $self->push_write( qq[\x05\x01\x00\x04] . $ipn6 . pack( 'n', $connect->[1] ) );
+    }
+    else {                                                                  # domain name
+        $self->push_write( qq[\x05\x01\x00\x03] . pack( 'C', length $connect->[0] ) . $connect->[0] . pack( 'n', $connect->[1] ) );
+    }
+
+    $self->push_read(
+        chunk => 4,
+        sub ( $h, $chunk ) {
+            my ( $ver, $rep, $rsv, $atyp ) = unpack( 'C*', $chunk );
+
+            if ( $rep == 0 ) {
+                if ( $atyp == 1 ) {                                         # IPv4 addr, 4 bytes
+                    $h->push_read(                                          # read IPv4 addr (4 bytes) + port (2 bytes)
+                        chunk => 6,
+                        sub ( $h, $chunk ) {
+
+                            # TODO validate: 4 bytes IP addr, 2 bytes port
+
+                            $on_connect->($h);
+
+                            return;
+                        }
+                    );
+                }
+                elsif ( $atyp == 3 ) {                                      # domain name
+                    $h->push_read(                                          # read domain name length
+                        chunk => 1,
+                        sub ( $h, $chunk ) {
+                            $h->push_read(                                  # read domain name + port (2 bytes)
+                                chunk => unpack( 'C', $chunk ) + 2,
+                                sub ( $h, $chunk ) {
+
+                                    # TODO validate domain name + port
+
+                                    $on_connect->($h);
+
+                                    return;
+                                }
+                            );
+
+                            return;
+                        }
+                    );
+                }
+                if ( $atyp == 4 ) {    # IPv6 addr, 16 bytes
+                    $h->push_read(     # read IPv6 addr (16 bytes) + port (2 bytes)
+                        chunk => 18,
+                        sub ( $h, $chunk ) {
+
+                            # TODO validate IPv6 + port
+
+                            $on_connect->($h);
+
+                            return;
+                        }
+                    );
+                }
+            }
+            else {
+                $on_error->( $h, q[Tunnel creation error] );
+            }
+
+            return;
         }
     );
 
@@ -848,24 +871,24 @@ sub fetch ( $self, $id ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 291                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 300, 328, 435        │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 300, 328, 381, 458   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 33, 332, 335, 354,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 357, 360, 447        │                                                                                                                │
+## │    2 │ 33, 332, 335, 347,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 385, 388, 391, 470   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 571, 770             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 594, 793             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 873                  │ * Link L<AnyEvent::Handle> on line 879 does not specify text                                                   │
-## │      │ 873                  │ * Link L<AnyEvent::Handle> on line 887 does not specify text                                                   │
-## │      │ 873                  │ * Link L<AnyEvent::Handle> on line 915 does not specify text                                                   │
-## │      │ 873                  │ * Link L<AnyEvent::Handle> on line 931 does not specify text                                                   │
-## │      │ 873                  │ * Link L<AnyEvent::Socket> on line 931 does not specify text                                                   │
-## │      │ 873, 873             │ * Link L<Pcore::Proxy> on line 897 does not specify text                                                       │
-## │      │ 873                  │ * Link L<Pcore::Proxy> on line 931 does not specify text                                                       │
+## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 902 does not specify text                                                   │
+## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 910 does not specify text                                                   │
+## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 938 does not specify text                                                   │
+## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 954 does not specify text                                                   │
+## │      │ 896                  │ * Link L<AnyEvent::Socket> on line 954 does not specify text                                                   │
+## │      │ 896, 896             │ * Link L<Pcore::Proxy> on line 920 does not specify text                                                       │
+## │      │ 896                  │ * Link L<Pcore::Proxy> on line 954 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 29, 34, 354, 357,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 360, 366, 452        │                                                                                                                │
+## │    1 │ 29, 34, 385, 388,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 391, 397, 475        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
