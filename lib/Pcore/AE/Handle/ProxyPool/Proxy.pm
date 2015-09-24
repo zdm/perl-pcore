@@ -132,7 +132,7 @@ sub ban ( $self, $host, $timeout = undef ) {
 
 # CONNECT METHODS
 # TODO should be called AUTOMATICALLY after each connect attempt
-sub post_connect_ok ($self) {
+sub connect_ok ($self) {
     $self->{connect_errors} = 0;
 
     # drop "connect_error" flag
@@ -147,7 +147,7 @@ sub post_connect_ok ($self) {
     return;
 }
 
-sub post_connect_error ($self) {
+sub connect_failure ($self) {
     return if $self->{connect_error};
 
     # set "connect_error" flag
@@ -185,7 +185,7 @@ sub _start_thread ($self) {
 
 # TODO call waiting callbacks
 # if proxy has connect_error - call all callbacks
-sub _finish_thread ($self) {
+sub finish_thread ($self) {
     $self->{threads}--;
 
     state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ? WHERE `pool_id` = ?');
@@ -215,6 +215,8 @@ sub can_connect ( $self, $connect, $cb ) {
 
         $self->source->pool->_add_connect_id( $connect->[3] );
 
+        $self->_start_thread;
+
         my $cache_key = $self->id . q[-] . $connect->[3];
 
         push $callback->{$cache_key}->@*, $cb;
@@ -232,8 +234,6 @@ sub can_connect ( $self, $connect, $cb ) {
         }
         else {                          # run proxy check
             my @types = $CHECK_SCHEME->{ $connect->[2] }->[0]->@*;
-
-            $self->_start_thread;
 
             my $test = sub ($proxy_type) {
                 if ( !$self->{connect_error} && $proxy_type == $PROXY_TYPE_UNDEF && ( $proxy_type = shift @types ) ) {
@@ -265,6 +265,67 @@ sub can_connect ( $self, $connect, $cb ) {
 }
 
 # CHECK PROXY
+sub _check_http ( $self, $proxy_type, $connect, $cb ) {
+    $self->_test_scheme(
+        $connect->[2],
+        $proxy_type,
+        sub ($scheme_ok) {
+            if ($scheme_ok) {    # scheme test failed
+                $cb->($proxy_type);
+            }
+            else {               # scheme test passed
+                $cb->($PROXY_TYPE_UNDEF);
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
+    $self->_test_scheme(
+        $connect->[2],
+        $proxy_type,
+        sub ($scheme_ok) {
+            if ( !$scheme_ok ) {    # scheme test failed
+                $cb->($PROXY_TYPE_UNDEF);
+            }
+            else {                  # scheme test passed
+
+                # scheme was really tested
+                # but connect port is differ from default scheme test port
+                # need to test tunnel creation to the non-standard port separately
+                if ( $CHECK_SCHEME->{ $connect->[2] }->[2] && $CHECK_SCHEME->{ $connect->[2] }->[1]->[1] != $connect->[1] ) {
+                    $self->_test_connection(
+                        $connect,
+                        $proxy_type,
+                        sub ($h) {
+                            if ($h) {    # tunnel creation ok
+                                $cb->($proxy_type);
+                            }
+                            else {       # tunnel creation failed
+                                $cb->($PROXY_TYPE_UNDEF);
+                            }
+
+                            return;
+                        }
+                    );
+                }
+                else {
+                    # scheme and tunnel was tested in single connection
+                    $cb->($proxy_type);
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
 sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
     Pcore::AE::Handle->new(
         connect          => [ $self->host->name, $self->port ],
@@ -274,24 +335,28 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
         on_connect_error => sub ( $h, $message ) {
             $self->connect_failure;
 
-            $cb->($PROXY_TYPE_UNDEF);
+            $cb->(undef);
 
             return;
         },
         on_connect => sub ( $h, @ ) {
             if ( $proxy_type == $PROXY_TYPE_HTTP ) {
+                $self->connect_ok;
+
                 $cb->($h);
             }
             else {
                 my $on_error = sub ( $h, $message, $disable_proxy = 0 ) {
-                    $self->connect_failure if $disable_proxy;
+                    $disable_proxy ? $self->connect_failure : $self->connect_ok;
 
-                    $cb->($PROXY_TYPE_UNDEF);
+                    $cb->(undef);
 
                     return;
                 };
 
                 my $on_connect = sub ($hdl) {
+                    $self->connect_ok;
+
                     $cb->($h);
 
                     return;
@@ -326,110 +391,46 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
     return;
 }
 
-sub _check_http ( $self, $proxy_type, $connect, $cb ) {
-    $self->_test_scheme(
-        $connect->[2],
-        $proxy_type,
-        sub ($scheme_ok) {
-            unless ($scheme_ok) {    # scheme test failed
-                $cb->($PROXY_TYPE_UNDEF);
-            }
-            else {                   # scheme test passed
-                $cb->($proxy_type);
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
-    $self->_test_scheme(
-        $connect->[2],
-        $proxy_type,
-        sub ($scheme_ok) {
-            unless ($scheme_ok) {    # scheme test failed
-                $cb->($PROXY_TYPE_UNDEF);
-            }
-            else {                   # scheme test passed
-
-                # scheme was really tested
-                # but connect port is differ from default scheme test port
-                # need to test tunnel creation to the non-standard port separately
-                if ( $CHECK_SCHEME->{ $connect->[2] }->[2] && $CHECK_SCHEME->{ $connect->[2] }->[1]->[1] != $connect->[1] ) {
-                    $self->_test_connection(
-                        $connect,
+sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
+    if ( !$CHECK_SCHEME->{$scheme}->[2] ) {    # scheme wasn't tested and can't be tested
+        $cb->(1);
+    }
+    elsif ( defined $self->{test_scheme}->{$scheme}->{$proxy_type} ) {    # scheme was tested
+        $cb->( $self->{test_scheme}->{$scheme}->{$proxy_type} );          # return cached result
+    }
+    else {                                                                # scheme wasn't tested and can be tested
+        $self->_test_connection(
+            $CHECK_SCHEME->{$scheme}->[1],
+            $proxy_type,
+            sub ($h) {
+                if ($h) {                                                 # proxy connected + tunnel created
+                    $CHECK_SCHEME->{$scheme}->[2]->(                      # run scheme test
+                        $self, $scheme, $h,
                         $proxy_type,
-                        sub ($h) {
-                            if ($h) {    # tunnel creation ok
-                                $cb->($proxy_type);
-                            }
-                            else {       # tunnel creation failed
-                                $cb->($PROXY_TYPE_UNDEF);
-                            }
+                        sub ($scheme_ok) {
+                            $self->{test_scheme}->{$scheme}->{$proxy_type} = $scheme_ok;
+
+                            $cb->($scheme_ok);
 
                             return;
                         }
                     );
                 }
-                else {
-                    # scheme and tunnel was tested in one connection
-                    $cb->($proxy_type);
+                else {                                                    # proxy disabled, proxy connect error or tunnel create error
+                    $self->{test_scheme}->{$scheme}->{$proxy_type} = 0;
+
+                    $cb->(0);
                 }
+
+                return;
             }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
-    if ( defined $self->{test_scheme}->{$scheme}->{$proxy_type} ) {    # scheme was tested
-        $cb->( $self->{test_scheme}->{$scheme}->{$proxy_type} );       # return cached result
-    }
-    else {                                                             # scheme wasn't tested
-        unless ( $CHECK_SCHEME->{$scheme}->[2] ) {                     # can't test scheme
-            $self->{test_scheme}->{$scheme}->{$proxy_type} = 1;        # cache and return positive result
-
-            $cb->(1);
-        }
-        else {                                                         # start test scheme
-            $self->_test_connection(
-                $CHECK_SCHEME->{$scheme}->[1],
-                $proxy_type,
-                sub ($h) {
-                    if ($h) {                                          # proxy connected + tunnel created
-                        $CHECK_SCHEME->{$scheme}->[2]->(               # run scheme test
-                            $self, $scheme, $h,
-                            $proxy_type,
-                            sub ($scheme_ok) {
-                                $self->{test_scheme}->{$scheme}->{$proxy_type} = $scheme_ok;
-
-                                $cb->($scheme_ok);
-
-                                return;
-                            }
-                        );
-                    }
-                    else {                                             # proxy disabled, proxy connect error or tunnel create error
-                        $self->{test_scheme}->{$scheme}->{$proxy_type} = 0;
-
-                        $cb->(0);
-                    }
-
-                    return;
-                }
-            );
-        }
+        );
     }
 
     return;
 }
 
+# TODO write proxy auth header if proxy is HTTP
 sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
     state $req_http_http = q[GET http://www.google.com/favicon.ico HTTP/1.0] . $CRLF . $CRLF;
 
@@ -499,20 +500,19 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 114                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 188                  │ * Private subroutine/method '_finish_thread' declared but not used                                             │
-## │      │ 487                  │ * Private subroutine/method '_test_scheme_whois' declared but not used                                         │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 216                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 433, 487             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 434, 488             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 488                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 106, 110, 142, 162,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## │      │ 177, 191, 250        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 467                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 468                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 520                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 524 does not match the package declaration      │
+## │    1 │ 521                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 525 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
