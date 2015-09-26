@@ -686,7 +686,7 @@ sub read_http_body ( $self, $on_read, @ ) {
         @_[ 2 .. $#_ ],
     );
 
-    my $on_read_buf = sub ( $buf_ref, $error_message = undef ) {
+    my $on_read_buf = sub ( $buf_ref, $error_message ) {
         state $buf = q[];
 
         state $total_bytes_readed = 0;
@@ -741,7 +741,7 @@ sub read_http_body ( $self, $on_read, @ ) {
                         sub ( $h, @ ) {
                             my $chunk_ref = \$_[1];
 
-                            if ( !$on_read_buf->($chunk_ref) ) {      # transfer was cancelled by "on_body" call
+                            if ( !$on_read_buf->( $chunk_ref, undef ) ) {    # transfer was cancelled by "on_body" call
                                 undef $read_chunk;
 
                                 return;
@@ -750,7 +750,7 @@ sub read_http_body ( $self, $on_read, @ ) {
                                 # read trailing chunk $CRLF
                                 $h->push_read(
                                     line => sub ( $h, @ ) {
-                                        if ( length $_[1] ) {         # error, chunk traililg can contain only $CRLF
+                                        if ( length $_[1] ) {                # error, chunk traililg can contain only $CRLF
                                             undef $read_chunk;
 
                                             $on_read_buf->( undef, 'Garbled chunked transfer encoding' );
