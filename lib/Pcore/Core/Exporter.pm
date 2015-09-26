@@ -25,25 +25,54 @@ sub import {
 sub _import {
     my $self = shift;
 
-    if ( !defined *{ $self . '::EXPORT_OK' }{ARRAY} ) {
-        return if !defined *{ $self . '::EXPORT_TAGS' }{HASH};    # @EXPORT_OK and %EXPORT_TAGS is not defined, nothing to export
+    if ( !defined ${ $self . '::__EXPORT_PROCESSED__' } ) {
+        no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
+
+        ${ $self . '::__EXPORT_PROCESSED__' } = 1;
+
+        # create %EXPORT_TAGS
+        *{ $self . '::EXPORT_TAGS' } = {} if !defined *{ $self . '::EXPORT_TAGS' }{HASH};
 
         my %export_ok = ();
 
-        no strict qw[refs];                                       ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
+        # index @EXPORT_OK
+        if ( defined *{ $self . '::EXPORT_OK' }{ARRAY} ) {
+            for my $export ( @{ *{ $self . '::EXPORT_OK' } } ) {
+                die qq[\@EXPORT_OK can't contain tags in %$self\::EXPORT_OK] if index( $export, q[:] ) == 0;
 
-        for my $tag ( keys %{ $self . '::EXPORT_TAGS' } ) {
-            for my $tag_export ( @{ ${ $self . '::EXPORT_TAGS' }{$tag} } ) {
-                $export_ok{$tag_export} = 1;
+                $export_ok{$export} = 1;
             }
         }
 
+        # :ALL tag will be created automatically later
+        delete ${ $self . '::EXPORT_TAGS' }{ALL};
+
+        # index @EXPORT_TAGS
+        for my $tag ( keys %{ $self . '::EXPORT_TAGS' } ) {
+            my %tag_export = ();
+
+            for my $tag_export ( @{ ${ $self . '::EXPORT_TAGS' }{$tag} } ) {
+                if ( index( $tag_export, q[:] ) == 0 ) {    # included tag found
+                    die qq[Export tags can't contain other tags in %$self\::EXPORT_TAGS];
+                }
+                else {
+                    $tag_export{$tag_export} = 1;
+
+                    $export_ok{$tag_export} = 1;
+                }
+            }
+
+            # set tag exports
+            ${ $self . '::EXPORT_TAGS' }{$tag} = [ keys %tag_export ];
+        }
+
+        # set @EXPORT_OK
         *{ $self . '::EXPORT_OK' } = [ keys %export_ok ];
 
-        # create :ALL tag if not exists
-        ${ $self . '::EXPORT_TAGS' }{ALL} = *{ $self . '::EXPORT_OK' }{ARRAY} if !exists ${ $self . '::EXPORT_TAGS' }{ALL};
+        # set :ALL tag
+        ${ $self . '::EXPORT_TAGS' }{ALL} = *{ $self . '::EXPORT_OK' }{ARRAY};
 
-        # parse tags in @EXPORT
+        # scan @EXPORT
         if ( !defined *{ $self . '::EXPORT' }{ARRAY} ) {
             *{ $self . '::EXPORT' } = [];
         }
@@ -150,7 +179,7 @@ sub parse_import {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 58                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 87                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
