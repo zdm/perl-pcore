@@ -25,6 +25,53 @@ sub import {
 sub _import {
     my $self = shift;
 
+    if ( !defined *{ $self . '::EXPORT_OK' }{ARRAY} ) {
+        return if !defined *{ $self . '::EXPORT_TAGS' }{HASH};    # @EXPORT_OK and %EXPORT_TAGS is not defined, nothing to export
+
+        my %export_ok = ();
+
+        no strict qw[refs];                                       ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
+
+        for my $tag ( keys %{ $self . '::EXPORT_TAGS' } ) {
+            for my $tag_export ( @{ ${ $self . '::EXPORT_TAGS' }{$tag} } ) {
+                $export_ok{$tag_export} = 1;
+            }
+        }
+
+        *{ $self . '::EXPORT_OK' } = [ keys %export_ok ];
+
+        # create :ALL tag if not exists
+        ${ $self . '::EXPORT_TAGS' }{ALL} = *{ $self . '::EXPORT_OK' }{ARRAY} if !exists ${ $self . '::EXPORT_TAGS' }{ALL};
+
+        # parse tags in @EXPORT
+        if ( !defined *{ $self . '::EXPORT' }{ARRAY} ) {
+            *{ $self . '::EXPORT' } = [];
+        }
+        else {
+            my %export = ();
+
+            for my $export ( @{ *{ $self . '::EXPORT' } } ) {
+                if ( index( $export, q[:] ) == 0 ) {    # tag found
+                    my $tag = substr $export, 1;
+
+                    if ( exists ${ $self . '::EXPORT_TAGS' }{$tag} ) {
+                        for my $tag_export ( @{ ${ $self . '::EXPORT_TAGS' }{$tag} } ) {
+                            $export{$tag_export} = 1;
+                        }
+                    }
+                    else {
+                        die qq[Tag "$export" is not exists in %$self\::EXPORT_TAGS];
+                    }
+                }
+                else {
+                    $export{$export} = 1;
+                }
+            }
+
+            *{ $self . '::EXPORT' } = [ keys %export ];
+        }
+    }
+
     # parse tags and pragmas
     my ( $tags, $pragma ) = parse_import( $self, @_ );
 
@@ -97,6 +144,16 @@ sub parse_import {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 58                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
