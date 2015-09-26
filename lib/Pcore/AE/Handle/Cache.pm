@@ -24,7 +24,7 @@ sub store ( $self, $h, $timeout = undef ) {
     # do not cache destroyed handles
     return if $h->destroyed;
 
-    return if !$h->{persistent_key};
+    return if !$h->{persistent_id};
 
     my $id = refaddr $h;
 
@@ -35,7 +35,7 @@ sub store ( $self, $h, $timeout = undef ) {
     $self->{handle}->{$id} = $h;
 
     # cache handle connections
-    for my $key ( $h->{persistent_key}->@* ) {
+    for my $key ( $h->{persistent_id}->@* ) {
         $self->{connection}->{$key} //= Pcore::AE::Handle::Cache::Storage->new;
 
         $self->{connection}->{$key}->push($id);
@@ -44,7 +44,7 @@ sub store ( $self, $h, $timeout = undef ) {
     my $destroy = sub ( $h, @ ) {
         delete $self->{handle}->{$id};
 
-        for my $key ( $h->{persistent_key}->@* ) {
+        for my $key ( $h->{persistent_id}->@* ) {
             $self->{connection}->{$key}->delete($id);
 
             delete $self->{connection}->{$key} if !$self->{connection}->{$key}->has_items;
@@ -57,12 +57,12 @@ sub store ( $self, $h, $timeout = undef ) {
     };
 
     # prepare handle for caching
-    $self->on_error($destroy);
-    $self->on_eof($destroy);
-    $self->on_read($destroy);
-    $self->on_timeout(undef);
-    $self->timeout_reset;
-    $self->timeout( $timeout || $self->default_timeout );
+    $h->on_error($destroy);
+    $h->on_eof($destroy);
+    $h->on_read($destroy);
+    $h->on_timeout(undef);
+    $h->timeout_reset;
+    $h->timeout( $timeout || $self->default_timeout );
 
     return;
 }
@@ -76,7 +76,7 @@ sub fetch ( $self, $key ) {
 
     my $h = delete $self->{handle}->{$id};
 
-    for ( $h->{persistent_key}->@* ) {
+    for ( $h->{persistent_id}->@* ) {
         $self->{connection}->{$_}->delete($id);
 
         delete $self->{connection}->{$_} if !$self->{connection}->{$_}->has_items;
