@@ -13,11 +13,11 @@ BEGIN {
 }
 
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::AE::Handle qw[:PERSISTENT];
 use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Request;
 use Pcore::HTTP::CookieJar;
-use Pcore::AE::Handle::ProxyPool;
 use Const::Fast qw[const];
 
 # 594 - errors during proxy handshake.
@@ -36,7 +36,7 @@ our $HANDLE_PARAMS = { max_read_size => 1_048_576 };
 has useragent  => ( is => 'lazy', isa => Str,               default => $USERAGENT );
 has recurse    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $RECURSE );
 has timeout    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $TIMEOUT );
-has persistent => ( is => 'lazy', isa => Bool,              default => 1 );
+has persistent => ( is => 'lazy', isa => Bool,              default => $PERSISTENT_IDENT );
 has session    => ( is => 'ro',   isa => Str );
 
 has cookie_jar => ( is => 'rwp', isa => Ref );
@@ -265,7 +265,7 @@ sub request ( $self, @ ) {
 
         recurse    => $req->recurse    // ( $self_is_obj ? $self->recurse    : $RECURSE ),
         timeout    => $req->timeout    // ( $self_is_obj ? $self->timeout    : $TIMEOUT ),
-        persistent => $req->persistent // ( $self_is_obj ? $self->persistent : 1 ),
+        persistent => $req->persistent // ( $self_is_obj ? $self->persistent : $PERSISTENT_IDENT ),
         session    => $req->session    // ( $self_is_obj ? $self->session    : undef ),
         cookie_jar => $req->cookie_jar // ( $self_is_obj ? $self->cookie_jar : undef ),
         proxy      => $req->proxy      // ( $self_is_obj ? $self->proxy      : undef ),
@@ -277,7 +277,7 @@ sub request ( $self, @ ) {
 
         tls_ctx => $req->tls_ctx // ( $self_is_obj ? $self->tls_ctx : $Pcore::HTTP::UA::TLS_CTX_LOW ),
 
-        chunk_size => $req_args->{chunk_size} // $req->chunk_size,
+        buf_size => $req_args->{buf_size} // $req->buf_size,
 
         headers => $req->headers->clone,
         body    => $req->body,
@@ -414,7 +414,7 @@ sub mirror ( $self, @ ) {
         $req_args->{no_cache} = delete $req->{no_cache};
     }
 
-    $req_args->{chunk_size} = 1;
+    $req_args->{buf_size} = 1;
 
     if ( !$req_args->{no_cache} && -f $target ) {
         $req_args->{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date;

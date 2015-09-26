@@ -1,23 +1,54 @@
 package Pcore::AE::Handle;
 
-use Pcore;
+use Pcore qw[-export];
 use parent qw[AnyEvent::Handle];
 use AnyEvent::Socket qw[];
 use Pcore::AE::DNS::Cache;
-use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
 use Pcore::HTTP::Message::Headers;
 use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF HEADERS_NONE];
-use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
+use Pcore::AE::Handle::Cache;
 use Const::Fast qw[const];
 
 no Pcore;
 
+our %EXPORT_TAGS = (
+    PROXY_TYPE  => [qw[$PROXY_TYPE_UNDEF $PROXY_TYPE_HTTP $PROXY_TYPE_CONNECT $PROXY_TYPE_SOCKS5 $PROXY_TYPE_SOCKS4 $PROXY_TYPE_SOCKS4A]],
+    PROXY_ERROR => [qw[$PROXY_OK $PROXY_ERROR_CONNECT $PROXY_ERROR_AUTH $PROXY_ERROR_TYPE $PROXY_ERROR_OTHER]],
+    PERSISTENT  => [qw[$PERSISTENT_IDENT $PERSISTENT_ANY $PERSISTENT_NO_PROXY]],
+);
+
+const our $PROXY_TYPE_UNDEF   => 0;
+const our $PROXY_TYPE_HTTP    => 1;
+const our $PROXY_TYPE_CONNECT => 2;
+const our $PROXY_TYPE_SOCKS4  => 31;
+const our $PROXY_TYPE_SOCKS4A => 32;
+const our $PROXY_TYPE_SOCKS5  => 33;
+
+const our $PROXY_OK            => 0;    # no error, connected
+const our $PROXY_ERROR_CONNECT => 1;    # proxy should be disabled
+const our $PROXY_ERROR_AUTH    => 2;    # proxy should be disabled
+const our $PROXY_ERROR_TYPE    => 3;    # invalid proty type used, proxy type should be banned
+const our $PROXY_ERROR_OTHER   => 4;    # unknown error
+
+# $PERSISTENT_IDENT:
+#     - no proxy - use cached direct connections;
+#     - proxy - use cached connection through same proxy;
+#     - proxy pool - use ANY cached connection from the same proxy pool;
+#
+# $PERSISTENT_ANY
+#     - use ANY cached connection (direct or proxied);
+#
+# $PERSISTENT_NO_PROXY
+#     - no proxy - use cached direct connections;
+#     - proxy or proxy pool - do not use cache;
+
+const our $PERSISTENT_IDENT    => 1;
+const our $PERSISTENT_ANY      => 2;
+const our $PERSISTENT_NO_PROXY => 3;
+
 const our $DISABLE_PROXY => 1;
 
-our $CACHE = {};
-
-# default cache timeout
-our $CACHE_TIMEOUT = 4;
+const our $CACHE => Pcore::AE::Handle::Cache->new( { default_timeout => 4 } );
 
 # register "http_headers" push_read type
 AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
@@ -48,7 +79,8 @@ AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
 sub new ( $self, @ ) {
     my %args = (
         connect_timeout => 10,
-        persistent      => 1,
+        proxy           => undef,               # can be a proxy object or proxy pool object
+        persistent      => $PERSISTENT_IDENT,
         session         => undef,
         @_[ 1 .. $#_ ],
     );
@@ -63,76 +95,139 @@ sub new ( $self, @ ) {
     # default scheme is "tcp"
     $args{connect}->[2] ||= 'tcp';
 
+    # create connect id, "scheme_port"
+    $args{connect}->[3] = $args{connect}->[2] . q[_] . $args{connect}->[1];
+
     if ( $args{fh} ) {
         $args{on_connect}->( $self->SUPER::new(%args), undef, undef, undef );
     }
     else {
-        $args{persistent_id} = $args{connect}->[2] . q[://] . $args{connect}->[0] . q[:] . $args{connect}->[1];
+        my $persistent = delete $args{persistent};
 
-        $args{persistent_id} .= q[?session=] . $args{session} if defined $args{session};
+        my $persistent_id = {};
+
+        $persistent_id->{any} = join q[|], $args{connect}->[2], $args{connect}->[0], $args{connect}->[1], $args{session} // q[];
+
+        $persistent_id->{no_proxy} = join q[|], $persistent_id->{any}, 0;
 
         if ( $args{proxy} ) {
-            $args{persistent_id} .= defined $args{session} ? q[&] : q[?];
-
-            $args{persistent_id} .= q[proxy=] . $args{proxy}->hostport;
-        }
-
-        if ( delete $args{persistent} && ( my $h = $self->fetch( $args{persistent_id} ) ) ) {
-            $h->{persistent} = 1;
-
-            $args{on_connect}->( $h, undef, undef, undef );
-        }
-        else {
-            if ( my $conect_timeout = $args{connect_timeout} ) {
-                my $on_prepare = $args{on_prepare};
-
-                $args{on_prepare} = sub ($h) {
-                    delete $h->{on_prepare};
-
-                    $on_prepare->($h) if $on_prepare;
-
-                    return $conect_timeout;
-                };
-            }
-
-            if ( !$args{proxy} ) {
-                my $hdl;
-
-                my $on_connect_error = $args{on_connect_error};
-                my $on_error         = $args{on_error};
-                my $on_connect       = $args{on_connect};
-
-                $args{on_connect_error} = sub ( $h, $message ) {
-                    delete $h->{on_connect_error};
-                    delete $h->{on_connect};
-
-                    if ($on_connect_error) {
-                        $on_connect_error->( $hdl, $message );
-                    }
-                    elsif ($on_error) {
-                        $on_error->( $hdl, 1, $message );
-                    }
-                    else {
-                        $on_connect->( undef, undef, undef, undef );
-                    }
-
-                    return;
-                };
-
-                $args{on_connect} = sub ( $h, @args ) {
-                    delete $h->{on_connect_error};
-                    delete $h->{on_connect};
-
-                    $on_connect->( $hdl, @args );
-
-                    return;
-                };
-
-                $hdl = $self->SUPER::new(%args);
+            if ( $args{proxy}->is_proxy_pool ) {
+                $persistent_id->{proxy_pool} = join q[|], $persistent_id->{any}, 1, $args{proxy}->id;
             }
             else {
-                $self->_connect_proxy( \%args );
+                $persistent_id->{proxy_pool} = join q[|], $persistent_id->{any}, 1, $args{proxy}->source->pool->id;
+
+                $persistent_id->{proxy} = join q[|], $persistent_id->{any}, 2, $args{proxy}->id;
             }
+        }
+
+        # fetch persistent connection and return on success
+        if ($persistent) {
+            my $effective_persistent_id;
+
+            if ( $persistent == $PERSISTENT_ANY ) {
+                $effective_persistent_id = $persistent_id->{any};
+            }
+            elsif ( $persistent == $PERSISTENT_IDENT ) {
+                if ( !$args{proxy} ) {
+                    $effective_persistent_id = $persistent_id->{no_proxy};
+                }
+                elsif ( $args{proxy}->is_proxy_pool ) {
+                    $effective_persistent_id = $persistent_id->{proxy_pool};
+                }
+                else {
+                    $effective_persistent_id = $persistent_id->{proxy};
+                }
+            }
+            elsif ( $persistent == $PERSISTENT_NO_PROXY ) {
+                $effective_persistent_id = $persistent_id->{no_proxy};
+            }
+            else {
+                die q[Invalid persistent value];
+            }
+
+            if ( my $h = $CACHE->fetch($effective_persistent_id) ) {
+                $h->{persistent} = 1;
+
+                $args{on_connect}->( $h, undef, undef, undef );
+
+                return;
+            }
+        }
+
+        $args{persistent} = 0;
+
+        $args{persistent_id} = [ values $persistent_id->%* ];
+
+        if ( my $conect_timeout = $args{connect_timeout} ) {
+            my $on_prepare = $args{on_prepare};
+
+            $args{on_prepare} = sub ($h) {
+                delete $h->{on_prepare};
+
+                $on_prepare->($h) if $on_prepare;
+
+                return $conect_timeout;
+            };
+        }
+
+        if ( !$args{proxy} ) {
+            my $hdl;
+
+            my $on_connect_error = $args{on_connect_error};
+            my $on_error         = $args{on_error};
+            my $on_connect       = $args{on_connect};
+
+            $args{on_connect_error} = sub ( $h, $message ) {
+                delete $h->{on_connect_error};
+                delete $h->{on_connect};
+
+                if ($on_connect_error) {
+                    $on_connect_error->( $hdl, $message );
+                }
+                elsif ($on_error) {
+                    $on_error->( $hdl, 1, $message );
+                }
+                else {
+                    $on_connect->( undef, undef, undef, undef );
+                }
+
+                return;
+            };
+
+            $args{on_connect} = sub ( $h, @args ) {
+                delete $h->{on_connect_error};
+                delete $h->{on_connect};
+
+                $on_connect->( $hdl, @args );
+
+                return;
+            };
+
+            $hdl = $self->SUPER::new(%args);
+        }
+        else {
+            $args{proxy}->get_slot(
+                $args{connect},
+                sub ( $proxy, $proxy_type ) {
+                    if ( !$proxy_type ) {
+
+                        # TODO throw error
+                    }
+                    else {
+                        # add proxy persistent id key here, because we haven't proxy credentials before
+                        push $args{persistent_id}->@*, join q[|], $persistent_id->{any}, 2, $proxy->id if $args{proxy}->is_proxy_pool;
+
+                        $args{proxy} = $proxy;
+
+                        $args{proxy_type} = $proxy_type;
+
+                        $self->_connect_proxy( \%args );
+                    }
+
+                    return;
+                }
+            );
         }
     }
 
@@ -500,69 +595,7 @@ sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_error, $on_connect ) {
     return;
 }
 
-sub _check_proxy ( $self, $proxy, $connect, $cb ) {
-    $proxy->start_thread(
-        sub ($proxy) {
-            if ( !$proxy->is_enabled ) {
-                $cb->( $proxy, undef );
-            }
-            else {
-                $proxy->check(
-                    $connect,
-                    sub ($proxy_type) {
-                        $cb->( $proxy, $proxy_type );
-
-                        return;
-                    }
-                );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
 # READERS
-sub read_eof ( $self, $on_read ) {
-    my $total_bytes_readed = 0;
-
-    $self->on_eof(
-        sub ($h) {
-
-            # remove "on_read" callback
-            $h->on_read(undef);
-
-            # remove "on_eof" callback
-            $h->on_eof(undef);
-
-            $on_read->( $h, undef, $total_bytes_readed, undef );
-
-            return;
-        }
-    );
-
-    $self->on_read(
-        sub ($h) {
-            $total_bytes_readed += length $h->{rbuf};
-
-            if ( !$on_read->( $h, \delete $h->{rbuf}, $total_bytes_readed, undef ) ) {
-
-                # remove "on_read" callback
-                $h->on_read(undef);
-
-                # remove "on_eof" callback
-                $h->on_eof(undef);
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
 sub read_http_res_headers {
     my $self = shift;
     my $cb   = pop;
@@ -646,14 +679,53 @@ sub read_http_req_headers ( $self, $cb ) {
 
 sub read_http_body ( $self, $on_read, @ ) {
     my %args = (
-        chunked => 0,
-        length  => undef,    # 0, undef - read until EOF
-        headers => 0,
+        chunked  => 0,
+        length   => undef,    # false - read until EOF
+        headers  => 0,
+        buf_size => 65_536,
         @_[ 2 .. $#_ ],
     );
 
-    my $total_bytes_readed = 0;
+    my $on_read_buf = sub ( $buf_ref, $error_message = undef ) {
+        state $buf = q[];
 
+        state $total_bytes_readed = 0;
+
+        if ($error_message) {
+
+            # drop buffer if has data
+            return if length $buf && !$on_read->( $self, \$buf, $total_bytes_readed, undef );
+
+            # throw error
+            $on_read->( $self, undef, $total_bytes_readed, $error_message );
+        }
+        elsif ( defined $buf_ref ) {
+            $buf .= $buf_ref->$*;
+
+            $total_bytes_readed += length $buf_ref->$*;
+
+            if ( length $buf > $args{buf_size} ) {
+                my $continue = $on_read->( $self, \$buf, $total_bytes_readed, undef );
+
+                $buf = q[];
+
+                return $continue ? $total_bytes_readed : 0;
+            }
+            else {
+                return $total_bytes_readed;
+            }
+        }
+        else {
+            # drop buffer if has data
+            return if length $buf && !$on_read->( $self, \$buf, $total_bytes_readed, undef );
+
+            $on_read->( $self, undef, $total_bytes_readed, undef );
+        }
+
+        return;
+    };
+
+    # TODO rewrite chunk reader using single on_read callback
     if ( $args{chunked} ) {    # read chunked body
         my $read_chunk;
 
@@ -669,9 +741,7 @@ sub read_http_body ( $self, $on_read, @ ) {
                         sub ( $h, @ ) {
                             my $chunk_ref = \$_[1];
 
-                            $total_bytes_readed += $chunk_len;
-
-                            if ( !$on_read->( $h, $chunk_ref, $total_bytes_readed, undef ) ) {    # transfer was cancelled by "on_body" call
+                            if ( !$on_read_buf->($chunk_ref) ) {      # transfer was cancelled by "on_body" call
                                 undef $read_chunk;
 
                                 return;
@@ -680,10 +750,10 @@ sub read_http_body ( $self, $on_read, @ ) {
                                 # read trailing chunk $CRLF
                                 $h->push_read(
                                     line => sub ( $h, @ ) {
-                                        if ( length $_[1] ) {                                     # error, chunk traililg can contain only $CRLF
+                                        if ( length $_[1] ) {         # error, chunk traililg can contain only $CRLF
                                             undef $read_chunk;
 
-                                            $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding' );
+                                            $on_read_buf->( undef, 'Garbled chunked transfer encoding' );
                                         }
                                         else {
                                             $h->push_read( line => $read_chunk );
@@ -708,10 +778,10 @@ sub read_http_body ( $self, $on_read, @ ) {
                             undef $read_chunk;
 
                             if ($error_reason) {
-                                $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding (invalid trailing headers)' );
+                                $on_read_buf->( undef, 'Garbled chunked transfer encoding (invalid trailing headers)' );
                             }
                             else {
-                                $on_read->( $h, undef, $total_bytes_readed, undef );
+                                $on_read_buf->( undef, undef );
                             }
 
                             return;
@@ -722,7 +792,7 @@ sub read_http_body ( $self, $on_read, @ ) {
             else {    # invalid chunk length
                 undef $read_chunk;
 
-                $on_read->( $h, undef, $total_bytes_readed, 'Garbled chunked transfer encoding' );
+                $on_read_buf->( undef, 'Garbled chunked transfer encoding' );
             }
 
             return;
@@ -731,14 +801,44 @@ sub read_http_body ( $self, $on_read, @ ) {
         $self->push_read( line => $read_chunk );
     }
     elsif ( !$args{length} ) {    # read until EOF
-        $self->read_eof($on_read);
-    }
-    else {                        # read body with known length
+        $self->on_eof(
+            sub ($h) {
+
+                # remove "on_read" callback
+                $h->on_read(undef);
+
+                # remove "on_eof" callback
+                $h->on_eof(undef);
+
+                $on_read_buf->( undef, undef );
+
+                return;
+            }
+        );
+
         $self->on_read(
             sub ($h) {
-                $total_bytes_readed += length $h->{rbuf};
+                my $total_bytes_readed = $on_read->( \delete $h->{rbuf}, undef );
 
-                if ( !$on_read->( $h, \delete $h->{rbuf}, $total_bytes_readed, undef ) ) {
+                if ( !$total_bytes_readed ) {
+
+                    # remove "on_read" callback
+                    $h->on_read(undef);
+
+                    # remove "on_eof" callback
+                    $h->on_eof(undef);
+                }
+
+                return;
+            }
+        );
+    }
+    else {    # read body with known length
+        $self->on_read(
+            sub ($h) {
+                my $total_bytes_readed = $on_read_buf->( \delete $h->{rbuf}, undef );
+
+                if ( !$total_bytes_readed ) {
 
                     # remove "on_read" callback
                     $h->on_read(undef);
@@ -749,14 +849,14 @@ sub read_http_body ( $self, $on_read, @ ) {
                         # remove "on_read" callback
                         $h->on_read(undef);
 
-                        $on_read->( $h, undef, $total_bytes_readed, undef );
+                        $on_read_buf->( undef, undef );
                     }
                     elsif ( $total_bytes_readed > $args{length} ) {
 
                         # remove "on_read" callback
                         $h->on_read(undef);
 
-                        $on_read->( $h, undef, $total_bytes_readed, q[Readed body length is larger than expected] );
+                        $on_read_buf->( undef, q[Readed body length is larger than expected] );
                     }
                 }
 
@@ -768,96 +868,17 @@ sub read_http_body ( $self, $on_read, @ ) {
     return;
 }
 
-# CACHE METHODS
-sub store ( $self, $timeout = undef ) {
-    my $id = $self->{persistent_id};
-
-    return unless $id;
-
-    # do not cache destroyed handles
-    return if $self->destroyed;
-
-    my $cache = $CACHE->{$id} ||= {
-        h     => [],
-        index => {},
-    };
-
-    my $refaddr = refaddr($self);
-
-    # check, if handle is already cached
-    return if exists $cache->{index}->{$refaddr};
-
-    my $destroy = sub ( $h, @ ) {
-
-        # remove handle from cache
-        for ( my $i = 0; $i <= $cache->{h}->$#*; $i++ ) {
-            if ( refaddr( $cache->{h}->[$i] ) == $refaddr ) {
-                splice $cache->{h}->@*, $i, 1;
-
-                delete $cache->{index}->{$refaddr};
-
-                last;
-            }
-        }
-
-        # remove cache id if no more cached handles for this id
-        delete $CACHE->{$id} unless $CACHE->{$id}->{h}->@*;
-
-        # destroy handle
-        $h->destroy;
-
-        return;
-    };
-
-    # on error etc., destroy
-    $self->on_error($destroy);
-
-    $self->on_eof($destroy);
-
-    $self->on_read($destroy);
-
-    $self->on_timeout(undef);
-
-    $self->timeout_reset;
-
-    $self->timeout( $timeout || $CACHE_TIMEOUT );
-
-    # store handle
-    push $cache->{h}->@*, $self;
-
-    $cache->{index}->{$refaddr} = 1;
+sub read_eof ( $self, $on_read ) {
+    $self->read_http_body( $on_read, chunked => 0, length => undef );
 
     return;
 }
 
-sub fetch ( $self, $id ) {
-    return unless $CACHE->{$id};
+# CACHE METHODS
+sub store ( $self, $timeout = undef ) {
+    $CACHE->store( $self, $timeout );
 
-    # currently we reuse the MOST RECENTLY USED connection
-    my $h = pop $CACHE->{$id}->{h}->@*;
-
-    if ($h) {
-        delete $CACHE->{$id}->{index}->{ refaddr($h) };
-
-        if ( $h->destroyed ) {
-            undef $h;
-        }
-        else {
-            $h->on_error(undef);
-
-            $h->on_eof(undef);
-
-            $h->on_read(undef);
-
-            $h->timeout_reset;
-
-            $h->timeout(0);
-        }
-    }
-
-    delete $CACHE->{$id} unless $CACHE->{$id}->{h}->@*;
-
-    return $h;
+    return;
 }
 
 1;
@@ -867,28 +888,31 @@ sub fetch ( $self, $id ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 153                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_connect_proxy" with high complexity score (23)            │
+## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
+## │      │ 79                   │ * Subroutine "new" with high complexity score (28)                                                             │
+## │      │ 248                  │ * Subroutine "_connect_proxy" with high complexity score (23)                                                  │
+## │      │ 680                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 291                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 160, 386             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 300, 328, 381, 458   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 395, 423, 476, 553   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 33, 332, 335, 347,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 385, 388, 391, 470   │                                                                                                                │
+## │    2 │ 64, 427, 430, 442,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 480, 483, 486, 565   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 594, 793             │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 627                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 902 does not specify text                                                   │
-## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 910 does not specify text                                                   │
-## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 938 does not specify text                                                   │
-## │      │ 896                  │ * Link L<AnyEvent::Handle> on line 954 does not specify text                                                   │
-## │      │ 896                  │ * Link L<AnyEvent::Socket> on line 954 does not specify text                                                   │
-## │      │ 896, 896             │ * Link L<Pcore::Proxy> on line 920 does not specify text                                                       │
-## │      │ 896                  │ * Link L<Pcore::Proxy> on line 954 does not specify text                                                       │
+## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 926 does not specify text                                                   │
+## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 934 does not specify text                                                   │
+## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 962 does not specify text                                                   │
+## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 978 does not specify text                                                   │
+## │      │ 920                  │ * Link L<AnyEvent::Socket> on line 978 does not specify text                                                   │
+## │      │ 920, 920             │ * Link L<Pcore::Proxy> on line 944 does not specify text                                                       │
+## │      │ 920                  │ * Link L<Pcore::Proxy> on line 978 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 29, 34, 385, 388,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 391, 397, 475        │                                                                                                                │
+## │    1 │ 60, 65, 480, 483,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 486, 492, 570        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

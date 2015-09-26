@@ -3,8 +3,7 @@ package Pcore::HTTP::Util;
 use Pcore;
 use Const::Fast qw[const];
 use Errno qw[];
-use Pcore::AE::Handle;
-use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
+use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
 use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
 
@@ -52,14 +51,16 @@ sub http_request ($args) {
                 $set_error->( $error_status, $error_reason );
             }
             else {                            # request was finished normally
-                my $persistent;
+                my $persistent = $runtime->{h}->{persistent} || $args->{persistent};
 
-                if ( $args->{persistent} || $runtime->{h}->{persistent} ) {
-                    if ( $runtime->{res}->version < 1.1 ) {
-                        $persistent = 1 if exists $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bkeep-?alive\b/smi;
+                $persistent = 0 if $runtime->{h}->{proxy} && $args->{persistent} == $PERSISTENT_NO_PROXY;
+
+                if ($persistent) {
+                    if ( $runtime->{res}->version < 1.1 ) {    # 1.0
+                        $persistent = 0 if !exists $runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bkeep-?alive\b/smi;
                     }
-                    else {                    # 1.1
-                        $persistent = 1 if !exists $runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bclose\b/smi;
+                    else {                                     # 1.1
+                        $persistent = 0 if exists $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bclose\b/smi;
                     }
                 }
 
@@ -377,7 +378,6 @@ sub _read_body ( $args, $runtime, $cb ) {
 
     my $on_read;
 
-    # init res body
     if ( $runtime->{redirect} ) {
 
         # redirects body always readed into memory
@@ -475,107 +475,62 @@ sub _read_body ( $args, $runtime, $cb ) {
         };
     }
     else {
-        my $body_is_fh;
+        my $body = q[];
 
-        # detect, where to write body, to memory or to fh
-        # TODO if CONTENT_DISPOSITION - attachment, or contains filename - store as temp file
-        if ( !$args->{chunk_size} ) {
-            $body_is_fh = 0;
-        }
-        else {
-            if ( $runtime->{content_length} ) {    # known content length
-                if ( $runtime->{content_length} > $args->{chunk_size} ) {
-                    $body_is_fh = 1;
-                }
-                else {
-                    $body_is_fh = 0;
-                }
+        $runtime->{res}->set_body( \$body );
+
+        $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
+            state $total_decoded_bytes_readed = 0;
+
+            state $body_is_fh = 0;
+
+            if ( defined $error_reason ) {
+                $cb->( 597, $error_reason );
             }
-            else {                                 # content length is unknown
-                $body_is_fh = 1;
-            }
-        }
+            else {
+                my $out_buf = q[];
 
-        # init body and create on_body callback
-        if ($body_is_fh) {
-            $runtime->{res}->set_body( P->file->tempfile );
+                my $out_buf_ref = \$out_buf;
 
-            $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
-                state $total_decoded_bytes_readed = 0;
+                # append buffer
+                if ($decode) {
+                    if ( !$decode->( $content_ref, $out_buf_ref ) ) {
+                        $cb->( 597, 'Stream decode error' );
 
-                if ( defined $error_reason ) {
-                    $cb->( 597, $error_reason );
-                }
-                else {
-                    # append buffer
-                    if ($decode) {
-                        my $out_buf;
-
-                        if ( !$decode->( $content_ref, \$out_buf ) ) {
-                            $cb->( 597, 'Stream decode error' );
-
-                            return;    # stop reading
-                        }
-                        elsif ( defined $content_ref ) {
-                            syswrite $runtime->{res}->body, $out_buf or die;
-
-                            $total_decoded_bytes_readed += length $out_buf;
-                        }
-                    }
-                    elsif ( defined $content_ref ) {
-                        syswrite $runtime->{res}->body, $content_ref->$* or die;
-
-                        $total_decoded_bytes_readed = $total_bytes_readed;
-                    }
-
-                    # process callbacks
-                    if ( defined $content_ref ) {
-                        $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
-
-                        $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
-
-                        return 1;    # continue reading
-                    }
-                    else {           # last chunk
-                        $cb->();
+                        return;    # stop reading
                     }
                 }
-
-                return;
-            };
-        }
-        else {
-            my $body = q[];
-
-            $runtime->{res}->set_body( \$body );
-
-            $on_read = sub ( $h, $content_ref, $total_bytes_readed, $error_reason ) {
-                state $total_decoded_bytes_readed = 0;
-
-                if ( defined $error_reason ) {
-                    $cb->( 597, $error_reason );
-                }
-                else {
-                    # append buffer
-                    if ($decode) {
-                        if ( !$decode->( $content_ref, \$body ) ) {
-                            $cb->( 597, 'Stream decode error' );
-
-                            return;    # stop reading
-                        }
-                        elsif ( defined $content_ref ) {
-                            $total_decoded_bytes_readed = length $body;
-                        }
-                    }
-                    elsif ( defined $content_ref ) {
-                        $body .= $content_ref->$*;
-
-                        $total_decoded_bytes_readed = $total_bytes_readed;
-                    }
+                elsif ( defined $content_ref ) {
+                    $out_buf_ref = $content_ref;
                 }
 
                 # process callbacks
                 if ( defined $content_ref ) {
+                    $total_decoded_bytes_readed += length $out_buf_ref->$*;
+
+                    if ( $args->{buf_size} && $total_decoded_bytes_readed >= $args->{buf_size} ) {
+                        if ( !$body_is_fh ) {
+                            $body_is_fh = 1;
+
+                            $runtime->{res}->set_body( P->file->tempfile );
+
+                            if ( length $body ) {
+                                syswrite $runtime->{res}->body, $body or die;
+                            }
+
+                            undef $body;
+                        }
+                    }
+
+                    if ( length $out_buf_ref->$* ) {
+                        if ($body_is_fh) {
+                            syswrite $runtime->{res}->body, $out_buf_ref->$* or die;
+                        }
+                        else {
+                            $runtime->{res}->body->$* .= $out_buf_ref->$*;
+                        }
+                    }
+
                     $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
 
                     $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
@@ -585,10 +540,10 @@ sub _read_body ( $args, $runtime, $cb ) {
                 else {           # last chunk
                     $cb->();
                 }
+            }
 
-                return;
-            };
-        }
+            return;
+        };
     }
 
     if ($chunked) {              # read chunked body
@@ -709,10 +664,12 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 18                   │ * Subroutine "http_request" with high complexity score (30)                                                    │
-## │      │ 333                  │ * Subroutine "_read_body" with high complexity score (76)                                                      │
+## │      │ 17                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
+## │      │ 334                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 90, 103, 104, 194    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 91, 104, 105, 195    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 517                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

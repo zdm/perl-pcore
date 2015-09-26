@@ -10,7 +10,7 @@ has path => ( is => 'ro', isa => Str, writer => 'set_path', predicate => 1, init
 
 has content_length => ( is => 'rwp', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 
-has chunk_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # write body to fh if CONTENT_LENGTH >= this value, 0 - always store in memory, 1 - always store to file
+has buf_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
 
 no Pcore;
 
@@ -45,7 +45,7 @@ sub _body_to_psgi ($self) {
 }
 
 # TODO
-# body chunked if body is FH or FilePath, and size > $self->chunk_size;
+# body chunked if body is FH or FilePath, and size > $self->buf_size;
 # body is multipart if has content parts with different content-types;
 # universal response coderef;
 sub body_to_ae_http ($self) {
