@@ -1,18 +1,15 @@
 package Pcore::Core::Dump;
 
 use Pcore qw[-export];
-
-BEGIN {
-    our @EXPORT_OK   = qw[dump filedump ffiledump];
-    our %EXPORT_TAGS = (                              #
-        CORE => \@EXPORT_OK
-    );
-    our @EXPORT = qw[dump];
-}
-
 use Pcore::Core::Dump::Dumper;
 
-sub dump {                                            ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+our @EXPORT_OK   = qw[dump filedump ffiledump];
+our %EXPORT_TAGS = (                              #
+    CORE => \@EXPORT_OK
+);
+our @EXPORT = qw[dump];
+
+sub dump {                                        ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my %args = (
         color       => 1,
         indent      => 4,
@@ -42,7 +39,7 @@ sub ffiledump ( $self, $filename, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 23                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 20                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
