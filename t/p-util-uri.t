@@ -39,7 +39,7 @@ our $tests = [
     [ 'user@host', 'mailto:' ] => 'mailto:user@host',
 
     # IDN
-    ['http://президент.ua'] => 'http://xn--d1abbgf6aiiy.ua',
+    ['http://президент.ua'] => 'http://xn--d1abbgf6aiiy.ua/',
 ];
 
 our $TESTS = $tests->@* / 2;
