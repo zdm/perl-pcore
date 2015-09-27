@@ -2,8 +2,7 @@ package Pcore::AE::Handle::ProxyPool::Proxy;
 
 use Pcore qw[-class];
 use Pcore::AE::Handle::ProxyPool::Proxy::Removed;
-use Pcore::AE::Handle;
-use Pcore::AE::Handle::Const qw[:PROXY_TYPE];
+use Pcore::AE::Handle qw[:ALL];
 use Const::Fast qw[const];
 
 extends qw[Pcore::Util::URI];
@@ -28,6 +27,8 @@ has connect_error_time => ( is => 'ro', isa => Int, default => 0, init_arg => un
 has connect_errors     => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
 has threads            => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
 has total_threads      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+
+has is_proxy_pool => ( is => 'ro', default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
     if ( my $args = $self->_parse_uri($uri) ) {
@@ -210,7 +211,7 @@ sub can_connect ( $self, $connect, $cb ) {
     if ( !$can_connect ) {
 
         # TODO cache cb
-        $cb->($PROXY_TYPE_UNDEF);
+        $cb->(0);
     }
     else {
         state $callback = {};
@@ -242,7 +243,7 @@ sub can_connect ( $self, $connect, $cb ) {
             my @types = $CHECK_SCHEME->{ $connect->[2] }->[0]->@*;
 
             my $test = sub ($proxy_type) {
-                if ( !$self->{connect_error} && $proxy_type == $PROXY_TYPE_UNDEF && ( $proxy_type = shift @types ) ) {
+                if ( !$self->{connect_error} && !$proxy_type && ( $proxy_type = shift @types ) ) {
                     if ( $proxy_type == $PROXY_TYPE_HTTP ) {
                         $self->_check_http( $proxy_type, $connect, __SUB__ );
                     }
@@ -263,10 +264,14 @@ sub can_connect ( $self, $connect, $cb ) {
                 }
             };
 
-            $test->($PROXY_TYPE_UNDEF);
+            $test->(0);
         }
     }
 
+    return;
+}
+
+sub get_slot ( $self, $connect, $cb ) {
     return;
 }
 
@@ -280,7 +285,7 @@ sub _check_http ( $self, $proxy_type, $connect, $cb ) {
                 $cb->($proxy_type);
             }
             else {               # scheme test passed
-                $cb->($PROXY_TYPE_UNDEF);
+                $cb->(0);
             }
 
             return;
@@ -296,7 +301,7 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
         $proxy_type,
         sub ($scheme_ok) {
             if ( !$scheme_ok ) {    # scheme test failed
-                $cb->($PROXY_TYPE_UNDEF);
+                $cb->(0);
             }
             else {                  # scheme test passed
 
@@ -312,7 +317,7 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
                                 $cb->($proxy_type);
                             }
                             else {       # tunnel creation failed
-                                $cb->($PROXY_TYPE_UNDEF);
+                                $cb->(0);
                             }
 
                             return;
@@ -352,42 +357,26 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
                 $cb->($h);
             }
             else {
-                my $on_error = sub ( $h, $message, $disable_proxy = 0 ) {
-                    $disable_proxy ? $self->connect_failure : $self->connect_ok;
+                Pcore::AE::Handle::ConnectProxy::connect_proxy(
+                    $h, $self,
+                    $proxy_type,
+                    $connect,
+                    timeout => 10,
+                    sub ( $h, $status, $message ) {
+                        if ( $status == $PROXY_OK ) {
+                            $self->connect_ok;
 
-                    $cb->(undef);
+                            $cb->($h);
+                        }
+                        else {
+                            # $self->connect_failure : $self->connect_ok
 
-                    return;
-                };
-
-                my $on_connect = sub ($hdl) {
-                    $self->connect_ok;
-
-                    $cb->($h);
-
-                    return;
-                };
-
-                $h->on_error(
-                    sub($h, $fatal, $message) {
-                        $on_error->( $h, $message, 0 );
+                            $cb->(undef);
+                        }
 
                         return;
                     }
                 );
-
-                if ( $proxy_type == $PROXY_TYPE_CONNECT ) {
-                    $h->_connect_proxy_connect( $self, $connect, $on_error, $on_connect );
-                }
-                elsif ( $proxy_type == $PROXY_TYPE_SOCKS4 || $proxy_type == $PROXY_TYPE_SOCKS4A ) {
-                    $h->_connect_proxy_socks4( $self, $connect, $on_error, $on_connect );
-                }
-                elsif ( $proxy_type == $PROXY_TYPE_SOCKS5 ) {
-                    $h->_connect_proxy_socks5( $self, $connect, $on_error, $on_connect );
-                }
-                else {
-                    die 'Invalid proxy type, please report';
-                }
             }
 
             return;
@@ -504,23 +493,23 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 120                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 121                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 222                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 223                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 439, 494             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 428, 483             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 494                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 483                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 112, 116, 148, 168,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 183, 197, 256        │                                                                                                                │
+## │    2 │ 113, 117, 149, 169,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 184, 198, 257        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 474                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 463                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 78                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 79                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 528                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 532 does not match the package declaration      │
+## │    1 │ 517                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 521 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

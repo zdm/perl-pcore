@@ -2,6 +2,7 @@ package Pcore::AE::Handle::ProxyPool::Source;
 
 use Pcore qw[-role];
 use Pcore::AE::Handle::ProxyPool::Proxy;
+use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
 
 requires qw[load];
 
@@ -67,9 +68,7 @@ sub BUILD ( $self, $args ) {
 }
 
 sub _build_id ($self) {
-    state $id = 0;
-
-    return ++$id;
+    return refaddr $self;
 }
 
 sub _build_load_timeout ($self) {

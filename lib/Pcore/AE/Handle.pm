@@ -158,6 +158,7 @@ sub new ( $self, @ ) {
 
         $args{persistent_id} = [ values $persistent_id->%* ];
 
+        # "on_prepare" wrapper to hanlde "connect_timeout"
         if ( my $conect_timeout = $args{connect_timeout} ) {
             my $on_prepare = $args{on_prepare};
 
@@ -179,6 +180,7 @@ sub new ( $self, @ ) {
 
             $args{on_connect_error} = sub ( $h, $message ) {
                 delete $h->{on_connect_error};
+
                 delete $h->{on_connect};
 
                 if ($on_connect_error) {
@@ -196,6 +198,7 @@ sub new ( $self, @ ) {
 
             $args{on_connect} = sub ( $h, @args ) {
                 delete $h->{on_connect_error};
+
                 delete $h->{on_connect};
 
                 $on_connect->( $hdl, @args );
@@ -206,27 +209,32 @@ sub new ( $self, @ ) {
             $hdl = $self->SUPER::new(%args);
         }
         else {
-            $args{proxy}->get_slot(
-                $args{connect},
-                sub ( $proxy, $proxy_type ) {
-                    if ( !$proxy_type ) {
+            if ( $args{proxy_type} ) {
+                $self->_connect_proxy( \%args );
+            }
+            else {
+                $args{proxy}->get_slot(
+                    $args{connect},
+                    sub ( $proxy, $proxy_type ) {
+                        if ( !$proxy_type ) {
 
-                        # TODO throw error
+                            # TODO throw error
+                        }
+                        else {
+                            # add proxy persistent id key here, because we haven't proxy credentials before
+                            push $args{persistent_id}->@*, join q[|], $persistent_id->{any}, 2, $proxy->id if $args{proxy}->is_proxy_pool;
+
+                            $args{proxy} = $proxy;
+
+                            $args{proxy_type} = $proxy_type;
+
+                            $self->_connect_proxy( \%args );
+                        }
+
+                        return;
                     }
-                    else {
-                        # add proxy persistent id key here, because we haven't proxy credentials before
-                        push $args{persistent_id}->@*, join q[|], $persistent_id->{any}, 2, $proxy->id if $args{proxy}->is_proxy_pool;
-
-                        $args{proxy} = $proxy;
-
-                        $args{proxy_type} = $proxy_type;
-
-                        $self->_connect_proxy( \%args );
-                    }
-
-                    return;
-                }
-            );
+                );
+            }
         }
     }
 
@@ -245,170 +253,128 @@ sub DESTROY ($self) {
 
 # PROXY CONNECTORS
 sub _connect_proxy ( $self, $args ) {
-    state $keys = [qw[on_timeout on_rtimeout on_wtimeout on_error on_eof on_read]];
+    my $hdl;
 
-    $self->_check_proxy(
-        $args->{proxy},
-        $args->{connect},
-        sub ( $proxy, $proxy_type ) {
-            my $hdl;
+    my $on_proxy_connect_error = $args->{on_proxy_connect_error};
+    my $on_connect_error       = $args->{on_connect_error};
+    my $on_error               = $args->{on_error};
+    my $on_connect             = $args->{on_connect};
+    my $connect                = $args->{connect};
+    my $timeout                = $args->{timeout};
 
-            my $connect                = $args->{connect};
-            my $on_proxy_connect_error = delete $args->{on_proxy_connect_error};
-            my $on_connect_error       = $args->{on_connect_error};
-            my $on_error               = $args->{on_error};
-            my $on_connect             = $args->{on_connect};
+    my $on_finish = sub ( $h, $message, $proxy_error ) {
 
-            $args->{on_connect_error} = sub ( $h, $message, $disable_proxy = 1 ) {
-                delete $h->{on_connect_error};
-                delete $h->{on_connect};
+        # cleanup
+        undef $args;
 
-                $disable_proxy ? $proxy->connect_failure : $proxy->connect_ok;
+        if ($proxy_error) {
+            $h->destroy if $h;
 
-                if ($on_proxy_connect_error) {
-                    $on_proxy_connect_error->( $hdl, $message );
-                }
-                elsif ($on_connect_error) {
-                    $on_connect_error->( $hdl, $message );
-                }
-                elsif ($on_error) {
-                    $on_error->( $hdl, 1, $message );
-                }
-                else {
-                    $on_connect->( undef, undef, undef, undef );
-                }
-
-                return;
-            };
-
-            if ( !$proxy_type ) {
-                $proxy->finish_thread;
-
-                $args->{on_connect_error}->( undef, q[Proxy doesn't support this connection type], 0 );
-
-                return;
+            if ( $proxy_error && $on_proxy_connect_error ) {
+                $on_proxy_connect_error->( $hdl, $message, $proxy_error );
             }
-            elsif ( $proxy_type == $PROXY_TYPE_HTTP ) {
-                $args->{on_connect} = sub ( $h, @args ) {
-                    delete $h->{on_connect_error};
-                    delete $h->{on_connect};
-
-                    $h->{connect} = $connect;
-
-                    $on_connect->( $hdl, @args );
-                };
+            elsif ($on_connect_error) {
+                $on_connect_error->( $hdl, $message );
+            }
+            elsif ($on_error) {
+                $on_error->( $hdl, 1, $message );
             }
             else {
-                my %orig_args = $args->%{ $keys->@* };
-                delete $args->@{ $keys->@* };
-
-                if ( $args->{connect_timeout} ) {
-                    $orig_args{timeout}  = delete $args->{timeout};
-                    $orig_args{rtimeout} = delete $args->{rtimeout};
-
-                    $args->{timeout} = $args->{connect_timeout};
-                }
-
-                $args->{on_connect} = sub ( $h, @args ) {
-                    delete $hdl->{on_connect_error};
-                    delete $hdl->{on_connect};
-
-                    $hdl->{connect} = $connect;
-
-                    $hdl->{peername} = $connect->[0];
-
-                    my $on_proxy_error = sub ( $h, $message, $disable_proxy = 0 ) {
-                        delete $h->{on_error};
-
-                        $h->destroy if $h;
-
-                        $proxy->disable if $disable_proxy;
-
-                        if ( $on_proxy_connect_error && $disable_proxy ) {
-                            $on_proxy_connect_error->( $hdl, $message );
-                        }
-                        elsif ($on_connect_error) {
-                            $on_connect_error->( $hdl, $message );
-                        }
-                        elsif ($on_error) {
-                            $on_error->( $hdl, 1, $message );
-                        }
-                        else {
-                            $on_connect->( undef, undef, undef, undef );
-                        }
-
-                        return;
-                    };
-
-                    $hdl->on_error(
-                        sub ( $h, $fatal, $message ) {
-                            $on_proxy_error->( $h, $message, 0 );
-
-                            return;
-                        }
-                    );
-
-                    my $on_proxy_connect = sub ($h) {
-                        delete $h->{on_error};
-
-                        # restore orig. callbacks
-                        for my $method ( grep { $orig_args{$_} } keys %orig_args ) {
-                            $h->$method( $orig_args{$method} );
-                        }
-
-                        $on_connect->( $hdl, undef, undef, undef );
-
-                        return;
-                    };
-
-                    if ( $proxy_type == $PROXY_TYPE_CONNECT ) {
-                        $hdl->_connect_proxy_connect( $proxy, $connect, $on_proxy_error, $on_proxy_connect );
-                    }
-                    elsif ( $proxy_type == $PROXY_TYPE_SOCKS5 ) {
-                        $hdl->_connect_proxy_socks5( $proxy, $connect, $on_proxy_error, $on_proxy_connect );
-                    }
-                    elsif ( $proxy_type == $PROXY_TYPE_SOCKS4 || $proxy_type == $PROXY_TYPE_SOCKS4A ) {
-                        $hdl->_connect_proxy_socks4( $proxy, $connect, $on_proxy_error, $on_proxy_connect );
-                    }
-                    else {
-                        die 'Invalid proxy type, please report';
-                    }
-
-                    return;
-                };
+                $on_connect->( undef, undef, undef, undef );
             }
+        }
+        else {
+            delete $h->{on_connect_error};
 
-            $args->{proxy_type} = $proxy_type;
+            delete $h->{on_error};
 
-            $args->{connect} = [ $args->{proxy}->host->name, $args->{proxy}->port ];
+            delete $h->{on_connect};
 
-            $hdl = $self->SUPER::new( $args->%* );
+            # restore orig. on_error callback
+            $h->on_error($on_error);
+
+            $h->{peername} = $connect->[0];
+
+            $h->{connect} = $connect;
+
+            $h->timeout($timeout);
+
+            $on_connect->( $hdl, undef, undef, undef );
+        }
+
+        return;
+    };
+
+    if ( !$args->{proxy_type} ) {
+        $on_finish->( undef, 'Proxy type error', $PROXY_ERROR_TYPE );
+
+        return;
+    }
+
+    $args->{on_connect_error} = sub ( $h, $message ) {
+        $on_finish->( @_, $PROXY_ERROR_CONNECT );
+
+        return;
+    };
+
+    $args->{on_connect} = sub ( $h, @ ) {
+        if ( $args->{proxy_type} == $PROXY_TYPE_HTTP ) {
+            $on_finish->( $h, undef, undef );
 
             return;
         }
-    );
+
+        $h->on_error(
+            sub ( $h, $fatal, $message ) {
+                $on_finish->( $h, $message, $PROXY_ERROR_OTHER );
+
+                return;
+            }
+        );
+
+        if ( $args->{proxy_type} == $PROXY_TYPE_CONNECT ) {
+            $h->_connect_proxy_connect( $args->{proxy}, $connect, $on_finish );
+        }
+        elsif ( $args->{proxy_type} == $PROXY_TYPE_SOCKS4 || $args->{proxy_type} == $PROXY_TYPE_SOCKS4A ) {
+            $h->_connect_proxy_socks4( $args->{proxy}, $connect, $on_finish );
+        }
+        elsif ( $args->{proxy_type} == $PROXY_TYPE_SOCKS5 ) {
+            $h->_connect_proxy_socks5( $args->{proxy}, $connect, $on_finish );
+        }
+        else {
+            die q[Invalid proxy type, please report];
+        }
+
+        return;
+    };
+
+    $args->{connect} = [ $args->{proxy}->host->name, $args->{proxy}->port ];
+
+    $args->{timeout} = $args->{connect_timeout} if $args->{connect_timeout};
+
+    $hdl = $self->SUPER::new( $args->%* );
 
     return;
 }
 
-sub _connect_proxy_connect ( $self, $proxy, $connect, $on_error, $on_connect ) {
+sub _connect_proxy_connect ( $self, $proxy, $connect, $on_finish ) {
     $self->push_write( q[CONNECT ] . $connect->[0] . q[:] . $connect->[1] . q[ HTTP/1.1] . $CRLF . ( $proxy->userinfo ? q[Proxy-Authorization: Basic ] . $proxy->userinfo_b64 . $CRLF : q[] ) . $CRLF );
 
     $self->read_http_res_headers(
         headers => 0,
         sub ( $h, $res, $error_reason ) {
             if ($error_reason) {
-                $on_error->( $h, 'Invalid proxy connect response' );
+                $on_finish->( $h, 'Invalid proxy connect response', $PROXY_ERROR_TYPE );
             }
             else {
                 if ( $res->{status} == 200 ) {
-                    $on_connect->($h);
+                    $on_finish->( $h, undef, undef );
                 }
                 elsif ( $res->{status} == 407 ) {
-                    $on_error->( $h, $res->{status} . q[ - ] . $res->{reason}, $DISABLE_PROXY );
+                    $on_finish->( $h, $res->{status} . q[ - ] . $res->{reason}, $PROXY_ERROR_AUTH );
                 }
                 else {
-                    $on_error->( $h, $res->{status} . q[ - ] . $res->{reason} );
+                    $on_finish->( $h, $res->{status} . q[ - ] . $res->{reason}, $PROXY_ERROR_OTHER );
                 }
             }
 
@@ -419,7 +385,52 @@ sub _connect_proxy_connect ( $self, $proxy, $connect, $on_error, $on_connect ) {
     return;
 }
 
-sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
+sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_finish ) {
+    AnyEvent::Socket::resolve_sockaddr $connect->[0], $connect->[1], 'tcp', undef, undef, sub {
+        my @target = @_;
+
+        unless (@target) {
+            $on_finish->( $self, qq[Host name "$connect->[0]" couldn't be resolved], $PROXY_ERROR_OTHER );    # not a proxy connect error
+
+            return;
+        }
+
+        my $target = shift @target;
+
+        $self->push_write( qq[\x04\x01] . pack( 'n', $connect->[1] ) . AnyEvent::Socket::unpack_sockaddr( $target->[3] ) . $proxy->userinfo . qq[\x00] );
+
+        $self->push_read(
+            chunk => 8,
+            sub ( $h, $chunk ) {
+                my $rep = unpack 'C*', substr( $chunk, 1, 1 );
+
+                if ( $rep == 90 ) {    # request granted
+                    $on_finish->( $h, undef, undef );
+                }
+                elsif ( $rep == 91 ) {    # request rejected or failed, tunnel creation error
+                    $on_finish->( $h, 'Request rejected or failed', $PROXY_ERROR_OTHER );
+                }
+                elsif ( $rep == 92 ) {    # request rejected becasue SOCKS server cannot connect to identd on the client
+                    $on_finish->( $h, 'Request rejected becasue SOCKS server cannot connect to identd on the client', $PROXY_ERROR_AUTH );
+                }
+                elsif ( $rep == 93 ) {    # request rejected because the client program and identd report different user-ids
+                    $on_finish->( $h, 'Request rejected because the client program and identd report different user-ids', $PROXY_ERROR_AUTH );
+                }
+                else {                    # unknown error
+                    $on_finish->( $h, 'Invalid socks4 server response', $PROXY_ERROR_OTHER );
+                }
+
+                return;
+            }
+        );
+
+        return;
+    };
+
+    return;
+}
+
+sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_finish ) {
 
     # start handshake
     if ( $proxy->userinfo ) {
@@ -435,7 +446,7 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
             my ( $ver, $method ) = unpack 'C*', $chunk;
 
             if ( $method == 255 ) {    # no valid auth method was proposed
-                $on_error->( $h, 'No authorization method was found', $DISABLE_PROXY );
+                $on_finish->( $h, 'No authorization method was found', $PROXY_ERROR_AUTH );
             }
             elsif ( $method == 2 ) {    # start username / password authorization
                 $h->push_write( qq[\x01] . pack( 'C', length $proxy->username ) . $proxy->username . pack( 'C', length $proxy->password ) . $proxy->password );
@@ -446,10 +457,10 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
                         my ( $auth_ver, $auth_status ) = unpack 'C*', $chunk;
 
                         if ( $auth_status != 0 ) {    # auth error
-                            $on_error->( $h, 'Authorization failure', $DISABLE_PROXY );
+                            $on_finish->( $h, 'Authorization failure', $PROXY_ERROR_AUTH );
                         }
                         else {
-                            $h->_socks5_establish_tunnel( $proxy, $connect, $on_error, $on_connect );
+                            _socks5_establish_tunnel( $h, $proxy, $connect, $on_finish );
                         }
 
                         return;
@@ -457,12 +468,12 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
                 );
             }
             elsif ( $method == 0 ) {                  # no authorization needed
-                $h->_socks5_establish_tunnel( $proxy, $connect, $on_error, $on_connect );
+                _socks5_establish_tunnel( $h, $proxy, $connect, $on_finish );
 
                 return;
             }
             else {
-                $on_error->( $h, 'Authorization method is not supported', $DISABLE_PROXY );
+                $on_finish->( $h, 'Authorization method is not supported', $PROXY_ERROR_AUTH );
             }
 
             return;
@@ -472,7 +483,7 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_error, $on_connect ) {
     return;
 }
 
-sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_error, $on_connect ) {
+sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
 
     # detect destination addr type
     if ( my $ipn4 = AnyEvent::Socket::parse_ipv4( $connect->[0] ) ) {    # IPv4 addr
@@ -498,7 +509,7 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_error, $on_connect )
 
                             # TODO validate: 4 bytes IP addr, 2 bytes port
 
-                            $on_connect->($h);
+                            $on_finish->( $h, undef, undef );
 
                             return;
                         }
@@ -514,7 +525,7 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_error, $on_connect )
 
                                     # TODO validate domain name + port
 
-                                    $on_connect->($h);
+                                    $on_finish->( $h, undef, undef );
 
                                     return;
                                 }
@@ -531,7 +542,7 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_error, $on_connect )
 
                             # TODO validate IPv6 + port
 
-                            $on_connect->($h);
+                            $on_finish->( $h, undef, undef );
 
                             return;
                         }
@@ -539,57 +550,12 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_error, $on_connect )
                 }
             }
             else {
-                $on_error->( $h, q[Tunnel creation error] );
+                $on_finish->( $h, q[Tunnel creation error], $PROXY_ERROR_OTHER );
             }
 
             return;
         }
     );
-
-    return;
-}
-
-sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_error, $on_connect ) {
-    AnyEvent::Socket::resolve_sockaddr $connect->[0], $connect->[1], 'tcp', undef, undef, sub {
-        my @target = @_;
-
-        unless (@target) {
-            $on_error->( $self, qq[Host name "$connect->[0]" couldn't be resolved] );    # not a proxy connect error
-
-            return;
-        }
-
-        my $target = shift @target;
-
-        $self->push_write( qq[\x04\x01] . pack( 'n', $connect->[1] ) . AnyEvent::Socket::unpack_sockaddr( $target->[3] ) . $proxy->userinfo . qq[\x00] );
-
-        $self->push_read(
-            chunk => 8,
-            sub ( $h, $chunk ) {
-                my $rep = unpack 'C*', substr( $chunk, 1, 1 );
-
-                if ( $rep == 90 ) {    # request granted
-                    $on_connect->($h);
-                }
-                elsif ( $rep == 91 ) {    # request rejected or failed, tunnel creation error
-                    $on_error->( $self, 'Request rejected or failed' );
-                }
-                elsif ( $rep == 92 ) {    # request rejected becasue SOCKS server cannot connect to identd on the client
-                    $on_error->( $self, 'Request rejected becasue SOCKS server cannot connect to identd on the client', $DISABLE_PROXY );
-                }
-                elsif ( $rep == 93 ) {    # request rejected because the client program and identd report different user-ids
-                    $on_error->( $self, 'Request rejected because the client program and identd report different user-ids', $DISABLE_PROXY );
-                }
-                else {                    # unknown error
-                    $on_error->( $self, 'Invalid socks4 server response', $DISABLE_PROXY );
-                }
-
-                return;
-            }
-        );
-
-        return;
-    };
 
     return;
 }
@@ -888,30 +854,27 @@ sub store ( $self, $timeout = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 78                   │ * Subroutine "new" with high complexity score (28)                                                             │
-## │      │ 247                  │ * Subroutine "_connect_proxy" with high complexity score (23)                                                  │
-## │      │ 679                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 78                   │ * Subroutine "new" with high complexity score (30)                                                             │
+## │      │ 645                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 159, 385             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 159, 355             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 394, 422, 475, 552   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    2 │ 63, 400, 437, 440,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 452, 490, 493, 496   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 63, 426, 429, 441,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 479, 482, 485, 564   │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 626                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 592                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 925 does not specify text                                                   │
-## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 933 does not specify text                                                   │
-## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 961 does not specify text                                                   │
-## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 977 does not specify text                                                   │
-## │      │ 919                  │ * Link L<AnyEvent::Socket> on line 977 does not specify text                                                   │
-## │      │ 919, 919             │ * Link L<Pcore::Proxy> on line 943 does not specify text                                                       │
-## │      │ 919                  │ * Link L<Pcore::Proxy> on line 977 does not specify text                                                       │
+## │      │ 882                  │ * Link L<AnyEvent::Handle> on line 888 does not specify text                                                   │
+## │      │ 882                  │ * Link L<AnyEvent::Handle> on line 896 does not specify text                                                   │
+## │      │ 882                  │ * Link L<AnyEvent::Handle> on line 924 does not specify text                                                   │
+## │      │ 882                  │ * Link L<AnyEvent::Handle> on line 940 does not specify text                                                   │
+## │      │ 882                  │ * Link L<AnyEvent::Socket> on line 940 does not specify text                                                   │
+## │      │ 882, 882             │ * Link L<Pcore::Proxy> on line 906 does not specify text                                                       │
+## │      │ 882                  │ * Link L<Pcore::Proxy> on line 940 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 59, 64, 479, 482,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 485, 491, 569        │                                                                                                                │
+## │    1 │ 59, 64, 405, 490,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 493, 496, 502        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

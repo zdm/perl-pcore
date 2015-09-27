@@ -1,6 +1,9 @@
 package Pcore::AE::Handle::ProxyPool;
 
 use Pcore qw[-class];
+use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
+
+has id => ( is => 'lazy', isa => Int, init_arg => undef );
 
 has load_timeout          => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );     # 0 - don't re-load proxy sources
 has connect_error_timeout => ( is => 'ro', isa => PositiveInt,       default => 180 );    # timeout for re-check disabled proxies
@@ -16,6 +19,8 @@ has _connect_id => ( is => 'lazy', init_arg => undef );
 
 has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+
+has is_proxy_pool => ( is => 'ro', default => 1, init_arg => undef );
 
 no Pcore;
 
@@ -43,6 +48,10 @@ sub BUILD ( $self, $args ) {
     $self->_maintenance;
 
     return;
+}
+
+sub _build_id ($self) {
+    return refaddr $self;
 }
 
 sub _build_dbh ($self) {
@@ -161,7 +170,7 @@ SQL
 }
 
 # TODO
-sub get_proxy ( $self, $connect, @ ) {
+sub get_slot ( $self, $connect, @ ) {
     my $cb = $_[-1];
 
     my %args = (
@@ -208,9 +217,9 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 25, 123              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 132              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 58                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 67                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
