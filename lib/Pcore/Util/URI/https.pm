@@ -7,6 +7,12 @@ extends qw[Pcore::Util::URI];
 has '+is_secure'    => ( default => 1 );
 has '+default_port' => ( default => 443 );
 
+around _prebuild_uri => sub ( $orig, $self, $uri, $base ) {
+    $uri->{path} = q[/] if $uri->{has_authority} && $uri->{path} eq q[];
+
+    return $self->$orig( $uri, $base );
+};
+
 no Pcore;
 
 1;

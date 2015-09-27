@@ -114,7 +114,7 @@ sub http_request ($args) {
     };
 
     # add REFERER header
-    $runtime->{headers}->{REFERER} = $args->{url}->pathquery(1) unless exists $args->{headers}->{REFERER};
+    $runtime->{headers}->{REFERER} = $args->{url}->to_string unless exists $args->{headers}->{REFERER};
 
     # add HOST header
     $runtime->{headers}->{HOST} = $args->{url}->host->name unless exists $args->{headers}->{HOST};
@@ -189,7 +189,6 @@ sub http_request ($args) {
     return;
 }
 
-# TODO proxy auth header
 sub _connect ( $args, $runtime, $cb ) {
     Pcore::AE::Handle->new(
         $args->{handle_params}->%*,
@@ -200,7 +199,7 @@ sub _connect ( $args, $runtime, $cb ) {
         session                => $args->{session},
         tls_ctx                => $args->{tls_ctx},
         proxy                  => $args->{proxy},
-        on_proxy_connect_error => sub ( $h, $message ) {
+        on_proxy_connect_error => sub ( $h, $message, $proxy_error ) {
             $runtime->{finish}->( 594, $message );
 
             return;
@@ -216,10 +215,7 @@ sub _connect ( $args, $runtime, $cb ) {
             return;
         },
         on_connect => sub ( $h, $host, $port, $retry ) {
-
-            # TODO add prxoy auth header if proxy is HTTP
-
-            # say dump $h; exit;
+            $runtime->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $args->{proxy}->userinfo_b64 if $h->{proxy} && $h->{proxy}->userinfo && $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP;
 
             $cb->($h);
 
@@ -237,7 +233,7 @@ sub _write_request ( $args, $runtime ) {
         $request_path = $args->{url}->to_string;
     }
     else {
-        $request_path = $args->{url}->pathquery;
+        $request_path = $args->{url}->path->to_uri . ( $args->{url}->query ? q[?] . $args->{url}->query : q[] );
 
         # start TLS, only if TLS is required and TLS is not established yet
         $runtime->{h}->starttls('connect') if $args->{url}->is_secure && !exists $runtime->{h}->{tls};
@@ -665,11 +661,11 @@ sub get_random_ua {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 17                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 334                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 330                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 91, 104, 105, 195    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 91, 104, 105, 194    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 517                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 513                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

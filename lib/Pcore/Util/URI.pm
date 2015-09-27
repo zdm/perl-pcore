@@ -49,7 +49,7 @@ has hostport      => ( is => 'lazy', clearer => '_clear_host_port',      init_ar
 has hostport_utf8 => ( is => 'lazy', clearer => '_clear_host_port_utf8', init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $base = undef, @ ) {
-    my $args = $self->_parse_uri_string($uri);
+    my $args = $self->parse_uri_string($uri);
 
     my $scheme = $args->{scheme};
 
@@ -59,7 +59,7 @@ around new => sub ( $orig, $self, $uri, $base = undef, @ ) {
 
         # parse base URI
         if ( !ref $base ) {
-            $base = $self->_parse_uri_string($base);
+            $base = $self->parse_uri_string($base);
         }
         else {
             $base = {
@@ -74,6 +74,9 @@ around new => sub ( $orig, $self, $uri, $base = undef, @ ) {
         return if $base->{scheme} eq q[];
 
         $scheme = $base->{scheme};
+    }
+    else {
+        undef $base;
     }
 
     state $scheme_cache = {    #
@@ -225,7 +228,7 @@ sub NEW {
     return __PACKAGE__->new(@_);
 }
 
-sub _parse_uri_string ( $self, $uri, @ ) {
+sub parse_uri_string ( $self, $uri, @ ) {
     my %args = (
         has_authority => 0,
         scheme        => q[],
@@ -597,32 +600,6 @@ sub to_psgi ($self) {
     }
 }
 
-# convert for using in http requests
-sub pathquery ( $self, $with_auth = undef ) {
-
-    # https://tools.ietf.org/html/rfc3986#section-5.3
-    my $uri = q[];
-
-    if ($with_auth) {
-        $uri .= $self->scheme . q[:] if $self->scheme;
-
-        $uri .= q[//] . $self->authority if $self->authority;
-    }
-
-    if ( $self->path ) {
-        $uri .= q[/] if substr( $self->path->to_uri, 0, 1 ) ne q[/];
-
-        $uri .= $self->path->to_uri;
-    }
-    else {
-        $uri .= q[/];
-    }
-
-    $uri .= q[?] . $self->query if $self->query;
-
-    return $uri;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -630,7 +607,7 @@ sub pathquery ( $self, $with_auth = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (26)                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

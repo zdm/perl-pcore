@@ -31,14 +31,39 @@ has total_threads      => ( is => 'ro', isa => Int, default => 0, init_arg => un
 has is_proxy_pool => ( is => 'ro', default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
-    if ( my $args = $self->_parse_uri($uri) ) {
-        $args->{source} = $source;
+    $uri = q[//] . $uri if index( $uri, q[//] ) == -1;
 
-        $self->$orig($args);
+    my $args = $self->parse_uri_string($uri);
+
+    return if !$args->{authority};
+
+    my $userinfo = q[];
+
+    if ( ( my $idx = index $args->{authority}, q[@] ) != -1 ) {
+        $userinfo = substr $args->{authority}, 0, $idx + 1, q[];
     }
-    else {
-        return;
+
+    # parse userinfo
+    my @token = split /:/sm, $args->{authority};
+
+    if ( @token < 2 ) {
+        die 'Proxy port should be specified';
     }
+    elsif ( @token == 2 ) {
+        $args->{authority} = $userinfo . $args->{authority};
+    }
+    elsif ( @token == 3 ) {    # host:port:username
+        $args->{authority} = $token[2] . q[@] . $token[0] . q[:] . $token[1];
+    }
+    else {                     # host:port:username:password
+        $args->{authority} = shift(@token) . q[:] . shift(@token);
+
+        $args->{authority} = join( q[:], @token ) . q[@] . $args->{authority};
+    }
+
+    $args->{source} = $source;
+
+    return $self->$orig($args);
 };
 
 no Pcore;
@@ -50,43 +75,6 @@ const our $CHECK_SCHEME => {
     https => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5, $PROXY_TYPE_HTTP ], [ 'www.google.com', 443 ], \&_test_scheme_httpx, ],
     whois => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5 ], [ 'whois.iana.org', 43 ], \&_test_whois, ],
 };
-
-sub _parse_uri ( $self, $uri ) {
-    $uri = q[//] . $uri if index( $uri, q[//] ) == -1;
-
-    my $args = $self->_parse_uri_string($uri);
-
-    if ( $args->{authority} ) {
-        my $userinfo = q[];
-
-        if ( ( my $idx = index $args->{authority}, q[@] ) != -1 ) {
-            $userinfo = substr $args->{authority}, 0, $idx + 1, q[];
-        }
-
-        # parse userinfo
-        my @token = split /:/sm, $args->{authority};
-
-        if ( @token < 2 ) {
-            die 'Proxy port should be specified';
-        }
-        elsif ( @token == 2 ) {
-            $args->{authority} = $userinfo . $args->{authority};
-        }
-        elsif ( @token == 3 ) {    # host:port:username
-            $args->{authority} = $token[2] . q[@] . $token[0] . q[:] . $token[1];
-        }
-        else {                     # host:port:username:password
-            $args->{authority} = shift(@token) . q[:] . shift(@token);
-
-            $args->{authority} = join( q[:], @token ) . q[@] . $args->{authority};
-        }
-
-        return $args;
-    }
-    else {
-        return;
-    }
-}
 
 sub _build_id ($self) {
     return $self->hostport;
@@ -272,6 +260,8 @@ sub can_connect ( $self, $connect, $cb ) {
 }
 
 sub get_slot ( $self, $connect, $cb ) {
+    $cb->( $self, $PROXY_TYPE_HTTP );
+
     return;
 }
 
@@ -493,23 +483,23 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 121                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 109                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 223                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 211                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 428, 483             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 418, 473             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 483                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 473                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 113, 117, 149, 169,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 184, 198, 257        │                                                                                                                │
+## │    2 │ 101, 105, 137, 157,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 172, 186, 245        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 463                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 453                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 79                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 59                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 517                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 521 does not match the package declaration      │
+## │    1 │ 507                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 511 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
