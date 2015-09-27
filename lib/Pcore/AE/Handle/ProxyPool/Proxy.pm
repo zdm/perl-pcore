@@ -11,21 +11,21 @@ has source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::So
 has id      => ( is => 'lazy', isa => Str, init_arg => undef );
 has pool_id => ( is => 'ro',   isa => Int, init_arg => undef );
 
-has connect_error_timeout => ( is => 'lazy', isa => PositiveInt );
-has max_connect_errors    => ( is => 'lazy', isa => PositiveInt );
-has ban_timeout           => ( is => 'lazy', isa => PositiveOrZeroInt );
-has max_threads           => ( is => 'lazy', isa => PositiveOrZeroInt );
+has connect_error_timeout => ( is => 'lazy', isa => PositiveInt );          # timout for enable proxy after connect error
+has max_connect_errors    => ( is => 'lazy', isa => PositiveInt );          # max. connect errors, after which proxy will be removed from pool
+has ban_timeout           => ( is => 'lazy', isa => PositiveOrZeroInt );    # default proxy ban timeout
+has max_threads           => ( is => 'lazy', isa => PositiveOrZeroInt );    # max. allowed concurrent threads via this proxy
 
-has removed       => ( is => 'ro', default => 0, init_arg => undef );
-has connect_error => ( is => 'ro', default => 0, init_arg => undef );
+has removed       => ( is => 'ro', default => 0, init_arg => undef );       # proxy is removed
+has connect_error => ( is => 'ro', default => 0, init_arg => undef );       # proxy has connection error
 
-has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
-has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+has test_connection => ( is => 'lazy', isa => HashRef, default => sub { {} }, clearer => 1, init_arg => undef );    # tested connections cache
+has test_scheme     => ( is => 'lazy', isa => HashRef, default => sub { {} }, clearer => 1, init_arg => undef );    # tested schemes cache
 
-has connect_error_time => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
-has connect_errors     => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
-has threads            => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
-has total_threads      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
+has connect_error_time => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # next connect_error release time
+has connect_errors     => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # connect errors counter
+has threads            => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # current threads number
+has total_threads      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # total connections was made through this proxy
 
 has is_proxy_pool => ( is => 'ro', default => 0, init_arg => undef );
 
@@ -74,9 +74,10 @@ our $CHECK_SCHEME = {
     udp => [ [$PROXY_TYPE_SOCKS5] ],
     http  => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5, $PROXY_TYPE_HTTP ], [ 'www.google.com', 80 ],  \&_test_scheme_httpx, ],
     https => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5, $PROXY_TYPE_HTTP ], [ 'www.google.com', 443 ], \&_test_scheme_httpx, ],
-    whois => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5 ], [ 'whois.iana.org', 43 ], \&_test_whois, ],
+    whois => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5 ], [ 'whois.iana.org', 43 ], \&_test_scheme_whois, ],
 };
 
+# BUILDERS
 sub _build_id ($self) {
     return $self->hostport;
 }
@@ -127,27 +128,19 @@ sub ban ( $self, $host, $timeout = undef ) {
 }
 
 # CONNECT METHODS
-# TODO should be called AUTOMATICALLY after each connect attempt
-sub connect_ok ($self) {
-    $self->{connect_errors} = 0;
-
-    # drop "connect_error" flag
-    if ( $self->{connect_error} ) {
-        $self->{connect_error} = 0;
-
-        state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `pool_id` = ?');
-
-        $q1->do( bind => [ $self->pool_id ] );
-    }
-
-    return;
-}
-
-sub connect_failure ($self) {
+# TODO flush all caches on connect error, so next time proxy will be tested again
+sub _set_connect_error ($self) {
     return if $self->{connect_error};
 
     # set "connect_error" flag
     $self->{connect_error} = 1;
+
+    # flush caches
+    $self->clear_test_connection;
+
+    $self->clear_test_scheme;
+
+    # TODO clear tested connections info in the DB
 
     $self->{connect_errors}++;
 
@@ -160,6 +153,22 @@ sub connect_failure ($self) {
         $self->{connect_error_time} = time + $self->connect_error_timeout;
 
         $q1->do( bind => [ $self->{connect_error_time}, $self->pool_id ] );
+    }
+
+    return;
+}
+
+# TODO should be called AUTOMATICALLY after each connect attempt
+sub _clear_connect_error ($self) {
+    $self->{connect_errors} = 0;
+
+    # drop "connect_error" flag
+    if ( $self->{connect_error} ) {
+        $self->{connect_error} = 0;
+
+        state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `pool_id` = ?');
+
+        $q1->do( bind => [ $self->pool_id ] );
     }
 
     return;
@@ -181,7 +190,7 @@ sub _start_thread ($self) {
 
 # TODO call waiting callbacks
 # if proxy has connect_error - call all callbacks
-sub finish_thread ($self) {
+sub _finish_thread ($self) {
     $self->{threads}--;
 
     state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ? WHERE `pool_id` = ?');
@@ -205,16 +214,22 @@ sub get_slot ( $self, $connect, $cb ) {
 
         $self->_wait_slot(
             sub ($self) {
+                my $on_finish = sub ( $self, $proxy_type ) {
+                    $self->_finish_thread if !$proxy_type;
+
+                    $cb->( $self, $proxy_type );
+
+                    return;
+                };
+
                 if ( $self->{connect_error} ) {
-                    $cb->( $self, 0 );
+                    $on_finish->( $self, 0 );
+                }
+                elsif ( defined( my $proxy_type = $self->{test_connection}->{ $connect->[3] } ) ) {    # proxy already checked, return immediately
+                    $on_finish->( $self, $proxy_type );
                 }
                 else {
-                    if ( defined( my $proxy_type = $self->{test_connection}->{ $connect->[3] } ) ) {    # proxy already checked, return immediately
-                        $cb->( $self, $proxy_type );
-                    }
-                    else {
-                        $self->_check( $connect, $cb );
-                    }
+                    $self->_check( $connect, $on_finish );
                 }
 
                 return;
@@ -246,7 +261,7 @@ sub _check ( $self, $connect, $cb ) {
     # add connect_id to the DB (only if pool used)
     $self->source->pool->_add_connect_id( $connect->[3] );
 
-    # callbacks caching
+    # cache callback
     my $cache_key = $self->id . q[-] . $connect->[3];
 
     push $callback->{$cache_key}->@*, $cb;
@@ -265,10 +280,15 @@ sub _check ( $self, $connect, $cb ) {
             }
         }
         else {
-            $self->{test_connection}->{ $connect->[3] } = $proxy_type;    # cache connection test result
+            # clear connect error if all tests are passed without connect errors
+            $self->_clear_connect_error if $self->{connect_error};
+
+            # cache connection test result
+            $self->{test_connection}->{ $connect->[3] } = $proxy_type;
 
             $self->source->pool->dbh->do( qq[UPDATE `proxy` SET `$connect->[3]` = $proxy_type WHERE pool_id = ?], bind => [ $self->pool_id ] );
 
+            # call cached callbacks
             while ( my $cb = shift $callback->{$cache_key}->@* ) {
                 $cb->( $self, $proxy_type );
             }
@@ -277,6 +297,7 @@ sub _check ( $self, $connect, $cb ) {
         }
     };
 
+    # run tests
     $test->(0);
 
     return;
@@ -366,10 +387,10 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
 }
 
 sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
-    if ( !$CHECK_SCHEME->{$scheme}->[2] ) {    # scheme wasn't tested and can't be tested
+    if ( !$CHECK_SCHEME->{$scheme}->[2] ) {    # scheme can't be tested
         $cb->(1);
     }
-    elsif ( defined $self->{test_scheme}->{$scheme}->{$proxy_type} ) {    # scheme was tested
+    elsif ( defined $self->{test_scheme}->{$scheme}->{$proxy_type} ) {    # scheme was already tested
         $cb->( $self->{test_scheme}->{$scheme}->{$proxy_type} );          # return cached result
     }
     else {                                                                # scheme wasn't tested and can be tested
@@ -382,6 +403,8 @@ sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
                         $self, $scheme, $h,
                         $proxy_type,
                         sub ($scheme_ok) {
+
+                            # cache scheme test result
                             $self->{test_scheme}->{$scheme}->{$proxy_type} = $scheme_ok;
 
                             $cb->($scheme_ok);
@@ -390,9 +413,9 @@ sub _test_scheme ( $self, $scheme, $proxy_type, $cb ) {
                         }
                     );
                 }
-                else {                                                    # proxy disabled, proxy connect error or tunnel create error
-                    $self->{test_scheme}->{$scheme}->{$proxy_type} = 0;
-
+                else {
+                    # proxy proxy connect error or tunnel create error
+                    # we do not cache scheme test result in this case
                     $cb->(0);
                 }
 
@@ -425,7 +448,7 @@ sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
         headers => 0,
         sub ( $hdl, $res, $error_reason ) {
             if ( $error_reason || $res->{status} != 200 ) {    # headers parsing error
-                $self->connect_failure if $res->{status} == 407;    # HTTP proxy auth. error
+                $self->_set_connect_error if $res->{status} == 407;    # HTTP proxy auth. error
 
                 $cb->(0);
             }
@@ -460,9 +483,34 @@ sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
     return;
 }
 
-# TODO
 sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
-    $cb->(0);
+    $h->push_write( 'com' . $CRLF );
+
+    $h->read_eof(
+        sub ( $h, $buf_ref, $total_bytes_readed, $error_message ) {
+            if ($error_message) {
+                $cb->(0);
+            }
+            elsif ( defined $buf_ref ) {
+                if ( $buf_ref->$* =~ /IANA\s+WHOIS\s+server/smi ) {
+
+                    # signature was found, return positive result and stop reading
+                    $cb->(1);
+
+                    return;
+                }
+                else {
+                    return 1;    # continue reading
+                }
+            }
+            else {
+                # all response readed but signature wasn't found
+                $cb->(0);
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -474,23 +522,20 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 110                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 247                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 262                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 407, 464             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 430, 486             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 464                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
-## │      │                      │ not used                                                                                                       │
+## │    2 │ 103, 107, 151, 169,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 182, 196, 289        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 102, 106, 138, 158,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 173, 187, 270        │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 444                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 467                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 58                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 498                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 502 does not match the package declaration      │
+## │    1 │ 543                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 547 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

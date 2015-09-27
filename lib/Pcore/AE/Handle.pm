@@ -237,7 +237,7 @@ sub new ( $self, @ ) {
 
 sub DESTROY ($self) {
     if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
-        $self->{proxy}->finish_thread if $self->{proxy};
+        $self->{proxy}->_finish_thread if $self->{proxy};
 
         $self->SUPER::DESTROY;
     }
@@ -265,12 +265,7 @@ sub _connect_proxy ( $self, $args ) {
         if ($proxy_error) {
             $h->destroy if $h;
 
-            if ( $proxy_error == $PROXY_ERROR_CONNECT || $proxy_error == $PROXY_ERROR_AUTH ) {
-                $proxy->connect_failure;
-            }
-            else {
-                $proxy->connect_ok;
-            }
+            $proxy->_set_connect_error if $proxy_error == $PROXY_ERROR_CONNECT || $proxy_error == $PROXY_ERROR_AUTH;
 
             if ( $proxy_error && $on_proxy_connect_error ) {
                 $on_proxy_connect_error->( $hdl, $message, $proxy_error );
@@ -300,8 +295,6 @@ sub _connect_proxy ( $self, $args ) {
             $h->{connect} = $connect;
 
             $h->timeout($timeout);
-
-            $proxy->connect_ok;
 
             $on_connect->( $hdl, undef, undef, undef );
         }
@@ -510,9 +503,6 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
                     $h->push_read(                                          # read IPv4 addr (4 bytes) + port (2 bytes)
                         chunk => 6,
                         sub ( $h, $chunk ) {
-
-                            # TODO validate: 4 bytes IP addr, 2 bytes port
-
                             $on_finish->( $h, undef, undef );
 
                             return;
@@ -526,9 +516,6 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
                             $h->push_read(                                  # read domain name + port (2 bytes)
                                 chunk => unpack( 'C', $chunk ) + 2,
                                 sub ( $h, $chunk ) {
-
-                                    # TODO validate domain name + port
-
                                     $on_finish->( $h, undef, undef );
 
                                     return;
@@ -543,9 +530,6 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
                     $h->push_read(     # read IPv6 addr (16 bytes) + port (2 bytes)
                         chunk => 18,
                         sub ( $h, $chunk ) {
-
-                            # TODO validate IPv6 + port
-
                             $on_finish->( $h, undef, undef );
 
                             return;
@@ -787,7 +771,7 @@ sub read_http_body ( $self, $on_read, @ ) {
 
         $self->on_read(
             sub ($h) {
-                my $total_bytes_readed = $on_read->( \delete $h->{rbuf}, undef );
+                my $total_bytes_readed = $on_read_buf->( \delete $h->{rbuf}, undef );
 
                 if ( !$total_bytes_readed ) {
 
@@ -859,26 +843,26 @@ sub store ( $self, $timeout = undef ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 77                   │ * Subroutine "new" with high complexity score (28)                                                             │
-## │      │ 649                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 633                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 158, 359             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 158, 352             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 62, 404, 441, 444,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 456, 494, 497, 500   │                                                                                                                │
+## │    2 │ 62, 397, 434, 437,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 449, 487, 490, 493   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 596                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 580                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 892 does not specify text                                                   │
-## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 900 does not specify text                                                   │
-## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 928 does not specify text                                                   │
-## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 944 does not specify text                                                   │
-## │      │ 886                  │ * Link L<AnyEvent::Socket> on line 944 does not specify text                                                   │
-## │      │ 886, 886             │ * Link L<Pcore::Proxy> on line 910 does not specify text                                                       │
-## │      │ 886                  │ * Link L<Pcore::Proxy> on line 944 does not specify text                                                       │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 876 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 884 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 912 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Handle> on line 928 does not specify text                                                   │
+## │      │ 870                  │ * Link L<AnyEvent::Socket> on line 928 does not specify text                                                   │
+## │      │ 870, 870             │ * Link L<Pcore::Proxy> on line 894 does not specify text                                                       │
+## │      │ 870                  │ * Link L<Pcore::Proxy> on line 928 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 58, 63, 409, 494,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 497, 500, 506        │                                                                                                                │
+## │    1 │ 58, 63, 402, 487,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 490, 493, 499        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
