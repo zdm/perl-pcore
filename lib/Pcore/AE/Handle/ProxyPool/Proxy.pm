@@ -158,7 +158,6 @@ sub _set_connect_error ($self) {
     return;
 }
 
-# TODO should be called AUTOMATICALLY after each connect attempt
 sub _clear_connect_error ($self) {
     $self->{connect_errors} = 0;
 
@@ -181,6 +180,7 @@ sub _start_thread ($self) {
 
     state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ?, `total_threads` = ? WHERE `pool_id` = ?');
 
+    # update threads in the DB
     $q1->do( bind => [ $self->{threads}, $self->{total_threads}, $self->{pool_id} ] );
 
     $self->{source}->start_thread;
@@ -195,6 +195,7 @@ sub _finish_thread ($self) {
 
     state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ? WHERE `pool_id` = ?');
 
+    # update threads in the DB
     $q1->do( bind => [ $self->{threads}, $self->{pool_id} ] );
 
     $self->{source}->finish_thread;
@@ -524,18 +525,18 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 262                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 263                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 430, 486             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 431, 487             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 103, 107, 151, 169,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 182, 196, 289        │                                                                                                                │
+## │    2 │ 103, 107, 151, 168,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 181, 196, 290        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 467                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 468                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 58                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 543                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 547 does not match the package declaration      │
+## │    1 │ 544                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 548 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

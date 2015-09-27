@@ -61,12 +61,7 @@ around load => sub ( $orig, $self ) {
 
 no Pcore;
 
-sub BUILD ( $self, $args ) {
-    die q[You should specify "max_threads_source" or "max_threads_proxy"] if !$self->max_threads_source && !$self->max_threads_proxy;
-
-    return;
-}
-
+# BUILDERS
 sub _build_id ($self) {
     return refaddr $self;
 }
@@ -91,6 +86,8 @@ sub _build_max_threads_source ($self) {
     return $self->pool->max_threads_source;
 }
 
+# METHODS
+# TODO delayed callbacks when source become free
 sub can_connect ($self) {
     return 0 if $self->{max_threads_source} && $self->{threads} >= $self->{max_threads_source};
 
