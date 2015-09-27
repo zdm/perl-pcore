@@ -260,7 +260,7 @@ sub can_connect ( $self, $connect, $cb ) {
 }
 
 sub get_slot ( $self, $connect, $cb ) {
-    $cb->( $self, $PROXY_TYPE_HTTP );
+    $cb->( $self, $PROXY_TYPE_CONNECT );
 
     return;
 }

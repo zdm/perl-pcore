@@ -215,20 +215,15 @@ sub new ( $self, @ ) {
                 $args{proxy}->get_slot(
                     $args{connect},
                     sub ( $proxy, $proxy_type ) {
-                        if ( !$proxy_type ) {
 
-                            # TODO throw error
-                        }
-                        else {
-                            # add proxy persistent id key here, because we haven't proxy credentials before
-                            push $args{persistent_id}->@*, join q[|], $persistent_id->{any}, 2, $proxy->id if $args{proxy}->is_proxy_pool;
+                        # add proxy persistent id key here, because we haven't proxy credentials before
+                        push $args{persistent_id}->@*, join q[|], $persistent_id->{any}, 2, $proxy->id if $args{proxy}->is_proxy_pool;
 
-                            $args{proxy} = $proxy;
+                        $args{proxy} = $proxy;
 
-                            $args{proxy_type} = $proxy_type;
+                        $args{proxy_type} = $proxy_type;
 
-                            $self->_connect_proxy( \%args );
-                        }
+                        $self->_connect_proxy( \%args );
 
                         return;
                     }
@@ -863,27 +858,27 @@ sub store ( $self, $timeout = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 77                   │ * Subroutine "new" with high complexity score (30)                                                             │
-## │      │ 654                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 77                   │ * Subroutine "new" with high complexity score (28)                                                             │
+## │      │ 649                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 158, 364             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 158, 359             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 62, 409, 446, 449,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 461, 499, 502, 505   │                                                                                                                │
+## │    2 │ 62, 404, 441, 444,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 456, 494, 497, 500   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 601                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 596                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 891                  │ * Link L<AnyEvent::Handle> on line 897 does not specify text                                                   │
-## │      │ 891                  │ * Link L<AnyEvent::Handle> on line 905 does not specify text                                                   │
-## │      │ 891                  │ * Link L<AnyEvent::Handle> on line 933 does not specify text                                                   │
-## │      │ 891                  │ * Link L<AnyEvent::Handle> on line 949 does not specify text                                                   │
-## │      │ 891                  │ * Link L<AnyEvent::Socket> on line 949 does not specify text                                                   │
-## │      │ 891, 891             │ * Link L<Pcore::Proxy> on line 915 does not specify text                                                       │
-## │      │ 891                  │ * Link L<Pcore::Proxy> on line 949 does not specify text                                                       │
+## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 892 does not specify text                                                   │
+## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 900 does not specify text                                                   │
+## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 928 does not specify text                                                   │
+## │      │ 886                  │ * Link L<AnyEvent::Handle> on line 944 does not specify text                                                   │
+## │      │ 886                  │ * Link L<AnyEvent::Socket> on line 944 does not specify text                                                   │
+## │      │ 886, 886             │ * Link L<Pcore::Proxy> on line 910 does not specify text                                                       │
+## │      │ 886                  │ * Link L<Pcore::Proxy> on line 944 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 58, 63, 414, 499,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 502, 505, 511        │                                                                                                                │
+## │    1 │ 58, 63, 409, 494,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 497, 500, 506        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
