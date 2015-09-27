@@ -12,12 +12,11 @@ use Const::Fast qw[const];
 no Pcore;
 
 our %EXPORT_TAGS = (
-    PROXY_TYPE  => [qw[$PROXY_TYPE_UNDEF $PROXY_TYPE_HTTP $PROXY_TYPE_CONNECT $PROXY_TYPE_SOCKS5 $PROXY_TYPE_SOCKS4 $PROXY_TYPE_SOCKS4A]],
+    PROXY_TYPE  => [qw[$PROXY_TYPE_HTTP $PROXY_TYPE_CONNECT $PROXY_TYPE_SOCKS5 $PROXY_TYPE_SOCKS4 $PROXY_TYPE_SOCKS4A]],
     PROXY_ERROR => [qw[$PROXY_OK $PROXY_ERROR_CONNECT $PROXY_ERROR_AUTH $PROXY_ERROR_TYPE $PROXY_ERROR_OTHER]],
     PERSISTENT  => [qw[$PERSISTENT_IDENT $PERSISTENT_ANY $PERSISTENT_NO_PROXY]],
 );
 
-const our $PROXY_TYPE_UNDEF   => 0;
 const our $PROXY_TYPE_HTTP    => 1;
 const our $PROXY_TYPE_CONNECT => 2;
 const our $PROXY_TYPE_SOCKS4  => 31;
@@ -889,30 +888,30 @@ sub store ( $self, $timeout = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 79                   │ * Subroutine "new" with high complexity score (28)                                                             │
-## │      │ 248                  │ * Subroutine "_connect_proxy" with high complexity score (23)                                                  │
-## │      │ 680                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 78                   │ * Subroutine "new" with high complexity score (28)                                                             │
+## │      │ 247                  │ * Subroutine "_connect_proxy" with high complexity score (23)                                                  │
+## │      │ 679                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 160, 386             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 159, 385             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 395, 423, 476, 553   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 394, 422, 475, 552   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 64, 427, 430, 442,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 480, 483, 486, 565   │                                                                                                                │
+## │    2 │ 63, 426, 429, 441,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 479, 482, 485, 564   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 627                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 626                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 926 does not specify text                                                   │
-## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 934 does not specify text                                                   │
-## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 962 does not specify text                                                   │
-## │      │ 920                  │ * Link L<AnyEvent::Handle> on line 978 does not specify text                                                   │
-## │      │ 920                  │ * Link L<AnyEvent::Socket> on line 978 does not specify text                                                   │
-## │      │ 920, 920             │ * Link L<Pcore::Proxy> on line 944 does not specify text                                                       │
-## │      │ 920                  │ * Link L<Pcore::Proxy> on line 978 does not specify text                                                       │
+## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 925 does not specify text                                                   │
+## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 933 does not specify text                                                   │
+## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 961 does not specify text                                                   │
+## │      │ 919                  │ * Link L<AnyEvent::Handle> on line 977 does not specify text                                                   │
+## │      │ 919                  │ * Link L<AnyEvent::Socket> on line 977 does not specify text                                                   │
+## │      │ 919, 919             │ * Link L<Pcore::Proxy> on line 943 does not specify text                                                       │
+## │      │ 919                  │ * Link L<Pcore::Proxy> on line 977 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 60, 65, 480, 483,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 486, 492, 570        │                                                                                                                │
+## │    1 │ 59, 64, 479, 482,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 485, 491, 569        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
