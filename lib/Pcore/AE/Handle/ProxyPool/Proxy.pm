@@ -8,8 +8,7 @@ extends qw[Pcore::Util::URI];
 
 has source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'], required => 1, weak_ref => 1 );
 
-has id      => ( is => 'lazy', isa => Str, init_arg => undef );
-has pool_id => ( is => 'ro',   isa => Int, init_arg => undef );
+has id => ( is => 'lazy', isa => Str, init_arg => undef );
 
 has connect_error_timeout => ( is => 'lazy', isa => PositiveInt );          # timout for enable proxy after connect error
 has max_connect_errors    => ( is => 'lazy', isa => PositiveInt );          # max. connect errors, after which proxy will be removed from pool
@@ -79,7 +78,9 @@ our $CHECK_SCHEME = {
 
 # BUILDERS
 sub _build_id ($self) {
-    return $self->hostport;
+    state $id = 0;
+
+    return ++$id;
 }
 
 sub _build_connect_error_timeout ($self) {
@@ -100,11 +101,9 @@ sub _build_max_threads ($self) {
 
 # TODO remove from ban lists
 sub remove ($self) {
-    state $q1 = $self->source->pool->dbh->query('DELETE FROM `proxy` WHERE `pool_id` = ?');
+    $self->source->pool->storage->remove_proxy($self);
 
-    $q1->do( bind => [ $self->pool_id ] );
-
-    delete $self->source->pool->list->{ $self->id };
+    delete $self->source->pool->list->{ $self->hostport };
 
     # TODO remove from ban lists
 
@@ -140,19 +139,15 @@ sub _set_connect_error ($self) {
 
     $self->clear_test_scheme;
 
-    # TODO clear tested connections info in the DB
-
     $self->{connect_errors}++;
 
     if ( $self->{connect_errors} >= $self->max_connect_errors ) {
         $self->remove;
     }
     else {
-        state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `connect_error` = 1, `connect_error_time` = ? WHERE `pool_id` = ?');
-
         $self->{connect_error_time} = time + $self->connect_error_timeout;
 
-        $q1->do( bind => [ $self->{connect_error_time}, $self->pool_id ] );
+        $self->source->pool->storage->set_connect_error($self);
     }
 
     return;
@@ -165,9 +160,7 @@ sub _clear_connect_error ($self) {
     if ( $self->{connect_error} ) {
         $self->{connect_error} = 0;
 
-        state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `pool_id` = ?');
-
-        $q1->do( bind => [ $self->pool_id ] );
+        $self->source->pool->storage->clear_connect_error($self);
     }
 
     return;
@@ -178,10 +171,7 @@ sub _start_thread ($self) {
 
     $self->{total_threads}++;
 
-    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ?, `total_threads` = ? WHERE `pool_id` = ?');
-
-    # update threads in the DB
-    $q1->do( bind => [ $self->{threads}, $self->{total_threads}, $self->{pool_id} ] );
+    $self->source->pool->storage->start_thread($self);
 
     $self->{source}->start_thread;
 
@@ -193,10 +183,7 @@ sub _start_thread ($self) {
 sub _finish_thread ($self) {
     $self->{threads}--;
 
-    state $q1 = $self->source->pool->dbh->query('UPDATE `proxy` SET `threads` = ? WHERE `pool_id` = ?');
-
-    # update threads in the DB
-    $q1->do( bind => [ $self->{threads}, $self->{pool_id} ] );
+    $self->source->pool->storage->finish_thread($self);
 
     $self->{source}->finish_thread;
 
@@ -259,9 +246,6 @@ sub _wait_slot ( $self, $cb ) {
 sub _check ( $self, $connect, $cb ) {
     state $callback = {};
 
-    # add connect_id to the DB (only if pool used)
-    $self->source->pool->_add_connect_id( $connect->[3] );
-
     # cache callback
     my $cache_key = $self->id . q[-] . $connect->[3];
 
@@ -287,7 +271,7 @@ sub _check ( $self, $connect, $cb ) {
             # cache connection test result
             $self->{test_connection}->{ $connect->[3] } = $proxy_type;
 
-            $self->source->pool->dbh->do( qq[UPDATE `proxy` SET `$connect->[3]` = $proxy_type WHERE pool_id = ?], bind => [ $self->pool_id ] );
+            $self->source->pool->storage->set_test_connection( $self, $connect->[3], $proxy_type );
 
             # call cached callbacks
             while ( my $cb = shift $callback->{$cache_key}->@* ) {
@@ -523,20 +507,18 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 110                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 263                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 415, 471             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 431, 487             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    2 │ 104, 106, 150, 163,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 174, 186, 274        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 103, 107, 151, 168,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 181, 196, 290        │                                                                                                                │
+## │    2 │ 452                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 468                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    1 │ 57                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 58                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 544                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 548 does not match the package declaration      │
+## │    1 │ 526                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 530 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

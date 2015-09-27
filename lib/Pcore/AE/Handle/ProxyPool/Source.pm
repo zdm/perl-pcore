@@ -97,11 +97,7 @@ sub can_connect ($self) {
 sub start_thread ($self) {
     $self->{threads}++;
 
-    if ( !$self->can_connect ) {
-        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_can_connect` = 0 WHERE `source_id` = ?');
-
-        $q1->do( bind => [ $self->id ] );
-    }
+    $self->pool->storage->disable_source($self) if !$self->can_connect;
 
     return;
 }
@@ -115,9 +111,7 @@ sub finish_thread ($self) {
     my $can_connect = $self->can_connect;
 
     if ( $can_connect && $can_connect != $old_can_connect ) {
-        state $q1 = $self->pool->dbh->query('UPDATE `proxy` SET `source_can_connect` = 1 WHERE `source_id` = ?');
-
-        $q1->do( bind => [ $self->id ] );
+        $self->pool->storage->enable_source($self);
 
         # TODO source is free, call waiting callbacks
     }

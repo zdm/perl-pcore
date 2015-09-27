@@ -2,6 +2,7 @@ package Pcore::AE::Handle::ProxyPool;
 
 use Pcore qw[-class];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::AE::Handle::ProxyPool::Storage;
 
 has id => ( is => 'lazy', isa => Int, init_arg => undef );
 
@@ -14,11 +15,10 @@ has max_threads_source    => ( is => 'ro', isa => PositiveOrZeroInt, default => 
 has maintanance_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
 
 has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
-has _timer      => ( is => 'ro',   init_arg => undef );
-has _connect_id => ( is => 'lazy', init_arg => undef );
+has _timer => ( is => 'ro', init_arg => undef );
 
-has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has storage => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool::Storage'], init_arg => undef );
 
 has is_proxy_pool => ( is => 'ro', default => 1, init_arg => undef );
 
@@ -54,61 +54,8 @@ sub _build_id ($self) {
     return refaddr $self;
 }
 
-sub _build_dbh ($self) {
-    unlink 'proxy-pool.sqlite' or 1;
-
-    H->add(
-        __proxy_pool => 'SQLite',
-
-        # addr => 'memory://',
-        addr => 'file:./proxy-pool.sqlite',
-    );
-
-    my $dbh = H->__proxy_pool;
-
-    my $ddl = $dbh->ddl;
-
-    $ddl->add_changeset(
-        id  => 1,
-        sql => <<'SQL'
-            CREATE TABLE IF NOT EXISTS `proxy` (
-                `pool_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `id` TEXT NOT NULL,
-                `source_id` INTEGER NOT NULL,
-                `source_can_connect` INTEGER NOT NULL,
-                `connect_error` INTEGER NOT NULL DEFAULT 0,
-                `connect_error_time` INTEGER NOT NULL DEFAULT 0,
-                `threads` INTEGER NOT NULL DEFAULT 0,
-                `total_threads` INTEGER NOT NULL DEFAULT 0,
-                `max_threads` INTEGER NOT NULL,
-                `http_80` INTEGER NOT NULL DEFAULT -1,       -- -1 = not tested, 0 = not avail. 1 = ok
-                `https_443` INTEGER NOT NULL DEFAULT -1,     -- -1 = not tested, 0 = not avail. 1 = ok
-                `whois_43` INTEGER NOT NULL DEFAULT -1       -- -1 = not tested, 0 = not avail. 1 = ok
-            );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_id` ON `proxy` (`id` ASC);
-
-            CREATE INDEX IF NOT EXISTS `idx_proxy_connect_error_time` ON `proxy` (`connect_error` DESC, `connect_error_time` ASC);
-
-            -- CREATE INDEX IF NOT EXISTS `idx_proxy_disabled` ON `proxy` (`disabled` DESC);
-
-            -- CREATE INDEX IF NOT EXISTS `idx_proxy_threads` ON `proxy` (`threads` ASC);
-
-            -- CREATE INDEX IF NOT EXISTS `idx_proxy_disabled_threads` ON `proxy` (`disabled` DESC, `threads` ASC);
-SQL
-    );
-
-    $ddl->upgrade;
-
-    return $dbh;
-}
-
-sub _build__connect_id ($self) {
-    return {
-        http_80   => 1,
-        https_443 => 1,
-        whois_43  => 1,
-    };
+sub _build_storage ($self) {
+    return Pcore::AE::Handle::ProxyPool::Storage->new( { pool_id => $self->id } );
 }
 
 # TODO throw event, some proxies was enabled
@@ -120,12 +67,10 @@ sub _maintenance ($self) {
         $source->load;
     }
 
-    # drop connection errors
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
-
+    # clear connection errors
     my $time = time;
 
-    if ( $q1->do( bind => [$time] ) ) {
+    if ( $self->storage->clear_connect_error_timer($time) ) {
 
         # TODO throw proxy avail event
 
@@ -140,31 +85,11 @@ sub _maintenance ($self) {
 }
 
 sub add_proxy ( $self, $proxy ) {
-    return if exists $self->list->{ $proxy->id };
+    return if exists $self->list->{ $proxy->hostport };
 
-    state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `source_id`, `source_can_connect`, `max_threads`) VALUES (?, ?, ?, ?)');
+    $self->list->{ $proxy->hostport } = $proxy;
 
-    $q1->do( bind => [ $proxy->id, $proxy->source->id, $proxy->source->can_connect, $proxy->max_threads ] );
-
-    $proxy->{pool_id} = $self->dbh->last_insert_id;
-
-    $self->list->{ $proxy->id } = $proxy;
-
-    return;
-}
-
-sub _add_connect_id ( $self, $connect_id ) {
-    return if exists $self->_connect_id->{$connect_id};
-
-    $self->{_connect_id}->{$connect_id} = 1;
-
-    my $sql = <<"SQL";
-        ALTER TABLE `proxy` ADD COLUMN `$connect_id` INTEGER NOT NULL DEFAULT -1; -- -1 = not tested, 0 = not avail. 1 = ok
-
-        CREATE INDEX IF NOT EXISTS `idx_proxy_$connect_id` ON `proxy` (`$connect_id` DESC);
-SQL
-
-    $self->dbh->do($sql);
+    $self->storage->add_proxy($proxy);
 
     return;
 }
@@ -178,29 +103,25 @@ sub get_slot ( $self, $connect, @ ) {
         @_[ 2 .. $#_ - 1 ],
     );
 
-    state $cache = {};
-
     $connect->[2] //= 'tcp';
 
     $connect->[3] //= $connect->[2] . q[_] . $connect->[1];
 
-    $self->_add_connect_id( $connect->[3] );
-
-    $cache->{ $connect->[3] } //= $self->dbh->query(
+    state $q1 = $self->storage->dbh->query(
         <<"SQL"
-            SELECT `id`
-            FROM `proxy`
+            SELECT `proxy`.`hostport`
+            FROM `proxy` LEFT JOIN `proxy_connect` ON ( `proxy`.`id` = `proxy_connect`.`proxy_id` AND `proxy_connect`.`connect_id` = ? )
             WHERE
                 `connect_error` = 0
                 AND `source_can_connect` = 1
-                AND `$connect->[3]` <> 0
                 AND `threads` < `max_threads`
-            ORDER BY `threads` ASC
+                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` = 1 )
+            ORDER BY `proxy`.`threads` ASC
             LIMIT 1
 SQL
     );
 
-    if ( my $res = $cache->{ $connect->[3] }->selectval ) {
+    if ( my $res = $q1->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] } ] ) ) {
         $cb->( $self->list->{ $res->$* } );
     }
     else {
@@ -217,9 +138,9 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30, 132              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 77               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 67                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 124                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
