@@ -266,7 +266,7 @@ sub _connect_proxy ( $self, $args ) {
             $h->destroy if $h;
 
             if ( $proxy_error == $PROXY_ERROR_CONNECT || $proxy_error == $PROXY_ERROR_AUTH ) {
-                $proxy->connect_error;
+                $proxy->connect_failure;
             }
             else {
                 $proxy->connect_ok;

@@ -3,7 +3,6 @@ package Pcore::AE::Handle::ProxyPool::Proxy;
 use Pcore qw[-class];
 use Pcore::AE::Handle::ProxyPool::Proxy::Removed;
 use Pcore::AE::Handle qw[:ALL];
-use Const::Fast qw[const];
 
 extends qw[Pcore::Util::URI];
 
@@ -68,7 +67,9 @@ around new => sub ( $orig, $self, $uri, $source ) {
 
 no Pcore;
 
-const our $CHECK_SCHEME => {
+our $PROXY_TEST_CONNECT_TIMEOUT = 20;
+
+our $CHECK_SCHEME = {
     tcp => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5 ] ],    # default scheme
     udp => [ [$PROXY_TYPE_SOCKS5] ],
     http  => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5, $PROXY_TYPE_HTTP ], [ 'www.google.com', 80 ],  \&_test_scheme_httpx, ],
@@ -146,7 +147,7 @@ sub connect_failure ($self) {
     return if $self->{connect_error};
 
     # set "connect_error" flag
-    $self->{connect_error} = 0;
+    $self->{connect_error} = 1;
 
     $self->{connect_errors}++;
 
@@ -193,79 +194,94 @@ sub finish_thread ($self) {
 }
 
 # CONNECT
-sub can_connect ( $self, $connect, $cb ) {
-    my $can_connect = !$self->{connect_error} && $self->{source}->can_connect && $self->{threads} < $self->max_threads;
-
-    if ( !$can_connect ) {
-
-        # TODO cache cb
-        $cb->(0);
+sub get_slot ( $self, $connect, $cb ) {
+    if ( $self->{connect_error} ) {
+        $cb->( $self, 0 );    # proxy has connection error, return immediately
     }
     else {
-        state $callback = {};
-
         $connect->[2] //= 'tcp';
 
         $connect->[3] = $connect->[2] . q[_] . $connect->[1];
 
-        $self->source->pool->_add_connect_id( $connect->[3] );
-
-        $self->_start_thread;
-
-        my $cache_key = $self->id . q[-] . $connect->[3];
-
-        push $callback->{$cache_key}->@*, $cb;
-
-        return if $callback->{$cache_key}->@* > 1;
-
-        my $proxy_type = $self->{test_connection}->{ $connect->[3] };
-
-        if ( defined $proxy_type ) {    # proxy already checked
-            while ( my $cb = shift $callback->{$cache_key}->@* ) {
-                $cb->($proxy_type);
-            }
-
-            delete $callback->{$cache_key};
-        }
-        else {                          # run proxy check
-            my @types = $CHECK_SCHEME->{ $connect->[2] }->[0]->@*;
-
-            my $test = sub ($proxy_type) {
-                if ( !$self->{connect_error} && !$proxy_type && ( $proxy_type = shift @types ) ) {
-                    if ( $proxy_type == $PROXY_TYPE_HTTP ) {
-                        $self->_check_http( $proxy_type, $connect, __SUB__ );
-                    }
-                    else {
-                        $self->_check_tunnel( $proxy_type, $connect, __SUB__ );
-                    }
+        $self->_wait_slot(
+            sub ($self) {
+                if ( $self->{connect_error} ) {
+                    $cb->( $self, 0 );
                 }
                 else {
-                    $self->{test_connection}->{ $connect->[3] } = $proxy_type;    # cache connection test result
-
-                    $self->source->pool->dbh->do( qq[UPDATE `proxy` SET `$connect->[3]` = $proxy_type WHERE pool_id = ?], bind => [ $self->pool_id ] );
-
-                    while ( my $cb = shift $callback->{$cache_key}->@* ) {
-                        $cb->($proxy_type);
+                    if ( defined( my $proxy_type = $self->{test_connection}->{ $connect->[3] } ) ) {    # proxy already checked, return immediately
+                        $cb->( $self, $proxy_type );
                     }
-
-                    delete $callback->{$cache_key};
+                    else {
+                        $self->_check( $connect, $cb );
+                    }
                 }
-            };
 
-            $test->(0);
-        }
+                return;
+            }
+        );
     }
 
     return;
 }
 
-sub get_slot ( $self, $connect, $cb ) {
-    $cb->( $self, $PROXY_TYPE_CONNECT );
+# TODO delayed cb
+sub _wait_slot ( $self, $cb ) {
+    if ( $self->{source}->can_connect && $self->{threads} < $self->max_threads ) {
+        $self->_start_thread;
+
+        $cb->($self);
+    }
+    else {
+        # TODO wait for slot
+    }
 
     return;
 }
 
 # CHECK PROXY
+sub _check ( $self, $connect, $cb ) {
+    state $callback = {};
+
+    # add connect_id to the DB (only if pool used)
+    $self->source->pool->_add_connect_id( $connect->[3] );
+
+    # callbacks caching
+    my $cache_key = $self->id . q[-] . $connect->[3];
+
+    push $callback->{$cache_key}->@*, $cb;
+
+    return if $callback->{$cache_key}->@* > 1;
+
+    my @types = $CHECK_SCHEME->{ $connect->[2] }->[0]->@*;
+
+    my $test = sub ($proxy_type) {
+        if ( !$self->{connect_error} && !$proxy_type && ( my $test_proxy_type = shift @types ) ) {
+            if ( $test_proxy_type == $PROXY_TYPE_HTTP ) {
+                $self->_check_http( $test_proxy_type, $connect, __SUB__ );
+            }
+            else {
+                $self->_check_tunnel( $test_proxy_type, $connect, __SUB__ );
+            }
+        }
+        else {
+            $self->{test_connection}->{ $connect->[3] } = $proxy_type;    # cache connection test result
+
+            $self->source->pool->dbh->do( qq[UPDATE `proxy` SET `$connect->[3]` = $proxy_type WHERE pool_id = ?], bind => [ $self->pool_id ] );
+
+            while ( my $cb = shift $callback->{$cache_key}->@* ) {
+                $cb->( $self, $proxy_type );
+            }
+
+            delete $callback->{$cache_key};
+        }
+    };
+
+    $test->(0);
+
+    return;
+}
+
 sub _check_http ( $self, $proxy_type, $connect, $cb ) {
     $self->_test_scheme(
         $connect->[2],
@@ -329,48 +345,21 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
 
 sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
     Pcore::AE::Handle->new(
-        connect          => [ $self->host->name, $self->port ],
-        connect_timeout  => 10,
-        timeout          => 10,
-        persistent       => 0,
-        on_connect_error => sub ( $h, $message ) {
-            $self->connect_failure;
-
+        connect                => $connect,
+        connect_timeout        => $PROXY_TEST_CONNECT_TIMEOUT,
+        persistent             => 0,
+        proxy                  => $self,
+        proxy_type             => $proxy_type,
+        on_proxy_connect_error => sub ( $h, $message, $error ) {
             $cb->(undef);
 
             return;
         },
         on_connect => sub ( $h, @ ) {
-            if ( $proxy_type == $PROXY_TYPE_HTTP ) {
-                $self->connect_ok;
-
-                $cb->($h);
-            }
-            else {
-                Pcore::AE::Handle::ConnectProxy::connect_proxy(
-                    $h, $self,
-                    $proxy_type,
-                    $connect,
-                    timeout => 10,
-                    sub ( $h, $status, $message ) {
-                        if ( $status == $PROXY_OK ) {
-                            $self->connect_ok;
-
-                            $cb->($h);
-                        }
-                        else {
-                            # $self->connect_failure : $self->connect_ok
-
-                            $cb->(undef);
-                        }
-
-                        return;
-                    }
-                );
-            }
+            $cb->($h);
 
             return;
-        },
+        }
     );
 
     return;
@@ -436,6 +425,8 @@ sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
         headers => 0,
         sub ( $hdl, $res, $error_reason ) {
             if ( $error_reason || $res->{status} != 200 ) {    # headers parsing error
+                $self->connect_failure if $res->{status} == 407;    # HTTP proxy auth. error
+
                 $cb->(0);
             }
             else {
@@ -483,23 +474,23 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 109                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 110                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 211                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 247                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 418, 473             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 407, 464             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 473                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
+## │    3 │ 464                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_test_scheme_whois' declared but    │
 ## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 101, 105, 137, 157,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 172, 186, 245        │                                                                                                                │
+## │    2 │ 102, 106, 138, 158,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 173, 187, 270        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 453                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 444                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 59                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 58                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 507                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 511 does not match the package declaration      │
+## │    1 │ 498                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 502 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
