@@ -9,17 +9,11 @@ has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg
 
 no Pcore;
 
-# TODO
 sub _build_dbh ($self) {
-    unlink 'proxy-pool.sqlite' or 1;    # TODO remove
-
     my $id = '__proxy_pool' . $self->pool_id;
 
     H->add(
-        $id => 'SQLite',
-
-        # TODO
-        # addr => 'memory://',
+        $id  => 'SQLite',
         addr => 'file:./proxy-pool.sqlite',
     );
 
@@ -183,7 +177,7 @@ sub release_ban ( $self, $time ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 133                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 127                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
