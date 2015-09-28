@@ -40,19 +40,25 @@ around load => sub ( $orig, $self ) {
         sub ($uris) {
             my $pool = $self->pool;
 
+            my $has_new_proxies;
+
             for my $uri ( $uris->@* ) {
                 my $proxy = Pcore::AE::Handle::ProxyPool::Proxy->new( $uri, $self );
 
                 # proxy object wasn't created, generally due to uri parsing errors
                 next if !$proxy;
 
-                $pool->add_proxy($proxy);
+                $has_new_proxies ||= $pool->add_proxy($proxy);
             }
 
             # update next source load timeout
             $self->{_load_next_time} = time + $self->load_timeout;
 
             $self->{_load_in_progress} = 0;
+
+            # throw pool on status change event if has new proxies added
+            # so waiting threads can start immediately
+            $self->pool->_on_status_change if $has_new_proxies;
 
             return;
         }
@@ -131,6 +137,16 @@ sub finish_thread ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 61                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
