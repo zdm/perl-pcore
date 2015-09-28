@@ -431,13 +431,13 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
 
 sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
     Pcore::AE::Handle->new(
-        connect                => $connect,
-        connect_timeout        => $PROXY_TEST_CONNECT_TIMEOUT,
-        persistent             => 0,
-        proxy                  => $self,
-        proxy_type             => $proxy_type,                     # connect to proxy without waitinf for the slot
-        proxy_test             => 1,                               # do not finish proxy thread automatically on gandle destroy
-        on_proxy_connect_error => sub ( $h, $message, $error ) {
+        connect                     => $connect,
+        connect_timeout             => $PROXY_TEST_CONNECT_TIMEOUT,
+        persistent                  => 0,
+        proxy                       => $self,
+        proxy_type                  => $proxy_type,                     # connect to proxy without waitinf for the slot
+        _proxy_keep_thread_on_error => 1,                               # do not finish proxy thread automatically on gandle destroy
+        on_proxy_connect_error      => sub ( $h, $message, $error ) {
             $cb->(undef);
 
             return;
