@@ -1,7 +1,6 @@
 package Pcore::AE::Handle::ProxyPool;
 
 use Pcore qw[-class];
-use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::AE::Handle::ProxyPool::Storage;
 
 has id => ( is => 'lazy', isa => Int, init_arg => undef );
@@ -51,7 +50,9 @@ sub BUILD ( $self, $args ) {
 }
 
 sub _build_id ($self) {
-    return refaddr $self;
+    state $id = 0;
+
+    return ++$id;
 }
 
 sub _build_storage ($self) {
@@ -146,9 +147,9 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30, 73               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 29, 74               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 129                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 130                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
