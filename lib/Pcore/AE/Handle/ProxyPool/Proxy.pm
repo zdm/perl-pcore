@@ -436,7 +436,7 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
         persistent                  => 0,
         proxy                       => $self,
         proxy_type                  => $proxy_type,                     # connect to proxy without waitinf for the slot
-        _proxy_keep_thread_on_error => 1,                               # do not finish proxy thread automatically on gandle destroy
+        _proxy_keep_thread_on_error => 1,                               # do not finish proxy thread automatically on handle destroy
         on_proxy_connect_error      => sub ( $h, $message, $error ) {
             $cb->(undef);
 
