@@ -116,13 +116,13 @@ sub clear_connect_error ( $self, $proxy ) {
     return;
 }
 
-sub clear_connect_error_timer ( $self, $time ) {
+sub release_connect_error ( $self, $time ) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
 
     return $q1->do( bind => [$time] );
 }
 
-sub on_release_timer ( $self, $time ) {
+sub release_ban ( $self, $time ) {
     state $q1 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
 
     return $q1->do( bind => [$time] );

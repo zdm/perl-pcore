@@ -69,7 +69,7 @@ sub _maintenance ($self) {
     # clear connection errors
     my $time = time;
 
-    if ( $self->storage->clear_connect_error_timer($time) ) {
+    if ( $self->storage->release_connect_error($time) ) {
         for my $proxy ( values $self->list->%* ) {
             if ( $proxy->{connect_error} && $proxy->{connect_error_time} <= $time ) {
                 $proxy->{connect_error} = 0;
@@ -80,7 +80,7 @@ sub _maintenance ($self) {
     }
 
     # release bans
-    if ( $self->storage->on_release_timer($time) ) {
+    if ( $self->storage->release_ban($time) ) {
 
         # TODO throw events for waiting proxies
     }
