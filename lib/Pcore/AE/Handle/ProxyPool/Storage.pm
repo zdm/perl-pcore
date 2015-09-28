@@ -80,6 +80,7 @@ SQL
     return $dbh;
 }
 
+# PROXY METHODS
 sub add_proxy ( $self, $proxy ) {
     state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `hostport`, `source_id`, `source_can_connect`, `max_threads`) VALUES (?, ?, ?, ?, ?)');
 
@@ -92,6 +93,14 @@ sub remove_proxy ( $self, $proxy ) {
     state $q1 = $self->dbh->query('DELETE FROM `proxy` WHERE `id` = ?');
 
     $q1->do( bind => [ $proxy->id ] );
+
+    return;
+}
+
+sub ban_proxy ( $self, $proxy, $key, $release_time ) {
+    state $q2 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_ban` (`proxy_id`, `key`, `release_time`) VALUES (?, ?, ?)');
+
+    $q2->do( bind => [ $proxy->id, $key, $release_time ] );
 
     return;
 }
@@ -112,34 +121,6 @@ sub clear_connect_error ( $self, $proxy ) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `id` = ?');
 
     $q1->do( bind => [ $proxy->id ] );
-
-    return;
-}
-
-sub release_connect_error ( $self, $time ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
-
-    return $q1->do( bind => [$time] );
-}
-
-sub release_ban ( $self, $time ) {
-    state $q1 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
-
-    return $q1->do( bind => [$time] );
-}
-
-sub disable_source ( $self, $source ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_can_connect` = 0 WHERE `source_id` = ?');
-
-    $q1->do( bind => [ $source->id ] );
-
-    return;
-}
-
-sub enable_source ( $self, $source ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_can_connect` = 1 WHERE `source_id` = ?');
-
-    $q1->do( bind => [ $source->id ] );
 
     return;
 }
@@ -178,12 +159,34 @@ sub set_test_connection ( $self, $proxy, $connect_id, $proxy_type ) {
     return;
 }
 
-sub ban_proxy ( $self, $proxy, $key, $release_time ) {
-    state $q2 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_ban` (`proxy_id`, `key`, `release_time`) VALUES (?, ?, ?)');
+# SOURCE METHODS
+sub disable_source ( $self, $source ) {
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_can_connect` = 0 WHERE `source_id` = ?');
 
-    $q2->do( bind => [ $proxy->id, $key, $release_time ] );
+    $q1->do( bind => [ $source->id ] );
 
     return;
+}
+
+sub enable_source ( $self, $source ) {
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_can_connect` = 1 WHERE `source_id` = ?');
+
+    $q1->do( bind => [ $source->id ] );
+
+    return;
+}
+
+# MAINTENANCE METHODS
+sub release_connect_error ( $self, $time ) {
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
+
+    return $q1->do( bind => [$time] );
+}
+
+sub release_ban ( $self, $time ) {
+    state $q1 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
+
+    return $q1->do( bind => [$time] );
 }
 
 1;
@@ -193,7 +196,7 @@ sub ban_proxy ( $self, $proxy, $key, $release_time ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 165                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 146                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
