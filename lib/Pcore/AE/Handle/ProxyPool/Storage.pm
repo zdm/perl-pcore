@@ -9,6 +9,7 @@ has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg
 
 no Pcore;
 
+# TODO
 sub _build_dbh ($self) {
     unlink 'proxy-pool.sqlite' or 1;    # TODO remove
 
@@ -33,17 +34,21 @@ sub _build_dbh ($self) {
                 `id` INTEGER PRIMARY KEY NOT NULL,
                 `hostport` TEXT NOT NULL,
                 `source_id` INTEGER NOT NULL,
-                `source_can_connect` INTEGER NOT NULL,
+                `source_enabled` INTEGER NOT NULL,
                 `connect_error` INTEGER NOT NULL DEFAULT 0,
                 `connect_error_time` INTEGER NOT NULL DEFAULT 0,
-                `threads` INTEGER NOT NULL DEFAULT 0,
-                `total_threads` INTEGER NOT NULL DEFAULT 0,
-                `max_threads` INTEGER NOT NULL
+                `weight` INTEGER NOT NULL
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_hostport` ON `proxy` (`hostport` ASC);
 
+            CREATE INDEX IF NOT EXISTS `idx_proxy_source_id` ON `proxy` (`source_id` ASC);
+
+            CREATE INDEX IF NOT EXISTS `idx_proxy_source_enabled` ON `proxy` (`source_enabled` DESC);
+
             CREATE INDEX IF NOT EXISTS `idx_proxy_connect_error_time` ON `proxy` (`connect_error` DESC, `connect_error_time` ASC);
+
+            CREATE INDEX IF NOT EXISTS `idx_proxy_weight` ON `proxy` (`weight` DESC);
 
             CREATE TABLE IF NOT EXISTS `connect` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -82,9 +87,9 @@ SQL
 
 # PROXY METHODS
 sub add_proxy ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `hostport`, `source_id`, `source_can_connect`, `max_threads`) VALUES (?, ?, ?, ?, ?)');
+    state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `hostport`, `source_id`, `source_enabled`, `weight`) VALUES (?, ?, ?, ?, ?)');
 
-    $q1->do( bind => [ $proxy->id, $proxy->hostport, $proxy->source->id, $proxy->source->can_connect, $proxy->max_threads ] );
+    $q1->do( bind => [ $proxy->id, $proxy->hostport, $proxy->source->id, $proxy->source->can_connect, $proxy->weight ] );
 
     return;
 }
@@ -125,20 +130,10 @@ sub clear_connect_error ( $self, $proxy ) {
     return;
 }
 
-sub start_thread ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `threads` = ?, `total_threads` = ? WHERE `id` = ?');
+sub update_weight ( $self, $proxy ) {
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `weight` = ? WHERE `id` = ?');
 
-    # update threads in the DB
-    $q1->do( bind => [ $proxy->{threads}, $proxy->{total_threads}, $proxy->id ] );
-
-    return;
-}
-
-sub finish_thread ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `threads` = ? WHERE `id` = ?');
-
-    # update threads in the DB
-    $q1->do( bind => [ $proxy->{threads}, $proxy->id ] );
+    $q1->do( bind => [ $proxy->weight, $proxy->id ] );
 
     return;
 }
@@ -160,16 +155,16 @@ sub set_test_connection ( $self, $proxy, $connect_id, $proxy_type ) {
 }
 
 # SOURCE METHODS
-sub disable_source ( $self, $source ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_can_connect` = 0 WHERE `source_id` = ?');
+sub enable_source ( $self, $source ) {
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_enabled` = 1 WHERE `source_id` = ?');
 
     $q1->do( bind => [ $source->id ] );
 
     return;
 }
 
-sub enable_source ( $self, $source ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_can_connect` = 1 WHERE `source_id` = ?');
+sub disable_source ( $self, $source ) {
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_enabled` = 0 WHERE `source_id` = ?');
 
     $q1->do( bind => [ $source->id ] );
 
@@ -196,7 +191,7 @@ sub release_ban ( $self, $time ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 146                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 141                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

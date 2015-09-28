@@ -16,6 +16,7 @@ has max_threads_source    => ( is => 'lazy', isa => PositiveOrZeroInt );
 has is_multiproxy         => ( is => 'ro',   isa => Bool, default => 0 );    # proxy can not be banned
 
 has threads => ( is => 'ro', default => 0, init_arg => undef );              # current threads (running request through this source)
+has total_threads => ( is => 'ro', isa => Int, default => 0, init_arg => undef );    # total connections was made through this source
 
 has _load_next_time   => ( is => 'ro', init_arg => undef );
 has _load_in_progress => ( is => 'ro', init_arg => undef );
@@ -90,13 +91,15 @@ sub _build_max_threads_source ($self) {
 # METHODS
 # TODO delayed callbacks when source become free
 sub can_connect ($self) {
-    return 0 if $self->{max_threads_source} && $self->{threads} >= $self->{max_threads_source};
+    return 0 if $self->max_threads_source && $self->{threads} >= $self->max_threads_source;
 
     return 1;
 }
 
 sub start_thread ($self) {
     $self->{threads}++;
+
+    $self->{total_threads}++;
 
     $self->pool->storage->disable_source($self) if !$self->can_connect;
 

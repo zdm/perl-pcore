@@ -167,9 +167,9 @@ sub _start_thread ($self) {
 
     $self->{total_threads}++;
 
-    $self->source->pool->storage->start_thread($self);
-
     $self->{source}->start_thread;
+
+    $self->source->pool->storage->update_weight($self);
 
     return;
 }
@@ -179,11 +179,28 @@ sub _start_thread ($self) {
 sub _finish_thread ($self) {
     $self->{threads}--;
 
-    $self->source->pool->storage->finish_thread($self);
-
     $self->{source}->finish_thread;
 
+    $self->source->pool->storage->update_weight($self);
+
     return;
+}
+
+sub weight ($self) {
+
+    # disable proxy, if proxy has max. threads limit and this limit is exceeded
+    return 0 if $self->max_threads && $self->{threads} >= $self->max_threads;
+
+    # The following vars can be used to calculate weight:
+    # $self->{source}->{threads}
+    # $self->{source}->{total_threads}
+    # $self->{source}->max_threads_source
+    # $self->max_threads
+    # $self->{threads}
+    # $self->{total_threads}
+
+    # simple round-robin
+    return -1 - $self->{threads} - $self->{total_threads};
 }
 
 # CONNECT
@@ -225,8 +242,9 @@ sub get_slot ( $self, $connect, $cb ) {
 }
 
 # TODO delayed cb
+# TODO include ban search
 sub _wait_slot ( $self, $cb ) {
-    if ( $self->{source}->can_connect && $self->{threads} < $self->max_threads ) {
+    if ( $self->{source}->can_connect && ( !$self->max_threads || $self->{threads} < $self->max_threads ) ) {
         $self->_start_thread;
 
         $cb->($self);
@@ -506,16 +524,16 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 107                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 412, 468             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 430, 486             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 103, 105, 120, 146,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 159, 170, 182, 270   │                                                                                                                │
+## │      │ 159, 172, 184, 288   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 449                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 467                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 57                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 523                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 527 does not match the package declaration      │
+## │    1 │ 541                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 545 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

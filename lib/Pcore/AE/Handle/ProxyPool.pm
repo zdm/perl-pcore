@@ -118,11 +118,11 @@ sub get_slot ( $self, $connect, @ ) {
             SELECT `proxy`.`hostport`
             FROM `proxy` LEFT JOIN `proxy_connect` ON ( `proxy`.`id` = `proxy_connect`.`proxy_id` AND `proxy_connect`.`connect_id` = ? )
             WHERE
-                `connect_error` = 0
-                AND `source_can_connect` = 1
-                AND `threads` < `max_threads`
-                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` <> 1 )
-            ORDER BY `proxy`.`threads` ASC
+                `proxy`.`connect_error` = 0
+                AND `proxy`.`source_enabled` = 1
+                AND `proxy`.`weight` <> 0
+                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` <> 0 )
+            ORDER BY `proxy`.`weight` DESC
             LIMIT 1
 SQL
     );
