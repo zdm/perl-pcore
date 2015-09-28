@@ -14,7 +14,7 @@ sub _build_dbh ($self) {
 
     H->add(
         $id  => 'SQLite',
-        addr => 'file:./proxy-pool.sqlite',
+        addr => 'memory://',
     );
 
     my $dbh = H->$id;

@@ -21,6 +21,8 @@ has total_threads => ( is => 'ro', isa => Int, default => 0, init_arg => undef )
 has _load_next_time   => ( is => 'ro', init_arg => undef );
 has _load_in_progress => ( is => 'ro', init_arg => undef );
 
+# has _waiting_callbacks => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+
 around load => sub ( $orig, $self ) {
 
     # reload in progress
@@ -89,7 +91,6 @@ sub _build_max_threads_source ($self) {
 }
 
 # METHODS
-# TODO delayed callbacks when source become free
 sub can_connect ($self) {
     return 0 if $self->max_threads_source && $self->{threads} >= $self->max_threads_source;
 
@@ -101,12 +102,12 @@ sub start_thread ($self) {
 
     $self->{total_threads}++;
 
+    # disable source if max. source threads limit exceeded
     $self->pool->storage->disable_source($self) if !$self->can_connect;
 
     return;
 }
 
-# TODO call waiting callbacks
 sub finish_thread ($self) {
     my $old_can_connect = $self->can_connect;
 
@@ -115,9 +116,15 @@ sub finish_thread ($self) {
     my $can_connect = $self->can_connect;
 
     if ( $can_connect && $can_connect != $old_can_connect ) {
+
+        # enable source, if was disabled previously
         $self->pool->storage->enable_source($self);
 
-        # TODO source is free, call waiting callbacks
+        # source is free, call waiting callbacks
+        # for ( $self->_waiting_callbacks->@* ) {
+        #     last if $_->[0]->_on_status_change;
+        # }
+
     }
 
     return;

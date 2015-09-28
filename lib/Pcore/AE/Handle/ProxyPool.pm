@@ -59,7 +59,7 @@ sub _build_storage ($self) {
     return Pcore::AE::Handle::ProxyPool::Storage->new( { pool_id => $self->id } );
 }
 
-# TODO throw events
+# TODO throw events on release bans
 sub _maintenance ($self) {
 
     # load sources
@@ -75,7 +75,7 @@ sub _maintenance ($self) {
             if ( $proxy->{connect_error} && $proxy->{connect_error_time} <= $time ) {
                 $proxy->{connect_error} = 0;
 
-                # TODO throw event for waiting proxies
+                $proxy->_on_status_change;
             }
         }
     }
@@ -99,13 +99,15 @@ sub add_proxy ( $self, $proxy ) {
     return;
 }
 
-# TODO improve search query, use ban table if needed
+# TODO
+# improve search query, use ban table if needed
+# cache callbacks
 sub get_slot ( $self, $connect, @ ) {
     my $cb = $_[-1];
 
     my %args = (
-        ban  => 0,    # check for ban
-        wait => 0,    # TODO set default to 1
+        wait   => 0,        # TODO set default to 1
+        ban_id => undef,    # check for ban
         @_[ 2 .. $#_ - 1 ],
     );
 
@@ -149,7 +151,7 @@ SQL
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 29, 74               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 130                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 132                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

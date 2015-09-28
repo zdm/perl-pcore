@@ -26,6 +26,8 @@ has connect_errors     => ( is => 'ro', isa => Int, default => 0, init_arg => un
 has threads            => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # current threads number
 has total_threads      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # total connections was made through this proxy
 
+has _waiting_callbacks => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+
 has is_proxy_pool => ( is => 'ro', default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
@@ -104,6 +106,8 @@ sub remove ($self) {
 
     delete $self->source->pool->list->{ $self->hostport };
 
+    $self->_on_status_change;
+
     $self->%* = (
         removed       => 1,
         connect_error => 1,
@@ -123,7 +127,6 @@ sub ban ( $self, $key, $timeout = undef ) {
 }
 
 # CONNECT METHODS
-# TODO flush all caches on connect error, so next time proxy will be tested again
 sub _set_connect_error ($self) {
     return if $self->{connect_error};
 
@@ -144,6 +147,8 @@ sub _set_connect_error ($self) {
         $self->{connect_error_time} = time + $self->connect_error_timeout;
 
         $self->source->pool->storage->set_connect_error($self);
+
+        $self->_on_status_change;
     }
 
     return;
@@ -161,14 +166,14 @@ sub _start_thread ($self) {
     return;
 }
 
-# TODO call waiting callbacks
-# if proxy has connect_error - call all callbacks
 sub _finish_thread ($self) {
     $self->{threads}--;
 
     $self->{source}->finish_thread;
 
     $self->source->pool->storage->update_weight($self);
+
+    $self->_on_status_change;
 
     return;
 }
@@ -191,32 +196,63 @@ sub weight ($self) {
 }
 
 # CONNECT
-sub get_slot ( $self, $connect, $cb ) {
+sub get_slot ( $self, $connect, @ ) {
+    my $cb = $_[-1];
+
+    my %args = (
+        wait   => 1,    # wait for proxy slot
+        ban_id => 0,    # check for ban
+        @_[ 2 .. $#_ - 1 ],
+    );
+
     if ( $self->{connect_error} ) {
-        $cb->( $self, 0 );    # proxy has connection error, return immediately
+
+        # proxy has connection error, return immediately
+        $cb->( $self, 0 );
     }
     else {
         $connect->[2] //= 'tcp';
 
         $connect->[3] = $connect->[2] . q[_] . $connect->[1];
 
+        my $cached_proxy_type = $self->{test_connection}->{ $connect->[3] };
+
+        if ( defined $cached_proxy_type && $cached_proxy_type == 0 ) {
+
+            # proxy is not available for this connection, no need to get slot
+            # return immediately
+            $cb->( $self, 0 );
+
+            return;
+        }
+
         $self->_wait_slot(
-            sub ($self) {
+            \%args,
+            sub ( $self, $thread_started ) {    # $self can be undef here - this means that proxy is not available
                 my $on_finish = sub ( $self, $proxy_type ) {
-                    $self->_finish_thread if !$proxy_type;
+
+                    # finish thread here if proxy is not available for this connection
+                    # because connection handle will not be created
+                    $self->_finish_thread if !$proxy_type && $thread_started;
 
                     $cb->( $self, $proxy_type );
 
                     return;
                 };
 
-                if ( $self->{connect_error} ) {
+                if ( !$thread_started ) {
+
+                    # proxy is not availalble
                     $on_finish->( $self, 0 );
                 }
-                elsif ( defined( my $proxy_type = $self->{test_connection}->{ $connect->[3] } ) ) {    # proxy already checked, return immediately
+                elsif ( defined( my $proxy_type = $self->{test_connection}->{ $connect->[3] } ) ) {
+
+                    # proxy already checked, return cached result immediately
                     $on_finish->( $self, $proxy_type );
                 }
                 else {
+
+                    # run proxy test for connection
                     $self->_check( $connect, $on_finish );
                 }
 
@@ -228,19 +264,55 @@ sub get_slot ( $self, $connect, $cb ) {
     return;
 }
 
-# TODO delayed cb
-# TODO include ban search
-sub _wait_slot ( $self, $cb ) {
+# TODO include search in the ban lists
+sub _wait_slot ( $self, $args, $cb ) {
     if ( $self->{source}->can_connect && ( !$self->max_threads || $self->{threads} < $self->max_threads ) ) {
+
+        # slot is available
         $self->_start_thread;
 
-        $cb->($self);
+        $cb->( $self, 1 );
+    }
+    elsif ( !$args->{wait} ) {
+
+        # connect slot is not available right now and we do not want to wait
+        $cb->( $self, 0 );
     }
     else {
-        # TODO wait for slot
+
+        # connect slot is not available right now, cache callback and wait
+        push $self->_waiting_callbacks->@*, $cb;
+
+        # push $self->source->_waiting_callbacks->@*, $self if !$self->{source}->can_connect;
     }
 
     return;
+}
+
+sub _on_status_change ($self) {
+    my $thread_started;
+
+    if ( $self->{connect_error} ) {
+        while ( my $wait_slot_cb = shift $self->_waiting_callbacks->@* ) {
+            shift $self->source->_waiting_callbacks->@*;
+
+            # $wait_slot_cb->( $self, 0 );
+        }
+    }
+    elsif ( $self->{source}->can_connect && ( !$self->max_threads || $self->{threads} < $self->max_threads ) ) {
+        if ( my $wait_slot_cb = shift $self->_waiting_callbacks->@* ) {
+
+            # shift $self->source->_waiting_callbacks->@*;
+
+            $thread_started = 1;
+
+            $self->_start_thread;
+
+            $wait_slot_cb->( $self, 1 );
+        }
+    }
+
+    return $thread_started;
 }
 
 # CHECK PROXY
@@ -513,18 +585,20 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 107                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 421, 477             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 297                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 103, 105, 120, 146,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 159, 171, 278        │                                                                                                                │
+## │    3 │ 493, 549             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 458                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 105, 107, 124, 149,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 164, 174, 350        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 57                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    2 │ 530                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 532                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 536 does not match the package declaration      │
+## │    1 │ 59                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 604                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 608 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
