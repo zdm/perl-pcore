@@ -58,8 +58,7 @@ sub _build_storage ($self) {
     return Pcore::AE::Handle::ProxyPool::Storage->new( { pool_id => $self->id } );
 }
 
-# TODO throw event, some proxies was enabled
-# TODO release banned proxies
+# TODO throw events
 sub _maintenance ($self) {
 
     # load sources
@@ -71,15 +70,20 @@ sub _maintenance ($self) {
     my $time = time;
 
     if ( $self->storage->clear_connect_error_timer($time) ) {
-
-        # TODO throw proxy avail event
-
         for my $proxy ( values $self->list->%* ) {
-            $proxy->{connect_error} = 0 if $proxy->{connect_error} && $proxy->{connect_error_time} <= $time;
+            if ( $proxy->{connect_error} && $proxy->{connect_error_time} <= $time ) {
+                $proxy->{connect_error} = 0;
+
+                # TODO throw event for waiting proxies
+            }
         }
     }
 
-    # TODO release bans
+    # release bans
+    if ( $self->storage->on_release_timer($time) ) {
+
+        # TODO throw events for waiting proxies
+    }
 
     return;
 }
@@ -94,12 +98,13 @@ sub add_proxy ( $self, $proxy ) {
     return;
 }
 
-# TODO
+# TODO improve search query, use ban table if needed
 sub get_slot ( $self, $connect, @ ) {
     my $cb = $_[-1];
 
     my %args = (
-        ban => 0,
+        ban  => 0,    # check for ban
+        wait => 0,    # TODO set to 1
         @_[ 2 .. $#_ - 1 ],
     );
 
@@ -115,7 +120,7 @@ sub get_slot ( $self, $connect, @ ) {
                 `connect_error` = 0
                 AND `source_can_connect` = 1
                 AND `threads` < `max_threads`
-                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` = 1 )
+                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` <> 1 )
             ORDER BY `proxy`.`threads` ASC
             LIMIT 1
 SQL
@@ -124,8 +129,11 @@ SQL
     if ( my $res = $q1->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] } ] ) ) {
         $cb->( $self->list->{ $res->$* } );
     }
+    elsif ( !$args{wait} ) {
+        $cb->(undef);
+    }
     else {
-        $cb->();
+        # TODO register wait for proxy event
     }
 
     return;
@@ -138,9 +146,9 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30, 77               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 73               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 124                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 129                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

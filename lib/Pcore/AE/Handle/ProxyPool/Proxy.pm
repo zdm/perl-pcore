@@ -99,13 +99,10 @@ sub _build_max_threads ($self) {
     return $self->source->max_threads_proxy;
 }
 
-# TODO remove from ban lists
 sub remove ($self) {
     $self->source->pool->storage->remove_proxy($self);
 
     delete $self->source->pool->list->{ $self->hostport };
-
-    # TODO remove from ban lists
 
     $self->%* = (
         removed       => 1,
@@ -117,11 +114,10 @@ sub remove ($self) {
     return;
 }
 
-# TODO
-sub ban ( $self, $host, $timeout = undef ) {
+sub ban ( $self, $key, $timeout = undef ) {
     return if $self->source->is_multiproxy;
 
-    $timeout //= $self->ban_timeout;
+    $self->source->pool->storage->ban_proxy( $self, $key, $timeout //= $self->ban_timeout );
 
     return;
 }
@@ -507,18 +503,18 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 110                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 107                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 415, 471             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 411, 467             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 104, 106, 150, 163,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 174, 186, 274        │                                                                                                                │
+## │    2 │ 103, 105, 120, 146,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 159, 170, 182, 270   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 452                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 448                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 57                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 526                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 530 does not match the package declaration      │
+## │    1 │ 522                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 526 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

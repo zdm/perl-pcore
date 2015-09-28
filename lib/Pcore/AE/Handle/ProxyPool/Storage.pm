@@ -10,13 +10,14 @@ has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg
 no Pcore;
 
 sub _build_dbh ($self) {
-    unlink 'proxy-pool.sqlite' or 1;
+    unlink 'proxy-pool.sqlite' or 1;    # TODO remove
 
     my $id = '__proxy_pool' . $self->pool_id;
 
     H->add(
         $id => 'SQLite',
 
+        # TODO
         # addr => 'memory://',
         addr => 'file:./proxy-pool.sqlite',
     );
@@ -59,6 +60,18 @@ sub _build_dbh ($self) {
                 FOREIGN KEY(`proxy_id`) REFERENCES `proxy`(`id`) ON DELETE CASCADE,
                 FOREIGN KEY(`connect_id`) REFERENCES `connect`(`id`) ON DELETE CASCADE
             );
+
+            CREATE INDEX IF NOT EXISTS `idx_proxy_connect_proxy_type` ON `proxy_connect` (`proxy_type` ASC);
+
+            CREATE TABLE IF NOT EXISTS `proxy_ban` (
+                `proxy_id` INTEGER NOT NULL,
+                `key` INTEGER NOT NULL,
+                `release_time` INTEGER NOT NULL,
+                PRIMARY KEY (`proxy_id`, `key`),
+                FOREIGN KEY(`proxy_id`) REFERENCES `proxy`(`id`) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS `idx_proxy_ban_release_time` ON `proxy_ban` (`release_time` ASC);
 SQL
     );
 
@@ -86,7 +99,7 @@ sub remove_proxy ( $self, $proxy ) {
 sub set_connect_error ( $self, $proxy ) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 1, `connect_error_time` = ? WHERE `id` = ?');
 
-    state $q2 = $self->dbh->query('DELETE FROM `connect` WHERE `proxy_id` = ?');
+    state $q2 = $self->dbh->query('DELETE FROM `proxy_connect` WHERE `proxy_id` = ?');
 
     $q1->do( bind => [ $proxy->{connect_error_time}, $proxy->id ] );
 
@@ -105,6 +118,12 @@ sub clear_connect_error ( $self, $proxy ) {
 
 sub clear_connect_error_timer ( $self, $time ) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
+
+    return $q1->do( bind => [$time] );
+}
+
+sub on_release_timer ( $self, $time ) {
+    state $q1 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
 
     return $q1->do( bind => [$time] );
 }
@@ -159,6 +178,14 @@ sub set_test_connection ( $self, $proxy, $connect_id, $proxy_type ) {
     return;
 }
 
+sub ban_proxy ( $self, $proxy, $key, $release_time ) {
+    state $q2 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_ban` (`proxy_id`, `key`, `release_time`) VALUES (?, ?, ?)');
+
+    $q2->do( bind => [ $proxy->id, $key, $release_time ] );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -166,7 +193,7 @@ sub set_test_connection ( $self, $proxy, $connect_id, $proxy_type ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 146                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 165                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
