@@ -159,15 +159,31 @@ sub disable_source ( $self, $source ) {
 
 # MAINTENANCE METHODS
 sub release_connect_error ( $self, $time ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0, `connect_error_time` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
+    state $q1 = $self->dbh->query('SELECT `hostport` FROM `proxy` WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
 
-    return $q1->do( bind => [$time] );
+    state $q2 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0, `connect_error_time` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
+
+    if ( my $res = $q1->selectcol( bind => [$time] ) ) {
+        $q2->do( bind => [$time] );
+
+        return $res;
+    }
+
+    return;
 }
 
 sub release_ban ( $self, $time ) {
-    state $q1 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
+    state $q1 = $self->dbh->query('SELECT DISTINCT `hostport` FROM `proxy` LEFT JOIN `proxy_ban` ON ( `proxy`.`id` = `proxy_ban`.`proxy_id` ) WHERE `proxy_ban`.`release_time` <= ?');
 
-    return $q1->do( bind => [$time] );
+    state $q2 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
+
+    if ( my $res = $q1->selectcol( bind => [$time] ) ) {
+        $q2->do( bind => [$time] );
+
+        return $res;
+    }
+
+    return;
 }
 
 1;

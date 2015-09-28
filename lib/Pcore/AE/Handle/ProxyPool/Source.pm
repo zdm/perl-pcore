@@ -48,7 +48,7 @@ around load => sub ( $orig, $self ) {
                 # proxy object wasn't created, generally due to uri parsing errors
                 next if !$proxy;
 
-                $has_new_proxies ||= $pool->add_proxy($proxy);
+                $has_new_proxies = 1 if $pool->add_proxy($proxy);
             }
 
             # update next source load timeout

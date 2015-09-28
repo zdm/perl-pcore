@@ -61,7 +61,6 @@ sub _build_storage ($self) {
     return Pcore::AE::Handle::ProxyPool::Storage->new( { pool_id => $self->id } );
 }
 
-# TODO throw events on release bans
 sub _maintenance ($self) {
 
     # load sources
@@ -72,20 +71,19 @@ sub _maintenance ($self) {
     # clear connection errors
     my $time = time;
 
-    if ( $self->storage->release_connect_error($time) ) {
-        for my $proxy ( values $self->list->%* ) {
-            if ( $proxy->{connect_error} && $proxy->{connect_error_time} <= $time ) {
-                $proxy->{connect_error} = 0;
+    if ( my $released_connect_error = $self->storage->release_connect_error($time) ) {
+        for my $hostport ( $released_connect_error->@* ) {
+            $self->{list}->{$hostport}->{connect_error} = 0;
 
-                $proxy->_on_status_change;
-            }
+            $self->{list}->{$hostport}->_on_status_change;
         }
     }
 
     # release bans
-    if ( $self->storage->release_ban($time) ) {
-
-        # TODO throw events for waiting proxies
+    if ( my $released_ban = $self->storage->release_ban($time) ) {
+        for my $hostport ( $released_ban->@* ) {
+            $self->{list}->{$hostport}->_on_status_change;
+        }
     }
 
     return;
@@ -101,7 +99,6 @@ sub add_proxy ( $self, $proxy ) {
     return 1;
 }
 
-# TODO improve search query, use ban table if needed
 sub get_slot ( $self, $connect, @ ) {
     my $cb = $_[-1];
 
@@ -115,14 +112,14 @@ sub get_slot ( $self, $connect, @ ) {
 
     $connect->[3] //= $connect->[2] . q[_] . $connect->[1];
 
-    if ( my $proxy = $self->_find_proxy($connect) ) {
+    if ( my $proxy = $self->_find_proxy( $connect, $args{ban_id} ) ) {
         $cb->($proxy);
     }
     elsif ( !$args{wait} ) {
         $cb->(undef);
     }
     else {
-        push $self->{_waiting_callbacks}->@*, [ $connect, $cb ];
+        push $self->{_waiting_callbacks}->@*, [ $cb, $connect, $args{ban_id} ];
     }
 
     return;
@@ -134,16 +131,16 @@ sub _on_status_change ($self) {
     for ( my $i = 0; $i <= $self->{_waiting_callbacks}->$#*; $i++ ) {
         my $slot = $self->{_waiting_callbacks}->[$i];
 
-        my $connect = $slot->[0];
+        my $connect = $slot->[1];
 
         next if $tested_connect_id->{ $connect->[3] };
 
         $tested_connect_id->{ $connect->[3] } = 1;
 
-        if ( my $proxy = $self->_find_proxy($connect) ) {
+        if ( my $proxy = $self->_find_proxy( $connect, $slot->[2] ) ) {
             splice $self->{_waiting_callbacks}->@*, $i, 1;
 
-            $slot->[1]->($proxy);
+            $slot->[0]->($proxy);
 
             last;
         }
@@ -152,8 +149,8 @@ sub _on_status_change ($self) {
     return;
 }
 
-sub _find_proxy ( $self, $connect ) {
-    state $q1 = $self->storage->dbh->query(
+sub _find_proxy ( $self, $connect, $ban_id ) {
+    state $q_no_ban_check = $self->storage->dbh->query(
         <<"SQL"
             SELECT `proxy`.`hostport`
             FROM `proxy` LEFT JOIN `proxy_connect` ON ( `proxy`.`id` = `proxy_connect`.`proxy_id` AND `proxy_connect`.`connect_id` = ? )
@@ -167,7 +164,30 @@ sub _find_proxy ( $self, $connect ) {
 SQL
     );
 
-    if ( my $res = $q1->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] } ] ) ) {
+    state $q_ban_check = $self->storage->dbh->query(
+        <<"SQL"
+            SELECT `proxy`.`hostport`
+            FROM `proxy` LEFT JOIN `proxy_connect` ON ( `proxy`.`id` = `proxy_connect`.`proxy_id` AND `proxy_connect`.`connect_id` = ? )
+            WHERE
+                `proxy`.`connect_error` = 0
+                AND `proxy`.`source_enabled` = 1
+                AND `proxy`.`weight` <> 0
+                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` <> 0 )
+            ORDER BY `proxy`.`weight` DESC
+            LIMIT 1
+SQL
+    );
+
+    my $res;
+
+    if ( defined $ban_id ) {
+        $res = $q_ban_check->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] }, $ban_id ] );
+    }
+    else {
+        $res = $q_no_ban_check->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] } ] );
+    }
+
+    if ($res) {
         return $self->list->{ $res->$* };
     }
     else {
@@ -184,11 +204,11 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 76               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 170                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 184, 187             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 134                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 131                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
