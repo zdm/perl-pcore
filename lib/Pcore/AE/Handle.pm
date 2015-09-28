@@ -237,7 +237,7 @@ sub new ( $self, @ ) {
 
 sub DESTROY ($self) {
     if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
-        $self->{proxy}->_finish_thread if $self->{proxy};
+        $self->{proxy}->_finish_thread if $self->{proxy} && !$self->{proxy_test};
 
         $self->SUPER::DESTROY;
     }

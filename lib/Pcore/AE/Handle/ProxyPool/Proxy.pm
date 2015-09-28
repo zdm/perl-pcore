@@ -351,7 +351,8 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
         connect_timeout        => $PROXY_TEST_CONNECT_TIMEOUT,
         persistent             => 0,
         proxy                  => $self,
-        proxy_type             => $proxy_type,
+        proxy_type             => $proxy_type,                     # connect to proxy without waitinf for the slot
+        proxy_test             => 1,                               # do not finish proxy thread automatically on gandle destroy
         on_proxy_connect_error => sub ( $h, $message, $error ) {
             $cb->(undef);
 
@@ -505,16 +506,16 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 107                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 411, 467             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 412, 468             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 103, 105, 120, 146,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## │      │ 159, 170, 182, 270   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 448                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 449                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 57                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 522                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 526 does not match the package declaration      │
+## │    1 │ 523                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 527 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
