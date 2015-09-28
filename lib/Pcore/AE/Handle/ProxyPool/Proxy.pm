@@ -149,19 +149,6 @@ sub _set_connect_error ($self) {
     return;
 }
 
-sub _clear_connect_error ($self) {
-    $self->{connect_errors} = 0;
-
-    # drop "connect_error" flag
-    if ( $self->{connect_error} ) {
-        $self->{connect_error} = 0;
-
-        $self->source->pool->storage->clear_connect_error($self);
-    }
-
-    return;
-}
-
 sub _start_thread ($self) {
     $self->{threads}++;
 
@@ -279,13 +266,17 @@ sub _check ( $self, $connect, $cb ) {
             }
         }
         else {
-            # clear connect error if all tests are passed without connect errors
-            $self->_clear_connect_error if $self->{connect_error};
+            # cache test result only if no caoonect error
+            if ( !$self->{connect_error} ) {
 
-            # cache connection test result
-            $self->{test_connection}->{ $connect->[3] } = $proxy_type;
+                # reset connect errors counter
+                $self->{connect_errors} = 0;
 
-            $self->source->pool->storage->set_test_connection( $self, $connect->[3], $proxy_type );
+                # cache connection test result
+                $self->{test_connection}->{ $connect->[3] } = $proxy_type;
+
+                $self->source->pool->storage->set_test_connection( $self, $connect->[3], $proxy_type );
+            }
 
             # call cached callbacks
             while ( my $cb = shift $callback->{$cache_key}->@* ) {
@@ -524,16 +515,16 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 107                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 430, 486             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 421, 477             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 103, 105, 120, 146,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 159, 172, 184, 288   │                                                                                                                │
+## │      │ 159, 171, 278        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 467                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 458                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 57                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 541                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 545 does not match the package declaration      │
+## │    1 │ 532                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 536 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

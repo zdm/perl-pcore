@@ -7,7 +7,7 @@ has id => ( is => 'lazy', isa => Int, init_arg => undef );
 
 has load_timeout          => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );     # 0 - don't re-load proxy sources
 has connect_error_timeout => ( is => 'ro', isa => PositiveInt,       default => 180 );    # timeout for re-check disabled proxies
-has max_connect_errors    => ( is => 'ro', isa => PositiveInt,       default => 3 );      # max. failed check attempts, after proxy will be removed
+has max_connect_errors    => ( is => 'ro', isa => PositiveInt,       default => 5 );      # max. failed check attempts, after proxy will be removed
 has ban_timeout           => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 has max_threads_proxy     => ( is => 'ro', isa => PositiveOrZeroInt, default => 20 );
 has max_threads_source    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );

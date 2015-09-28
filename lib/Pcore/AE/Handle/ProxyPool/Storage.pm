@@ -122,14 +122,6 @@ sub set_connect_error ( $self, $proxy ) {
     return;
 }
 
-sub clear_connect_error ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `id` = ?');
-
-    $q1->do( bind => [ $proxy->id ] );
-
-    return;
-}
-
 sub update_weight ( $self, $proxy ) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `weight` = ? WHERE `id` = ?');
 
@@ -173,7 +165,7 @@ sub disable_source ( $self, $source ) {
 
 # MAINTENANCE METHODS
 sub release_connect_error ( $self, $time ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0, `connect_error_time` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
 
     return $q1->do( bind => [$time] );
 }
@@ -191,7 +183,7 @@ sub release_ban ( $self, $time ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 141                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 133                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
