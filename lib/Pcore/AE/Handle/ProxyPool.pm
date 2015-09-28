@@ -105,7 +105,7 @@ sub get_slot ( $self, $connect, @ ) {
 
     my %args = (
         ban  => 0,    # check for ban
-        wait => 0,    # TODO set to 1
+        wait => 0,    # TODO set default to 1
         @_[ 2 .. $#_ - 1 ],
     );
 
