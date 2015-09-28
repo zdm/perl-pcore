@@ -19,6 +19,8 @@ has _timer => ( is => 'ro', init_arg => undef );
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has storage => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool::Storage'], init_arg => undef );
 
+has _waiting_callbacks => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+
 has is_proxy_pool => ( is => 'ro', default => 1, init_arg => undef );
 
 no Pcore;
@@ -101,12 +103,11 @@ sub add_proxy ( $self, $proxy ) {
 
 # TODO
 # improve search query, use ban table if needed
-# cache callbacks
 sub get_slot ( $self, $connect, @ ) {
     my $cb = $_[-1];
 
     my %args = (
-        wait   => 0,        # TODO set default to 1
+        wait   => 1,
         ban_id => undef,    # check for ban
         @_[ 2 .. $#_ - 1 ],
     );
@@ -115,6 +116,44 @@ sub get_slot ( $self, $connect, @ ) {
 
     $connect->[3] //= $connect->[2] . q[_] . $connect->[1];
 
+    if ( my $proxy = $self->_find_proxy($connect) ) {
+        $cb->($proxy);
+    }
+    elsif ( !$args{wait} ) {
+        $cb->(undef);
+    }
+    else {
+        push $self->{_waiting_callbacks}->@*, [ $connect, $cb ];
+    }
+
+    return;
+}
+
+sub _on_status_change ($self) {
+    my $tested_connect_id = {};
+
+    for ( my $i = 0; $i <= $self->{_waiting_callbacks}->$#*; $i++ ) {
+        my $slot = $self->{_waiting_callbacks}->[$i];
+
+        my $connect = $slot->[0];
+
+        next if $tested_connect_id->{ $connect->[3] };
+
+        $tested_connect_id->{ $connect->[3] } = 1;
+
+        if ( my $proxy = $self->_find_proxy($connect) ) {
+            splice $self->{_waiting_callbacks}->@*, $i, 1;
+
+            $slot->[1]->($proxy);
+
+            last;
+        }
+    }
+
+    return;
+}
+
+sub _find_proxy ( $self, $connect ) {
     state $q1 = $self->storage->dbh->query(
         <<"SQL"
             SELECT `proxy`.`hostport`
@@ -130,13 +169,10 @@ SQL
     );
 
     if ( my $res = $q1->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] } ] ) ) {
-        $cb->( $self->list->{ $res->$* } );
-    }
-    elsif ( !$args{wait} ) {
-        $cb->(undef);
+        return $self->list->{ $res->$* };
     }
     else {
-        # TODO register wait for proxy event
+        return;
     }
 
     return;
@@ -149,9 +185,11 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29, 74               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31, 76               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 132                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 171                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 135                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
