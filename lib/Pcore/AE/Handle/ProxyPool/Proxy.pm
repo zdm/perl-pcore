@@ -292,6 +292,7 @@ sub _can_connect ( $self, $ban_id = undef ) {
     return 1;
 }
 
+# TODO how to process source unlock???
 sub _wait_slot ( $self, $args, $cb ) {
     if ( $self->_can_connect( $args->{ban_id} ) ) {
 
@@ -314,6 +315,7 @@ sub _wait_slot ( $self, $args, $cb ) {
 }
 
 # called on proxy connect error or when proxy thread is finished
+# TODO how to process source unlock???
 sub _on_status_change ($self) {
     if ( $self->{connect_error} ) {
         while ( my $wait_slot_cb = shift $self->_waiting_callbacks->@* ) {
@@ -623,15 +625,15 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 115                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 347                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 349                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 529, 585             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 531, 587             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 566                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 568                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 61                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 639                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 643 does not match the package declaration      │
+## │    1 │ 641                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 645 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
