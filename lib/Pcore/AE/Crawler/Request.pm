@@ -3,7 +3,6 @@ package Pcore::AE::Crawler::Request;
 use Pcore qw[-role];
 use Const::Fast qw[const];
 
-const our $PROXY_NO     => 1;
 const our $PROXY_MAYBE  => 2;
 const our $PROXY_ALWAYS => 3;
 
@@ -14,7 +13,7 @@ has id => ( is => 'lazy', isa => Maybe [Str] );
 # TODO make lazy
 has url => ( is => 'lazy', isa => Str );
 
-has use_proxy => ( is => 'ro', isa => Enum [ $PROXY_NO, $PROXY_MAYBE, $PROXY_ALWAYS ], default => $PROXY_NO );
+has use_proxy => ( is => 'ro', isa => Enum [ 0, $PROXY_MAYBE, $PROXY_ALWAYS ], default => 0 );
 
 has crawler => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Crawler'], writer => 'set_crawler', weak_ref => 1, init_arg => undef );
 

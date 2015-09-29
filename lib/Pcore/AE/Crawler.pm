@@ -182,7 +182,8 @@ sub _start_request ( $self, $req ) {
     };
 
     # try to get proxy from proxy_pool
-    if ( 0 && $req->use_proxy != $Pcore::AE::Crawler::Request::PROXY_NO && $self->has_proxy_pool ) {
+    # TODO proxy support
+    if ( 0 && $req->use_proxy && $self->has_proxy_pool ) {
         my $get_proxy_args = {};
 
         $get_proxy_args->{list} = $req->url =~ /\Ahttps:/sm ? 'https' : 'http';
@@ -252,7 +253,7 @@ sub _start_request ( $self, $req ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 131, 172             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 190, 219             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 191, 220             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

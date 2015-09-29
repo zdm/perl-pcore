@@ -45,9 +45,11 @@ sub store ( $self, $h, $timeout = undef ) {
         delete $self->{handle}->{$id};
 
         for my $key ( $h->{persistent_id}->@* ) {
-            $self->{connection}->{$key}->delete($id);
+            if ( exists $self->{connection}->{$key} ) {
+                $self->{connection}->{$key}->delete($id);
 
-            delete $self->{connection}->{$key} if !$self->{connection}->{$key}->has_items;
+                delete $self->{connection}->{$key} if !$self->{connection}->{$key}->has_items;
+            }
         }
 
         # destroy handle
@@ -77,9 +79,11 @@ sub fetch ( $self, $key ) {
     my $h = delete $self->{handle}->{$id};
 
     for ( $h->{persistent_id}->@* ) {
-        $self->{connection}->{$_}->delete($id);
+        if ( exists $self->{connection}->{$_} ) {
+            $self->{connection}->{$_}->delete($id);
 
-        delete $self->{connection}->{$_} if !$self->{connection}->{$_}->has_items;
+            delete $self->{connection}->{$_} if !$self->{connection}->{$_}->has_items;
+        }
     }
 
     $h->on_error(undef);
