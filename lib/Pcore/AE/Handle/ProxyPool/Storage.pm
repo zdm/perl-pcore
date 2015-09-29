@@ -64,9 +64,9 @@ sub _build_dbh ($self) {
 
             CREATE TABLE IF NOT EXISTS `proxy_ban` (
                 `proxy_id` INTEGER NOT NULL,
-                `key` INTEGER NOT NULL,
+                `ban_id` TEXT NOT NULL,
                 `release_time` INTEGER NOT NULL,
-                PRIMARY KEY (`proxy_id`, `key`),
+                PRIMARY KEY (`proxy_id`, `ban_id`),
                 FOREIGN KEY(`proxy_id`) REFERENCES `proxy`(`id`) ON DELETE CASCADE
             );
 
@@ -96,10 +96,10 @@ sub remove_proxy ( $self, $proxy ) {
     return;
 }
 
-sub ban_proxy ( $self, $proxy, $key, $release_time ) {
-    state $q2 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_ban` (`proxy_id`, `key`, `release_time`) VALUES (?, ?, ?)');
+sub ban_proxy ( $self, $proxy, $ban_id, $release_time ) {
+    state $q1 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_ban` (`proxy_id`, `ban_id`, `release_time`) VALUES (?, ?, ?)');
 
-    $q2->do( bind => [ $proxy->id, $key, $release_time ] );
+    $q1->do( bind => [ $proxy->id, $ban_id, $release_time ] );
 
     return;
 }
@@ -193,7 +193,7 @@ sub release_ban ( $self, $time ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 127                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 99, 127              │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

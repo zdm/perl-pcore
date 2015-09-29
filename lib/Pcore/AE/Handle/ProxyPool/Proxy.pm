@@ -118,10 +118,10 @@ sub remove ($self) {
     return;
 }
 
-sub ban ( $self, $key, $timeout = undef ) {
+sub ban ( $self, $ban_id, $timeout = undef ) {
     return if $self->source->is_multiproxy;
 
-    $self->source->pool->storage->ban_proxy( $self, $key, $timeout //= $self->ban_timeout );
+    $self->source->pool->storage->ban_proxy( $self, $ban_id, time + ( $timeout || $self->ban_timeout ) );
 
     return;
 }

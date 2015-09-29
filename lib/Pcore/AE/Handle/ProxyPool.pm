@@ -151,30 +151,51 @@ sub _on_status_change ($self) {
 
 sub _find_proxy ( $self, $connect, $ban_id ) {
     state $q_no_ban_check = $self->storage->dbh->query(
-        <<"SQL"
-            SELECT `proxy`.`hostport`
-            FROM `proxy` LEFT JOIN `proxy_connect` ON ( `proxy`.`id` = `proxy_connect`.`proxy_id` AND `proxy_connect`.`connect_id` = ? )
+        <<'SQL'
+            SELECT hostport
+            FROM proxy
+            LEFT JOIN proxy_connect ON proxy.id = proxy_connect.proxy_id
             WHERE
-                `proxy`.`connect_error` = 0
-                AND `proxy`.`source_enabled` = 1
-                AND `proxy`.`weight` <> 0
-                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` <> 0 )
-            ORDER BY `proxy`.`weight` DESC
+                proxy.connect_error = 0
+                AND proxy.source_enabled = 1
+                AND proxy.weight < 0
+                AND ( proxy_connect.connect_id IS NULL  -- has no tested connections
+                    OR proxy_connect.connect_id = ?     -- or has tested connection id
+                )
+                AND (
+                    proxy_connect.proxy_type IS NULL    -- connection is not tested yet
+                    OR proxy_connect.proxy_type > 0     -- or test result is positive
+                )
+            ORDER BY proxy.weight DESC
             LIMIT 1
 SQL
     );
 
     state $q_ban_check = $self->storage->dbh->query(
-        <<"SQL"
-            SELECT `proxy`.`hostport`
-            FROM `proxy` LEFT JOIN `proxy_connect` ON ( `proxy`.`id` = `proxy_connect`.`proxy_id` AND `proxy_connect`.`connect_id` = ? )
-            WHERE
-                `proxy`.`connect_error` = 0
-                AND `proxy`.`source_enabled` = 1
-                AND `proxy`.`weight` <> 0
-                AND ( `proxy_connect`.`proxy_type` IS NULL OR `proxy_connect`.`proxy_type` <> 0 )
-            ORDER BY `proxy`.`weight` DESC
-            LIMIT 1
+        <<'SQL'
+                SELECT hostport
+                FROM
+                ( SELECT id, hostport, weight
+                        FROM proxy
+                        LEFT JOIN proxy_connect ON proxy.id = proxy_connect.proxy_id
+                        WHERE
+                            proxy.connect_error = 0
+                            AND proxy.source_enabled = 1
+                            AND proxy.weight < 0
+                            AND ( proxy_connect.connect_id IS NULL  -- has no tested connections
+                                OR proxy_connect.connect_id = ?     -- or has tested connection id
+                            )
+                            AND (
+                                proxy_connect.proxy_type IS NULL    -- connection is not tested yet
+                                OR proxy_connect.proxy_type > 0     -- or test result is positive
+                            )
+                ) proxy
+                LEFT JOIN proxy_ban ON proxy.id = proxy_ban.proxy_id
+                WHERE
+                    proxy_ban.ban_id IS NULL
+                    OR proxy_ban.ban_id <> ?
+                ORDER BY proxy.weight DESC
+                LIMIT 1
 SQL
     );
 
@@ -206,7 +227,7 @@ SQL
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 184, 187             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 205, 208             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 131                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
