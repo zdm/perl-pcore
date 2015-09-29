@@ -21,8 +21,6 @@ has total_threads => ( is => 'ro', isa => Int, default => 0, init_arg => undef )
 has _load_next_time   => ( is => 'ro', init_arg => undef );
 has _load_in_progress => ( is => 'ro', init_arg => undef );
 
-# has _waiting_callbacks => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
-
 around load => sub ( $orig, $self ) {
 
     # reload in progress
@@ -109,11 +107,12 @@ sub start_thread ($self) {
     $self->{total_threads}++;
 
     # disable source if max. source threads limit exceeded
-    $self->pool->storage->disable_source($self) if !$self->can_connect;
+    $self->pool->storage->update_source_status( $self, 0 ) if !$self->can_connect;
 
     return;
 }
 
+# TODO how to throw source unlock event???
 sub finish_thread ($self) {
     my $old_can_connect = $self->can_connect;
 
@@ -124,13 +123,7 @@ sub finish_thread ($self) {
     if ( $can_connect && $can_connect != $old_can_connect ) {
 
         # enable source, if was disabled previously
-        $self->pool->storage->enable_source($self);
-
-        # source is free, call waiting callbacks
-        # for ( $self->_waiting_callbacks->@* ) {
-        #     last if $_->[0]->_on_status_change;
-        # }
-
+        $self->pool->storage->update_source_status( $self, 1 );
     }
 
     return;
@@ -143,7 +136,7 @@ sub finish_thread ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 61                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 59                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

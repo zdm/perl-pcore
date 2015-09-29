@@ -74,12 +74,13 @@ AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
     };
 };
 
+# TODO check cached proxies for bans
 sub new ( $self, @ ) {
     my %args = (
-        connect_timeout => 10,
+        connect_timeout => 30,
         proxy           => undef,               # can be a proxy object or proxy pool object
-        proxy_wait      => 1,
-        proxy_ban_id    => undef,               # ban key can be used here
+        proxy_wait      => 0,
+        proxy_ban_id    => undef,               # ban key
         persistent      => $PERSISTENT_IDENT,
         session         => undef,
         @_[ 1 .. $#_ ],
@@ -122,7 +123,7 @@ sub new ( $self, @ ) {
                     $persistent_id->{proxy_pool} = join q[|], $persistent_id->{any}, 1, $args{proxy}->id;
                 }
                 else {
-                    $persistent_id->{proxy_pool} = join q[|], $persistent_id->{any}, 1, $args{proxy}->source->pool->id;
+                    $persistent_id->{proxy_pool} = join q[|], $persistent_id->{any}, 1, $args{proxy}->pool->id;
 
                     $persistent_id->{proxy} = join q[|], $persistent_id->{any}, 2, $args{proxy}->id;
                 }
@@ -220,13 +221,16 @@ sub new ( $self, @ ) {
         else {
             if ( !$args{proxy}->is_proxy_pool && $args{proxy}->{connect_error} ) {
 
-                # proxy can already be removed
+                # proxy can already be removed or has connect error
                 # do not wait for the slot in this case
                 $args{proxy_type} = 0;
 
                 $self->_connect_proxy( \%args );
             }
             elsif ( $args{proxy_type} ) {
+
+                # special case for already defined proxy type
+                # we do not get slot, create connection directly
                 $self->_connect_proxy( \%args );
             }
             else {
@@ -264,7 +268,8 @@ sub new ( $self, @ ) {
                                 $wait_slot->();
                             }
                             else {
-                                # proxy wasn't founs in the pool, no sense to wait for proxy slot
+
+                                # proxy wasn't found in the pool, no sense to wait for proxy slot
                                 $self->_connect_proxy( \%args );
                             }
 
@@ -889,27 +894,27 @@ sub store ( $self, $timeout = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 77                   │ * Subroutine "new" with high complexity score (35)                                                             │
-## │      │ 680                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 78                   │ * Subroutine "new" with high complexity score (35)                                                             │
+## │      │ 685                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 168, 399             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 169, 404             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 62, 444, 481, 484,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 496, 534, 537, 540   │                                                                                                                │
+## │    2 │ 62, 449, 486, 489,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 501, 539, 542, 545   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 627                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 632                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 917                  │ * Link L<AnyEvent::Handle> on line 923 does not specify text                                                   │
-## │      │ 917                  │ * Link L<AnyEvent::Handle> on line 931 does not specify text                                                   │
-## │      │ 917                  │ * Link L<AnyEvent::Handle> on line 959 does not specify text                                                   │
-## │      │ 917                  │ * Link L<AnyEvent::Handle> on line 975 does not specify text                                                   │
-## │      │ 917                  │ * Link L<AnyEvent::Socket> on line 975 does not specify text                                                   │
-## │      │ 917, 917             │ * Link L<Pcore::Proxy> on line 941 does not specify text                                                       │
-## │      │ 917                  │ * Link L<Pcore::Proxy> on line 975 does not specify text                                                       │
+## │      │ 922                  │ * Link L<AnyEvent::Handle> on line 928 does not specify text                                                   │
+## │      │ 922                  │ * Link L<AnyEvent::Handle> on line 936 does not specify text                                                   │
+## │      │ 922                  │ * Link L<AnyEvent::Handle> on line 964 does not specify text                                                   │
+## │      │ 922                  │ * Link L<AnyEvent::Handle> on line 980 does not specify text                                                   │
+## │      │ 922                  │ * Link L<AnyEvent::Socket> on line 980 does not specify text                                                   │
+## │      │ 922, 922             │ * Link L<Pcore::Proxy> on line 946 does not specify text                                                       │
+## │      │ 922                  │ * Link L<Pcore::Proxy> on line 980 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 58, 63, 449, 534,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 537, 540, 546        │                                                                                                                │
+## │    1 │ 58, 63, 454, 539,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 542, 545, 551        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

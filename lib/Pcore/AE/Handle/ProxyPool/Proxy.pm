@@ -7,6 +7,7 @@ use Pcore::AE::Handle qw[:ALL];
 extends qw[Pcore::Util::URI];
 
 has source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'], required => 1, weak_ref => 1 );
+has pool   => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool'],         required => 1, weak_ref => 1 );
 
 has id => ( is => 'lazy', isa => Str, init_arg => undef );
 
@@ -26,7 +27,8 @@ has connect_errors     => ( is => 'ro', isa => Int, default => 0, init_arg => un
 has threads            => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # current threads number
 has total_threads      => ( is => 'ro', isa => Int, default => 0, init_arg => undef );                              # total connections was made through this proxy
 
-has _waiting_callbacks => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+has _waiting_callbacks => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+has _ban_list          => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
 has is_proxy_pool => ( is => 'ro', default => 0, init_arg => undef );
 
@@ -63,6 +65,8 @@ around new => sub ( $orig, $self, $uri, $source ) {
 
     $args->{source} = $source;
 
+    $args->{pool} = $source->pool;
+
     return $self->$orig($args);
 };
 
@@ -94,7 +98,7 @@ sub _build_max_connect_errors ($self) {
 }
 
 sub _build_ban_timeout ($self) {
-    return $self->source->pool->ban_timeout;
+    return $self->pool->ban_timeout;
 }
 
 sub _build_max_threads ($self) {
@@ -102,9 +106,9 @@ sub _build_max_threads ($self) {
 }
 
 sub remove ($self) {
-    $self->source->pool->storage->remove_proxy($self);
+    $self->pool->storage->remove_proxy($self);
 
-    delete $self->source->pool->list->{ $self->hostport };
+    delete $self->pool->list->{ $self->hostport };
 
     $self->_on_status_change;
 
@@ -121,9 +125,17 @@ sub remove ($self) {
 sub ban ( $self, $ban_id, $timeout = undef ) {
     return if $self->source->is_multiproxy;
 
-    $self->source->pool->storage->ban_proxy( $self, $ban_id, time + ( $timeout || $self->ban_timeout ) );
+    $self->{_ban_list}->{$ban_id} = time + ( $timeout || $self->ban_timeout );
+
+    $self->pool->storage->ban_proxy( $self, $ban_id, $self->{_ban_list}->{$ban_id} );
 
     return;
+}
+
+sub is_banned ( $self, $ban_id ) {
+    return if !defined $ban_id || !exists $self->{_ban_list}->{$ban_id};
+
+    return $self->{_ban_list}->{$ban_id} <= time ? 0 : 1;
 }
 
 # CONNECT METHODS
@@ -146,7 +158,7 @@ sub _set_connect_error ($self) {
     else {
         $self->{connect_error_time} = time + $self->connect_error_timeout;
 
-        $self->source->pool->storage->set_connect_error($self);
+        $self->pool->storage->set_connect_error($self);
 
         $self->_on_status_change;
     }
@@ -161,7 +173,7 @@ sub _start_thread ($self) {
 
     $self->{source}->start_thread;
 
-    $self->source->pool->storage->update_weight($self);
+    $self->pool->storage->update_weight($self);
 
     return;
 }
@@ -171,7 +183,7 @@ sub _finish_thread ($self) {
 
     $self->{source}->finish_thread;
 
-    $self->source->pool->storage->update_weight($self);
+    $self->pool->storage->update_weight($self);
 
     $self->_on_status_change;
 
@@ -180,10 +192,13 @@ sub _finish_thread ($self) {
 
 sub weight ($self) {
 
-    # disable proxy, if proxy has max. threads limit and this limit is exceeded
-    return 0 if $self->max_threads && $self->{threads} >= $self->max_threads;
+    # NOTE
+    # weight should be >= 0;
+    # weight == 0 - disable proxy;
+    # weight should be integer;
+    # proxy with minimal weight will be selected;
 
-    # The following vars can be used to calculate weight:
+    # the following vars can be used to calculate weight:
     # $self->{source}->{threads}
     # $self->{source}->{total_threads}
     # $self->{source}->max_threads_source
@@ -191,8 +206,11 @@ sub weight ($self) {
     # $self->{threads}
     # $self->{total_threads}
 
+    # disable proxy, if proxy has max. threads limit and this limit is exceeded
+    return 0 if $self->max_threads && $self->{threads} >= $self->max_threads;
+
     # simple round-robin
-    return -1 - $self->{threads} - $self->{total_threads};
+    return 1 + $self->{threads} + $self->{total_threads};
 }
 
 # CONNECT
@@ -200,7 +218,7 @@ sub get_slot ( $self, $connect, @ ) {
     my $cb = $_[-1];
 
     my %args = (
-        wait   => 1,    # wait for proxy slot
+        wait   => 0,    # wait for proxy slot
         ban_id => 0,    # check for ban
         @_[ 2 .. $#_ - 1 ],
     );
@@ -264,9 +282,18 @@ sub get_slot ( $self, $connect, @ ) {
     return;
 }
 
-# TODO include search in the ban lists
+sub _can_connect ( $self, $ban_id = undef ) {
+    return if !$self->{source}->can_connect;
+
+    return if $self->max_threads && $self->{threads} >= $self->max_threads;
+
+    return if $self->is_banned($ban_id);
+
+    return 1;
+}
+
 sub _wait_slot ( $self, $args, $cb ) {
-    if ( $self->{source}->can_connect && ( !$self->max_threads || $self->{threads} < $self->max_threads ) ) {
+    if ( $self->_can_connect( $args->{ban_id} ) ) {
 
         # slot is available
         $self->_start_thread;
@@ -279,44 +306,48 @@ sub _wait_slot ( $self, $args, $cb ) {
         $cb->( $self, 0 );
     }
     else {
-
         # connect slot is not available right now, cache callback and wait
-        push $self->_waiting_callbacks->@*, $cb;
-
-        # push $self->source->_waiting_callbacks->@*, $self if !$self->{source}->can_connect;
+        push $self->_waiting_callbacks->@*, [ $cb, $args->{ban_id} ];
     }
 
     return;
 }
 
-# TODO what to do on source status change???
+# called on proxy connect error or when proxy thread is finished
 sub _on_status_change ($self) {
-    my $thread_started;
-
     if ( $self->{connect_error} ) {
         while ( my $wait_slot_cb = shift $self->_waiting_callbacks->@* ) {
-            shift $self->source->_waiting_callbacks->@*;
-
-            # $wait_slot_cb->( $self, 0 );
+            $wait_slot_cb->[0]->( $self, 0 );
         }
     }
-    elsif ( $self->{source}->can_connect && ( !$self->max_threads || $self->{threads} < $self->max_threads ) ) {
-        if ( my $wait_slot_cb = shift $self->_waiting_callbacks->@* ) {
+    else {
+        return if !$self->{_waiting_callbacks}->@*;
 
-            # shift $self->source->_waiting_callbacks->@*;
+        my $i = 0;
 
-            $thread_started = 1;
+        while (1) {
+            my $wait_slot_cb = $self->{_waiting_callbacks}->[$i];
 
-            $self->_start_thread;
+            if ( $self->_can_connect( $wait_slot_cb->[1] ) ) {
+                splice $self->{_waiting_callbacks}->@*, $i, 1;
 
-            $wait_slot_cb->( $self, 1 );
+                $self->_start_thread;
+
+                $wait_slot_cb->[0]->( $self, 1 );
+            }
+            else {
+                last if !$wait_slot_cb->[1];    # can't connect to the proxy due to the threads limit, no sense to continue cycle
+
+                $i++;
+            }
+
+            last if $i > $self->{_waiting_callbacks}->$#*;
         }
-        else {
-            $self->source->pool->_on_status_change;
-        }
+
+        $self->pool->_on_status_change if $self->connect;
     }
 
-    return $thread_started;
+    return;
 }
 
 # CHECK PROXY
@@ -351,7 +382,7 @@ sub _check ( $self, $connect, $cb ) {
                 # cache connection test result
                 $self->{test_connection}->{ $connect->[3] } = $proxy_type;
 
-                $self->source->pool->storage->set_test_connection( $self, $connect->[3], $proxy_type );
+                $self->pool->storage->set_connection_test_results( $self, $connect->[3], $proxy_type );
             }
 
             # call cached callbacks
@@ -589,20 +620,17 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 115                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 298, 315             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 347                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 497, 553             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 528, 584             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 105, 107, 124, 149,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 164, 174, 354        │                                                                                                                │
+## │    2 │ 565                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 534                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    1 │ 61                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 59                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 610                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 614 does not match the package declaration      │
+## │    1 │ 638                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 642 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

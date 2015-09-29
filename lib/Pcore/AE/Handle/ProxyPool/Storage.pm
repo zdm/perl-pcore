@@ -42,7 +42,7 @@ sub _build_dbh ($self) {
 
             CREATE INDEX IF NOT EXISTS `idx_proxy_connect_error_time` ON `proxy` (`connect_error` DESC, `connect_error_time` ASC);
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_weight` ON `proxy` (`weight` DESC);
+            CREATE INDEX IF NOT EXISTS `idx_proxy_weight` ON `proxy` (`weight` ASC);
 
             CREATE TABLE IF NOT EXISTS `connect` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -124,7 +124,7 @@ sub update_weight ( $self, $proxy ) {
     return;
 }
 
-sub set_test_connection ( $self, $proxy, $connect_id, $proxy_type ) {
+sub set_connection_test_results ( $self, $proxy, $connect_id, $proxy_type ) {
     if ( !$self->_connect_id->{$connect_id} ) {
         state $q1 = $self->dbh->query('INSERT INTO `connect` (`name`) VALUES (?)');
 
@@ -141,18 +141,10 @@ sub set_test_connection ( $self, $proxy, $connect_id, $proxy_type ) {
 }
 
 # SOURCE METHODS
-sub enable_source ( $self, $source ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_enabled` = 1 WHERE `source_id` = ?');
+sub update_source_status ( $self, $source, $status ) {
+    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_enabled` = ? WHERE `source_id` = ?');
 
-    $q1->do( bind => [ $source->id ] );
-
-    return;
-}
-
-sub disable_source ( $self, $source ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_enabled` = 0 WHERE `source_id` = ?');
-
-    $q1->do( bind => [ $source->id ] );
+    $q1->do( bind => [ $status, $source->id ] );
 
     return;
 }
@@ -173,11 +165,18 @@ sub release_connect_error ( $self, $time ) {
 }
 
 sub release_ban ( $self, $time ) {
-    state $q1 = $self->dbh->query('SELECT DISTINCT `hostport` FROM `proxy` LEFT JOIN `proxy_ban` ON ( `proxy`.`id` = `proxy_ban`.`proxy_id` ) WHERE `proxy_ban`.`release_time` <= ?');
+    state $q1 = $self->dbh->query(
+        <<'SQL'
+            SELECT proxy.hostport, proxy_ban.ban_id
+            FROM proxy
+            INNER JOIN proxy_ban ON proxy.id = proxy_ban.proxy_id
+            WHERE proxy_ban.release_time <= ?
+SQL
+    );
 
     state $q2 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
 
-    if ( my $res = $q1->selectcol( bind => [$time] ) ) {
+    if ( my $res = $q1->selectall( bind => [$time] ) ) {
         $q2->do( bind => [$time] );
 
         return $res;
