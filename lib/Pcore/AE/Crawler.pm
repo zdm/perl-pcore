@@ -1,8 +1,8 @@
 package Pcore::AE::Crawler;
 
 use Pcore qw[-class];
-use Const::Fast qw[];
-use Pcore::AnyEvent::Proxy::Pool;
+use Const::Fast qw[const];
+use Pcore::AE::Handle::ProxyPool;
 
 with qw[Pcore::AE::Status];
 
@@ -16,7 +16,7 @@ has max_threads => ( is => 'ro', isa => PositiveInt, default => 100 );
 has ua => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::UA'], default => sub { P->ua->new }, init_arg => undef );
 
 # proxy
-has proxy_pool => ( is => 'rwp', isa => InstanceOf ['Pcore::AnyEvent::Proxy::Pool'], predicate => 1, init_arg => undef );
+has proxy_pool => ( is => 'rwp', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool'], predicate => 1, init_arg => undef );
 
 has cache => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has total_reqs => ( is => 'rwp', isa => Int, default => 0, init_arg => undef );
@@ -28,14 +28,14 @@ has running_threads_by_type => ( is => 'ro', isa => HashRef, default => sub { {}
 no Pcore;
 
 # request exit codes
-Const::Fast::const our $REQ_DONE   => 1;
-Const::Fast::const our $REQ_REPEAT => 3;
-Const::Fast::const our $REQ_REJECT => 2;
+const our $REQ_DONE   => 1;
+const our $REQ_REPEAT => 3;
+const our $REQ_REJECT => 2;
 
 sub BUILD ( $self, $args ) {
     if ( $args->{proxy_pool} ) {
         if ( ref $args->{proxy_pool} eq 'HASH' ) {
-            $self->_set_proxy_pool( Pcore::AnyEvent::Proxy::Pool->new( $args->{proxy_pool} ) );
+            $self->_set_proxy_pool( Pcore::AE::Handle::ProxyPool->new( $args->{proxy_pool} ) );
         }
         else {
             $self->_set_proxy_pool( $args->{proxy_pool} );
@@ -182,7 +182,7 @@ sub _start_request ( $self, $req ) {
     };
 
     # try to get proxy from proxy_pool
-    if ( $req->use_proxy != $Pcore::AE::Crawler::Request::PROXY_NO && $self->has_proxy_pool ) {
+    if ( 0 && $req->use_proxy != $Pcore::AE::Crawler::Request::PROXY_NO && $self->has_proxy_pool ) {
         my $get_proxy_args = {};
 
         $get_proxy_args->{list} = $req->url =~ /\Ahttps:/sm ? 'https' : 'http';
@@ -248,7 +248,7 @@ sub _start_request ( $self, $req ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 118                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_start_request" with high complexity score (21)            │
+## │    3 │ 118                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_start_request" with high complexity score (22)            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 131, 172             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤

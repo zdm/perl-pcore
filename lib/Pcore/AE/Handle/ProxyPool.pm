@@ -110,7 +110,11 @@ sub get_slot ( $self, $connect, @ ) {
 
     $connect->[3] //= $connect->[2] . q[_] . $connect->[1];
 
-    if ( my $proxy = $self->_find_proxy( $connect, $args{ban_id} ) ) {
+    my $proxy;
+
+    $proxy = $self->_find_proxy( $connect, $args{ban_id} ) if $self->{list}->%*;
+
+    if ($proxy) {
         $cb->($proxy);
     }
     elsif ( !$args{wait} ) {
@@ -225,9 +229,9 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 93               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31, 93, 115          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 205, 208             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 209, 212             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

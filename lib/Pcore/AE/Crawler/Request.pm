@@ -1,11 +1,11 @@
 package Pcore::AE::Crawler::Request;
 
 use Pcore qw[-role];
-use Const::Fast qw[];
+use Const::Fast qw[const];
 
-Const::Fast::const our $PROXY_NO     => 1;
-Const::Fast::const our $PROXY_MAYBE  => 2;
-Const::Fast::const our $PROXY_ALWAYS => 3;
+const our $PROXY_NO     => 1;
+const our $PROXY_MAYBE  => 2;
+const our $PROXY_ALWAYS => 3;
 
 requires qw[_build_type process_response];
 
