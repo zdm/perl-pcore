@@ -72,7 +72,7 @@ around new => sub ( $orig, $self, $uri, $source ) {
 
 no Pcore;
 
-our $PROXY_TEST_CONNECT_TIMEOUT = 20;
+our $PROXY_TEST_TIMEOUT = 10;
 
 our $CHECK_SCHEME = {
     tcp => [ [ $PROXY_TYPE_CONNECT, $PROXY_TYPE_SOCKS4, $PROXY_TYPE_SOCKS5 ] ],    # default scheme
@@ -464,7 +464,8 @@ sub _check_tunnel ( $self, $proxy_type, $connect, $cb ) {
 sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
     Pcore::AE::Handle->new(
         connect                     => $connect,
-        connect_timeout             => $PROXY_TEST_CONNECT_TIMEOUT,
+        connect_timeout             => $PROXY_TEST_TIMEOUT,
+        timeout                     => $PROXY_TEST_TIMEOUT,
         persistent                  => 0,
         proxy                       => $self,
         proxy_type                  => $proxy_type,                     # connect to proxy without waitinf for the slot
@@ -624,13 +625,13 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 347                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 528, 584             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 529, 585             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 565                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 566                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 61                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 638                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 642 does not match the package declaration      │
+## │    1 │ 639                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 643 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
