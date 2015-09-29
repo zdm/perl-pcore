@@ -97,16 +97,6 @@ sub _maintenance ($self) {
     return;
 }
 
-sub add_proxy ( $self, $proxy ) {
-    return if exists $self->list->{ $proxy->hostport };
-
-    $self->list->{ $proxy->hostport } = $proxy;
-
-    $self->storage->add_proxy($proxy);
-
-    return 1;
-}
-
 sub get_slot ( $self, $connect, @ ) {
     my $cb = $_[-1];
 
@@ -237,7 +227,7 @@ SQL
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 31, 93               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 215, 218             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 205, 208             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

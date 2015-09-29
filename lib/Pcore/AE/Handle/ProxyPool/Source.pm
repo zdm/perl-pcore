@@ -46,7 +46,16 @@ around load => sub ( $orig, $self ) {
                 # proxy object wasn't created, generally due to uri parsing errors
                 next if !$proxy;
 
-                $has_new_proxies = 1 if $pool->add_proxy($proxy);
+                # proxy already exists
+                next if exists $pool->{list}->{ $proxy->hostport };
+
+                $has_new_proxies = 1;
+
+                # add proxy to the list
+                $pool->list->{ $proxy->hostport } = $proxy;
+
+                # add proxy to the storage
+                $pool->storage->add_proxy($proxy);
             }
 
             # update next source load timeout
@@ -55,8 +64,8 @@ around load => sub ( $orig, $self ) {
             $self->{_load_in_progress} = 0;
 
             # throw pool on status change event if has new proxies added
-            # so waiting threads can start immediately
-            $self->pool->_on_status_change if $has_new_proxies;
+            # waiting threads can start immediately
+            $pool->_on_status_change if $has_new_proxies;
 
             return;
         }
@@ -130,16 +139,6 @@ sub finish_thread ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 59                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
