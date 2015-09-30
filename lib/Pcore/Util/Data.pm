@@ -710,7 +710,15 @@ sub from_uri {
         if ( $args{encoding} ) {
             $encodings->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
 
-            return $encodings->{ $args{encoding} }->decode( URI::Escape::XS::decodeURIComponent( $_[0] ), Encode::FB_CROAK | Encode::LEAVE_SRC );
+            my $u = URI::Escape::XS::decodeURIComponent( $_[0] );
+
+            eval {              #
+                $u = $encodings->{ $args{encoding} }->decode( $u, Encode::FB_CROAK | Encode::LEAVE_SRC );
+            };
+
+            utf8::upgrade($u) if $@;
+
+            return $u;
         }
         else {
             return URI::Escape::XS::decodeURIComponent( $_[0] );
@@ -720,7 +728,15 @@ sub from_uri {
         if ( $args{encoding} ) {
             $encodings->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
 
-            $_[0] = $encodings->{ $args{encoding} }->decode( URI::Escape::XS::decodeURIComponent( $_[0] ), Encode::FB_CROAK | Encode::LEAVE_SRC );
+            my $u = URI::Escape::XS::decodeURIComponent( $_[0] );
+
+            eval {    #
+                $u = $encodings->{ $args{encoding} }->decode( $u, Encode::FB_CROAK | Encode::LEAVE_SRC );
+            };
+
+            utf8::upgrade($u) if $@;
+
+            $_[0] = $u;
         }
         else {
             $_[0] = URI::Escape::XS::decodeURIComponent( $_[0] );
@@ -740,7 +756,7 @@ sub from_uri_query {
 
     require WWW::Form::UrlEncoded::XS;
 
-    state $encoding;
+    state $encoding = {};
 
     $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} ) if $args{encoding};
 
@@ -756,10 +772,22 @@ sub from_uri_query {
         if ( $args{encoding} ) {
 
             # decode key
-            $pair->[0] = $encoding->{ $args{encoding} }->decode( $pair->[0], Encode::FB_CROAK | Encode::LEAVE_SRC );
+            if ( defined $pair->[0] ) {
+                eval {    #
+                    $pair->[0] = $encoding->{ $args{encoding} }->decode( $pair->[0], Encode::FB_CROAK | Encode::LEAVE_SRC );
+                };
+
+                utf8::upgrade( $pair->[0] ) if $@;
+            }
 
             # decode value
-            $pair->[1] = $encoding->{ $args{encoding} }->decode( $pair->[1], Encode::FB_CROAK | Encode::LEAVE_SRC ) if defined $pair->[1];
+            if ( defined $pair->[1] ) {
+                eval {    #
+                    $pair->[1] = $encoding->{ $args{encoding} }->decode( $pair->[1], Encode::FB_CROAK | Encode::LEAVE_SRC );
+                };
+
+                utf8::upgrade( $pair->[1] ) if $@;
+            }
         }
 
         push $hash->{ $pair->[0] }->@*, $pair->[1];
@@ -800,6 +828,8 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 147, 370, 398, 400,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## │      │ 402, 404             │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 715, 733, 776, 785   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
