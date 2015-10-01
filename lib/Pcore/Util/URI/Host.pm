@@ -43,7 +43,7 @@ sub pub_suffixes {
         if ( !$path ) {
             P->ua->request(
                 'https://publicsuffix.org/list/effective_tld_names.dat',
-                chunk_size  => 0,
+                buf_size    => 0,
                 on_progress => 0,
                 blocking    => 1,
                 on_finish   => sub ($res) {
@@ -67,7 +67,7 @@ sub tlds {
         if ( !$path ) {
             P->ua->request(
                 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt',
-                chunk_size  => 0,
+                buf_size    => 0,
                 on_progress => 0,
                 blocking    => 1,
                 on_finish   => sub ($res) {

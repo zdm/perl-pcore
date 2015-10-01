@@ -21,7 +21,7 @@ sub country_path ( $self, $force = undef, $cv = undef ) {
         if ( !$_path || $force ) {
             P->ua->request(
                 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz',
-                chunk_size  => 1,
+                buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
@@ -53,7 +53,7 @@ sub country_v6_path ( $self, $force = undef, $cv = undef ) {
         if ( !$_path || $force ) {
             P->ua->request(
                 'http://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz',
-                chunk_size  => 1,
+                buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
@@ -85,7 +85,7 @@ sub city_path ( $self, $force = undef, $cv = undef ) {
         if ( !$_path || $force ) {
             P->ua->request(
                 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz',
-                chunk_size  => 1,
+                buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
@@ -117,7 +117,7 @@ sub city_v6_path ( $self, $force = undef, $cv = undef ) {
         if ( !$_path || $force ) {
             P->ua->request(
                 'http://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz',
-                chunk_size  => 1,
+                buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
