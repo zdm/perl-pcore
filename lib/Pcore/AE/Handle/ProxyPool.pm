@@ -106,6 +106,13 @@ sub get_slot ( $self, $connect, @ ) {
         @_[ 2 .. $#_ - 1 ],
     );
 
+    # parse uri
+    if ( !ref $connect ) {
+        my $uri = P->uri($connect);
+
+        $connect = [ $uri->host->name, $uri->connect_port, $uri->scheme ];
+    }
+
     $connect->[2] //= 'tcp';
 
     $connect->[3] //= $connect->[2] . q[_] . $connect->[1];
@@ -229,9 +236,9 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 93, 115          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31, 93, 122          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 209, 212             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 216, 219             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

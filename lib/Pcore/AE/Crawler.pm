@@ -19,10 +19,10 @@ has ua => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::UA'], default => sub 
 has proxy_pool => ( is => 'rwp', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool'], predicate => 1, init_arg => undef );
 
 has cache => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
-has total_reqs => ( is => 'rwp', isa => Int, default => 0, init_arg => undef );
+has total_reqs => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
 has total_reqs_by_type => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-has running_threads => ( is => 'rw', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
+has running_threads => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 has running_threads_by_type => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 no Pcore;
@@ -89,7 +89,7 @@ sub finish ($self) {
 sub _create_requests ($self) {
 
     # change status to "stoppped" if all threads was finished
-    if ( $self->status eq 'stops' && !$self->running_threads ) {
+    if ( $self->status eq 'stops' && !$self->{running_threads} ) {
         $self->_set_status('stopped');
 
         return;
@@ -98,7 +98,7 @@ sub _create_requests ($self) {
     # disable new requests if status is not "running"
     return if $self->status ne 'running';
 
-    while ( $self->running_threads < $self->max_threads ) {
+    while ( $self->{running_threads} < $self->{max_threads} ) {
         if ( my $req = $self->get_request->($self) ) {
             $req->set_crawler($self);
 
@@ -106,7 +106,7 @@ sub _create_requests ($self) {
         }
         else {
             # finish if no more requests to process and all threads are finished
-            $self->finish if !$self->running_threads;
+            $self->finish if !$self->{running_threads};
 
             last;
         }
@@ -118,10 +118,10 @@ sub _create_requests ($self) {
 sub _start_request ( $self, $req ) {
 
     # increment _running threads counter
-    $self->running_threads( $self->running_threads + 1 );
+    $self->{running_threads}++;
 
     # increment _running threads by type counter
-    $self->running_threads_by_type->{ $req->type }++;
+    $self->{running_threads_by_type}->{ $req->type }++;
 
     my $responder = sub ($action) {
         $action //= $REQ_DONE;
@@ -134,13 +134,10 @@ sub _start_request ( $self, $req ) {
         }
 
         # decrement running threads counter
-        $self->running_threads( $self->running_threads - 1 );
+        $self->{running_threads}--;
 
         # decrement running threads by type counter
-        $self->running_threads_by_type->{ $req->type }--;
-
-        # free proxy
-        $req->proxy->finish_thread if $req->has_proxy;
+        $self->{running_threads_by_type}->{ $req->type }--;
 
         # clear request
         $req->clear;
@@ -162,10 +159,10 @@ sub _start_request ( $self, $req ) {
                 if ( $self->status ne 'finished' ) {
 
                     # increment total reqs done
-                    $self->_set_total_reqs( $self->total_reqs + 1 );
+                    $self->{total_reqs}++;
 
                     # increment total reqs by type
-                    $self->total_reqs_by_type->{ $req->type }++;
+                    $self->{total_reqs_by_type}->{ $req->type }++;
 
                     $req->set_res($res);
 
@@ -182,58 +179,18 @@ sub _start_request ( $self, $req ) {
     };
 
     # try to get proxy from proxy_pool
-    # TODO proxy support
-    if ( 0 && $req->use_proxy && $self->has_proxy_pool ) {
-        my $get_proxy_args = {};
+    if ( $req->use_proxy && $self->has_proxy_pool ) {
+        $self->proxy_pool->get_slot(
+            $req->url,
+            wait => $req->use_proxy == $Pcore::AE::Crawler::Request::PROXY_MAYBE ? 0 : 1,
+            sub ($proxy) {
+                $req->set_proxy($proxy) if $proxy;
 
-        $get_proxy_args->{list} = $req->url =~ /\Ahttps:/sm ? 'https' : 'http';
-
-        my $proxy = $self->proxy_pool->get_proxy( $get_proxy_args->%* );
-
-        if ($proxy) {
-            $req->set_proxy($proxy);
-
-            $run_request->();
-        }
-        else {    # proxy isn't available
-            if ( $req->use_proxy == $Pcore::AE::Crawler::Request::PROXY_MAYBE ) {    # don't use proxy
                 $run_request->();
+
+                return;
             }
-            else {                                                                   # wait, while proxy will be available
-                my $t;
-
-                my $timer_cb;
-
-                my $set_timer = sub {
-                    $t = AnyEvent->timer(
-                        after => 1,
-                        cb    => $timer_cb,
-                    );
-                };
-
-                $timer_cb = sub {
-
-                    # skip request it status is "finished"
-                    if ( $self->status eq 'finished' ) {
-                        undef $t;
-                    }
-                    elsif ( $proxy = $self->proxy_pool->get_proxy( $get_proxy_args->%* ) ) {
-                        undef $t;
-
-                        $req->set_proxy($proxy);
-
-                        $run_request->();
-                    }
-                    else {
-                        $set_timer->();
-                    }
-
-                    return;
-                };
-
-                $set_timer->();
-            }
-        }
+        );
     }
     else {
         $run_request->();
@@ -249,11 +206,7 @@ sub _start_request ( $self, $req ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 118                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_start_request" with high complexity score (22)            │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 131, 172             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 191, 220             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 131, 169             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
