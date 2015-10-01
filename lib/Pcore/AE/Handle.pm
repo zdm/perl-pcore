@@ -269,9 +269,18 @@ sub new ( $self, @ ) {
                                 $wait_slot->();
                             }
                             else {
+                                if ( $args{proxy_wait} ) {
 
-                                # proxy wasn't found in the pool, no sense to wait for proxy slot
-                                $self->_connect_proxy( \%args );
+                                    # proxy wasn't found in the pool, no sense to wait for proxy slot
+                                    $self->_connect_proxy( \%args );
+                                }
+                                else {
+
+                                    # TODO we should connect directly here
+                                    # because this is not a proxy retrieving error
+                                    # proxy is not mandatory
+                                    $self->_connect_proxy( \%args );
+                                }
                             }
 
                             return;
@@ -895,27 +904,29 @@ sub store ( $self, $timeout = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 77                   │ * Subroutine "new" with high complexity score (38)                                                             │
-## │      │ 686                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 77                   │ * Subroutine "new" with high complexity score (40)                                                             │
+## │      │ 695                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 170, 405             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 170, 414             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 62, 450, 487, 490,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 502, 540, 543, 546   │                                                                                                                │
+## │    3 │ 272                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 633                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 62, 459, 496, 499,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 511, 549, 552, 555   │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 642                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 923                  │ * Link L<AnyEvent::Handle> on line 929 does not specify text                                                   │
-## │      │ 923                  │ * Link L<AnyEvent::Handle> on line 937 does not specify text                                                   │
-## │      │ 923                  │ * Link L<AnyEvent::Handle> on line 965 does not specify text                                                   │
-## │      │ 923                  │ * Link L<AnyEvent::Handle> on line 981 does not specify text                                                   │
-## │      │ 923                  │ * Link L<AnyEvent::Socket> on line 981 does not specify text                                                   │
-## │      │ 923, 923             │ * Link L<Pcore::Proxy> on line 947 does not specify text                                                       │
-## │      │ 923                  │ * Link L<Pcore::Proxy> on line 981 does not specify text                                                       │
+## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 940 does not specify text                                                   │
+## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 948 does not specify text                                                   │
+## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 976 does not specify text                                                   │
+## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 992 does not specify text                                                   │
+## │      │ 934                  │ * Link L<AnyEvent::Socket> on line 992 does not specify text                                                   │
+## │      │ 934, 934             │ * Link L<Pcore::Proxy> on line 958 does not specify text                                                       │
+## │      │ 934                  │ * Link L<Pcore::Proxy> on line 992 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 58, 63, 455, 540,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 543, 546, 552        │                                                                                                                │
+## │    1 │ 58, 63, 464, 549,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 552, 555, 561        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
