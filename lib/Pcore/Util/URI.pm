@@ -10,6 +10,9 @@ use overload    #
   q[cmp] => sub {
     return $_[0]->to_string cmp $_[1];
   },
+  q[bool] => sub {
+    return 1;
+  },
   fallback => undef;
 
 has _has_authority => ( is => 'rwp', default  => 0,   init_arg => 'has_authority' );
