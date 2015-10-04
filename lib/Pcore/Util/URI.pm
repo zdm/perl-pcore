@@ -20,14 +20,13 @@ use overload                 #
   },
   fallback => undef;
 
-has has_authority => ( is => 'ro' );
-has scheme        => ( is => 'ro' );
-has userinfo      => ( is => 'ro' );
-has host          => ( is => 'ro' );
-has port          => ( is => 'ro' );
-has path          => ( is => 'ro' );
-has query         => ( is => 'ro' );
-has fragment      => ( is => 'ro' );
+has scheme   => ( is => 'ro' );
+has userinfo => ( is => 'ro' );
+has host     => ( is => 'ro' );
+has port     => ( is => 'ro' );
+has path     => ( is => 'ro' );
+has query    => ( is => 'ro' );
+has fragment => ( is => 'ro' );
 
 has to_string => ( is => 'lazy', init_arg => undef );
 has canon     => ( is => 'lazy', init_arg => undef );
@@ -119,19 +118,21 @@ sub NEW {
 sub _new ( $self, $uri_args, $args ) {
     $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host' if $uri_args->{host};
 
+    delete $uri_args->{_has_authority};
+
     return bless $uri_args, $self;
 }
 
-sub _parse_uri_string ( $self, $uri, $authority = 0 ) {
+sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
     my %args = (
-        has_authority => 0,
-        scheme        => q[],
-        userinfo      => q[],
-        host          => q[],
-        port          => 0,
-        path          => q[],
-        query         => q[],
-        fragment      => q[],
+        _has_authority => 0,
+        scheme         => q[],
+        userinfo       => q[],
+        host           => q[],
+        port           => 0,
+        path           => q[],
+        query          => q[],
+        fragment       => q[],
     );
 
     utf8::encode($uri) if utf8::is_utf8($uri);
@@ -156,15 +157,15 @@ sub _parse_uri_string ( $self, $uri, $authority = 0 ) {
         my $authority = q[];
 
         if ( index( $uri, q[//] ) == 0 ) {
-            $args{has_authority} = 1;
+            $args{_has_authority} = 1;
 
             substr $uri, 0, 2, q[];
         }
-        elsif ($authority) {
-            $args{has_authority} = 1;
+        elsif ($with_authority) {
+            $args{_has_authority} = 1;
         }
 
-        if ( $args{has_authority} && $uri =~ s[\A([^/?#]+)][]smo ) {
+        if ( $args{_has_authority} && $uri =~ s[\A([^/?#]+)][]smo ) {
             $authority = $1;
 
             my $userinfo_idx = rindex $authority, q[@];
@@ -239,7 +240,7 @@ sub _build_canon ($self) {
 
     $uri .= $self->{scheme} . q[:] if $self->{scheme} ne q[];
 
-    if ( $self->{has_authority} ) {
+    if ( $self->authority ne q[] ) {
         $uri .= q[//] . $self->authority;
 
         $uri .= q[/] if substr( $self->path_decoded->to_uri, 0, 1 ) ne q[/];
@@ -264,7 +265,7 @@ sub _build_to_string ($self) {
 
     $uri .= $self->{scheme} . q[:] if $self->{scheme} ne q[];
 
-    if ( $self->{has_authority} ) {
+    if ( $self->authority ne q[] ) {
         $uri .= q[//] . $self->authority;
 
         $uri .= q[/] if substr( $self->{path}, 0, 1 ) ne q[/];
@@ -275,9 +276,9 @@ sub _build_to_string ($self) {
 
     $uri .= $self->{path};
 
-    $uri .= q[?] . $self->{query} if $self->{query};
+    $uri .= q[?] . $self->{query} if $self->{query} ne q[];
 
-    $uri .= q[#] . $self->{fragment} if $self->{fragment};
+    $uri .= q[#] . $self->{fragment} if $self->{fragment} ne q[];
 
     return $uri;
 }
@@ -285,11 +286,11 @@ sub _build_to_string ($self) {
 sub _build_authority ($self) {
     my $authority = q[];
 
-    $authority .= $self->userinfo . q[@] if $self->userinfo ne q[];
+    $authority .= $self->{userinfo} . q[@] if $self->{userinfo} ne q[];
 
-    $authority .= $self->host->name;
+    $authority .= $self->{host}->name if $self->{host} ne q[];
 
-    $authority .= q[:] . $self->port if $self->port;
+    $authority .= q[:] . $self->{port} if $self->{port};
 
     return $authority;
 }
@@ -313,7 +314,13 @@ sub _build_userinfo_utf8 ($self) {
 }
 
 sub _build_userinfo_b64 ($self) {
-    return P->data->to_b64_url( $self->userinfo );
+    return q[] if $self->{userinfo} eq q[];
+
+    my $ui = P->data->from_uri( $self->{userinfo} );
+
+    utf8::encode($ui) if utf8::is_utf8($ui);
+
+    return P->data->to_b64_url($ui);
 }
 
 sub _build_username ($self) {
@@ -420,7 +427,7 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 109                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 108                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

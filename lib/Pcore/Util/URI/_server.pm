@@ -24,7 +24,7 @@ sub _new ( $self, $uri_args, $args ) {
             $uri_args->{scheme} = $args->{base}->{scheme};
 
             # inherit from the base URI only if has no own authority
-            if ( !$uri_args->{has_authority} ) {
+            if ( !$uri_args->{_has_authority} ) {
 
                 # inherit authority
                 $uri_args->{userinfo} = $args->{base}->{userinfo};
@@ -54,7 +54,7 @@ sub _new ( $self, $uri_args, $args ) {
         }
     }
 
-    $uri_args->{path} = q[/] if $uri_args->{has_authority} && $uri_args->{path} eq q[];
+    $uri_args->{path} = q[/] if $uri_args->{_has_authority} && $uri_args->{path} eq q[];
 
     return $self->SUPER::_new( $uri_args, $args );
 }
