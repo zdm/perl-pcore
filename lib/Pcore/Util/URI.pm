@@ -116,8 +116,11 @@ sub NEW {
     return __PACKAGE__->new(@_);
 }
 
+# TODO path object
 sub _new ( $self, $uri_args, $args ) {
-    $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host' if $uri_args->{host} ne q[];
+    $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host';
+
+    # $uri_args->{path} = P->file->path( P->data->from_uri( $uri_args->{path} ) );
 
     delete $uri_args->{_has_authority};
 
