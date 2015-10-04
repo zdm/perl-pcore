@@ -44,6 +44,7 @@ has password_utf8 => ( is => 'lazy', init_arg => undef );
 has hostport      => ( is => 'lazy', init_arg => undef );    # in ASCII
 has hostport_utf8 => ( is => 'lazy', init_arg => undef );
 
+# TODO
 has path_decoded => ( is => 'lazy', init_arg => undef );
 
 has fragment_utf8 => ( is => 'lazy', init_arg => undef );
@@ -108,6 +109,7 @@ const our $UNRESERVED          => '0-9a-zA-Z' . quotemeta q[-._~];
 const our $RESERVED_GEN_DELIMS => quotemeta q[:/?#[]@];
 const our $RESERVED_SUB_DELIMS => quotemeta q[!$&'()*+,;=];
 const our $ESCAPE_RE           => qq[^${UNRESERVED}${RESERVED_GEN_DELIMS}${RESERVED_SUB_DELIMS}%];
+const our $ESC_CHARS           => { map { chr $_ => sprintf '%%%02X', $_ } ( 0 .. 255 ) };
 
 # Pcore::Util interface
 sub NEW {
@@ -179,7 +181,7 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
 
                 substr $authority, 0, 1, q[];
 
-                $args{userinfo} = URI::Escape::XS::uri_escape( $args{userinfo}, $ESCAPE_RE );
+                $args{userinfo} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
             }
 
             my $port_idx = index $authority, q[:];
@@ -191,7 +193,7 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
 
                 $args{port} = $authority;
 
-                $args{port} = URI::Escape::XS::uri_escape( $args{port}, $ESCAPE_RE );
+                $args{port} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
             }
             else {
                 $args{host} = $authority;
@@ -212,7 +214,7 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
     }
 
     # escape rest of the uri, escape not-allowed characters
-    $uri = URI::Escape::XS::uri_escape( $uri, $ESCAPE_RE );
+    $uri =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
 
     if ( $uri ne q[] ) {
         my $length = length $uri;
@@ -370,6 +372,7 @@ sub _build_hostport_utf8 ($self) {
     return $self->host->name_utf8 . ( $self->port ? q[:] . $self->port : q[] );
 }
 
+# TODO
 sub _build_path_decoded ($self) {
     return P->file->path( P->data->from_uri( $self->path ) );
 }
@@ -436,7 +439,7 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 109                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 110                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
