@@ -50,10 +50,11 @@ has fragment_utf8 => ( is => 'lazy', init_arg => undef );
 
 has scheme_is_valid => ( is => 'lazy', init_arg => undef );
 
-has is_secure => ( is => 'ro', default => 0, init_arg => undef );
+has is_secure => ( is => 'lazy', default => 0, init_arg => undef );
 
-has default_port => ( is => 'ro', default => 0, init_arg => undef );
+has default_port => ( is => 'lazy', default => 0, init_arg => undef );
 has connect_port => ( is => 'lazy', init_arg => undef );
+has connect      => ( is => 'lazy', init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, @ ) {
     my %args = (
@@ -116,7 +117,7 @@ sub NEW {
 }
 
 sub _new ( $self, $uri_args, $args ) {
-    $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host' if $uri_args->{host};
+    $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host' if $uri_args->{host} ne q[];
 
     delete $uri_args->{_has_authority};
 
@@ -233,6 +234,7 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
     return \%args;
 }
 
+# BUILDERS
 sub _build_canon ($self) {
 
     # https://tools.ietf.org/html/rfc3986#section-5.3
@@ -375,6 +377,19 @@ sub _build_fragment_utf8 ($self) {
     return P->data->from_uri( $self->{fragment} );
 }
 
+sub _build_scheme_is_valid ($self) {
+    return !$self->scheme ? 1 : $self->scheme =~ /\A[[:lower:]][[:lower:][:digit:]+.-]*\z/sm;
+}
+
+sub _build_connect_port ($self) {
+    return $self->port || $self->default_port;
+}
+
+sub _build_connect ($self) {
+    return [ $self->host->name, $self->connect_port, $self->scheme, $self->scheme . q[_] . $self->connect_port ];
+}
+
+# UTIL
 sub clear_fragment ($self) {
     $self->{fragment} = q[];
 
@@ -387,19 +402,10 @@ sub clear_fragment ($self) {
     return;
 }
 
-sub _build_scheme_is_valid ($self) {
-    return !$self->scheme ? 1 : $self->scheme =~ /\A[[:lower:]][[:lower:][:digit:]+.-]*\z/sm;
-}
-
 sub query_params ($self) {
     return P->data->from_uri_query( $self->query );
 }
 
-sub _build_connect_port ($self) {
-    return $self->port || $self->default_port;
-}
-
-# UTIL
 # used to compose url for nginx proxy_pass directive
 sub to_nginx ( $self, $scheme = 'http' ) {
     if ( $self->scheme eq 'unix' ) {
@@ -427,7 +433,7 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 108                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 109                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
