@@ -2,15 +2,9 @@ package Pcore::Util::URI::http;    ## no critic qw[NamingConventions::Capitaliza
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Util::URI];
+extends qw[Pcore::Util::URI::_server];
 
 has '+default_port' => ( default => 80 );
-
-around _prebuild_uri => sub ( $orig, $self, $uri, $base ) {
-    $uri->{path} = q[/] if $uri->{has_authority} && $uri->{path} eq q[];
-
-    return $self->$orig( $uri, $base );
-};
 
 no Pcore;
 

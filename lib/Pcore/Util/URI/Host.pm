@@ -1,15 +1,15 @@
 package Pcore::Util::URI::Host;
 
 use Pcore qw[-class];
-use Net::IDN::Encode qw[];
 use AnyEvent::Socket qw[];
+use URI::_idna;
 
 use overload    #
   q[""] => sub {
-    return $_[0]->to_string;
+    return $_[0]->{name};
   },
   q[cmp] => sub {
-    return $_[0]->to_string cmp $_[1];
+    return $_[0]->{name} cmp $_[1];
   },
   fallback => undef;
 
@@ -72,7 +72,7 @@ sub tlds {
                 blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = P->res->store_local( 'iana_tlds.dat', P->text->encode_utf8( \join $LF, map { lc Net::IDN::Encode::domain_to_unicode($_) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
+                        $path = P->res->store_local( 'iana_tlds.dat', P->text->encode_utf8( \join $LF, map { lc URI::_idna::decode($_) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
                     }
 
                     return;
@@ -91,21 +91,17 @@ sub NEW {
 }
 
 sub BUILDARGS ( $self, $args ) {
-    if ( utf8::is_utf8( $args->{name} ) ) {
-        $args->{name} = Net::IDN::Encode::domain_to_ascii( $args->{name} );
-
-        utf8::downgrade( $args->{name} );
-    }
+    $args->{name} = URI::_idna::encode( $args->{name} ) if utf8::is_utf8( $args->{name} );
 
     return $args;
 }
 
 sub to_string ($self) {
-    return $self->name;
+    return $self->{name};
 }
 
 sub _build_name_utf8 ($self) {
-    return Net::IDN::Encode::domain_to_unicode( $self->name );
+    return URI::_idna::decode( $self->name );
 }
 
 sub _build_is_ip ($self) {
@@ -145,7 +141,7 @@ sub _build_is_valid ($self) {
     if ( my $name = $self->name ) {
         return 0 if bytes::length($name) > 255;    # max length is 255 octets
 
-        return 0 if $name =~ /[^[:alnum:]._\-]/sm; # allowed chars
+        return 0 if $name =~ /[^[:alnum:]._-]/sm;  # allowed chars
 
         return 0 if $name !~ /\A[[:alnum:]]/sm;    # first character should be letter or digit
 
@@ -171,7 +167,7 @@ sub _build_tld ($self) {
 }
 
 sub _build_tld_utf8 ($self) {
-    return Net::IDN::Encode::domain_to_unicode( $self->tld );
+    return URI::_idna::decode( $self->tld );
 }
 
 sub _build_tld_is_valid ($self) {
@@ -187,7 +183,7 @@ sub _build_canon ($self) {
 }
 
 sub _build_canon_utf8 ($self) {
-    return Net::IDN::Encode::domain_to_unicode( $self->canon );
+    return URI::_idna::decode( $self->canon );
 }
 
 sub _build_pub_suffix ($self) {
@@ -217,9 +213,7 @@ sub _build_pub_suffix ($self) {
     }
 
     if ($pub_suffix_utf8) {
-        $pub_suffix_utf8 = Net::IDN::Encode::domain_to_ascii($pub_suffix_utf8);
-
-        utf8::downgrade($pub_suffix_utf8);
+        $pub_suffix_utf8 = URI::_idna::encode($pub_suffix_utf8);
 
         return $pub_suffix_utf8;
     }
@@ -229,7 +223,7 @@ sub _build_pub_suffix ($self) {
 }
 
 sub _build_pub_suffix_utf8 ($self) {
-    return Net::IDN::Encode::domain_to_unicode( $self->pub_suffix );
+    return URI::_idna::decode( $self->pub_suffix );
 }
 
 sub _build_root_domain ($self) {
@@ -245,7 +239,7 @@ sub _build_root_domain ($self) {
 }
 
 sub _build_root_domain_utf8 ($self) {
-    return Net::IDN::Encode::domain_to_unicode( $self->root_domain );
+    return URI::_idna::decode( $self->root_domain );
 }
 
 1;

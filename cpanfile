@@ -142,8 +142,8 @@ requires 'Text::ASCIITable';
 requires 'Text::Xslate';
 requires 'Text::Xslate::Bridge::TT2Like';
 
-# Pcore::Util::URI::Host
-requires 'Net::IDN::Encode';
+# Pcore::Util::URI
+requires 'URI';
 
 # Pcore::Util::UUID
 requires 'Data::UUID';

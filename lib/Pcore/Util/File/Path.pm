@@ -2,6 +2,7 @@ package Pcore::Util::File::Path;
 
 use Pcore qw[-class];
 use Storable qw[];
+use Pcore::Util::URI;
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 use overload                 #
@@ -198,7 +199,7 @@ sub _build_to_uri ($self) {
     $uri .= $self->_path;
 
     # http://tools.ietf.org/html/rfc3986#section-3.3
-    return URI::Escape::XS::uri_escape( $uri, q[^[:alnum:].\-_~!$&'()*+,;=:@/] );
+    return URI::Escape::XS::uri_escape( $uri, $Pcore::Util::URI::ESCAPE_RE );
 }
 
 sub _build_is_dir ($self) {
@@ -374,9 +375,7 @@ sub TO_DUMP {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 48                   │ Subroutines::ProhibitExcessComplexity - Subroutine "NEW" with high complexity score (39)                       │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 201                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    3 │ 49                   │ Subroutines::ProhibitExcessComplexity - Subroutine "NEW" with high complexity score (39)                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

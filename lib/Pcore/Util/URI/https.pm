@@ -2,16 +2,10 @@ package Pcore::Util::URI::https;    ## no critic qw[NamingConventions::Capitaliz
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Util::URI];
+extends qw[Pcore::Util::URI::_server];
 
 has '+is_secure'    => ( default => 1 );
 has '+default_port' => ( default => 443 );
-
-around _prebuild_uri => sub ( $orig, $self, $uri, $base ) {
-    $uri->{path} = q[/] if $uri->{has_authority} && $uri->{path} eq q[];
-
-    return $self->$orig( $uri, $base );
-};
 
 no Pcore;
 

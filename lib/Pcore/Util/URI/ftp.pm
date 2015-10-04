@@ -2,7 +2,7 @@ package Pcore::Util::URI::ftp;    ## no critic qw[NamingConventions::Capitalizat
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Util::URI];
+extends qw[Pcore::Util::URI::_server];
 
 has '+default_port' => ( default => 21 );
 

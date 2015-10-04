@@ -2,7 +2,7 @@ package Pcore::Util::URI::sftp;    ## no critic qw[NamingConventions::Capitaliza
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Util::URI];
+extends qw[Pcore::Util::URI::_server];
 
 has '+is_secure'    => ( default => 1 );
 has '+default_port' => ( default => 22 );
