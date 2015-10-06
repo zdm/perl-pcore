@@ -4,11 +4,11 @@ use Pcore qw[-class];
 
 use Pcore qw[-class];
 use Pcore::Util::URI::Host;
+use Pcore::Util::File::Path;
 use Const::Fast qw[const];
 use URI::_idna qw[];
-use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-use overload                 #
+use overload    #
   q[""] => sub {
     return $_[0]->to_string;
   },
@@ -44,8 +44,7 @@ has password_utf8 => ( is => 'lazy', init_arg => undef );
 has hostport      => ( is => 'lazy', init_arg => undef );    # in ASCII
 has hostport_utf8 => ( is => 'lazy', init_arg => undef );
 
-# TODO
-has path_decoded => ( is => 'lazy', init_arg => undef );
+has path_canon => ( is => 'lazy', init_arg => undef );
 
 has fragment_utf8 => ( is => 'lazy', init_arg => undef );
 
@@ -118,11 +117,8 @@ sub NEW {
     return __PACKAGE__->new(@_);
 }
 
-# TODO path object
 sub _new ( $self, $uri_args, $args ) {
     $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host';
-
-    # $uri_args->{path} = P->file->path( P->data->from_uri( $uri_args->{path} ) );
 
     delete $uri_args->{_has_authority};
 
@@ -240,31 +236,6 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
 }
 
 # BUILDERS
-sub _build_canon ($self) {
-
-    # https://tools.ietf.org/html/rfc3986#section-5.3
-    my $uri = q[];
-
-    $uri .= $self->{scheme} . q[:] if $self->{scheme} ne q[];
-
-    if ( $self->authority ne q[] ) {
-        $uri .= q[//] . $self->authority;
-
-        $uri .= q[/] if substr( $self->path_decoded->to_uri, 0, 1 ) ne q[/];
-    }
-    elsif ( $self->{scheme} eq q[] && $self->path_decoded->to_uri =~ m[\A[^/]*:]smo ) {
-        $uri .= q[./];
-    }
-
-    $uri .= $self->path_decoded->to_uri;
-
-    $uri .= q[?] . $self->{query} if $self->{query};
-
-    $uri .= q[#] . $self->{fragment} if $self->{fragment};
-
-    return $uri;
-}
-
 sub _build_to_string ($self) {
 
     # https://tools.ietf.org/html/rfc3986#section-5.3
@@ -286,6 +257,36 @@ sub _build_to_string ($self) {
     $uri .= q[?] . $self->{query} if $self->{query} ne q[];
 
     $uri .= q[#] . $self->{fragment} if $self->{fragment} ne q[];
+
+    return $uri;
+}
+
+# TODO:
+#     remove default port
+#     uppercase escaped series
+#     unescape all allowed symbols
+#     sort query params
+sub _build_canon ($self) {
+
+    # https://tools.ietf.org/html/rfc3986#section-5.3
+    my $uri = q[];
+
+    $uri .= $self->{scheme} . q[:] if $self->{scheme} ne q[];
+
+    if ( $self->authority ne q[] ) {
+        $uri .= q[//] . $self->authority;
+
+        $uri .= q[/] if substr( $self->path_canon->to_uri, 0, 1 ) ne q[/];
+    }
+    elsif ( $self->{scheme} eq q[] && $self->path_canon->to_uri =~ m[\A[^/]*:]smo ) {
+        $uri .= q[./];
+    }
+
+    $uri .= $self->path_canon->to_uri;
+
+    $uri .= q[?] . $self->{query} if $self->{query};
+
+    $uri .= q[#] . $self->{fragment} if $self->{fragment};
 
     return $uri;
 }
@@ -372,9 +373,74 @@ sub _build_hostport_utf8 ($self) {
     return $self->host->name_utf8 . ( $self->port ? q[:] . $self->port : q[] );
 }
 
-# TODO
-sub _build_path_decoded ($self) {
-    return P->file->path( P->data->from_uri( $self->path ) );
+sub _build_path_canon ($self) {
+    my %args = (
+        _path  => $self->{path},
+        is_abs => 0,
+        volume => q[],
+    );
+
+    # unescape
+    $args{_path} = P->data->from_uri( $args{_path} ) if index( $args{_path}, q[%] ) != -1;
+
+    # convert "\" to "/"
+    $args{_path} =~ s[\\+][/]smgo if index( $args{_path}, q[\\] ) != -1;
+
+    # detect if path is absolute
+    $args{is_abs} = 1 if substr( $args{_path}, 0, 1 ) eq q[/];
+
+    # parse MSWIN volume
+    if ( $MSWIN && $args{_path} =~ s[\A/([[:alpha:]]):/][/]smo ) {
+        $args{volume} = lc $1;
+    }
+
+    # normalize
+    if ( index( $args{_path}, q[.] ) == -1 ) {
+
+        # convert "//" -> "/"
+        $args{_path} =~ s[/{2,}][/]smgo;
+    }
+    else {
+        # perform full normalization only if path contains "."
+        my @segments;
+
+        my @split = split m[/]smo, $args{_path};
+
+        for my $seg (@split) {
+            next if $seg eq q[] || $seg eq q[.];
+
+            if ( $seg eq q[..] ) {
+                if ( !$args{is_abs} ) {
+                    if ( !@segments || $segments[-1] eq q[..] ) {
+                        push @segments, $seg;
+                    }
+                    else {
+                        pop @segments;
+                    }
+                }
+                else {
+                    pop @segments;
+                }
+            }
+            else {
+                push @segments, $seg;
+            }
+        }
+
+        # add leading "/" for abs path
+        unshift @segments, q[] if $args{is_abs};
+
+        # preserve last "/"
+        push @segments, q[] if substr( $args{_path}, -1, 1 ) eq q[/] || $split[-1] eq q[.] || $split[-1] eq q[..];
+
+        # concatenate path segments, add leading "/" for abs path
+        $args{_path} = join q[/], @segments;
+    }
+
+    # add volume
+    $args{_path} = $args{volume} . q[:] . $args{_path} if $args{volume};
+
+    return bless \%args, 'Pcore::Util::File::Path';
 }
 
 sub _build_fragment_utf8 ($self) {
@@ -439,7 +505,9 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 110                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    3 │ 376                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_path_canon" with high complexity score (23)         │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 109                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

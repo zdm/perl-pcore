@@ -3,9 +3,8 @@ package Pcore::Util::File::Path;
 use Pcore qw[-class];
 use Storable qw[];
 use Pcore::Util::URI;
-use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-use overload                 #
+use overload    #
   q[""] => sub {
     return $_[0]->to_string;
   },
@@ -42,18 +41,12 @@ has default_mime_type => ( is => 'lazy', isa => Str, default => 'application/oct
 has mime_type         => ( is => 'lazy', isa => Str );
 has mime_category     => ( is => 'lazy', isa => Str );
 
-no Pcore;
-
-our $MIME_TYPES;
-
-sub NEW {
-    my $self = shift;
-    my $path = shift;
+around new => sub ( $orig, $self, $path, @ ) {
     my %args = (
         is_dir => undef,
         mswin  => $MSWIN,
         base   => undef,
-        @_,
+        @_[ 3 .. $#_ ],
         is_abs => 0,
         volume => undef,
     );
@@ -169,7 +162,18 @@ sub NEW {
     # add volume
     $args{_path} = $args{volume} . q[:] . $args{_path} if $args{volume};
 
-    return __PACKAGE__->new( \%args );
+    return $self->$orig( \%args );
+};
+
+no Pcore;
+
+our $MIME_TYPES;
+
+# Pcore::Util interface
+sub NEW {
+    shift;
+
+    return __PACKAGE__->new(@_);
 }
 
 sub _build_to_string ($self) {
@@ -198,8 +202,12 @@ sub _build_to_uri ($self) {
 
     $uri .= $self->_path;
 
+    utf8::encode($uri) if utf8::is_utf8($uri);
+
     # http://tools.ietf.org/html/rfc3986#section-3.3
-    return URI::Escape::XS::uri_escape( $uri, $Pcore::Util::URI::ESCAPE_RE );
+    $uri =~ s/([$Pcore::Util::URI::ESCAPE_RE])/$Pcore::Util::URI::ESC_CHARS->{$1}/smgo;
+
+    return $uri;
 }
 
 sub _build_is_dir ($self) {
@@ -375,7 +383,7 @@ sub TO_DUMP {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 49                   │ Subroutines::ProhibitExcessComplexity - Subroutine "NEW" with high complexity score (39)                       │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (41)                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
