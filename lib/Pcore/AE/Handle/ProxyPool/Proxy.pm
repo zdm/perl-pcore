@@ -33,41 +33,23 @@ has _ban_list          => ( is => 'ro', isa => HashRef,  default => sub { {} }, 
 has is_proxy_pool => ( is => 'ro', default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $uri, $source ) {
-    $uri = q[//] . $uri if index( $uri, q[//] ) == -1;
+    my $uri_args = $self->_parse_uri_string( $uri, 1 );
 
-    my $args = $self->parse_uri_string($uri);
+    return if !$uri_args->{host};
 
-    return if !$args->{authority};
+    return if !$uri_args->{port};
 
-    my $userinfo = q[];
+    if ( ( my $idx = index $uri_args->{port}, q[:] ) != -1 ) {
+        $uri_args->{userinfo} = substr $uri_args->{port}, $idx, length $uri_args->{port}, q[];
 
-    if ( ( my $idx = index $args->{authority}, q[@] ) != -1 ) {
-        $userinfo = substr $args->{authority}, 0, $idx + 1, q[];
+        substr $uri_args->{userinfo}, 0, 1, q[];
     }
 
-    # parse userinfo
-    my @token = split /:/sm, $args->{authority};
+    $uri_args->{source} = $source;
 
-    if ( @token < 2 ) {
-        die 'Proxy port should be specified';
-    }
-    elsif ( @token == 2 ) {
-        $args->{authority} = $userinfo . $args->{authority};
-    }
-    elsif ( @token == 3 ) {    # host:port:username
-        $args->{authority} = $token[2] . q[@] . $token[0] . q[:] . $token[1];
-    }
-    else {                     # host:port:username:password
-        $args->{authority} = shift(@token) . q[:] . shift(@token);
+    $uri_args->{pool} = $source->pool;
 
-        $args->{authority} = join( q[:], @token ) . q[@] . $args->{authority};
-    }
-
-    $args->{source} = $source;
-
-    $args->{pool} = $source->pool;
-
-    return $self->$orig($args);
+    return $self->$orig($uri_args);
 };
 
 no Pcore;
@@ -623,17 +605,13 @@ sub _test_scheme_whois ( $self, $scheme, $h, $proxy_type, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 115                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 97                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 349                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 331                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 531, 587             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 513, 569             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 568                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 61                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 641                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 645 does not match the package declaration      │
+## │    2 │ 550                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -644,7 +622,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Proxy - Proxy lists management subsystem
+Pcore::AE::Handle::ProxyPool::Proxy - Proxy lists management subsystem
 
 =head1 SYNOPSIS
 
