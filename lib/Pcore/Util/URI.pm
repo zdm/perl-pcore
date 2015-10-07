@@ -122,6 +122,8 @@ sub _new ( $self, $uri_args, $args ) {
 
     delete $uri_args->{_has_authority};
 
+    return if $args->{no_bless};
+
     return bless $uri_args, $self;
 }
 
@@ -505,7 +507,7 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 376                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_path_canon" with high complexity score (23)         │
+## │    3 │ 378                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_path_canon" with high complexity score (23)         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 109                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
