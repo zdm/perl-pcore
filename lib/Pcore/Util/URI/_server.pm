@@ -43,7 +43,7 @@ sub _new ( $self, $uri_args, $args ) {
                         if ( $args->{base}->{path} ) {
                             my $slash_rindex = rindex $args->{base}->{path}, q[/];
 
-                            # TODO add support for "/.." in last path segment
+                            # TODO add support for "/.." in the last path segment
 
                             # remove filename from base path
                             $args->{base}->{path} = substr( $args->{base}->{path}, 0, $slash_rindex ) . q[/] if $slash_rindex >= 0;

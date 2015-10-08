@@ -7,8 +7,9 @@ use Pcore::Util::URI::Host;
 use Pcore::Util::File::Path;
 use Const::Fast qw[const];
 use URI::_idna qw[];
+use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-use overload    #
+use overload                 #
   q[""] => sub {
     return $_[0]->to_string;
   },
@@ -20,33 +21,24 @@ use overload    #
   },
   fallback => undef;
 
-has scheme   => ( is => 'ro' );
-has userinfo => ( is => 'ro' );
+has scheme   => ( is => 'ro' );    # ASCII
+has userinfo => ( is => 'ro' );    # escaped, ASCII
 has host     => ( is => 'ro' );
-has port     => ( is => 'ro' );
+has port     => ( is => 'ro' );    # punycoded, ASCII
 has path     => ( is => 'ro' );
-has query    => ( is => 'ro' );
-has fragment => ( is => 'ro' );
+has query    => ( is => 'ro' );    # escaped, ASCII
+has fragment => ( is => 'ro' );    # escaped, ASCII
 
 has to_string => ( is => 'lazy', init_arg => undef );
 has canon     => ( is => 'lazy', init_arg => undef );
 
-has authority      => ( is => 'lazy', init_arg => undef );
-has authority_utf8 => ( is => 'lazy', init_arg => undef );
-
-has userinfo_utf8 => ( is => 'lazy', init_arg => undef );
-has userinfo_b64  => ( is => 'lazy', init_arg => undef );
-has username      => ( is => 'lazy', init_arg => undef );
-has username_utf8 => ( is => 'lazy', init_arg => undef );
-has password      => ( is => 'lazy', init_arg => undef );
-has password_utf8 => ( is => 'lazy', init_arg => undef );
-
-has hostport      => ( is => 'lazy', init_arg => undef );    # in ASCII
-has hostport_utf8 => ( is => 'lazy', init_arg => undef );
+has authority    => ( is => 'lazy', init_arg => undef );    # escaped, ASCII, punycoded host
+has userinfo_b64 => ( is => 'lazy', init_arg => undef );    # ASCII
+has username     => ( is => 'lazy', init_arg => undef );    # unescaped, ASCII
+has password     => ( is => 'lazy', init_arg => undef );    # unescaped, ASCII
+has hostport     => ( is => 'lazy', init_arg => undef );    # punycoded, ASCII
 
 has path_canon => ( is => 'lazy', init_arg => undef );
-
-has fragment_utf8 => ( is => 'lazy', init_arg => undef );
 
 has scheme_is_valid => ( is => 'lazy', init_arg => undef );
 
@@ -305,74 +297,36 @@ sub _build_authority ($self) {
     return $authority;
 }
 
-sub _build_authority_utf8 ($self) {
-    my $authority = q[];
-
-    $authority .= $self->userinfo_utf8 . q[@] if $self->userinfo_utf8 ne q[];
-
-    $authority .= $self->host->name_utf8;
-
-    $authority .= q[:] . $self->port if $self->port;
-
-    return $authority;
-}
-
-sub _build_userinfo_utf8 ($self) {
-    return q[] if $self->{userinfo} eq q[];
-
-    return P->data->from_uri( $self->{userinfo} );
-}
-
 sub _build_userinfo_b64 ($self) {
     return q[] if $self->{userinfo} eq q[];
 
-    my $ui = P->data->from_uri( $self->{userinfo} );
-
-    utf8::encode($ui) if utf8::is_utf8($ui);
-
-    return P->data->to_b64_url($ui);
+    return P->data->to_b64_url( URI::Escape::XS::decodeURIComponent( $self->{userinfo} ) );
 }
 
 sub _build_username ($self) {
     return q[] if $self->{userinfo} eq q[];
 
     if ( ( my $idx = index $self->{userinfo}, q[:] ) != -1 ) {
-        return substr $self->{userinfo}, 0, $idx;
+        return URI::Escape::XS::decodeURIComponent( substr $self->{userinfo}, 0, $idx );
     }
     else {
         return $self->{userinfo};
     }
 }
 
-sub _build_username_utf8 ($self) {
-    return q[] if $self->{username} eq q[];
-
-    return P->data->from_uri( $self->{username} );
-}
-
 sub _build_password ($self) {
     return q[] if $self->{userinfo} eq q[];
 
     if ( ( my $idx = index $self->{userinfo}, q[:] ) != -1 ) {
-        return substr $self->{userinfo}, $idx + 1;
+        return URI::Escape::XS::decodeURIComponent( substr $self->{userinfo}, $idx + 1 );
     }
     else {
         return q[];
     }
 }
 
-sub _build_password_utf8 ($self) {
-    return q[] if $self->{password} eq q[];
-
-    return P->data->from_uri( $self->{password} );
-}
-
 sub _build_hostport ($self) {
     return $self->host->name . ( $self->port ? q[:] . $self->port : q[] );
-}
-
-sub _build_hostport_utf8 ($self) {
-    return $self->host->name_utf8 . ( $self->port ? q[:] . $self->port : q[] );
 }
 
 sub _build_path_canon ($self) {
@@ -445,12 +399,6 @@ sub _build_path_canon ($self) {
     return bless \%args, 'Pcore::Util::File::Path';
 }
 
-sub _build_fragment_utf8 ($self) {
-    return q[] if $self->{fragment} eq q[];
-
-    return P->data->from_uri( $self->{fragment} );
-}
-
 sub _build_scheme_is_valid ($self) {
     return !$self->scheme ? 1 : $self->scheme =~ /\A[[:lower:]][[:lower:][:digit:]+.-]*\z/sm;
 }
@@ -509,9 +457,9 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 378                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_path_canon" with high complexity score (23)         │
+## │    3 │ 332                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_path_canon" with high complexity score (23)         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 109                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 101                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
