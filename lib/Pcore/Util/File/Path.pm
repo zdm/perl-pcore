@@ -41,7 +41,7 @@ has default_mime_type => ( is => 'lazy', isa => Str, default => 'application/oct
 has mime_type         => ( is => 'lazy', isa => Str );
 has mime_category     => ( is => 'lazy', isa => Str );
 
-around new => sub ( $orig, $self, $path, @ ) {
+around new => sub ( $orig, $self, $path = undef, @ ) {
     my %args = (
         is_dir => undef,
         mswin  => $MSWIN,
