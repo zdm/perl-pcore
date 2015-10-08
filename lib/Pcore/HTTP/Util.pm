@@ -292,7 +292,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
                 if ( exists $res->{headers}->{LOCATION} ) {
 
                     # parse LOCATION header, create uri object
-                    $res->{headers}->{LOCATION} = P->uri( $res->{headers}->{LOCATION}, $args->{url} );
+                    $res->{headers}->{LOCATION} = P->uri( $res->{headers}->{LOCATION}, base => $args->{url} );
 
                     if ( $res->{status} ~~ [ 301, 302, 303, 307, 308 ] ) {
                         $runtime->{redirect} = 1;

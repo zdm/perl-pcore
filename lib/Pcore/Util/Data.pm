@@ -3,6 +3,8 @@ package Pcore::Util::Data;
 use Pcore;
 use Sort::Naturally qw[nsort];
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
+use URI::Escape::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
+use WWW::Form::UrlEncoded::XS qw[];
 
 our $TOKEN = {
     serializer => {
@@ -683,13 +685,9 @@ sub to_uri {
     my $self = shift;
 
     if ( ref $_[0] ) {
-        require WWW::Form::UrlEncoded::XS;
-
         return WWW::Form::UrlEncoded::XS::build_urlencoded( blessed $_[0] && $_[0]->isa('Pcore::Util::Hash::Multivalue') ? $_[0]->get_hash : $_[0] );
     }
     else {
-        require URI::Escape::XS;    ## no critic qw[Modules::ProhibitEvilModules]
-
         return URI::Escape::XS::encodeURIComponent( $_[0] );
     }
 }
@@ -702,8 +700,6 @@ sub from_uri {
         splice( @_, 1 ),
     );
 
-    require URI::Escape::XS;    ## no critic qw[Modules::ProhibitEvilModules]
-
     state $encodings;
 
     if ( defined wantarray ) {
@@ -712,7 +708,7 @@ sub from_uri {
 
             my $u = URI::Escape::XS::decodeURIComponent( $_[0] );
 
-            eval {              #
+            eval {    #
                 $u = $encodings->{ $args{encoding} }->decode( $u, Encode::FB_CROAK | Encode::LEAVE_SRC );
             };
 
@@ -753,8 +749,6 @@ sub from_uri_query {
         encoding => 'UTF-8',
         splice( @_, 1 ),
     );
-
-    require WWW::Form::UrlEncoded::XS;
 
     state $encoding = {};
 
@@ -823,13 +817,13 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 30                   │ * Subroutine "encode" with high complexity score (35)                                                          │
-## │      │ 237                  │ * Subroutine "decode" with high complexity score (31)                                                          │
+## │      │ 32                   │ * Subroutine "encode" with high complexity score (35)                                                          │
+## │      │ 239                  │ * Subroutine "decode" with high complexity score (31)                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 147, 370, 398, 400,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 402, 404             │                                                                                                                │
+## │    3 │ 149, 372, 400, 402,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 404, 406             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 715, 733, 776, 785   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 711, 729, 770, 779   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -460,7 +460,9 @@ sub _build_connect_port ($self) {
 }
 
 sub _build_connect ($self) {
-    return [ $self->host->name, $self->connect_port, $self->scheme, $self->scheme . q[_] . $self->connect_port ];
+    my $scheme = $self->scheme eq q[] ? 'tcp' : $self->scheme;
+
+    return [ $self->host->name, $self->connect_port, $scheme, $scheme . q[_] . $self->connect_port ];
 }
 
 # UTIL

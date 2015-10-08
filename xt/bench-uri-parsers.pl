@@ -21,7 +21,7 @@ say URI->new_abs( $uri, $base );
 
 say Mojo::URL->new($uri)->to_abs( Mojo::URL->new($base) );
 
-say P->uri( $uri, $base );
+say P->uri( $uri, base => $base );
 
 my $tests = {
     URI => sub {
@@ -34,8 +34,8 @@ my $tests = {
 
         return;
     },
-    uri => sub {
-        my $u = P->uri( $uri, $base );
+    'Pcore::Util::URI' => sub {
+        my $u = P->uri( $uri, base => $base );
 
         return;
     },

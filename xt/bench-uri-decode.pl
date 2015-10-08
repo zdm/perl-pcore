@@ -6,10 +6,11 @@ use Pcore;
 use Const::Fast;
 use Benchmark;
 use WWW::Form::UrlEncoded::XS qw[];
-use URI::Escape qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use URI::Escape qw[];        ## no critic qw[Modules::ProhibitEvilModules]
+use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Mojo::Util qw[];
 
-Const::Fast::const our $COUNT => -5;
+const our $COUNT => -5;
 
 # preload
 my $uri = P->data->to_uri('мама мыла раму');
@@ -24,30 +25,68 @@ say P->data->from_uri($uri);
 
 say Mojo::Util::decode( 'UTF-8', Mojo::Util::url_unescape($uri) );
 
-my $tests = {
-    uri_escape => sub {
+my $unescape = {
+    'URI::Escape::uri_unescape' => sub {
         my $u = URI::Escape::uri_unescape($uri);
 
         return;
     },
-    uri_escape_xs => sub {
+    'URI::Escape::XS::decodeURIComponent' => sub {
         my $u = URI::Escape::XS::decodeURIComponent($uri);
 
         return;
     },
-    p_data_from_uri => sub {
+    'P->data->from_uri' => sub {
         my $u = P->data->from_uri( $uri, encoding => 'UTF-8' );
 
         return;
     },
-    mojo => sub {
+    'Mojo::Util::url_unescape' => sub {
         my $u = Mojo::Util::decode( 'UTF-8', Mojo::Util::url_unescape($uri) );
 
         return;
     },
 };
 
-Benchmark::cmpthese( Benchmark::timethese( $COUNT, $tests ) );
+Benchmark::cmpthese( Benchmark::timethese( $COUNT, $unescape ) );
+
+my $string = 'мама мыла раму = / 123';
+
+say dump URI::Escape::XS::encodeURIComponent($string);
+
+say dump URI::Escape::XS::uri_escape($string);
+
+say dump P->data->to_uri($string);
+
+my $escape = {
+    'URI::Escape::uri_escape_utf8' => sub {
+        my $u = URI::Escape::uri_escape_utf8($string);
+
+        return;
+    },
+    'URI::Escape::XS::uri_escape' => sub {
+        my $u = URI::Escape::XS::uri_escape($string);
+
+        return;
+    },
+    'URI::Escape::XS::encodeURIComponent' => sub {
+        my $u = URI::Escape::XS::encodeURIComponent($string);
+
+        return;
+    },
+    'P->data->to_uri' => sub {
+        my $u = P->data->to_uri($string);
+
+        return;
+    },
+    'Mojo::Util::url_unescape' => sub {
+        my $u = Mojo::Util::url_escape($string);
+
+        return;
+    },
+};
+
+Benchmark::cmpthese( Benchmark::timethese( $COUNT, $escape ) );
 
 1;
 __END__

@@ -41,7 +41,7 @@ sub load ( $self, $cb ) {
                     P->text->decode_eol( $res->body );
 
                     for my $addr ( split /\n/sm, $res->body->$* ) {
-                        push $proxies, q[//] . $addr;
+                        push $proxies, $addr;
                     }
                 }
 

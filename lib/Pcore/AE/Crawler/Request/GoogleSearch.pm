@@ -241,7 +241,7 @@ sub _resolve_captcha ( $self, $responder, $res ) {
 }
 
 sub _get_captcha_image ( $self, $id, $url, $cb ) {
-    my $uri = P->uri( '/sorry/image', $url );
+    my $uri = P->uri( '/sorry/image', base => $url );
 
     $self->_ua->request(
         $uri->to_string . qq[?id=$id&hl=en],
@@ -256,7 +256,7 @@ sub _get_captcha_image ( $self, $id, $url, $cb ) {
 }
 
 sub _verify_captcha ( $self, $responder, $captcha, $url, $id, $continue ) {
-    my $uri = P->uri( '/sorry/CaptchaRedirect', $url );
+    my $uri = P->uri( '/sorry/CaptchaRedirect', base => $url );
 
     $self->_ua->request(
         $uri->to_string . qq[?continue=$continue&id=$id&submit=Submit&captcha=] . $captcha->result,

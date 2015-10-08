@@ -259,7 +259,7 @@ sub request ( $self, @ ) {
     # create AnyEvent::HTTP params
     my $args = {
         method => $method,
-        url    => ref $req->url ? $req->url : P->uri( $req->url, q[http://] ),
+        url    => ref $req->url ? $req->url : P->uri( $req->url, base => q[http://], authority => 1 ),
 
         res => $res,
 

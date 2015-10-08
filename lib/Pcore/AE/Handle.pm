@@ -86,17 +86,7 @@ sub new ( $self, @ ) {
     );
 
     # parse connect attribute
-    if ( ref $args{connect} ne 'ARRAY' ) {
-        my $uri = ref $args{connect} ? $args{connect} : P->uri( $args{connect}, 'tcp://' );
-
-        $args{connect} = [ $uri->host->name, $uri->connect_port, $uri->scheme ];
-    }
-
-    # default scheme is "tcp"
-    $args{connect}->[2] ||= 'tcp';
-
-    # create connect id, "scheme_port"
-    $args{connect}->[3] = $args{connect}->[2] . q[_] . $args{connect}->[1];
+    $args{connect} = get_connect( $args{connect} );
 
     if ( $args{fh} ) {
         $args{on_connect}->( $self->SUPER::new(%args), undef, undef, undef );
@@ -896,6 +886,29 @@ sub store ( $self, $timeout = undef ) {
     return;
 }
 
+sub get_connect ($connect) {
+
+    # parse connect attribute
+    if ( ref $connect ne 'ARRAY' ) {
+        if ( !ref $connect ) {    # parse uri string
+            $connect = P->uri( $connect, authority => 1 )->connect;
+        }
+        else {                    # already uri object
+            $connect = $connect->connect;
+        }
+    }
+    else {
+
+        # default scheme is "tcp"
+        $connect->[2] ||= 'tcp';
+
+        # create connect id, "scheme_port"
+        $connect->[3] = $connect->[2] . q[_] . $connect->[1];
+    }
+
+    return $connect;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -904,29 +917,29 @@ sub store ( $self, $timeout = undef ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 77                   │ * Subroutine "new" with high complexity score (40)                                                             │
-## │      │ 695                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 77                   │ * Subroutine "new" with high complexity score (37)                                                             │
+## │      │ 685                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 170, 414             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 160, 404             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 272                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 262                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 62, 459, 496, 499,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 511, 549, 552, 555   │                                                                                                                │
+## │    2 │ 62, 449, 486, 489,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 501, 539, 542, 545   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 642                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 632                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 940 does not specify text                                                   │
-## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 948 does not specify text                                                   │
-## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 976 does not specify text                                                   │
-## │      │ 934                  │ * Link L<AnyEvent::Handle> on line 992 does not specify text                                                   │
-## │      │ 934                  │ * Link L<AnyEvent::Socket> on line 992 does not specify text                                                   │
-## │      │ 934, 934             │ * Link L<Pcore::Proxy> on line 958 does not specify text                                                       │
-## │      │ 934                  │ * Link L<Pcore::Proxy> on line 992 does not specify text                                                       │
+## │      │ 947                  │ * Link L<AnyEvent::Handle> on line 1005 does not specify text                                                  │
+## │      │ 947                  │ * Link L<AnyEvent::Handle> on line 953 does not specify text                                                   │
+## │      │ 947                  │ * Link L<AnyEvent::Handle> on line 961 does not specify text                                                   │
+## │      │ 947                  │ * Link L<AnyEvent::Handle> on line 989 does not specify text                                                   │
+## │      │ 947                  │ * Link L<AnyEvent::Socket> on line 1005 does not specify text                                                  │
+## │      │ 947                  │ * Link L<Pcore::Proxy> on line 1005 does not specify text                                                      │
+## │      │ 947, 947             │ * Link L<Pcore::Proxy> on line 971 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 58, 63, 464, 549,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 552, 555, 561        │                                                                                                                │
+## │    1 │ 58, 63, 454, 539,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 542, 545, 551        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

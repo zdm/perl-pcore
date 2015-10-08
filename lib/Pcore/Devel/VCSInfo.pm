@@ -80,9 +80,7 @@ sub _build_uri ($self) {
     }
 
     if ($uri) {
-        $uri = 'http://' . $uri if index( $uri, q[://], 0 ) == -1;
-
-        $uri = P->uri($uri);
+        $uri = P->uri( $uri, base => 'http://', authority => 1 );
     }
 
     return $uri;
