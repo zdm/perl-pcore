@@ -281,16 +281,16 @@ sub _build_to_string ($self) {
     if ( $self->authority ne q[] ) {
         $uri .= q[//] . $self->authority;
 
-        $uri .= q[/] if substr( $self->{path}, 0, 1 ) ne q[/];
+        $uri .= q[/] if !$self->{path}->is_abs;
     }
-    elsif ( $self->{scheme} eq q[] && $self->{path} =~ m[\A[^/]*:]smo ) {
+    elsif ( $self->{scheme} eq q[] && $self->{path}->to_uri =~ m[\A[^/]*:]smo ) {
 
         # prepend path with "./" if uri has no scheme, has no authority, path is absolute and first path segment contains ":"
         # pa:th/path -> ./pa:th/path
         $uri .= q[./];
     }
 
-    $uri .= $self->{path};
+    $uri .= $self->{path}->to_uri;
 
     $uri .= q[?] . $self->{query} if $self->{query} ne q[];
 
