@@ -2,9 +2,10 @@ package Pcore::Util::File::Path;
 
 use Pcore qw[-class];
 use Storable qw[];
+use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::URI;
 
-use overload    #
+use overload                     #
   q[""] => sub {
     return $_[0]->to_string;
   },
@@ -23,13 +24,13 @@ use overload    #
 has to_string => ( is => 'lazy', clearer => '_clear_to_string', init_arg => undef );
 has to_uri    => ( is => 'lazy', clearer => '_clear_to_uri',    init_arg => undef );
 
-has lazy    => ( is => 'rwp',  default  => 0 );
+has lazy    => ( is => 'ro',   default  => 0 );
 has is_abs  => ( is => 'ro',   required => 1 );
 has is_dir  => ( is => 'lazy', init_arg => undef );
 has is_file => ( is => 'lazy', init_arg => undef );
 
 has volume    => ( is => 'ro',   default  => q[] );
-has _path     => ( is => 'ro',   required => 1 );                        # contains normalized path with volume
+has path      => ( is => 'ro',   required => 1 );                        # contains normalized path with volume
 has canonpath => ( is => 'lazy', isa      => Str, init_arg => undef );
 
 has dirname       => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -41,101 +42,116 @@ has default_mime_type => ( is => 'lazy', isa => Str, default => 'application/oct
 has mime_type         => ( is => 'lazy', isa => Str );
 has mime_category     => ( is => 'lazy', isa => Str );
 
-around new => sub ( $orig, $self, $path = undef, @ ) {
+around new => sub ( $orig, $self, $path = q[], @ ) {
     my %args = (
-        is_dir => undef,
-        mswin  => $MSWIN,
-        base   => undef,
+        is_dir   => 0,
+        mswin    => $MSWIN,
+        base     => q[],
+        lazy     => 0,
+        from_uri => 0,
         @_[ 3 .. $#_ ],
-        is_abs => 0,
-        volume => undef,
     );
 
-    undef $path if defined $path && $path eq q[];
+    $self = ref $self if blessed $self;
 
-    undef $args{base} if defined $args{base} && $args{base} eq q[];
+    my $path_args = {
+        path   => $path,
+        volume => q[],
+        is_abs => 0,
+        lazy   => $args{lazy},
+    };
 
     # speed optimizations
-    if ( !defined $path ) {
-        if ( defined $args{base} ) {
-            $path = delete $args{base};
-        }
-        else {
+    if ( $path_args->{path} eq q[] ) {
+        if ( $args{base} eq q[] ) {
             return bless {
-                _path  => q[],
+                path   => q[],
+                volume => q[],
                 is_abs => 0,
               },
-              __PACKAGE__;
+              $self;
+        }
+        else {
+            $path_args->{path} = delete $args{base};
         }
     }
-
-    if ( $path eq q[/] ) {
+    elsif ( $path_args->{path} eq q[/] ) {
         return bless {
-            _path  => q[/],
+            path   => q[/],
+            volume => q[],
             is_abs => 1,
           },
-          __PACKAGE__;
+          $self;
+    }
+
+    # unescape and decode URI
+    if ( $args{from_uri} && !ref $path_args->{path} ) {
+        $path_args->{path} = URI::Escape::XS::decodeURIComponent( $path_args->{path} );
+
+        utf8::decode( $path_args->{path} );
     }
 
     # convert "\" to "/"
-    $path =~ s[\\+][/]smg if index( $path, q[\\] ) != -1;
+    $path_args->{path} =~ s[\\+][/]smgo;
 
-    # parse windows volume, /c:/, c:/ -> /
-    if ( $args{mswin} && $path =~ s[\A/?([[:alpha:]]):(?:/|\z)][/]sm ) {
-        $args{volume} = lc $1;
+    # convert "//" -> "/"
+    $path_args->{path} =~ s[/{2,}][/]smgo;
 
-        $args{is_abs} = 1;
-    }
+    # parse MSWIN volume
+    if ( $args{mswin} ) {
+        if ( $args{from_uri} ) {
+            if ( $path_args->{path} =~ s[\A/([[:alpha:]]):/][/]smio ) {
+                $path_args->{volume} = lc $1;
 
-    # inherit from base path
-    if ( !$args{is_abs} && defined $args{base} ) {
-
-        # path is already absolute
-        if ( substr( $path, 0, 1 ) eq q[/] ) {
-            $args{_path} = $path;
-
-            $args{is_abs} = 1;
-        }
-        else {
-            # convert base path "\" to "/"
-            $args{base} =~ s[\\+][/]smg if index( $args{base}, q[\\] ) != -1;
-
-            # parse windows volume, /c:/, c:/ -> /
-            if ( $args{mswin} && $args{base} =~ s[\A/?([[:alpha:]]):(?:/|\z)][/]sm ) {
-                $args{volume} = lc $1;
-
-                $args{is_abs} = 1;
+                $path_args->{is_abs} = 1;
             }
-
-            # merge with base path
-            $args{_path} = substr( $args{base}, 0, rindex( $args{base}, q[/] ) + 1 ) . $path;
         }
-    }
-    else {
-        $args{_path} = $path;
+        elsif ( $path_args->{path} =~ s[\A([[:alpha:]]):/][/]smio ) {
+            $path_args->{volume} = lc $1;
+
+            $path_args->{is_abs} = 1;
+        }
     }
 
     # detect if path is absolute
-    $args{is_abs} = 1 if !$args{is_abs} && substr( $args{_path}, 0, 1 ) eq q[/];
+    $path_args->{is_abs} = 1 if substr( $path_args->{path}, 0, 1 ) eq q[/];
 
     # add trailing "/" if path marked as dir
-    $args{_path} .= q[/] if $args{is_dir};
+    $path_args->{path} .= q[/] if $args{is_dir} && substr( $path_args->{path}, -1, 1 ) ne q[/];
 
-    # normalize
-    if ( index( $args{_path}, q[.] ) == -1 ) {
+    # inherit from base path
+    if ( defined $args{base} && $args{base} ne q[] && !$path_args->{is_abs} ) {
 
-        # convert "//" -> "/"
-        $args{_path} =~ s[/{2,}][/]smg;
+        # create base path object
+        $args{base} = $self->new( $args{base}, mswin => $args{mswin}, from_uri => $args{from_uri} ) if !ref $args{base};
+
+        # inherit base path attributes
+        $path_args->{is_abs} = $args{base}->{is_abs};
+
+        if ( $args{base}->{volume} ) {
+            $path_args->{volume} = $args{base}->{volume};
+
+            # remove volume from base path dirname
+            $path_args->{path} = $args{base}->dirname =~ s[\A[[:alpha:]]:][]smor . $path_args->{path};
+        }
+        else {
+            $path_args->{path} = $args{base}->dirname . $path_args->{path};
+        }
     }
-    else {
+
+    # normalize, remove dot segments
+    if ( index( $path_args->{path}, q[.] ) > -1 ) {
+
         # perform full normalization only if path contains "."
         my @segments;
 
-        my @split = split m[/]sm, $args{_path};
+        my @split = split m[/]smo, $path_args->{path};
 
-        for my $seg ( grep { $_ ne q[] && $_ ne q[.] } @split ) {
+        for my $seg (@split) {
+            next if $seg eq q[] || $seg eq q[.];
+
             if ( $seg eq q[..] ) {
-                if ( !$args{is_abs} ) {
+                if ( !$path_args->{is_abs} ) {
                     if ( !@segments || $segments[-1] eq q[..] ) {
                         push @segments, $seg;
                     }
@@ -152,35 +168,31 @@ around new => sub ( $orig, $self, $path = undef, @ ) {
             }
         }
 
-        # preserve last "/"
-        push @segments, q[] if substr( $args{_path}, -1 ) eq q[/] || $split[-1] eq q[.] || $split[-1] eq q[..];
+        # add leading "/" for abs path
+        unshift @segments, q[] if $path_args->{is_abs};
 
-        # concatenate path segments, add leading "/" for abs path
-        $args{_path} = ( $args{is_abs} ? q[/] : q[] ) . join q[/], @segments;
+        # preserve last "/"
+        push @segments, q[] if substr( $path_args->{path}, -1, 1 ) eq q[/] || $split[-1] eq q[.] || $split[-1] eq q[..];
+
+        # concatenate path segments
+        $path_args->{path} = join q[/], @segments;
     }
 
     # add volume
-    $args{_path} = $args{volume} . q[:] . $args{_path} if $args{volume};
+    $path_args->{path} = $path_args->{volume} . q[:] . $path_args->{path} if $path_args->{volume};
 
-    return $self->$orig( \%args );
+    return bless $path_args, $self;
 };
 
 no Pcore;
 
 our $MIME_TYPES;
 
-# Pcore::Util interface
-sub NEW {
-    shift;
-
-    return __PACKAGE__->new(@_);
-}
-
 sub _build_to_string ($self) {
-    my $path = $self->_path;
+    my $path = $self->path;
 
-    if ( $self->lazy ) {
-        $self->_set_lazy(0);
+    if ( $self->{lazy} ) {
+        $self->{lazy} = 0;
 
         if ( $self->is_dir && !-d $path ) {
             P->file->mkpath($path);
@@ -200,7 +212,7 @@ sub _build_to_uri ($self) {
 
     $uri .= q[/] if $self->volume;
 
-    $uri .= $self->_path;
+    $uri .= $self->path;
 
     utf8::encode($uri) if utf8::is_utf8($uri);
 
@@ -213,10 +225,10 @@ sub _build_to_uri ($self) {
 sub _build_is_dir ($self) {
 
     # empty path is dir
-    return 1 if $self->_path eq q[];
+    return 1 if $self->path eq q[];
 
     # is dir if path ended with "/"
-    return substr( $self->_path, -1, 1 ) eq q[/] ? 1 : 0;
+    return substr( $self->path, -1, 1 ) eq q[/] ? 1 : 0;
 }
 
 sub _build_is_file ($self) {
@@ -224,13 +236,13 @@ sub _build_is_file ($self) {
 }
 
 sub _build_dirname ($self) {
-    return substr $self->_path, 0, rindex( $self->_path, q[/] ) + 1;
+    return substr $self->path, 0, rindex( $self->path, q[/] ) + 1;
 }
 
 sub _build_filename ($self) {
-    return q[] if $self->_path eq q[];
+    return q[] if $self->path eq q[];
 
-    return substr $self->_path, rindex( $self->_path, q[/] ) + 1;
+    return substr $self->path, rindex( $self->path, q[/] ) + 1;
 }
 
 sub _build_filename_base ($self) {
@@ -258,17 +270,17 @@ sub _build_suffix ($self) {
 
 # path without trailing "/"
 sub _build_canonpath ($self) {
-    return q[] if $self->_path eq q[];
+    return q[] if $self->path eq q[];
 
-    return q[/] if $self->_path eq q[/];
+    return q[/] if $self->path eq q[/];
 
-    return $self->_path if $self->volume && $self->_path eq $self->volume . q[:/];
+    return $self->path if $self->volume && $self->path eq $self->volume . q[:/];
 
     if ( $self->is_dir ) {
-        return substr $self->_path, 0, -1;
+        return substr $self->path, 0, -1;
     }
     else {
-        return $self->_path;
+        return $self->path;
     }
 }
 
@@ -277,11 +289,11 @@ sub clone ($self) {
 }
 
 sub realpath ($self) {
-    if ( $self->is_dir && -d $self->_path ) {
-        return $self->NEW( Cwd::realpath( $self->_path ), is_dir => 1 );    # Cwd::realpath always return path without trailing "/"
+    if ( $self->is_dir && -d $self->path ) {
+        return $self->new( Cwd::realpath( $self->path ), is_dir => 1 );    # Cwd::realpath always return path without trailing "/"
     }
-    elsif ( $self->is_file && -f $self->_path ) {
-        return $self->NEW( Cwd::realpath( Cwd::realpath( $self->_path ) ) );
+    elsif ( $self->is_file && -f $self->path ) {
+        return $self->new( Cwd::realpath( Cwd::realpath( $self->path ) ) );
     }
     else {
         return;
@@ -294,13 +306,13 @@ sub to_abs ( $self, $abs_path = q[.] ) {
         return $self->clone;
     }
     else {
-        return $self->NEW( $self->to_string, base => $abs_path );
+        return $self->new( $self->to_string, base => $abs_path );
     }
 }
 
 sub parent ($self) {
     if ( $self->dirname ) {
-        my $parent = $self->NEW( $self->dirname . q[../] );
+        my $parent = $self->new( $self->dirname . q[../] );
 
         return $parent if $parent ne $self->to_string;
     }
@@ -370,7 +382,7 @@ sub TO_DUMP {
     my $res;
     my $tags;
 
-    $res = q[path: "] . $self->_path . q["];
+    $res = q[path: "] . $self->path . q["];
     $res .= qq[\nMIME type: "] . $self->mime_type . q["] if $self->mime_type;
 
     return $res, $tags;
@@ -383,7 +395,7 @@ sub TO_DUMP {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (41)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (39)                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

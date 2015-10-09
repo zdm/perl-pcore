@@ -23,17 +23,17 @@ our $tests = [
     # file path
     ['file://user:password@host:9999/path?query=123#fragment'] => 'file://user:password@host:9999/path?query=123#fragment',
     [ '//user:password@host:9999/path?query=123#fragment', base => 'file://' ]           => 'file://user:password@host:9999/path?query=123#fragment',
-    [ 'path/path',                                         base => 'file://' ]           => 'file:path/path',
+    [ 'path/path',                                         base => 'file://' ]           => 'file:/path/path',
     [ 'path/path',                                         base => 'file:///base_path' ] => 'file:/path/path',
 
     # inherit
-    [ 'path/path?q#f', base => 'http://host/path/?bq#bf' ] => 'http://host/path/path/path?q=#f',
+    [ 'path/path?q#f', base => 'http://host/path/?bq#bf' ] => 'http://host/path/path/path?q#f',
     [ 'path/path#f',   base => 'http://host/path/?bq#bf' ] => 'http://host/path/path/path#f',
-    [ 'path/path?q',   base => 'http://host/path/?bq#bf' ] => 'http://host/path/path/path?q=',
+    [ 'path/path?q',   base => 'http://host/path/?bq#bf' ] => 'http://host/path/path/path?q',
 
-    [ '?q#f', base => 'http://host/path/?bq#bf' ] => 'http://host/path/?q=#f',
-    [ '?q',   base => 'http://host/path/?bq#bf' ] => 'http://host/path/?q=',
-    [ '#f',   base => 'http://host/path/?bq#bf' ] => 'http://host/path/?bq=#f',
+    [ '?q#f', base => 'http://host/path/?bq#bf' ] => 'http://host/path/?q#f',
+    [ '?q',   base => 'http://host/path/?bq#bf' ] => 'http://host/path/?q',
+    [ '#f',   base => 'http://host/path/?bq#bf' ] => 'http://host/path/?bq#f',
 
     # mailto
     [ 'user@host', base => 'mailto:' ] => 'mailto:user@host',
@@ -51,14 +51,11 @@ my $i;
 for my $pair ( P->list->pairs( $tests->@* ) ) {
     my $uri = P->uri( $pair->key->@* );
 
-    # require URI;
-    #
-    # my $uri_uri = $pair->key->@* > 1 ? URI->new_abs( $pair->key->@* ) : URI->new( $pair->key->@* );
-    #
-    # say 'URI: ' . $uri->to_string . ' ne ' . $uri_uri->as_string if $uri->to_string ne $uri_uri->as_string;
-    #
-    # say $pair->value;
-    # say $uri->to_string;
+    if ( $uri->to_string ne $pair->value ) {
+        say dump $uri;
+
+        say $uri->to_string;
+    }
 
     ok( $uri->to_string eq $pair->value, 'p_util_uri_' . ++$i );
 }

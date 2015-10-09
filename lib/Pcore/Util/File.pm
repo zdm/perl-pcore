@@ -9,7 +9,7 @@ use Pcore::Util::File::Path;
 sub path {
     my $self = shift;
 
-    return Pcore::Util::File::Path->NEW(@_);
+    return Pcore::Util::File::Path->new(@_);
 }
 
 sub cat_path ( $self, @ ) {

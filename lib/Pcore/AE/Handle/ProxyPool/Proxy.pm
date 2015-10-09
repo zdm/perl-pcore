@@ -49,7 +49,7 @@ around new => sub ( $orig, $self, $uri, $source ) {
 
     $uri_args->{pool} = $source->pool;
 
-    $self->_new( $uri_args, { no_bless => 1 } );
+    $self->_prepare_uri_args( $uri_args, {} );
 
     return $self->$orig($uri_args);
 };

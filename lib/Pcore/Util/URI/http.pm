@@ -2,7 +2,7 @@ package Pcore::Util::URI::http;    ## no critic qw[NamingConventions::Capitaliza
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Util::URI::_server];
+extends qw[Pcore::Util::URI];
 
 has '+default_port' => ( default => 80 );
 

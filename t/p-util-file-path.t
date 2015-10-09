@@ -73,7 +73,9 @@ ok( P->file->path( q[aaa/bbb],  base => q[.] )->to_abs eq q[aaa/bbb],     q[to_a
 
 # realpath
 ok( !defined P->file->path(q[./_fake_path_/])->realpath, q[realpath_1] );
+
 my $p1 = P->file->path(q[C:///])->realpath;
+
 if ($MSWIN) {
     ok( $p1 eq q[c:/], q[realpath_2] );
 }

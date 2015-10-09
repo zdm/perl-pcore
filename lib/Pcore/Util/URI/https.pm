@@ -2,7 +2,7 @@ package Pcore::Util::URI::https;    ## no critic qw[NamingConventions::Capitaliz
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Util::URI::_server];
+extends qw[Pcore::Util::URI];
 
 has '+is_secure'    => ( default => 1 );
 has '+default_port' => ( default => 443 );

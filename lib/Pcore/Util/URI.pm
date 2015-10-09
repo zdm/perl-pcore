@@ -4,7 +4,7 @@ use Pcore qw[-class];
 
 use Pcore qw[-class];
 use Pcore::Util::URI::Host;
-use Pcore::Util::File::Path;
+use Pcore::Util::URI::Path;
 use Const::Fast qw[const];
 use URI::_idna qw[];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
@@ -23,22 +23,25 @@ use overload                 #
 
 has scheme   => ( is => 'ro' );    # ASCII
 has userinfo => ( is => 'ro' );    # escaped, ASCII
-has host     => ( is => 'ro' );
+has host     => ( is => 'ro' );    # object
 has port     => ( is => 'ro' );    # punycoded, ASCII
-has path     => ( is => 'ro' );
+has path     => ( is => 'ro' );    # object
 has query    => ( is => 'ro' );    # escaped, ASCII
 has fragment => ( is => 'ro' );    # escaped, ASCII
 
+# TODO canon uri:
+#  - remove default port
+#  - uppercase escaped series
+#  - unescape all allowed symbols
+#  - sort query params
+
 has to_string => ( is => 'lazy', init_arg => undef );
-has canon     => ( is => 'lazy', init_arg => undef );
 
 has authority    => ( is => 'lazy', init_arg => undef );    # escaped, ASCII, punycoded host
 has userinfo_b64 => ( is => 'lazy', init_arg => undef );    # ASCII
 has username     => ( is => 'lazy', init_arg => undef );    # unescaped, ASCII
 has password     => ( is => 'lazy', init_arg => undef );    # unescaped, ASCII
 has hostport     => ( is => 'lazy', init_arg => undef );    # punycoded, ASCII
-
-has path_canon => ( is => 'lazy', init_arg => undef );
 
 has scheme_is_valid => ( is => 'lazy', init_arg => undef );
 
@@ -61,18 +64,9 @@ around new => sub ( $orig, $self, $uri, @ ) {
 
     # parse base scheme
     if ( $uri_args->{scheme} eq q[] && $args{base} ) {
-        if ( ref $args{base} ) {
-            $scheme = $args{base}->scheme;
-        }
-        else {
-            my $first_colon_idx = index $args{base}, q[:];
+        $args{base} = $self->new( $args{base} ) if !ref $args{base};
 
-            if ( $first_colon_idx != -1 ) {
-                my $first_slash_idx = index $args{base}, q[/];
-
-                $scheme = lc substr $args{base}, 0, $first_colon_idx if $first_colon_idx < $first_slash_idx;
-            }
-        }
+        $scheme = $args{base}->{scheme};
     }
 
     state $scheme_cache = {    #
@@ -90,7 +84,9 @@ around new => sub ( $orig, $self, $uri, @ ) {
 
     $self = $scheme_cache->{$scheme} if $scheme_cache->{$scheme};
 
-    return $self->_new( $uri_args, \%args );
+    $self->_prepare_uri_args( $uri_args, \%args );
+
+    return bless $uri_args, $self;
 };
 
 no Pcore;
@@ -109,16 +105,6 @@ sub NEW {
     return __PACKAGE__->new(@_);
 }
 
-sub _new ( $self, $uri_args, $args ) {
-    $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host';
-
-    delete $uri_args->{_has_authority};
-
-    return if $args->{no_bless};
-
-    return bless $uri_args, $self;
-}
-
 sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
     my %args = (
         _has_authority => 0,
@@ -133,6 +119,8 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
 
     utf8::encode($uri) if utf8::is_utf8($uri);
 
+    $uri = q[//] . $uri if $with_authority && index( $uri, q[//] ) == -1;
+
     # scheme
     {
         my $first_colon_idx = index $uri, q[:];
@@ -140,7 +128,7 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
         if ( $first_colon_idx != -1 ) {
             my $first_slash_idx = index $uri, q[/];
 
-            if ( $first_colon_idx < $first_slash_idx ) {
+            if ( $first_slash_idx == -1 || $first_colon_idx < $first_slash_idx ) {
                 $args{scheme} = lc substr $uri, 0, $first_colon_idx, q[];
 
                 substr $uri, 0, 1, q[];
@@ -156,9 +144,6 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
             $args{_has_authority} = 1;
 
             substr $uri, 0, 2, q[];
-        }
-        elsif ($with_authority) {
-            $args{_has_authority} = 1;
         }
 
         if ( $args{_has_authority} && $uri =~ s[\A([^/?#]+)][]smo ) {
@@ -203,9 +188,6 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
         }
     }
 
-    # escape rest of the uri, escape not-allowed characters
-    $uri =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
-
     if ( $uri ne q[] ) {
         my $length = length $uri;
 
@@ -214,6 +196,9 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
             $args{fragment} = substr $uri, $fragment_idx, $length, q[];
 
             substr $args{fragment}, 0, 1, q[];    # remove "#" from fragment
+
+            # escape
+            $args{fragment} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
         }
 
         # query
@@ -221,12 +206,68 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
             $args{query} = substr $uri, $query_idx, $length, q[];
 
             substr $args{query}, 0, 1, q[];       # remove "?" from query
+
+            # escape
+            $args{query} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
         }
 
         $args{path} = $uri;
     }
 
+    # uri with authority always has "/" path
+    $args{path} = q[/] if $args{_has_authority} && $args{path} eq q[];
+
     return \%args;
+}
+
+sub _prepare_uri_args ( $self, $uri_args, $args ) {
+
+    # https://tools.ietf.org/html/rfc3986#section-5
+    # if URI has no scheme and base URI is specified - merge with base URI
+    $self->_merge_uri_base( $uri_args, $args->{base} ) if $uri_args->{scheme} eq q[] && $args->{base};
+
+    $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host' if !ref $uri_args->{host};
+
+    $uri_args->{path} = Pcore::Util::URI::Path->new( $uri_args->{path}, from_uri => 1 ) if !ref $uri_args->{path};
+
+    delete $uri_args->{_has_authority};
+
+    return;
+}
+
+sub _merge_uri_base ( $self, $uri_args, $base ) {
+
+    # parse base URI
+    $base = $self->new($base) if !ref $base;
+
+    # https://tools.ietf.org/html/rfc3986#section-5.2.1
+    # base URI MUST contain scheme
+    if ( $base->{scheme} ne q[] ) {
+
+        # https://tools.ietf.org/html/rfc3986#section-5.2.2
+        # inherit scheme from base URI
+        $uri_args->{scheme} = $base->{scheme};
+
+        # inherit from the base URI only if has no own authority
+        if ( !$uri_args->{_has_authority} ) {
+
+            # inherit authority
+            $uri_args->{userinfo} = $base->{userinfo};
+            $uri_args->{host}     = $base->{host};
+            $uri_args->{port}     = $base->{port};
+
+            if ( $uri_args->{path} eq q[] ) {
+                $uri_args->{path} = $base->{path};
+
+                $uri_args->{query} = $base->{query} if !$uri_args->{query};
+            }
+            else {
+                $uri_args->{path} = Pcore::Util::URI::Path->new( $uri_args->{path}, base => $base->{path}, from_uri => 1 );
+            }
+        }
+    }
+
+    return;
 }
 
 # BUILDERS
@@ -243,6 +284,9 @@ sub _build_to_string ($self) {
         $uri .= q[/] if substr( $self->{path}, 0, 1 ) ne q[/];
     }
     elsif ( $self->{scheme} eq q[] && $self->{path} =~ m[\A[^/]*:]smo ) {
+
+        # prepend path with "./" if uri has no scheme, has no authority, path is absolute and first path segment contains ":"
+        # pa:th/path -> ./pa:th/path
         $uri .= q[./];
     }
 
@@ -251,36 +295,6 @@ sub _build_to_string ($self) {
     $uri .= q[?] . $self->{query} if $self->{query} ne q[];
 
     $uri .= q[#] . $self->{fragment} if $self->{fragment} ne q[];
-
-    return $uri;
-}
-
-# TODO:
-#     remove default port
-#     uppercase escaped series
-#     unescape all allowed symbols
-#     sort query params
-sub _build_canon ($self) {
-
-    # https://tools.ietf.org/html/rfc3986#section-5.3
-    my $uri = q[];
-
-    $uri .= $self->{scheme} . q[:] if $self->{scheme} ne q[];
-
-    if ( $self->authority ne q[] ) {
-        $uri .= q[//] . $self->authority;
-
-        $uri .= q[/] if substr( $self->path_canon->to_uri, 0, 1 ) ne q[/];
-    }
-    elsif ( $self->{scheme} eq q[] && $self->path_canon->to_uri =~ m[\A[^/]*:]smo ) {
-        $uri .= q[./];
-    }
-
-    $uri .= $self->path_canon->to_uri;
-
-    $uri .= q[?] . $self->{query} if $self->{query};
-
-    $uri .= q[#] . $self->{fragment} if $self->{fragment};
 
     return $uri;
 }
@@ -327,76 +341,6 @@ sub _build_password ($self) {
 
 sub _build_hostport ($self) {
     return $self->host->name . ( $self->port ? q[:] . $self->port : q[] );
-}
-
-sub _build_path_canon ($self) {
-    my %args = (
-        _path  => $self->{path},
-        is_abs => 0,
-        volume => q[],
-    );
-
-    # unescape
-    $args{_path} = P->data->from_uri( $args{_path} ) if index( $args{_path}, q[%] ) != -1;
-
-    # convert "\" to "/"
-    $args{_path} =~ s[\\+][/]smgo if index( $args{_path}, q[\\] ) != -1;
-
-    # detect if path is absolute
-    $args{is_abs} = 1 if substr( $args{_path}, 0, 1 ) eq q[/];
-
-    # parse MSWIN volume
-    if ( $MSWIN && $args{_path} =~ s[\A/([[:alpha:]]):/][/]smo ) {
-        $args{volume} = lc $1;
-    }
-
-    # normalize
-    if ( index( $args{_path}, q[.] ) == -1 ) {
-
-        # convert "//" -> "/"
-        $args{_path} =~ s[/{2,}][/]smgo;
-    }
-    else {
-        # perform full normalization only if path contains "."
-        my @segments;
-
-        my @split = split m[/]smo, $args{_path};
-
-        for my $seg (@split) {
-            next if $seg eq q[] || $seg eq q[.];
-
-            if ( $seg eq q[..] ) {
-                if ( !$args{is_abs} ) {
-                    if ( !@segments || $segments[-1] eq q[..] ) {
-                        push @segments, $seg;
-                    }
-                    else {
-                        pop @segments;
-                    }
-                }
-                else {
-                    pop @segments;
-                }
-            }
-            else {
-                push @segments, $seg;
-            }
-        }
-
-        # add leading "/" for abs path
-        unshift @segments, q[] if $args{is_abs};
-
-        # preserve last "/"
-        push @segments, q[] if substr( $args{_path}, -1, 1 ) eq q[/] || $split[-1] eq q[.] || $split[-1] eq q[..];
-
-        # concatenate path segments, add leading "/" for abs path
-        $args{_path} = join q[/], @segments;
-    }
-
-    # add volume
-    $args{_path} = $args{volume} . q[:] . $args{_path} if $args{volume};
-
-    return bless \%args, 'Pcore::Util::File::Path';
 }
 
 sub _build_scheme_is_valid ($self) {
@@ -457,9 +401,7 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 332                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_path_canon" with high complexity score (23)         │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 101                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 97                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
