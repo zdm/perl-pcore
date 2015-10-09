@@ -450,7 +450,7 @@ sub _write_to_fh {
 
     for my $str (@_) {
         if ( ref $str eq 'ARRAY' ) {
-            for my $line ( $_->@* ) {
+            for my $line ( $str->@* ) {
                 print {$fh} $line, qq[\n];
             }
         }

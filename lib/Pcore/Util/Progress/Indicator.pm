@@ -223,7 +223,12 @@ sub update ( $self, %args ) {
 
     # calculate ETA
     if ( $self->total ) {
-        $self->_set_eta( int( ( $self->total - $args{value} ) / $self->speed ) || 1 );
+        if ( !$self->speed ) {
+            $self->_set_eta(0);
+        }
+        else {
+            $self->_set_eta( int( ( $self->total - $args{value} ) / $self->speed ) || 1 );
+        }
     }
 
     # redraw only every 0.5 sec., or if indicator is finished
@@ -243,7 +248,7 @@ sub update ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 232                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 237                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
