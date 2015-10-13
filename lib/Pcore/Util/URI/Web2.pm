@@ -33,8 +33,13 @@ sub _web2_compile {
     return;
 }
 
-sub web2_load_cfg ( $self, $cfg ) {
-    P->hash->merge( $WEB2_CFG, $cfg );
+sub web2_load_cfg ( $self, $cfg, $merge = 1 ) {
+    if ($merge) {
+        P->hash->merge( $WEB2_CFG, $cfg );
+    }
+    else {
+        $WEB2_CFG = $cfg;
+    }
 
     undef $WEB2_HOST_RE;
 
