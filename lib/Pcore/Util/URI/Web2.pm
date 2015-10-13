@@ -92,6 +92,14 @@ sub _build_web2_url ($self) {
     }
 }
 
+sub is_web2_available ( $self, $http_res ) {
+    my $cfg = $WEB2_CFG->{ $self->web2_id };
+
+    return 1 if ( $cfg->{status} ? $http_res->status == $cfg->{status} : 1 ) && ( $cfg->{host} ? $http_res->url->host eq $cfg->{host} : 1 ) && ( $cfg->{re} ? $http_res->body->$* =~ $cfg->{re} : 1 );
+
+    return 0;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
