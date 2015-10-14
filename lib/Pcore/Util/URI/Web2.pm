@@ -22,7 +22,7 @@ sub _web2_compile {
             push @re, quotemeta $host;
         }
         else {
-            push @re, $host . '[.][^.]{2,3}';
+            push @re, $host . '[.][[:alpha:].]{2,6}';
         }
     }
 
