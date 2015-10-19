@@ -1,14 +1,19 @@
 package Pcore::Util::GeoIP;
 
 use Pcore qw[-autoload];
-use Const::Fast qw[];
+use Const::Fast qw[const];
 
-Const::Fast::const our $GEOIP_STANDARD     => 0;    # PP
-Const::Fast::const our $GEOIP_MEMORY_CACHE => 1;    # PP
-Const::Fast::const our $GEOIP_CHECK_CACHE  => 2;    # when using memory cache you can force a reload if the file is updated by setting GEOIP_CHECK_CACHE
-Const::Fast::const our $GEOIP_INDEX_CACHE  => 4;    # caches the most frequently accessed index portion of the database, resulting in faster lookups than GEOIP_STANDARD, but less memory usage than GEOIP_MEMORY_CACHE - useful for larger databases such as GeoIP Legacy Organization and GeoIP City. Note, for GeoIP Country, Region and Netspeed databases, GEOIP_INDEX_CACHE is equivalent to GEOIP_MEMORY_CACHE
+const our $GEOIP_STANDARD     => 0;    # PP
+const our $GEOIP_MEMORY_CACHE => 1;    # PP
+const our $GEOIP_CHECK_CACHE  => 2;    # when using memory cache you can force a reload if the file is updated by setting GEOIP_CHECK_CACHE
+const our $GEOIP_INDEX_CACHE  => 4;    # caches the most frequently accessed index portion of the database, resulting in faster lookups than GEOIP_STANDARD, but less memory usage than GEOIP_MEMORY_CACHE - useful for larger databases such as GeoIP Legacy Organization and GeoIP City. Note, for GeoIP Country, Region and Netspeed databases, GEOIP_INDEX_CACHE is equivalent to GEOIP_MEMORY_CACHE
 
-our $GEOIP_PURE_PERL          = 0;                  # force to use pure perl mode
+const our $TYPE_CITY       => 1;
+const our $TYPE_CITY_V6    => 2;
+const our $TYPE_COUNTRY    => 3;
+const our $TYPE_COUNTRY_V6 => 4;
+
+our $GEOIP_PURE_PERL          = 0;                     # force to use pure perl mode
 our $GEOIP_COUNTRY_CACHE_MODE = $GEOIP_MEMORY_CACHE;
 our $GEOIP_CITY_CACHE_MODE    = $GEOIP_INDEX_CACHE;
 
@@ -142,12 +147,10 @@ sub city_v6_path ( $self, $force = undef, $cv = undef ) {
     return $path;
 }
 
-sub _get_h {
-    my $self = shift;
-    my $type = shift;
-
+sub _get_h ( $self, $type ) {
     if ( !defined $H->{$type} ) {
         my $db_path;
+
         my $default_cache_mode;
 
         my $use_pure_perl = $GEOIP_PURE_PERL;
@@ -168,22 +171,22 @@ sub _get_h {
             };
         }
 
-        if ( $type eq 'country' ) {
+        if ( $type == $TYPE_COUNTRY ) {
             $db_path = $self->country_path;
 
             $default_cache_mode = $GEOIP_COUNTRY_CACHE_MODE;
         }
-        elsif ( $type eq 'country_v6' ) {
+        elsif ( $type == $TYPE_COUNTRY_V6 ) {
             $db_path = $self->country_path_v6;
 
             $default_cache_mode = $GEOIP_COUNTRY_CACHE_MODE;
         }
-        elsif ( $type eq 'city' ) {
+        elsif ( $type == $TYPE_CITY ) {
             $db_path = $self->city_path;
 
             $default_cache_mode = $GEOIP_CITY_CACHE_MODE;
         }
-        elsif ( $type eq 'city_v6' ) {
+        elsif ( $type == $TYPE_CITY_V6 ) {
             $db_path = $self->city_path_v6;
 
             $default_cache_mode = $GEOIP_CITY_CACHE_MODE;
@@ -202,19 +205,13 @@ sub _get_h {
     return $H->{$type};
 }
 
-sub reconnect {
-    my $self = shift;
-
+sub reconnect ($self) {
     undef $H;
 
     return;
 }
 
-sub update {
-    my $self = shift;
-
-    require IO::Uncompress::Gunzip;
-
+sub update ($self) {
     $H = undef;
 
     my $cv = AE::cv;
@@ -241,7 +238,7 @@ sub autoload {
     return sub {
         my $self = shift;
 
-        return $self->_get_h('country')->$method(@_);
+        return $self->_get_h($TYPE_COUNTRY)->$method(@_);
     };
 }
 
@@ -249,13 +246,13 @@ sub autoload {
 sub record_by_addr {
     my $self = shift;
 
-    return $self->_get_h('city')->record_by_addr(@_);
+    return $self->_get_h($TYPE_CITY)->record_by_addr(@_);
 }
 
 sub record_by_name {
     my $self = shift;
 
-    return $self->_get_h('city')->record_by_name(@_);
+    return $self->_get_h($TYPE_CITY)->record_by_name(@_);
 }
 
 1;
