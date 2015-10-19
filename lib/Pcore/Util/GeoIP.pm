@@ -20,7 +20,7 @@ sub country_path ( $self, $force = undef, $cv = undef ) {
 
         if ( !$_path || $force ) {
             P->ua->request(
-                'http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz',
+                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
@@ -28,7 +28,7 @@ sub country_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
+                        my $temp = P->file->tempfile( autoflush => 1 );
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
@@ -52,7 +52,7 @@ sub country_v6_path ( $self, $force = undef, $cv = undef ) {
 
         if ( !$_path || $force ) {
             P->ua->request(
-                'http://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz',
+                'https://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
@@ -60,7 +60,7 @@ sub country_v6_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
+                        my $temp = P->file->tempfile( autoflush => 1 );
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp, BinModeOut => 1 );
 
@@ -84,7 +84,7 @@ sub city_path ( $self, $force = undef, $cv = undef ) {
 
         if ( !$_path || $force ) {
             P->ua->request(
-                'http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz',
+                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
@@ -92,7 +92,7 @@ sub city_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
+                        my $temp = P->file->tempfile( autoflush => 1 );
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
@@ -116,7 +116,7 @@ sub city_v6_path ( $self, $force = undef, $cv = undef ) {
 
         if ( !$_path || $force ) {
             P->ua->request(
-                'http://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz',
+                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
@@ -124,7 +124,7 @@ sub city_v6_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
+                        my $temp = P->file->tempfile( autoflush => 1 );
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 

@@ -565,19 +565,13 @@ sub empty_dir ( $self, $path, % ) {
 }
 
 # TEMP
-sub tempfile {
-    my $self = shift;
-    my %args = @_;
-
+sub tempfile ( $self, %args ) {
     require Pcore::Util::File::TempFile;
 
     return Pcore::Util::File::TempFile->new( \%args )->fh;
 }
 
-sub tempdir {
-    my $self = shift;
-    my %args = @_;
-
+sub tempdir ( $self, %args ) {
     require Pcore::Util::File::TempDir;
 
     return Pcore::Util::File::TempDir->new( \%args );

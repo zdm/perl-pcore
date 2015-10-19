@@ -7,6 +7,7 @@ has base     => ( is => 'lazy', isa => Str );
 has tmpl     => ( is => 'lazy', isa => Str );
 has exlock   => ( is => 'ro',   isa => Bool, default => 0 );
 has _binmode => ( is => 'ro',   isa => Str, default => q[], init_arg => 'binmode' );
+has autoflush => ( is => 'ro', isa => Bool, default => 0 );
 has mode => ( is => 'lazy', isa => Maybe [ Int | Str ], default => q[rw-------] );
 
 has fh => ( is => 'lazy', isa => InstanceOf ['File::Temp'] );
@@ -32,27 +33,23 @@ no Pcore;
     };
 }
 
-sub _build_fh {
-    my $self = shift;
-
+sub _build_fh ($self) {
     my $temp = File::Temp->new( DIR => $self->base, TEMPLATE => $self->tmpl, EXLOCK => $self->exlock );
 
     binmode $temp, $self->_binmode or die if $self->_binmode;
+
+    $temp->autoflush(1) if $self->autoflush;
 
     P->file->chmod( $self->mode, $temp->path );
 
     return $temp;
 }
 
-sub _build_base {
-    my $self = shift;
-
+sub _build_base ($self) {
     return "$PROC->{TEMP_DIR}";
 }
 
-sub _build_tmpl {
-    my $self = shift;
-
+sub _build_tmpl ($self) {
     return 'temp-' . P->sys->pid . '-XXXXXXXX';
 }
 

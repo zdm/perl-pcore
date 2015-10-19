@@ -72,7 +72,7 @@ sub tlds {
                 blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = P->res->store_local( 'iana_tlds.dat', P->text->encode_utf8( \join $LF, map { lc URI::_idna::decode($_) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
+                        $path = P->res->store_local( 'iana_tlds.dat', P->text->encode_utf8( \join $LF, map { URI::_idna::decode(lc) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
                     }
 
                     return;
