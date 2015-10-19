@@ -1,4 +1,4 @@
-requires 'perl', 5.20.2;
+requires 'perl', 5.22.0;
 
 # Pcore::Core
 requires 'namespace::clean';

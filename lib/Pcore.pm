@@ -1,6 +1,6 @@
 package Pcore v0.11.5;
 
-use v5.20.2;
+use v5.22.0;
 use utf8;
 use strict;
 use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
