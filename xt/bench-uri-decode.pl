@@ -2,8 +2,7 @@
 
 package main v0.1.0;
 
-use Pcore;
-use Const::Fast;
+use Pcore qw[-const];
 use Benchmark;
 use WWW::Form::UrlEncoded::XS qw[];
 use URI::Escape qw[];        ## no critic qw[Modules::ProhibitEvilModules]

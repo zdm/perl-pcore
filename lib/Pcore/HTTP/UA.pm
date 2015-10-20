@@ -1,7 +1,6 @@
 package Pcore::HTTP::UA;
 
-use Pcore qw[-class];
-use Const::Fast;
+use Pcore qw[-class -const];
 
 BEGIN {
     const our $TLS_CTX_LOW  => 1;
@@ -18,7 +17,6 @@ use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Request;
 use Pcore::HTTP::CookieJar;
-use Const::Fast qw[const];
 
 # 594 - errors during proxy handshake.
 # 595 - errors during connection establishment.
@@ -444,9 +442,9 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 232                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
+## │    3 │ 230                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 428                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 426                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

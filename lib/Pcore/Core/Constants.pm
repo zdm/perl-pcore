@@ -1,7 +1,6 @@
 package Pcore::Core::Constants;
 
-use Pcore qw[-export];
-use Const::Fast qw[const];
+use Pcore qw[-export -const];
 use Types::Serialiser qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our @EXPORT_OK   = qw[$MSWIN $CRLF $LF $TRUE $FALSE $P $DIST $PROC $STDIN $STDOUT $STDERR];

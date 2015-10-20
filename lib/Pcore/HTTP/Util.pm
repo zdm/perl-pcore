@@ -1,7 +1,6 @@
 package Pcore::HTTP::Util;
 
-use Pcore;
-use Const::Fast qw[const];
+use Pcore qw[-const];
 use Errno qw[];
 use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
@@ -666,12 +665,12 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 17                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 336                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 16                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
+## │      │ 335                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 91, 104, 105, 200    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 90, 103, 104, 199    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 519                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 518                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

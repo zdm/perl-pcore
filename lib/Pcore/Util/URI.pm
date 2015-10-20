@@ -2,10 +2,9 @@ package Pcore::Util::URI;
 
 use Pcore qw[-class];
 
-use Pcore qw[-class];
+use Pcore qw[-class -const];
 use Pcore::Util::URI::Host;
 use Pcore::Util::URI::Path;
-use Const::Fast qw[const];
 use URI::_idna qw[];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
@@ -401,7 +400,7 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 97                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 96                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

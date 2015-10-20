@@ -1,10 +1,9 @@
 package Pcore::HTTP::Request;
 
-use Pcore qw[-class];
+use Pcore qw[-class -const];
 use Pcore::HTTP::UA;
 use Pcore::HTTP::Response;
 use Pcore::HTTP::CookieJar;
-use Const::Fast;
 
 extends qw[Pcore::HTTP::Message];
 
@@ -97,7 +96,7 @@ sub _get_progress_bar_cb ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 52                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 51                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

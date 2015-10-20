@@ -1,7 +1,6 @@
 package Pcore::AE::Crawler;
 
-use Pcore qw[-class];
-use Const::Fast qw[const];
+use Pcore qw[-class -const];
 use Pcore::AE::Handle::ProxyPool;
 
 with qw[Pcore::AE::Status];
@@ -206,7 +205,7 @@ sub _start_request ( $self, $req ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 131, 169             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 130, 168             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

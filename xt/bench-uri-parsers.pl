@@ -2,8 +2,7 @@
 
 package main v0.1.0;
 
-use Pcore;
-use Const::Fast;
+use Pcore qw[-const];
 use Benchmark qw[];
 use URI qw[];
 use Mojo::URL qw[];
