@@ -188,6 +188,13 @@ no Pcore;
 
 our $MIME_TYPES;
 
+# Pcore::Util interface
+sub NEW {
+    shift;
+
+    return __PACKAGE__->new(@_);
+}
+
 sub _build_to_string ($self) {
     my $path = $self->path;
 

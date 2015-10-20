@@ -79,6 +79,7 @@ BEGIN {
         list      => 'Pcore::Util::List',
         mail      => 'Pcore::Util::Mail',
         moo       => 'Pcore::Util::Moo',
+        path      => 'Pcore::Util::File::Path',
         pm        => 'Pcore::Util::PM',
         progress  => 'Pcore::Util::Progress',
         prompt    => 'Pcore::Util::Prompt',
@@ -552,19 +553,19 @@ sub _configure_console {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 101                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
+## │    3 │ 102                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 164                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 165                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 358                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 359                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 403, 451, 468, 516,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 517, 518, 524, 525,  │                                                                                                                │
-## │      │ 526, 531, 532, 533   │                                                                                                                │
+## │    3 │ 404, 452, 469, 517,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 518, 519, 525, 526,  │                                                                                                                │
+## │      │ 527, 532, 533, 534   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 494                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 495                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
