@@ -737,10 +737,10 @@ sub read_http_body ( $self, $on_read, @ ) {
         $read_chunk = sub ( $h, @ ) {
             my $chunk_len_ref = \$_[1];
 
-            if ( $chunk_len_ref->$* =~ /\A([[:xdigit:]]+)\z/sm ) {    # valid chunk length
+            if ( $chunk_len_ref->$* =~ /\A([[:xdigit:]]+)/sm ) {    # valid chunk length
                 my $chunk_len = hex $1;
 
-                if ($chunk_len) {                                     # read chunk body
+                if ($chunk_len) {                                   # read chunk body
                     $h->push_read(
                         chunk => $chunk_len,
                         sub ( $h, @ ) {
@@ -758,7 +758,7 @@ sub read_http_body ( $self, $on_read, @ ) {
                                         if ( length $_[1] ) {                # error, chunk traililg can contain only $CRLF
                                             undef $read_chunk;
 
-                                            $on_read_buf->( undef, 'Garbled chunked transfer encoding' );
+                                            $on_read_buf->( undef, 'Garbled chunked transfer encoding (last chunk)' );
                                         }
                                         else {
                                             $h->push_read( line => $read_chunk );
@@ -797,7 +797,7 @@ sub read_http_body ( $self, $on_read, @ ) {
             else {    # invalid chunk length
                 undef $read_chunk;
 
-                $on_read_buf->( undef, 'Garbled chunked transfer encoding' );
+                $on_read_buf->( undef, 'Garbled chunked transfer encoding (invalid chunk length)' );
             }
 
             return;
