@@ -20,17 +20,17 @@ has is_ipv4              => ( is => 'lazy', init_arg => undef );
 has is_ipv6              => ( is => 'lazy', init_arg => undef );
 has is_domain            => ( is => 'lazy', init_arg => undef );
 has is_valid             => ( is => 'lazy', init_arg => undef );
-has is_tld               => ( is => 'lazy', init_arg => undef );
+has is_tld               => ( is => 'lazy', init_arg => undef );    # domain is a known TLD
 has tld                  => ( is => 'lazy', init_arg => undef );
 has tld_utf8             => ( is => 'lazy', init_arg => undef );
 has tld_is_valid         => ( is => 'lazy', init_arg => undef );
 has canon                => ( is => 'lazy', init_arg => undef );    # host without www. prefix
 has canon_utf8           => ( is => 'lazy', init_arg => undef );
-has is_pub_suffix        => ( is => 'lazy', init_arg => undef );
+has is_pub_suffix        => ( is => 'lazy', init_arg => undef );    # domain is a pub. suffix
 has is_pub_suffix_parent => ( is => 'lazy', init_arg => undef );
 has pub_suffix           => ( is => 'lazy', init_arg => undef );
 has pub_suffix_utf8      => ( is => 'lazy', init_arg => undef );
-has is_root_domain       => ( is => 'lazy', init_arg => undef );
+has is_root_domain       => ( is => 'lazy', init_arg => undef );    # domain is a root domain
 has root_domain          => ( is => 'lazy', init_arg => undef );
 has root_domain_utf8     => ( is => 'lazy', init_arg => undef );
 
@@ -175,6 +175,8 @@ sub _build_is_ipv6 ($self) {
 }
 
 sub _build_is_domain ($self) {
+    return 0 if $self->name eq q[];
+
     return $self->is_ip ? 0 : 1;
 }
 
@@ -335,7 +337,7 @@ sub _build_root_domain_utf8 ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 71, 78, 92           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 276, 279             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 278, 281             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
