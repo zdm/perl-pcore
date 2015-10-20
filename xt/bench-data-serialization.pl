@@ -3,7 +3,7 @@
 package main v0.1.0;
 
 use Pcore;
-use Const::Fast qw[];
+use Const::Fast;
 use Benchmark qw[];
 use Storable qw[];
 use Data::Dumper qw[];    ## no critic qw[Modules::ProhibitEvilModules]
@@ -11,7 +11,7 @@ use JSON::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
 use Data::MessagePack qw[];
 use CBOR::XS qw[];
 
-Const::Fast::const our $COUNT => -5;
+const our $COUNT => -5;
 
 our $TEST_DATA = {
     '203.174.65.12'   => 'JP',

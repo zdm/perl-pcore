@@ -3,10 +3,10 @@
 package main v0.1.0;
 
 use Pcore;
-use Const::Fast qw[];
+use Const::Fast;
 use Benchmark qw[];
 
-Const::Fast::const our $COUNT => -5;
+const our $COUNT => -5;
 
 my $XML = <<'XML';
 <?xml version="1.0"?>

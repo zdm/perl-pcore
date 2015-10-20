@@ -7,7 +7,7 @@ use Const::Fast;
 use Benchmark;
 use URI;
 
-Const::Fast::const our $COUNT => -10;
+const our $COUNT => -10;
 
 my $tests = {
     shift       => sub { return t_shift( 'self',       aaa => 'value', bbb => 'value', ccc => 'value' ); },

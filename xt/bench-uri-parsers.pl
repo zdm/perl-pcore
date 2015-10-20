@@ -3,12 +3,12 @@
 package main v0.1.0;
 
 use Pcore;
-use Const::Fast qw[];
+use Const::Fast;
 use Benchmark qw[];
 use URI qw[];
 use Mojo::URL qw[];
 
-Const::Fast::const our $COUNT => -3;
+const our $COUNT => -3;
 
 my $uri = q[/aaa/];
 
