@@ -85,13 +85,13 @@ sub new ( $self, @ ) {
         @_[ 1 .. $#_ ],
     );
 
-    # parse connect attribute
-    $args{connect} = get_connect( $args{connect} );
-
     if ( $args{fh} ) {
         $args{on_connect}->( $self->SUPER::new(%args), undef, undef, undef );
     }
     else {
+        # parse connect attribute
+        $args{connect} = get_connect( $args{connect} );
+
         my $persistent = delete $args{persistent};
 
         my $persistent_id = {};

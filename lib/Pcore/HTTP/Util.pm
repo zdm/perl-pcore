@@ -123,7 +123,13 @@ sub http_request ($args) {
     $runtime->{headers}->{TE} = 'trailers' unless exists $args->{headers}->{TE};
 
     # add COOKIE headers
-    $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url} ) if $args->{cookie_jar};
+    if ( $args->{cookie_jar} ) {
+        my $cookies = $args->{cookie_jar}->get_cookies( $args->{url} );
+
+        if ( $cookies->@* ) {
+            $runtime->{headers}->{COOKIE} = join q[; ], $cookies->@*;
+        }
+    }
 
     # add ACCEPT_ENCODING headers
     $runtime->{headers}->{ACCEPT_ENCODING} = 'gzip' if $args->{accept_compressed} && !exists $args->{headers}->{ACCEPT_ENCODING};
@@ -660,12 +666,12 @@ sub get_random_ua {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 17                   │ * Subroutine "http_request" with high complexity score (32)                                                    │
-## │      │ 330                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 17                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
+## │      │ 336                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 91, 104, 105, 194    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 91, 104, 105, 200    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 513                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 519                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

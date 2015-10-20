@@ -6,12 +6,20 @@ has cookies => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => 
 
 no Pcore;
 
+sub clear ($self) {
+    $self->{cookies} = {};
+
+    return;
+}
+
 sub parse_cookies ( $self, $url, $set_cookie_header ) {
   COOKIE: for ( $set_cookie_header->@* ) {
         my $cookie = {
-            domain       => $url->host->name,
-            cover_domain => 0,
-            path         => q[/],
+            domain   => $url->host->name,
+            path     => $url->path->to_string,
+            expires  => 0,
+            httponly => 0,
+            secure   => 0,
         };
 
         my ( $kvp, @attrs ) = split /;/sm;
@@ -67,12 +75,12 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
                 # remove leading "." from cover domain
                 $v =~ s/\A[.]+//smo;
 
+                my $cover_domain = P->host( lc $v );
+
                 # the cover domain must not be a TLD
                 # As far as cookie handling is concerned, every TLD is a public suffix, even if it's not listed.
                 # For example, "test", "local", "my-fake-tld", etc. cannot be allowed as cover domains.
-                next COOKIE if ( $v =~ tr/././ ) == 0;
-
-                my $cover_domain = P->host( lc $v );
+                next COOKIE if $cover_domain->is_tld;
 
                 # a cover domain must not be a IP address
                 next COOKIE if $cover_domain->is_ip;
@@ -100,22 +108,28 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
                 next COOKIE if substr( $url->host->name, 0 - length $cover_domain->name ) ne $cover_domain->name;
 
                 # accept coveer domain cookie
-                $cookie->{domain} = $cover_domain->name;
-
-                $cookie->{cover_domain} = 1;
+                $cookie->{domain} = q[.] . $cover_domain->name;
             }
             elsif ( $k eq 'path' ) {
                 $cookie->{path} = $v;
             }
             elsif ( $k eq 'expires' ) {
-
-                # TODO
-                $cookie->{expires} = $v;
+                if ( !$cookie->{expires} ) {    # do not process expires attribute, if expires is already set by expires or max-age
+                    if ( my $expires = P->date->parse($v) ) {
+                        $cookie->{expires} = $expires->epoch;
+                    }
+                    else {
+                        next COOKIE;            # ignore cookie, invalid expires value
+                    }
+                }
             }
             elsif ( $k eq 'max-age' ) {
-
-                # TODO
-                $cookie->{max_age} = $v;
+                if ( $v =~ /\A\d+\z/sm ) {
+                    $cookie->{expires} = time + $v;
+                }
+                else {
+                    next COOKIE;                # ignore cookie, invalid max-age value
+                }
             }
             elsif ( $k eq 'httponly' ) {
                 $cookie->{httponly} = 1;
@@ -125,21 +139,78 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
             }
         }
 
-        $self->{cookies}->{ $cookie->{domain} }->{ $cookie->{path} }->{ $cookie->{name} } = $cookie;
+        if ( $cookie->{expires} && $cookie->{expires} < time ) {
+            delete $self->{cookies}->{ $cookie->{domain} }->{ $cookie->{path} }->{ $cookie->{name} };
+        }
+        else {
+            $self->{cookies}->{ $cookie->{domain} }->{ $cookie->{path} }->{ $cookie->{name} } = $cookie;
+        }
     }
-
-    say dump $self;
 
     return;
 }
 
-sub get_cookies ( $self, $headers, $url ) {
+sub get_cookies ( $self, $url ) {
+    my @cookies;
 
-    # say dump \@_;
+    # origin cookie
+    push @cookies, $self->_match_domain( $url->host->name, $url )->@*;
 
-    # $headers->{COOKIE} = [ 111, 222 ];
+    # cover cookies
+    if ( !$url->host->is_ip ) {
+        my @labels = split /[.]/sm, $url->host->name;
 
-    return;
+        while ( @labels > 1 ) {
+            my $domain = q[.] . join q[.], @labels;
+
+            shift @labels;
+
+            push @cookies, $self->_match_domain( $domain, $url )->@*;
+        }
+    }
+
+    return \@cookies;
+}
+
+sub _match_domain ( $self, $domain, $url ) {
+    my @cookies;
+
+    my $time = time;
+
+    if ( exists $self->{cookies}->{$domain} ) {
+        for my $cookie_path ( keys $self->{cookies}->{$domain}->%* ) {
+            if ( $self->_match_path( $url->path, $cookie_path ) ) {
+                for my $cookie ( values $self->{cookies}->{$domain}->{$cookie_path}->%* ) {
+                    if ( $cookie->{expires} && $cookie->{expires} < $time ) {
+                        delete $self->{cookies}->{$domain}->{$cookie_path}->{ $cookie->{name} };
+                    }
+                    else {
+                        next if $cookie->{secure} && !$url->is_secure;
+
+                        push @cookies, $cookie->{name} . q[=] . $cookie->{val};
+                    }
+                }
+            }
+        }
+    }
+
+    return \@cookies;
+}
+
+sub _match_path ( $self, $url_path, $cookie_path ) {
+    return 1 if $cookie_path eq $url_path;
+
+    return 1 if $cookie_path eq q[/];
+
+    if ( $url_path =~ /\A\Q$cookie_path\E(.*)/sm ) {
+        my $rest = $1;
+
+        return 1 if substr( $cookie_path, -1, 1 ) eq q[/];
+
+        return 1 if substr( $rest, 0, 1 ) eq q[/];
+    }
+
+    return 0;
 }
 
 1;
@@ -149,7 +220,9 @@ sub get_cookies ( $self, $headers, $url ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 9                    │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (23)             │
+## │    3 │ 15                   │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (31)             │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 181, 183             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
