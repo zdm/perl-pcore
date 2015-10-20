@@ -5,7 +5,8 @@ package main v0.1.0;
 use Pcore;
 use Benchmark;
 use Pcore::HTTP::CookieJar;
-use HTTP::Cookie;
+
+# use HTTP::Cookie;
 
 my $uri = P->uri('http://aaa.bbb.com/path/');
 

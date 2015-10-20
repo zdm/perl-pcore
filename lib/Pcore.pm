@@ -12,7 +12,7 @@ use if $^V ge 'v5.10', mro      => 'c3';
 no multidimensional;
 
 use namespace::clean qw[];
-
+use Const::Fast qw[];
 use Encode qw[];
 
 # preload Moo
@@ -60,6 +60,7 @@ BEGIN {
         class       => 0,    # package is a Moo class
         role        => 0,    # package is a Moo role
         types       => 0,    # export types
+        const       => 0,    # export "const" keyword
     );
 
     # configure standard library
@@ -123,6 +124,8 @@ sub import {
     re->import('strict')               if $^V ge 'v5.22';
     mro::set_mro( $caller, 'c3' ) if $^V ge 'v5.10';
     multidimensional->unimport;
+
+    Const::Fast->import::into( $caller, 'const' ) if $pragma->{const};
 
     # export P sub to avoid indirect calls
     {
@@ -549,19 +552,19 @@ sub _configure_console {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 100                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    │
+## │    3 │ 101                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 161                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 164                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 355                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 358                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 400, 448, 465, 513,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 514, 515, 521, 522,  │                                                                                                                │
-## │      │ 523, 528, 529, 530   │                                                                                                                │
+## │    3 │ 403, 451, 468, 516,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 517, 518, 524, 525,  │                                                                                                                │
+## │      │ 526, 531, 532, 533   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 403                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 491                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 494                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
