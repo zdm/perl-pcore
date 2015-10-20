@@ -178,6 +178,7 @@
 
                         '/\Aconstant/',
                         '/\AReadonly/',
+                        'Const::Fast',
 
                         'English',
                         'Encode',
