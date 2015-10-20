@@ -27,7 +27,7 @@ use Const::Fast qw[const];
 # 598 - user aborted request via on_header or on_body.
 # 599 - other, usually nonretryable, errors (garbled URL etc.).
 
-our $USERAGENT = "Mozilla/5.0 (compatible; U; P-AnyEvent-UA/$Pcore::VERSION";
+our $USERAGENT = "Mozilla/5.0 (compatible; U; Pcore-HTTP-UA/$Pcore::VERSION";
 our $RECURSE   = 7;
 our $TIMEOUT   = 300;
 

@@ -157,15 +157,18 @@ sub get_cookies ( $self, $url ) {
     push @cookies, $self->_match_domain( $url->host->name, $url )->@*;
 
     # cover cookies
+    # http://bayou.io/draft/cookie.domain.html#Coverage_Model
     if ( !$url->host->is_ip ) {
         my @labels = split /[.]/sm, $url->host->name;
 
         while ( @labels > 1 ) {
-            my $domain = q[.] . join q[.], @labels;
+            my $domain = P->host( join q[.], @labels );
+
+            last if $domain->is_pub_suffix;
+
+            push @cookies, $self->_match_domain( q[.] . $domain->name, $url )->@*;
 
             shift @labels;
-
-            push @cookies, $self->_match_domain( $domain, $url )->@*;
         }
     }
 
@@ -222,7 +225,7 @@ sub _match_path ( $self, $url_path, $cookie_path ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 15                   │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (31)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 181, 183             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 184, 186             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
