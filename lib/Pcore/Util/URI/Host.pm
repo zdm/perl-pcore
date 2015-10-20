@@ -13,66 +13,109 @@ use overload    #
   },
   fallback => undef;
 
-has name             => ( is => 'ro',   required => 1 );
-has name_utf8        => ( is => 'lazy', init_arg => undef );
-has is_ip            => ( is => 'lazy', init_arg => undef );
-has is_ipv4          => ( is => 'lazy', init_arg => undef );
-has is_ipv6          => ( is => 'lazy', init_arg => undef );
-has is_domain        => ( is => 'lazy', init_arg => undef );
-has is_valid         => ( is => 'lazy', init_arg => undef );
-has tld              => ( is => 'lazy', init_arg => undef );
-has tld_utf8         => ( is => 'lazy', init_arg => undef );
-has tld_is_valid     => ( is => 'lazy', init_arg => undef );
-has canon            => ( is => 'lazy', init_arg => undef );    # host without www. prefix
-has canon_utf8       => ( is => 'lazy', init_arg => undef );
-has pub_suffix       => ( is => 'lazy', init_arg => undef );
-has pub_suffix_utf8  => ( is => 'lazy', init_arg => undef );
-has root_domain      => ( is => 'lazy', init_arg => undef );
-has root_domain_utf8 => ( is => 'lazy', init_arg => undef );
+has name                 => ( is => 'ro',   required => 1 );
+has name_utf8            => ( is => 'lazy', init_arg => undef );
+has is_ip                => ( is => 'lazy', init_arg => undef );
+has is_ipv4              => ( is => 'lazy', init_arg => undef );
+has is_ipv6              => ( is => 'lazy', init_arg => undef );
+has is_domain            => ( is => 'lazy', init_arg => undef );
+has is_valid             => ( is => 'lazy', init_arg => undef );
+has is_tld               => ( is => 'lazy', init_arg => undef );
+has tld                  => ( is => 'lazy', init_arg => undef );
+has tld_utf8             => ( is => 'lazy', init_arg => undef );
+has tld_is_valid         => ( is => 'lazy', init_arg => undef );
+has canon                => ( is => 'lazy', init_arg => undef );    # host without www. prefix
+has canon_utf8           => ( is => 'lazy', init_arg => undef );
+has is_pub_suffix        => ( is => 'lazy', init_arg => undef );
+has is_pub_suffix_parent => ( is => 'lazy', init_arg => undef );
+has pub_suffix           => ( is => 'lazy', init_arg => undef );
+has pub_suffix_utf8      => ( is => 'lazy', init_arg => undef );
+has is_root_domain       => ( is => 'lazy', init_arg => undef );
+has root_domain          => ( is => 'lazy', init_arg => undef );
+has root_domain_utf8     => ( is => 'lazy', init_arg => undef );
 
+# NOTE host should be in UTF-8 or ASCII punycoded, UTF-8 encoded - is invalid value
 around new => sub ( $orig, $self, $host ) {
     return __PACKAGE__->$orig( { name => $host } );
 };
 
 no Pcore;
 
-sub pub_suffixes {
+sub pub_suffixes ($force_download = 0) {
     state $suffixes = do {
-        my $path = P->res->get_local('effective_tld_names.dat');
+        my $path = P->res->get_local('pub_suffix.dat');
 
-        if ( !$path ) {
+        if ( !$path || $force_download ) {
             P->ua->request(
                 'https://publicsuffix.org/list/effective_tld_names.dat',
                 buf_size    => 0,
                 on_progress => 0,
-                blocking    => 1,
+                blocking    => $force_download ? $force_download : 1,
                 on_finish   => sub ($res) {
-                    $path = P->res->store_local( 'effective_tld_names.dat', $res->body ) if $res->status == 200;
+                    if ( $res->status == 200 ) {
+                        my $_suffixes = {};
+
+                        for my $domain ( split /\n/sm, $res->body->$* ) {
+
+                            # ignore comments
+                            next if $domain =~ m[//]smo;
+
+                            # ignore empty lines
+                            next if $domain =~ /\A\s*\z/smo;
+
+                            $_suffixes->{$domain} = 1;
+                        }
+
+                        # add tlds
+                        # TODO inherit force download tlds
+                        for my $tld ( keys tlds()->%* ) {
+                            utf8::encode($tld);
+
+                            $_suffixes->{$tld} = 1;
+                        }
+
+                        # add domains, which is not known public suffixes, but is a public suffix parent
+                        for my $domain ( keys $_suffixes->%* ) {
+                            my @labels = split /[.]/sm, $domain;
+
+                            shift @labels;
+
+                            while (@labels) {
+                                my $parent = join q[.], @labels;
+
+                                $_suffixes->{ q[.] . $parent } = 1 if !exists $_suffixes->{$parent};
+
+                                shift @labels;
+                            }
+                        }
+
+                        $path = P->res->store_local( 'pub_suffix.dat', \join $LF, sort keys $_suffixes->%* );
+                    }
 
                     return;
                 }
             );
         }
 
-        my $_suffixes = { map { $_ => 1 } grep { index( $_, q[//] ) == -1 } P->file->read_lines($path)->@* };
+        my $_suffixes = { map { $_ => 1 } P->file->read_lines($path)->@* };
     };
 
     return $suffixes;
 }
 
-sub tlds {
+sub tlds ($force_download = 0) {
     state $tlds = do {
-        my $path = P->res->get_local('iana_tlds.dat');
+        my $path = P->res->get_local('tld.dat');
 
-        if ( !$path ) {
+        if ( !$path || $force_download ) {
             P->ua->request(
                 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt',
                 buf_size    => 0,
                 on_progress => 0,
-                blocking    => 1,
+                blocking    => $force_download ? $force_download : 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = P->res->store_local( 'iana_tlds.dat', P->text->encode_utf8( \join $LF, map { URI::_idna::decode(lc) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
+                        $path = P->res->store_local( 'tld.dat', P->text->encode_utf8( \join $LF, sort map { URI::_idna::decode(lc) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
                     }
 
                     return;
@@ -91,7 +134,7 @@ sub NEW {
 }
 
 sub BUILDARGS ( $self, $args ) {
-    $args->{name} = URI::_idna::encode( $args->{name} ) if utf8::is_utf8( $args->{name} );
+    $args->{name} = URI::_idna::encode( $args->{name} );    # if utf8::is_utf8( $args->{name} );
 
     return $args;
 }
@@ -157,6 +200,12 @@ sub _build_is_valid ($self) {
     return 1;
 }
 
+sub _build_is_tld ($self) {
+    return 0 unless $self->is_domain;
+
+    return $self->tld eq $self->name ? 1 : 0;
+}
+
 sub _build_tld ($self) {
     if ( $self->is_ip ) {
         return q[];
@@ -186,27 +235,56 @@ sub _build_canon_utf8 ($self) {
     return URI::_idna::decode( $self->canon );
 }
 
+sub _build_is_pub_suffix ($self) {
+    return 0 unless $self->is_domain;
+
+    return $self->pub_suffix eq $self->name ? 1 : 0;
+}
+
+sub _build_is_pub_suffix_parent ($self) {
+    return 0 unless $self->is_domain;
+
+    return exists pub_suffixes()->{ q[.] . $self->name_utf8 } ? 1 : 0;
+}
+
 sub _build_pub_suffix ($self) {
     return q[] unless $self->is_domain;
 
+    my $pub_suffixes = pub_suffixes();
+
     my $pub_suffix_utf8;
 
-    if ( my $name = $self->canon_utf8 ) {
-        if ( exists pub_suffixes()->{$name} ) {
+    if ( my $name = $self->name_utf8 ) {
+        if ( exists $pub_suffixes->{$name} ) {
             $pub_suffix_utf8 = $name;
         }
         else {
             my @labels = split /[.]/sm, $name;
 
             if ( @labels > 1 ) {
-                while ( shift @labels ) {
-                    my $subdomain = join q[.], @labels;
+                while (1) {
+                    my $first_label = shift @labels;
 
-                    if ( exists pub_suffixes()->{$subdomain} ) {
-                        $pub_suffix_utf8 = $subdomain;
+                    my $parent = join q[.], @labels;
+
+                    if ( exists $pub_suffixes->{$parent} ) {
+                        $pub_suffix_utf8 = $parent;
 
                         last;
                     }
+                    else {
+                        if ( exists $pub_suffixes->{ q[*.] . $parent } ) {
+                            my $subdomain = $first_label . q[.] . $parent;
+
+                            if ( !exists $pub_suffixes->{ q[!] . $subdomain } ) {
+                                $pub_suffix_utf8 = $subdomain;
+
+                                last;
+                            }
+                        }
+                    }
+
+                    last if @labels <= 1;
                 }
             }
         }
@@ -226,6 +304,12 @@ sub _build_pub_suffix_utf8 ($self) {
     return URI::_idna::decode( $self->pub_suffix );
 }
 
+sub _build_is_root_domain ($self) {
+    return 0 unless $self->is_domain;
+
+    return $self->root_domain eq $self->name ? 1 : 0;
+}
+
 sub _build_root_domain ($self) {
     return q[] unless $self->is_domain;
 
@@ -243,6 +327,18 @@ sub _build_root_domain_utf8 ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 71, 78, 92           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 276, 279             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

@@ -123,7 +123,7 @@ sub http_request ($args) {
     $runtime->{headers}->{TE} = 'trailers' unless exists $args->{headers}->{TE};
 
     # add COOKIE headers
-    $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url}->host->name ) if $args->{cookie_jar};
+    $args->{cookie_jar}->get_cookies( $runtime->{headers}, $args->{url} ) if $args->{cookie_jar};
 
     # add ACCEPT_ENCODING headers
     $runtime->{headers}->{ACCEPT_ENCODING} = 'gzip' if $args->{accept_compressed} && !exists $args->{headers}->{ACCEPT_ENCODING};
@@ -284,7 +284,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
                 die 'HTTP status 100, 101 are not supporteed correctly yet' if $res->{status} == 100 or $res->{status} == 101;
 
                 # parse SET_COOKIE header, add cookies
-                $args->{cookie_jar}->parse_cookies( $args->{url}->host, $res->{headers}->get('SET_COOKIE') ) if $args->{cookie_jar} && $res->{headers}->{SET_COOKIE};
+                $args->{cookie_jar}->parse_cookies( $args->{url}, $res->{headers}->get('SET_COOKIE') ) if $args->{cookie_jar} && $res->{headers}->{SET_COOKIE};
 
                 # handle redirect
                 $runtime->{redirect} = 0;
