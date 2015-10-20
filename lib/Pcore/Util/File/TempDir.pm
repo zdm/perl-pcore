@@ -42,7 +42,7 @@ sub _build__temp {
 sub _build_path {
     my $self = shift;
 
-    return P->file->path( $self->_temp->dirname, is_dir => 1 )->realpath->to_string;
+    return P->path( $self->_temp->dirname, is_dir => 1 )->realpath->to_string;
 }
 
 sub _build_base {

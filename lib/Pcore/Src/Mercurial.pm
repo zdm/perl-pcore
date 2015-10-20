@@ -97,7 +97,7 @@ sub _build_root ($self) {
         die 'No repo at this path';
     }
     else {
-        return P->file->path( $res->{o}->[0], is_dir => 1 )->realpath;
+        return P->path( $res->{o}->[0], is_dir => 1 )->realpath;
     }
 }
 
@@ -155,7 +155,7 @@ sub hg_pre_commit ($self) {
     for my $pair ( P->list->pairs( $res->{o}->@* ) ) {
         P->text->trim( $pair->[0] );
 
-        push $commit->{files}->@*, Pcore::Src::Mercurial::File->new( { path => P->file->path( $pair->[1], base => $self->root ), status => $pair->[0] } );
+        push $commit->{files}->@*, Pcore::Src::Mercurial::File->new( { path => P->path( $pair->[1], base => $self->root ), status => $pair->[0] } );
     }
 
     return $commit;

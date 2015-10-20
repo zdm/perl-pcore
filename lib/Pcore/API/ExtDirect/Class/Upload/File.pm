@@ -290,7 +290,7 @@ sub write_field_glyph {
 
     return if !defined $rec->out_fields->{name};
 
-    my $path = P->file->path( $rec->out_fields->{name} );
+    my $path = P->path( $rec->out_fields->{name} );
 
     if ( exists $MIME_CATEGORY_GLYPH->{ $path->mime_category } ) {
         return \$MIME_CATEGORY_GLYPH->{ $path->mime_category };
@@ -307,7 +307,7 @@ sub write_field_thumb {
 
     return if !defined $rec->out_fields->{name} || !defined $rec->out_fields->{location};
 
-    my $path = P->file->path( $rec->out_fields->{name} );
+    my $path = P->path( $rec->out_fields->{name} );
 
     if ( $path->mime_category eq 'image' ) {
         return \( $rec->out_fields->{location} . $self->_thumb_postfix );
@@ -340,7 +340,7 @@ sub _create_thumb {
     my $self = shift;
     my $path = shift;
 
-    $path = P->file->path($path);
+    $path = P->path($path);
 
     if ( $path->mime_category eq 'image' ) {
         my $img = Imager->new( file => $path );

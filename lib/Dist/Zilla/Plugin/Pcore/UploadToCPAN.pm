@@ -46,7 +46,7 @@ sub _upload ( $self, $username, $password, $path ) {
 
     P->text->encode_utf8($password);
 
-    $path = P->file->path($path);
+    $path = P->path($path);
 
     my $boundary = P->random->bytes_hex(64);
 

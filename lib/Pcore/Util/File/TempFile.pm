@@ -27,7 +27,7 @@ no Pcore;
     *File::Temp::path = sub {
         my $self = shift;
 
-        ${ *{$self} }[0] = P->file->path( $self->filename )->to_string unless ${ *{$self} }[0];
+        ${ *{$self} }[0] = P->path( $self->filename )->to_string unless ${ *{$self} }[0];
 
         return ${ *{$self} }[0];
     };

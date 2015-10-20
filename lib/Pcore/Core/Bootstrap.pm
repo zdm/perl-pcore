@@ -42,10 +42,10 @@ sub CORE_INIT {
     _configure_inc();
 
     # configure $PROC run-time dirs
-    $PROC->{LOG_DIR}  = $PROC->{LOG_DIR}  ? P->file->path( $PROC->{LOG_DIR},  is_dir => 1, lazy => 1 ) : $DIST->{LOG_DIR};
-    $PROC->{DATA_DIR} = $PROC->{DATA_DIR} ? P->file->path( $PROC->{DATA_DIR}, is_dir => 1, lazy => 1 ) : $DIST->{DATA_DIR};
-    $PROC->{TMPL_DIR} = $PROC->{TMPL_DIR} && -d $PROC->{TMPL_DIR} ? P->file->path( $PROC->{TMPL_DIR}, is_dir => 1 )->realpath->to_string : q[];
-    $PROC->{I18N_DIR} = $PROC->{I18N_DIR} && -d $PROC->{I18N_DIR} ? P->file->path( $PROC->{I18N_DIR}, is_dir => 1 )->realpath->to_string : q[];
+    $PROC->{LOG_DIR}  = $PROC->{LOG_DIR}  ? P->path( $PROC->{LOG_DIR},  is_dir => 1, lazy => 1 ) : $DIST->{LOG_DIR};
+    $PROC->{DATA_DIR} = $PROC->{DATA_DIR} ? P->path( $PROC->{DATA_DIR}, is_dir => 1, lazy => 1 ) : $DIST->{DATA_DIR};
+    $PROC->{TMPL_DIR} = $PROC->{TMPL_DIR} && -d $PROC->{TMPL_DIR} ? P->path( $PROC->{TMPL_DIR}, is_dir => 1 )->realpath->to_string : q[];
+    $PROC->{I18N_DIR} = $PROC->{I18N_DIR} && -d $PROC->{I18N_DIR} ? P->path( $PROC->{I18N_DIR}, is_dir => 1 )->realpath->to_string : q[];
 
     _configure_inline();
 
@@ -57,9 +57,9 @@ sub _configure_proc {
 
     $PROC->{START_DIR}    = P->file->cwd->to_string;
     $PROC->{SCRIPT_NAME}  = $FindBin::RealScript;
-    $PROC->{SCRIPT_DIR}   = P->file->path( $FindBin::RealBin, is_dir => 1 )->realpath->to_string;
+    $PROC->{SCRIPT_DIR}   = P->path( $FindBin::RealBin, is_dir => 1 )->realpath->to_string;
     $PROC->{SCRIPT_PATH}  = $PROC->{SCRIPT_DIR} . $PROC->{SCRIPT_NAME};
-    $PROC->{SYS_TEMP_DIR} = P->file->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
+    $PROC->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
     $PROC->{TEMP_DIR}     = P->file->tempdir( base => $PROC->{SYS_TEMP_DIR}, lazy => 1 );
 
     return;
@@ -78,8 +78,8 @@ sub _configure_dist {
         };
 
         $DIST->{ROOT}      = q[];
-        $DIST->{SHARE_DIR} = $dist_share_dir ? P->file->path( $dist_share_dir, is_dir => 1 )->realpath->to_string : q[];
-        $DIST->{LOG_DIR}   = P->file->path( $ENV{PAR_TEMP} . '/log/', is_dir => 1, lazy => 1 );
+        $DIST->{SHARE_DIR} = $dist_share_dir ? P->path( $dist_share_dir, is_dir => 1 )->realpath->to_string : q[];
+        $DIST->{LOG_DIR}   = P->path( $ENV{PAR_TEMP} . '/log/', is_dir => 1, lazy => 1 );
         $DIST->{DATA_DIR}  = q[];
     }
     elsif ( my $dist_root = find_dist_root( $PROC->{SCRIPT_DIR} ) ) {    # script located in dist location
@@ -87,8 +87,8 @@ sub _configure_dist {
 
         $DIST->{ROOT}      = $dist_root->to_string;
         $DIST->{SHARE_DIR} = $DIST->{ROOT} . 'share/';
-        $DIST->{LOG_DIR}   = P->file->path( $DIST->{ROOT} . 'log/', is_dir => 1, lazy => 1 );
-        $DIST->{DATA_DIR}  = P->file->path( $DIST->{ROOT} . 'data/', is_dir => 1, lazy => 1 );
+        $DIST->{LOG_DIR}   = P->path( $DIST->{ROOT} . 'log/', is_dir => 1, lazy => 1 );
+        $DIST->{DATA_DIR}  = P->path( $DIST->{ROOT} . 'data/', is_dir => 1, lazy => 1 );
     }
     else {                                                               # script located in unknown location
         $DIST->{ROOT}      = q[];
@@ -109,7 +109,7 @@ sub _configure_dist {
 sub _configure_p {
     $P = {};
 
-    my $p_root = P->file->path( $INC{'Pcore.pm'} =~ s[[\\/]lib[\\/]Pcore[.]pm\z][]smr, is_dir => 1 )->realpath;
+    my $p_root = P->path( $INC{'Pcore.pm'} =~ s[[\\/]lib[\\/]Pcore[.]pm\z][]smr, is_dir => 1 )->realpath;
 
     if ( _dir_is_dist_root($p_root) ) {    # Pcore is deployed as dist
         if ( $DIST->{ROOT} && $DIST->{ROOT} eq $p_root ) {    # Pcore is current dist
@@ -125,10 +125,10 @@ sub _configure_p {
         }
 
         # define inline dir location
-        $P->{INLINE_DIR} = P->file->path( $P->{ROOT} . '.inline/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
+        $P->{INLINE_DIR} = P->path( $P->{ROOT} . '.inline/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
     }
     else {                                                    # Pcore is located in CPAN or in PAR
-        my $p_share_dir = P->file->path( File::ShareDir::dist_dir('Pcore'), is_dir => 1 )->realpath->to_string;
+        my $p_share_dir = P->path( File::ShareDir::dist_dir('Pcore'), is_dir => 1 )->realpath->to_string;
 
         $P = P->cfg->load( $p_share_dir . 'dist.perl' );
 
@@ -137,10 +137,10 @@ sub _configure_p {
 
         # define inline dir location
         if ($Pcore::IS_PAR) {                                 # Pcore PAR inline dir location
-            $P->{INLINE_DIR} = P->file->path( $ENV{PAR_TEMP} . '/inc/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
+            $P->{INLINE_DIR} = P->path( $ENV{PAR_TEMP} . '/inc/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
         }
         else {                                                # Pcore CPAN inline dir location
-            $P->{INLINE_DIR} = P->file->path( $P->{SHARE_DIR} . '.inline/', is_dir => 1, lazy => 1 );
+            $P->{INLINE_DIR} = P->path( $P->{SHARE_DIR} . '.inline/', is_dir => 1, lazy => 1 );
         }
     }
 
@@ -169,7 +169,7 @@ sub _configure_inc {
 
         next if !-d $inc_path;
 
-        $inc_path = P->file->path( $inc_path, is_dir => 1 )->realpath->canonpath;
+        $inc_path = P->path( $inc_path, is_dir => 1 )->realpath->canonpath;
 
         if ( !exists $inc_index->{$inc_path} ) {
             $inc_index->{$inc_path} = 1;
@@ -202,7 +202,7 @@ sub _configure_inc {
         unshift @inc, $dist_lib_path if $dist_lib_path;
 
         # add absolute script path, only if not in PAR mode
-        my $path = P->file->path( $PROC->{SCRIPT_DIR}, is_dir => 1 )->canonpath;
+        my $path = P->path( $PROC->{SCRIPT_DIR}, is_dir => 1 )->canonpath;
 
         if ( !exists $inc_index->{$path} ) {
             $inc_index->{$path} = 1;
@@ -235,7 +235,7 @@ sub _configure_inline {
 
 # find dist root in current dir and all parent dirs
 sub find_dist_root {
-    my $dir = P->file->path(shift);
+    my $dir = P->path(shift);
 
     while ($dir) {
         return $dir if _dir_is_dist_root($dir);
@@ -268,9 +268,6 @@ sub _dir_is_dist_root {
 ## │    3 │ 10                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 253                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 47, 48, 60, 81, 131, │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 172                  │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

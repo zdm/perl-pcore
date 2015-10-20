@@ -52,7 +52,7 @@ sub _add_location {
     my $location = shift;
 
     if ( $location && -d $location ) {
-        $location = P->file->path( $location, is_dir => 1 )->realpath;
+        $location = P->path( $location, is_dir => 1 )->realpath;
 
         unless ( $location ~~ $LOCATIONS->@* ) {
             unshift $LOCATIONS->@*, $location;

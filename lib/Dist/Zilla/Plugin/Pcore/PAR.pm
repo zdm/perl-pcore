@@ -88,7 +88,7 @@ sub build_par {
 
 sub _build_script {
     my $self    = shift;
-    my $script  = P->file->path(shift);
+    my $script  = P->path(shift);
     my $profile = shift;
 
     my $exe_path = 'data/' . $script->filename_base . ( $Config::Config{archname} =~ /x64|x86_64/sm ? q[-x64] : q[] );
@@ -144,7 +144,7 @@ sub _build_script {
 
                 $processed_so->{$so} = 1;
 
-                my $so_filename = P->file->path($so)->filename;
+                my $so_filename = P->path($so)->filename;
 
                 my $found;
 
@@ -223,7 +223,7 @@ sub _add_pkg {
 
     my $found;
 
-    my $pkg_path = P->file->path($pkg);
+    my $pkg_path = P->path($pkg);
 
     if ( $found = $self->_find_module($pkg) ) {
         my $inc_path = $found->[0];
@@ -293,10 +293,10 @@ sub _add_pkg {
 # build date, UTC
 sub _add_perl_source {
     my $self             = shift;
-    my $from             = P->file->path(shift);
-    my $to               = P->file->path(shift);
+    my $from             = P->path(shift);
+    my $to               = P->path(shift);
     my $profile          = shift;
-    my $pkg              = shift;                  # main script, if not specified
+    my $pkg              = shift;            # main script, if not specified
     my $is_public_module = shift;
 
     P->file->mkpath( $to->dirname ) if !-d $to->dirname;
@@ -416,7 +416,7 @@ sub _copy_file {
     my $from = shift;
     my $to   = shift;
 
-    my $to_path = P->file->path($to);
+    my $to_path = P->path($to);
 
     P->file->mkpath( $to_path->dirname ) if !-d $to_path->dirname;
 
@@ -436,7 +436,7 @@ sub _copy_file {
 
 sub _upx {
     my $self = shift;
-    my $path = P->file->path(shift);
+    my $path = P->path(shift);
 
     my $upx;
 
@@ -574,7 +574,7 @@ sub _find_module {
     # index perl installation @INC
     if ( !$perl_inc ) {
         for my $var (qw[privlibexp archlibexp sitelibexp sitearchexp vendorlibexp vendorarchexp]) {
-            $perl_inc->{ P->file->path( $Config::Config{$var}, is_dir => 1 )->canonpath } = 1;
+            $perl_inc->{ P->path( $Config::Config{$var}, is_dir => 1 )->canonpath } = 1;
         }
     }
 

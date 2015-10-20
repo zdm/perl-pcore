@@ -151,7 +151,7 @@ sub _source_dir ($self) {
         {   wanted => sub {
                 return if -d;
 
-                my $path = P->file->path( $_, is_dir => 0 );
+                my $path = P->path( $_, is_dir => 0 );
 
                 my $type = Pcore::Src::File->detect_filetype($path);
 

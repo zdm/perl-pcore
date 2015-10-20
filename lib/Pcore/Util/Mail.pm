@@ -106,7 +106,7 @@ sub _send_attachment {
 
     die qq[Unable to find attachment file $file] unless -f $file;
 
-    my $path = P->file->path($file);
+    my $path = P->path($file);
 
     my $data = P->file->read_bin($path);
 

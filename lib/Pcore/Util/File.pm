@@ -3,22 +3,14 @@ package Pcore::Util::File;
 use Pcore;
 use Fcntl qw[:DEFAULT];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-use Pcore::Util::File::Path;
-
-# PATH OBJECT CONSTRUCTOR
-sub path {
-    my $self = shift;
-
-    return Pcore::Util::File::Path->new(@_);
-}
 
 sub cat_path ( $self, @ ) {
-    return Pcore::Util::File::Path->NEW( join q[/], splice @_, 1 );
+    return P->path( join q[/], splice @_, 1 );
 }
 
 # return cwd, symlinks are resolved
 sub cwd ($self) {
-    return $self->path( Cwd::realpath(q[.]), is_dir => 1 );
+    return P->path( Cwd::realpath(q[.]), is_dir => 1 );
 }
 
 sub chdir ( $self, $path ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
@@ -485,7 +477,7 @@ sub read_dir ( $self, $path, % ) {
     }
 
     if ( $args{full_path} ) {
-        my $path = $self->path( $path, is_dir => 1 );
+        my $path = P->path( $path, is_dir => 1 );
 
         $files = [ map { $path . $_ } $files->@* ];
     }
@@ -701,9 +693,9 @@ sub where ( $self, $filename ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 56                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
-## │      │ 130                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
-## │      │ 256                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
+## │      │ 48                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
+## │      │ 122                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
+## │      │ 248                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -62,7 +62,7 @@ sub mounted_dir {
 sub _init_resources_root ($root) {
     P->file->mkpath($root) if !-d $root;
 
-    $root = P->file->path( $root, is_dir => 1 )->realpath->to_string;
+    $root = P->path( $root, is_dir => 1 )->realpath->to_string;
 
     P->file->mkdir( $root . '/local/' ) if !-d $root . '/local/';
 
@@ -131,7 +131,7 @@ sub _find_resource ( $self, $root, $location, $path ) {
     $root = $location_cache->{$root}->{$location};
 
     if ( -f $root . $path ) {
-        my $realpath = P->file->path( $root . $path )->realpath->to_string;
+        my $realpath = P->path( $root . $path )->realpath->to_string;
 
         return $realpath if index( $realpath, $root, 0 ) == 0;
     }
@@ -165,7 +165,7 @@ sub store_share ( $self, $path, $file ) {
 
 sub _store_resource ( $self, $location, $path, $file ) {
     if ( dist_dir() ) {
-        my $store_path = P->file->path( dist_dir() . $location . q[/] . $path );
+        my $store_path = P->path( dist_dir() . $location . q[/] . $path );
 
         P->file->mkpath( $store_path->dirname ) if $store_path->dirname && !-d $store_path->dirname;
 
@@ -191,8 +191,6 @@ sub _store_resource ( $self, $location, $path, $file ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 67, 69, 133          │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 65, 134              │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

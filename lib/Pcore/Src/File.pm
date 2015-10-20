@@ -33,7 +33,7 @@ sub cfg ($self) {
 }
 
 sub detect_filetype ( $self, $path, $buffer_ref = undef ) {
-    $path = P->file->path($path);
+    $path = P->path($path);
 
     my $type;
 
@@ -80,7 +80,7 @@ sub detect_filetype ( $self, $path, $buffer_ref = undef ) {
 }
 
 sub BUILDARGS ( $self, $args ) {
-    $args->{path} = P->file->path( $args->{path} ) if !ref $args->{path};
+    $args->{path} = P->path( $args->{path} ) if !ref $args->{path};
 
     return $args;
 }
