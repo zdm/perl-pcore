@@ -6,7 +6,7 @@ use Pcore::Src::Mercurial::File;
 
 has source => ( is => 'ro', isa => Str, required => 1 );
 
-has root => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Path'], init_arg => undef );
+has root => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Path'], init_arg => undef );
 has capabilities => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has _in  => ( is => 'ro', init_arg => undef );    # read from child

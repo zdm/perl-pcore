@@ -1,7 +1,7 @@
 package Pcore::Util::URI::Path;
 
 use Pcore;
-use base qw[Pcore::Util::File::Path];
+use base qw[Pcore::Util::Path];
 
 use overload    #
   q[""] => sub {

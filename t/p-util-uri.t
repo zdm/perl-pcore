@@ -54,7 +54,7 @@ for my $pair ( P->list->pairs( $tests->@* ) ) {
     if ( $uri->to_string ne $pair->value ) {
         say dump $uri;
 
-        say $uri->to_string;
+        say 'RESULT:' . $uri->to_string . ', EXPECT: ' . $pair->value;
     }
 
     ok( $uri->to_string eq $pair->value, 'p_util_uri_' . ++$i );

@@ -79,7 +79,7 @@ BEGIN {
         list      => 'Pcore::Util::List',
         mail      => 'Pcore::Util::Mail',
         moo       => 'Pcore::Util::Moo',
-        path      => 'Pcore::Util::File::Path',
+        path      => 'Pcore::Util::Path',
         pm        => 'Pcore::Util::PM',
         progress  => 'Pcore::Util::Progress',
         prompt    => 'Pcore::Util::Prompt',

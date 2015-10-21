@@ -3,9 +3,7 @@ package Pcore::Util::URI;
 use Pcore qw[-class];
 
 use Pcore qw[-class -const];
-use Pcore::Util::URI::Host;
 use Pcore::Util::URI::Path;
-use URI::_idna qw[];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 use overload                 #
@@ -105,116 +103,57 @@ sub NEW {
 }
 
 sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
-    my %args = (
-        _has_authority => 0,
-        scheme         => q[],
-        userinfo       => q[],
-        host           => q[],
-        port           => 0,
-        path           => q[],
-        query          => q[],
-        fragment       => q[],
-    );
+    my %args;
 
     utf8::encode($uri) if utf8::is_utf8($uri);
 
+    $uri =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
+
     $uri = q[//] . $uri if $with_authority && index( $uri, q[//] ) == -1;
 
-    # scheme
-    {
-        my $first_colon_idx = index $uri, q[:];
+    # official regex from RFC 3986
+    $uri =~ m[^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)([?]([^#]*))?(#(.*))?]smo;
 
-        if ( $first_colon_idx != -1 ) {
-            my $first_slash_idx = index $uri, q[/];
-
-            if ( $first_slash_idx == -1 || $first_colon_idx < $first_slash_idx ) {
-                $args{scheme} = lc substr $uri, 0, $first_colon_idx, q[];
-
-                substr $uri, 0, 1, q[];
-            }
-        }
-    }
+    $args{scheme} = defined $2 ? lc $2 : q[];
 
     # authority
-    {
-        my $authority = q[];
+    $args{_has_authority} = defined $3 ? 1 : 0;
 
-        if ( index( $uri, q[//] ) == 0 ) {
-            $args{_has_authority} = 1;
+    if ( defined $4 ) {
 
-            substr $uri, 0, 2, q[];
+        # parse userinfo, host, port
+        $4 =~ m[\A((.+)@)?([^:]+)?(:(.*))?]smo;
+
+        $args{userinfo} = $2 // q[];
+
+        # host
+        if ( defined $3 ) {
+            $args{host} = $3;
+        }
+        else {
+            $args{host} = q[];
         }
 
-        if ( $args{_has_authority} && $uri =~ s[\A([^/?#]+)][]smo ) {
-            $authority = $1;
+        $args{port} = $5 // 0;
+    }
+    else {
+        $args{userinfo} = q[];
 
-            my $userinfo_idx = rindex $authority, q[@];
+        $args{host} = q[];
 
-            if ( $userinfo_idx != -1 ) {
-                $args{userinfo} = substr $authority, 0, $userinfo_idx, q[];
-
-                substr $authority, 0, 1, q[];
-
-                $args{userinfo} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
-            }
-
-            my $port_idx = index $authority, q[:];
-
-            if ( $port_idx != -1 ) {
-                $args{host} = substr $authority, 0, $port_idx, q[];
-
-                substr $authority, 0, 1, q[];
-
-                $args{port} = $authority;
-
-                $args{port} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
-            }
-            else {
-                $args{host} = $authority;
-            }
-
-            # encode IDN host
-            if ( $args{host} =~ m[[^[:ascii:]]]smo ) {
-                utf8::decode( $args{host} );
-
-                $args{host} = URI::_idna::encode( lc $args{host} );
-
-                utf8::downgrade( $args{host} );
-            }
-            else {
-                $args{host} = lc $args{host};
-            }
-        }
+        $args{port} = 0;
     }
 
-    if ( $uri ne q[] ) {
-        my $length = length $uri;
+    # path
+    $args{path} = $5 // q[];
 
-        # fragment
-        if ( ( my $fragment_idx = index $uri, q[#] ) != -1 ) {
-            $args{fragment} = substr $uri, $fragment_idx, $length, q[];
-
-            substr $args{fragment}, 0, 1, q[];    # remove "#" from fragment
-
-            # escape
-            $args{fragment} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
-        }
-
-        # query
-        if ( ( my $query_idx = index $uri, q[?] ) != -1 ) {
-            $args{query} = substr $uri, $query_idx, $length, q[];
-
-            substr $args{query}, 0, 1, q[];       # remove "?" from query
-
-            # escape
-            $args{query} =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
-        }
-
-        $args{path} = $uri;
-    }
-
-    # uri with authority always has "/" path
     $args{path} = q[/] if $args{_has_authority} && $args{path} eq q[];
+
+    # query
+    $args{query} = $7 // q[];
+
+    # fragment
+    $args{fragment} = $9 // q[];
 
     return \%args;
 }
@@ -225,7 +164,15 @@ sub _prepare_uri_args ( $self, $uri_args, $args ) {
     # if URI has no scheme and base URI is specified - merge with base URI
     $self->_merge_uri_base( $uri_args, $args->{base} ) if $uri_args->{scheme} eq q[] && $args->{base};
 
-    $uri_args->{host} = bless { name => $uri_args->{host} }, 'Pcore::Util::URI::Host' if !ref $uri_args->{host};
+    if ( !ref $uri_args->{host} ) {
+        if ( index( $uri_args->{host}, q[%] ) != -1 ) {
+            $uri_args->{host} = URI::Escape::XS::uri_unescape( $uri_args->{host} );
+
+            utf8::decode( $uri_args->{host} );
+        }
+
+        $uri_args->{host} = P->host( $uri_args->{host} );
+    }
 
     $uri_args->{path} = Pcore::Util::URI::Path->new( $uri_args->{path}, from_uri => 1 ) if !ref $uri_args->{path};
 
@@ -400,7 +347,10 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 96                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    3 │ 117, 120, 127, 137,  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │      │ 148, 153, 156        │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 94                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

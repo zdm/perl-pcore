@@ -9,9 +9,9 @@ use Mojo::URL qw[];
 
 const our $COUNT => -3;
 
-my $uri = q[/aaa/];
+my $uri = q[path/path];
 
-my $base = q[http://base_host/base_path/];
+my $base = q[http://];
 
 my $base_obj = P->uri($base);
 
@@ -20,21 +20,27 @@ say URI->new_abs( $uri, $base );
 
 say Mojo::URL->new($uri)->to_abs( Mojo::URL->new($base) );
 
-say P->uri( $uri, base => $base );
+say P->uri( $uri, base => $base_obj );
 
 my $tests = {
     URI => sub {
-        my $u = URI->new_abs( $uri, $base );
+        my $u = URI->new($uri) . q[];
+
+        # my $u = URI->new_abs( $uri, $base ) . q[];
 
         return;
     },
     'Mojo::URL' => sub {
-        my $u = Mojo::URL->new($uri)->to_abs( Mojo::URL->new($base) );
+        my $u = Mojo::URL->new($uri) . q[];
+
+        # my $u = Mojo::URL->new($uri)->to_abs( Mojo::URL->new($base) ) . q[];
 
         return;
     },
     'Pcore::Util::URI' => sub {
-        my $u = P->uri( $uri, base => $base );
+        my $u = P->uri($uri) . q[];
+
+        # my $u = P->uri( $uri, base => $base_obj ) . q[];
 
         return;
     },

@@ -1,8 +1,8 @@
 package Pcore::Util::URI::Host;
 
-use Pcore qw[-class];
+use Pcore qw[-class -const];
 use AnyEvent::Socket qw[];
-use URI::_idna;
+use Pcore::Util::URI::Punycode qw[:ALL];
 
 use overload    #
   q[""] => sub {
@@ -36,7 +36,9 @@ has root_domain_utf8     => ( is => 'lazy', init_arg => undef );
 
 # NOTE host should be in UTF-8 or ASCII punycoded, UTF-8 encoded - is invalid value
 around new => sub ( $orig, $self, $host ) {
-    return __PACKAGE__->$orig( { name => $host } );
+    $host = to_punycode($host) if utf8::is_utf8($host);
+
+    return bless { name => $host }, __PACKAGE__;
 };
 
 no Pcore;
@@ -115,7 +117,7 @@ sub tlds ($force_download = 0) {
                 blocking    => $force_download ? $force_download : 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = P->res->store_local( 'tld.dat', P->text->encode_utf8( \join $LF, sort map { URI::_idna::decode(lc) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) );
+                        $path = P->res->store_local( 'tld.dat', P->text->encode_utf8( \join $LF, sort map { from_punycode($_) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ) );
                     }
 
                     return;
@@ -133,18 +135,12 @@ sub NEW {
     goto &new;
 }
 
-sub BUILDARGS ( $self, $args ) {
-    $args->{name} = URI::_idna::encode( $args->{name} );    # if utf8::is_utf8( $args->{name} );
-
-    return $args;
-}
-
 sub to_string ($self) {
     return $self->{name};
 }
 
 sub _build_name_utf8 ($self) {
-    return URI::_idna::decode( $self->name );
+    return from_punycode( $self->name );
 }
 
 sub _build_is_ip ($self) {
@@ -218,7 +214,7 @@ sub _build_tld ($self) {
 }
 
 sub _build_tld_utf8 ($self) {
-    return URI::_idna::decode( $self->tld );
+    return from_punycode( $self->tld );
 }
 
 sub _build_tld_is_valid ($self) {
@@ -234,7 +230,7 @@ sub _build_canon ($self) {
 }
 
 sub _build_canon_utf8 ($self) {
-    return URI::_idna::decode( $self->canon );
+    return from_punycode( $self->canon );
 }
 
 sub _build_is_pub_suffix ($self) {
@@ -293,7 +289,7 @@ sub _build_pub_suffix ($self) {
     }
 
     if ($pub_suffix_utf8) {
-        $pub_suffix_utf8 = URI::_idna::encode($pub_suffix_utf8);
+        $pub_suffix_utf8 = to_punycode($pub_suffix_utf8);
 
         return $pub_suffix_utf8;
     }
@@ -303,7 +299,7 @@ sub _build_pub_suffix ($self) {
 }
 
 sub _build_pub_suffix_utf8 ($self) {
-    return URI::_idna::decode( $self->pub_suffix );
+    return from_punycode( $self->pub_suffix );
 }
 
 sub _build_is_root_domain ($self) {
@@ -325,7 +321,7 @@ sub _build_root_domain ($self) {
 }
 
 sub _build_root_domain_utf8 ($self) {
-    return URI::_idna::decode( $self->root_domain );
+    return from_punycode( $self->root_domain );
 }
 
 1;
@@ -335,9 +331,9 @@ sub _build_root_domain_utf8 ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 71, 78, 92           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 73, 80, 94           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 278, 281             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 274, 277             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

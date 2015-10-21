@@ -1,4 +1,4 @@
-package Pcore::Util::File::Path;
+package Pcore::Util::Path;
 
 use Pcore qw[-class];
 use Storable qw[];
@@ -413,7 +413,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::File::Path
+Pcore::Util::Path
 
 =head1 SYNOPSIS
 

@@ -4,7 +4,7 @@ use Pcore qw[-class];
 use Term::ANSIColor qw[:constants];
 
 has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate]], required => 1 );
-has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::File::Path'], required => 1 );
+has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 has is_realpath => ( is => 'lazy', isa => Bool );
 has in_buffer   => ( is => 'lazy', isa => ScalarRef, predicate => 1 );
 has decode      => ( is => 'ro',   isa => Bool, default => 0 );

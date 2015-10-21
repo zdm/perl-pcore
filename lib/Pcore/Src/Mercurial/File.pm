@@ -2,7 +2,7 @@ package Pcore::Src::Mercurial::File;
 
 use Pcore qw[-class];
 
-has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::File::Path'], required => 1 );
+has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 has status => ( is => 'ro', isa => Enum [qw[A M R ? !]], required => 1 );
 
 sub is_added {
