@@ -54,7 +54,7 @@ sub execute {
             {   wanted => sub {
                     return if -d;
 
-                    my $path = Pcore->file->path($_);
+                    my $path = Pcore->path($_);
 
                     if ( $path->suffix eq 'pm' ) {
                         my $parser = Pod::Markdown->new(

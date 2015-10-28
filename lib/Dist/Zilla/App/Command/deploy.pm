@@ -89,7 +89,7 @@ sub _chmod {
 sub _is_exec {
     my ( $self, $path ) = @_;
 
-    $path = Pcore->file->path($path);
+    $path = Pcore->path($path);
 
     if ( ( $path->dirname eq 'bin/' || $path->dirname eq 'script/' ) && !$path->suffix ) {
         return 1;
@@ -141,9 +141,9 @@ sub _install {
 
     my $canon_dist_root = Pcore->file->cwd->realpath->canonpath;
 
-    my $canon_bin_dir = Pcore->file->path('./bin/')->realpath->canonpath;
+    my $canon_bin_dir = Pcore->path('./bin/')->realpath->canonpath;
 
-    my $canon_dist_lib_dir = Pcore->file->path('./../')->realpath->canonpath;
+    my $canon_dist_lib_dir = Pcore->path('./../')->realpath->canonpath;
 
     if ( $^O =~ /MSWin/sm ) {
 
@@ -206,7 +206,7 @@ SH
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 1                    │ Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 142, 144, 146        │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 142                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 1                    │ NamingConventions::Capitalization - Package "Dist::Zilla::App::Command::deploy" does not start with a upper    │
 ## │      │                      │ case letter                                                                                                    │
