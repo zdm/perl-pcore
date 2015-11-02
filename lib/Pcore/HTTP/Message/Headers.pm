@@ -10,10 +10,10 @@ sub to_psgi ($self) {
 
     my $headers = [];
 
-    for ( keys $hash ) {
+    for ( keys $hash->%* ) {
         my $header = ( ucfirst lc ) =~ s/_([[:alpha:]])/q[-] . uc $1/smger;
 
-        push $headers, map { ( $header, $_ ) } $hash->{$_}->@*;
+        push $headers->@*, map { ( $header, $_ ) } $hash->{$_}->@*;
     }
 
     return $headers;
@@ -42,7 +42,7 @@ sub to_string ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 27                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 13, 27               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

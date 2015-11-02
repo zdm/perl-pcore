@@ -35,7 +35,7 @@ sub BUILD ( $self, $args ) {
             my $source = P->class->load( delete $args{class}, ns => 'Pcore::AE::Handle::ProxyPool::Source' )->new( \%args );
 
             # add source to the pool
-            push $self->_source, $source;
+            push $self->_source->@*, $source;
         }
     }
 

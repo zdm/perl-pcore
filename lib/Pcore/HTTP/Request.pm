@@ -20,7 +20,7 @@ const our $HTTP_METHODS => {
 };
 
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'] );
-has method => ( is => 'ro', isa => Enum [ keys $HTTP_METHODS ], required => 1 );
+has method => ( is => 'ro', isa => Enum [ keys $HTTP_METHODS->%* ], required => 1 );
 has url => ( is => 'ro', isa => Str, required => 1 );
 
 has recurse    => ( is => 'ro', isa => PositiveOrZeroInt );
@@ -96,7 +96,7 @@ sub _get_progress_bar_cb ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 51                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 23, 51               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
