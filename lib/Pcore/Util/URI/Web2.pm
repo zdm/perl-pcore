@@ -78,7 +78,7 @@ sub _build_is_web2 ($self) {
 }
 
 sub _build_is_web2_valid ($self) {
-    return $self->is_web2 && ( $self->_web2_parsed->[1] // 0 );
+    return $self->is_web2 && $self->_web2_parsed->[1] ? 1 : 0;
 }
 
 sub _build_web2_id ($self) {
