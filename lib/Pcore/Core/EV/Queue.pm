@@ -60,7 +60,7 @@ sub throw {
     my $obj = Pcore::Core::EV::Object->new( { class => $ev } );
 
     if ( $self->_queue->{$ev} ) {
-        for my $id ( sort { $a <=> $b } keys $self->_queue->{$ev} ) {
+        for my $id ( sort { $a <=> $b } keys $self->_queue->{$ev}->%* ) {
             unless ( $self->_queue->{$ev}->{$id}->{id} ) {
                 delete $self->_queue->{$ev}->{$id};
 
@@ -91,6 +91,16 @@ sub has_queue {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 63                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

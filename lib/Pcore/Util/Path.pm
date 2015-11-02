@@ -348,7 +348,7 @@ sub _mime_types {
         $MIME_TYPES = P->cfg->load( $P->{SHARE_DIR} . 'mime.perl' );
 
         # index MIME categories
-        for my $suffix ( keys $MIME_TYPES->{suffix} ) {
+        for my $suffix ( keys $MIME_TYPES->{suffix}->%* ) {
             unless ( ref $MIME_TYPES->{suffix}->{$suffix} eq 'HASH' ) {
                 $MIME_TYPES->{suffix}->{$suffix} = { type => $MIME_TYPES->{suffix}->{$suffix}, };
             }
@@ -403,6 +403,8 @@ sub TO_DUMP {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (39)                               │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 351                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

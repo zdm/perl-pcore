@@ -107,21 +107,21 @@ sub decompress ( $self, % ) {
 
             # create table
             # sorting violations by descending severity, ascending first line then by policy text
-            for my $v ( sort { $violations->{$a}->{severity} != $violations->{$b}->{severity} ? $violations->{$b}->{severity} <=> $violations->{$a}->{severity} : $violations->{$a}->{first_line} != $violations->{$b}->{first_line} ? $violations->{$a}->{first_line} <=> $violations->{$b}->{first_line} : $a cmp $b } keys $violations ) {
+            for my $v ( sort { $violations->{$a}->{severity} != $violations->{$b}->{severity} ? $violations->{$b}->{severity} <=> $violations->{$a}->{severity} : $violations->{$a}->{first_line} != $violations->{$b}->{first_line} ? $violations->{$a}->{first_line} <=> $violations->{$b}->{first_line} : $a cmp $b } keys $violations->%* ) {
                 my $policy = $v;
 
-                if ( keys $violations->{$v}->{desc} > 1 ) {    # multiple violations with different descriptions
+                if ( keys $violations->{$v}->{desc}->%* > 1 ) {    # multiple violations with different descriptions
                     $t->add_row( $violations->{$v}->{severity}, q[], $policy );
 
                     # sorting descriptions by ascending first line number, then by description text
-                    for my $desc ( sort { $violations->{$v}->{desc}->{$a}->{line}->[0] != $violations->{$v}->{desc}->{$b}->{line}->[0] ? $violations->{$v}->{desc}->{$a}->{line}->[0] <=> $violations->{$v}->{desc}->{$b}->{line}->[0] : $violations->{$v}->{desc}->{$a}->{text} cmp $violations->{$v}->{desc}->{$b}->{text} } keys $violations->{$v}->{desc} ) {
+                    for my $desc ( sort { $violations->{$v}->{desc}->{$a}->{line}->[0] != $violations->{$v}->{desc}->{$b}->{line}->[0] ? $violations->{$v}->{desc}->{$a}->{line}->[0] <=> $violations->{$v}->{desc}->{$b}->{line}->[0] : $violations->{$v}->{desc}->{$a}->{text} cmp $violations->{$v}->{desc}->{$b}->{text} } keys $violations->{$v}->{desc}->%* ) {
                         $t->add_row( q[], join( q[, ], sort { $a <=> $b } $violations->{$v}->{desc}->{$desc}->{line}->@* ), qq[* $violations->{$v}->{desc}->{$desc}->{text}] );
                     }
                 }
-                else {                                         # single violation
+                else {                                             # single violation
                     $policy .= qq[ - $violations->{$v}->{desc}->{[keys $violations->{$v}->{desc}->%*]->[0]}->{text}];
 
-                    $t->add_row( $violations->{$v}->{severity}, join( q[, ], sort { $a <=> $b } keys $violations->{$v}->{line} ), $policy );
+                    $t->add_row( $violations->{$v}->{severity}, join( q[, ], sort { $a <=> $b } keys $violations->{$v}->{line}->%* ), $policy );
                 }
 
                 # add diagnostic
@@ -237,7 +237,7 @@ sub _get_perlcritic_profile_name ( $self, $profile ) {
     if ( $profile eq '1' ) {
         $profile = 0;
 
-        for my $name ( keys $self->src_cfg->{PERLCRITIC} ) {
+        for my $name ( keys $self->src_cfg->{PERLCRITIC}->%* ) {
             next if !exists $self->src_cfg->{PERLCRITIC}->{$name}->{__autodetect__};
 
             if ( $self->src_cfg->{PERLCRITIC}->{$name}->{__autodetect__}->( $self->buffer->$* ) ) {
@@ -273,7 +273,7 @@ sub _get_perlcritic_object ( $self, $name ) {
         my $profile = $get_profile->($name);
 
         # convert profile to Perl::Critic format
-        for my $policy ( keys $profile ) {
+        for my $policy ( keys $profile->%* ) {
             if ( !$profile->{$policy} ) {
                 delete $profile->{$policy};
 
@@ -361,6 +361,9 @@ sub cut_log ($self) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 8                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (24)                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 110, 113, 117, 124,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 240, 276             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 161                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤

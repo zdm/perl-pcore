@@ -8,7 +8,7 @@ has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate hg-pre
 has source => ( is => 'ro', isa => Str );    # q[-] - stdin, Str - path
 
 # mandatory, if source path is idr
-has type => ( is => 'ro', isa => Enum [ keys { map { lc $_->{type} => 1 } Pcore::Src::File->cfg->{FILE_TYPE}->@* } ] );
+has type => ( is => 'ro', isa => Enum [ map { lc $_->{type} } Pcore::Src::File->cfg->{FILE_TYPE}->@* ] );
 
 # mandatory, if source is stdin
 has filename => ( is => 'ro', isa => Str );

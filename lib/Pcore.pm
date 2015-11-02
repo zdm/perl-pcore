@@ -215,6 +215,7 @@ sub import {
             # reconfigure warnings, after Moo exported
             warnings->import( 'all', FATAL => qw[utf8], NONFATAL => qw[] );
             warnings->unimport('experimental');
+            warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef], NONFATAL => qw[] );
 
             # apply default roles
             # $self->_apply_roles( caller => $caller, roles => [qw[Pcore::Core::Autoload::Role]] );
@@ -559,15 +560,15 @@ sub _configure_console {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 167                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 361                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 362                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 406, 454, 471, 519,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 520, 521, 527, 528,  │                                                                                                                │
-## │      │ 529, 534, 535, 536   │                                                                                                                │
+## │    3 │ 407, 455, 472, 520,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 521, 522, 528, 529,  │                                                                                                                │
+## │      │ 530, 535, 536, 537   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 409                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 497                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 498                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

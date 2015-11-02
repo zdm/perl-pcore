@@ -15,7 +15,7 @@ has out_buffer  => ( is => 'lazy', isa => ScalarRef, init_arg => undef );
 has is_binary   => ( is => 'lazy', isa => Bool,      init_arg => undef );
 has was_changed => ( is => 'lazy', isa => Bool,      init_arg => undef );
 has severity    => ( is => 'rw',   isa => Int,       default  => 0, init_arg => undef );
-has severity_range => ( is => 'lazy', isa => Enum [ keys Pcore::Src::File->cfg->{SEVERITY_RANGE} ], init_arg => undef );
+has severity_range => ( is => 'lazy', isa => Enum [ keys Pcore::Src::File->cfg->{SEVERITY_RANGE}->%* ], init_arg => undef );
 
 has _can_write => ( is => 'rw', isa => Bool, default => 0, init_arg => undef );
 has _in_size  => ( is => 'lazy', isa => Int, init_arg => undef );
@@ -259,7 +259,7 @@ sub _build_out_buffer ($self) {
 }
 
 sub _build_severity_range ($self) {
-    for my $range ( reverse sort { Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$a} <=> Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$b} } keys Pcore::Src::File->cfg->{SEVERITY_RANGE} ) {
+    for my $range ( reverse sort { Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$a} <=> Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$b} } keys Pcore::Src::File->cfg->{SEVERITY_RANGE}->%* ) {
         if ( $self->severity >= Pcore::Src::File->cfg->{SEVERITY_RANGE}->{$range} ) {
             return $range;
         }
@@ -290,7 +290,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 239                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 18, 239, 262         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
