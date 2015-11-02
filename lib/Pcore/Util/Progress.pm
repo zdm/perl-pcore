@@ -9,7 +9,7 @@ my $INDICATOR_ORDER = 0;
 sub get_indicator ( $self, %args ) {
     my $all_finished = 1;
 
-    for my $id ( sort keys $INDICATOR ) {
+    for my $id ( sort keys $INDICATOR->%* ) {
         if ( defined $INDICATOR->{$id} && !$INDICATOR->{$id}->is_finished ) {
             $all_finished = 0;
 
@@ -31,14 +31,14 @@ sub get_indicator ( $self, %args ) {
 sub _update {
 
     # go to beginning of the output
-    my $buffer = "\e[" . ( scalar keys $INDICATOR ) . q[A];
+    my $buffer = "\e[" . ( scalar keys $INDICATOR->%* ) . q[A];
 
-    for my $id ( sort keys $INDICATOR ) {
+    for my $id ( sort keys $INDICATOR->%* ) {
         if ( !defined $INDICATOR->{$id} ) {
             $buffer .= "\n";    # move cursor to the next line, skip rendering
         }
         else {
-            $buffer .= $INDICATOR->{$id}->_draw . qq[\n];
+            $buffer .= $INDICATOR->{$id}->_draw . $LF;
         }
     }
 
@@ -54,6 +54,8 @@ sub _update {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 12, 34, 36           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 31                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_update' declared but not used      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
