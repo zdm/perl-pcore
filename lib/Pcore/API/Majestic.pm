@@ -10,11 +10,7 @@ has datasource           => ( is => 'lazy', isa => Enum [qw[historic fresh]], de
 
 no Pcore;
 
-sub get_index_item_info {
-    my $self = shift;
-    my $urls = shift;
-    my $cb   = shift;
-
+sub get_index_item_info ( $self, $urls, $cb ) {
     die q[Maximum items number is 100] if $urls->@* > 100;
 
     my $url_params = {
@@ -68,7 +64,7 @@ sub get_index_item_info {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 76                   │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 80 does not match the package declaration       │
+## │    1 │ 72                   │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 76 does not match the package declaration       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
