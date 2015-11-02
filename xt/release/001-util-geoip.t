@@ -25,15 +25,25 @@ our $TESTS = {
     '192.106.150.150' => 'IT',
 };
 
-plan tests => scalar keys $TESTS;
+plan tests => scalar keys $TESTS->%*;
 
-for my $ip ( keys $TESTS ) {
+for my $ip ( keys $TESTS->%* ) {
     ok( P->geoip->country_code_by_addr($ip) eq $TESTS->{$ip}, 'country_code_by_addr_' . $ip );
 }
 
-done_testing scalar keys $TESTS;
+done_testing scalar keys $TESTS->%*;
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 28, 30, 34           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
