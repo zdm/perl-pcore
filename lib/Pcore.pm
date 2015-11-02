@@ -1,4 +1,4 @@
-package Pcore v0.12.3;
+package Pcore v0.12.4;
 
 use v5.22.0;
 use utf8;
