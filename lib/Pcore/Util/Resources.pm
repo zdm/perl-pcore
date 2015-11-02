@@ -80,19 +80,19 @@ sub get_root ($self) {
         if ( mounted_dir() ) {
             $index->{ mounted_dir() } = 1;
 
-            push $_root, mounted_dir();
+            push $_root->@*, mounted_dir();
         }
 
         if ( dist_dir() ) {
             $index->{ dist_dir() } = 1;
 
-            push $_root, dist_dir();
+            push $_root->@*, dist_dir();
         }
 
         if ( pcore_dir() ) {
             $index->{ pcore_dir() } = 1;
 
-            push $_root, pcore_dir();
+            push $_root->@*, pcore_dir();
         }
 
         $_root;

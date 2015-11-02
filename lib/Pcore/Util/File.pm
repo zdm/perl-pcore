@@ -275,7 +275,7 @@ sub read_lines ( $self, $path, % ) {
                 if ( $args{empty_lines} ) {
                     my $array_ref = [ split /\n/sm, $buf, -1 ];
 
-                    $tail = pop $array_ref;
+                    $tail = pop $array_ref->@*;
 
                     return if !$args{cb}->($array_ref);
                 }
@@ -283,10 +283,10 @@ sub read_lines ( $self, $path, % ) {
                     my $array_ref = [ split /\n+/sm, $buf ];
 
                     # remove leading q[], preserved by split
-                    shift $array_ref if defined $array_ref->[0] && $array_ref->[0] eq q[];
+                    shift $array_ref->@* if defined $array_ref->[0] && $array_ref->[0] eq q[];
 
                     if ( substr( $buf, -1, 1 ) ne qq[\n] ) {
-                        $tail = pop $array_ref;
+                        $tail = pop $array_ref->@*;
                     }
                     else {
                         $tail = q[];
@@ -321,7 +321,7 @@ sub read_lines ( $self, $path, % ) {
                 my $array_ref = [ split /\n/sm, $tail, -1 ];
 
                 # remove trailing q[], preserved by split
-                pop $array_ref if defined $array_ref->[-1] && $array_ref->[-1] eq q[];
+                pop $array_ref->@* if defined $array_ref->[-1] && $array_ref->[-1] eq q[];
 
                 return $array_ref;
             }
@@ -329,7 +329,7 @@ sub read_lines ( $self, $path, % ) {
                 my $array_ref = [ split /\n+/sm, $tail ];
 
                 # remove leading q[], preserved by split
-                shift $array_ref if defined $array_ref->[0] && $array_ref->[0] eq q[];
+                shift $array_ref->@* if defined $array_ref->[0] && $array_ref->[0] eq q[];
 
                 return $array_ref;
             }

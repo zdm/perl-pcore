@@ -38,13 +38,13 @@ sub core_cli_event {
 
     # push main script pod
     if ($Pcore::IS_PAR) {
-        unshift $pods, $ENV{PAR_TEMP} . q[/inc/script/main.pl];
+        unshift $pods->@*, $ENV{PAR_TEMP} . q[/inc/script/main.pl];
     }
     else {
-        unshift $pods, $PROC->{SCRIPT_PATH};
+        unshift $pods->@*, $PROC->{SCRIPT_PATH};
     }
 
-    unshift $pods, map { $INC{ s[::][/]smgr . '.pm' } } reverse @PACKAGES;
+    unshift $pods->@*, map { $INC{ s[::][/]smgr . '.pm' } } reverse @PACKAGES;
 
     # add linux POD
     if ( !$MSWIN ) {
@@ -76,7 +76,7 @@ POD
 
         open $linux_pod_fh, '<', \$pod or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
-        unshift $pods, $linux_pod_fh;
+        unshift $pods->@*, $linux_pod_fh;
     }
 
     # add service POD
@@ -104,7 +104,7 @@ POD
 
         open $service_pod_fh, '<', \$pod or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
-        unshift $pods, $service_pod_fh;
+        unshift $pods->@*, $service_pod_fh;
     }
 
     # process POD

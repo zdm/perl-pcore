@@ -4,11 +4,12 @@ use v5.22.0;
 use utf8;
 use strict;
 use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
-no  if $^V ge 'v5.18', warnings => 'experimental';
-use if $^V ge 'v5.10', feature  => ':all';
-no  if $^V ge 'v5.16', feature  => 'array_base';
-use if $^V ge 'v5.22', re       => 'strict';
-use if $^V ge 'v5.10', mro      => 'c3';
+no if $^V ge 'v5.18', warnings => 'experimental';
+use warnings ( qw[experimental::autoderef], FATAL => qw[experimental::autoderef], NONFATAL => qw[] );
+use if $^V ge 'v5.10', feature => ':all';
+no  if $^V ge 'v5.16', feature => 'array_base';
+use if $^V ge 'v5.22', re      => 'strict';
+use if $^V ge 'v5.10', mro     => 'c3';
 no multidimensional;
 
 use namespace::clean qw[];
@@ -120,9 +121,10 @@ sub import {
     strict->import();
     warnings->import( 'all', FATAL => qw[utf8], NONFATAL => qw[] );
     warnings->unimport('experimental') if $^V ge 'v5.18';
-    feature->import(':all')            if $^V ge 'v5.10';
-    feature->unimport('array_base')    if $^V ge 'v5.16';
-    re->import('strict')               if $^V ge 'v5.22';
+    warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef], NONFATAL => qw[] );
+    feature->import(':all')         if $^V ge 'v5.10';
+    feature->unimport('array_base') if $^V ge 'v5.16';
+    re->import('strict')            if $^V ge 'v5.22';
     mro::set_mro( $caller, 'c3' ) if $^V ge 'v5.10';
     multidimensional->unimport;
 
@@ -551,21 +553,21 @@ sub _configure_console {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 46                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 102                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
+## │    3 │ 103                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 165                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 167                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 359                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 361                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 404, 452, 469, 517,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 518, 519, 525, 526,  │                                                                                                                │
-## │      │ 527, 532, 533, 534   │                                                                                                                │
+## │    3 │ 406, 454, 471, 519,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 520, 521, 527, 528,  │                                                                                                                │
+## │      │ 529, 534, 535, 536   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 409                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 495                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 497                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

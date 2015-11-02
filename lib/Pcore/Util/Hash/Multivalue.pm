@@ -63,7 +63,7 @@ sub add {
             $hash->{ $args->[$i] } = ref $args->[ $i + 1 ] eq 'ARRAY' ? $args->[ $i + 1 ] : [ $args->[ $i + 1 ] ];
         }
         else {
-            push $hash->{ $args->[$i] }, ref $args->[ $i + 1 ] eq 'ARRAY' ? $args->[ $i + 1 ]->@* : $args->[ $i + 1 ];
+            push $hash->{ $args->[$i] }->@*, ref $args->[ $i + 1 ] eq 'ARRAY' ? $args->[ $i + 1 ]->@* : $args->[ $i + 1 ];
         }
     }
 
@@ -113,9 +113,9 @@ sub to_array ($self) {
 
     my $hash = $self->get_hash;
 
-    for my $key ( sort keys $hash ) {
+    for my $key ( sort keys $hash->%* ) {
         for my $val ( $hash->{$key}->@* ) {
-            push $array, $key => $val;
+            push $array->@*, $key => $val;
         }
     }
 
@@ -134,7 +134,7 @@ sub TO_DUMP ( $self, $dumper, %args ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 16, 42, 51, 96, 104, │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 126                  │                                                                                                                │
+## │      │ 116, 126             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 16                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤

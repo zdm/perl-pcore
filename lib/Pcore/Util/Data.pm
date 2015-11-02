@@ -60,7 +60,7 @@ sub encode {
         require Data::Dumper;    ## no critic qw[Modules::ProhibitEvilModules]
 
         state $sort_keys = sub {
-            return [ nsort keys $_[0] ];
+            return [ nsort keys $_[0]->%* ];
         };
 
         local $Data::Dumper::Indent     = 0;
@@ -148,7 +148,7 @@ sub encode {
 
         state $xml_obj = XML::Hash::XS->new( $xml_args->%* );
 
-        my $root = [ keys $data ]->[0];
+        my $root = [ keys $data->%* ]->[0];
 
         $res = \$xml_obj->hash2xml( $data->{$root}, root => $root, indent => $args{readable} ? 4 : 0 );
     }
@@ -820,8 +820,8 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## │      │ 32                   │ * Subroutine "encode" with high complexity score (35)                                                          │
 ## │      │ 239                  │ * Subroutine "decode" with high complexity score (31)                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 149, 372, 400, 402,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 404, 406             │                                                                                                                │
+## │    3 │ 63, 149, 151, 372,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 400, 402, 404, 406   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 711, 729, 770, 779   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
