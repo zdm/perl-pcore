@@ -71,7 +71,7 @@ sub build_par {
     }
 
     # build scripts
-    for my $script ( sort keys $profile ) {
+    for my $script ( sort keys $profile->%* ) {
         $profile->{$script}->{release} = $args{release};
 
         $profile->{$script}->{crypt} = $args{crypt} if defined $args{crypt};
@@ -120,7 +120,7 @@ sub _build_script {
     $deps->{'Filter/Crypto/Decrypt.pm'} = 1 if $profile->{crypt};
 
     # find and copy perl sources to temporary location
-    for my $pkg ( grep {/[.](?:pl|pm)\z/sm} keys $deps ) {
+    for my $pkg ( grep {/[.](?:pl|pm)\z/sm} keys $deps->%* ) {
         my $found = $self->_add_pkg( $pkg, $par_dir, $profile );
 
         say BOLD . RED . 'not found: ' . $pkg . RESET if !$found && $deps->{$pkg} !~ /\A[(]eval\s/sm;
@@ -182,7 +182,7 @@ sub _build_script {
     if ( $profile->{resources} && $profile->{resources}->@* ) {
 
         # add dist resources dir manually, because it is not added during Pcore bootstrap
-        unshift P->res->get_root, './resources/' if -d './resources/';
+        unshift P->res->get_root->@*, './resources/' if -d './resources/';
 
         for my $resource ( $profile->{resources}->@* ) {
             my $method = q[copy_] . $resource->[0];
@@ -599,9 +599,9 @@ __PACKAGE__->meta->make_immutable;
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 43                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 89                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_script" with high complexity score (25)             │
+## │    3 │ 74, 123, 138         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 138                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 89                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_script" with high complexity score (25)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 152, 240, 262, 583   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤

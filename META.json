@@ -4,7 +4,7 @@
       "zdm <zdm@cpan.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 5.038, CPAN::Meta::Converter version 2.150005",
+   "generated_by" : "Dist::Zilla version 5.041, CPAN::Meta::Converter version 2.150005",
    "license" : [
       "perl_5"
    ],
@@ -61,7 +61,7 @@
    "prereqs" : {
       "configure" : {
          "requires" : {
-            "Module::Build::Tiny" : "0.019"
+            "Module::Build::Tiny" : "0.034"
          }
       },
       "develop" : {
@@ -121,8 +121,6 @@
             "HTML::Entities" : "0",
             "HTTP::Date" : "0",
             "HTTP::Parser::XS" : "0",
-            "IO::Socket::Socks" : "0",
-            "IPC::Run" : "0",
             "Import::Into" : "0",
             "Inline" : "0",
             "Inline::C" : "0",
@@ -156,7 +154,7 @@
             "YAML::XS" : "0",
             "multidimensional" : "0",
             "namespace::clean" : "0",
-            "perl" : "v5.20.2"
+            "perl" : "v5.22.0"
          },
          "suggests" : {
             "Coro" : "0"
