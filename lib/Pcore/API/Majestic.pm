@@ -10,14 +10,14 @@ has datasource           => ( is => 'lazy', isa => Enum [qw[historic fresh]], de
 
 no Pcore;
 
-sub get_index_item_info ( $self, $urls, $cb ) {
-    die q[Maximum items number is 100] if $urls->@* > 100;
+sub get_index_item_info ( $self, $domains, $cb ) {
+    die q[Maximum items number is 100] if $domains->@* > 100;
 
     my $url_params = {
         cmd                        => 'GetIndexItemInfo',
         datasource                 => $self->datasource,
         EnableResourceUnitFailover => $self->failover,
-        items                      => scalar $urls->@*,
+        items                      => scalar $domains->@*,
     };
 
     if ( $self->api_key ) {
@@ -32,8 +32,8 @@ sub get_index_item_info ( $self, $urls, $cb ) {
         die q["app_api_key" or "openapp_key" and "openapp_access_token" are missed];
     }
 
-    for my $i ( 0 .. $urls->$#* ) {
-        $url_params->{ 'item' . $i } = $urls->[$i];
+    for my $i ( 0 .. $domains->$#* ) {
+        $url_params->{ 'item' . $i } = $domains->[$i];
     }
 
     my $url = q[http://api.majestic.com/api/json?] . P->data->to_uri($url_params);
@@ -58,22 +58,14 @@ sub get_index_item_info ( $self, $urls, $cb ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 72                   │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 76 does not match the package declaration       │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
 =encoding utf8
 
 =head1 NAME
+
+Pcore::API::Majestic
 
 =head1 SYNOPSIS
 
