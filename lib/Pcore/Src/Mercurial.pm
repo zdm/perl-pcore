@@ -91,7 +91,7 @@ sub DEMOLISH ( $self, $global ) {
 }
 
 sub _build_root ($self) {
-    my $res = $self->hg_cmd('root');
+    my $res = $self->cmd('root');
 
     if ( $res->{e} ) {
         die 'No repo at this path';
@@ -101,9 +101,8 @@ sub _build_root ($self) {
     }
 }
 
-# NOTE
-# status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
-sub hg_cmd ( $self, @cmd ) {
+# NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
+sub cmd ( $self, @cmd ) {
     my $buf = join qq[\x00], @cmd;
 
     my $cmd = qq[runcommand\x0A] . pack( 'L>', length $buf ) . $buf;
@@ -129,7 +128,7 @@ sub hg_cmd ( $self, @cmd ) {
 }
 
 # pre-commit hook
-sub hg_pre_commit ($self) {
+sub pre_commit ($self) {
     my $hg_opts = P->data->from_json( P->text->decode( $ENV{HG_OPTS_JSON}, stdin => 1 )->$*, utf8 => 0 );
 
     my $options = {};
@@ -140,9 +139,9 @@ sub hg_pre_commit ($self) {
 
     my $cmd = $self->_prepare_cmd( $options, scalar P->data->from_json( P->text->decode( $ENV{HG_PATS_JSON}, stdin => 1 )->$*, utf8 => 0 ) );
 
-    unshift $cmd->@*, 'status';
+    unshift $cmd->@*, qw[status --subrepos -m -a -r];
 
-    my $res = $self->hg_cmd( $cmd->@* );
+    my $res = $self->cmd( $cmd->@* );
 
     die $res->{e}->@* if $res->{e};
 
@@ -213,9 +212,9 @@ sub _prepare_cmd ( $self, @args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 181                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 180                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 107, 109             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 106, 108             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -57,46 +57,68 @@ sub _action_hg_pre_commit ($self) {
 
     unless ( $hg->root ) {
         $self->_throw_error(q[No hg repository found]);
+
+        return;
     }
-    else {
-        # get commit info
-        my $pre_commit = $hg->hg_pre_commit;
 
-        # index files, calculate max_path_len
-        my @paths_to_process;
+    # get commit info
+    my $pre_commit = $hg->pre_commit;
 
-        my $max_path_len = 0;
+    # index files, calculate max_path_len
+    my @paths_to_process;
 
-        for my $file ( $pre_commit->{files}->@* ) {
-            next if !$file->is_added && !$file->is_modified;
+    my $max_path_len = 0;
 
-            my $type = Pcore::Src::File->detect_filetype( $file->path );
+    for my $file ( $pre_commit->{files}->@* ) {
+        next if !$file->is_added && !$file->is_modified;
 
-            next if !$type || $type->{type} ne 'Perl';    # only perl sources processed now
+        my $type = Pcore::Src::File->detect_filetype( $file->path );
 
-            push @paths_to_process, $file->path;
+        next if !$type || $type->{type} ne 'Perl';    # only perl sources processed now
 
-            $max_path_len = length $file->path if length $file->path > $max_path_len;
-        }
+        push @paths_to_process, $file->path;
 
-        # process files
-        {
-            my $chdir_guard = P->file->chdir( $hg->root ) or die;
+        $max_path_len = length $file->path if length $file->path > $max_path_len;
+    }
 
-            for (@paths_to_process) {
-                $self->_process_file(
-                    $max_path_len,
-                    action      => 'decompress',
-                    path        => $_->to_string,
-                    is_realpath => 1,
-                    dry_run     => $self->dry_run,
-                    filter_args => { $pre_commit->{message} =~ /#\s*no\scritic/sm ? ( perl_critic => 0 ) : () },
-                );
-            }
+    # process files
+    {
+        my $chdir_guard = P->file->chdir( $hg->root ) or die;
+
+        my $filter_args = { $pre_commit->{message} =~ /#\s*no\scritic/sm ? ( perl_critic => 0 ) : () };
+
+        for (@paths_to_process) {
+            $self->_process_file(
+                $max_path_len,
+                action      => 'decompress',
+                path        => $_->to_string,
+                is_realpath => 1,
+                dry_run     => $self->dry_run,
+                filter_args => $filter_args,
+            );
         }
     }
 
     $self->_report_total if $self->interactive;
+
+    # make share/dist.perl dirty, so hg keywords extension can patch keywords
+    if ( !$self->exit_code && -f $hg->root . '/share/dist.perl' ) {
+
+        # TODO # error if subrepo has uncommited changes and commit called without --subrepo argument
+
+        # get hg status again for cheking if there are files to commit after source filter
+        $pre_commit = $hg->pre_commit;
+
+        if ( $pre_commit->{files}->@* ) {
+            my $content = P->file->read_bin( $hg->root . '/share/dist.perl' );
+
+            $content->$* =~ s[\$VCS_NODE.*?\$][\$VCS_NODE\$]sm;
+
+            $content->$* =~ s[\$VCS_DATE.*?\$][\$VCS_DATE\$]sm;
+
+            P->file->write_bin( $hg->root . '/share/dist.perl', $content );
+        }
+    }
 
     return;
 }
@@ -293,7 +315,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 246                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 268                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

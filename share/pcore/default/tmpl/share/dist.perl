@@ -6,6 +6,8 @@
         copyright_holder => '<: $copyright_holder :>',
         copyright_year   => '<: $copyright_year :>',
         main_module      => 'lib/<: $module_path :>.pm',
+        vcs_node         => '$VCS_NODE$',
+        vcs_date         => '$VCS_DATE$',
         meta             => {
             homepage   => q[],
             repository => {
