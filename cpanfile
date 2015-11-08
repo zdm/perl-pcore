@@ -157,7 +157,6 @@ on develop => sub {
     requires 'Dist::Zilla::Role::PluginBundle::PluginRemover';
     requires 'Dist::Zilla::Plugin::ModuleBuildTiny';
     requires 'Dist::Zilla::Plugin::CopyFilesFromBuild';
-    requires 'Dist::Zilla::Plugin::VersionFromModule';
     requires 'Dist::Zilla::Plugin::Prereqs::FromCPANfile';
     requires 'Dist::Zilla::Plugin::ReadmeFromPod';
     requires 'Dist::Zilla::Plugin::Signature';

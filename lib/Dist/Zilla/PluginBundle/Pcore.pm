@@ -78,8 +78,7 @@ sub configure {
             }
         ],
 
-        # extract distribution version from main module
-        ['VersionFromModule'],
+        ['Pcore::VersionProvider'],
 
         # create README.md from main module POD
         [ ReadmeFromPod => { type => 'markdown' } ],
