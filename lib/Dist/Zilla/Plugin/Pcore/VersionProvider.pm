@@ -17,37 +17,37 @@ sub provide_version ( $self, @ ) {
         $ver = $1;
     }
     else {
-        $ver = v0.1.0;
+        die q[Can't parse version from ] . $main_module;
     }
 
-    if ( $ENV{DZIL_RELEASING} ) {
-        say q[Current version: ] . $ver;
-
-        my $defver = version->new($ver);
-
-        $defver->{version}->[2]++;
-
-      REDO:
-        my $rver = $defver->normal;
-
-        print qq[Enter release version [$rver]: ];
-
-        my $in = <$STDIN>;
-
-        chomp $in;
-
-        if ($in) {
-            $rver = eval { version->new($in) };
-
-            if ( $@ || $rver <= $ver ) {
-                say 'Invalid version format';
-
-                goto REDO;
-            }
-        }
-
-        $ver = $rver;
-    }
+    # if ( $ENV{DZIL_RELEASING} ) {
+    #     say q[Current version: ] . $ver;
+    #
+    #     my $defver = version->new($ver);
+    #
+    #     $defver->{version}->[2]++;
+    #
+    #   REDO:
+    #     my $rver = $defver->normal;
+    #
+    #     print qq[Enter release version [$rver]: ];
+    #
+    #     my $in = <$STDIN>;
+    #
+    #     chomp $in;
+    #
+    #     if ($in) {
+    #         $rver = eval { version->new($in) };
+    #
+    #         if ( $@ || $rver <= $ver ) {
+    #             say 'Invalid version format';
+    #
+    #             goto REDO;
+    #         }
+    #     }
+    #
+    #     $ver = $rver;
+    # }
 
     return $ver;
 }
