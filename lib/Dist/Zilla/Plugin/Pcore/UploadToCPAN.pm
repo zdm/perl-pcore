@@ -3,10 +3,19 @@ package Dist::Zilla::Plugin::Pcore::UploadToCPAN;
 use Moose;
 use Pcore;
 
-with qw[Dist::Zilla::Role::BeforeRelease Dist::Zilla::Role::Releaser];
+with qw[Dist::Zilla::Role::ReleaseStatusProvider Dist::Zilla::Role::BeforeRelease Dist::Zilla::Role::Releaser];
 
 no Pcore;
 no Moose;
+
+sub provide_release_status ( $self, @ ) {
+
+    # stable = release
+    # testing = beta
+    # unstable = alpha
+
+    return 'stable';
+}
 
 sub before_release ( $self, @ ) {
     my $stash = $self->zilla->stash_named('%PAUSE');
