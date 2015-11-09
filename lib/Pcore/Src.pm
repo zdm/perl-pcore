@@ -101,25 +101,6 @@ sub _action_hg_pre_commit ($self) {
 
     $self->_report_total if $self->interactive;
 
-    # make share/dist.perl dirty, so hg keywords extension can patch keywords
-    if ( !$self->exit_code && -f $hg->root . '/share/dist.perl' ) {
-
-        # TODO # error if subrepo has uncommited changes and commit called without --subrepo argument
-
-        # get hg status again for cheking if there are files to commit after source filter
-        $pre_commit = $hg->pre_commit;
-
-        if ( $pre_commit->{files}->@* ) {
-            my $content = P->file->read_bin( $hg->root . '/share/dist.perl' );
-
-            $content->$* =~ s[\$VCS_NODE.*?\$][\$VCS_NODE\$]sm;
-
-            $content->$* =~ s[\$VCS_DATE.*?\$][\$VCS_DATE\$]sm;
-
-            P->file->write_bin( $hg->root . '/share/dist.perl', $content );
-        }
-    }
-
     return;
 }
 
@@ -315,7 +296,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 268                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 249                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

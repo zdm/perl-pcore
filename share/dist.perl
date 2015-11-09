@@ -6,8 +6,6 @@
         copyright_holder => 'zdm',
         copyright_year   => '2015',
         main_module      => 'lib/Pcore.pm',
-        vcs_node         => '$VCS_NODE$',
-        vcs_date         => '$VCS_DATE$',
         ExecDir          => { dir => 'bin', },
     },
 
