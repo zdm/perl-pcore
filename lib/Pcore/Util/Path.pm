@@ -296,8 +296,12 @@ sub clone ($self) {
 }
 
 sub realpath ($self) {
-    if ( $self->is_dir && -d $self->path ) {
-        return $self->new( Cwd::realpath( $self->path ), is_dir => 1 );    # Cwd::realpath always return path without trailing "/"
+    if ( $self->is_dir ) {
+        my $path = $self->path eq q[] ? './' : $self->path;
+
+        return if !-d $path;
+
+        return $self->new( Cwd::realpath($path), is_dir => 1 );    # Cwd::realpath always return path without trailing "/"
     }
     elsif ( $self->is_file && -f $self->path ) {
         return $self->new( Cwd::realpath( Cwd::realpath( $self->path ) ) );
@@ -404,7 +408,9 @@ sub TO_DUMP {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (39)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 351                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 355                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 300                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
