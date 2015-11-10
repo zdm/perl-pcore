@@ -13,6 +13,7 @@ has cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has lib_path => ( is => 'lazy', init_arg => undef );
 
 has vcs => ( is => 'lazy', init_arg => undef );
+has hg  => ( is => 'lazy', init_arg => undef );
 
 const our $CPAN_INC => do {
     my @cpan_inc;
@@ -162,6 +163,16 @@ sub _build_vcs ($self) {
     return Pcore::Core::Dist::VCS->new( { root => $self->root } );
 }
 
+sub _build_hg ($self) {
+    if ( $self->vcs && $self->vcs->is_hg ) {
+        require Pcore::Src::Mercurial;
+
+        return Pcore::Src::Mercurial->new( { source => $self->root } );
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -171,7 +182,7 @@ sub _build_vcs ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (23)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 69, 95, 125, 127     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 70, 96, 126, 128     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

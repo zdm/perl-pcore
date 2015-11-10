@@ -2,6 +2,7 @@ package Pcore::Core::Build;
 
 use Pcore qw[-class];
 use Pcore::Core::Dist;
+use Module::CPANfile;
 
 has dist_root => ( is => 'ro', isa => Str, required => 1 );
 
@@ -19,6 +20,15 @@ sub _build_dist ($self) {
     return Pcore::Core::Dist->new( $self->dist_root );
 }
 
+# TODO commands:
+# new
+# test --release --smoke
+# smoke
+# clean
+# deploy
+# par
+# release
+# wiki
 sub run ( $self, $cmd ) {
     my $method = '_cmd_' . $cmd;
 
@@ -30,7 +40,15 @@ sub run ( $self, $cmd ) {
 }
 
 sub _cmd_build ($self) {
-    say 123;
+    my $cpanfile = Module::CPANfile->load('cpanfile');
+
+    say dump $cpanfile;
+
+    # TODO build workflow
+    # - validate dist.perl config;
+    # - generate README.md, Build.PL, META.json, LICENSE;
+    # - copy all files to the temp build dir;
+    # - generate MANIFEST;
 
     return;
 }
@@ -42,7 +60,7 @@ sub _cmd_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 32                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_cmd_build' declared but not used   │
+## │    3 │ 42                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_cmd_build' declared but not used   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
