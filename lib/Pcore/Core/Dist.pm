@@ -4,11 +4,15 @@ use Pcore qw[-class -const];
 use Config qw[];
 
 has root => ( is => 'ro', isa => Maybe [Str], required => 1 );
-has is_cpan  => ( is => 'ro',   isa => Bool, required => 1 );
-has res_path => ( is => 'lazy', isa => Str,  required => 1 );
+has is_installed => ( is => 'ro',   isa => Bool, required => 1 );
+has res_path     => ( is => 'lazy', isa => Str,  required => 1 );
 
 has cfg_path => ( is => 'lazy', init_arg => undef );
 has cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
+
+has lib_path => ( is => 'lazy', init_arg => undef );
+
+has vcs => ( is => 'lazy', init_arg => undef );
 
 const our $CPAN_INC => do {
     my @cpan_inc;
@@ -33,9 +37,9 @@ around new => sub ( $orig, $self, $path ) {
         if ( $path =~ m[/]smo ) {    # /path/inside/distribution/
             if ( $path = _find_dist_root($path) ) {
                 return $self->$orig(
-                    {   root     => $path->to_string,
-                        is_cpan  => 0,
-                        res_path => $path . 'share/',
+                    {   root         => $path->to_string,
+                        is_installed => 0,
+                        res_path     => $path . 'share/',
                     }
                 );
             }
@@ -71,18 +75,18 @@ around new => sub ( $orig, $self, $path ) {
     }
 
     if ($pkg_path) {
-        my $is_cpan = 0;
+        my $is_installed = 0;
 
         # check if package is installed in CPAN location
         for my $cpan_inc ( $CPAN_INC->@* ) {
             if ( index( $pkg_path, $cpan_inc ) == 0 ) {
-                $is_cpan = 1;
+                $is_installed = 1;
 
                 last;
             }
         }
 
-        if ($is_cpan) {
+        if ($is_installed) {
             my $dist_name = $pkg_name =~ s[/][-]smgro;
 
             substr $dist_name, -3, 3, q[];    # remove ".pm" suffix
@@ -90,9 +94,9 @@ around new => sub ( $orig, $self, $path ) {
             for my $cpan_inc ( $CPAN_INC->@* ) {
                 if ( -f $cpan_inc . qq[/auto/share/dist/$dist_name/dist.perl] ) {
                     return $self->$orig(
-                        {   root     => undef,
-                            is_cpan  => 1,
-                            res_path => $cpan_inc . qq[/auto/share/dist/$dist_name/],
+                        {   root         => undef,
+                            is_installed => 1,
+                            res_path     => $cpan_inc . qq[/auto/share/dist/$dist_name/],
                         }
                     );
                 }
@@ -101,9 +105,9 @@ around new => sub ( $orig, $self, $path ) {
         else {
             if ( my $dist_root = _find_dist_root($pkg_path) ) {
                 return $self->$orig(
-                    {   root     => $dist_root->to_string,
-                        is_cpan  => 0,
-                        res_path => $dist_root . 'share/',
+                    {   root         => $dist_root->to_string,
+                        is_installed => 0,
+                        res_path     => $dist_root . 'share/',
                     }
                 );
             }
@@ -140,6 +144,22 @@ sub _build_cfg ($self) {
     return P->cfg->load( $self->cfg_path );
 }
 
+sub _build_lib_path ($self) {
+    return if $self->is_installed;
+
+    return if !-d $self->root . 'lib/';
+
+    return $self->root . 'lib/';
+}
+
+sub _build_vcs ($self) {
+    return if $self->is_installed;
+
+    require Pcore::Core::Dist::VCS;
+
+    return Pcore::Core::Dist::VCS->new( { root => $self->root } );
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -149,7 +169,7 @@ sub _build_cfg ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (23)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 65, 91, 122          │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 69, 95, 126          │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
