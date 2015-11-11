@@ -4,11 +4,10 @@ use Pcore qw[-class -const];
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
-has vcs             => ( is => 'lazy', isa => Int,  init_arg => undef );
-has is_hg           => ( is => 'lazy', isa => Bool, init_arg => undef );
-has is_git          => ( is => 'lazy', isa => Bool, init_arg => undef );
-has real_vcs        => ( is => 'lazy', isa => Int,  init_arg => undef );
-has real_vcs_is_git => ( is => 'lazy', isa => Bool, init_arg => undef );
+has vcs      => ( is => 'lazy', isa => Int,  init_arg => undef );
+has is_git   => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_hg    => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_hggit => ( is => 'lazy', isa => Bool, init_arg => undef );
 has uri => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Util::URI'] ], init_arg => undef );
 has is_bitbucket   => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_github      => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -35,33 +34,18 @@ sub _build_vcs ($self) {
     return q[];
 }
 
-sub _build_is_hg ($self) {
-    return $self->vcs == $HG ? 1 : 0;
-}
-
 sub _build_is_git ($self) {
     return $self->vcs == $GIT ? 1 : 0;
 }
 
-sub _build_real_vcs ($self) {
-    if ( $self->is_hg ) {
-        if ( -d $self->root . '/.hg/git' ) {
-            return $GIT;
-        }
-        else {
-            return $HG;
-        }
-    }
-    elsif ( $self->is_git ) {
-        return $GIT;
-    }
-    else {
-        return 0;
-    }
+sub _build_is_hg ($self) {
+    return $self->vcs == $HG ? 1 : 0;
 }
 
-sub _build_real_vcs_is_git ($self) {
-    return $self->real_vcs == $GIT ? 1 : 0;
+sub _build_is_hggit ($self) {
+    return 1 if $self->is_hg && -d $self->root . '/.hg/git';
+
+    return 0;
 }
 
 sub _build_uri ($self) {

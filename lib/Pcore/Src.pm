@@ -53,7 +53,7 @@ sub run {
 sub _action_hg_pre_commit ($self) {
     require Pcore::Src::Mercurial;
 
-    my $hg = Pcore::Src::Mercurial->new( { source => $PROC->{START_DIR} } );
+    my $hg = Pcore::Src::Mercurial->new( { path => $PROC->{START_DIR} } );
 
     unless ( $hg->root ) {
         $self->_throw_error(q[No hg repository found]);

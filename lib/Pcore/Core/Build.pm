@@ -50,6 +50,8 @@ sub _cmd_build ($self) {
     # - copy all files to the temp build dir;
     # - generate MANIFEST;
 
+    # say dump $self->dist->hg->cmd('id', '-inbt');
+
     return;
 }
 

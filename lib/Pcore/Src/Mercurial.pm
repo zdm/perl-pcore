@@ -4,7 +4,7 @@ use Pcore qw[-class];
 use AnyEvent::Util qw[portable_socketpair];
 use Pcore::Src::Mercurial::File;
 
-has source => ( is => 'ro', isa => Str, required => 1 );
+has path => ( is => 'ro', isa => Str, required => 1 );
 
 has root => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Path'], init_arg => undef );
 has capabilities => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -35,7 +35,7 @@ sub BUILD ( $self, $args ) {
 
     # spawn hg command server
     {
-        my $chdir_guard = P->file->chdir( $self->source ) or die;
+        my $chdir_guard = P->file->chdir( $self->path ) or die;
 
         local $ENV{HGENCODING} = 'UTF-8';
 
