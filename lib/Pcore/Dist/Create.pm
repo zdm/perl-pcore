@@ -31,7 +31,7 @@ sub _build_tmpl_params ($self) {
         module_name        => $self->namespace,
         module_path        => $self->namespace =~ s[::][/]smgr,
         main_script        => 'main.pl',
-        author             => $self->user_cfg->{_}->{username},
+        author             => $self->user_cfg->{_}->{author},
         author_email       => $self->user_cfg->{_}->{email},
         copyright_year     => P->date->now->year,
         copyright_holder   => $self->user_cfg->{_}->{copyright_holder},

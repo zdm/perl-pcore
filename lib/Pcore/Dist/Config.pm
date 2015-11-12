@@ -8,8 +8,8 @@ no Pcore;
 
 sub _build_user_cfg ($self) {
     if ( my $home = $ENV{HOME} || $ENV{USERPROFILE} ) {
-        if ( -f $home . '/pcore.ini' ) {
-            return P->cfg->load( $home . '/pcore.ini' );
+        if ( -f $home . '/.pcore/config.ini' ) {
+            return P->cfg->load( $home . '/.pcore/config.ini' );
         }
     }
 
