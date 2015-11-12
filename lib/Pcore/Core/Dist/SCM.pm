@@ -1,25 +1,25 @@
-package Pcore::Core::Dist::VCS;
+package Pcore::Core::Dist::SCM;
 
 use Pcore qw[-class];
-use Pcore::Core::Dist::VCS::Upstream;
+use Pcore::Core::Dist::SCM::Upstream;
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
 has is_git => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 has is_hg  => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
-has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Core::Dist::VCS::Upstream'] ], init_arg => undef );
+has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Core::Dist::SCM::Upstream'] ], init_arg => undef );
 
 around new => sub ( $orig, $self, $root ) {
     if ( -d $root . '/.hg/' ) {
-        require Pcore::Core::Dist::VCS::Hg;
+        require Pcore::Core::Dist::SCM::Hg;
 
-        return Pcore::Core::Dist::VCS::Hg->new( { root => $root } );
+        return Pcore::Core::Dist::SCM::Hg->new( { root => $root } );
     }
     elsif ( -d $root . '/.git/' ) {
-        require Pcore::Core::Dist::VCS::Git;
+        require Pcore::Core::Dist::SCM::Git;
 
-        return Pcore::Core::Dist::VCS::Git->new( { root => $root } );
+        return Pcore::Core::Dist::SCM::Git->new( { root => $root } );
     }
     else {
         return;
@@ -46,7 +46,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist::VCS
+Pcore::Core::Dist::SCM
 
 =head1 SYNOPSIS
 

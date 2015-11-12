@@ -1,4 +1,4 @@
-package Pcore::Core::Dist::VCS::Upstream;
+package Pcore::Core::Dist::SCM::Upstream;
 
 use Pcore qw[-class];
 
@@ -24,7 +24,7 @@ has meta_resources => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 no Pcore;
 
-# NOTE https://bitbucket.org/username/reponame - upstream VCS type can't be recognized correctly, use ".git" suffix fot git repositories
+# NOTE https://bitbucket.org/username/reponame - upstream SCM type can't be recognized correctly, use ".git" suffix fot git repositories
 
 sub BUILDARGS ( $self, $args ) {
     $args->{uri} = P->uri( $args->{uri}, authority => 1 ) if !ref $args->{uri};
@@ -137,7 +137,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist::VCS::Upstream
+Pcore::Core::Dist::SCM::Upstream
 
 =head1 SYNOPSIS
 

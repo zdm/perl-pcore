@@ -12,7 +12,7 @@ has cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 has lib_path => ( is => 'lazy', init_arg => undef );
 
-has vcs => ( is => 'lazy', init_arg => undef );
+has scm => ( is => 'lazy', init_arg => undef );
 
 const our $CPAN_INC => do {
     my @cpan_inc;
@@ -154,12 +154,12 @@ sub _build_lib_path ($self) {
     return $self->root . 'lib/';
 }
 
-sub _build_vcs ($self) {
+sub _build_scm ($self) {
     return if $self->is_installed;
 
-    require Pcore::Core::Dist::VCS;
+    require Pcore::Core::Dist::SCM;
 
-    return Pcore::Core::Dist::VCS->new( { root => $self->root } );
+    return Pcore::Core::Dist::SCM->new( { root => $self->root } );
 }
 
 1;
