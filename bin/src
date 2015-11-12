@@ -12,6 +12,8 @@ my $exit_code = try {
         {   interactive => 1,
             action      => $ARGV{action},
             source      => $ARGV{source},
+            list        => $ARGV{list} || 0,
+            no_critic   => $ARGV{no_critic} || 0,
             dry_run     => $ARGV{dry_run} || 0,
             ( $ARGV{type}     ? ( type     => $ARGV{type} )     : () ),
             ( $ARGV{filename} ? ( filename => $ARGV{filename} ) : () ),
@@ -82,10 +84,10 @@ Available actions:
     decompress    - unpack sources, DEFAULT;
     compress      - pack sources, comments will be deleted;
     obfuscate     - applied only for javascript and embedded javascripts, comments will be deleted;
-    hg-pre-commit - mercurial pre-commit hook, recognize "#no critic" in commit message;
+    commit        - SCM repo commit hook;
 
 =for Euclid:
-    action.type: /decompress|compress|obfuscate|hg-pre-commit/
+    action.type: /decompress|compress|obfuscate|commit/
     action.default: 'decompress'
 
 =item -t [=] <source-type> | --type [=] <source-type>
@@ -95,12 +97,20 @@ Define source files to process. Mandatory, if <source> is a directory. Recognize
 =for Euclid:
     source-type.type: /perl|html|css|js/
 
+=item --list
+
+Read list of filenames from STDIN.
+
 =item -f [=] <filename> | --filename [=] <filename>
 
 Mandatory, if <source> is a STDIN.
 
 =for Euclid:
     filename.type: string
+
+=item --no-critic
+
+Skip Perl::Critic filter.
 
 =item --dry-run
 

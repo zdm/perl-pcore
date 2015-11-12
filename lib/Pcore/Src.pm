@@ -4,7 +4,7 @@ use Pcore qw[-class];
 use Pcore::Src::File;
 use Term::ANSIColor qw[:constants];
 
-has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate hg-pre-commit]], required => 1 );
+has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate commit]], required => 1 );
 has source => ( is => 'ro', isa => Str );    # q[-] - stdin, Str - path
 
 # mandatory, if source path is idr
@@ -13,8 +13,12 @@ has type => ( is => 'ro', isa => Enum [ map { lc $_->{type} } Pcore::Src::File->
 # mandatory, if source is stdin
 has filename => ( is => 'ro', isa => Str );
 
+# read list of filenames from stdin
+has list => ( is => 'ro', isa => Bool, default => 0 );
+
 has dry_run     => ( is => 'ro', isa => Bool, default => 0 );
 has interactive => ( is => 'rw', isa => Bool, default => 0 );    # print report to STDOUT
+has no_critic   => ( is => 'ro', isa => Bool, default => 0 );    # skip Perl::Critic filter
 
 has exit_code => ( is => 'rw', isa => Int, default => 0, init_arg => undef );
 has _total_report => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -29,14 +33,19 @@ sub run {
         $self->_throw_error(q["source" is mandatory]) if !$self->source;
 
         if ( $self->source eq q[-] ) {                           # STDIN mode
-            $self->_throw_error(q["filename" is mandatory if source is STDIN]) if !$self->filename;
+            if ( $self->list ) {
+                $self->_source_stdin_list;
+            }
+            else {
+                $self->_throw_error(q["filename" is mandatory if source is STDIN]) if !$self->filename;
 
-            $self->_source_stdin;
+                $self->_source_stdin;
+            }
         }
         else {
             $self->_throw_error(q["source" should be readable]) if !-e $self->source;
 
-            if ( -d $self->source ) {                            # directory mode
+            if ( -d $self->source ) {    # directory mode
                 $self->_throw_error(q["type" is required]) if !$self->type;
 
                 $self->_source_dir;
@@ -50,51 +59,38 @@ sub run {
     return $self->exit_code;
 }
 
-sub _action_hg_pre_commit ($self) {
-    my $scm = P->class->load('Pcore::Src::SCM')->new( $PROC->{START_DIR} );
-
-    unless ($scm) {
-        $self->_throw_error(q[No hg repository found]);
-
-        return;
-    }
-
-    # get commit info
-    my $pre_commit = $scm->server->pre_commit;
+sub _source_stdin_list ($self) {
+    my $files = P->file->read_lines($STDIN);
 
     # index files, calculate max_path_len
     my @paths_to_process;
 
     my $max_path_len = 0;
 
-    for my $file ( $pre_commit->{files}->@* ) {
-        next if !$file->is_added && !$file->is_modified;
+    for my $path ( $files->@* ) {
+        $path = P->path( $path, is_dir => 0 );
 
-        my $type = Pcore::Src::File->detect_filetype( $file->path );
+        my $type = Pcore::Src::File->detect_filetype($path);
 
         next if !$type || $type->{type} ne 'Perl';    # only perl sources processed now
 
-        push @paths_to_process, $file->path;
+        push @paths_to_process, $path;
 
-        $max_path_len = length $file->path if length $file->path > $max_path_len;
+        $max_path_len = length $path if length $path > $max_path_len;
     }
 
     # process files
-    {
-        my $chdir_guard = P->file->chdir( $scm->root ) or die;
+    my $filter_args = { $self->no_critic ? ( perl_critic => 0 ) : () };
 
-        my $filter_args = { $pre_commit->{message} =~ /#\s*no\scritic/sm ? ( perl_critic => 0 ) : () };
-
-        for (@paths_to_process) {
-            $self->_process_file(
-                $max_path_len,
-                action      => 'decompress',
-                path        => $_->to_string,
-                is_realpath => 1,
-                dry_run     => $self->dry_run,
-                filter_args => $filter_args,
-            );
-        }
+    for (@paths_to_process) {
+        $self->_process_file(
+            $max_path_len,
+            action      => 'decompress',
+            path        => $_->to_string,
+            is_realpath => 1,
+            dry_run     => $self->dry_run,
+            filter_args => $filter_args,
+        );
     }
 
     $self->_report_total if $self->interactive;
@@ -294,7 +290,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 247                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 243                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

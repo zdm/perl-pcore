@@ -2,7 +2,6 @@ package Pcore::Src::SCM::Hg::Server;
 
 use Pcore qw[-class];
 use AnyEvent::Util qw[portable_socketpair];
-use Pcore::Src::SCM::File;
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
@@ -115,39 +114,6 @@ sub cmd ( $self, @cmd ) {
     return $res;
 }
 
-# pre-commit hook
-sub pre_commit ($self) {
-    my $hg_opts = P->data->from_json( P->text->decode( $ENV{HG_OPTS_JSON}, stdin => 1 )->$*, utf8 => 0 );
-
-    my $options = {};
-
-    $options->{include} = $hg_opts->{include} if $hg_opts->{include};
-
-    $options->{exclude} = $hg_opts->{exclude} if $hg_opts->{exclude};
-
-    my $cmd = $self->_prepare_cmd( $options, scalar P->data->from_json( P->text->decode( $ENV{HG_PATS_JSON}, stdin => 1 )->$*, utf8 => 0 ) );
-
-    unshift $cmd->@*, qw[status --subrepos -m -a -r];
-
-    my $res = $self->cmd( $cmd->@* );
-
-    die $res->{e}->@* if $res->{e};
-
-    my $commit;
-
-    $commit->{message} = $hg_opts->{message};
-
-    $commit->{files} = [];
-
-    for my $pair ( P->list->pairs( $res->{o}->@* ) ) {
-        P->text->trim( $pair->[0] );
-
-        push $commit->{files}->@*, Pcore::Src::SCM::File->new( { path => P->path( $pair->[1], base => $self->root ), status => $pair->[0] } );
-    }
-
-    return $commit;
-}
-
 sub _read_chunk ($self) {
     sysread $self->_in, my $header, 5, 0 or die;
 
@@ -200,9 +166,11 @@ sub _prepare_cmd ( $self, @args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 168                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 129                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_prepare_cmd' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 94, 96               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    3 │ 134                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 93, 95               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
