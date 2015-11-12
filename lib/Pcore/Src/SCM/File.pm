@@ -1,4 +1,4 @@
-package Pcore::Src::SCM::Hg::File;
+package Pcore::Src::SCM::File;
 
 use Pcore qw[-class];
 
@@ -43,7 +43,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src::SCM::Hg::File
+Pcore::Src::SCM::File
 
 =head1 SYNOPSIS
 
