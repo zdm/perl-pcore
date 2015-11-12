@@ -1,4 +1,4 @@
-package Pcore::Core::Dist;
+package Pcore::Dist;
 
 use Pcore qw[-class -const];
 use Config qw[];
@@ -182,7 +182,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist
+Pcore::Dist
 
 =head1 SYNOPSIS
 

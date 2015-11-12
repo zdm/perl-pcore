@@ -1,7 +1,6 @@
-package Pcore::Core::Build;
+package Pcore::Dist::Build;
 
 use Pcore qw[-class];
-use Pcore::Core::Dist;
 use Module::CPANfile;
 
 has dist_root => ( is => 'ro', isa => Str, required => 1 );
@@ -62,7 +61,7 @@ sub _cmd_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_cmd_build' declared but not used   │
+## │    3 │ 41                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_cmd_build' declared but not used   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -73,7 +72,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Build
+Pcore::Dist::Build
 
 =head1 SYNOPSIS
 
