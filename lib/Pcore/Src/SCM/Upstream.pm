@@ -1,4 +1,4 @@
-package Pcore::Core::Dist::SCM::Upstream;
+package Pcore::Src::SCM::Upstream;
 
 use Pcore qw[-class];
 
@@ -137,7 +137,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist::SCM::Upstream
+Pcore::Src::SCM::Upstream
 
 =head1 SYNOPSIS
 

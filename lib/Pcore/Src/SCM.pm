@@ -1,14 +1,14 @@
-package Pcore::Core::Dist::SCM;
+package Pcore::Src::SCM;
 
 use Pcore qw[-class];
-use Pcore::Core::Dist::SCM::Upstream;
+use Pcore::Src::SCM::Upstream;
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
 has is_git => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 has is_hg  => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
-has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Core::Dist::SCM::Upstream'] ], init_arg => undef );
+has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM::Upstream'] ], init_arg => undef );
 has server => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
 
 around new => sub ( $orig, $self, $path ) {
@@ -42,7 +42,7 @@ around new => sub ( $orig, $self, $path ) {
     }
 
     if ($scm) {
-        return P->class->load( $scm, ns => 'Pcore::Core::Dist::SCM' )->new( { root => $path->to_string } );
+        return P->class->load( $scm, ns => 'Pcore::Src::SCM' )->new( { root => $path->to_string } );
     }
     else {
         return;
@@ -73,7 +73,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist::SCM
+Pcore::Src::SCM
 
 =head1 SYNOPSIS
 

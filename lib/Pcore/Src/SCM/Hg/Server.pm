@@ -1,8 +1,8 @@
-package Pcore::Core::Dist::SCM::Hg::Server;
+package Pcore::Src::SCM::Hg::Server;
 
 use Pcore qw[-class];
 use AnyEvent::Util qw[portable_socketpair];
-use Pcore::Core::Dist::SCM::Hg::File;
+use Pcore::Src::SCM::Hg::File;
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
@@ -142,7 +142,7 @@ sub pre_commit ($self) {
     for my $pair ( P->list->pairs( $res->{o}->@* ) ) {
         P->text->trim( $pair->[0] );
 
-        push $commit->{files}->@*, Pcore::Core::Dist::SCM::Hg::File->new( { path => P->path( $pair->[1], base => $self->root ), status => $pair->[0] } );
+        push $commit->{files}->@*, Pcore::Src::SCM::Hg::File->new( { path => P->path( $pair->[1], base => $self->root ), status => $pair->[0] } );
     }
 
     return $commit;
@@ -213,7 +213,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist::SCM::Hg::Server
+Pcore::Src::SCM::Hg::Server
 
 =head1 SYNOPSIS
 

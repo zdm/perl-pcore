@@ -51,7 +51,7 @@ sub run {
 }
 
 sub _action_hg_pre_commit ($self) {
-    my $scm = P->class->load('Pcore::Core::Dist::SCM')->new( $PROC->{START_DIR} );
+    my $scm = P->class->load('Pcore::Src::SCM')->new( $PROC->{START_DIR} );
 
     unless ($scm) {
         $self->_throw_error(q[No hg repository found]);

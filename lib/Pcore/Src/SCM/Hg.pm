@@ -1,8 +1,8 @@
-package Pcore::Core::Dist::SCM::Hg;
+package Pcore::Src::SCM::Hg;
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Core::Dist::SCM];
+extends qw[Pcore::Src::SCM];
 
 has '+is_hg' => ( default => 1 );
 
@@ -12,7 +12,7 @@ sub _build_upstream ($self) {
     if ( -f $self->root . '/.hg/hgrc' ) {
         my $hgrc = P->file->read_text( $self->root . '/.hg/hgrc' );
 
-        return Pcore::Core::Dist::SCM::Upstream->new( { uri => $1, clone_is_hg => 1 } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
+        return Pcore::Src::SCM::Upstream->new( { uri => $1, clone_is_hg => 1 } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
     }
 
     return;
@@ -26,7 +26,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist::SCM::Hg
+Pcore::Src::SCM::Hg
 
 =head1 SYNOPSIS
 

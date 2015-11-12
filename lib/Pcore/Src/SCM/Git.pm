@@ -1,8 +1,8 @@
-package Pcore::Core::Dist::SCM::Git;
+package Pcore::Src::SCM::Git;
 
 use Pcore qw[-class];
 
-extends qw[Pcore::Core::Dist::SCM];
+extends qw[Pcore::Src::SCM];
 
 has '+is_git' => ( default => 1 );
 
@@ -12,7 +12,7 @@ sub _build_upstream ($self) {
     if ( -f $self->root . '/.git/config' ) {
         my $config = P->file->read_text( $self->root . '/.git/config' );
 
-        return Pcore::Core::Dist::SCM::Upstream->new( { uri => $1, clone_is_git => 1 } ) if $config->$* =~ /\s*url\s*=\s*(.+?)$/sm;
+        return Pcore::Src::SCM::Upstream->new( { uri => $1, clone_is_git => 1 } ) if $config->$* =~ /\s*url\s*=\s*(.+?)$/sm;
     }
 
     return;
@@ -26,7 +26,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Dist::SCM::Git
+Pcore::Src::SCM::Git
 
 =head1 SYNOPSIS
 

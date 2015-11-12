@@ -159,9 +159,7 @@ sub _build_lib_path ($self) {
 sub _build_scm ($self) {
     return if $self->is_installed;
 
-    require Pcore::Core::Dist::SCM;
-
-    return Pcore::Core::Dist::SCM->new( $self->root );
+    return P->class->load('Pcore::Src::SCM')->new( $self->root );
 }
 
 1;
