@@ -115,6 +115,14 @@ around new => sub ( $orig, $self, $path ) {
 
 no Pcore;
 
+sub create ( $self, $namespace ) {
+    if ( my $path = P->class->load('Pcore::Dist::Create')->new( { namespace => $namespace } )->create ) {
+        return $self->new($path);
+    }
+
+    return;
+}
+
 sub _find_dist_root ($path) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
@@ -167,7 +175,9 @@ sub _build_scm ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 65, 91, 121, 125     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 65, 91, 129, 133     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 119                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
