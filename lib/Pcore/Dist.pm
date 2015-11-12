@@ -33,28 +33,24 @@ const our $CPAN_INC => do {
 around new => sub ( $orig, $self, $path ) {
     my $pkg_name;
 
-    if ( $path !~ /[.]pm\z/smo ) {
-        if ( $path =~ m[/]smo ) {    # /path/inside/distribution/
-            if ( $path = _find_dist_root($path) ) {
-                return $self->$orig(
-                    {   root         => $path->to_string,
-                        is_installed => 0,
-                        res_path     => $path . 'share/',
-                    }
-                );
-            }
-            else {
-                return;
-            }
+    if ( $path =~ /[.]pm\z/smo ) {    # Package/Name.pm
+        $pkg_name = $path;
+    }
+    elsif ( $path =~ m[[./]]smo ) {    # ./path/to/dist
+        if ( $path = _find_dist_root($path) ) {
+            return $self->$orig(
+                {   root         => $path->to_string,
+                    is_installed => 0,
+                    res_path     => $path . 'share/',
+                }
+            );
         }
-        else {    # Some::Package or Package
-            $pkg_name = $path =~ s[::][/]smgro;
-
-            $pkg_name .= q[.pm];
+        else {
+            return;
         }
     }
-    else {
-        $pkg_name = $path;
+    else {    # Package::Name
+        $pkg_name = $path =~ s[::][/]smgro . q[.pm];
     }
 
     my $pkg_path;
@@ -122,17 +118,17 @@ no Pcore;
 sub _find_dist_root ($path) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
-    if ( !-f $path . '/share/dist.perl' ) {
+    if ( !-f $path . 'share/dist.perl' ) {
         $path = $path->parent;
 
         while ($path) {
-            last if -f $path . '/share/dist.perl';
+            last if -f $path . 'share/dist.perl';
 
             $path = $path->parent;
         }
     }
 
-    if ($path) {
+    if ( defined $path ) {
         return $path->realpath;
     }
     else {
@@ -169,9 +165,9 @@ sub _build_scm ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (23)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 69, 95, 125, 129     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 65, 91, 121, 125     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
