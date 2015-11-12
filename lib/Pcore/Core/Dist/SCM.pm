@@ -9,22 +9,49 @@ has is_git => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 has is_hg  => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Core::Dist::SCM::Upstream'] ], init_arg => undef );
+has server => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
 
-around new => sub ( $orig, $self, $root ) {
-    if ( -d $root . '/.hg/' ) {
-        require Pcore::Core::Dist::SCM::Hg;
+around new => sub ( $orig, $self, $path ) {
+    $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
-        return Pcore::Core::Dist::SCM::Hg->new( { root => $root } );
+    my $scm;
+
+    if ( -d $path . '/.git/' ) {
+        $scm = 'Git';
     }
-    elsif ( -d $root . '/.git/' ) {
-        require Pcore::Core::Dist::SCM::Git;
+    elsif ( -d $path . '/.hg/' ) {
+        $scm = 'Hg';
+    }
+    else {
+        $path = $path->parent;
 
-        return Pcore::Core::Dist::SCM::Git->new( { root => $root } );
+        while ($path) {
+            if ( -d $path . '/.git/' ) {
+                $scm = 'Git';
+
+                last;
+            }
+            elsif ( -d $path . '/.hg/' ) {
+                $scm = 'Hg';
+
+                last;
+            }
+
+            $path = $path->parent;
+        }
+    }
+
+    if ($scm) {
+        return P->class->load( $scm, ns => 'Pcore::Core::Dist::SCM' )->new( { root => $path->to_string } );
     }
     else {
         return;
     }
 };
+
+sub _build_server ($self) {
+    return P->class->load( 'Server', ns => ref $self )->new( { root => $self->root } );
+}
 
 no Pcore;
 
@@ -35,7 +62,7 @@ no Pcore;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14, 19               │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 19, 22, 29, 34       │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

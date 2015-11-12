@@ -1,12 +1,11 @@
-package Pcore::Src::Mercurial;
+package Pcore::Core::Dist::SCM::Hg::Server;
 
 use Pcore qw[-class];
 use AnyEvent::Util qw[portable_socketpair];
-use Pcore::Src::Mercurial::File;
+use Pcore::Core::Dist::SCM::Hg::File;
 
-has path => ( is => 'ro', isa => Str, required => 1 );
+has root => ( is => 'ro', isa => Str, required => 1 );
 
-has root => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Path'], init_arg => undef );
 has capabilities => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has _in  => ( is => 'ro', init_arg => undef );    # read from child
@@ -35,7 +34,7 @@ sub BUILD ( $self, $args ) {
 
     # spawn hg command server
     {
-        my $chdir_guard = P->file->chdir( $self->path ) or die;
+        my $chdir_guard = P->file->chdir( $self->root ) or die;
 
         local $ENV{HGENCODING} = 'UTF-8';
 
@@ -88,17 +87,6 @@ sub DEMOLISH ( $self, $global ) {
     }
 
     return;
-}
-
-sub _build_root ($self) {
-    my $res = $self->cmd('root');
-
-    if ( $res->{e} ) {
-        die 'No repo at this path';
-    }
-    else {
-        return P->path( $res->{o}->[0], is_dir => 1 )->realpath;
-    }
 }
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
@@ -154,7 +142,7 @@ sub pre_commit ($self) {
     for my $pair ( P->list->pairs( $res->{o}->@* ) ) {
         P->text->trim( $pair->[0] );
 
-        push $commit->{files}->@*, Pcore::Src::Mercurial::File->new( { path => P->path( $pair->[1], base => $self->root ), status => $pair->[0] } );
+        push $commit->{files}->@*, Pcore::Core::Dist::SCM::Hg::File->new( { path => P->path( $pair->[1], base => $self->root ), status => $pair->[0] } );
     }
 
     return $commit;
@@ -212,9 +200,9 @@ sub _prepare_cmd ( $self, @args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 180                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 168                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 106, 108             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 94, 96               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -225,7 +213,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src::Mercurial
+Pcore::Core::Dist::SCM::Hg::Server
 
 =head1 SYNOPSIS
 

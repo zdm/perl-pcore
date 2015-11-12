@@ -51,18 +51,16 @@ sub run {
 }
 
 sub _action_hg_pre_commit ($self) {
-    require Pcore::Src::Mercurial;
+    my $scm = P->class->load('Pcore::Core::Dist::SCM')->new( $PROC->{START_DIR} );
 
-    my $hg = Pcore::Src::Mercurial->new( { path => $PROC->{START_DIR} } );
-
-    unless ( $hg->root ) {
+    unless ($scm) {
         $self->_throw_error(q[No hg repository found]);
 
         return;
     }
 
     # get commit info
-    my $pre_commit = $hg->pre_commit;
+    my $pre_commit = $scm->server->pre_commit;
 
     # index files, calculate max_path_len
     my @paths_to_process;
@@ -83,7 +81,7 @@ sub _action_hg_pre_commit ($self) {
 
     # process files
     {
-        my $chdir_guard = P->file->chdir( $hg->root ) or die;
+        my $chdir_guard = P->file->chdir( $scm->root ) or die;
 
         my $filter_args = { $pre_commit->{message} =~ /#\s*no\scritic/sm ? ( perl_critic => 0 ) : () };
 
@@ -296,7 +294,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 249                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 247                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

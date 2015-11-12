@@ -123,6 +123,8 @@ sub _find_dist_root ($path) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
     if ( !-f $path . '/share/dist.perl' ) {
+        $path = $path->parent;
+
         while ($path) {
             last if -f $path . '/share/dist.perl';
 
@@ -159,7 +161,7 @@ sub _build_scm ($self) {
 
     require Pcore::Core::Dist::SCM;
 
-    return Pcore::Core::Dist::SCM->new( { root => $self->root } );
+    return Pcore::Core::Dist::SCM->new( $self->root );
 }
 
 1;
@@ -171,7 +173,7 @@ sub _build_scm ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (23)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 69, 95, 125, 127     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 69, 95, 125, 129     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -528,14 +528,14 @@ sub _configure_console {
         binmode $STDIN,  qq[:raw:crlf:encoding($Pcore::ENCODING_CONSOLE)]       or die;
         binmode $STDOUT, q[:raw:via(Pcore::Core::PerlIOviaWin32UnicodeConsole)] or die;
         binmode $STDERR, q[:raw:via(Pcore::Core::PerlIOviaWin32UnicodeConsole)] or die;
-
-        select $STDOUT;    ## no critic qw[InputOutput::ProhibitOneArgSelect]
     }
     else {
         binmode $STDIN,  q[:raw:encoding(UTF-8)] or die;
         binmode $STDOUT, q[:raw:encoding(UTF-8)] or die;
         binmode $STDERR, q[:raw:encoding(UTF-8)] or die;
     }
+
+    select $STDOUT;    ## no critic qw[InputOutput::ProhibitOneArgSelect]
 
     # make STD* non-caching
     STDOUT->autoflush(1);
@@ -564,7 +564,7 @@ sub _configure_console {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 407, 455, 472, 520,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
 ## │      │ 521, 522, 528, 529,  │                                                                                                                │
-## │      │ 530, 535, 536, 537   │                                                                                                                │
+## │      │ 530, 533, 534, 535   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
