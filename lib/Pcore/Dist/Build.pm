@@ -26,7 +26,7 @@ sub _build_dist ($self) {
 # clean
 # deploy
 # par
-# release
+# release --major, --minor, --bugfix
 # wiki
 sub run ( $self, $cmd ) {
     my $method = '_cmd_' . $cmd;

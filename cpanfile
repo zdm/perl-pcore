@@ -146,21 +146,6 @@ requires 'Data::UUID';
 
 on develop => sub {
     requires 'Module::Build::Tiny';
-
-    # Dist::Zilla family
-    feature windows => sub {
-        requires 'DateTime::TimeZone::Local::Win32';    # required by Dist::Zilla on windows
-    };
-
-    requires 'Dist::Zilla';
-
-    requires 'Dist::Zilla::Role::PluginBundle::PluginRemover';
-    requires 'Dist::Zilla::Plugin::ModuleBuildTiny';
-    requires 'Dist::Zilla::Plugin::CopyFilesFromBuild';
-    requires 'Dist::Zilla::Plugin::Prereqs::FromCPANfile';
-    requires 'Dist::Zilla::Plugin::ReadmeFromPod';
-    requires 'Dist::Zilla::Plugin::Signature';
-
     requires 'Pod::Markdown';
 
     feature linux => sub {
