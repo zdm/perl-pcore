@@ -62,8 +62,9 @@ sub _cmd_clean ( $self, $args ) {
     return;
 }
 
-# TODO
 sub _cmd_deploy ( $self, $args ) {
+    P->class->load( 'Deploy', ns => 'Pcore::Dist::Builder' )->new( { builder => $self } )->run($args);
+
     return;
 }
 
@@ -187,14 +188,14 @@ sub _cmd_wiki ( $self, $args ) {
 ## │      │ 23                   │ * Private subroutine/method '_cmd_test' declared but not used                                                  │
 ## │      │ 28                   │ * Private subroutine/method '_cmd_smoke' declared but not used                                                 │
 ## │      │ 32                   │ * Private subroutine/method '_cmd_clean' declared but not used                                                 │
-## │      │ 66                   │ * Private subroutine/method '_cmd_deploy' declared but not used                                                │
-## │      │ 70                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
-## │      │ 82                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
-## │      │ 86                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
+## │      │ 65                   │ * Private subroutine/method '_cmd_deploy' declared but not used                                                │
+## │      │ 71                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
+## │      │ 83                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
+## │      │ 87                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 71, 95               │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 66, 72, 96           │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 87, 130              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 88, 131              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
