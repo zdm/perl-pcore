@@ -240,9 +240,9 @@ BUILD_PL
                 $self->dist->cfg->{dist}->{author},
             ],
             dynamic_config => 0,
-            license        => $lic->meta_name,
+            license        => [ lc $self->dist->cfg->{dist}->{license} ],
             name           => $self->dist->cfg->{dist}->{name},
-            no_index       => {                                   #
+            no_index       => {                                             #
                 directory => [qw[inc share t xt]],
             },
             release_status => 'stable',
@@ -253,7 +253,7 @@ BUILD_PL
                     url  => q[],
                     type => q[],
                 },
-                bugtracker => {                                   #
+                bugtracker => {                                             #
                     web => q[],
                 }
             },
@@ -279,12 +279,40 @@ BUILD_PL
 
         P->hash->merge( $meta->{resources}, $self->dist->cfg->{dist}->{meta} ) if $self->dist->cfg->{dist}->{meta};
 
-        # TODO $self->zilla->register_prereqs({ phase => 'configure' }, 'Module::Build::Tiny' => $self->version);
+        # optional features
+        {
+            # my $cpanfile = $self->cpanfile     or return {};
+            # my @features = $cpanfile->features or return {};
+            #
+            # my $features = {};
+            #
+            # for my $feature (@features) {
+            #     $features->{ $feature->identifier } = {
+            #         description => $feature->description,
+            #         prereqs     => $feature->prereqs->as_string_hash,
+            #     };
+            # }
+            #
+            # return { optional_features => $features };
+        }
+
+        # prereqs
+        {
+            # my $cpanfile = $self->cpanfile or return;
+            #
+            # my $prereqs = $cpanfile->prereq_specs;
+            # for my $phase ( keys %$prereqs ) {
+            #     for my $type ( keys %{ $prereqs->{$phase} } ) {
+            #         $self->zilla->register_prereqs( { type => $type, phase => $phase }, %{ $prereqs->{$phase}{$type} }, );
+            #     }
+            # }
+
+            # TODO $self->zilla->register_prereqs({ phase => 'configure' }, 'Module::Build::Tiny' => $self->version);
+        }
+
         require CPAN::Meta;
 
-        my $cpan_meta = CPAN::Meta->new($meta);
-
-        say dump $cpan_meta;
+        CPAN::Meta->create($meta)->save('META.json');
     }
 
     return;
@@ -314,7 +342,7 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 293                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 321                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
 ## │      │ 71, 77, 101          │ * Found method-call chain of length 4                                                                          │
