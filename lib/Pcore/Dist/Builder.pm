@@ -166,10 +166,9 @@ sub _cmd_wiki ( $self, $args ) {
     return;
 }
 
-# TODO main_module can be removed;
-# copyright_year can be removed;
-# copyright holder can be omitted, then author should be used;
-# Pcore - no warnings experimental only for perl 5.22.*
+# TODO
+# Pcore - no warnings experimental only for perl 5.22.*;
+# abstract should be parsed from main module NAME pod;
 sub _update_dist ($self) {
 
     # generate README.md
@@ -189,7 +188,7 @@ sub _update_dist ($self) {
         $parser->output_string( \$markdown );
 
         # generate markdown document
-        $parser->parse_string_document( P->file->read_bin( $self->dist->cfg->{dist}->{main_module} )->$* );
+        $parser->parse_string_document( P->file->read_bin( 'lib/' . $self->dist->main_module_rel_path )->$* );
 
         P->file->write_bin( 'README.md', $markdown );
     }
@@ -199,8 +198,8 @@ sub _update_dist ($self) {
         P->file->write_bin(
             'LICENSE',
             P->class->load( $self->dist->cfg->{dist}->{license}, ns => 'Software::License' )->new(
-                {   holder => $self->dist->cfg->{dist}->{copyright_holder},
-                    year   => $self->dist->cfg->{dist}->{copyright_year},
+                {   holder => $self->dist->cfg->{dist}->{copyright_holder} || $self->dist->cfg->{dist}->{author},
+                    year => P->date->now->year,
                 }
             )->fulltext
         );
@@ -272,11 +271,11 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 251                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 250                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
-## │      │ 71, 77, 101, 200     │ * Found method-call chain of length 4                                                                          │
-## │      │ 219                  │ * Found method-call chain of length 5                                                                          │
+## │      │ 71, 77, 101, 199     │ * Found method-call chain of length 4                                                                          │
+## │      │ 218                  │ * Found method-call chain of length 5                                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

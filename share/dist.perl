@@ -4,8 +4,6 @@
         abstract         => 'Pcore - perl applications development environment',
         license          => 'Perl_5',
         copyright_holder => 'zdm',
-        copyright_year   => '2015',
-        main_module      => 'lib/Pcore.pm',
         cpan             => 1,                                                     # 1 - CPAN distribution
         ExecDir          => { dir => 'bin', },
     },

@@ -4,8 +4,6 @@
         abstract         => '',
         license          => '<: $license :>',
         copyright_holder => '<: $copyright_holder :>',
-        copyright_year   => '<: $copyright_year :>',
-        main_module      => 'lib/<: $module_path :>.pm',
         cpan             => 0,                                       # 1 - CPAN distribution
         meta             => {
             homepage   => q[],

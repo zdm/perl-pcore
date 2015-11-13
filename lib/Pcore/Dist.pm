@@ -15,6 +15,8 @@ has lib_path => ( is => 'lazy', init_arg => undef );
 has scm => ( is => 'lazy', init_arg => undef );
 has builder => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Builder'], init_arg => undef );
 
+has main_module_rel_path => ( is => 'lazy', isa => Str, init_arg => undef );
+
 const our $CPAN_INC => do {
     my @cpan_inc;
 
@@ -173,6 +175,10 @@ sub _build_builder ($self) {
     return P->class->load('Pcore::Dist::Builder')->new($self);
 }
 
+sub _build_main_module_rel_path ($self) {
+    return $self->cfg->{dist}->{name} =~ s[-][/]smgr . '.pm';
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -182,9 +188,9 @@ sub _build_builder ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 66, 92, 130, 134     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 68, 94, 132, 136     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 120                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 122                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

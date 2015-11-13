@@ -32,7 +32,7 @@ sub _build__pardeps ($self) {
 }
 
 sub _build_dist_version ($self) {
-    my $info = Module::Metadata->new_from_file( $self->builder->dist->cfg->{dist}->{main_module} );
+    my $info = Module::Metadata->new_from_file( 'lib/' . $self->builder->dist->main_module_rel_path );
 
     return $info->version;
 }
@@ -591,7 +591,7 @@ sub _find_module ( $self, $module ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 462                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 35, 167, 489         │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 167, 489             │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 520, 522             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤

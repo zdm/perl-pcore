@@ -26,15 +26,14 @@ sub _build_path ($self) {
 
 sub _build_tmpl_params ($self) {
     return {
-        dist_name          => $self->namespace =~ s/::/-/smgr,
-        dist_path          => lc $self->namespace =~ s/::/-/smgr,
-        module_name        => $self->namespace,
-        module_path        => $self->namespace =~ s[::][/]smgr,
+        dist_name          => $self->namespace =~ s/::/-/smgr,                                              # Package-Name
+        dist_path          => lc $self->namespace =~ s/::/-/smgr,                                           # package-name
+        module_name        => $self->namespace,                                                             # Package::Name
         main_script        => 'main.pl',
         author             => $self->user_cfg->{_}->{author},
         author_email       => $self->user_cfg->{_}->{email},
         copyright_year     => P->date->now->year,
-        copyright_holder   => $self->user_cfg->{_}->{copyright_holder},
+        copyright_holder   => $self->user_cfg->{_}->{copyright_holder} || $self->user_cfg->{_}->{author},
         license            => $self->user_cfg->{_}->{license},
         bitbucket_username => $self->user_cfg->{Bitbucket}->{username} // 'username',
         dockerhub_username => $self->user_cfg->{DockerHub}->{username} // 'username',
