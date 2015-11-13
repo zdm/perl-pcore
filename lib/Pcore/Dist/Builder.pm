@@ -166,12 +166,8 @@ sub _cmd_wiki ( $self, $args ) {
     return;
 }
 
+# TODO main_module can be removed
 sub _update_dist ($self) {
-
-    # TODO main_module can be removed
-
-    # TODO
-    # generate Build.PL, META.json;
 
     # generate README.md
     {
@@ -207,6 +203,41 @@ sub _update_dist ($self) {
         );
     }
 
+    my $cpanfile = P->class->load('Module::CPANfile')->load('cpanfile');
+
+    my $prereqs = $self->zilla->prereqs->cpan_meta_prereqs;
+
+    # generate Build.PL
+    {
+        my $reqs = $prereqs->merged_requirements( [qw/configure build test runtime/], ['requires'] );
+
+        my $min_perl = $reqs->requirements_for_module('perl') || '5.006';
+
+        my $mbt_version = Module::Metadata->new_from_module('Module::Build::Tiny')->version->stringify;
+        if ($mbt_version) {
+            $mbt_version = q[ ] . $mbt_version;
+        }
+        else {
+            $mbt_version = q[];
+        }
+
+        my $template = <<"BUILD_PL";
+use strict;
+use warnings;
+
+use $min_perl;
+use Module::Build::Tiny$mbt_version;
+Build_PL();
+BUILD_PL
+
+        P->file->write_bin( 'Build.PL', $template );
+    }
+
+    # generate META.json
+    # {
+    #
+    # }
+
     return;
 }
 
@@ -235,9 +266,9 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 213                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 244                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 71, 77, 101, 201     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 71, 77, 101, 197     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
