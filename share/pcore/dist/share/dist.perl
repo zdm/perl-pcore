@@ -6,6 +6,7 @@
         copyright_holder => '<: $copyright_holder :>',
         copyright_year   => '<: $copyright_year :>',
         main_module      => 'lib/<: $module_path :>.pm',
+        cpan             => 0,                                       # 1 - CPAN distribution
         meta             => {
             homepage   => q[],
             repository => {
@@ -13,7 +14,7 @@
                 url  => q[],
                 type => q[],
             },
-            bugtracker => {    #
+            bugtracker => {                                          #
                 web => q[],
             }
         },
