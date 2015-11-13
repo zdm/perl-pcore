@@ -94,7 +94,7 @@ sub _cmd_wiki ( $self, $args ) {
 
         my $upstream = P->class->load('Pcore::Src::SCM')->new('./wiki/')->upstream;
 
-        my $base_url = $upstream->username . q[/] . $upstream->reponame . q[/wiki/];
+        my $base_url = q[/] . $upstream->username . q[/] . $upstream->reponame . q[/wiki/];
 
         Pcore->file->rmtree('wiki/POD/');
 
