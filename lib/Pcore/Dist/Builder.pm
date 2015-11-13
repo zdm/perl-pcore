@@ -166,7 +166,6 @@ sub _cmd_wiki ( $self, $args ) {
     return;
 }
 
-# TODO
 sub _update_dist ($self) {
     my $main_module = P->file->read_bin( 'lib/' . $self->dist->main_module_rel_path );
 
@@ -308,7 +307,9 @@ sub _create_temp_build ($self) {
 
     # TODO
     # copy files to the temp dir;
+    # copy and rename xt/tests according to tests mode;
     # generate MANIFEST;
+    # return temp dir;
 
     return;
 }
@@ -328,15 +329,15 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 307                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 306                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
 ## │      │ 71, 77, 101          │ * Found method-call chain of length 4                                                                          │
-## │      │ 208                  │ * Found method-call chain of length 5                                                                          │
+## │      │ 207                  │ * Found method-call chain of length 5                                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 257                  │ RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([0-9] vs. \d)                     │
+## │    1 │ 256                  │ RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([0-9] vs. \d)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
