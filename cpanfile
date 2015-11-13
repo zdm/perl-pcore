@@ -147,6 +147,7 @@ requires 'Data::UUID';
 on develop => sub {
     requires 'Module::Build::Tiny';
     requires 'Pod::Markdown';
+    requires 'Software::License';
 
     feature linux => sub {
         requires 'Archive::Tar::Wrapper';

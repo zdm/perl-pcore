@@ -168,8 +168,10 @@ sub _cmd_wiki ( $self, $args ) {
 
 sub _update_dist ($self) {
 
+    # TODO main_module can be removed
+
     # TODO
-    # generate README.md, Build.PL, META.json, LICENSE;
+    # generate Build.PL, META.json;
 
     # generate README.md
     {
@@ -191,6 +193,18 @@ sub _update_dist ($self) {
         $parser->parse_string_document( P->file->read_bin( $self->dist->cfg->{dist}->{main_module} )->$* );
 
         P->file->write_bin( 'README.md', $markdown );
+    }
+
+    # generate LICENSE
+    {
+        P->file->write_bin(
+            'LICENSE',
+            P->class->load( $self->dist->cfg->{dist}->{license}, ns => 'Software::License' )->new(
+                {   holder => $self->dist->cfg->{dist}->{copyright_holder},
+                    year   => $self->dist->cfg->{dist}->{copyright_year},
+                }
+            )->fulltext
+        );
     }
 
     return;
@@ -221,9 +235,9 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 199                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 213                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 71, 77, 101          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 71, 77, 101, 201     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
