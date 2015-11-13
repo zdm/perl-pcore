@@ -205,7 +205,7 @@ sub _update_dist ($self) {
 
     my $cpanfile = P->class->load('Module::CPANfile')->load('cpanfile');
 
-    my $prereqs = $self->zilla->prereqs->cpan_meta_prereqs;
+    my $prereqs = $cpanfile->prereqs;
 
     # generate Build.PL
     {
@@ -213,7 +213,8 @@ sub _update_dist ($self) {
 
         my $min_perl = $reqs->requirements_for_module('perl') || '5.006';
 
-        my $mbt_version = Module::Metadata->new_from_module('Module::Build::Tiny')->version->stringify;
+        my $mbt_version = P->class->load('Module::Metadata')->new_from_module('Module::Build::Tiny')->version->stringify;
+
         if ($mbt_version) {
             $mbt_version = q[ ] . $mbt_version;
         }
@@ -266,9 +267,11 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 244                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 245                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 71, 77, 101, 197     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
+## │      │ 71, 77, 101, 197     │ * Found method-call chain of length 4                                                                          │
+## │      │ 216                  │ * Found method-call chain of length 5                                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
