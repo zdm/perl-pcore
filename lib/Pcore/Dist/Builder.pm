@@ -205,20 +205,13 @@ sub _update_dist ($self) {
 
     my $prereqs = $cpanfile->prereqs;
 
+    my $mbt_version = q[ ] . P->class->load('Module::Metadata')->new_from_module('Module::Build::Tiny')->version->stringify;
+
     # generate Build.PL
     {
         my $reqs = $prereqs->merged_requirements( [qw/configure build test runtime/], ['requires'] );
 
         my $min_perl = $reqs->requirements_for_module('perl') || '5.006';
-
-        my $mbt_version = P->class->load('Module::Metadata')->new_from_module('Module::Build::Tiny')->version->stringify;
-
-        if ($mbt_version) {
-            $mbt_version = q[ ] . $mbt_version;
-        }
-        else {
-            $mbt_version = q[];
-        }
 
         my $template = <<"BUILD_PL";
 use strict;
@@ -281,33 +274,26 @@ BUILD_PL
 
         # optional features
         {
-            # my $cpanfile = $self->cpanfile     or return {};
-            # my @features = $cpanfile->features or return {};
-            #
-            # my $features = {};
-            #
-            # for my $feature (@features) {
-            #     $features->{ $feature->identifier } = {
-            #         description => $feature->description,
-            #         prereqs     => $feature->prereqs->as_string_hash,
-            #     };
-            # }
-            #
-            # return { optional_features => $features };
+            if ( my @features = $cpanfile->features ) {
+
+                my $features = {};
+
+                for my $feature (@features) {
+                    $features->{ $feature->identifier } = {
+                        description => $feature->description,
+                        prereqs     => $feature->prereqs->as_string_hash,
+                    };
+                }
+
+                $meta->{optional_features} = $features;
+            }
         }
 
         # prereqs
         {
-            # my $cpanfile = $self->cpanfile or return;
-            #
-            # my $prereqs = $cpanfile->prereq_specs;
-            # for my $phase ( keys %$prereqs ) {
-            #     for my $type ( keys %{ $prereqs->{$phase} } ) {
-            #         $self->zilla->register_prereqs( { type => $type, phase => $phase }, %{ $prereqs->{$phase}{$type} }, );
-            #     }
-            # }
+            $prereqs->requirements_for( 'configure', 'requires' )->add_minimum( 'Module::Build::Tiny' => $mbt_version );
 
-            # TODO $self->zilla->register_prereqs({ phase => 'configure' }, 'Module::Build::Tiny' => $self->version);
+            $meta->{prereqs} = $prereqs->as_string_hash;
         }
 
         require CPAN::Meta;
@@ -342,15 +328,15 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 321                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 307                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
 ## │      │ 71, 77, 101          │ * Found method-call chain of length 4                                                                          │
-## │      │ 214                  │ * Found method-call chain of length 5                                                                          │
+## │      │ 208                  │ * Found method-call chain of length 5                                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 264                  │ RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([0-9] vs. \d)                     │
+## │    1 │ 257                  │ RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([0-9] vs. \d)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
