@@ -1,57 +1,55 @@
-package Pcore::Dist::Build;
+package Dist::Zilla::Plugin::Pcore::VersionProvider;
 
-use Pcore qw[-class];
-use Module::CPANfile;
+use Moose;
+use Pcore;
 
-has dist_root => ( is => 'ro', isa => Str, required => 1 );
-
-has dist => ( is => 'lazy', init_arg => undef );
-
-around new => sub ( $orig, $self, $dist_root ) {
-    $dist_root = P->path($dist_root) if !ref $dist_root;
-
-    return $self->$orig( { dist_root => $dist_root->realpath->to_string } );
-};
+with qw[Dist::Zilla::Role::VersionProvider];
 
 no Pcore;
+no Moose;
 
-sub _build_dist ($self) {
-    return Pcore::Core::Dist->new( $self->dist_root );
-}
+sub provide_version ( $self, @ ) {
+    my $main_module = $self->zilla->main_module;
 
-# TODO commands:
-# new
-# test --release --smoke
-# smoke
-# clean
-# deploy
-# par
-# release --major, --minor, --bugfix
-# wiki
-sub run ( $self, $cmd ) {
-    my $method = '_cmd_' . $cmd;
+    my $ver;
 
-    if ( $self->can($method) ) {
-        $self->$method;
+    if ( $main_module->encoded_content =~ m[^\s*package\s+\w[\w\:\']*\s+(v?[0-9._]+)\s*;]sm ) {
+        $ver = $1;
+    }
+    else {
+        die q[Can't parse version from ] . $main_module;
     }
 
-    return;
-}
+    # if ( $ENV{DZIL_RELEASING} ) {
+    #     say q[Current version: ] . $ver;
+    #
+    #     my $defver = version->new($ver);
+    #
+    #     $defver->{version}->[2]++;
+    #
+    #   REDO:
+    #     my $rver = $defver->normal;
+    #
+    #     print qq[Enter release version [$rver]: ];
+    #
+    #     my $in = <$STDIN>;
+    #
+    #     chomp $in;
+    #
+    #     if ($in) {
+    #         $rver = eval { version->new($in) };
+    #
+    #         if ( $@ || $rver <= $ver ) {
+    #             say 'Invalid version format';
+    #
+    #             goto REDO;
+    #         }
+    #     }
+    #
+    #     $ver = $rver;
+    # }
 
-sub _cmd_build ($self) {
-    my $cpanfile = Module::CPANfile->load('cpanfile');
-
-    say dump $cpanfile;
-
-    # TODO build workflow
-    # - validate dist.perl config;
-    # - generate README.md, Build.PL, META.json, LICENSE;
-    # - copy all files to the temp build dir;
-    # - generate MANIFEST;
-
-    # say dump $self->dist->hg->cmd('id', '-inbt');
-
-    return;
+    return $ver;
 }
 
 1;
@@ -61,7 +59,7 @@ sub _cmd_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 41                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_cmd_build' declared but not used   │
+## │    1 │ 16                   │ RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([0-9] vs. \d)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -72,7 +70,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::Build
+Dist::Zilla::Plugin::Pcore::VersionProvider
 
 =head1 SYNOPSIS
 

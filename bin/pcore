@@ -1,13 +1,20 @@
 #!/usr/bin/env perl
 
-package main v0.1.0;
+package main;
 
 use FindBin;
-use if -f qq[$FindBin::RealBin/../share/dist.perl] && -d qq[$FindBin::RealBin/../lib/], lib => qq[$FindBin::RealBin/../lib/];    # add pcore lib to @INC, if Pcore is dist
-use Pcore qw[-embedded];
-use Dist::Pcore::App;
 
-Dist::Pcore::App->run;
+# add pcore lib to @INC, if Pcore is dist
+use if -f qq[$FindBin::RealBin/../share/dist.perl] && -d qq[$FindBin::RealBin/../lib/], lib => qq[$FindBin::RealBin/../lib/];
+use Pcore;
+use Pcore::Dist;
+
+if ( $ARGV{command} eq 'new' ) {
+    Pcore::Dist->create( $ARGV{name} );
+}
+else {
+    Pcore::Dist->new( $PROC->{START_DIR} )->builder->run( $ARGV{command}, \%ARGV );
+}
 
 1;
 __END__
@@ -23,11 +30,88 @@ pcore - Dist::Zilla based project management tool
 
 =over
 
+=item <command>
+
+Commands:
+
+    new Dist::Name - create new distribution
+    test
+    smoke
+    clean
+    deploy         - deploy distribution locally
+    par            - build PAR executable
+    release
+    wiki           - generate wiki docs
+
 =back
 
 =head1 OPTIONS
 
 =over
+
+New
+
+=item <name>
+
+New distribution name
+
+Test
+
+=item --author
+
+With author tests.
+
+=item --release
+
+With release tests.
+
+=item --smoke
+
+With smoke tests.
+
+Deploy
+
+=item --install
+
+install to PATH and PERL5LIB
+
+=item --develop
+
+cpanm --with-develop
+
+=item --recommends
+
+cpanm --with-recommends
+
+=item --suggests
+
+cpanm --with-suggests
+
+PAR
+
+=item --release
+
+build release binary
+
+=item --crypt
+
+crypt non-core perl sources with Filter::Crypto
+
+=item --noupx
+
+do not compress shared objects with upx
+
+=item --clean
+
+clean temp dir on exit
+
+Release
+
+=item --major
+
+=item --minor
+
+=item --bugfix
 
 =back
 

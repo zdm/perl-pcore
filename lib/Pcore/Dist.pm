@@ -13,6 +13,7 @@ has cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has lib_path => ( is => 'lazy', init_arg => undef );
 
 has scm => ( is => 'lazy', init_arg => undef );
+has builder => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Builder'], init_arg => undef );
 
 const our $CPAN_INC => do {
     my @cpan_inc;
@@ -166,6 +167,12 @@ sub _build_scm ($self) {
     return P->class->load('Pcore::Src::SCM')->new( $self->root );
 }
 
+sub _build_builder ($self) {
+    return if $self->is_installed;
+
+    return P->class->load('Pcore::Dist::Builder')->new($self);
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -175,9 +182,9 @@ sub _build_scm ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 65, 91, 129, 133     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 66, 92, 130, 134     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 119                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 120                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
