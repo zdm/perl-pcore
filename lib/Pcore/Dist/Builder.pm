@@ -166,7 +166,10 @@ sub _cmd_wiki ( $self, $args ) {
     return;
 }
 
-# TODO main_module can be removed
+# TODO main_module can be removed;
+# copyright_year can be removed;
+# copyright holder can be omitted, then author should be used;
+# Pcore - no warnings experimental only for perl 5.22.*
 sub _update_dist ($self) {
 
     # generate README.md
@@ -235,9 +238,12 @@ BUILD_PL
     }
 
     # generate META.json
-    # {
-    #
-    # }
+    {
+        # TODO $self->zilla->register_prereqs({ phase => 'configure' }, 'Module::Build::Tiny' => $self->version);
+        require CPAN::Meta;
+
+        say dump $cpanfile->prereq_specs;
+    }
 
     return;
 }
@@ -245,7 +251,6 @@ BUILD_PL
 sub _create_temp_build ($self) {
 
     # TODO
-    # generate README.md, Build.PL, META.json, LICENSE;
     # copy files to the temp dir;
     # generate MANIFEST;
 
@@ -267,11 +272,11 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 245                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 251                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
-## │      │ 71, 77, 101, 197     │ * Found method-call chain of length 4                                                                          │
-## │      │ 216                  │ * Found method-call chain of length 5                                                                          │
+## │      │ 71, 77, 101, 200     │ * Found method-call chain of length 4                                                                          │
+## │      │ 219                  │ * Found method-call chain of length 5                                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
