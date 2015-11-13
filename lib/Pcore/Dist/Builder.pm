@@ -167,9 +167,8 @@ sub _cmd_wiki ( $self, $args ) {
 }
 
 # TODO
-# Pcore - no warnings experimental only for perl 5.22.*;
-# abstract should be parsed from main module NAME pod;
 sub _update_dist ($self) {
+    my $main_module = P->file->read_bin( 'lib/' . $self->dist->main_module_rel_path );
 
     # generate README.md
     {
@@ -188,22 +187,19 @@ sub _update_dist ($self) {
         $parser->output_string( \$markdown );
 
         # generate markdown document
-        $parser->parse_string_document( P->file->read_bin( 'lib/' . $self->dist->main_module_rel_path )->$* );
+        $parser->parse_string_document( $main_module->$* );
 
         P->file->write_bin( 'README.md', $markdown );
     }
 
     # generate LICENSE
-    {
-        P->file->write_bin(
-            'LICENSE',
-            P->class->load( $self->dist->cfg->{dist}->{license}, ns => 'Software::License' )->new(
-                {   holder => $self->dist->cfg->{dist}->{copyright_holder} || $self->dist->cfg->{dist}->{author},
-                    year => P->date->now->year,
-                }
-            )->fulltext
-        );
-    }
+    my $lic = P->class->load( $self->dist->cfg->{dist}->{license}, ns => 'Software::License' )->new(
+        {   holder => $self->dist->cfg->{dist}->{copyright_holder} || $self->dist->cfg->{dist}->{author},
+            year => P->date->now->year,
+        }
+    );
+
+    P->file->write_bin( 'LICENSE', $lic->fulltext );
 
     my $cpanfile = P->class->load('Module::CPANfile')->load('cpanfile');
 
@@ -238,10 +234,57 @@ BUILD_PL
 
     # generate META.json
     {
+        my $meta = {
+            abstract => q[],
+            author   => [      #
+                $self->dist->cfg->{dist}->{author},
+            ],
+            dynamic_config => 0,
+            license        => $lic->meta_name,
+            name           => $self->dist->cfg->{dist}->{name},
+            no_index       => {                                   #
+                directory => [qw[inc share t xt]],
+            },
+            release_status => 'stable',
+            resources      => {
+                homepage   => q[],
+                repository => {
+                    web  => q[],
+                    url  => q[],
+                    type => q[],
+                },
+                bugtracker => {                                   #
+                    web => q[],
+                }
+            },
+            version => q[],
+        };
+
+        # parse version from main module
+        if ( $main_module->$* =~ m[^\s*package\s+\w[\w\:\']*\s+(v?[0-9._]+)\s*;]sm ) {
+            $meta->{version} = $1;
+        }
+
+        # parse abstract from main module POD
+        my $class = $self->dist->cfg->{dist}->{name} =~ s[-][::]smgr;
+
+        if ( $main_module->$* =~ m[=head1\s+NAME\s*$class\s*-\s*([^\n]+)]smi ) {
+            $meta->{abstract} = $1;
+        }
+
+        # fill resources
+        if ( my $upstream = $self->dist->scm->upstream ) {
+            P->hash->merge( $meta->{resources}, $upstream->meta_resources );
+        }
+
+        P->hash->merge( $meta->{resources}, $self->dist->cfg->{dist}->{meta} ) if $self->dist->cfg->{dist}->{meta};
+
         # TODO $self->zilla->register_prereqs({ phase => 'configure' }, 'Module::Build::Tiny' => $self->version);
         require CPAN::Meta;
 
-        say dump $cpanfile->prereq_specs;
+        my $cpan_meta = CPAN::Meta->new($meta);
+
+        say dump $cpan_meta;
     }
 
     return;
@@ -271,13 +314,15 @@ sub _create_temp_build ($self) {
 ## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
 ## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
 ## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
-## │      │ 250                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
+## │      │ 293                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
-## │      │ 71, 77, 101, 199     │ * Found method-call chain of length 4                                                                          │
-## │      │ 218                  │ * Found method-call chain of length 5                                                                          │
+## │      │ 71, 77, 101          │ * Found method-call chain of length 4                                                                          │
+## │      │ 214                  │ * Found method-call chain of length 5                                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 264                  │ RegularExpressions::ProhibitEnumeratedClasses - Use named character classes ([0-9] vs. \d)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

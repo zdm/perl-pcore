@@ -1,7 +1,6 @@
 {   dist => {
         name             => '<: $dist_name :>',
         author           => '<: $author :> <<: $author_email :>>',
-        abstract         => '',
         license          => '<: $license :>',
         copyright_holder => '<: $copyright_holder :>',
         cpan             => 0,                                       # 1 - CPAN distribution
