@@ -118,6 +118,20 @@ around new => sub ( $orig, $self, $path ) {
 
 no Pcore;
 
+sub global_cfg ($self) {
+    state $cfg = do {
+        my $_cfg;
+
+        if ( my $home = $ENV{HOME} || $ENV{USERPROFILE} ) {
+            $_cfg = P->cfg->load( $home . '/.pcore/config.ini' ) if -f $home . '/.pcore/config.ini';
+        }
+
+        $_cfg;
+    };
+
+    return $cfg;
+}
+
 sub create ( $self, $namespace ) {
     if ( my $path = P->class->load('Pcore::Dist::Create')->new( { namespace => $namespace } )->create ) {
         return $self->new($path);
@@ -188,9 +202,10 @@ sub _build_main_module_rel_path ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 68, 94, 132, 136     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 68, 94, 126, 146,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │      │ 150                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 122                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 136                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
