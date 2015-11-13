@@ -5,7 +5,7 @@ use utf8;
 use strict;
 use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
 no if $^V ge 'v5.18', warnings => 'experimental';
-use warnings ( qw[experimental::autoderef], FATAL => qw[experimental::autoderef], NONFATAL => qw[] );
+use if $^V lt 'v5.23', warnings => 'experimental::autoderef', FATAL => 'experimental::autoderef';
 use if $^V ge 'v5.10', feature => ':all';
 no  if $^V ge 'v5.16', feature => 'array_base';
 use if $^V ge 'v5.22', re      => 'strict';
@@ -121,7 +121,7 @@ sub import {
     strict->import();
     warnings->import( 'all', FATAL => qw[utf8], NONFATAL => qw[] );
     warnings->unimport('experimental') if $^V ge 'v5.18';
-    warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef], NONFATAL => qw[] );
+    warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef] ) if $^V lt 'v5.23';
     feature->import(':all')         if $^V ge 'v5.10';
     feature->unimport('array_base') if $^V ge 'v5.16';
     re->import('strict')            if $^V ge 'v5.22';
@@ -215,7 +215,7 @@ sub import {
             # reconfigure warnings, after Moo exported
             warnings->import( 'all', FATAL => qw[utf8], NONFATAL => qw[] );
             warnings->unimport('experimental');
-            warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef], NONFATAL => qw[] );
+            warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef] ) if $^V lt 'v5.23';
 
             # apply default roles
             # $self->_apply_roles( caller => $caller, roles => [qw[Pcore::Core::Autoload::Role]] );
@@ -556,7 +556,7 @@ sub _configure_console {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 46                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 103                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
+## │    3 │ 103                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 167                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
