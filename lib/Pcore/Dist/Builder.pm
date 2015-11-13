@@ -5,6 +5,9 @@ use Module::CPANfile;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
+# perl CPAN distribution
+# http://www.perlmonks.org/?node_id=1009586
+
 around new => sub ( $orig, $self, $dist ) {
     return $self->$orig( { dist => $dist } );
 };
@@ -21,6 +24,8 @@ sub run ( $self, $cmd, $args ) {
 
 # TODO
 sub _cmd_test ( $self, $args ) {
+    $self->_update_dist;
+
     return;
 }
 
@@ -121,7 +126,7 @@ sub _cmd_wiki ( $self, $args ) {
                         $parser->output_string( \$markdown );
 
                         # generate markdown document
-                        $parser->parse_string_document( ${ Pcore->file->read_bin($path) } );
+                        $parser->parse_string_document( P->file->read_bin($path)->$* );
 
                         $markdown =~ s/\n+\z//smg;
 
@@ -161,21 +166,45 @@ sub _cmd_wiki ( $self, $args ) {
     return;
 }
 
-# sub _cmd_build ($self) {
-#     my $cpanfile = Module::CPANfile->load('cpanfile');
-#
-#     say dump $cpanfile;
-#
-#     # TODO build workflow
-#     # - validate dist.perl config;
-#     # - generate README.md, Build.PL, META.json, LICENSE;
-#     # - copy all files to the temp build dir;
-#     # - generate MANIFEST;
-#
-#     # say dump $self->dist->hg->cmd('id', '-inbt');
-#
-#     return;
-# }
+sub _update_dist ($self) {
+
+    # TODO
+    # generate README.md, Build.PL, META.json, LICENSE;
+
+    # generate README.md
+    {
+        require Pod::Markdown;
+
+        my $parser = Pod::Markdown->new(
+
+            # perldoc_url_prefix       => $base_url,
+            perldoc_fragment_format  => 'pod_simple_html',    # CodeRef ( $self, $text )
+            markdown_fragment_format => 'pod_simple_html',    # CodeRef ( $self, $text )
+            include_meta_tags        => 0,
+        );
+
+        my $markdown;
+
+        $parser->output_string( \$markdown );
+
+        # generate markdown document
+        $parser->parse_string_document( P->file->read_bin( $self->dist->cfg->{dist}->{main_module} )->$* );
+
+        P->file->write_bin( 'README.md', $markdown );
+    }
+
+    return;
+}
+
+sub _create_temp_build ($self) {
+
+    # TODO
+    # generate README.md, Build.PL, META.json, LICENSE;
+    # copy files to the temp dir;
+    # generate MANIFEST;
+
+    return;
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -185,17 +214,18 @@ sub _cmd_wiki ( $self, $args ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 23                   │ * Private subroutine/method '_cmd_test' declared but not used                                                  │
-## │      │ 28                   │ * Private subroutine/method '_cmd_smoke' declared but not used                                                 │
-## │      │ 32                   │ * Private subroutine/method '_cmd_clean' declared but not used                                                 │
-## │      │ 65                   │ * Private subroutine/method '_cmd_deploy' declared but not used                                                │
-## │      │ 71                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
-## │      │ 83                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
-## │      │ 87                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
+## │      │ 26                   │ * Private subroutine/method '_cmd_test' declared but not used                                                  │
+## │      │ 33                   │ * Private subroutine/method '_cmd_smoke' declared but not used                                                 │
+## │      │ 37                   │ * Private subroutine/method '_cmd_clean' declared but not used                                                 │
+## │      │ 70                   │ * Private subroutine/method '_cmd_deploy' declared but not used                                                │
+## │      │ 76                   │ * Private subroutine/method '_cmd_par' declared but not used                                                   │
+## │      │ 88                   │ * Private subroutine/method '_cmd_release' declared but not used                                               │
+## │      │ 92                   │ * Private subroutine/method '_cmd_wiki' declared but not used                                                  │
+## │      │ 199                  │ * Private subroutine/method '_create_temp_build' declared but not used                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 66, 72, 96           │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 71, 77, 101          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 88, 131              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 93, 136              │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
