@@ -3,12 +3,14 @@ package Pcore::Core::CLI1;
 use Pcore qw[-class];
 use Getopt::Long qw[];
 use Pcore::Core::CLI::Opt;
+use Pcore::Core::CLI::Arg;
 
 has class => ( is => 'ro', isa => Str, required => 1 );
 has cmd_path => ( is => 'ro', isa => ArrayRef, default => sub { [] } );
 
 has cmd => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 has opt => ( is => 'lazy', isa => HashRef,  init_arg => undef );
+has arg => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 
 has is_cmd     => ( is => 'lazy', isa => Bool,    init_arg => undef );
 has _cmd_index => ( is => 'lazy', isa => HashRef, init_arg => undef );
@@ -88,6 +90,40 @@ sub _build_opt ($self) {
     }
 
     return $opt;
+}
+
+sub _build_arg ($self) {
+    my $args = [];
+
+    my $index = {};
+
+    my $class = $self->class;
+
+    my $slurpy;
+
+    my $not_required;
+
+    if ( $class->can('cli_arg') && defined( my $cli_arg = $class->cli_arg ) ) {
+        for my $cfg ( $cli_arg->@* ) {
+            die q[Can't have other arguments after "slurpy" argument] if $slurpy;
+
+            die q[Can't have other arguments after not "requried" argument] if $not_required;
+
+            my $arg = Pcore::Core::CLI::Arg->new($cfg);
+
+            die qq[Argument "@{[$arg->name]}" is duplicated] if exists $index->{ $arg->name };
+
+            $slurpy = 1 if $arg->slurpy;
+
+            $not_required = 1 if !$arg->required;
+
+            push $args->@*, $arg;
+
+            $index->{ $arg->name } = 1;
+        }
+    }
+
+    return $args;
 }
 
 sub _build__cmd_index ($self) {
@@ -198,7 +234,7 @@ sub _parse_opt ( $self, $argv ) {
     my $res = {
         error => undef,
         opt   => {},
-        arg   => undef,
+        arg   => {},
         rest  => undef,
     };
 
@@ -222,6 +258,8 @@ sub _parse_opt ( $self, $argv ) {
         ]
     );
 
+    my $parsed_args = [];
+
     {
         no warnings qw[redefine];
 
@@ -240,7 +278,7 @@ sub _parse_opt ( $self, $argv ) {
             'version',
             'help|h|?',
             '<>' => sub ($arg) {
-                push $res->{arg}->@*, $arg;
+                push $parsed_args->@*, $arg;
 
                 return;
             }
@@ -276,18 +314,50 @@ sub _parse_opt ( $self, $argv ) {
 
         next if $opt->is_bool;
 
-        if ( exists $res->{opt}->{$name} && ( $opt->type eq '-e' || $opt->type eq '-d' || $opt->type eq '-f' ) ) {
+        if ( exists $res->{opt}->{$name} && ( $opt->type eq 'Path' || $opt->type eq 'Dir' || $opt->type eq 'File' ) ) {
             my $vals = ref $res->{opt}->{$name} eq 'ARRAY' ? $res->{opt}->{$name} : ref $res->{opt}->{$name} eq 'HASH' ? [ values $res->{opt}->{$name}->%* ] : [ $res->{opt}->{$name} ];
 
             for my $val ( $vals->@* ) {
-                if ( $opt->type eq '-e' ) {
+                if ( $opt->type eq 'Path' ) {
                     return $self->help_usage( [qq[option "$name" path "$val" is not exists]] ) if !-e $val;
                 }
-                elsif ( $opt->type eq '-d' ) {
+                elsif ( $opt->type eq 'Dir' ) {
                     return $self->help_usage( [qq[option "$name" dir "$val" is not exists]] ) if !-d $val;
                 }
-                elsif ( $opt->type eq '-f' ) {
+                elsif ( $opt->type eq 'File' ) {
                     return $self->help_usage( [qq[option "$name" file "$val" is not exists]] ) if !-f $val;
+                }
+            }
+        }
+    }
+
+    # validate args
+    if ( !$self->arg->@* ) {
+        return $self->help_usage( [qq[Unknown arguments]] ) if $parsed_args->@*;
+    }
+    else {
+        for my $arg ( $self->arg->@* ) {
+            return $self->help_usage( [qq[required argument "@{[$arg->type_desc]}" is missed]] ) if $arg->required && !$parsed_args->@*;
+
+            last if !$arg->required && !$parsed_args->@*;
+
+            if ( $arg->slurpy ) {
+                push $res->{arg}->{ $arg->name }->@*, splice( $parsed_args->@*, 0, $parsed_args->@*, () );
+
+                last;
+            }
+            else {
+                push $res->{arg}->{ $arg->name }->@*, shift $parsed_args->@*;
+            }
+        }
+
+        return $self->help_usage( [qq[Unknown arguments]] ) if $parsed_args->@*;
+
+        # validate args types
+        for my $arg ( $self->arg->@* ) {
+            if ( exists $res->{arg}->{ $arg->name } ) {
+                for my $val ( $res->{arg}->{ $arg->name }->@* ) {
+                    return $self->help_usage( [qq[argument "@{[$arg->type_desc]}" value type must be "@{[uc $arg->type]}"]] ) if !$arg->validate($val);
                 }
             }
         }
@@ -302,7 +372,7 @@ sub _parse_opt ( $self, $argv ) {
 
     # run
     if ( $class->can('cli_run') ) {
-        return $class->cli_run($res);
+        return $class->cli_run( $res->{opt}, $res->{arg}, $res->{rest} );
     }
     else {
         return $res;
@@ -354,7 +424,6 @@ sub _help_class_abstract ( $self, $class = undef ) {
     return $abstract;
 }
 
-# TODO add arguments, if present
 sub _help_usage_string ($self) {
     my $usage = join q[ ], P->path( $PROC->{SCRIPT_NAME} )->filename, $self->cmd_path->@*;
 
@@ -362,11 +431,27 @@ sub _help_usage_string ($self) {
         $usage .= ' [COMMAND] [OPTION]...';
     }
     else {
-        $usage .= q[ [OPTION]... [ARGUMENTS]...];
+        $usage .= ' [OPTION]...' if $self->opt->%*;
 
-        # TODO add arguments specification, if needed
-        if (0) {
-            $usage .= q[ [ARGUMENTS]...];
+        if ( $self->arg->@* ) {
+            my @args;
+
+            for my $arg ( $self->arg->@* ) {
+                my $arg_spec;
+
+                if ( $arg->required ) {
+                    $arg_spec = uc $arg->type_desc;
+                }
+                else {
+                    $arg_spec = '[' . uc $arg->type_desc . ']';
+                }
+
+                $arg_spec .= '...' if $arg->slurpy;
+
+                push @args, $arg_spec;
+            }
+
+            $usage .= q[ ] . join q[ ], @args;
         }
     }
 
@@ -509,15 +594,19 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 75, 78, 108, 173,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 208, 263, 280, 422,  │                                                                                                                │
-## │      │ 427, 431, 435        │                                                                                                                │
+## │    3 │ 77, 80, 144, 209,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 244, 301, 318, 434,  │                                                                                                                │
+## │      │ 507, 512, 516, 520   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 197                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (30)                │
+## │    3 │ 233                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (45)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 325, 451, 479        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 336, 354             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 525                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 529 does not match the package declaration      │
+## │    3 │ 395, 536, 564        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 345                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 614                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 618 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

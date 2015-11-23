@@ -3,14 +3,14 @@ package Pcore::Core::CLI::Opt;
 use Pcore qw[-class -const];
 
 has name => ( is => 'ro', isa => Str, required => 1 );
-has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );    # undef - disable short option
+has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );            # undef - disable short option
 has desc  => ( is => 'ro',   isa => Str );
-has type  => ( is => 'ro',   isa => Maybe [ Enum     [qw[s i o f -e -d -f]] ] );     # argument is required if type is present
-has negated => ( is => 'ro', isa => Bool, default => 0 );                            # only for boolean options
-has incr    => ( is => 'ro', isa => Bool, default => 0 );                            # only for boolean options
+has type  => ( is => 'ro',   isa => Maybe [ Enum     [qw[Str Int Num Path Dir File]] ] );    # argument is required if type is present
+has negated => ( is => 'ro', isa => Bool, default => 0 );                                    # only for boolean options
+has incr    => ( is => 'ro', isa => Bool, default => 0 );                                    # only for boolean options
 has desttype => ( is => 'ro', isa => Maybe [ Enum [qw[@ %]] ] );
-has required => ( is => 'ro', isa => Bool, default => 0 );                           # if option is not exists - set default value or throw error
-has default => ( is => 'ro', isa => Maybe [Str] );                                   # use, if option is exists and has no value
+has required => ( is => 'ro', isa => Bool, default => 0 );                                   # if option is not exists - set default value or throw error
+has default => ( is => 'ro', isa => Maybe [Str] );                                           # use, if option is exists and has no value
 has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 has max => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 has type_desc => ( is => 'lazy', isa => Maybe [Str] );
@@ -23,23 +23,12 @@ has spec        => ( is => 'lazy', isa => Str, init_arg => undef );
 no Pcore;
 
 const our $GETOPT_TYPE_MAP => {
-    s    => 's',
-    i    => 'i',
-    o    => 'o',
-    f    => 'f',
-    '-e' => 's',
-    '-d' => 's',
-    '-f' => 's',
-};
-
-const our $TYPE_DESC => {
-    s    => 'STR',
-    i    => 'INT',
-    o    => 'EXTINT',
-    f    => 'NUM',
-    '-e' => 'PATH',
-    '-d' => 'DIR',
-    '-f' => 'FILE',
+    Str  => 's',
+    Int  => 'i',
+    Num  => 'f',
+    Path => 's',
+    Dir  => 's',
+    File => 's',
 };
 
 sub BUILD ( $self, $args ) {
@@ -68,7 +57,7 @@ sub _build_short ($self) {
 }
 
 sub _build_type_desc ($self) {
-    return $self->type ? $TYPE_DESC->{ $self->type } : undef;
+    return $self->type ? uc $self->type : undef;
 }
 
 sub _build_is_bool ($self) {

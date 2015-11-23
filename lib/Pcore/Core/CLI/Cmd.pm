@@ -27,6 +27,10 @@ sub cli_opt ($self) {
     return;
 }
 
+sub cli_arg ($self) {
+    return;
+}
+
 # return error message or undef
 sub cli_validate ( $self, $opt, $arg, $rest ) {
     return;
