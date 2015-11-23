@@ -1,26 +1,58 @@
-package Pcore::Core::CLI::Arg;
+package Pcore::Core::CLI::Type;
 
-use Pcore qw[-class -const];
-use Pcore::Core::CLI::Type;
+use Pcore qw[-const -types];
 
-has name => ( is => 'ro', isa => Str, required => 1 );
-has type => ( is => 'ro', isa => Maybe [ Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );    # argument is required if type is present
-has required => ( is => 'ro', isa => Bool, default => 1 );
-has slurpy   => ( is => 'ro', isa => Bool, default => 0 );
-
-has type_desc => ( is => 'lazy', isa => Str, init_arg => undef );
-has spec      => ( is => 'lazy', isa => Str, init_arg => undef );
+const our $TYPE => {
+    Str => {
+        getopt    => 's',
+        validator => sub ($val) {
+            return Str->check($val);
+        },
+    },
+    Int => {
+        getopt    => 'i',
+        validator => sub ($val) {
+            return Int->check($val);
+        },
+    },
+    Num => {
+        getopt    => 'f',
+        validator => sub ($val) {
+            return Num->check($val);
+        },
+    },
+    Path => {
+        getopt    => 's',
+        validator => sub ($val) {
+            return -e $val;
+        },
+    },
+    Dir => {
+        getopt    => 's',
+        validator => sub ($val) {
+            return -d $val;
+        },
+    },
+    File => {
+        getopt    => 's',
+        validator => sub ($val) {
+            return -f $val;
+        },
+    },
+};
 
 no Pcore;
 
-sub _build_type_desc ($self) {
-    return uc $self->name =~ s/_/-/smgr;
-}
+sub validate ( $self, $var, $type ) {
+    my $vals = ref $var eq 'ARRAY' ? $var : ref $var eq 'HASH' ? [ values $var->%* ] : [$var];
 
-sub validate ( $self, $val ) {
-    return if !$self->type;
+    for ( $vals->@* ) {
+        if ( !$TYPE->{$type}->{validator}->($_) ) {
+            return qq[value "$_" is not a ] . uc $type;
+        }
+    }
 
-    return Pcore::Core::CLI::Type->validate( $val, $self->type );
+    return;
 }
 
 1;
@@ -30,7 +62,7 @@ sub validate ( $self, $val ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 7                    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 47                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -41,7 +73,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::CLI::Arg
+Pcore::Core::CLI::Type
 
 =head1 SYNOPSIS
 

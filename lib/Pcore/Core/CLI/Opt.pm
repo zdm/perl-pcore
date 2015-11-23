@@ -1,16 +1,17 @@
 package Pcore::Core::CLI::Opt;
 
 use Pcore qw[-class -const];
+use Pcore::Core::CLI::Type;
 
 has name => ( is => 'ro', isa => Str, required => 1 );
-has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );            # undef - disable short option
+has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );                       # undef - disable short option
 has desc  => ( is => 'ro',   isa => Str );
-has type  => ( is => 'ro',   isa => Maybe [ Enum     [qw[Str Int Num Path Dir File]] ] );    # argument is required if type is present
-has negated => ( is => 'ro', isa => Bool, default => 0 );                                    # only for boolean options
-has incr    => ( is => 'ro', isa => Bool, default => 0 );                                    # only for boolean options
+has type  => ( is => 'ro',   isa => Maybe [ Enum     [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );    # argument is required if type is present
+has negated => ( is => 'ro', isa => Bool, default => 0 );                                               # only for boolean options
+has incr    => ( is => 'ro', isa => Bool, default => 0 );                                               # only for boolean options
 has desttype => ( is => 'ro', isa => Maybe [ Enum [qw[@ %]] ] );
-has required => ( is => 'ro', isa => Bool, default => 0 );                                   # if option is not exists - set default value or throw error
-has default => ( is => 'ro', isa => Maybe [Str] );                                           # use, if option is exists and has no value
+has required => ( is => 'ro', isa => Bool, default => 0 );                                              # if option is not exists - set default value or throw error
+has default => ( is => 'ro', isa => Maybe [Str] );                                                      # use, if option is exists and has no value
 has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 has max => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 has type_desc => ( is => 'lazy', isa => Maybe [Str] );
@@ -22,14 +23,7 @@ has spec        => ( is => 'lazy', isa => Str, init_arg => undef );
 
 no Pcore;
 
-const our $GETOPT_TYPE_MAP => {
-    Str  => 's',
-    Int  => 'i',
-    Num  => 'f',
-    Path => 's',
-    Dir  => 's',
-    File => 's',
-};
+# NOTE http://docopt.org/
 
 sub BUILD ( $self, $args ) {
     my $name = $self->name;
@@ -66,7 +60,7 @@ sub _build_is_bool ($self) {
 
 sub _build_getopt_type ($self) {
     if ( !$self->is_bool ) {
-        return $GETOPT_TYPE_MAP->{ $self->type };
+        return $Pcore::Core::CLI::Type::TYPE->{ $self->type }->{getopt};
     }
     else {
         return;
@@ -143,7 +137,23 @@ sub _build_spec ($self) {
     return $spec;
 }
 
+sub validate ( $self, $val ) {
+    return if !$self->type;
+
+    return Pcore::Core::CLI::Type->validate( $val, $self->type );
+}
+
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 9                    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

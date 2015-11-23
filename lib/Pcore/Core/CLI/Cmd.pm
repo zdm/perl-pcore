@@ -36,7 +36,7 @@ sub cli_validate ( $self, $opt, $arg, $rest ) {
     return;
 }
 
-sub cli_run ( $self, $res ) {
+sub cli_run ( $self, $opt, $arg, $rest ) {
     return;
 }
 

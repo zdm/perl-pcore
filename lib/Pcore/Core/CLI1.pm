@@ -314,19 +314,9 @@ sub _parse_opt ( $self, $argv ) {
 
         next if $opt->is_bool;
 
-        if ( exists $res->{opt}->{$name} && ( $opt->type eq 'Path' || $opt->type eq 'Dir' || $opt->type eq 'File' ) ) {
-            my $vals = ref $res->{opt}->{$name} eq 'ARRAY' ? $res->{opt}->{$name} : ref $res->{opt}->{$name} eq 'HASH' ? [ values $res->{opt}->{$name}->%* ] : [ $res->{opt}->{$name} ];
-
-            for my $val ( $vals->@* ) {
-                if ( $opt->type eq 'Path' ) {
-                    return $self->help_usage( [qq[option "$name" path "$val" is not exists]] ) if !-e $val;
-                }
-                elsif ( $opt->type eq 'Dir' ) {
-                    return $self->help_usage( [qq[option "$name" dir "$val" is not exists]] ) if !-d $val;
-                }
-                elsif ( $opt->type eq 'File' ) {
-                    return $self->help_usage( [qq[option "$name" file "$val" is not exists]] ) if !-f $val;
-                }
+        if ( exists $res->{opt}->{$name} ) {
+            if ( my $error_msg = $opt->validate( $res->{opt}->{$name} ) ) {
+                return $self->help_usage( [ qq[invalid option "$name", ] . $error_msg ] );
             }
         }
     }
@@ -347,7 +337,7 @@ sub _parse_opt ( $self, $argv ) {
                 last;
             }
             else {
-                push $res->{arg}->{ $arg->name }->@*, shift $parsed_args->@*;
+                $res->{arg}->{ $arg->name } = shift $parsed_args->@*;
             }
         }
 
@@ -356,8 +346,8 @@ sub _parse_opt ( $self, $argv ) {
         # validate args types
         for my $arg ( $self->arg->@* ) {
             if ( exists $res->{arg}->{ $arg->name } ) {
-                for my $val ( $res->{arg}->{ $arg->name }->@* ) {
-                    return $self->help_usage( [qq[argument "@{[$arg->type_desc]}" value type must be "@{[uc $arg->type]}"]] ) if !$arg->validate($val);
+                if ( my $error_msg = $arg->validate( $res->{arg}->{ $arg->name } ) ) {
+                    return $self->help_usage( [ qq[invalid argument "@{[$arg->type_desc]}", ] . $error_msg ] );
                 }
             }
         }
@@ -595,18 +585,18 @@ sub help_error ( $self, $msg ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 77, 80, 144, 209,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 244, 301, 318, 434,  │                                                                                                                │
-## │      │ 507, 512, 516, 520   │                                                                                                                │
+## │      │ 244, 301, 424, 497,  │                                                                                                                │
+## │      │ 502, 506, 510        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 233                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (45)                │
+## │    3 │ 233                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (33)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 336, 354             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 326, 344             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 395, 536, 564        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 385, 526, 554        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 345                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 335                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 614                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 618 does not match the package declaration      │
+## │    1 │ 604                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 608 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
