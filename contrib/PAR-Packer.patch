@@ -1,0 +1,15 @@
+diff -rc PAR-Packer-1.027/myldr/boot.c PAR-Packer-1.027-patch/myldr/boot.c
+*** PAR-Packer-1.027/myldr/boot.c	2015-07-19 16:42:02.000000000 +0300
+--- PAR-Packer-1.027-patch/myldr/boot.c	2015-11-18 22:43:16.986923600 +0200
+***************
+*** 216,221 ****
+--- 216,224 ----
+          }
+      }
+  
++     # include <signal.h>
++     signal(SIGINT, SIG_IGN);
++ 
+      par_setenv("PAR_SPAWNED", "1");
+      rc = spawnvpe(P_WAIT, my_perl, (char* const*)argv, (char* const*)environ);
+  
