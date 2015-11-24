@@ -12,7 +12,7 @@ use Pcore::Core::CLI1;
 Pcore::Core::CLI1->new( { class => 'main' } )->run( \@ARGV );
 
 sub cli_cmd ($self) {
-    return 'Pcore::Dist::Builder::CLI';
+    return 'Pcore::Dist::Builder';
 }
 
 sub cli_abstract ($self) {
