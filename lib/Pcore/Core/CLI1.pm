@@ -69,7 +69,12 @@ sub _build_cmd ($self) {
 sub _build_opt ($self) {
     my $opt = {};
 
-    my $index = {};
+    my $index = {
+        help    => undef,
+        h       => undef,
+        q[?]    => undef,
+        version => undef,
+    };
 
     my $class = $self->class;
 
@@ -505,9 +510,14 @@ sub _help_usage ($self) {
 
     for ( keys $list->%* ) {
         $max_key_len = length if length > $max_key_len;
+
+        # remove \n from desc
+        $list->{$_} =~ s/\n+\z//smg;
     }
 
-    $help .= join $LF, map { sprintf( " %-${max_key_len}s    ", $_ ) . $list->{$_} } sort keys $list->%*;
+    my $desc_indent = $LF . q[    ] . ( q[ ] x $max_key_len );
+
+    $help .= join $LF, map { sprintf( " %-${max_key_len}s   ", $_ ) . $list->{$_} =~ s/\n/$desc_indent/smgr } sort keys $list->%*;
 
     return $help // q[];
 }
@@ -584,19 +594,19 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 77, 80, 144, 209,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 244, 301, 424, 497,  │                                                                                                                │
-## │      │ 502, 506, 510        │                                                                                                                │
+## │    3 │ 82, 85, 149, 214,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 249, 306, 429, 502,  │                                                                                                                │
+## │      │ 507, 511, 520        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 233                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (33)                │
+## │    3 │ 238                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (33)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 326, 344             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 331, 349             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 385, 526, 554        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 390, 536, 564        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 335                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 340                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 604                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 608 does not match the package declaration      │
+## │    1 │ 614                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 618 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
