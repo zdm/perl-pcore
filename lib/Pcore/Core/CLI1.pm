@@ -310,6 +310,8 @@ sub _parse_opt ( $self, $argv ) {
         }
     }
 
+    return $self->help_usage( [qq[unknown arguments]] ) if $parsed_args->@*;
+
     # validate cli
     my $class = $self->class;
 
@@ -536,12 +538,14 @@ sub help_error ( $self, $msg ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 82, 85, 143, 208,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 243, 300, 381, 443,  │                                                                                                                │
-## │      │ 448, 452, 461        │                                                                                                                │
+## │      │ 243, 300, 383, 445,  │                                                                                                                │
+## │      │ 450, 454, 463        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 342, 477, 505        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 313                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 549                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 553 does not match the package declaration      │
+## │    3 │ 344, 479, 507        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 553                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 557 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
