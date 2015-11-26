@@ -302,27 +302,10 @@ sub _parse_opt ( $self, $argv ) {
         return $self->help_usage( $res->{error} );
     }
 
-    # post-process options
+    # validate options
     for my $opt ( values $self->opt->%* ) {
-        my $name = $opt->name;
-
-        if ( $opt->required ) {
-            if ( !exists $res->{opt}->{$name} ) {
-                if ( defined $opt->default ) {
-                    $res->{opt}->{$name} = $opt->default;
-                }
-                else {
-                    return $self->help_usage( [qq[option "$name" is required]] );
-                }
-            }
-        }
-
-        next if $opt->is_bool;
-
-        if ( exists $res->{opt}->{$name} ) {
-            if ( my $error_msg = $opt->validate( $res->{opt}->{$name} ) ) {
-                return $self->help_usage( [ qq[invalid option "$name", ] . $error_msg ] );
-            }
+        if ( my $error_msg = $opt->validate( $res->{opt} ) ) {
+            return $self->help_usage( [$error_msg] );
         }
     }
 
@@ -595,18 +578,18 @@ sub help_error ( $self, $msg ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 82, 85, 149, 214,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 249, 306, 429, 502,  │                                                                                                                │
-## │      │ 507, 511, 520        │                                                                                                                │
+## │      │ 249, 306, 412, 485,  │                                                                                                                │
+## │      │ 490, 494, 503        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 238                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (33)                │
+## │    3 │ 238                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (27)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 331, 349             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 314, 332             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 390, 536, 564        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 373, 519, 547        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 340                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 323                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 614                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 618 does not match the package declaration      │
+## │    1 │ 597                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 601 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

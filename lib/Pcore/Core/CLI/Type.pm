@@ -3,52 +3,49 @@ package Pcore::Core::CLI::Type;
 use Pcore qw[-const -types];
 
 const our $TYPE => {
-    Str => {
-        getopt    => 's',
-        validator => sub ($val) {
-            return Str->check($val);
-        },
+    Str => sub ($val) {
+        return Str->check($val);
     },
-    Int => {
-        getopt    => 'i',
-        validator => sub ($val) {
-            return Int->check($val);
-        },
+    Int => sub ($val) {
+        return Int->check($val);
     },
-    Num => {
-        getopt    => 'f',
-        validator => sub ($val) {
-            return Num->check($val);
-        },
+    Num => sub ($val) {
+        return Num->check($val);
     },
-    Path => {
-        getopt    => 's',
-        validator => sub ($val) {
-            return -e $val;
-        },
+    Path => sub ($val) {
+        return -e $val;
     },
-    Dir => {
-        getopt    => 's',
-        validator => sub ($val) {
-            return -d $val;
-        },
+    Dir => sub ($val) {
+        return -d $val;
     },
-    File => {
-        getopt    => 's',
-        validator => sub ($val) {
-            return -f $val;
-        },
+    File => sub ($val) {
+        return -f $val;
     },
 };
 
 no Pcore;
 
-sub validate ( $self, $var, $type ) {
-    my $vals = ref $var eq 'ARRAY' ? $var : ref $var eq 'HASH' ? [ values $var->%* ] : [$var];
+sub validate ( $self, $opt, $type ) {
+    my $vals = ref $opt eq 'ARRAY' ? $opt : ref $opt eq 'HASH' ? [ values $opt->%* ] : [$opt];
 
-    for ( $vals->@* ) {
-        if ( !$TYPE->{$type}->{validator}->($_) ) {
-            return qq[value "$_" is not a ] . uc $type;
+    my $type_ref = ref $type;
+
+    for my $val ( $vals->@* ) {
+        if ( !$type_ref ) {
+            if ( !$TYPE->{$type}->($val) ) {
+                return qq[value "$val" is not a ] . uc $type;
+            }
+        }
+        elsif ( $type_ref eq 'CODE' ) {
+            if ( my $error_msg = $type->($val) ) {
+                return $error_msg;
+            }
+        }
+        elsif ( $type_ref eq 'Regexp' ) {
+            return qq[value "$val" should match regexp ] . $type if $val !~ $type;
+        }
+        elsif ( $type_ref eq 'ARRAY' ) {
+            return qq[value "$val" should be one of the: ] . join q[, ], map {qq["$_"]} $type->@* unless $val ~~ $type;
         }
     }
 
@@ -62,7 +59,7 @@ sub validate ( $self, $var, $type ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 47                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 29                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

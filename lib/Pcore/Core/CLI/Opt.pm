@@ -1,70 +1,103 @@
 package Pcore::Core::CLI::Opt;
 
-use Pcore qw[-class -const];
+# NOTE http://docopt.org/
+
+use Pcore qw[-class];
 use Pcore::Core::CLI::Type;
 
 has name => ( is => 'ro', isa => Str, required => 1 );
-has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );                       # undef - disable short option
-has desc  => ( is => 'ro',   isa => Str );
-has type  => ( is => 'ro',   isa => Maybe [ Enum     [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );    # argument is required if type is present
-has negated => ( is => 'ro', isa => Bool, default => 0 );                                               # only for boolean options
-has incr    => ( is => 'ro', isa => Bool, default => 0 );                                               # only for boolean options
-has desttype => ( is => 'ro', isa => Maybe [ Enum [qw[@ %]] ] );
-has required => ( is => 'ro', isa => Bool, default => 0 );                                              # if option is not exists - set default value or throw error
-has default => ( is => 'ro', isa => Maybe [Str] );                                                      # use, if option is exists and has no value
-has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
-has max => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
-has type_desc => ( is => 'lazy', isa => Maybe [Str] );
+has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );    # undef - disable short option
+has desc => ( is => 'ro', isa => Str );
+has type    => ( is => 'lazy', isa => Maybe [Str] );
+has isa     => ( is => 'ro',   isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
+has default => ( is => 'ro',   isa => Maybe [ Str | ArrayRef | HashRef | CodeRef ] );
 
-has is_bool => ( is => 'lazy', isa => Bool, init_arg => undef );
-has getopt_type => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );
-has getopt_spec => ( is => 'lazy', isa => Str, init_arg => undef );
-has spec        => ( is => 'lazy', isa => Str, init_arg => undef );
+has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                   # 0 - option is not required
+has max => ( is => 'lazy', isa => Maybe [PositiveInt] );                             # undef - unlimited repeated
+
+has negated => ( is => 'ro', isa => Bool, default => 0 );
+has hash    => ( is => 'ro', isa => Bool, default => 0 );
+
+has is_bool       => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_repeatable => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_required   => ( is => 'lazy', isa => Bool, init_arg => undef );
+has getopt_spec   => ( is => 'lazy', isa => Str,  init_arg => undef );
+has spec          => ( is => 'lazy', isa => Str,  init_arg => undef );
 
 no Pcore;
-
-# NOTE http://docopt.org/
 
 sub BUILD ( $self, $args ) {
     my $name = $self->name;
 
+    # max
+    die qq[Option "$name", "max" must be >= "min" ] if $self->max && $self->max < $self->min;
+
+    # default
+    if ( defined $self->default && ref $self->default ne 'CODE' ) {
+        if ( $self->is_bool ) {
+            die qq[Option "$name", "default" can be 1 or 0 for boolean option] if $self->default ne '0' && $self->default ne '1';
+        }
+        else {
+            if ( $self->hash ) {
+                die qq[Option "$name", "default" must be a HashRef] if ref $self->default ne 'HASH';
+            }
+            elsif ( $self->is_repeatable ) {
+                die qq[Option "$name", "default" must be a ArrayRef] if ref $self->default ne 'ARRAY';
+            }
+        }
+    }
+
     if ( $self->is_bool ) {
-        die qq[Default value for boolean option "$name" is invalid (can be 1 or 0)] if defined $self->default && $self->default ne '0' && $self->default ne '1';
+        die qq[Option "$name", "hash" is useless for boolean option] if $self->hash;
 
-        die qq[Short option "$name" can't be nagated] if defined $self->short && $self->negated;
-
-        die qq[Boolean option "$name" can't have "desttype"] if defined $self->desttype;
+        die qq[Option "$name", "negated" is useless for "short" option] if defined $self->short && $self->negated;
     }
     else {
-        die qq[Non-boolean option "$name" can't be negated] if $self->negated;
-
-        die qq[Non-boolean option "$name" can't be incremental] if $self->incr;
-
-        die qq[ARRAY or HASH option "$name" can't have default value] if defined $self->desttype && defined $self->default;
+        die qq[Option "$name", "negated" is useless for not boolean option] if $self->negated;
     }
 
     return;
+}
+
+sub _build_max ($self) {
+    return $self->min ? $self->min : 1;
+}
+
+sub _build_is_bool ($self) {
+    return defined $self->isa ? 0 : 1;
+}
+
+sub _build_is_repeatable ($self) {
+    return !$self->max || $self->max > 1 ? 1 : 0;
+}
+
+sub _build_is_required ($self) {
+    return $self->min && !defined $self->default ? 1 : 0;
 }
 
 sub _build_short ($self) {
     return $self->negated ? undef : substr $self->name, 0, 1;
 }
 
-sub _build_type_desc ($self) {
-    return $self->type ? uc $self->type : undef;
-}
+sub _build_type ($self) {
+    if ( defined $self->isa ) {
+        my $ref = ref $self->isa;
 
-sub _build_is_bool ($self) {
-    return defined $self->type ? 0 : 1;
-}
+        if ( !$ref ) {
+            return uc $self->isa;
+        }
+        elsif ( $ref eq 'ARRAY' ) {
+            return 'ENUM';
+        }
+        elsif ( $ref eq 'CODE' ) {
+            return 'STR';
+        }
+        elsif ( $ref eq 'Regexp' ) {
+            return 'STR';
+        }
+    }
 
-sub _build_getopt_type ($self) {
-    if ( !$self->is_bool ) {
-        return $Pcore::Core::CLI::Type::TYPE->{ $self->type }->{getopt};
-    }
-    else {
-        return;
-    }
+    return;
 }
 
 sub _build_getopt_spec ($self) {
@@ -75,21 +108,16 @@ sub _build_getopt_spec ($self) {
     if ( $self->is_bool ) {
         $spec .= q[!] if $self->negated;
 
-        $spec .= q[+] if $self->incr;
+        $spec .= q[+] if $self->is_repeatable;
     }
     else {
-        $spec .= q[=] . $self->getopt_type;
+        $spec .= q[=s];
 
-        $spec .= $self->desttype if $self->desttype;
-
-        if ( $self->min || $self->max ) {
-            $spec .= q[{];
-
-            $spec .= $self->min if $self->min;
-
-            $spec .= q[,] . $self->max if $self->max;
-
-            $spec .= q[}];
+        if ( $self->hash ) {
+            $spec .= q[%];
+        }
+        elsif ( $self->is_repeatable ) {
+            $spec .= q[@];
         }
     }
 
@@ -105,42 +133,72 @@ sub _build_spec ($self) {
 
     $spec .= $self->name;
 
-    my @attrs;
+    if ( !$self->is_bool && $self->type ) {
+        my $type = uc $self->type;
 
-    if ( $self->is_bool ) {
-        push @attrs, q[+] if $self->incr;
-    }
-    else {
-        my $type_desc = uc $self->type_desc;
-
-        if ( $self->desttype ) {
-            push @attrs, q[+];
-
-            if ( $self->desttype eq q[@] ) {
-                $spec .= qq[ $type_desc];
-            }
-            elsif ( $self->desttype eq q[%] ) {
-                $spec .= qq[ key=$type_desc];
-            }
+        if ( $self->hash ) {
+            $spec .= q[ key=] . $type;
         }
         else {
-            $spec .= q[ ] . $type_desc;
+            $spec .= q[ ] . $type;
         }
     }
 
-    push @attrs, q[!] if $self->required && !defined $self->default;
+    my @attrs;
 
-    if (@attrs) {
-        $spec .= q[ ] . join q[], map {qq[[$_]]} @attrs;
-    }
+    push @attrs, q[+] if $self->is_repeatable;
+
+    push @attrs, q[!] if $self->is_required;
+
+    $spec .= q[ ] . join q[], map {"[$_]"} @attrs if @attrs;
 
     return $spec;
 }
 
-sub validate ( $self, $val ) {
-    return if !$self->type;
+sub validate ( $self, $opt ) {
+    my $name = $self->name;
 
-    return Pcore::Core::CLI::Type->validate( $val, $self->type );
+    # check required option
+    if ( !exists $opt->{$name} ) {
+        return qq[option "$name" is required] if $self->is_required;
+
+        # apply default value if defined
+        $opt->{$name} = ref $self->default eq 'CODE' ? $self->default->($self) : $self->default if defined $self->default;
+    }
+
+    # option is not exists and is not required
+    return if !exists $opt->{$name};
+
+    # validate min / max
+    if ( $self->min || $self->max ) {
+        my $count;
+
+        if ( $self->is_bool ) {
+            $count = $opt->{$name};
+        }
+        elsif ( !ref $opt->{$name} ) {
+            $count = 1;
+        }
+        elsif ( ref $opt->{$name} eq 'ARRAY' ) {
+            $count = scalar $opt->{$name}->@*;
+        }
+        elsif ( ref $opt->{$name} eq 'HASH' ) {
+            $count = scalar keys $opt->{$name}->%*;
+        }
+
+        return qq[option "$name" must be specified at least @{[$self->min]} time(s)] if $self->min && $count < $self->min;
+
+        return qq[option "$name" can be specified not more, than @{[$self->max]} time(s)] if $self->max && $count > $self->max;
+    }
+
+    # validate option value type
+    if ( !$self->is_bool ) {
+        if ( my $error_msg = Pcore::Core::CLI::Type->validate( $opt->{$name}, $self->isa ) ) {
+            return qq[option "$name" $error_msg];
+        }
+    }
+
+    return;
 }
 
 1;
@@ -150,7 +208,7 @@ sub validate ( $self, $val ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 9                    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 12, 186              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

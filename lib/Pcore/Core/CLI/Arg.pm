@@ -1,10 +1,10 @@
 package Pcore::Core::CLI::Arg;
 
-use Pcore qw[-class -const];
+use Pcore qw[-class];
 use Pcore::Core::CLI::Type;
 
 has name => ( is => 'ro', isa => Str, required => 1 );
-has type => ( is => 'ro', isa => Maybe [ Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );    # argument is required if type is present
+has isa => ( is => 'ro', isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
 has required => ( is => 'ro', isa => Bool, default => 1 );
 has slurpy   => ( is => 'ro', isa => Bool, default => 0 );
 
