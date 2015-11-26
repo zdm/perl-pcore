@@ -104,23 +104,17 @@ sub _build_arg ($self) {
 
     my $class = $self->class;
 
-    my $slurpy;
-
-    my $not_required;
+    my $last_arg;
 
     if ( $class->can('cli_arg') && defined( my $cli_arg = $class->cli_arg ) ) {
         for my $cfg ( $cli_arg->@* ) {
-            die q[Can't have other arguments after "slurpy" argument] if $slurpy;
-
-            die q[Can't have other arguments after not "requried" argument] if $not_required;
+            die q[Can't have other arguments after slurpy argument] if $last_arg;
 
             my $arg = Pcore::Core::CLI::Arg->new($cfg);
 
             die qq[Argument "@{[$arg->name]}" is duplicated] if exists $index->{ $arg->name };
 
-            $slurpy = 1 if $arg->slurpy;
-
-            $not_required = 1 if !$arg->required;
+            $last_arg = $arg->is_last;
 
             push $args->@*, $arg;
 
@@ -309,35 +303,10 @@ sub _parse_opt ( $self, $argv ) {
         }
     }
 
-    # validate args
-    if ( !$self->arg->@* ) {
-        return $self->help_usage( [qq[Unknown arguments]] ) if $parsed_args->@*;
-    }
-    else {
-        for my $arg ( $self->arg->@* ) {
-            return $self->help_usage( [qq[required argument "@{[$arg->type_desc]}" is missed]] ) if $arg->required && !$parsed_args->@*;
-
-            last if !$arg->required && !$parsed_args->@*;
-
-            if ( $arg->slurpy ) {
-                push $res->{arg}->{ $arg->name }->@*, splice( $parsed_args->@*, 0, $parsed_args->@*, () );
-
-                last;
-            }
-            else {
-                $res->{arg}->{ $arg->name } = shift $parsed_args->@*;
-            }
-        }
-
-        return $self->help_usage( [qq[Unknown arguments]] ) if $parsed_args->@*;
-
-        # validate args types
-        for my $arg ( $self->arg->@* ) {
-            if ( exists $res->{arg}->{ $arg->name } ) {
-                if ( my $error_msg = $arg->validate( $res->{arg}->{ $arg->name } ) ) {
-                    return $self->help_usage( [ qq[invalid argument "@{[$arg->type_desc]}", ] . $error_msg ] );
-                }
-            }
+    # parse and validate args
+    for my $arg ( $self->arg->@* ) {
+        if ( my $error_msg = $arg->parse( $parsed_args, $res->{arg} ) ) {
+            return $self->help_usage( [$error_msg] );
         }
     }
 
@@ -415,18 +384,7 @@ sub _help_usage_string ($self) {
             my @args;
 
             for my $arg ( $self->arg->@* ) {
-                my $arg_spec;
-
-                if ( $arg->required ) {
-                    $arg_spec = uc $arg->type_desc;
-                }
-                else {
-                    $arg_spec = '[' . uc $arg->type_desc . ']';
-                }
-
-                $arg_spec .= '...' if $arg->slurpy;
-
-                push @args, $arg_spec;
+                push @args, $arg->help_spec;
             }
 
             $usage .= q[ ] . join q[ ], @args;
@@ -483,7 +441,7 @@ sub _help_usage ($self) {
         $help = 'options ([+] - can be repeated, [!] - is required):' . $LF . $LF;
 
         for my $opt ( sort { $a->name cmp $b->name } values $self->opt->%* ) {
-            $list->{ $opt->spec } = $opt->desc // q[];
+            $list->{ $opt->help_spec } = $opt->desc // q[];
         }
     }
 
@@ -577,19 +535,13 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 82, 85, 149, 214,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 249, 306, 412, 485,  │                                                                                                                │
-## │      │ 490, 494, 503        │                                                                                                                │
+## │    3 │ 82, 85, 143, 208,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 243, 300, 381, 443,  │                                                                                                                │
+## │      │ 448, 452, 461        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 238                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_parse_opt" with high complexity score (27)                │
+## │    3 │ 342, 477, 505        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 314, 332             │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 373, 519, 547        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 323                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 597                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 601 does not match the package declaration      │
+## │    1 │ 549                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 553 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

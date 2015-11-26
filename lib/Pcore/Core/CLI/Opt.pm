@@ -22,7 +22,7 @@ has is_bool       => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_repeatable => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_required   => ( is => 'lazy', isa => Bool, init_arg => undef );
 has getopt_spec   => ( is => 'lazy', isa => Str,  init_arg => undef );
-has spec          => ( is => 'lazy', isa => Str,  init_arg => undef );
+has help_spec     => ( is => 'lazy', isa => Str,  init_arg => undef );
 
 no Pcore;
 
@@ -124,7 +124,7 @@ sub _build_getopt_spec ($self) {
     return $spec;
 }
 
-sub _build_spec ($self) {
+sub _build_help_spec ($self) {
     my $spec = $self->short ? q[-] . $self->short . q[ ] : q[ ] x 3;
 
     $spec .= q[--];
