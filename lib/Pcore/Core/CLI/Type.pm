@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Type;
 
-use Pcore qw[-const -types];
+use Pcore qw[-role -const];
 
 const our $TYPE => {
     Str => sub ($val) {
@@ -25,27 +25,25 @@ const our $TYPE => {
 
 no Pcore;
 
-sub validate ( $self, $opt, $type ) {
-    my $vals = ref $opt eq 'ARRAY' ? $opt : ref $opt eq 'HASH' ? [ values $opt->%* ] : [$opt];
+sub _validate_isa ( $self, $var ) {
+    my $vals = ref $var eq 'ARRAY' ? $var : ref $var eq 'HASH' ? [ values $var->%* ] : [$var];
 
-    my $type_ref = ref $type;
+    my $isa_ref = ref $self->isa;
 
     for my $val ( $vals->@* ) {
-        if ( !$type_ref ) {
-            if ( !$TYPE->{$type}->($val) ) {
-                return qq[value "$val" is not a ] . uc $type;
-            }
+        if ( !$isa_ref ) {
+            return qq[value "$val" is not a ] . uc $self->isa if !$TYPE->{ $self->isa }->($val);
         }
-        elsif ( $type_ref eq 'CODE' ) {
-            if ( my $error_msg = $type->($val) ) {
+        elsif ( $isa_ref eq 'CODE' ) {
+            if ( my $error_msg = $self->isa->($val) ) {
                 return $error_msg;
             }
         }
-        elsif ( $type_ref eq 'Regexp' ) {
-            return qq[value "$val" should match regexp ] . $type if $val !~ $type;
+        elsif ( $isa_ref eq 'Regexp' ) {
+            return qq[value "$val" should match regexp ] . $self->isa if $val !~ $self->isa;
         }
-        elsif ( $type_ref eq 'ARRAY' ) {
-            return qq[value "$val" should be one of the: ] . join q[, ], map {qq["$_"]} $type->@* unless $val ~~ $type;
+        elsif ( $isa_ref eq 'ARRAY' ) {
+            return qq[value "$val" should be one of the: ] . join q[, ], map {qq["$_"]} $self->isa->@* unless $val ~~ $self->isa;
         }
     }
 
@@ -59,6 +57,9 @@ sub validate ( $self, $opt, $type ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 28                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_validate_isa' declared but not     │
+## │      │                      │ used                                                                                                           │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 29                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##

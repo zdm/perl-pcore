@@ -3,7 +3,8 @@ package Pcore::Core::CLI::Opt;
 # NOTE http://docopt.org/
 
 use Pcore qw[-class];
-use Pcore::Core::CLI::Type;
+
+with qw[Pcore::Core::CLI::Type];
 
 has name => ( is => 'ro', isa => Str, required => 1 );
 has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );    # undef - disable short option
@@ -193,7 +194,7 @@ sub validate ( $self, $opt ) {
 
     # validate option value type
     if ( !$self->is_bool ) {
-        if ( my $error_msg = Pcore::Core::CLI::Type->validate( $opt->{$name}, $self->isa ) ) {
+        if ( my $error_msg = $self->_validate_isa( $opt->{$name} ) ) {
             return qq[option "$name" $error_msg];
         }
     }
@@ -208,7 +209,7 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 12, 186              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 13, 187              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
