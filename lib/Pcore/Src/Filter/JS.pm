@@ -134,7 +134,7 @@ sub run_js_hint ($self) {
 
         my $descriptor = { raw => $line };
 
-        ( $descriptor->{line}, $descriptor->{col}, $descriptor->{msg}, $descriptor->{code} ) = $line =~ /line (\d+), col (\d+), (.+)? [(]([WE]\d+)[)]/sm;
+        ( $descriptor->{line}, $descriptor->{col}, $descriptor->{msg}, $descriptor->{code} ) = $line =~ /line (\d+), col (\d+|undefined), (.+)? [(]([WE]\d+)[)]/sm;
 
         if ( index( $descriptor->{code}, 'E', 0 ) == 0 ) {
             $descriptor->{is_error} = 1;
@@ -147,7 +147,7 @@ sub run_js_hint ($self) {
             $res->{has_warns}++;
         }
 
-        push $res->{data}, $descriptor;
+        push $res->{data}->@*, $descriptor;
     }
 
     return $res;

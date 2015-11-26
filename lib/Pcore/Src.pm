@@ -5,7 +5,7 @@ use Pcore::Src::File;
 use Term::ANSIColor qw[:constants];
 
 has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate commit]], required => 1 );
-has source => ( is => 'ro', isa => Str );    # q[-] - stdin, Str - path
+has path => ( is => 'ro', isa => Maybe [Str] );
 
 # mandatory, if source path is idr
 has type => ( is => 'ro', isa => Enum [ map { lc $_->{type} } Pcore::Src::File->cfg->{FILE_TYPE}->@* ] );
@@ -14,7 +14,7 @@ has type => ( is => 'ro', isa => Enum [ map { lc $_->{type} } Pcore::Src::File->
 has filename => ( is => 'ro', isa => Str );
 
 # read list of filenames from stdin
-has list => ( is => 'ro', isa => Bool, default => 0 );
+has stdin_files => ( is => 'ro', isa => Bool, default => 0 );
 
 has dry_run     => ( is => 'ro', isa => Bool, default => 0 );
 has interactive => ( is => 'rw', isa => Bool, default => 0 );    # print report to STDOUT
@@ -23,43 +23,145 @@ has no_critic   => ( is => 'ro', isa => Bool, default => 0 );    # skip Perl::Cr
 has exit_code => ( is => 'rw', isa => Int, default => 0, init_arg => undef );
 has _total_report => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-sub run {
-    my $self = shift;
+# CLI
+sub cli_help ($self) {
+    return <<'TXT';
+- convert to uft-8;
+- strip BOM header;
+- convert tabs to spaces;
+- trim trailing spaces;
+- trim trailing empty strings;
+- convert line endings to unix style (\x0A);
 
-    if ( $self->action eq 'hg-pre-commit' ) {                    # mercurial pretxncommit hook
-        $self->_action_hg_pre_commit;
+Exit codes:
+
+    0 - source is valid;
+    1 - run-time error;
+    2 - params error;
+    3 - source error;
+TXT
+}
+
+sub cli_opt ($self) {
+    return {
+        action => {
+            desc => <<'TXT',
+action to perform:
+    decompress    - unpack sources, DEFAULT;
+    compress      - pack sources, comments will be deleted;
+    obfuscate     - applied only for javascript and embedded javascripts, comments will be deleted;
+TXT
+            isa     => [qw[decompress compress obfuscate commit]],
+            min     => 1,
+            default => 'decompress',
+        },
+        type => {
+            desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js',
+            isa  => [qw[perl html css js]],
+        },
+        stdin_files => {
+            short   => undef,
+            desc    => 'read list of filenames from STDIN',
+            default => 0,
+        },
+        filename => {
+            desc => 'mandatory, if read source content from STDIN',
+            type => 'Str',
+        },
+        no_critic => {
+            short   => undef,
+            desc    => 'skip Perl::Critic filter',
+            default => 0,
+        },
+        dry_run => {
+            short   => undef,
+            desc    => q[don't save changes],
+            default => 0,
+        },
+        pause => {
+            short   => undef,
+            desc    => q[don't close console after script finished],
+            default => 0,
+        },
+    };
+}
+
+sub cli_arg ($self) {
+    return [
+        {   name => 'path',
+            isa  => 'Path',
+            min  => 0,
+        }
+    ];
+}
+
+sub cli_run ( $self, $opt, $arg, $rest ) {
+    my $exit_code = try {
+        my $src = Pcore::Src->new(
+            {   interactive => 1,
+                path        => $arg->{path},
+                action      => $opt->{action},
+                stdin_files => $opt->{stdin_files},
+                no_critic   => $opt->{no_critic},
+                dry_run     => $opt->{dry_run},
+                ( exists $opt->{type}     ? ( type     => $opt->{type} )     : () ),
+                ( exists $opt->{filename} ? ( filename => $opt->{filename} ) : () ),
+            }
+        );
+
+        return $src->run;
     }
-    else {
-        $self->_throw_error(q["source" is mandatory]) if !$self->source;
+    catch {
+        my $e = shift;
 
-        if ( $self->source eq q[-] ) {                           # STDIN mode
-            if ( $self->list ) {
-                $self->_source_stdin_list;
-            }
-            else {
-                $self->_throw_error(q["filename" is mandatory if source is STDIN]) if !$self->filename;
+        say {*STDOUT} $e;
 
-                $self->_source_stdin;
-            }
+        return Pcore::Src::File->cfg->{EXIT_CODES}->{RUNTIME_ERROR};
+    };
+
+    if ( $opt->{pause} ) {
+        print 'Press ENTER to continue...';
+        <STDIN>;
+    }
+
+    exit $exit_code;
+}
+
+# RUN
+sub run ($self) {
+    if ( $self->action eq 'commit' ) {
+        $self->{action} = 'decompress';
+
+        $self->{type} = 'perl';
+    }
+
+    if ( !$self->path ) {    # STDIN mode
+        if ( $self->stdin_files ) {
+            $self->_source_stdin_files;
         }
         else {
-            $self->_throw_error(q["source" should be readable]) if !-e $self->source;
+            $self->_throw_error(q["filename" is mandatory when source is STDIN]) if !$self->filename;
 
-            if ( -d $self->source ) {    # directory mode
-                $self->_throw_error(q["type" is required]) if !$self->type;
+            $self->_source_stdin;
+        }
+    }
+    else {
+        $self->_throw_error(q["path" should be readable]) if !-e $self->path;
 
-                $self->_source_dir;
-            }
-            else {
-                $self->_source_file;
-            }
+        if ( -d $self->path ) {    # directory mode
+            $self->_throw_error(q["type" is required when path is directory]) if !$self->type;
+
+            $self->_source_dir;
+        }
+        else {
+            $self->_source_file;
         }
     }
 
     return $self->exit_code;
 }
 
-sub _source_stdin_list ($self) {
+sub _source_stdin_files ($self) {
     my $files = P->file->read_lines($STDIN);
 
     # index files, calculate max_path_len
@@ -72,7 +174,7 @@ sub _source_stdin_list ($self) {
 
         my $type = Pcore::Src::File->detect_filetype($path);
 
-        next if !$type || $type->{type} ne 'Perl';    # only perl sources processed now
+        next if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
 
         push @paths_to_process, $path;
 
@@ -85,7 +187,7 @@ sub _source_stdin_list ($self) {
     for (@paths_to_process) {
         $self->_process_file(
             $max_path_len,
-            action      => 'decompress',
+            action      => $self->action,
             path        => $_->to_string,
             is_realpath => 1,
             dry_run     => $self->dry_run,
@@ -160,7 +262,7 @@ sub _source_dir ($self) {
             },
             no_chdir => 1
         },
-        $self->source,
+        $self->path,
     );
 
     # process indexed files
@@ -181,9 +283,9 @@ sub _source_dir ($self) {
 
 sub _source_file ($self) {
     $self->_process_file(
-        length $self->source,
+        length $self->path,
         action      => $self->action,
-        path        => $self->source,
+        path        => $self->path,
         is_realpath => 1,
         dry_run     => $self->dry_run,
     );
@@ -191,18 +293,13 @@ sub _source_file ($self) {
     return;
 }
 
-sub _throw_error {
-    my $self = shift;
-    my $msg = shift || q[Unknown error];
-
+sub _throw_error ( $self, $msg = 'Unknown error' ) {
     die $msg . $LF;
 }
 
-sub _set_exit_code {
-    my $self      = shift;
-    my $exit_code = shift;
-
+sub _set_exit_code ( $self, $exit_code ) {
     $self->exit_code($exit_code) if $exit_code > $self->exit_code;
+
     return $self->exit_code;
 }
 
@@ -290,7 +387,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 243                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 340                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -301,7 +398,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Src
+Pcore::Src - Source formatter
 
 =head1 SYNOPSIS
 
