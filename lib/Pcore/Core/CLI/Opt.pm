@@ -19,6 +19,7 @@ has max => ( is => 'lazy', isa => Maybe [PositiveInt] );                        
 has negated => ( is => 'ro', isa => Bool, default => 0 );
 has hash    => ( is => 'ro', isa => Bool, default => 0 );
 
+has getopt_name   => ( is => 'lazy', isa => Str,  init_arg => undef );
 has is_bool       => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_repeatable => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_required   => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -64,6 +65,10 @@ sub _build_max ($self) {
     return $self->min ? $self->min : 1;
 }
 
+sub _build_getopt_name ($self) {
+    return $self->name =~ s/_/-/smgr;
+}
+
 sub _build_is_bool ($self) {
     return defined $self->isa ? 0 : 1;
 }
@@ -102,7 +107,7 @@ sub _build_type ($self) {
 }
 
 sub _build_getopt_spec ($self) {
-    my $spec = $self->name;
+    my $spec = $self->getopt_name;
 
     $spec .= q[|] . $self->short if defined $self->short;
 
@@ -132,7 +137,7 @@ sub _build_help_spec ($self) {
 
     $spec .= '[no[-]]' if $self->negated;
 
-    $spec .= $self->name;
+    $spec .= $self->getopt_name;
 
     if ( !$self->is_bool && $self->type ) {
         my $type = uc $self->type;
@@ -158,6 +163,9 @@ sub _build_help_spec ($self) {
 
 sub validate ( $self, $opt ) {
     my $name = $self->name;
+
+    # remap getopt name to name
+    $opt->{$name} = delete $opt->{ $self->getopt_name } if exists $opt->{ $self->getopt_name };
 
     # check required option
     if ( !exists $opt->{$name} ) {
@@ -209,7 +217,7 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 13, 187              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 13, 195              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
