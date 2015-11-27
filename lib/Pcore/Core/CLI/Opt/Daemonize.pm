@@ -1,4 +1,4 @@
-package Pcore::Core::CLI::Cmd::Daemonize;
+package Pcore::Core::CLI::Opt::Daemonize;
 
 use Pcore qw[-role];
 
@@ -42,7 +42,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::CLI::Cmd::Daemonize
+Pcore::Core::CLI::Opt::Daemonize
 
 =head1 SYNOPSIS
 

@@ -1,4 +1,4 @@
-package Pcore::Core::CLI::Cmd::PAR;
+package Pcore::Core::CLI::Opt::PAR;
 
 use Pcore qw[-role];
 
@@ -35,7 +35,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::CLI::Cmd::PAR
+Pcore::Core::CLI::Opt::PAR
 
 =head1 SYNOPSIS
 

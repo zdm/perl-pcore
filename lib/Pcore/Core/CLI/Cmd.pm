@@ -5,6 +5,10 @@ use Pcore qw[-role];
 no Pcore;
 
 # COMMON
+sub cli_class ($self) {
+    return;
+}
+
 sub cli_abstract ($self) {
     return;
 }

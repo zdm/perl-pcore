@@ -1,4 +1,4 @@
-package Pcore::Core::CLI::Cmd::Perms;
+package Pcore::Core::CLI::Opt::Perms;
 
 use Pcore qw[-role];
 
@@ -40,7 +40,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::CLI::Cmd::Perms
+Pcore::Core::CLI::Opt::Perms
 
 =head1 SYNOPSIS
 
