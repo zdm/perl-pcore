@@ -22,36 +22,40 @@ sub _build_cmd ($self) {
 
     my $class = $self->class;
 
-    if ( $class->can('cli_cmd') && defined( my $cli_cmd = $class->cli_cmd ) ) {
+    if ( $class->can('cli_cmd') && ( my $cli_cmd = $class->cli_cmd ) ) {
+        $cli_cmd = [$cli_cmd] if !ref $cli_cmd;
+
         my @classes;
 
-        if ( !ref $cli_cmd ) {
-            my $ns = $cli_cmd;
+        for my $cli_cmd_class ( $cli_cmd->@* ) {
+            if ( substr( $cli_cmd_class, -2, 2 ) eq q[::] ) {
+                my $ns = $cli_cmd_class;
 
-            my $ns_path = $ns =~ s[::][/]smgr;
+                my $ns_path = $ns =~ s[::][/]smgr;
 
-            for (@INC) {
-                next if ref;
+                for (@INC) {
+                    next if ref;
 
-                my $path = $_ . q[/] . $ns_path;
+                    my $path = $_ . q[/] . $ns_path;
 
-                next if !-d $path;
+                    next if !-d $path;
 
-                opendir my $dh, $path || die qq[can't opendir $path: $!];
+                    opendir my $dh, $path || die qq[can't opendir $path: $!];
 
-                while ( my $fn = readdir $dh ) {
-                    next if substr( $fn, 0 ) eq q[.];
+                    while ( my $fn = readdir $dh ) {
+                        next if substr( $fn, 0 ) eq q[.];
 
-                    if ( $fn =~ /\A(.+)[.]pm\z/sm && -f "$path/$fn" ) {
-                        push @classes, $ns . q[::] . $1;
+                        if ( $fn =~ /\A(.+)[.]pm\z/sm && -f "$path/$fn" ) {
+                            push @classes, $ns . $1;
+                        }
                     }
-                }
 
-                closedir $dh || die;
+                    closedir $dh || die;
+                }
             }
-        }
-        else {
-            @classes = $cli_cmd->@*;
+            else {
+                push @classes, $cli_cmd_class;
+            }
         }
 
         for my $class (@classes) {
@@ -553,13 +557,15 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 82, 85, 143, 220,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 255, 312, 335, 398,  │                                                                                                                │
-## │      │ 461, 466, 470, 479   │                                                                                                                │
+## │    3 │ 48                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 325                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 86, 89, 147, 224,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 259, 316, 339, 402,  │                                                                                                                │
+## │      │ 465, 470, 474, 483   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 359, 495, 523        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 329                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 363, 499, 527        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
