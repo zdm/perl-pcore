@@ -146,17 +146,21 @@ sub _build_is_cmd ($self) {
 sub run ( $self, $argv ) {
     my $class = $self->class;
 
+    # redirect, if defined
     if ( $class->can('cli_class') && ( my $cli_class = $class->cli_class ) ) {
         require $cli_class =~ s[::][/]smgr . '.pm';
 
         return __PACKAGE__->new( { class => $cli_class } )->run($argv);
     }
 
+    # make a copy
+    my @argv = $argv ? $argv->@* : ();
+
     if ( $self->is_cmd ) {
-        return $self->_parse_cmd($argv);
+        return $self->_parse_cmd( \@argv );
     }
     else {
-        return $self->_parse_opt($argv);
+        return $self->_parse_opt( \@argv );
     }
 }
 
@@ -181,7 +185,7 @@ sub _parse_cmd ( $self, $argv ) {
     );
 
     $parser->getoptionsfromarray(
-        $argv // [],
+        $argv,
         $res->{opt},
         'help|h|?',
         'version',
@@ -279,7 +283,7 @@ sub _parse_opt ( $self, $argv ) {
         };
 
         $parser->getoptionsfromarray(
-            $argv // [],
+            $argv,
             $res->{opt},
             $cli_spec->@*,
             'version',
@@ -326,6 +330,9 @@ sub _parse_opt ( $self, $argv ) {
     if ( $class->can('cli_validate') && defined( my $error_msg = $class->cli_validate( $res->{opt}, $res->{arg}, $res->{rest} ) ) ) {
         return $self->help_error($error_msg);
     }
+
+    # store results globally
+    %ARGV = $res->%*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     # run
     if ( $class->can('cli_run') ) {
@@ -546,13 +553,13 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 82, 85, 143, 216,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 251, 308, 391, 454,  │                                                                                                                │
-## │      │ 459, 463, 472        │                                                                                                                │
+## │    3 │ 82, 85, 143, 220,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 255, 312, 335, 398,  │                                                                                                                │
+## │      │ 461, 466, 470, 479   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 321                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 325                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 352, 488, 516        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 359, 495, 523        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,7 +2,7 @@
 
 package main v0.1.0;
 
-use Pcore;
+use Pcore;    # qw[-cli Pcore::Src];
 
 sub cli_class ($self) {
     return 'Pcore::Src';
