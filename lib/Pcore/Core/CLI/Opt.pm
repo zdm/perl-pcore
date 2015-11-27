@@ -9,6 +9,7 @@ with qw[Pcore::Core::CLI::Type];
 has name => ( is => 'ro', isa => Str, required => 1 );
 has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );    # undef - disable short option
 has desc => ( is => 'ro', isa => Str );
+
 has type    => ( is => 'lazy', isa => Maybe [Str] );
 has isa     => ( is => 'ro',   isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
 has default => ( is => 'ro',   isa => Maybe [ Str | ArrayRef | HashRef | CodeRef ] );
@@ -217,7 +218,7 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 13, 195              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 14, 196              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
