@@ -2,13 +2,11 @@
 
 package main v0.1.0;
 
-use Pcore qw[-embedded];
-use Pcore::Src;
-use Pcore::Core::CLI1;
+use Pcore;
 
-P->file->chdir( $PROC->{START_DIR} );
-
-Pcore::Core::CLI1->new( { class => 'Pcore::Src' } )->run( \@ARGV );
+sub cli_class ($self) {
+    return 'Pcore::Src';
+}
 
 __END__
 =pod

@@ -388,7 +388,6 @@ use Pcore::Core::Exception qw[];
 use Pcore::Core::H qw[];
 use Pcore::Core::Log qw[:CORE];
 use Pcore::Core::I18N qw[:CORE];
-use Pcore::Core::CLI qw[];
 
 sub _CORE_INIT ($proc_cfg) {
 
@@ -426,7 +425,6 @@ sub _CORE_INIT ($proc_cfg) {
     Pcore::Core::Log::CORE_INIT();          # set default log pipes
     Pcore::Core::Exception::CORE_INIT();    # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
     Pcore::Core::I18N::CORE_INIT();         # configure default I18N locations
-    Pcore::Core::CLI::CORE_INIT();          # register CORE::CLI event
 
     return;
 }
@@ -440,8 +438,9 @@ sub _CORE_RUN {
 
     if ( !$Pcore::EMBEDDED ) {
 
-        # throw CORE#CLI event, CLI parsing and processing
-        Pcore->EV->throw('CORE#CLI');
+        require Pcore::Core::CLI;
+
+        Pcore::Core::CLI->new( { class => 'main' } )->run( \@ARGV );
 
         # throw CORE#RUN event to perform daemonize, depends on CLI param
         Pcore->EV->throw('CORE#RUN');
@@ -562,13 +561,13 @@ sub _configure_console {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 362                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 407, 455, 472, 520,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 521, 522, 528, 529,  │                                                                                                                │
-## │      │ 530, 533, 534, 535   │                                                                                                                │
+## │    3 │ 406, 454, 471, 519,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 520, 521, 527, 528,  │                                                                                                                │
+## │      │ 529, 532, 533, 534   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 409                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 498                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 497                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -47,9 +47,10 @@ sub cli_opt ($self) {
         action => {
             desc => <<'TXT',
 action to perform:
-    decompress    - unpack sources, DEFAULT;
-    compress      - pack sources, comments will be deleted;
-    obfuscate     - applied only for javascript and embedded javascripts, comments will be deleted;
+    decompress   unpack sources, DEFAULT;
+    compress     pack sources, comments will be deleted;
+    obfuscate    applied only for javascript and embedded javascripts, comments will be deleted;
+    commit       SCM commit hook
 TXT
             isa     => [qw[decompress compress obfuscate commit]],
             min     => 1,
@@ -96,6 +97,8 @@ sub cli_arg ($self) {
 }
 
 sub cli_run ( $self, $opt, $arg, $rest ) {
+    P->file->chdir( $PROC->{START_DIR} );
+
     my $exit_code = try {
         my $src = Pcore::Src->new(
             {   interactive => 1,
@@ -387,7 +390,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 340                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 343                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

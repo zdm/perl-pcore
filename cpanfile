@@ -41,9 +41,6 @@ requires 'Inline::C';
 # Handle
 requires 'BerkeleyDB';
 
-# Pcore::Core::CLI
-requires 'Getopt::Euclid';    # TODO remove
-
 # Pcore::HTTP
 requires 'HTTP::Parser::XS';
 
