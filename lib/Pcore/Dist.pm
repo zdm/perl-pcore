@@ -1,46 +1,27 @@
 package Pcore::Dist;
 
-use Pcore qw[-class -const];
+use Pcore qw[-class];
 use Config qw[];
 
-has root => ( is => 'ro', isa => Maybe [Str], required => 1 );
-has is_installed => ( is => 'ro',   isa => Bool, required => 1 );
-has res_path     => ( is => 'lazy', isa => Str,  required => 1 );
+has root => ( is => 'ro', isa => Maybe [Str], required => 1 );    # absolute path to the dist root
+has is_installed => ( is => 'ro', isa => Bool, required => 1 );   # dist is installed as CPAN module, root is undefined
+has res_path     => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
+has main_module_path => ( is => 'lazy', isa => Str );             # absolute path
 
-has cfg_path => ( is => 'lazy', init_arg => undef );
-has cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
-
-has lib_path => ( is => 'lazy', init_arg => undef );
-
-has scm => ( is => 'lazy', init_arg => undef );
-has builder => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Builder'], init_arg => undef );
-
-has main_module_rel_path => ( is => 'lazy', isa => Str, init_arg => undef );
-
-const our $CPAN_INC => do {
-    my @cpan_inc;
-
-    my %index;
-
-    for my $var (qw[sitearchexp sitelibexp vendorarchexp vendorlibexp archlibexp privlibexp]) {
-        if ( !exists $index{$var} && -d $Config::Config{$var} ) {
-            push @cpan_inc, P->path( $Config::Config{$var}, is_dir => 1 )->canonpath;
-
-            $index{$var} = 1;
-        }
-    }
-
-    \@cpan_inc;
-};
+has cfg     => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has name    => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist-Name
+has ns      => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist::Name
+has version => ( is => 'lazy', isa => Object,  init_arg => undef );
+has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
 around new => sub ( $orig, $self, $path ) {
     my $pkg_name;
 
-    if ( $path =~ /[.]pm\z/smo ) {    # Package/Name.pm
+    if ( $path =~ /[.]pm\z/smo ) {                                     # Package/Name.pm
         $pkg_name = $path;
     }
-    elsif ( $path =~ m[[./]]smo ) {    # ./path/to/dist
-        if ( $path = _find_dist_root($path) ) {
+    elsif ( $path =~ m[[./]]smo ) {                                    # ./path/to/dist
+        if ( $path = $self->_find_dist_root($path) ) {
             return $self->$orig(
                 {   root         => $path->to_string,
                     is_installed => 0,
@@ -77,7 +58,7 @@ around new => sub ( $orig, $self, $path ) {
         my $is_installed = 0;
 
         # check if package is installed in CPAN location
-        for my $cpan_inc ( $CPAN_INC->@* ) {
+        for my $cpan_inc ( $self->cpan_path->@* ) {
             if ( index( $pkg_path, $cpan_inc ) == 0 ) {
                 $is_installed = 1;
 
@@ -90,19 +71,20 @@ around new => sub ( $orig, $self, $path ) {
 
             substr $dist_name, -3, 3, q[];    # remove ".pm" suffix
 
-            for my $cpan_inc ( $CPAN_INC->@* ) {
+            for my $cpan_inc ( $self->cpan_path->@* ) {
                 if ( -f $cpan_inc . qq[/auto/share/dist/$dist_name/dist.perl] ) {
                     return $self->$orig(
-                        {   root         => undef,
-                            is_installed => 1,
-                            res_path     => $cpan_inc . qq[/auto/share/dist/$dist_name/],
+                        {   root             => undef,
+                            is_installed     => 1,
+                            res_path         => $cpan_inc . qq[/auto/share/dist/$dist_name/],
+                            main_module_path => $pkg_path,
                         }
                     );
                 }
             }
         }
         else {
-            if ( my $dist_root = _find_dist_root($pkg_path) ) {
+            if ( my $dist_root = $self->_find_dist_root($pkg_path) ) {
                 return $self->$orig(
                     {   root         => $dist_root->to_string,
                         is_installed => 0,
@@ -118,6 +100,7 @@ around new => sub ( $orig, $self, $path ) {
 
 no Pcore;
 
+# CLASS METHODS
 sub global_cfg ($self) {
     state $cfg = do {
         my $_cfg;
@@ -132,15 +115,27 @@ sub global_cfg ($self) {
     return $cfg;
 }
 
-sub create ( $self, $namespace ) {
-    if ( my $path = P->class->load('Pcore::Dist::Create')->new( { namespace => $namespace } )->create ) {
-        return $self->new($path);
-    }
+sub cpan_path ($self) {
+    state $cpan_path = do {
+        my @cpan_inc;
 
-    return;
+        my %index;
+
+        for my $var (qw[sitearchexp sitelibexp vendorarchexp vendorlibexp archlibexp privlibexp]) {
+            if ( !exists $index{$var} && -d $Config::Config{$var} ) {
+                push @cpan_inc, P->path( $Config::Config{$var}, is_dir => 1 )->canonpath;
+
+                $index{$var} = 1;
+            }
+        }
+
+        \@cpan_inc;
+    };
+
+    return $cpan_path;
 }
 
-sub _find_dist_root ($path) {
+sub _find_dist_root ( $self, $path ) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
     if ( !-f $path . 'share/dist.perl' ) {
@@ -161,36 +156,35 @@ sub _find_dist_root ($path) {
     }
 }
 
-sub _build_cfg_path ($self) {
-    return $self->res_path . q[dist.perl];
-}
-
+# BUILDERS
 sub _build_cfg ($self) {
-    return P->cfg->load( $self->cfg_path );
+    return P->cfg->load( $self->res_path . 'dist.perl' );
 }
 
-sub _build_lib_path ($self) {
-    return if $self->is_installed;
+sub _build_name ($self) {
+    return $self->cfg->{dist}->{name};
+}
 
-    return if !-d $self->root . 'lib/';
+sub _build_ns ($self) {
+    return $self->name =~ s/-/::/smgr;
+}
 
-    return $self->root . 'lib/';
+sub _build_main_module_path ($self) {
+    return $self->root . 'lib/' . $self->ns =~ s[::][/]smgr . '.pm';
+}
+
+sub _build_version ($self) {
+    my $main_module = P->file->read_bin( $self->main_module_path );
+
+    $main_module->$* =~ m[^\s*package\s+\w[\w\:\']*\s+(v?[\d._]+)\s*;]sm;
+
+    return version->new($1);
 }
 
 sub _build_scm ($self) {
     return if $self->is_installed;
 
     return P->class->load('Pcore::Src::SCM')->new( $self->root );
-}
-
-sub _build_builder ($self) {
-    return if $self->is_installed;
-
-    return P->class->load('Pcore::Dist::Builder')->new($self);
-}
-
-sub _build_main_module_rel_path ($self) {
-    return $self->cfg->{dist}->{name} =~ s[-][/]smgr . '.pm';
 }
 
 1;
@@ -200,12 +194,10 @@ sub _build_main_module_rel_path ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               │
+## │    3 │ 49, 75, 109, 141,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │      │ 145                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 68, 94, 126, 146,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 150                  │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 136                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 181                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

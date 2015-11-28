@@ -8,7 +8,7 @@ use PAR::Filter;
 use Pcore::Src::File;
 use Term::ANSIColor qw[:constants];
 
-with qw[Pcore::Dist::Command];
+with qw[Pcore::Dist::Builder];
 
 has _pardeps      => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has dist_version  => ( is => 'ro',   isa => Str,     init_arg => undef );
@@ -17,6 +17,26 @@ has build_version => ( is => 'ro',   isa => Str,     init_arg => undef );
 no Pcore;
 
 our $PAR_CFG = P->cfg->load( $P->{SHARE_DIR} . 'pcore.perl' );
+
+sub cli_opt ($self) {
+    return {
+        release => { desc => 'build release binary', },
+        crypt   => { desc => 'crypt non-core perl sources with Filter::Crypto', short => 'C' },
+        noupx   => { desc => 'do not compress shared objects with upx', },
+        clean   => { desc => 'clean temp dir on exit', },
+    };
+}
+
+sub cli_run ( $self, $opt, $arg, $rest ) {
+    $self->new->build_par(
+        release => $opt->{release} // 0,
+        crypt   => $opt->{crypt}   // 0,
+        noupx   => $opt->{noupx}   // 0,
+        clean   => $opt->{clean}   // 0,
+    );
+
+    return;
+}
 
 sub _build__pardeps ($self) {
     if ( -f 'data/.pardeps.cbor' ) {
@@ -32,7 +52,7 @@ sub _build__pardeps ($self) {
 }
 
 sub _build_dist_version ($self) {
-    my $info = Module::Metadata->new_from_file( 'lib/' . $self->builder->dist->main_module_rel_path );
+    my $info = Module::Metadata->new_from_file( 'lib/' . $self->dist->main_module_rel_path );
 
     return $info->version;
 }
@@ -164,7 +184,7 @@ sub _build_script {
     P->file->copy( $P->{SHARE_DIR}, $par_dir . 'lib/auto/share/dist/Pcore/' );
 
     # add current dist share dir
-    P->file->copy( './share/', $par_dir . 'lib/auto/share/dist/' . $self->builder->dist->cfg->{dist}->{name} . q[/] );
+    P->file->copy( './share/', $par_dir . 'lib/auto/share/dist/' . $self->dist->cfg->{dist}->{name} . q[/] );
 
     # add resources
     print 'add resources ... ';
@@ -583,19 +603,19 @@ sub _find_module ( $self, $module ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 64, 113, 128         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 84, 133, 148         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 79                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_script" with high complexity score (25)             │
+## │    3 │ 99                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_script" with high complexity score (25)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 142, 230, 252, 571   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 162, 250, 272, 591   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 462                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 482                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 167, 489             │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 509                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 520, 522             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 540, 542             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 478, 484, 526        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 498, 504, 546        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -603,5 +623,19 @@ __END__
 =pod
 
 =encoding utf8
+
+=head1 NAME
+
+Pcore::Dist::Builder::PAR - build PAR executable
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
+=head1 SEE ALSO
 
 =cut

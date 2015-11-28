@@ -3,20 +3,40 @@ package Pcore::Dist::Builder::Deploy;
 use Pcore qw[-class];
 use Config qw[];
 
-with qw[Pcore::Dist::Command];
+with qw[Pcore::Dist::Builder];
+
+has install    => ( is => 'ro', isa => Bool, default => 0 );
+has develop    => ( is => 'ro', isa => Bool, default => 0 );
+has recommends => ( is => 'ro', isa => Bool, default => 0 );
+has suggests   => ( is => 'ro', isa => Bool, default => 0 );
 
 no Pcore;
 
-sub run ( $self, $args ) {
+sub cli_opt ($self) {
+    return {
+        install    => { desc => 'install to PATH and PERL5LIB', },
+        develop    => { desc => 'cpanm --with-develop', },
+        recommends => { desc => 'cpanm --with-recommends', },
+        suggests   => { desc => 'cpanm --with-suggests', },
+    };
+}
+
+sub cli_run ( $self, $opt, $arg, $rest ) {
+    $self->new($opt)->run;
+
+    return;
+}
+
+sub run ($self) {
 
     # chmod
     $self->_chmod;
 
     # cpanm
-    exit 100 if !$self->_cpanm($args);
+    exit 100 if !$self->_cpanm;
 
     # install
-    exit 101 if $args->{install} && !$self->_install;
+    exit 101 if $self->install && !$self->_install;
 
     return;
 }
@@ -65,7 +85,7 @@ sub _is_exec ( $self, $path ) {
     return;
 }
 
-sub _cpanm ( $self, $args ) {
+sub _cpanm ($self) {
     if ( -f 'cpanfile' ) {
         my $cfg = Pcore->cfg->load( $Pcore::P->{SHARE_DIR} . 'pcore.perl' );
 
@@ -77,9 +97,9 @@ sub _cpanm ( $self, $args ) {
         my @args = (    #
             'cpanm',
             '--with-feature', ( $^O =~ /MSWin/sm ? 'windows' : 'linux' ),
-            ( $args->{develop}    ? '--with-develop'    : () ),
-            ( $args->{recommends} ? '--with-recommends' : () ),
-            ( $args->{suggests}   ? '--with-suggests'   : () ),
+            ( $self->develop    ? '--with-develop'    : () ),
+            ( $self->recommends ? '--with-recommends' : () ),
+            ( $self->suggests   ? '--with-suggests'   : () ),
             '--cpanfile',    'cpanfile',
             '--installdeps', q[.],
         );
@@ -160,9 +180,9 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 102                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 122                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 123                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 143                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -173,7 +193,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::Builder::Deploy
+Pcore::Dist::Builder::Deploy - deploy distribution
 
 =head1 SYNOPSIS
 
