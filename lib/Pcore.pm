@@ -151,7 +151,7 @@ sub import {
     }
 
     # export Pcore::Core
-    Pcore::Core::Constants->import( -caller => $caller, $tags->@* );
+    Pcore::Core::Const->import( -caller => $caller, $tags->@* );
     Pcore::Core::Dump->import( -caller => $caller, $tags->@* );
     Pcore::Core::Exception->import( -caller => $caller, $tags->@* );
     Pcore::Core::H->import( -caller => $caller, $tags->@* );
@@ -380,7 +380,7 @@ sub _apply_roles {
 }
 
 # CORE compilation phase
-use Pcore::Core::Constants qw[:CORE];
+use Pcore::Core::Const qw[:CORE];
 use Pcore::Core::EV qw[:CORE];
 use Pcore::Core::Bootstrap qw[];
 use Pcore::Core::Dump qw[:CORE];
