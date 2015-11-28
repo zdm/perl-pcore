@@ -1,4 +1,4 @@
-package Pcore::Core::PerlIOviaWin32UnicodeConsole;
+package Pcore::Core::PerlIOviaWinUniCon;
 
 use Pcore;
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
@@ -120,7 +120,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::PerlIOviaWin32UnicodeConsole
+Pcore::Core::PerlIOviaWinUniCon
 
 =head1 SYNOPSIS
 
