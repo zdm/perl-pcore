@@ -10,7 +10,6 @@
 /Build.bat
 /Makefile
 /pm_to_blib
-/<: $dist_name :>-*
 
 # pcore
 /data/

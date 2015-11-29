@@ -10,7 +10,6 @@ glob:Build
 glob:Build.bat
 glob:Makefile
 glob:pm_to_blib
-glob:<: $dist_name :>-*
 
 # pcore
 glob:data/
