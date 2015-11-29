@@ -1,4 +1,4 @@
-package Pcore::Core::Proc::Res;
+package Pcore::Core::Proc::Resources;
 
 use Pcore qw[-class];
 
@@ -93,7 +93,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Proc::Res
+Pcore::Core::Proc::Resources
 
 =head1 SYNOPSIS
 

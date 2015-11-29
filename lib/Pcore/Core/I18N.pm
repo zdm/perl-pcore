@@ -12,12 +12,10 @@ our $LOCALE    = 'en_US';
 our $LOCATIONS = [];
 our $CACHE     = {};
 
-# TODO
 sub CORE_INIT {
-
-    # _add_location( $P->{I18N_DIR} );
-    # _add_location( $DIST->{I18N_DIR} ) if $DIST->{I18N_DIR};
-    # _add_location( $PROC->{I18N_DIR} ) if $PROC->{I18N_DIR};
+    for my $path ( $PROC->res->get_storage_root('i18n')->@* ) {
+        _add_location($path);
+    }
 
     return;
 }
@@ -264,20 +262,17 @@ sub _t {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 53                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_add_location' declared but not     │
-## │      │                      │ used                                                                                                           │
+## │    3 │ 88                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 90                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
+## │    3 │ 181, 195             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 183, 197             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    2 │ 106, 109             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 108, 111             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
+## │    2 │ 133                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 135                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    1 │ 114, 128, 129        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 116, 130, 131        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 179                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 177                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

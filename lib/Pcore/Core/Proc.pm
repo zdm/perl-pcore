@@ -4,12 +4,12 @@ use Pcore qw[-class];
 use Config qw[];
 use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules] needed to find system temp dir
 use Pcore::Dist;
-use Pcore::Core::Proc::Res;
+use Pcore::Core::Proc::Resources;
 
 has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );
 has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );
-has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],            init_arg => undef );
-has res   => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Proc::Res'], init_arg => undef );
+has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );
+has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Proc::Resources'], init_arg => undef );
 
 no Pcore;
 
@@ -82,7 +82,7 @@ sub _build_pcore ($self) {
 # TODO
 # new ENV - PCORE_RESOURCES - PCORE_RES_LIB
 sub _build_res ($self) {
-    my $res = Pcore::Core::Proc::Res->new;
+    my $res = Pcore::Core::Proc::Resources->new;
 
     $res->add_lib( 'pcore', $self->pcore->share_dir );
 

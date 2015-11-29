@@ -20,23 +20,7 @@ sub NEW ( $self, %args ) {
 
     my $path = [$string_tmpl_cache];    # virtual path
 
-    my %path_index;
-
-    if ( $PROC->{TMPL_DIR} ) {
-        push $path->@*, $PROC->{TMPL_DIR};    # proc tmpl dir
-
-        $path_index{ $PROC->{TMPL_DIR} } = 1;
-    }
-
-    if ( $DIST->{TMPL_DIR} && !exists $path_index{ $DIST->{TMPL_DIR} } ) {
-        push $path->@*, $DIST->{TMPL_DIR};    # dist tmpl dir
-
-        $path_index{ $DIST->{TMPL_DIR} } = 1;
-    }
-
-    if ( $P->{TMPL_DIR} && !exists $path_index{ $P->{TMPL_DIR} } ) {
-        push $path->@*, $P->{TMPL_DIR};       # pcore tmpl dir
-    }
+    push $path, $PROC->res->get_storage_root('tmpl')->@*;
 
     my $args_def = {
         path        => $path,
@@ -90,7 +74,7 @@ sub render ( $self, $tmpl, $params = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 56                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 40                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
