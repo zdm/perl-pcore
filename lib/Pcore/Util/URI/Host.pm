@@ -107,7 +107,7 @@ sub pub_suffixes ($force_download = 0) {
 
 sub tlds ($force_download = 0) {
     state $tlds = do {
-        my $path = P->res->get_local('tld.dat');
+        my $path = $PROC->res->get('/data/tld.dat');
 
         if ( !$path || $force_download ) {
             P->ua->request(
@@ -117,7 +117,7 @@ sub tlds ($force_download = 0) {
                 blocking    => $force_download ? $force_download : 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = P->res->store_local( 'tld.dat', P->text->encode_utf8( \join $LF, sort map { from_punycode($_) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ) );
+                        $path = $PROC->res->store( P->text->encode_utf8( \join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
                     }
 
                     return;
