@@ -3,8 +3,8 @@ package Pcore::Core::Const;
 use Pcore qw[-export -const];
 use Types::Serialiser qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-our @EXPORT_OK   = qw[$MSWIN $CRLF $LF $TRUE $FALSE $P $DIST $PROC $PROC1 $STDIN $STDOUT $STDERR];
-our %EXPORT_TAGS = (                                                                                 #
+our @EXPORT_OK   = qw[$MSWIN $CRLF $LF $TRUE $FALSE $P $DIST $PROC $STDIN $STDOUT $STDERR];
+our %EXPORT_TAGS = (                                                                          #
     CORE => \@EXPORT_OK
 );
 our @EXPORT = @EXPORT_OK;
@@ -12,7 +12,6 @@ our @EXPORT = @EXPORT_OK;
 our $P;
 our $DIST;
 our $PROC;
-our $PROC1;
 
 our $STDIN;
 our $STDOUT;

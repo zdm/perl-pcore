@@ -5,31 +5,24 @@ use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use File::ShareDir qw[];
 use Config qw[];
 use Cwd qw[];           ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Core::Proc;
 
 # may not work, if executed in one-liner script
 eval { require FindBin; };
 
-# AnyEvent::Fork workaround, inherit script path from caller script via env vars
 if ($@) {
-    $FindBin::Bin = $FindBin::RealBin = $ENV{__PCORE_SCRIPT_DIR} // Cwd::getcwd();
+    $FindBin::Bin = $FindBin::RealBin = Cwd::getcwd();
 
-    $FindBin::Script = $FindBin::RealScript = $ENV{__PCORE_SCRIPT_NAME} // ( $0 =~ s[\A.*?[/\\](.+)\z][$1]smr );
+    $FindBin::Script = $FindBin::RealScript = $0 =~ s[\A.*?[/\\](.+)\z][$1]smr;
 
     # prevent attempts to reload FindBin later
     delete $INC{'FindBin.pm'};
 
     $INC{'FindBin.pm'} = 'eval()';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 }
-else {
-    $ENV{__PCORE_SCRIPT_DIR} = $FindBin::RealBin;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $ENV{__PCORE_SCRIPT_NAME} = $FindBin::RealScript;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-}
-
-sub CORE_INIT {
-    my $proc_cfg = shift;
-
-    _configure_proc($proc_cfg);
+sub CORE_INIT ($proc_cfg) {
+    $PROC = Pcore::Core::Proc->new( $proc_cfg // () );
 
     _configure_dist();
 
@@ -41,26 +34,7 @@ sub CORE_INIT {
 
     _configure_inc();
 
-    # configure $PROC run-time dirs
-    $PROC->{LOG_DIR}  = $PROC->{LOG_DIR}  ? P->path( $PROC->{LOG_DIR},  is_dir => 1, lazy => 1 ) : $DIST->{LOG_DIR};
-    $PROC->{DATA_DIR} = $PROC->{DATA_DIR} ? P->path( $PROC->{DATA_DIR}, is_dir => 1, lazy => 1 ) : $DIST->{DATA_DIR};
-    $PROC->{TMPL_DIR} = $PROC->{TMPL_DIR} && -d $PROC->{TMPL_DIR} ? P->path( $PROC->{TMPL_DIR}, is_dir => 1 )->realpath->to_string : q[];
-    $PROC->{I18N_DIR} = $PROC->{I18N_DIR} && -d $PROC->{I18N_DIR} ? P->path( $PROC->{I18N_DIR}, is_dir => 1 )->realpath->to_string : q[];
-
     _configure_inline();
-
-    return;
-}
-
-sub _configure_proc {
-    $PROC = shift // {};
-
-    $PROC->{START_DIR}    = P->file->cwd->to_string;
-    $PROC->{SCRIPT_NAME}  = $FindBin::RealScript;
-    $PROC->{SCRIPT_DIR}   = P->path( $FindBin::RealBin, is_dir => 1 )->realpath->to_string;
-    $PROC->{SCRIPT_PATH}  = $PROC->{SCRIPT_DIR} . $PROC->{SCRIPT_NAME};
-    $PROC->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
-    $PROC->{TEMP_DIR}     = P->file->tempdir( base => $PROC->{SYS_TEMP_DIR}, lazy => 1 );
 
     return;
 }
@@ -265,9 +239,9 @@ sub _dir_is_dist_root {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 10                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 11                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 253                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 227                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
