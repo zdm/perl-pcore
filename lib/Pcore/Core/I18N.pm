@@ -13,7 +13,7 @@ our $LOCATIONS = [];
 our $CACHE     = {};
 
 sub CORE_INIT {
-    for my $path ( $PROC->res->get_storage_root('i18n')->@* ) {
+    for my $path ( $PROC->res->get_storage('i18n')->@* ) {
         _add_location($path);
     }
 

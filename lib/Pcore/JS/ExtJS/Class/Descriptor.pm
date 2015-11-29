@@ -18,7 +18,7 @@ no Pcore;
 
 our $EXT = P->cfg->load( P->res->get_local('extjs.perl') );
 
-__PACKAGE__->register_classes( P->cfg->load( $P->{SHARE_DIR} . 'extjs_pcore.perl' ) );
+__PACKAGE__->register_classes( P->cfg->load( $PROC->res->get('/static/extjs_pcore.perl') ) );
 
 sub register_classes {
     my $self = shift;

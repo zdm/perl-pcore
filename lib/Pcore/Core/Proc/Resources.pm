@@ -20,7 +20,24 @@ sub add_lib ( $self, $name, $path ) {
     return;
 }
 
-sub get_storage_root ( $self, $name ) {
+sub get_lib ( $self, $name ) {
+    die qq[resource lib is not exists "$name"] if !exists $self->lib->{$name};
+
+    return $self->lib->{$name};
+}
+
+sub get_storage ( $self, $name, $lib = undef ) {
+    if ($lib) {
+        die qq[resource lib is not exists "$lib"] if !exists $self->lib->{$lib};
+
+        if ( -d $self->lib->{$lib} . $name ) {
+            return $self->lib->{$lib} . $name . q[/];
+        }
+        else {
+            return;
+        }
+    }
+
     \my $storage_root = \$self->storage_root;
 
     if ( !exists $storage_root->{$name} ) {
@@ -64,7 +81,7 @@ sub get ( $self, $path, @ ) {
             return;
         }
     }
-    elsif ( my $storage_root = $self->get_storage_root( $args{storage} ) ) {
+    elsif ( my $storage_root = $self->get_storage( $args{storage} ) ) {
         for my $root ( $storage_root->@* ) {
             my $res = $root . $path;
 

@@ -14,7 +14,7 @@ has web2_url => ( is => 'lazy', init_arg => undef );
 
 no Pcore;
 
-our $WEB2_CFG = P->cfg->load( $P->{SHARE_DIR} . 'web2.perl' );
+our $WEB2_CFG = P->cfg->load( $PROC->res->get('/static/web2.perl') );
 
 our $WEB2_HOST_RE;
 

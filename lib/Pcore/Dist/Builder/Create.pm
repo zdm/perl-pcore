@@ -86,7 +86,7 @@ sub run ($self) {
 
     $self->quit('Path already exists') if !$path;
 
-    my $files = Pcore::Dist::BuilderUtil::Files->new( $P->{SHARE_DIR} . 'pcore/' );
+    my $files = Pcore::Dist::BuilderUtil::Files->new( $PROC->res->get_storage( 'pcore', 'pcore' ) );
 
     $files->rename_file( 'lib/Module.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
 

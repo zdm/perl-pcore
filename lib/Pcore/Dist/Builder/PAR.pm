@@ -16,7 +16,7 @@ has build_version => ( is => 'ro',   isa => Str,     init_arg => undef );
 
 no Pcore;
 
-our $PAR_CFG = P->cfg->load( $P->{SHARE_DIR} . 'pcore.perl' );
+our $PAR_CFG = P->cfg->load( $PROC->res->get( '/static/pcore.perl', lib => 'pcore' ) );
 
 sub cli_opt ($self) {
     return {
@@ -181,7 +181,7 @@ sub _build_script {
     }
 
     # add pcore share dir
-    P->file->copy( $P->{SHARE_DIR}, $par_dir . 'lib/auto/share/dist/Pcore/' );
+    P->file->copy( $PROC->res->get_lib('pcore'), $par_dir . 'lib/auto/share/dist/Pcore/' );
 
     # add current dist share dir
     P->file->copy( './share/', $par_dir . 'lib/auto/share/dist/' . $self->dist->cfg->{dist}->{name} . q[/] );
@@ -267,7 +267,7 @@ sub _add_pkg {
         }
 
         # find package inline deps
-        my $pkg_inline_so_path = $P->{INLINE_DIR} . q[lib/auto/] . $pkg_path->dirname . $pkg_path->filename_base . q[/] . $pkg_path->filename_base . q[.];
+        my $pkg_inline_so_path = $PROC->{INLINE_DIR} . q[lib/auto/] . $pkg_path->dirname . $pkg_path->filename_base . q[/] . $pkg_path->filename_base . q[.];
 
         if ( -f $pkg_inline_so_path . $Config::Config{dlext} ) {    # package has inline deps
             $package_target_path = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
@@ -288,7 +288,7 @@ sub _add_pkg {
 
             my $inline_config_target_path = $par_dir . $package_target_path . $inline_config_name;
 
-            $self->_copy_file( $P->{INLINE_DIR} . $inline_config_name, $inline_config_target_path ) if !-f $inline_config_target_path;
+            $self->_copy_file( $PROC->{INLINE_DIR} . $inline_config_name, $inline_config_target_path ) if !-f $inline_config_target_path;
         }
 
         $self->_add_perl_source( $inc_path . q[/] . $pkg, $par_dir . $package_target_path . $pkg, $profile, $pkg, $found->[1] );
