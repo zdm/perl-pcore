@@ -40,17 +40,11 @@ sub _build_cmd ($self) {
 
                     next if !-d $path;
 
-                    opendir my $dh, $path || die qq[can't opendir $path: $!];
-
-                    while ( my $fn = readdir $dh ) {
-                        next if substr( $fn, 0 ) eq q[.];
-
+                    for my $fn ( P->file->read_dir( $path, full_path => 0 )->@* ) {
                         if ( $fn =~ /\A(.+)[.]pm\z/sm && -f "$path/$fn" ) {
                             push @classes, $ns . $1;
                         }
                     }
-
-                    closedir $dh || die;
                 }
             }
             else {
@@ -557,15 +551,15 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 48                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 44                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 86, 89, 147, 224,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 259, 316, 339, 402,  │                                                                                                                │
-## │      │ 465, 470, 474, 483   │                                                                                                                │
+## │    3 │ 80, 83, 141, 218,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 253, 310, 333, 396,  │                                                                                                                │
+## │      │ 459, 464, 468, 477   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 329                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 323                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 363, 499, 527        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 357, 493, 521        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
