@@ -1,54 +1,84 @@
 package Pcore::Core::Proc::Resources;
 
-use Pcore qw[-class];
+use Pcore qw[-class -const];
 
-has lib          => ( is => 'ro',   isa => HashRef,  default => sub { {} }, init_arg => undef );
-has lib_order    => ( is => 'ro',   isa => ArrayRef, default => sub { [] }, init_arg => undef );
-has storage_root => ( is => 'lazy', isa => HashRef,  default => sub { {} }, clearer  => 1, init_arg => undef );
+has _lib         => ( is => 'ro',   isa => HashRef,  default => sub { {} }, init_arg => undef );
+has _lib_order   => ( is => 'ro',   isa => ArrayRef, default => sub { [] }, init_arg => undef );
+has _storage     => ( is => 'lazy', isa => HashRef,  default => sub { {} }, clearer  => 1, init_arg => undef );
+has _lib_storage => ( is => 'lazy', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
 no Pcore;
+
+const our $RESERVED_LIB_NAME => {
+    pcore => 1,
+    dist  => 1,
+    temp  => 1,
+};
 
 sub add_lib ( $self, $name, $path ) {
     die qq[resource lib "$name" already exists] if exists $self->lib->{$name};
 
-    $self->lib->{$name} = $path;
+    die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
 
-    unshift $self->lib_order->@*, $name;
+    $self->_add_lib( $name, $path );
 
-    $self->clear_storage_root;
+    return;
+}
+
+sub _add_lib ( $self, $name, $path ) {
+    $self->_lib->{$name} = $path;
+
+    unshift $self->_lib_order->@*, $name;
+
+    $self->_clear_storage;
 
     return;
 }
 
 sub get_lib ( $self, $name ) {
-    die qq[resource lib is not exists "$name"] if !exists $self->lib->{$name};
-
-    return $self->lib->{$name};
+    return $self->_lib->{$name};
 }
 
 sub get_storage ( $self, $name, $lib = undef ) {
+    \my $libs = \$self->_lib;
+
     if ($lib) {
-        die qq[resource lib is not exists "$lib"] if !exists $self->lib->{$lib};
+        die qq[resource lib is not exists "$lib"] if !exists $libs->{$lib};
 
-        if ( -d $self->lib->{$lib} . $name ) {
-            return $self->lib->{$lib} . $name . q[/];
+        \my $lib_storage = \$self->_lib_storage;
+
+        if ( !exists $lib_storage->{$lib}->{$name} ) {
+            if ( -d $libs->{$lib} . $name ) {
+                $lib_storage->{$lib}->{$name} = $libs->{$lib} . $name;
+            }
+            else {
+                $lib_storage->{$lib}->{$name} = undef;
+            }
         }
-        else {
-            return;
-        }
+
+        return $lib_storage->{$lib}->{$name};
     }
+    else {
+        \my $storage = \$self->_storage;
 
-    \my $storage_root = \$self->storage_root;
+        if ( !exists $storage->{$name} ) {
+            my $index = {};
 
-    if ( !exists $storage_root->{$name} ) {
-        for my $lib_name ( $self->lib_order->@* ) {
-            push $storage_root->{$name}->@*, $self->lib->{$lib_name} . $name . q[/] if -d $self->lib->{$lib_name} . $name . q[/];
+            for my $lib_name ( $self->_lib_order->@* ) {
+                my $path = $libs->{$lib_name} . $name;
+
+                if ( -d $path && !exists $index->{$path} ) {
+                    $index->{$path} = 1;
+
+                    push $storage->{$name}->@*, $path;
+                }
+            }
+
+            $storage->{$name} = undef if !exists $storage->{$name};
         }
 
-        $storage_root->{$name} = undef if !exists $storage_root->{$name};
+        return $storage->{$name};
     }
-
-    return $storage_root->{$name};
 }
 
 sub get ( $self, $path, @ ) {
@@ -58,47 +88,89 @@ sub get ( $self, $path, @ ) {
         @_[ 2 .. $#_ ],
     );
 
+    die qq[resource lib is not exists "$args{lib}"] if $args{lib} && !exists $self->lib->{ $args{lib} };
+
+    # get storage name from path
     if ( !$args{storage} ) {
-        if ( $path =~ m[\A/?([^/]+)(/.+)]sm ) {
+        if ( $path =~ m[\A/?([^/]+)/(.+)]sm ) {
             $args{storage} = $1;
 
-            $path = $2;
+            $path = P->path( q[/] . $2 );
         }
         else {
             die qq[invalid resource path "$path"];
         }
     }
+    else {
+        $path = P->path( q[/] . $path );
+    }
 
     if ( $args{lib} ) {
-        die qq[resource lib is not exists "$args{lib}"] if !exists $self->lib->{ $args{lib} };
-
         my $res = $self->lib->{ $args{lib} } . $args{storage} . q[/] . $path;
 
         if ( -f $res ) {
             return $res;
         }
-        else {
-            return;
-        }
     }
-    elsif ( my $storage_root = $self->get_storage( $args{storage} ) ) {
-        for my $root ( $storage_root->@* ) {
-            my $res = $root . $path;
+    elsif ( my $storage = $self->get_storage( $args{storage} ) ) {
+        for my $storage_root ( $storage->@* ) {
+            my $res = $storage_root . $path;
 
-            return $res if -f $res;
+            if ( -f $res ) {
+                return $res;
+            }
         }
     }
 
     return;
 }
 
-sub store ( $self, @ ) {
+sub store ( $self, $file, $path, $lib, @ ) {
     my %args = (
-        lib     => undef,
         storage => undef,
-        @_[ 2 .. $#_ ],
+        @_[ 4 .. $#_ ],
     );
 
+    die qq[resource lib is not exists "$lib"] if !exists $self->_lib->{$lib};
+
+    # get storage name from path
+    if ( !$args{storage} ) {
+        if ( $path =~ m[\A/?([^/]+)/(.+)]sm ) {
+            $args{storage} = $1;
+
+            $path = P->path( q[/] . $2 );
+        }
+        else {
+            die qq[invalid resource path "$path"];
+        }
+    }
+    else {
+        $path = P->path( q[/] . $path );
+    }
+
+    # clear storage cache if new storage was created
+    if ( !-e $self->_lib->{$lib} . $args{storage} ) {
+        delete $self->_storage->{ $args{storage} };
+
+        delete $self->_lib_storage->{$lib}->{ $args{storage} };
+    }
+
+    # create path
+    P->file->mkpath( $self->_lib->{$lib} . $args{storage} . $path->dirname ) if !-d $self->_lib->{$lib} . $args{storage} . $path->dirname;
+
+    # create file
+    if ( ref $file eq 'SCALAR' ) {
+        P->file->write_bin( $self->_lib->{$lib} . $args{storage} . $path, $file );
+    }
+    else {
+        P->file->copy( $file, $self->_lib->{$lib} . $args{storage} . $path );
+    }
+
+    return $self->_lib->{$lib} . $args{storage} . $path;
+}
+
+# TODO
+sub copy ( $self, $path, $to ) {
     return;
 }
 

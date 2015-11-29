@@ -84,9 +84,9 @@ sub _build_pcore ($self) {
 sub _build_res ($self) {
     my $res = Pcore::Core::Proc::Resources->new;
 
-    $res->add_lib( 'pcore', $self->pcore->share_dir );
+    $res->_add_lib( 'pcore', $self->pcore->share_dir );
 
-    $res->add_lib( 'dist', $self->dist->share_dir ) if $self->dist;
+    $res->_add_lib( 'dist', $self->dist->share_dir ) if $self->dist;
 
     # TODO how to get priority
     if ( $ENV{PCORE_RESOURCES} && -d $ENV{PCORE_RESOURCES} ) {
