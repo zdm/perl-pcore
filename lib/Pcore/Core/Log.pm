@@ -25,7 +25,7 @@ our $PIPES             = {};
 sub CORE_INIT {
 
     # set default log pipes
-    for my $pipe ( $PROC->pcore->cfg->{log} ? $PROC->pcore->cfg->{log}->@* : (), $PROC->{cfg}->{log} ? $PROC->{cfg}->{log}->@* : () ) {
+    for my $pipe ( $PROC->pcore->cfg->{log} ? $PROC->pcore->cfg->{log}->@* : (), $PROC->{CFG}->{log} ? $PROC->{CFG}->{log}->@* : () ) {
         __PACKAGE__->set_log( $pipe->%* );
     }
 

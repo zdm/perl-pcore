@@ -25,7 +25,7 @@ sub CORE_INIT ($proc_cfg) {
     $PROC = Pcore::Core::Proc->new( $proc_cfg // () );
 
     # register util accessors
-    P->hash->merge( $Pcore::Core::Util::UTIL, $PROC->{cfg}->{util} ) if $PROC->{cfg}->{util};
+    P->hash->merge( $Pcore::Core::Util::UTIL, $PROC->{CFG}->{util} ) if $PROC->{CFG}->{util};
 
     _configure_inc();
 

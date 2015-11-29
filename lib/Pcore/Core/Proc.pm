@@ -11,8 +11,6 @@ has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_ar
 has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],            init_arg => undef );
 has res   => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Proc::Res'], init_arg => undef );
 
-has cfg => ( is => 'ro', isa => HashRef, init_arg => undef );
-
 no Pcore;
 
 sub BUILD ( $self, $args ) {
@@ -25,7 +23,7 @@ sub BUILD ( $self, $args ) {
 
     # load dist.perl
     if ( my $dist = $self->dist ) {
-        $self->{cfg} = $args ? P->hash->merge( $dist->cfg, $args ) : $dist->cfg;
+        $self->{CFG} = $args ? P->hash->merge( $dist->cfg, $args ) : $dist->cfg;
 
         if ( $dist->is_par ) {
             $self->{DATA_DIR} = undef;
@@ -37,7 +35,7 @@ sub BUILD ( $self, $args ) {
         }
     }
     else {
-        $self->{cfg} = $args // {};
+        $self->{CFG} = $args // {};
 
         $self->{DATA_DIR} = undef;
         $self->{LOG_DIR}  = undef;
