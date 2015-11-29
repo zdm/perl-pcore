@@ -190,7 +190,10 @@ sub _build_ns ($self) {
 sub _build_main_module_path ($self) {
     my $path = $self->ns =~ s[::][/]smgr . '.pm';
 
-    if ( $self->is_installed ) {
+    if ( exists $INC{$path} ) {
+        return $INC{$path};
+    }
+    elsif ( $self->is_installed ) {
         for my $inc (@INC) {
             next if ref $inc;
 
@@ -228,9 +231,9 @@ sub _build_scm ($self) {
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 60, 88, 127, 159,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 163, 197             │                                                                                                                │
+## │      │ 163, 200             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 212                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 215                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
