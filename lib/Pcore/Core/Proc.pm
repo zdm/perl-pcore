@@ -90,17 +90,13 @@ sub _build_res ($self) {
 
     # TODO how to get priority
     if ( $ENV{PCORE_RESOURCES} && -d $ENV{PCORE_RESOURCES} ) {
-        opendir my $dh, $ENV{PCORE_RESOURCES} || die;
+        my $base_path = P->path( $ENV{PCORE_RESOURCES}, is_dir => 1 );
 
-        while ( my $dir = readdir $dh ) {
-            next if $dir eq q[.] or $dir eq q[..];
+        for my $path ( P->file->read_dir( $base_path, full_path => 0 )->@* ) {
+            my $lib_dir = $base_path . $path;
 
-            my $lib_dir = $ENV{PCORE_RESOURCES} . q[/] . $dir;
-
-            $res->add_lib( $dir, P->path( $lib_dir, is_dir => 1 )->to_string ) if -d $lib_dir;
+            $res->add_lib( $path, $lib_dir ) if -d $lib_dir;
         }
-
-        closedir $dh or die;
     }
 
     return $res;
