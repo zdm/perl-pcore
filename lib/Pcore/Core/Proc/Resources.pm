@@ -170,6 +170,8 @@ sub store ( $self, $file, $path, $lib, @ ) {
 }
 
 # TODO
+# copy directories
+# ignore, if not exitst
 sub copy ( $self, $path, $to ) {
     return;
 }
