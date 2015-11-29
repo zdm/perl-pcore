@@ -16,7 +16,7 @@ has build_version => ( is => 'ro',   isa => Str,     init_arg => undef );
 
 no Pcore;
 
-our $PAR_CFG = P->cfg->load( $PROC->res->get( '/static/pcore.perl', lib => 'pcore' ) );
+our $PAR_CFG = P->cfg->load( $PROC->res->get( '/data/pcore.perl', lib => 'pcore' ) );
 
 sub cli_opt ($self) {
     return {

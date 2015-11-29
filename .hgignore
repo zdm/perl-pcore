@@ -1,17 +1,17 @@
 # perl build garbage
-glob:blib/
-glob:_build/
-glob:.build/
-glob:META.yml
-glob:MYMETA.json
-glob:MYMETA.yml
-glob:_build_params
-glob:Build
-glob:Build.bat
-glob:Makefile
-glob:pm_to_blib
+re:^blib/
+re:^_build/
+re:^.build/
+re:^META.yml
+re:^MYMETA.json
+re:^MYMETA.yml
+re:^_build_params
+re:^Build
+re:^Build.bat
+re:^Makefile
+re:^pm_to_blib
 
 # pcore
-glob:.inline/
-glob:data/
-glob:log/
+re:^.inline/
+re:^data/
+re:^log/

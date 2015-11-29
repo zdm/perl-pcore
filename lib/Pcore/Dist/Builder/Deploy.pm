@@ -87,7 +87,7 @@ sub _is_exec ( $self, $path ) {
 
 sub _cpanm ($self) {
     if ( -f 'cpanfile' ) {
-        my $cfg = Pcore->cfg->load( $PROC->res->get( '/static/pcore.perl', lib => 'pcore' ) );
+        my $cfg = Pcore->cfg->load( $PROC->res->get( '/data/pcore.perl', lib => 'pcore' ) );
 
         # install known platform exceptions without tests
         if ( exists $cfg->{cpanm}->{ $Config::Config{archname} } && @{ $cfg->{cpanm}->{ $Config::Config{archname} } } ) {

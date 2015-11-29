@@ -27,7 +27,7 @@ has dist_cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 # CLASS METHODS
 sub cfg ($self) {
-    state $cfg = P->cfg->load( $PROC->res->get('/static/src.perl') );
+    state $cfg = P->cfg->load( $PROC->res->get('/data/src.perl') );
 
     return $cfg;
 }
