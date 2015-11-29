@@ -5,7 +5,8 @@ use Config qw[];
 
 has root => ( is => 'ro', isa => Maybe [Str], required => 1 );    # absolute path to the dist root
 has is_installed => ( is => 'ro', isa => Bool, required => 1 );   # dist is installed as CPAN module, root is undefined
-has res_path     => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
+has is_par       => ( is => 'ro', isa => Bool, required => 1 );   # dist is used as PAR
+has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
 has main_module_path => ( is => 'lazy', isa => Str );             # absolute path
 
 has cfg     => ( is => 'lazy', isa => HashRef, init_arg => undef );
@@ -20,12 +21,22 @@ around new => sub ( $orig, $self, $path ) {
     if ( $path =~ /[.]pm\z/smo ) {                                     # Package/Name.pm
         $pkg_name = $path;
     }
+    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {              # PAR
+        return $self->$orig(
+            {   root         => undef,
+                is_installed => 1,
+                is_par       => 1,
+                share_dir    => P->path( $ENV{PAR_TEMP} . '/inc/share/' )->to_string,
+            }
+        );
+    }
     elsif ( $path =~ m[[./]]smo ) {                                    # ./path/to/dist
         if ( $path = $self->_find_dist_root($path) ) {
             return $self->$orig(
                 {   root         => $path->to_string,
                     is_installed => 0,
-                    res_path     => $path . 'share/',
+                    is_par       => 0,
+                    share_dir    => $path . 'share/',
                 }
             );
         }
@@ -66,6 +77,8 @@ around new => sub ( $orig, $self, $path ) {
             }
         }
 
+        # package is installed in the one of the CPAN locations
+        # try to find dist share dir in the CPAN locations
         if ($is_installed) {
             my $dist_name = $pkg_name =~ s[/][-]smgro;
 
@@ -76,7 +89,8 @@ around new => sub ( $orig, $self, $path ) {
                     return $self->$orig(
                         {   root             => undef,
                             is_installed     => 1,
-                            res_path         => $cpan_inc . qq[/auto/share/dist/$dist_name/],
+                            is_par           => 0,
+                            share_dir        => $cpan_inc . qq[/auto/share/dist/$dist_name/],
                             main_module_path => $pkg_path,
                         }
                     );
@@ -84,11 +98,15 @@ around new => sub ( $orig, $self, $path ) {
             }
         }
         else {
+
+            # dist nanespace/package.pm was found in @INC, but located not in CPAN
+            # detect, if this path is belongs to the dist
             if ( my $dist_root = $self->_find_dist_root($pkg_path) ) {
                 return $self->$orig(
                     {   root         => $dist_root->to_string,
                         is_installed => 0,
-                        res_path     => $dist_root . 'share/',
+                        is_par       => 0,
+                        share_dir    => $dist_root . 'share/',
                     }
                 );
             }
@@ -158,7 +176,7 @@ sub _find_dist_root ( $self, $path ) {
 
 # BUILDERS
 sub _build_cfg ($self) {
-    return P->cfg->load( $self->res_path . 'dist.perl' );
+    return P->cfg->load( $self->share_dir . 'dist.perl' );
 }
 
 sub _build_name ($self) {
@@ -170,7 +188,20 @@ sub _build_ns ($self) {
 }
 
 sub _build_main_module_path ($self) {
-    return $self->root . 'lib/' . $self->ns =~ s[::][/]smgr . '.pm';
+    my $path = $self->ns =~ s[::][/]smgr . '.pm';
+
+    if ( $self->is_installed ) {
+        for my $inc (@INC) {
+            next if ref $inc;
+
+            return $inc . q[/] . $path -f $inc . q[/] . $path;
+        }
+    }
+    else {
+        return $self->root . 'lib/' . $path;
+    }
+
+    die 'Main module was not found, this is totally unexpected...';
 }
 
 sub _build_version ($self) {
@@ -194,10 +225,12 @@ sub _build_scm ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 49, 75, 109, 141,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 145                  │                                                                                                                │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 181                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 60, 88, 127, 159,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │      │ 163                  │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 212                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
