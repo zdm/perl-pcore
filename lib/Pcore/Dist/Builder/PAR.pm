@@ -451,10 +451,10 @@ sub _upx {
     my $upx;
 
     if ($MSWIN) {
-        $upx = P->res->get_local('upx.exe');
+        $upx = $PROC->res->get('/bin/upx.exe');
     }
     else {
-        $upx = P->res->get_local('upx_x64');
+        $upx = $PROC->res->get('/bin/upx_x64');
     }
 
     P->capture->sys( $upx, '--best', $path ) if $upx;
@@ -561,7 +561,7 @@ sub _repack_par {
 
         my $exe = Win32::Exe->new( $fh->path );
 
-        $exe->update( icon => P->res->get_local('par.ico') );
+        $exe->update( icon => $PROC->res->get('/data/par.ico') );
 
         say 'done';
     }

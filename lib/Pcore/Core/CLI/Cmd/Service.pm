@@ -6,7 +6,7 @@ with qw[Pcore::Core::CLI::Cmd];
 
 no Pcore;
 
-# TODO this command should be added automatically, if $PROC->{SERVICE_NAME} is defined
+# TODO this command should be added automatically, if $PROC->{CFG}->{SERVICE_NAME} is defined
 
 sub cli_name ($self) {
     return 'service';
@@ -22,7 +22,7 @@ sub cli_opt ($self) {
             short   => undef,
             desc    => 'service name',
             isa     => 'Str',
-            default => $PROC->{SERVICE_NAME},
+            default => $PROC->{CFG}->{SERVICE_NAME},
         }
     };
 }
@@ -43,7 +43,7 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 
 sub _install_service ( $self, $service_name ) {
     if ($MSWIN) {
-        my $wrapper = P->res->get_local('nssm_x64.exe');
+        my $wrapper = $PROC->res->get('/bin/nssm_x64.exe');
 
         my $output = P->capture->sys( $wrapper, 'install', $service_name, 'perl.exe', $PROC->{SCRIPT_PATH} );
     }

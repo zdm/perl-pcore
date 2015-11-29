@@ -27,7 +27,7 @@ sub h_connect {
         require Jabber::Connection;
 
         $h = Jabber::Connection->new(
-            server => $PROC->{H}->{ $self->name }->{SERVER},
+            server => $PROC->{CFG}->{H}->{ $self->name }->{SERVER},
             log    => 0,
             ssl    => 1,
         );
@@ -35,7 +35,7 @@ sub h_connect {
         die 'Jabber: ' . $h->lastError unless $h->connect;
 
         try {
-            $h->auth( $PROC->{H}->{ $self->name }->{USER}, $PROC->{H}->{ $self->name }->{AUTH}, $PROC->{H}->{ $self->name }->{RESOURCE} );
+            $h->auth( $PROC->{CFG}->{H}->{ $self->name }->{USER}, $PROC->{CFG}->{H}->{ $self->name }->{AUTH}, $PROC->{CFG}->{H}->{ $self->name }->{RESOURCE} );
         }
         catch {
             my $e = shift;
@@ -50,22 +50,22 @@ sub h_connect {
             debugfile  => ' stdout ',
         );
 
-        my ( $host, $port ) = $PROC->{H}->{ $self->name }->{SERVER} =~ /\A(.+?):(\d+)\z/sm;
+        my ( $host, $port ) = $PROC->{CFG}->{H}->{ $self->name }->{SERVER} =~ /\A(.+?):(\d+)\z/sm;
         $port ||= 5222;
         my $status = $h->Connect(
             hostname       => $host,
             port           => $port,
-            componentname  => $PROC->{H}->{ $self->name }->{COMPONENT},    # mandatory and needed only for gmail, domain part of JID
-            connectiontype => $PROC->{H}->{ $self->name }->{CONNECTION},
-            tls            => $PROC->{H}->{ $self->name }->{TLS},
+            componentname  => $PROC->{CFG}->{H}->{ $self->name }->{COMPONENT},    # mandatory and needed only for gmail, domain part of JID
+            connectiontype => $PROC->{CFG}->{H}->{ $self->name }->{CONNECTION},
+            tls            => $PROC->{CFG}->{H}->{ $self->name }->{TLS},
         );
         die ' Jabber : Connection error !' unless $h->Connected;
 
         my @result = try {
             return $h->AuthSend(
-                username => $PROC->{H}->{ $self->name }->{USER},
-                password => $PROC->{H}->{ $self->name }->{AUTH},
-                resource => $PROC->{H}->{ $self->name }->{RESOURCE},
+                username => $PROC->{CFG}->{H}->{ $self->name }->{USER},
+                password => $PROC->{CFG}->{H}->{ $self->name }->{AUTH},
+                resource => $PROC->{CFG}->{H}->{ $self->name }->{RESOURCE},
             );
         }
         catch {

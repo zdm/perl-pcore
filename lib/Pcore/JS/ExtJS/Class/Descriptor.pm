@@ -16,7 +16,7 @@ has _parsed => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 no Pcore;
 
-our $EXT = P->cfg->load( P->res->get_local('extjs.perl') );
+our $EXT = P->cfg->load( $PROC->res->get('/data/extjs.perl') );
 
 __PACKAGE__->register_classes( P->cfg->load( $PROC->res->get('/data/extjs_pcore.perl') ) );
 
