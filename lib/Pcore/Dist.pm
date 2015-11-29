@@ -194,7 +194,7 @@ sub _build_main_module_path ($self) {
         for my $inc (@INC) {
             next if ref $inc;
 
-            return $inc . q[/] . $path -f $inc . q[/] . $path;
+            return $inc . q[/] . $path if -f $inc . q[/] . $path;
         }
     }
     else {
@@ -228,7 +228,7 @@ sub _build_scm ($self) {
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 60, 88, 127, 159,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 163                  │                                                                                                                │
+## │      │ 163, 197             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 212                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
