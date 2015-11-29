@@ -45,7 +45,7 @@ no Pcore;
 
 sub pub_suffixes ($force_download = 0) {
     state $suffixes = do {
-        my $path = P->res->get_local('pub_suffix.dat');
+        my $path = $PROC->res->get('/data/pub_suffix.dat');
 
         if ( !$path || $force_download ) {
             P->ua->request(
@@ -91,7 +91,7 @@ sub pub_suffixes ($force_download = 0) {
                             }
                         }
 
-                        $path = P->res->store_local( 'pub_suffix.dat', \join $LF, sort keys $_suffixes->%* );
+                        $path = $PROC->res->store( \join( $LF, sort keys $_suffixes->%* ), '/data/pub_suffix.dat', 'pcore' );
                     }
 
                     return;

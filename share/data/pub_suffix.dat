@@ -24,7 +24,6 @@
 *.mm
 *.mz
 *.nagoya.jp
-*.ni
 *.nom.br
 *.np
 *.pg
@@ -58,6 +57,8 @@
 .more-og-romsdal.no
 .møre-og-romsdal.no
 .nagoya.jp
+.ni  
+.ni    
 .nom.br
 .nordland.no
 .origin.cdn77-secure.org
@@ -131,6 +132,7 @@ ac.ma
 ac.me
 ac.mu
 ac.mw
+ac.ni
 ac.nz
 ac.pa
 ac.pr
@@ -306,7 +308,6 @@ amsterdam.museum
 amur.ru
 amursk.ru
 amusement.aero
-an
 an.it
 analytics
 anamizu.ishikawa.jp
@@ -578,6 +579,7 @@ barrel-of-knowledge.info
 barrell-of-knowledge.info
 barum.no
 bas.it
+baseball
 baseball.museum
 basel.museum
 bashkiria.ru
@@ -680,6 +682,7 @@ biz.id
 biz.ki
 biz.mv
 biz.mw
+biz.ni
 biz.nr
 biz.pk
 biz.pl
@@ -972,6 +975,7 @@ catania.it
 catanzaro.it
 catering
 catering.aero
+catholic
 cb.it
 cba
 cbg.ru
@@ -1215,6 +1219,7 @@ co.mg
 co.mu
 co.mw
 co.na
+co.ni
 co.nl
 co.no
 co.nz
@@ -1260,7 +1265,6 @@ com.af
 com.ag
 com.ai
 com.al
-com.an
 com.ar
 com.au
 com.aw
@@ -1338,6 +1342,7 @@ com.my
 com.na
 com.nf
 com.ng
+com.ni    
 com.nr
 com.om
 com.pa
@@ -1565,6 +1570,7 @@ discovery.museum
 dish
 divtasvuodna.no
 divttasvuotna.no
+diy
 dj
 dk
 dk.eu.org
@@ -1684,7 +1690,6 @@ edu
 edu.ac
 edu.af
 edu.al
-edu.an
 edu.ar
 edu.au
 edu.az
@@ -1755,6 +1760,7 @@ edu.mw
 edu.mx
 edu.my
 edu.ng
+edu.ni
 edu.nr
 edu.om
 edu.pa
@@ -2353,6 +2359,7 @@ gob.es
 gob.gt
 gob.hn
 gob.mx
+gob.ni    
 gob.pa
 gob.pe
 gob.pk
@@ -2996,6 +3003,7 @@ in-the-band.net
 in.eu.org
 in.na
 in.net
+in.ni  
 in.rs
 in.th
 in.ua
@@ -3045,6 +3053,7 @@ info.la
 info.mv
 info.na
 info.nf
+info.ni
 info.nr
 info.pk
 info.pl
@@ -3078,6 +3087,7 @@ int.la
 int.lk
 int.mv
 int.mw
+int.ni
 int.pt
 int.ru
 int.rw
@@ -4103,7 +4113,6 @@ madrid.museum
 maebashi.gunma.jp
 magadan.ru
 magazine.aero
-magnitka.ru
 maibara.shiga.jp
 maif
 mail.pl
@@ -4143,7 +4152,6 @@ maritimo.museum
 marker.no
 market
 marketing
-marketplace.aero
 markets
 marnardal.no
 marriott
@@ -4315,6 +4323,7 @@ mil.mg
 mil.mv
 mil.my
 mil.ng
+mil.ni  
 mil.no
 mil.nz
 mil.pe
@@ -4766,7 +4775,6 @@ net.af
 net.ag
 net.ai
 net.al
-net.an
 net.ar
 net.au
 net.az
@@ -4839,6 +4847,7 @@ net.mx
 net.my
 net.nf
 net.ng
+net.ni
 net.nr
 net.nz
 net.om
@@ -4913,6 +4922,7 @@ ngo
 ngo.lk
 ngo.ph
 ngo.za
+ngrok.io
 nh.us
 nhk
 nhs.uk
@@ -4964,6 +4974,7 @@ nishiokoppe.hokkaido.jp
 nishitosa.kochi.jp
 nishiwaki.hyogo.jp
 nissan
+nissay
 nissedal.no
 nisshin.aichi.jp
 nittedal.no
@@ -4996,6 +5007,7 @@ nom.es
 nom.fr
 nom.km
 nom.mg
+nom.ni
 nom.pa
 nom.pe
 nom.pl
@@ -5254,7 +5266,6 @@ org.af
 org.ag
 org.ai
 org.al
-org.an
 org.ar
 org.au
 org.az
@@ -5335,6 +5346,7 @@ org.mx
 org.my
 org.na
 org.ng
+org.ni
 org.nr
 org.nz
 org.om
@@ -5713,6 +5725,7 @@ pv.it
 pvt.ge
 pvt.k12.ma.us
 pw
+pwc
 py
 pyatigorsk.ru
 pz.it
@@ -6688,7 +6701,6 @@ tattoo
 tawaramoto.nara.jp
 tax
 taxi
-taxi.aero
 taxi.br
 tc
 tci
@@ -7073,6 +7085,7 @@ umig.gov.pl
 unazuki.toyama.jp
 unbi.ba
 undersea.museum
+unicom
 union.aero
 univ.sn
 university
@@ -7350,6 +7363,7 @@ web.do
 web.id
 web.lk
 web.nf
+web.ni    
 web.pk
 web.tj
 web.tr
@@ -7627,6 +7641,7 @@ zw
 бел
 дети
 иком.museum
+католик
 ком
 мкд
 мон
@@ -7676,6 +7691,7 @@ zw
 عمان
 فلسطين
 قطر
+كاثوليك
 كوم
 مصر
 مليسيا
@@ -7746,6 +7762,7 @@ zw
 大分.jp
 大拿
 大阪.jp
+天主教
 奈良.jp
 娱乐
 宮城.jp
