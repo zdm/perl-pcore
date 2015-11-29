@@ -3,7 +3,7 @@ package Pcore::Core::PerlIOviaWinUniCon;
 use Pcore;
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-if ($Pcore::IS_PAR) {
+if ( $PROC->is_par ) {
     require DynaLoader;
 
     push our @ISA, qw[DynaLoader];

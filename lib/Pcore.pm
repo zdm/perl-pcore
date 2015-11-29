@@ -34,19 +34,18 @@ use AnyEvent;
 
 # define global variables
 BEGIN {
-    $Pcore::INITIALISED      = 0;                         # core initialisation flag
-    $Pcore::CALLER           = caller;                    # namespace, from P was required first time
-    $Pcore::EMBEDDED         = 0;                         # Pcore::Core used in embedded mode
-    $Pcore::IS_PAR           = $ENV{PAR_TEMP} ? 1 : 0;    # process runned from PAR
-    $Pcore::ENCODING_CONSOLE = 'UTF-8';                   # default console encoding, redefined later for windows
-    $Pcore::NO_ISA_ATTR      = 0;                         # do not check isa for class / role attributes
+    $Pcore::INITIALISED      = 0;          # core initialisation flag
+    $Pcore::CALLER           = caller;     # namespace, from P was required first time
+    $Pcore::EMBEDDED         = 0;          # Pcore::Core used in embedded mode
+    $Pcore::ENCODING_CONSOLE = 'UTF-8';    # default console encoding, redefined later for windows
+    $Pcore::NO_ISA_ATTR      = 0;          # do not check isa for class / role attributes
 
     # NOTE workaround for incompatibility with Moo lazy attributes
     # https://rt.cpan.org/Ticket/Display.html?id=102788
     eval {
         local $SIG{__DIE__} = undef;
 
-        require Filter::Crypto::Decrypt if $Pcore::IS_PAR;
+        require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
     };
 
     # define %EXPORT_PRAGMAS for exporter
@@ -552,21 +551,21 @@ sub _configure_console {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 46                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 102                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
+## │    3 │ 101                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 166                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 165                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 361                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 360                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 405, 453, 470, 518,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 519, 520, 526, 527,  │                                                                                                                │
-## │      │ 528, 531, 532, 533   │                                                                                                                │
+## │    3 │ 404, 452, 469, 517,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 518, 519, 525, 526,  │                                                                                                                │
+## │      │ 527, 530, 531, 532   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 408                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 496                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 495                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

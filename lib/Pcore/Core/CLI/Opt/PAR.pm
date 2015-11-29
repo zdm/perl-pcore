@@ -5,7 +5,7 @@ use Pcore qw[-role];
 around cli_opt => sub ( $orig, $self ) {
     my $opt = $self->$orig // {};
 
-    if ( !$Pcore::IS_PAR ) {
+    if ( !$PROC->is_par ) {
         $opt->{scan_deps} = {
             short => undef,
             desc  => 'scan PAR dependencies',
