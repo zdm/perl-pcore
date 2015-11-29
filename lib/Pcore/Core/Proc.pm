@@ -44,7 +44,7 @@ sub BUILD ( $self, $args ) {
     }
 
     # conligure inline dir
-    if ( $self->dist->is_par ) {
+    if ( $self->dist && $self->dist->is_par ) {
         $self->{INLINE_DIR} = P->path( $ENV{PAR_TEMP} . '/inc/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
     }
     else {
@@ -52,7 +52,7 @@ sub BUILD ( $self, $args ) {
             $self->{INLINE_DIR} = P->path( $self->pcore->share_dir . '.inline/', is_dir => 1, lazy => 1 );
         }
         else {
-            $self->{INLINE_DIR} = P->path( $self->pcore->root . '.inline/', is_dir => 1, lazy => 1 );
+            $self->{INLINE_DIR} = P->path( $self->pcore->root . '.inline/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
         }
     }
 
@@ -73,7 +73,7 @@ sub _build_dist ($self) {
 }
 
 sub _build_pcore ($self) {
-    if ( $self->dist->name eq 'Pcore' ) {
+    if ( $self->dist && $self->dist->name eq 'Pcore' ) {
         return $self->dist;
     }
     else {
@@ -82,7 +82,7 @@ sub _build_pcore ($self) {
 }
 
 # TODO
-# new ENV - PCORE_RESOURCES
+# new ENV - PCORE_RESOURCES - PCORE_RES_LIB
 sub _build_res ($self) {
     my $res = Pcore::Core::Proc::Res->new;
 

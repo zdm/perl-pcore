@@ -31,7 +31,7 @@ around new => sub ( $orig, $self, $path ) {
         );
     }
     elsif ( $path =~ m[[./]]smo ) {                                    # ./path/to/dist
-        if ( $path = $self->_find_dist_root($path) ) {
+        if ( $path = $self->find_dist_root($path) ) {
             return $self->$orig(
                 {   root         => $path->to_string,
                     is_installed => 0,
@@ -101,7 +101,7 @@ around new => sub ( $orig, $self, $path ) {
 
             # dist nanespace/package.pm was found in @INC, but located not in CPAN
             # detect, if this path is belongs to the dist
-            if ( my $dist_root = $self->_find_dist_root($pkg_path) ) {
+            if ( my $dist_root = $self->find_dist_root($pkg_path) ) {
                 return $self->$orig(
                     {   root         => $dist_root->to_string,
                         is_installed => 0,
@@ -153,14 +153,14 @@ sub cpan_path ($self) {
     return $cpan_path;
 }
 
-sub _find_dist_root ( $self, $path ) {
+sub find_dist_root ( $self, $path ) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
-    if ( !-f $path . 'share/dist.perl' ) {
+    if ( !$self->dir_is_dist($path) ) {
         $path = $path->parent;
 
         while ($path) {
-            last if -f $path . 'share/dist.perl';
+            last if $self->dir_is_dist($path);
 
             $path = $path->parent;
         }
@@ -172,6 +172,10 @@ sub _find_dist_root ( $self, $path ) {
     else {
         return;
     }
+}
+
+sub dir_is_dist ( $self, $path ) {
+    return -f $path . 'share/dist.perl' ? 1 : 0;
 }
 
 # BUILDERS
@@ -230,10 +234,10 @@ sub _build_scm ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 60, 88, 127, 159,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 163, 200             │                                                                                                                │
+## │    3 │ 60, 88, 127, 178,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │      │ 204                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 215                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 219                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

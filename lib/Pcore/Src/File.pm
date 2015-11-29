@@ -27,7 +27,7 @@ has dist_cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 # CLASS METHODS
 sub cfg ($self) {
-    state $cfg = P->cfg->load( $P->{SHARE_DIR} . 'src.perl' );
+    state $cfg = P->cfg->load( $PROC->res->get('/static/src.perl') );
 
     return $cfg;
 }
@@ -104,7 +104,7 @@ sub _build_dist_cfg ($self) {
 
         # find and cache dist root for path
         if ( !exists $path->{$dirname} ) {
-            $path->{$dirname} = Pcore::Core::Bootstrap::find_dist_root($dirname);
+            $path->{$dirname} = Pcore::Dist->find_dist_root($dirname);
         }
 
         # load and cache dist config if path is related to some dist

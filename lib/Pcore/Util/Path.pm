@@ -349,7 +349,7 @@ sub _mime_types {
     my $self = shift;
 
     unless ($MIME_TYPES) {
-        $MIME_TYPES = P->cfg->load( $P->{SHARE_DIR} . 'mime.perl' );
+        $MIME_TYPES = P->cfg->load( $PROC->res->get('/static/mime.perl') );
 
         # index MIME categories
         for my $suffix ( keys $MIME_TYPES->{suffix}->%* ) {

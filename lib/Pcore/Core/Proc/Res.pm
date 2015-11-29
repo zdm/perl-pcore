@@ -42,8 +42,10 @@ sub get ( $self, $path, @ ) {
     );
 
     if ( !$args{storage} ) {
-        if ( $path =~ m[(.+)?/]sm ) {
+        if ( $path =~ m[\A/?([^/]+)(/.+)]sm ) {
             $args{storage} = $1;
+
+            $path = $2;
         }
         else {
             die qq[invalid resource path "$path"];

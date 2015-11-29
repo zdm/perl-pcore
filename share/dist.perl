@@ -13,6 +13,4 @@
         { level => 'ERROR',  ns => q[*], channel => 'File', stream => 'error.log' },
         { level => 'WARN',   ns => q[*], channel => 'File', stream => 'warn.log' }
     ],
-
-    util => {},
 }
