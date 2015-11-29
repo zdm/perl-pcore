@@ -1,10 +1,7 @@
 package Pcore::Core::Bootstrap;
 
 use Pcore;
-use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-use File::ShareDir qw[];
-use Config qw[];
-use Cwd qw[];           ## no critic qw[Modules::ProhibitEvilModules]
+use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Core::Proc;
 
 # may not work, if executed in one-liner script
@@ -122,7 +119,7 @@ sub _configure_inline {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 11                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 8                    │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
