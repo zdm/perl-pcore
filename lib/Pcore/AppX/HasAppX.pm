@@ -2,13 +2,10 @@ package Pcore::AppX::HasAppX;
 
 use Pcore qw[-types];
 
-sub import {
-    my $self   = shift;
+sub import ($self) {
     my $caller = caller;
 
-    Moo::_install_tracked $caller => has_appx => sub {
-        my $name = shift;
-
+    Moo::_install_tracked $caller => has_appx => sub ( $name, @ ) {
         my %args = (
             is        => 'ro',
             isa       => undef,
@@ -17,22 +14,23 @@ sub import {
             predicate => 1,
             clearer   => 1,
             init_arg  => undef,
-            @_,
+            @_[ 1 .. $#_ ]
         );
 
         my $caller_class = caller;
         my $does         = delete $args{does};
         my $isa          = delete $args{isa};
         my $ns           = delete $args{ns};
+
         if ($isa) {
             $isa = P->class->resolve_class_name( $isa, 'Pcore::AppX' );
+
             $args{isa} = InstanceOf [$isa];
         }
+
         $args{is_appx} = 1;
 
-        $args{default} = sub {
-            my $self = shift;
-
+        $args{default} = sub ($self) {
             return _default_appx_builder(
                 $self,
                 $name,
@@ -53,14 +51,12 @@ sub import {
     return;
 }
 
-sub _default_appx_builder {
-    my $self = shift;
-    my $name = shift;
+sub _default_appx_builder ( $self, $name, @ ) {
     my %args = (
         isa  => undef,
         does => undef,
         ns   => undef,
-        @_,
+        @_[ 2 .. $#_ ]
     );
 
     my $key  = uc $name;                                               # config hash key
@@ -86,7 +82,9 @@ sub _default_appx_builder {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 9, 46, 47, 48        │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 8, 44, 45, 46        │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 9, 55                │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -94,5 +92,19 @@ __END__
 =pod
 
 =encoding utf8
+
+=head1 NAME
+
+Pcore::AppX::HasAppX
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
+=head1 SEE ALSO
 
 =cut

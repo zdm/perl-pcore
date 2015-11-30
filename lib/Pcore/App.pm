@@ -11,9 +11,7 @@ has _appx_enum     => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 has _appx_builded  => ( is => 'rw',   isa => Bool,     default  => 0 );
 has _appx_deployed => ( is => 'rw',   isa => Bool,     default  => 0 );
 
-sub _build__appx_enum {
-    my $self = shift;
-
+sub _build__appx_enum ($self) {
     my $enum = [];
 
     for my $attr_name ( sort { $a cmp $b } grep { $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->{$_}->{is_appx} } keys %{ $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs} } ) {
@@ -24,41 +22,34 @@ sub _build__appx_enum {
 }
 
 # REPORT
-sub _appx_report_fatal {
-    my $self = shift;
-
-    say BOLD . RED . q[[ FATAL ] ] . RESET . shift;
+sub _appx_report_fatal ( $self, $msg ) {
+    say BOLD . RED . q[[ FATAL ] ] . RESET . $msg;
 
     exit 255;
 }
 
-sub _appx_report_warn {
-    my $self = shift;
-
+sub _appx_report_warn ( $self, $msg ) {
     say BOLD . YELLOW . q[[ WARN ]  ] . RESET . shift;
 
     return;
 }
 
-sub _appx_report_info {
-    my $self = shift;
-
+sub _appx_report_info ( $self, $msg ) {
     say shift;
 
     return;
 }
 
 # APPX
-around app_build => sub {
-    my $orig = shift;
-    my $self = shift;
-
+around app_build => sub ( $orig, $self ) {
     if ( !$self->_appx_builded ) {
         $self->_appx_builded(1);
 
         for my $attr ( @{ $self->_appx_enum } ) {
             my $attr_reader = $attr->{reader};
+
             $self->_appx_report_info(qq[Build AppX component "$attr_reader"]);
+
             $self->$attr_reader->app_build;
         }
 
@@ -68,10 +59,7 @@ around app_build => sub {
     return;
 };
 
-around app_deploy => sub {
-    my $orig = shift;
-    my $self = shift;
-
+around app_deploy => sub ( $orig, $self ) {
     if ( !$self->_appx_deployed ) {
         $self->_appx_deployed(1);
 
@@ -87,9 +75,7 @@ around app_deploy => sub {
     return;
 };
 
-around app_reset => sub {
-    my $orig = shift;
-    my $self = shift;
+around app_reset => sub ( $orig, $self ) {
 
     # call reset of included AppX objects
     for my $attr ( @{ $self->_appx_enum } ) {
@@ -319,8 +305,8 @@ sub app_reset ($self) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 27                   │ * Private subroutine/method '_appx_report_fatal' declared but not used                                         │
-## │      │ 35                   │ * Private subroutine/method '_appx_report_warn' declared but not used                                          │
+## │      │ 25                   │ * Private subroutine/method '_appx_report_fatal' declared but not used                                         │
+## │      │ 31                   │ * Private subroutine/method '_appx_report_warn' declared but not used                                          │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

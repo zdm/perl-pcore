@@ -8,9 +8,7 @@ has _api_backend => ( is => 'rwp', isa => ConsumerOf ['Pcore::API::Backend'], pr
 
 no Pcore;
 
-sub BUILD {
-    my $self = shift;
-
+sub BUILD ( $self, $args ) {
     my $api_backend;
 
     if ( $self->cfg->{addr} ) {    # remote API
@@ -42,9 +40,7 @@ sub BUILD {
 }
 
 # APPX
-sub _build_cfg {
-    my $self = shift;
-
+sub _build_cfg ($self) {
     my $cfg = {
         addr        => undef,
         h_name      => undef,
@@ -54,33 +50,25 @@ sub _build_cfg {
     return $cfg;
 }
 
-sub _create_local_cfg {
-    my $self = shift;
-
+sub _create_local_cfg ($self) {
     return $self->cfg;
 }
 
 # preload API map
-sub app_run {
-    my $self = shift;
-
+sub app_run ($self) {
     $self->_api_backend->preload_api_map if $self->_has_api_backend;
 
     return;
 }
 
 # scan and sync API map
-sub app_deploy {
-    my $self = shift;
-
+sub app_deploy ($self) {
     $self->_api_backend->deploy_api if $self->_has_api_backend;
 
     return;
 }
 
-sub app_reset {
-    my $self = shift;
-
+sub app_reset ($self) {
     $self->_api_backend->end_session if $self->_has_api_backend;
 
     return;
@@ -104,7 +92,7 @@ sub AUTOLOAD {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 57                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_create_local_cfg' declared but not │
+## │    3 │ 53                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_create_local_cfg' declared but not │
 ## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
@@ -113,5 +101,19 @@ __END__
 =pod
 
 =encoding utf8
+
+=head1 NAME
+
+Pcore::AppX::API
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
+=head1 SEE ALSO
 
 =cut
