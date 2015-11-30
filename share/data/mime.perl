@@ -137,7 +137,7 @@
         svg        => { type => 'image/svg+xml',                     category => 'image' },
         svgz       => { type => 'image/svg+xml',                     category => 'image' },
         swf        => 'application/x-shockwave-flash',
-        t          => 'text/troff',
+        t          => 'text/x-script.perl',
         tar        => { type => 'application/x-tar',                 category => 'archive' },
         tbz        => { type => 'application/x-bzip-compressed-tar', category => 'archive' },
         tcl        => 'application/x-tcl',

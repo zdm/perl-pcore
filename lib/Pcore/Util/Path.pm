@@ -39,7 +39,7 @@ has filename_base => ( is => 'lazy', isa => Str, init_arg => undef );
 has suffix        => ( is => 'lazy', isa => Str, init_arg => undef );
 
 has default_mime_type => ( is => 'lazy', isa => Str, default => 'application/octet-stream' );
-has mime_type         => ( is => 'lazy', isa => Str );
+has mime_type         => ( is => 'ro',   isa => Str );
 has mime_category     => ( is => 'lazy', isa => Str );
 
 around new => sub ( $orig, $self, $path = q[], @ ) {
@@ -182,6 +182,67 @@ around new => sub ( $orig, $self, $path = q[], @ ) {
     $path_args->{path} = $path_args->{volume} . q[:] . $path_args->{path} if $path_args->{volume};
 
     return bless $path_args, $self;
+};
+
+around mime_type => sub ( $orig, $self, $shebang = undef ) {
+    return q[] if !$self->is_file;
+
+    if ( $shebang && !$self->{mime_type} && !$self->{_mime_type_shebang} ) {
+        $self->{_mime_type_shebang} = 1;
+
+        delete $self->{mime_type};
+    }
+
+    if ( !exists $self->{mime_type} ) {
+        \my $mime_types = \$self->_get_mime_types;
+
+        if ( exists $mime_types->{filename}->{ $self->filename } ) {
+            $self->{mime_type} = $mime_types->{filename}->{ $self->filename };
+        }
+        elsif ( \my $suffix = \$self->suffix ) {
+            if ( exists $mime_types->{suffix}->{$suffix} ) {
+                $self->{mime_type} = $mime_types->{suffix}->{$suffix};
+            }
+            elsif ( exists $mime_types->{suffix}->{ lc $suffix } ) {
+                $self->{mime_type} = $mime_types->{suffix}->{ lc $suffix };
+            }
+        }
+
+        if ( $shebang && !exists $self->{mime_type} ) {
+            my $buf_ref;
+
+            if ( ref $shebang ) {
+                $buf_ref = $shebang;
+            }
+            elsif ( -f $self ) {
+
+                # read first 50 bytes
+                P->file->read_bin(
+                    $self,
+                    buf_size => 50,
+                    cb       => sub {
+                        $buf_ref = $_[0] if $_[0];
+
+                        return;
+                    }
+                );
+            }
+
+            if ( $buf_ref && $buf_ref->$* =~ /\A(#!.+?)$/sm ) {
+                for my $mime_type ( keys $mime_types->{shebang}->%* ) {
+                    if ( $1 =~ $mime_types->{shebang}->{$mime_type} ) {
+                        $self->{mime_type} = $mime_type;
+
+                        last;
+                    }
+                }
+            }
+        }
+
+        $self->{mime_type} //= q[];
+    }
+
+    return $self->{mime_type} || $self->default_mime_type;
 };
 
 no Pcore;
@@ -345,39 +406,35 @@ sub is_root ($self) {
 }
 
 # MIME
-sub _mime_types {
-    my $self = shift;
-
+sub _get_mime_types ($self) {
     unless ($MIME_TYPES) {
         $MIME_TYPES = P->cfg->load( $PROC->res->get('/data/mime.perl') );
 
         # index MIME categories
         for my $suffix ( keys $MIME_TYPES->{suffix}->%* ) {
-            unless ( ref $MIME_TYPES->{suffix}->{$suffix} eq 'HASH' ) {
-                $MIME_TYPES->{suffix}->{$suffix} = { type => $MIME_TYPES->{suffix}->{$suffix}, };
+            my $type;
+
+            if ( ref $MIME_TYPES->{suffix}->{$suffix} eq 'HASH' ) {
+                $type = $MIME_TYPES->{suffix}->{$suffix}->{type};
+
+                $MIME_TYPES->{category}->{$type} = $MIME_TYPES->{suffix}->{$suffix}->{category} if $MIME_TYPES->{suffix}->{$suffix}->{category};
+
+                $MIME_TYPES->{suffix}->{$suffix} = $type;
+            }
+            else {
+                $type = $MIME_TYPES->{suffix}->{$suffix};
             }
 
-            $MIME_TYPES->{category}->{ $MIME_TYPES->{suffix}->{$suffix}->{type} } = $MIME_TYPES->{suffix}->{$suffix}->{category} if $MIME_TYPES->{suffix}->{$suffix}->{category};
+            if ( !$MIME_TYPES->{category}->{$type} && $type =~ m[\A(.+?)/]sm ) {
+                $MIME_TYPES->{category}->{$type} = $1;
+            }
         }
     }
 
     return $MIME_TYPES;
 }
 
-sub _build_mime_type {
-    my $self = shift;
-
-    if ( $self->is_file ) {
-        return $self->_mime_types->{suffix}->{ lc $self->suffix }->{type} // $self->default_mime_type;
-    }
-    else {
-        return q[];
-    }
-}
-
-sub _build_mime_category {
-    my $self = shift;
-
+sub _build_mime_category ($self) {
     if ( $self->mime_type ) {
         return $self->_mime_types->{category}->{ $self->mime_type } // q[];
     }
@@ -406,11 +463,11 @@ sub TO_DUMP {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (39)                               │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (58)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 355                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 232, 414             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 300                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 361                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
