@@ -61,8 +61,6 @@ sub _generate_openssl_conf ( $self, $conf, $_res ) {
 }
 
 sub is_enabled ($self) {
-    my $self = shift;
-
     return 1;
 }
 
