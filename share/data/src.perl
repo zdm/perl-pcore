@@ -22,50 +22,52 @@
         ERROR   => 4,
     },
 
-    FILE_TYPE => [
-        {   type        => 'Perl',
-            re          => qr/[.](?:pl|t)\z/sm,
-            shebang_re  => qr/perl/sm,
+    MIME_TYPE => {
+        'text/x-script.perl' => {    # .pl, .t, or shebang
+            type        => 'Perl',
             filter_args => {
                 perl_critic               => 1,
                 perl_compress_end_section => 1,
             },
         },
-        {   type        => 'Perl',
-            re          => qr/[.]pm\z/sm,
+        'text/x-script.perl-module' => {    # .pm
+            type        => 'Perl',
             filter_args => {                #
                 perl_critic => 1,
             },
         },
-        {   type        => 'Perl',
-            re          => qr/[.]perl\z/sm,
-            filter_args => {                  #
+        'text/x-script.perl-config' => {    # .perl
+            type        => 'Perl',
+            filter_args => {                #
                 perl_critic => 'pcore-config',
             },
         },
-        {   type        => 'Perl',
-            re          => qr/[.]PL\z/sm,
+        'text/x-script.perl-auto' => {      # .PL
+            type        => 'Perl',
             filter_args => {
                 perl_critic               => 0,
                 perl_compress_end_section => 1,
             },
         },
-        {   type        => 'Perl',
-            re          => qr/\Acpanfile\z/sm,
-            filter_args => {                     #
+        'text/x-script.perl-cpanfile' => {    # cpanfile
+            type        => 'Perl',
+            filter_args => {                  #
                 perl_critic => 0,
             },
         },
-        {   type => 'HTML',
-            re   => qr/[.]html\z/smi,
+        'text/html' => {                      # .html, ...
+            type => 'HTML',
         },
-        {   type => 'CSS',
-            re   => qr/[.]css\z/smi,
+        'text/css' => {                       # .css
+            type => 'CSS',
         },
-        {   type => 'JS',
-            re   => qr/[.](?:js|javascript|json)\z/smi,
+        'application/javascript' => {         # .js, .javascript
+            type => 'JS',
         },
-    ],
+        'application/json' => {               # .json
+            type => 'JS',
+        },
+    },
 
     DEFAULT_GUESS_ENCODING => ['cp1251'],
 
@@ -266,13 +268,3 @@
         },
     },
 }
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-config" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 54                   │ RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----

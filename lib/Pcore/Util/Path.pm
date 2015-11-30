@@ -199,7 +199,7 @@ around mime_type => sub ( $orig, $self, $shebang = undef ) {
         if ( exists $mime_types->{filename}->{ $self->filename } ) {
             $self->{mime_type} = $mime_types->{filename}->{ $self->filename };
         }
-        elsif ( \my $suffix = \$self->suffix ) {
+        elsif ( my $suffix = $self->suffix ) {
             if ( exists $mime_types->{suffix}->{$suffix} ) {
                 $self->{mime_type} = $mime_types->{suffix}->{$suffix};
             }
@@ -247,6 +247,8 @@ around mime_type => sub ( $orig, $self, $shebang = undef ) {
 
 no Pcore;
 
+# apache MIME types
+# http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?view=co
 our $MIME_TYPES;
 
 # Pcore::Util interface
@@ -465,9 +467,9 @@ sub TO_DUMP {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (58)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 232, 414             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 232, 416             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 361                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 363                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

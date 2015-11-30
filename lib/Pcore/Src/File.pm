@@ -32,51 +32,14 @@ sub cfg ($self) {
     return $cfg;
 }
 
-sub detect_filetype ( $self, $path, $buffer_ref = undef ) {
+sub detect_filetype ( $self, $path, $buf_ref = undef ) {
     $path = P->path($path);
 
-    my $type;
-
-    # detect file type by extension
-    for my $t ( Pcore::Src::File->cfg->{FILE_TYPE}->@* ) {
-        if ( $path->filename =~ $t->{re} ) {
-            $type = $t;
-
-            last;
-        }
+    if ( my $mime_type = $path->mime_type( $buf_ref // 1 ) ) {
+        return Pcore::Src::File->cfg->{MIME_TYPE}->{$mime_type} if exists Pcore::Src::File->cfg->{MIME_TYPE}->{$mime_type};
     }
 
-    # detect by shebang, only if filename has no extension
-    if ( !$type && !$path->suffix ) {
-
-        # read first 50 bytes
-        if ( !$buffer_ref ) {
-            P->file->read_bin(
-                $path,
-                buf_size => 50,
-                cb       => sub {
-                    $buffer_ref = $_[0] if defined $_[0];
-
-                    return;
-                }
-            );
-        }
-
-        # if has shebang
-        if ( $buffer_ref && index( $buffer_ref->$*, q[#!], 0 ) == 0 ) {
-            my $shebang = substr $buffer_ref->$*, 0, index $buffer_ref->$*, qq[\n], 0;
-
-            for my $t ( grep { exists $_->{shebang_re} } Pcore::Src::File->cfg->{FILE_TYPE}->@* ) {
-                if ( $shebang =~ $t->{shebang_re} ) {
-                    $type = $t;
-
-                    last;
-                }
-            }
-        }
-    }
-
-    return $type;
+    return;
 }
 
 sub BUILDARGS ( $self, $args ) {
@@ -290,7 +253,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 18, 239, 262         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 18, 202, 225         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
