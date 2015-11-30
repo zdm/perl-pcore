@@ -9,6 +9,12 @@ const our $TYPE => {
     Int => sub ($val) {
         return Int->check($val);
     },
+    PositiveInt => sub ($val) {
+        return PositiveInt->check($val);
+    },
+    PositiveOrZeroInt => sub ($val) {
+        return PositiveOrZeroInt->check($val);
+    },
     Num => sub ($val) {
         return Num->check($val);
     },
@@ -57,10 +63,10 @@ sub _validate_isa ( $self, $var ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 28                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_validate_isa' declared but not     │
+## │    3 │ 34                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_validate_isa' declared but not     │
 ## │      │                      │ used                                                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 29                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 35                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
