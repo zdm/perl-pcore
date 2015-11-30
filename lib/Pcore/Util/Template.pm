@@ -20,7 +20,7 @@ sub NEW ( $self, %args ) {
 
     my $path = [$string_tmpl_cache];    # virtual path
 
-    push $path, $PROC->res->get_storage('tmpl')->@*;
+    push $path->@*, $PROC->res->get_storage('tmpl')->@*;
 
     my $args_def = {
         path        => $path,

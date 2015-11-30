@@ -22,19 +22,13 @@ has alien_pid => ( is => 'rwp', isa => Int, init_arg => undef );
 has term_state => ( is => 'rw', isa => Bool, default => 0, init_arg => undef );
 
 # APP
-sub store_alien_cfg {
-    my $self    = shift;
-    my $cfg_ref = shift;
-
+sub store_alien_cfg ( $self, $cfg_ref ) {
     P->file->write_text( $self->alien_cfg_path, { mode => q[rw-r--r--] }, $cfg_ref );
 
     return;
 }
 
-around app_run => sub {
-    my $orig = shift;
-    my $self = shift;
-
+around app_run => sub ( $orig, $self ) {
     $self->$orig;
 
     # alien process fork routine
@@ -104,9 +98,7 @@ around app_run => sub {
     }
 };
 
-sub _fork_child {
-    my $self = shift;
-
+sub _fork_child ($self) {
     if ( my $alien_pid = fork ) {    # parent process
         $self->_set_alien_pid($alien_pid);
 
@@ -119,17 +111,13 @@ sub _fork_child {
     }
 }
 
-sub master_proc {
-    my $self = shift;
-
+sub master_proc ($self) {
     ...;                             ## no critic qw[ControlStructures::ProhibitYadaOperator]
 
     return;
 }
 
-sub alien_proc {
-    my $self = shift;
-
+sub alien_proc ($self) {
     ...;                             ## no critic qw[ControlStructures::ProhibitYadaOperator]
 
     return;
@@ -140,5 +128,19 @@ __END__
 =pod
 
 =encoding utf8
+
+=head1 NAME
+
+Pcore::App::Alien
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
+=head1 SEE ALSO
 
 =cut

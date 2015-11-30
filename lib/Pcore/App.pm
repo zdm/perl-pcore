@@ -114,7 +114,7 @@ around app_reset => sub {
 
 package Pcore::App;
 
-use Pcore qw[-cli -class];
+use Pcore qw[-class];
 use Pcore::AppX::HasAppX;
 
 with qw[Pcore::App::Role];
@@ -141,52 +141,101 @@ has_appx api     => ( isa => 'API' );
 
 our $CFG = { SECRET => undef, };
 
-sub BUILD {
-    my $self = shift;
-    my $args = shift;
+# CLI
+sub cli_opt ($self) {
+    return {
+        app => {
+            short => undef,
+            desc  => 'command',
+            isa   => [qw[build deploy test]],
+        },
+        env => {
+            short => 'E',
+            desc  => 'set run-time environment',
+            isa   => [qw[production development test]],
+        },
+    };
+}
 
+sub cli_run ( $self, $opt, $arg, $rest ) {
+    my $app = $self->new;
+
+    # process -E option
+    $app->_set_runtime_env( $opt->{env} ) if $opt->{env};
+
+    if ( $opt->{app} ) {
+        if ( $opt->{app} eq 'build' ) {
+            $app->_appx_report_info(qq[Build application "@{[$app->name]}"]);
+            $app->_appx_report_info(qq[Application data dir "@{[$app->app_dir]}"]);
+
+            $app->app_build;
+
+            $app->_appx_report_info(q[Build completed]);
+
+            exit;
+        }
+        elsif ( $opt->{app} eq 'deploy' ) {
+            $app->_appx_report_info(qq[Deploy application "@{[$app->name]}"]);
+            $app->_appx_report_info(qq[Application data dir "@{[$app->app_dir]}"]);
+
+            $app->app_deploy;
+
+            $app->_appx_report_info(q[Deploy completed]);
+
+            exit;
+        }
+        elsif ( $opt->{app} eq 'test' ) {
+            $app->_appx_report_info(qq[Test application "@{[$app->name]}"]);
+            $app->_appx_report_info(qq[Application data dir "@{[$app->app_dir]}"]);
+
+            $app->app_test;
+
+            $app->_appx_report_info(q[Test completed]);
+
+            exit;
+        }
+    }
+    else {
+        $app->run;
+    }
+
+    return;
+}
+
+sub BUILD ( $self, $args ) {
     P->hash->merge( $self->cfg, $args->{cfg} ) if $args->{cfg};    # merge default cfg with inline cfg
+
     P->hash->merge( $self->cfg, $self->_read_local_cfg );          # merge with local cfg
 
     return;
 }
 
 # CFG
-sub _build_name_camel_case {
-    my $self = shift;
-
+sub _build_name_camel_case ($self) {
     return P->text->to_camel_case( $self->name, ucfirst => 1 );
 }
 
-sub _build_app_dir {
-    my $self = shift;
-
+sub _build_app_dir ($self) {
     my $dir = $PROC->{DATA_DIR} . $self->name . q[/];
+
     P->file->mkpath($dir);
 
     return $dir;
 }
 
-sub _build_cfg {
-    my $self = shift;
-
+sub _build_cfg ($self) {
     return $CFG;    # return default cfg
 }
 
-sub _build__local_cfg_path {
-    my $self = shift;
-
+sub _build__local_cfg_path ($self) {
     return $self->app_dir . $self->name . q[.perl];
 }
 
-sub _read_local_cfg {
-    my $self = shift;
-
+sub _read_local_cfg ($self) {
     return -f $self->_local_cfg_path ? P->cfg->load( $self->_local_cfg_path ) : {};
 }
 
-sub _create_local_cfg {
-    my $self = shift;
+sub _create_local_cfg ($self) {
 
     # create local cfg
     my $local_cfg = { SECRET => P->random->bytes_hex(16), };
@@ -194,6 +243,7 @@ sub _create_local_cfg {
     # create AppX local configs
     for my $attr ( @{ $self->_appx_enum } ) {
         my $attr_reader = $attr->{reader};
+
         $self->$attr_reader->_create_local_cfg($local_cfg);
     }
 
@@ -207,73 +257,24 @@ sub _create_local_cfg {
 }
 
 # RUN-TIME ENVIRONMENT
-sub _build_env_is_devel {
-    my $self = shift;
-
+sub _build_env_is_devel ($self) {
     return $self->runtime_env eq 'development' ? 1 : 0;
 }
 
-sub _build_env_is_test {
-    my $self = shift;
-
+sub _build_env_is_test ($self) {
     return $self->runtime_env eq 'test' ? 1 : 0;
 }
 
-sub _build_env_is_prod {
-    my $self = shift;
-
+sub _build_env_is_prod ($self) {
     return $self->runtime_env eq 'production' ? 1 : 0;
 }
 
 # PHASES
-sub run {
-    my $self = shift;
-
-    # process -E option
-    if ( $ARGV{env} ) {
-        $self->_set_runtime_env('development') if $ARGV{env} =~ /\Adev/sm;
-        $self->_set_runtime_env('test')        if $ARGV{env} =~ /\Atest/sm;
-        $self->_set_runtime_env('production')  if $ARGV{env} =~ /\Aprod/sm;
-    }
-
-    if ( $ARGV{app} ) {
-        if ( $ARGV{app} eq 'build' ) {
-            $self->_appx_report_info( q[Build application "] . $self->name . q["] );
-            $self->_appx_report_info( q[Application data dir "] . $self->app_dir . q["] );
-
-            $self->app_build;
-
-            $self->_appx_report_info(q[Build completed]);
-
-            exit;
-        }
-        elsif ( $ARGV{app} eq 'deploy' ) {
-            $self->_appx_report_info( q[Deploy application "] . $self->name . q["] );
-            $self->_appx_report_info( q[Application data dir "] . $self->app_dir . q["] );
-
-            $self->app_deploy;
-
-            $self->_appx_report_info(q[Deploy completed]);
-
-            exit;
-        }
-        elsif ( $ARGV{app} eq 'test' ) {
-            $self->_appx_report_info( q[Test application "] . $self->name . q["] );
-            $self->_appx_report_info( q[Application data dir "] . $self->app_dir . q["] );
-
-            $self->app_test;
-
-            $self->_appx_report_info(q[Test completed]);
-
-            exit;
-        }
-    }
-
+sub run ($self) {
     return $self->app_run;
 }
 
-sub app_build {
-    my $self = shift;
+sub app_build ($self) {
 
     # create local cfg
     $self->_appx_report_info(q[Create local config]);
@@ -287,20 +288,15 @@ sub app_build {
     return;
 }
 
-sub app_deploy {
-    my $self = shift;
-
+sub app_deploy ($self) {
     return;
 }
 
-sub app_test {
-    my $self = shift;
-
+sub app_test ($self) {
     return;
 }
 
-sub app_run {
-    my $self = shift;
+sub app_run ($self) {
 
     # create handles
     $self->h->app_run;
@@ -311,9 +307,7 @@ sub app_run {
     return;
 }
 
-sub app_reset {
-    my $self = shift;
-
+sub app_reset ($self) {
     return;
 }
 
@@ -335,30 +329,18 @@ __END__
 
 =encoding utf8
 
-=head1 OPTIONS
+=head1 NAME
 
-=over
+Pcore::App
 
-=item -E [=] [<env>] | --env [=] [<env>]
+=head1 SYNOPSIS
 
-Available values: "prod[uction]", "dev[elopment]", "test". If option is present, but <env> isn't specified - "development" value will be used.
+=head1 DESCRIPTION
 
-=for Euclid:
-    env.type: /prod.*|dev.*|test/
-    env.default: 'production'
-    env.opt_default: 'development'
+=head1 ATTRIBUTES
 
-=item --app [=] <command>
+=head1 METHODS
 
-Application related commands:
-
-    build  - build application
-    deploy - deploy application
-    test   - test application
-
-=for Euclid:
-    command.type: /(build|deploy|test)/
-
-=back
+=head1 SEE ALSO
 
 =cut
