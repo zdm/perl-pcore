@@ -3,7 +3,8 @@
         author           => '<: $author :> <<: $author_email :>>',
         license          => '<: $license :>',
         copyright_holder => '<: $copyright_holder :>',
-        cpan             => <: $cpan_distribution :>,                # 1 - CPAN distribution
+        cpan             => <: $cpan_distribution :>,                # CPAN distribution
+        cpan_bin         => 0,                                       # upload bin to CPAN
         meta             => {
             homepage   => q[],
             repository => {
