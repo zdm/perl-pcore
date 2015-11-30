@@ -14,8 +14,8 @@ has _appx_deployed => ( is => 'rw',   isa => Bool,     default  => 0 );
 sub _build__appx_enum ($self) {
     my $enum = [];
 
-    for my $attr_name ( sort { $a cmp $b } grep { $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->{$_}->{is_appx} } keys %{ $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs} } ) {
-        push @{$enum}, $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->{$attr_name};
+    for my $attr_name ( sort { $a cmp $b } grep { $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->{$_}->{is_appx} } keys $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->%* ) {
+        push $enum->@*, $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->{$attr_name};
     }
 
     return $enum;
@@ -29,13 +29,13 @@ sub _appx_report_fatal ( $self, $msg ) {
 }
 
 sub _appx_report_warn ( $self, $msg ) {
-    say BOLD . YELLOW . q[[ WARN ]  ] . RESET . shift;
+    say BOLD . YELLOW . q[[ WARN ]  ] . RESET . $msg;
 
     return;
 }
 
 sub _appx_report_info ( $self, $msg ) {
-    say shift;
+    say $msg;
 
     return;
 }
@@ -45,7 +45,7 @@ around app_build => sub ( $orig, $self ) {
     if ( !$self->_appx_builded ) {
         $self->_appx_builded(1);
 
-        for my $attr ( @{ $self->_appx_enum } ) {
+        for my $attr ( $self->_appx_enum->@* ) {
             my $attr_reader = $attr->{reader};
 
             $self->_appx_report_info(qq[Build AppX component "$attr_reader"]);
@@ -63,9 +63,11 @@ around app_deploy => sub ( $orig, $self ) {
     if ( !$self->_appx_deployed ) {
         $self->_appx_deployed(1);
 
-        for my $attr ( @{ $self->_appx_enum } ) {
+        for my $attr ( $self->_appx_enum->@* ) {
             my $attr_reader = $attr->{reader};
+
             $self->_appx_report_info(qq[Deploy AppX component "$attr_reader"]);
+
             $self->$attr_reader->app_deploy;
         }
 
@@ -80,11 +82,13 @@ around app_reset => sub ( $orig, $self ) {
     # call reset of included AppX objects
     for my $attr ( @{ $self->_appx_enum } ) {
         my $attr_reader = $attr->{reader};
-        my $predicate   = $attr->{predicate};
+
+        my $predicate = $attr->{predicate};
 
         if ( $self->$predicate ) {    # if attr has value
             if ( $self->$attr_reader->appx_reset eq 'CLEAR' ) {
                 my $clearer = $attr->{clearer};
+
                 $self->$clearer;
             }
             else {
@@ -304,6 +308,8 @@ sub app_reset ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 17                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
 ## │      │ 25                   │ * Private subroutine/method '_appx_report_fatal' declared but not used                                         │
 ## │      │ 31                   │ * Private subroutine/method '_appx_report_warn' declared but not used                                          │
