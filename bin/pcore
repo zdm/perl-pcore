@@ -29,20 +29,4 @@ __END__
 
 =encoding utf8
 
-=head1 NAME
-
-pcore - Dist::Zilla based project management tool
-
-=head1 REQUIRED ARGUMENTS
-
-=over
-
-=back
-
-=head1 OPTIONS
-
-=over
-
-=back
-
 =cut
