@@ -175,7 +175,7 @@ sub find_dist_root ( $self, $path ) {
 }
 
 sub dir_is_dist ( $self, $path ) {
-    return -f $path . 'share/dist.perl' ? 1 : 0;
+    return -f $path . 'share/dist.perl' && $path !~ m[/share/pcore/\z]sm ? 1 : 0;
 }
 
 # BUILDERS
