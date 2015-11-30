@@ -43,16 +43,4 @@ __END__
 
 =encoding utf8
 
-=head1 REQUIRED ARGUMENTS
-
-=over
-
-=back
-
-=head1 OPTIONS
-
-=over
-
-=back
-
 =cut
