@@ -450,14 +450,14 @@ sub _help_usage ($self) {
         $help = 'list of commands:' . $LF . $LF;
 
         for my $class ( $self->cmd->@* ) {
-            $list->{ $self->_get_class_cmd($class)->[0] } = $self->_help_class_abstract($class);
+            $list->{ $self->_get_class_cmd($class)->[0] } = [ $self->_get_class_cmd($class)->[0], $self->_help_class_abstract($class) ];
         }
     }
     else {
         $help = 'options ([+] - can be repeated, [!] - is required):' . $LF . $LF;
 
-        for my $opt ( sort { $a->name cmp $b->name } values $self->opt->%* ) {
-            $list->{ $opt->help_spec } = $opt->desc // q[];
+        for my $opt ( values $self->opt->%* ) {
+            $list->{ $opt->name } = [ $opt->help_spec, $opt->desc // q[] ];
         }
     }
 
@@ -465,16 +465,16 @@ sub _help_usage ($self) {
 
     my $max_key_len = 10;
 
-    for ( keys $list->%* ) {
-        $max_key_len = length if length > $max_key_len;
+    for ( values $list->%* ) {
+        $max_key_len = length $_->[0] if length $_->[0] > $max_key_len;
 
         # remove \n from desc
-        $list->{$_} =~ s/\n+\z//smg;
+        $_->[1] =~ s/\n+\z//smg;
     }
 
     my $desc_indent = $LF . q[    ] . ( q[ ] x $max_key_len );
 
-    $help .= join $LF, map { sprintf( " %-${max_key_len}s   ", $_ ) . $list->{$_} =~ s/\n/$desc_indent/smgr } sort keys $list->%*;
+    $help .= join $LF, map { sprintf( " %-${max_key_len}s   ", $list->{$_}->[0] ) . $list->{$_}->[1] =~ s/\n/$desc_indent/smgr } sort keys $list->%*;
 
     return $help // q[];
 }
