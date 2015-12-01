@@ -12,7 +12,7 @@ use overload                     #
   q[0+] => sub {
     return refaddr $_[0];
   },
-  fallback => undef;
+  fallback => 1;
 
 const our $TMPL => [ 0 .. 9, 'a' .. 'z', 'A' .. 'Z' ];
 
