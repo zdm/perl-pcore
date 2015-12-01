@@ -4,9 +4,7 @@ use Pcore qw[-class];
 
 use overload    #
   q[""] => sub {
-    my $self = shift;
-
-    return $self->old_umask;
+    return $_[0]->old_umask;
   },
   fallback => undef;
 

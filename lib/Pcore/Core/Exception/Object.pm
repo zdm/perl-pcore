@@ -7,14 +7,10 @@ use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 # string overloading can happens only from perl internals calls, such as eval in "use" or "require", or not handled "die", so we don't need full trace here
 use overload                     #
   q[""] => sub {
-    my $self = shift;
-
-    return $self->to_string( short_trace => 1 ) . qq[\n];
+    return $_[0]->to_string( short_trace => 1 ) . $LF;
   },
   q[0+] => sub {
-    my $self = shift;
-
-    return $self->exit_code;
+    return $_[0]->exit_code;
   },
   bool => sub {
     return 1;
@@ -249,9 +245,9 @@ sub stop_propagate {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 73                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 69                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 222                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 218                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

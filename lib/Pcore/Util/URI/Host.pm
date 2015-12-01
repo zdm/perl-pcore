@@ -9,7 +9,7 @@ use overload    #
     return $_[0]->{name};
   },
   q[cmp] => sub {
-    return $_[0]->{name} cmp $_[1];
+    return !$_[2] ? $_[0]->{name} cmp $_[1] : $_[1] cmp $_[0]->{name};
   },
   fallback => undef;
 

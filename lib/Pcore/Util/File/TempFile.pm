@@ -10,7 +10,7 @@ use overload                     #
     return $_[0]->path;
   },
   q[cmp] => sub {
-    return $_[2] ? $_[1] cmp $_[0]->path : $_[0]->path cmp $_[1];
+    return !$_[2] ? $_[0]->path cmp $_[1] : $_[1] cmp $_[0]->path;
   },
   q[0+] => sub {
     return refaddr $_[0];

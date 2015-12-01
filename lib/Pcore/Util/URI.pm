@@ -11,7 +11,7 @@ use overload                 #
     return $_[0]->to_string;
   },
   q[cmp] => sub {
-    return $_[0]->to_string cmp $_[1];
+    return !$_[2] ? $_[0]->to_string cmp $_[1] : $_[1] cmp $_[0]->to_string;
   },
   q[bool] => sub {
     return 1;

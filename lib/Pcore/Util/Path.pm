@@ -10,12 +10,10 @@ use overload                     #
     return $_[0]->to_string;
   },
   q[cmp] => sub {
-    return $_[2] ? $_[1] cmp $_[0]->to_string : $_[0]->to_string cmp $_[1];
+    return !$_[2] ? $_[0]->to_string cmp $_[1] : $_[1] cmp $_[0]->to_string;
   },
   q[~~] => sub {
-    my $self = shift;
-
-    return $_[1] ? $_[0] ~~ $self->to_string : $self->to_string ~~ $_[0];
+    return !$_[2] ? $_[0]->to_string ~~ $_[1] : $_[1] ~~ $_[0]->to_string;
   },
   fallback => undef;
 
@@ -465,9 +463,9 @@ sub TO_DUMP {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (58)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 230, 414             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 228, 412             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 361                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 359                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

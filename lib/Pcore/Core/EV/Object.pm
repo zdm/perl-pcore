@@ -3,15 +3,10 @@ package Pcore::Core::EV::Object;
 use Pcore qw[-class];
 use overload    #
   q[""] => sub {
-    my $self = shift;
-
-    return $self->class;
+    return $_[0]->class;
   },
   q[cmp] => sub {
-    my $self = shift;
-    my $str  = shift;
-
-    return $self->class cmp $str;
+    return !$_[2] ? $_[0]->class cmp $_[1] : $_[1] cmp $_[0]->class;
   },
   fallback => undef;
 

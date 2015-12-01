@@ -8,14 +8,10 @@ use overload    #
     return $_[0]->to_uri;
   },
   q[cmp] => sub {
-    my $self = shift;
-
-    return $_[1] ? $_[0] cmp $self->to_uri : $self->to_uri cmp $_[0];
+    return !$_[2] ? $_[0]->to_uri cmp $_[1] : $_[1] cmp $_[0]->to_uri;
   },
   q[~~] => sub {
-    my $self = shift;
-
-    return $_[1] ? $_[0] ~~ $self->to_uri : $self->to_uri ~~ $_[0];
+    return !$_[2] ? $_[0]->to_uri ~~ $_[1] : $_[1] ~~ $_[0]->to_uri;
   },
   fallback => undef;
 
