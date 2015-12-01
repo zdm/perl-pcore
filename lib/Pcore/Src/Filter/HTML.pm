@@ -20,7 +20,7 @@ sub decompress ($self) {
 
         require Win32::Process;
 
-        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C html-beautify $html_beautify_args --replace --file "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
+        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C html-beautify $html_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
 
         $process_obj->Wait( Win32::Process::INFINITE() );
 
@@ -40,7 +40,7 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#script ) {
         if ( $script[$i] =~ m[\A</script]sm && $script[ $i - 1 ] ) {
-            Pcore::Src::Filter::JS->new( { buffer => \$script[ $i - 1 ] } )->compress;
+            Pcore::Src::Filter::JS->new( { file => $self->file, buffer => \$script[ $i - 1 ] } )->compress;
 
             P->text->trim( $script[ $i - 1 ] );
         }
@@ -53,7 +53,7 @@ sub compress ($self) {
 
     for my $i ( 0 .. $#css ) {
         if ( $css[$i] =~ m[\A</style]sm && $css[ $i - 1 ] ) {
-            Pcore::Src::Filter::CSS->new( { buffer => \$css[ $i - 1 ] } )->compress;
+            Pcore::Src::Filter::CSS->new( { file => $self->file, buffer => \$css[ $i - 1 ] } )->compress;
         }
     }
 
