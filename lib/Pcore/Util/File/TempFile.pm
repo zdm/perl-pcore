@@ -3,10 +3,14 @@ package Pcore::Util::File::TempFile;
 use Pcore qw[-const];
 use base qw[IO::Handle IO::Seekable];
 use Fcntl qw[:DEFAULT];
+use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
 
-use overload    #
+use overload                     #
   q[""] => sub {
     return $_[0]->path;
+  },
+  q[0+] => sub {
+    return refaddr $_[0];
   },
   fallback => undef;
 
@@ -19,6 +23,7 @@ sub new ( $self, @ ) {
         base      => $PROC->{TEMP_DIR},
         suffix    => q[],
         tmpl      => 'temp-' . P->sys->pid . '-XXXXXXXX',
+        exclusive => 0,
         mode      => 'rw-------',
         umask     => undef,
         crlf      => 0,                                     # undef - auto, 1 - on, 0 - off (for binary files)
@@ -38,9 +43,13 @@ sub new ( $self, @ ) {
 
     goto REDO if -e $args{base} . q[/] . $filename;
 
-    my $fh = P->file->get_fh( $args{base} . q[/] . $filename, O_CREAT | O_EXCL | O_RDWR, %args );
+    my $mode = O_CREAT | O_EXCL | O_RDWR;    # O_TEMPORARY - not defined under Linux;
 
-    *$fh->$* = [ P->path( $args{base} . q[/] . $filename )->realpath, P->sys->pid ];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $mode |= O_EXLOCK if $args{exclusive};
+
+    my $fh = P->file->get_fh( $args{base} . q[/] . $filename, $mode, %args );
+
+    *$fh->$* = [ P->path( $args{base} . q[/] . $filename )->realpath->to_string, P->sys->pid ];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return bless $fh, $self;
 }
@@ -87,9 +96,9 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 43, 61, 65           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 52, 70, 74           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 18                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 22                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
