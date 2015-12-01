@@ -19,7 +19,15 @@ use overload                     #
 
 const our $TMPL => [ 0 .. 9, 'a' .. 'z', 'A' .. 'Z' ];
 
+our @DEFERRED_UNLINK;
+
 no Pcore;
+
+END {
+    for (@DEFERRED_UNLINK) {
+        unlink or 1;
+    }
+}
 
 sub new ( $self, @ ) {
     my %args = (
@@ -57,14 +65,18 @@ sub new ( $self, @ ) {
     return bless $fh, $self;
 }
 
+# TODO
+# need to ensure, that path and fh is the same when unlink, see File::Temp::cmpstat method
 sub DESTROY ($self) {
 
-    # do not unlink files, create by others processes
+    # do not unlink files, created by others processes
     return if $self->pid ne P->sys->pid;
 
     close $self or 1;
 
     unlink $self->path or 1;
+
+    push @DEFERRED_UNLINK, $self->path if -f $self->path;
 
     return;
 }
@@ -99,9 +111,9 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 55, 73, 77           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 63, 85, 89           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 25                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 33                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,60 +1,78 @@
 package Pcore::Util::File::TempDir;
 
-use Pcore qw[-class];
-use File::Temp qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore qw[-class -const];
+use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
 
 has base => ( is => 'lazy', isa => Str );
 has tmpl => ( is => 'lazy', isa => Str );
-has mode => ( is => 'lazy', isa => Maybe [ Int | Str ], default => q[rwx------] );
+has mode => ( is => 'lazy', isa => Maybe [ Int | Str ], default => 'rwx------' );
+has umask => ( is => 'ro', isa => Maybe [ Int | Str ] );
 has lazy => ( is => 'ro', isa => Bool, default => 1 );
 
-has _temp => ( is => 'lazy', isa => InstanceOf ['File::Temp::Dir'] );
-has path => ( is => 'lazy', isa => Str );
+has path => ( is => 'lazy', isa => Str, init_arg => undef );
+has pid  => ( is => 'lazy', isa => Str, init_arg => undef );
 
-use overload            #
+use overload                     #
   q[""] => sub {
-    my $self = shift;
-
-    return $self->path;
+    return $_[0]->path;
+  },
+  q[cmp] => sub {
+    return !$_[2] ? $_[0]->path cmp $_[1] : $_[1] cmp $_[0]->path;
+  },
+  q[0+] => sub {
+    return refaddr $_[0];
   },
   fallback => undef;
 
+const our $TMPL => [ 0 .. 9, 'a' .. 'z', 'A' .. 'Z' ];
+
 no Pcore;
 
-sub BUILD {
-    my $self = shift;
+sub DEMOLISH ( $self, $global ) {
 
-    $self->_temp unless $self->lazy;
+    # do not unlink files, created by others processes
+    return if $self->pid ne P->sys->pid;
+
+    P->file->rmtree( $self->path, safe => 1 );
 
     return;
 }
 
-sub _build__temp {
-    my $self = shift;
+sub BUILD ( $self, $args ) {
+    $self->path unless $self->lazy;
 
-    my $temp = File::Temp->newdir( DIR => $self->base, TEMPLATE => $self->tmpl );
-
-    P->file->chmod( $self->mode, $temp->dirname );
-
-    return $temp;
+    return;
 }
 
-sub _build_path {
-    my $self = shift;
-
-    return P->path( $self->_temp->dirname, is_dir => 1 )->realpath->to_string;
-}
-
-sub _build_base {
-    my $self = shift;
-
+sub _build_base ($self) {
     return "$PROC->{TEMP_DIR}";
 }
 
-sub _build_tmpl {
-    my $self = shift;
-
+sub _build_tmpl ($self) {
     return 'temp-' . P->sys->pid . '-XXXXXXXX';
+}
+
+sub _build_path ($self) {
+    my $attempt = 3;
+
+  REDO:
+    die q[Can't create temporary directory] if !$attempt--;
+
+    my $dirname = $self->tmpl =~ s/X/$TMPL->[rand $TMPL->@*]/smger;
+
+    goto REDO if -e $self->base . q[/] . $dirname;
+
+    my $umask_guard;
+
+    $umask_guard = P->file->umask( $self->umask ) if defined $self->umask;
+
+    P->file->mkdir( $self->base . q[/] . $dirname, $self->mode );
+
+    return P->path( $self->base . q[/] . $dirname, is_dir => 1 )->realpath->to_string;
+}
+
+sub _build_pid ($self) {
+    return P->sys->pid;
 }
 
 1;

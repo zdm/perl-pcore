@@ -8,21 +8,17 @@ has h_disconnect_on => ( is => 'ro', isa => Maybe [ Enum [ 'PID_CHANGE', 'BEFORE
 # The order in which objects are destroyed during the global destruction before the program exits is unpredictable. This means that any objects contained by your object may already have been destroyed. You should check that a contained object is defined before calling a method on it
 # http://perldoc.perl.org/perlobj.html#Destructors
 
-sub h_disconnect {    # loopback, can be redefined in subclasses
-    my $self = shift;
-
+# loopback, can be redefined in subclasses
+sub h_disconnect ($self) {
     return;
 }
 
-sub DEMOLISH {        # loopback, can be redefined in subclasses
-    my $self = shift;
-
+# loopback, can be redefined in subclasses
+sub DEMOLISH ( $self, $global ) {
     return;
 }
 
-after DEMOLISH => sub {
-    my $self = shift;
-
+after DEMOLISH => sub ($self) {
     $self->h_disconnect;
 
     return;
