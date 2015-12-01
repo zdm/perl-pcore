@@ -31,25 +31,39 @@ const our $TYPE => {
 
 no Pcore;
 
-sub _validate_isa ( $self, $var ) {
-    my $vals = ref $var eq 'ARRAY' ? $var : ref $var eq 'HASH' ? [ values $var->%* ] : [$var];
+sub _validate_isa ( $self, @ ) {
+    my $vals = ref $_[1] eq 'ARRAY' ? $_[1] : ref $_[1] eq 'HASH' ? [ \values $_[1]->%* ] : [ \$_[1] ];
 
     my $isa_ref = ref $self->isa;
 
-    for my $val ( $vals->@* ) {
+    for my $val_ref ( $vals->@* ) {
         if ( !$isa_ref ) {
-            return qq[value "$val" is not a ] . uc $self->isa if !$TYPE->{ $self->isa }->($val);
+            return qq[value "$val_ref->$*" is not a ] . uc $self->isa if !$TYPE->{ $self->isa }->( $val_ref->$* );
         }
         elsif ( $isa_ref eq 'CODE' ) {
-            if ( my $error_msg = $self->isa->($val) ) {
+            if ( my $error_msg = $self->isa->($val_ref) ) {
                 return $error_msg;
             }
         }
         elsif ( $isa_ref eq 'Regexp' ) {
-            return qq[value "$val" should match regexp ] . $self->isa if $val !~ $self->isa;
+            return qq[value "$val_ref->$*" should match regexp ] . $self->isa if $val_ref->$* !~ $self->isa;
         }
         elsif ( $isa_ref eq 'ARRAY' ) {
-            return qq[value "$val" should be one of the: ] . join q[, ], map {qq["$_"]} $self->isa->@* unless $val ~~ $self->isa;
+            my $possible_val = [];
+
+            for ( $self->isa->@* ) {
+                push $possible_val->@*, $_ if index( $_, $val_ref->$*, 0 ) == 0;
+            }
+
+            if ( !$possible_val->@* ) {
+                return qq[value "$val_ref->$*" should be one of the: ] . join q[, ], map {qq["$_"]} $self->isa->@*;
+            }
+            elsif ( $possible_val->@* > 1 ) {
+                return qq[value "$val_ref->$*" is ambigous, did you mean: ] . join q[, ], map {qq["$_"]} $possible_val->@*;
+            }
+            else {
+                $val_ref->$* = $possible_val->[0];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+            }
         }
     }
 
