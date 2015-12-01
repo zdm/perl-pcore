@@ -7,7 +7,7 @@ has base => ( is => 'lazy', isa => Str );
 has tmpl => ( is => 'lazy', isa => Str );
 has mode => ( is => 'lazy', isa => Maybe [ Int | Str ], default => 'rwx------' );
 has umask => ( is => 'ro', isa => Maybe [ Int | Str ] );
-has lazy => ( is => 'ro', isa => Bool, default => 1 );
+has lazy => ( is => 'ro', isa => Bool, default => 0 );
 
 has path => ( is => 'lazy', isa => Str, init_arg => undef );
 has pid  => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -39,7 +39,7 @@ sub DEMOLISH ( $self, $global ) {
 }
 
 sub BUILD ( $self, $args ) {
-    $self->path unless $self->lazy;
+    $self->path if !$self->lazy;
 
     return;
 }

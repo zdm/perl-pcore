@@ -10,6 +10,8 @@ sub decompress ( $self, % ) {
         @_[ 1 .. $#_ ],
     );
 
+    return 0 if !length $self->buffer->$*;
+
     return 0 if $self->has_kolon;
 
     my $js_beautify_args = $self->dist_cfg->{JS_BEAUTIFY} || $self->src_cfg->{JS_BEAUTIFY};
@@ -25,14 +27,14 @@ sub decompress ( $self, % ) {
 
         $process_obj->Wait( Win32::Process::INFINITE() );
 
-        $self->buffer->$* = P->file->read_bin( $temp->filename )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+        $self->buffer->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     }
 
     my $log;
 
     my $jshint_output;
 
-    if ( $args{js_hint} ) {
+    if ( $args{js_hint} && length $self->buffer->$* ) {
         $jshint_output = $self->run_js_hint;
 
         if ( $jshint_output->{data}->@* ) {
@@ -160,7 +162,7 @@ sub run_js_hint ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 80                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 82                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
