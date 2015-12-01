@@ -9,10 +9,13 @@ use overload                     #
   q[""] => sub {
     return $_[0]->path;
   },
+  q[cmp] => sub {
+    return $_[2] ? $_[1] cmp $_[0]->path : $_[0]->path cmp $_[1];
+  },
   q[0+] => sub {
     return refaddr $_[0];
   },
-  fallback => 1;
+  fallback => undef;
 
 const our $TMPL => [ 0 .. 9, 'a' .. 'z', 'A' .. 'Z' ];
 
@@ -96,9 +99,9 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 52, 70, 74           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 55, 73, 77           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 22                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 25                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
