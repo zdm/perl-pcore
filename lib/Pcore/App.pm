@@ -136,13 +136,13 @@ sub cli_opt ($self) {
     return {
         app => {
             short => undef,
-            desc  => 'command',
+            desc  => 'command (build|deploy|test)',
             isa   => [qw[build deploy test]],
         },
         env => {
             short => 'E',
-            desc  => 'set run-time environment',
-            isa   => [qw[production development test]],
+            desc  => 'set run-time environment (development|test|production)',
+            isa   => [qw[development test production]],
         },
     };
 }
