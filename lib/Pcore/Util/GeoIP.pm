@@ -32,7 +32,7 @@ sub country_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile( autoflush => 1 );
+                        my $temp = P->file->tempfile;
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
@@ -64,7 +64,7 @@ sub country_v6_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile( autoflush => 1 );
+                        my $temp = P->file->tempfile;
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp, BinModeOut => 1 );
 
@@ -96,7 +96,7 @@ sub city_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile( autoflush => 1 );
+                        my $temp = P->file->tempfile;
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
@@ -128,7 +128,7 @@ sub city_v6_path ( $self, $force = undef, $cv = undef ) {
                     require IO::Uncompress::Gunzip;
 
                     if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile( autoflush => 1 );
+                        my $temp = P->file->tempfile;
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 

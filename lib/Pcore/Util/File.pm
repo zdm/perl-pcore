@@ -170,7 +170,7 @@ sub read_bin ( $self, $path, % ) {
         @_[ 2 .. $#_ ],
     );
 
-    my $fh = $self->_get_fh( $path, O_RDONLY );
+    my $fh = $self->get_fh( $path, O_RDONLY, crlf => 0 );
 
     my $tail = q[];
 
@@ -205,14 +205,14 @@ sub read_bin ( $self, $path, % ) {
 
 sub read_text ( $self, $path, % ) {
     my %args = (
-        crlf     => 1,                    # undef - auto, 1 - on, 0 - off
+        crlf     => 1,                    # undef - auto, 1 - on, 0 - off (for binary files)
         binmode  => ':encoding(UTF-8)',
         cb       => undef,
         buf_size => 1_048_576,
         @_[ 2 .. $#_ ],
     );
 
-    my $fh = $self->_get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
+    my $fh = $self->get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
 
     my $tail = q[];
 
@@ -247,7 +247,7 @@ sub read_text ( $self, $path, % ) {
 
 sub read_lines ( $self, $path, % ) {
     my %args = (
-        crlf        => 1,                    # undef - auto, 1 - on, 0 - off
+        crlf        => 1,                    # undef - auto, 1 - on, 0 - off (for binary files)
         binmode     => ':encoding(UTF-8)',
         cb          => undef,
         buf_size    => 1_048_576,
@@ -255,7 +255,7 @@ sub read_lines ( $self, $path, % ) {
         @_[ 2 .. $#_ ],
     );
 
-    my $fh = $self->_get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
+    my $fh = $self->get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
 
     my $tail = q[];
 
@@ -341,12 +341,13 @@ sub write_bin {
     my $self = shift;
     my $path = shift;
     my %args = (
-        mode  => q[rw-------],
-        umask => undef,
+        mode      => 'rw-------',
+        umask     => undef,
+        autoflush => 1,
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->_get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args ), @_ );
+    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args, crlf => 0 ), @_ );
 
     return;
 }
@@ -355,12 +356,13 @@ sub append_bin {
     my $self = shift;
     my $path = shift;
     my %args = (
-        mode  => q[rw-------],
-        umask => undef,
+        mode      => 'rw-------',
+        umask     => undef,
+        autoflush => 1,
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->_get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args ), @_ );
+    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args, crlf => 0 ), @_ );
 
     return;
 }
@@ -369,14 +371,15 @@ sub write_text {
     my $self = shift;
     my $path = shift;
     my %args = (
-        crlf    => undef,                # undef - auto, 1 - on, 0 - off
-        binmode => ':encoding(UTF-8)',
-        mode    => q[rw-------],
-        umask   => undef,
+        crlf      => undef,                # undef - auto, 1 - on, 0 - off (for binary files)
+        binmode   => ':encoding(UTF-8)',
+        autoflush => 1,
+        mode      => 'rw-------',
+        umask     => undef,
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->_get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args ), @_ );
+    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args ), @_ );
 
     return;
 }
@@ -385,24 +388,26 @@ sub append_text {
     my $self = shift;
     my $path = shift;
     my %args = (
-        crlf    => undef,                # undef - auto, 1 - on, 0 - off
-        binmode => ':encoding(UTF-8)',
-        mode    => q[rw-------],
-        umask   => undef,
+        crlf      => undef,                # undef - auto, 1 - on, 0 - off (for binary files)
+        binmode   => ':encoding(UTF-8)',
+        autoflush => 1,
+        mode      => 'rw-------',
+        umask     => undef,
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->_get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args ), @_ );
+    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args ), @_ );
 
     return;
 }
 
-sub _get_fh ( $self, $path, $mode, % ) {
+sub get_fh ( $self, $path, $mode, % ) {
     my %args = (
-        crlf    => q[],
-        binmode => q[:raw],
-        mode    => q[rw-------],
-        umask   => undef,
+        mode      => 'rw-------',
+        umask     => undef,
+        crlf      => 0,             # undef - auto, 1 - on, 0 - off (for binary files)
+        binmode   => undef,
+        autoflush => 1,
         @_[ 3 .. $#_ ],
     );
 
@@ -410,17 +415,6 @@ sub _get_fh ( $self, $path, $mode, % ) {
         return $path;
     }
     else {
-        if ( !defined $args{crlf} || $args{crlf} ne q[] ) {
-            $args{crlf} = $MSWIN ? 1 : 0 if !defined $args{crlf};
-
-            if ( $args{crlf} ) {
-                $args{crlf} = $MSWIN ? q[] : q[:crlf];
-            }
-            else {
-                $args{crlf} = $MSWIN ? q[:raw] : q[];
-            }
-        }
-
         my $umask_guard;
 
         $umask_guard = $self->umask( $args{umask} ) if defined $args{umask};
@@ -430,7 +424,22 @@ sub _get_fh ( $self, $path, $mode, % ) {
 
         sysopen my $fh, $path, $mode, $self->calc_chmod( $args{mode} ) or die qq[Can't open file "$path"];
 
-        binmode $fh, $args{crlf} . $args{binmode} or die qq[Can't binmode file "$path"];
+        my $binmode = q[];
+
+        $args{crlf} //= $MSWIN ? 1 : 0;
+
+        if ( $args{crlf} ) {
+            $binmode = ':crlf' if !$MSWIN;
+        }
+        else {
+            $binmode = ':raw' if $MSWIN;
+        }
+
+        $binmode .= $args{binmode} if $args{binmode};
+
+        binmode $fh, $binmode or die qq[Can't set binmode file "$path"] if $binmode;
+
+        $fh->autoflush(1) if $args{autoflush};
 
         return $fh;
     }
@@ -560,7 +569,7 @@ sub empty_dir ( $self, $path, % ) {
 sub tempfile ( $self, %args ) {
     require Pcore::Util::File::TempFile;
 
-    return Pcore::Util::File::TempFile->new( \%args )->fh;
+    return Pcore::Util::File::TempFile->new(%args);
 }
 
 sub tempdir ( $self, %args ) {

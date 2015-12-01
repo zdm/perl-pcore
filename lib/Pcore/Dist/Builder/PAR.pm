@@ -485,7 +485,7 @@ sub _repack_par {
 
     $overlay =~ s/.{40}\x{00}CACHE\z//sm;
 
-    my $fh = P->file->tempfile( binmode => ':raw' );
+    my $fh = P->file->tempfile;
 
     # print exe header
     print {$fh} $src->$*;
