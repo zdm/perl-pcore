@@ -4,6 +4,8 @@ use Pcore qw[-class];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
+has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ], init_arg => undef );
+
 no Pcore;
 
 our $CLEAN = {
@@ -27,6 +29,10 @@ our $CLEAN = {
         qw[Makefile pm_to_blib],
     ],
 };
+
+sub _build_wiki ($self) {
+    return P->class->load('Pcore::Dist::Build::Wiki')->new( { dist => $self->dist } );
+}
 
 sub clean ($self) {
     for my $dir ( $CLEAN->{dir}->@* ) {
