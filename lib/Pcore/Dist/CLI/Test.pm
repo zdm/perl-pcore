@@ -1,89 +1,27 @@
-package Pcore::Dist::Build;
+package Pcore::Dist::CLI::Test;
 
 use Pcore qw[-class];
 
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
-
-has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ], init_arg => undef );
+with qw[Pcore::Dist::CLI];
 
 no Pcore;
 
-our $CLEAN = {
-    dir => [
-
-        # general build
-        'blib',
-
-        # Module::Build
-        '_build',
-    ],
-    file => [
-
-        # general build
-        qw[META.yml MYMETA.json MYMETA.yml],
-
-        # Module::Build
-        qw[_build_params Build Build.bat],
-
-        # MakeMaker
-        qw[Makefile pm_to_blib],
-    ],
-};
-
-sub _build_wiki ($self) {
-    return P->class->load('Pcore::Dist::Build::Wiki')->new( { dist => $self->dist } );
+sub cli_opt ($self) {
+    return {
+        release => { desc => 'run release tests', },
+        author  => { desc => 'run author tests', },
+        smoke   => { desc => 'run smoke tests', },
+    };
 }
 
-sub clean ($self) {
-    for my $dir ( $CLEAN->{dir}->@* ) {
-        P->file->rmtree($dir);
-    }
-
-    for my $file ( $CLEAN->{file}->@* ) {
-        unlink $file or die qq[Can't unlink "$file"] if -f $file;
-    }
+sub cli_run ( $self, $opt, $arg, $rest ) {
+    $self->new->run($opt);
 
     return;
 }
 
-sub update ($self) {
-    require Pcore::Dist::Build::Update;
-
-    Pcore::Dist::Build::Update->new( { dist => $self->dist } )->run;
-
-    return;
-}
-
-sub deploy ( $self, %args ) {
-    require Pcore::Dist::Build::Deploy;
-
-    Pcore::Dist::Build::Deploy->new( { dist => $self->dist, %args } )->run;
-
-    return;
-}
-
-sub test ( $self, @ ) {
-    my %args = (
-        release => 0,
-        author  => 0,
-        smoke   => 0,
-        @_[ 1 .. $#_ ]
-    );
-
-    return;
-}
-
-sub release ( $self, $release_type ) {
-    return;
-}
-
-sub temp_build ($self) {
-
-    # TODO
-    # copy files to the temp dir;
-    # copy and rename xt/tests according to tests mode;
-    # generate MANIFEST;
-    # return temp dir;
+sub run ( $self, $args ) {
+    $self->dist->build->test( $args->%* );
 
     return;
 }
@@ -95,7 +33,7 @@ sub temp_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 66                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    3 │ 24                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -106,7 +44,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::Build
+Pcore::Dist::CLI::Test - test distribution
 
 =head1 SYNOPSIS
 
