@@ -41,10 +41,21 @@ sub clean ($self) {
 }
 
 sub update ($self) {
+    require Pcore::Dist::Build::Update;
+
+    Pcore::Dist::Build::Update->new( { dist => $self->dist } )->run;
+
     return;
 }
 
 sub temp_build ($self) {
+
+    # TODO
+    # copy files to the temp dir;
+    # copy and rename xt/tests according to tests mode;
+    # generate MANIFEST;
+    # return temp dir;
+
     return;
 }
 
