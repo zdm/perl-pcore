@@ -9,7 +9,7 @@ use if -f qq[$FindBin::RealBin/../share/dist.perl] && -d qq[$FindBin::RealBin/..
 use Pcore;
 
 sub cli_cmd ($self) {
-    return 'Pcore::Dist::Builder::';
+    return 'Pcore::Dist::CLI::';
 }
 
 sub cli_abstract ($self) {

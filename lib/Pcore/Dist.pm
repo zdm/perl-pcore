@@ -15,6 +15,8 @@ has ns      => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist::N
 has version => ( is => 'lazy', isa => Object,  init_arg => undef );
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
+has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
+
 around new => sub ( $orig, $self, $path ) {
     my $pkg_name;
 
@@ -225,6 +227,10 @@ sub _build_scm ($self) {
     return P->class->load('Pcore::Src::SCM')->new( $self->root );
 }
 
+sub _build_build ($self) {
+    return P->class->load('Pcore::Dist::Build')->new( { dist => $self } );
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -234,10 +240,10 @@ sub _build_scm ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 60, 88, 127, 178,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 204                  │                                                                                                                │
+## │    3 │ 62, 90, 129, 180,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │      │ 206                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 219                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 221                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
