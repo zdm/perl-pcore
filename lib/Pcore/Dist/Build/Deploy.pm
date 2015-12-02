@@ -1,4 +1,4 @@
-package Pcore::Dist::Buil::Deploy;
+package Pcore::Dist::Build::Deploy;
 
 use Pcore qw[-class];
 use Config qw[];
@@ -9,6 +9,8 @@ has install    => ( is => 'ro', isa => Bool, default => 0 );
 has develop    => ( is => 'ro', isa => Bool, default => 0 );
 has recommends => ( is => 'ro', isa => Bool, default => 0 );
 has suggests   => ( is => 'ro', isa => Bool, default => 0 );
+
+# TODO under windows aqquire superuser automatically with use Win32::RunAsAdmin qw[force];
 
 no Pcore;
 
@@ -166,11 +168,9 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 108                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 110                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 129                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 178                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 182 does not match the package declaration      │
+## │    1 │ 131                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

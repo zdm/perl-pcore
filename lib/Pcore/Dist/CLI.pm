@@ -7,7 +7,7 @@ with qw[Pcore::Core::CLI::Cmd];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );
 
-around run => sub ( $orig, $self ) {
+around run => sub ( $orig, $self, @args ) {
     if ( my $dist = Pcore::Dist->new( $PROC->{START_DIR} ) ) {
         $self->{dist} = $dist;
 
@@ -19,7 +19,7 @@ around run => sub ( $orig, $self ) {
         exit 3;
     }
 
-    return $self->$orig;
+    return $self->$orig(@args);
 };
 
 no Pcore;

@@ -88,7 +88,7 @@ sub get ( $self, $path, @ ) {
         @_[ 2 .. $#_ ],
     );
 
-    die qq[resource lib is not exists "$args{lib}"] if $args{lib} && !exists $self->lib->{ $args{lib} };
+    die qq[resource lib is not exists "$args{lib}"] if $args{lib} && !exists $self->_lib->{ $args{lib} };
 
     # get storage name from path
     if ( !$args{storage} ) {
@@ -106,7 +106,7 @@ sub get ( $self, $path, @ ) {
     }
 
     if ( $args{lib} ) {
-        my $res = $self->lib->{ $args{lib} } . $args{storage} . q[/] . $path;
+        my $res = $self->_lib->{ $args{lib} } . $args{storage} . q[/] . $path;
 
         if ( -f $res ) {
             return $res;
