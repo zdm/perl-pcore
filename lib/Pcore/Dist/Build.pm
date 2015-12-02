@@ -54,6 +54,14 @@ sub update ($self) {
     return;
 }
 
+sub deploy ( $self, %args ) {
+    require Pcore::Dist::Build::Deploy;
+
+    Pcore::Dist::Build::Deploy->new( { dist => $self->dist, %args } )->run;
+
+    return;
+}
+
 sub temp_build ($self) {
 
     # TODO
