@@ -18,6 +18,70 @@ our $GEOIP_CITY_CACHE_MODE    = $GEOIP_INDEX_CACHE;
 
 my $H;
 
+sub country2_path ( $self, $force = undef, $cv = undef ) {
+    state $path = do {
+        my $_path = $PROC->res->get('/data/geoip2_country.dat');
+
+        if ( !$_path || $force ) {
+            P->ua->request(
+                'http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz',
+                buf_size    => 1,
+                on_progress => $cv ? 1 : 0,
+                blocking => $cv || 1,
+                on_finish => sub ($res) {
+                    require IO::Uncompress::Gunzip;
+
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $_path = $PROC->res->store( $temp->path, '/data/geoip2_country.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        $_path;
+    };
+
+    return $path;
+}
+
+sub city2_path ( $self, $force = undef, $cv = undef ) {
+    state $path = do {
+        my $_path = $PROC->res->get('/data/geoip2_city.dat');
+
+        if ( !$_path || $force ) {
+            P->ua->request(
+                'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz',
+                buf_size    => 1,
+                on_progress => $cv ? 1 : 0,
+                blocking => $cv || 1,
+                on_finish => sub ($res) {
+                    require IO::Uncompress::Gunzip;
+
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $_path = $PROC->res->store( $temp->path, '/data/geoip2_city.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        $_path;
+    };
+
+    return $path;
+}
+
 sub country_path ( $self, $force = undef, $cv = undef ) {
     state $path = do {
         my $_path = $PROC->res->get('/data/geoip_country.dat');
@@ -215,6 +279,10 @@ sub update ($self) {
 
     my $cv = AE::cv;
 
+    $self->country2_path( 1, $cv );
+
+    $self->city2_path( 1, $cv );
+
     $self->country_path( 1, $cv );
 
     $self->country_v6_path( 1, $cv );
@@ -256,3 +324,22 @@ sub record_by_name {
 
 1;
 __END__
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+Pcore::Util::GeoIP - Maxmind GeoIP wrapper
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
+=head1 SEE ALSO
+
+=cut
