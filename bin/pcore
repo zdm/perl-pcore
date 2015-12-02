@@ -6,13 +6,10 @@ use FindBin;
 
 # add pcore lib to @INC, if Pcore is dist
 use if -f qq[$FindBin::RealBin/../share/dist.perl] && -d qq[$FindBin::RealBin/../lib/], lib => qq[$FindBin::RealBin/../lib/];
-use Pcore qw[-embedded];
-use Pcore::Core::CLI1;
-
-Pcore::Core::CLI1->new( { class => 'main' } )->run( \@ARGV );
+use Pcore;
 
 sub cli_cmd ($self) {
-    return 'Pcore::Dist::Builder';
+    return 'Pcore::Dist::Builder::';
 }
 
 sub cli_abstract ($self) {
