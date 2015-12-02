@@ -64,33 +64,32 @@ BEGIN {
 
     # configure standard library
     $Pcore::UTIL = {
-        bit       => 'Pcore::Util::Bit',
-        capture   => 'Pcore::Util::Capture',
-        cfg       => 'Pcore::Util::Config',
-        class     => 'Pcore::Util::Class',
-        data      => 'Pcore::Util::Data',
-        date      => 'Pcore::Util::Date',
-        digest    => 'Pcore::Util::Digest',
-        file      => 'Pcore::Util::File',
-        geoip     => 'Pcore::Util::GeoIP',
-        hash      => 'Pcore::Util::Hash',
-        host      => 'Pcore::Util::URI::Host',
-        list      => 'Pcore::Util::List',
-        mail      => 'Pcore::Util::Mail',
-        moo       => 'Pcore::Util::Moo',
-        path      => 'Pcore::Util::Path',
-        pm        => 'Pcore::Util::PM',
-        progress  => 'Pcore::Util::Progress',
-        prompt    => 'Pcore::Util::Prompt',
-        random    => 'Pcore::Util::Random',
-        scalar    => 'Pcore::Util::Scalar',
-        share_dir => 'Pcore::Util::ShareDir',
-        sys       => 'Pcore::Util::Sys',
-        text      => 'Pcore::Util::Text',
-        tmpl      => 'Pcore::Util::Template',
-        ua        => 'Pcore::HTTP::UA',
-        uri       => 'Pcore::Util::URI',
-        uuid      => 'Pcore::Util::UUID',
+        bit      => 'Pcore::Util::Bit',
+        capture  => 'Pcore::Util::Capture',
+        cfg      => 'Pcore::Util::Config',
+        class    => 'Pcore::Util::Class',
+        data     => 'Pcore::Util::Data',
+        date     => 'Pcore::Util::Date',
+        digest   => 'Pcore::Util::Digest',
+        file     => 'Pcore::Util::File',
+        geoip    => 'Pcore::Util::GeoIP',
+        hash     => 'Pcore::Util::Hash',
+        host     => 'Pcore::Util::URI::Host',
+        list     => 'Pcore::Util::List',
+        mail     => 'Pcore::Util::Mail',
+        moo      => 'Pcore::Util::Moo',
+        path     => 'Pcore::Util::Path',
+        pm       => 'Pcore::Util::PM',
+        progress => 'Pcore::Util::Progress',
+        prompt   => 'Pcore::Util::Prompt',
+        random   => 'Pcore::Util::Random',
+        scalar   => 'Pcore::Util::Scalar',
+        sys      => 'Pcore::Util::Sys',
+        text     => 'Pcore::Util::Text',
+        tmpl     => 'Pcore::Util::Template',
+        ua       => 'Pcore::HTTP::UA',
+        uri      => 'Pcore::Util::URI',
+        uuid     => 'Pcore::Util::UUID',
     };
 }
 
@@ -552,19 +551,19 @@ sub _configure_console {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 100                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
+## │    3 │ 99                   │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 164                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 163                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 359                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 358                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 403, 451, 468, 516,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 517, 518, 524, 525,  │                                                                                                                │
-## │      │ 526, 529, 530, 531   │                                                                                                                │
+## │    3 │ 402, 450, 467, 515,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 516, 517, 523, 524,  │                                                                                                                │
+## │      │ 525, 528, 529, 530   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 405                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 494                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 493                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
