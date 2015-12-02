@@ -77,6 +77,22 @@ sub release ( $self, $release_type ) {
     return;
 }
 
+sub par ( $self, @ ) {
+    my %args = (
+        release => 0,
+        crypt   => 0,
+        upx     => 1,
+        clean   => 0,
+        @_[ 1 .. $#_ ]
+    );
+
+    require Pcore::Dist::Build::PAR;
+
+    Pcore::Dist::Build::PAR->new( { dist => $self->dist, %args } )->run;
+
+    return;
+}
+
 sub temp_build ($self) {
 
     # TODO
@@ -95,7 +111,7 @@ sub temp_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 66                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 66, 81               │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
