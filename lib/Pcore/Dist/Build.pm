@@ -6,7 +6,7 @@ has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
 no Pcore;
 
-our $CLEAN => {
+our $CLEAN = {
     dir => [
 
         # general build
@@ -37,6 +37,14 @@ sub clean ($self) {
         unlink $file or die qq[Can't unlink "$file"] if -f $file;
     }
 
+    return;
+}
+
+sub update ($self) {
+    return;
+}
+
+sub temp_build ($self) {
     return;
 }
 

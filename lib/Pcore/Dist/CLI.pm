@@ -5,21 +5,18 @@ use Pcore::Dist;
 
 with qw[Pcore::Core::CLI::Cmd];
 
-has require_dist => ( is => 'ro', isa => Bool, default => 1, init_arg => undef );
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );
 
 around run => sub ( $orig, $self ) {
-    if ( $self->require_dist ) {
-        if ( my $dist = Pcore::Dist->new( $PROC->{START_DIR} ) ) {
-            $self->{dist} = $dist;
+    if ( my $dist = Pcore::Dist->new( $PROC->{START_DIR} ) ) {
+        $self->{dist} = $dist;
 
-            chdir $dist->root or die;
-        }
-        else {
-            say 'Pcore distribution was not found' . $LF;
+        chdir $dist->root or die;
+    }
+    else {
+        say 'Pcore distribution was not found' . $LF;
 
-            exit 3;
-        }
+        exit 3;
     }
 
     return $self->$orig;
