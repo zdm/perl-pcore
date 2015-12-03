@@ -400,6 +400,7 @@ sub _CORE_INIT ($proc_cfg) {
         # check if we can properly decode STDIN under MSWIN
         eval {
             Encode::perlio_ok($Pcore::ENCODING_CONSOLE) or die;
+
             1;
         } || do {
             say qq[FATAL: Console input encoding "$Pcore::ENCODING_CONSOLE" isn't supported. Use chcp to change console codepage.];
@@ -557,13 +558,13 @@ sub _configure_console {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 358                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 402, 450, 467, 515,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 516, 517, 523, 524,  │                                                                                                                │
-## │      │ 525, 528, 529, 530   │                                                                                                                │
+## │    3 │ 402, 451, 468, 516,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 517, 518, 524, 525,  │                                                                                                                │
+## │      │ 526, 529, 530, 531   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 405                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 493                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 494                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
