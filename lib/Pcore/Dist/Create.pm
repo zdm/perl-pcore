@@ -2,7 +2,7 @@ package Pcore::Dist::Create;
 
 use Pcore qw[-class];
 use Pcore::Dist;
-use Pcore::Dist::Build::Files;
+use Pcore::Util::File::Tree;
 
 has path      => ( is => 'ro', isa => Str,  required => 1 );
 has namespace => ( is => 'ro', isa => Str,  required => 1 );    # Dist::Name
@@ -51,11 +51,11 @@ sub validate ($self) {
 sub run ($self) {
     return if $self->validate;
 
-    require Pcore::Dist::Build::Files;
+    my $files = Pcore::Util::File::Tree->new;
 
-    my $files = Pcore::Dist::Build::Files->new( $PROC->res->get_storage( 'pcore', 'pcore' ) );
+    $files->add_dir( $PROC->res->get_storage( 'pcore', 'pcore' ) );
 
-    $files->rename_file( 'lib/Module.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
+    $files->move_file( 'lib/Module.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
 
     $files->render_tmpl( $self->tmpl_params );
 

@@ -1,16 +1,18 @@
-package Pcore::Dist::Build::Files;
+package Pcore::Util::File::Tree;
 
 use Pcore qw[-class];
-use Pcore::Dist::Build::Files::File;
+use Pcore::Util::File::Tree::File;
 
-has files => ( is => 'ro', isa => HashRef, required => 1 );
+has files => ( is => 'lazy', isa => HashRef [ InstanceOf ['Pcore::Util::File::Tree::File'] ], default => sub { {} }, init_arg => undef );
 
-around new => sub ( $orig, $self, $source_path ) {
-    $source_path = P->path( $source_path, is_dir => 1 )->realpath->to_string;
+no Pcore;
 
-    my $files = {};
+sub add_dir ( $self, $dir ) {
+    $dir = P->path( $dir, is_dir => 1 )->realpath->to_string;
 
-    my $chdir_guard = P->file->chdir($source_path);
+    my $files = $self->files;
+
+    my $chdir_guard = P->file->chdir($dir);
 
     P->file->find(
         {   wanted => sub {
@@ -18,20 +20,27 @@ around new => sub ( $orig, $self, $source_path ) {
 
                 my $path = P->path($_);
 
-                $files->{ $path->to_string } = Pcore::Dist::Build::Files::File->new( { path => $path->to_string, source_path => $source_path . $path } );
+                $self->add_file( $path->to_string, $dir . $path );
             },
             no_chdir => 1,
         },
         q[.]
     );
 
-    return $self->$orig( { files => $files } );
-};
+    return;
+}
 
-no Pcore;
+sub add_file ( $self, $path, $source ) {
+    my $file;
 
-sub add_file ( $self, $path, $content_ref ) {
-    $self->files->{$path} = Pcore::Dist::Build::Files::File->new( { path => $path, content => $content_ref } );
+    if ( ref $source eq 'SCALAR' ) {
+        $file = Pcore::Util::File::Tree::File->new( { tree => $self, path => $path, content => $source } );
+    }
+    else {
+        $file = Pcore::Util::File::Tree::File->new( { tree => $self, path => $path, source_path => $source } );
+    }
+
+    $self->files->{$path} = $file;
 
     return;
 }
@@ -42,7 +51,7 @@ sub remove_file ( $self, $path ) {
     return;
 }
 
-sub rename_file ( $self, $path, $target_path ) {
+sub move_file ( $self, $path, $target_path ) {
     if ( my $file = delete $self->files->{$path} ) {
         $file->{path} = $target_path;
 
@@ -52,9 +61,25 @@ sub rename_file ( $self, $path, $target_path ) {
     return;
 }
 
+sub find_file ( $self, $cb ) {
+    for my $file ( values $self->files->%* ) {
+        $cb->($file);
+    }
+
+    return;
+}
+
+sub render_tmpl ( $self, $tmpl_args ) {
+    for my $file ( values $self->files->%* ) {
+        $file->render_tmpl($tmpl_args);
+    }
+
+    return;
+}
+
 sub write_to ( $self, $target_path, $write_manifest = 0 ) {
-    for ( values $self->files->%* ) {
-        $_->write_to($target_path);
+    for my $file ( values $self->files->%* ) {
+        $file->write_to($target_path);
     }
 
     # write MANIFEST
@@ -63,12 +88,12 @@ sub write_to ( $self, $target_path, $write_manifest = 0 ) {
     return;
 }
 
-sub render_tmpl ( $self, $tmpl_args ) {
-    for ( values $self->files->%* ) {
-        $_->render_tmpl($tmpl_args);
-    }
+sub write_to_temp ( $self, $write_manifest = 0 ) {
+    my $tempdir = P->file->tempdir;
 
-    return;
+    $self->write_to( $tempdir, $write_manifest );
+
+    return $tempdir;
 }
 
 1;
@@ -78,7 +103,7 @@ sub render_tmpl ( $self, $tmpl_args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 56, 61, 67           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 65, 73, 81, 86       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -89,7 +114,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::Build::Files
+Pcore::Util::File::Tree
 
 =head1 SYNOPSIS
 
