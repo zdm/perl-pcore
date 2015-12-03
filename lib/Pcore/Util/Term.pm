@@ -3,6 +3,8 @@ package Pcore::Util::Term;
 use Pcore;
 use Term::ReadKey qw[];
 
+no Pcore;
+
 sub width ($self) {
     state $required = do {
         require Term::Size::Any;
@@ -18,126 +20,236 @@ sub width ($self) {
 sub pause ( $self, @ ) {
     my %args = (
         msg     => 'Press any key to continue...',
-        timeout => undef,
-        @_[ 1 .. $#_ ]
+        timeout => 0,
+        @_[ 1 .. $#_ ],
     );
 
-    say $args{msg};
+    print $args{msg};
 
-    Term::ReadKey::ReadMode(4);
+    Term::ReadKey::ReadMode(3);
 
-    my $key;
-
-    if ( $args{timeout} ) {
-        $key = Term::ReadKey::ReadKey( $args{timeout} );
-    }
-    else {
-        while ( !defined( $key = Term::ReadKey::ReadKey(60) ) ) { }
-    }
+    Term::ReadKey::ReadKey( $args{timeout}, $STDIN );
 
     Term::ReadKey::ReadMode(0);
 
-    return $key;
-}
-
-sub prompt ( $self, $msg, $opt, @ ) {
-    my %args = (
-        default => 1,
-        enter   => 0,    # enter press is required
-        timeout => 0,    # timeout, after the default value will be accepted
-        @_[ 2 .. $#_ ]
-    );
+    print $LF;
 
     return;
 }
 
-sub prompt1 {
-    my $self = shift;
+sub prompt ( $self, $msg, $opt, @ ) {
+    my %args = (
+        default => undef,
+        line    => 0,
+        echo    => 1,
+        timeout => 0,       # timeout, after the default value will be accepted
+        @_[ 3 .. $#_ ],
+    );
 
-    my ( $message, $answers, %options ) = @_;
+    die qq[Invalid default value] if defined $args{default} && !( $args{default} ~~ $opt );
 
-  REDO_PROMPT:
-    print $message . ' (' . join( q[|], map { ( $options{default} && $_ eq $options{default} ) ? uc $_ : $_ } @{$answers} ) . '):';
+    $args{default} = $opt->[0] if $args{timeout} && !defined $args{default};
 
-    Term::ReadKey::ReadMode(4);
-    my $buffer = q[];
+    print $msg, ' (', join( q[|], $opt->@* ), ')';
 
-  REDO_READKEY:
-    my $key;
-    while ( !defined( $key = Term::ReadKey::ReadKey(60) ) ) { }
+    print " [$args{default}]" if defined $args{default};
 
-    if ( ord($key) == 13 || ord($key) == 10 ) {
-        if ( $options{default} && $buffer eq q[] ) {
-            Term::ReadKey::ReadMode(0);
-            say $options{default};
-            return $options{default};
-        }
-        elsif ( $buffer eq q[] ) {
-            goto REDO_READKEY;
-        }
-        else {
-            my @match = grep {/\A\Q$buffer\E/smi} @{$answers};
-            if ( scalar @match == 1 ) {
-                Term::ReadKey::ReadMode(0);
-                if ( $match[0] =~ /\A$buffer(.*)\z/sm ) {
-                    say $1;
-                }
-                else {
-                    say q[];
-                }
-                return $match[0];
+    print ': ';
+
+  READ:
+    my @possible = ();
+
+    my $input = $self->read_input(
+        line       => $args{line},
+        edit       => 1,
+        echo       => $args{echo},
+        echo_char  => undef,
+        timeout    => $args{timeout},
+        clear_echo => 1,
+        on_read    => sub ($input) {
+            @possible = ();
+
+            for my $val ( $opt->@* ) {
+                push @possible, $val if !index $val, $input, 0;
+            }
+
+            if ( !@possible ) {
+                return 0;    # do not accept char / line, clear echo, continue
+            }
+            elsif ( @possible > 1 ) {
+                return 1;    # for char mode only, accept char and continue reading
             }
             else {
-                my @match1 = grep { $_ eq $buffer } @{$answers};
-                if ( scalar @match1 == 1 ) {
-                    Term::ReadKey::ReadMode(0);
-                    if ( $match1[0] =~ /\A$buffer(.*)\z/sm ) {
-                        say $1;
-                    }
-                    else {
-                        say q[];
-                    }
-                    return $match1[0];
-                }
-                elsif ( scalar @match1 > 1 ) {
-                    goto REDO_READKEY;
-                }
-                else {
-                    goto REDO_READKEY;
-                }
+                return;      # accept / line and exit
             }
         }
+    );
+
+    if ( !defined $input ) {    # timeout, no user input
+        if ( defined $args{default} ) {
+            $possible[0] = $args{default};
+        }
+        else {
+            goto READ;
+        }
+    }
+
+    print $possible[0];
+
+    print $LF;
+
+    return $possible[0];
+}
+
+sub read_password ( $self, @ ) {
+    my %args = (
+        msg       => 'Enter password',
+        echo      => 1,
+        echo_char => q[*],
+        @_[ 1 .. $#_ ],
+    );
+
+    print $args{msg}, ': ';
+
+    my $input = $self->read_input(
+        line      => 1,
+        edit      => 1,
+        echo      => $args{echo},
+        echo_char => $args{echo_char},
+    );
+
+    print $LF;
+
+    return $input;
+}
+
+# NOTE on_read callback should return:
+# line mode:
+#     - undef  - accept line and return;
+#     - !undef - do not accept line, clear echo, continue reading;
+# char mode:
+#  - undef - accept last char and return;
+#  - 0     - do not accept last char, continue reading;
+#  - 1     - accept last char, continue reading;
+sub read_input ( $self, @ ) {
+    my %args = (
+        line       => 1,
+        edit       => 1,
+        echo       => 1,
+        echo_char  => undef,
+        timeout    => 0,
+        clear_echo => 0,       # clear echo on return
+        on_read    => undef,
+        @_[ 1 .. $#_ ],
+    );
+
+    Term::ReadKey::ReadMode(3);
+
+    my $input = q[];
+
+    my $add_char = sub ($char) {
+        print $args{echo_char} // $char if $args{echo};
+
+        $input .= $char;
+
+        return;
+    };
+
+    my $delete_char = sub {
+        if ( length $input ) {
+            print "\e[1D\e[K" if $args{echo};
+
+            substr $input, -1, 1, q[];
+        }
+
+        return;
+    };
+
+    my $clear_echo = sub {
+        if ( $args{echo} && defined $input && ( my $len = length $input ) ) {
+            print "\e[${len}D\e[K";
+        }
+
+        return;
+    };
+
+    my $clear_input = sub {
+        $clear_echo->();
+
+        $input = q[];
+
+        return;
+    };
+
+  READ:
+    my $key = Term::ReadKey::ReadKey( $args{timeout}, $STDIN );
+
+    if ( !defined $key ) {    # timeout
+        undef $input;
     }
     else {
-        $buffer .= $key;
+        $args{timeout} = 0;    # drop timout if user start enter something
 
-        my @match = grep {/\A\Q$buffer\E/smi} @{$answers};
-        if ( !scalar @match ) {
-            if ( length $buffer == 1 ) {
-                $buffer = q[];
-                goto REDO_READKEY;
+        $key =~ s/\x0D|\x0A//smg;
+
+        if ( $key eq q[] ) {    # ENTER
+            if ( $args{line} ) {
+                if ( $args{on_read} ) {
+                    if ( defined $args{on_read}->($input) ) {
+                        $clear_input->();
+
+                        goto READ;
+                    }
+                }
             }
             else {
-                say q[];
-                goto REDO_PROMPT;
+                goto READ;
             }
         }
-        elsif ( scalar @match == 1 && !$options{confirm} ) {
-            print $key if ( $key && ord($key) >= 32 );
-            Term::ReadKey::ReadMode(0);
-            if ( $match[0] =~ /\A$buffer(.*)\z/sm ) {
-                say $1;
+        elsif ( $key =~ /\e/sm ) {    # ESC seq.
+            while ( Term::ReadKey::ReadKey( 0, $STDIN ) ne q[~] ) { }    # read and ignore the rest of the ESC seq.
+
+            goto READ;
+        }
+        elsif ( $key =~ /[[:cntrl:]]/sm ) {                              # control char
+            if ( $args{edit} && ord($key) == 8 || ord($key) == 127 ) {    # BACKSPACE, DELETE
+                $delete_char->();
             }
-            else {
-                say q[];
-            }
-            return $match[0];
+
+            goto READ;
         }
         else {
-            print $key if ( $key && ord($key) >= 32 );
-            goto REDO_READKEY;
+            # TODO decode to UTF-8 under windows
+
+            if ( $args{line} ) {
+                $add_char->($key);
+
+                goto READ;
+            }
+            elsif ( $args{on_read} ) {
+                my $on_read = $args{on_read}->( $input . $key );
+
+                if ( defined $on_read ) {
+                    $add_char->($key) if $on_read;    # char is accepted
+
+                    goto READ;
+                }
+                else {                                # accept char and return
+                    $add_char->($key);
+                }
+            }
+            else {
+                $add_char->($key);
+            }
+
         }
     }
+
+    $clear_echo->() if $args{clear_echo};
+
+    Term::ReadKey::ReadMode(0);
+
+    return $input;
 }
 
 1;
@@ -147,11 +259,13 @@ sub prompt1 {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 10                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 12                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 54                   │ Subroutines::ProhibitExcessComplexity - Subroutine "prompt1" with high complexity score (32)                   │
+## │    3 │ 49                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 19, 44               │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    3 │ 134                  │ Subroutines::ProhibitExcessComplexity - Subroutine "read_input" with high complexity score (28)                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 193                  │ RegularExpressions::ProhibitSingleCharAlternation - Use [\x0D\x0A] instead of \x0D|\x0A                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
