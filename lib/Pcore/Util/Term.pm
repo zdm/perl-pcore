@@ -40,17 +40,34 @@ sub pause ( $self, @ ) {
 sub prompt ( $self, $msg, $opt, @ ) {
     my %args = (
         default => undef,
-        line    => 0,
+        enter   => 0,       # user should press ENTER
         echo    => 1,
         timeout => 0,       # timeout, after the default value will be accepted
         @_[ 3 .. $#_ ],
     );
 
-    die qq[Invalid default value] if defined $args{default} && !( $args{default} ~~ $opt );
+    my $index = {};
 
-    $args{default} = $opt->[0] if $args{timeout} && !defined $args{default};
+    my @opt;
 
-    print $msg, ' (', join( q[|], $opt->@* ), ')';
+    my $default_match;
+
+    # index opt, remove duplicates
+    for my $val ( $opt->@* ) {
+        next if exists $index->{$val};
+
+        $index->{$val} = 1;
+
+        push @opt, $val;
+
+        $default_match = 1 if defined $args{default} && $args{default} eq $val;
+    }
+
+    die qq[Invalid default value] if defined $args{default} && !$default_match;
+
+    die q[Default value should be specified if timeout is used] if $args{timeout} && !defined $args{default};
+
+    print $msg, ' (', join( q[|], @opt ), ')';
 
     print " [$args{default}]" if defined $args{default};
 
@@ -60,39 +77,52 @@ sub prompt ( $self, $msg, $opt, @ ) {
     my @possible = ();
 
     my $input = $self->read_input(
-        line       => $args{line},
         edit       => 1,
         echo       => $args{echo},
         echo_char  => undef,
         timeout    => $args{timeout},
         clear_echo => 1,
-        on_read    => sub ($input) {
+        on_read    => sub ( $input, $char ) {
             @possible = ();
 
-            for my $val ( $opt->@* ) {
+            # stop reading if ENTER is pressed and has default value
+            return if !defined $char && $input eq q[] && defined $args{default};
+
+            # scan possible input values
+            for my $val (@opt) {
                 push @possible, $val if !index $val, $input, 0;
             }
 
+            # say dump [ \@possible, $input, $char ];
+
             if ( !@possible ) {
-                return 0;    # do not accept char / line, clear echo, continue
+                return 0;    # reject last char
             }
             elsif ( @possible > 1 ) {
-                return 1;    # for char mode only, accept char and continue reading
+                if ( !defined $char ) {
+                    return -1;    # clear input on ENTER
+                }
+                else {
+                    return 1;     # accept last char
+                }
             }
             else {
-                return;      # accept / line and exit
+                if ( $args{enter} ) {
+                    if ( !defined $char ) {
+                        return;    # ENTER pressed, accept input
+                    }
+                    else {
+                        return 1;    # waiting for ENTER
+                    }
+                }
+                else {
+                    return;          # accept input and exit
+                }
             }
         }
     );
 
-    if ( !defined $input ) {    # timeout, no user input
-        if ( defined $args{default} ) {
-            $possible[0] = $args{default};
-        }
-        else {
-            goto READ;
-        }
-    }
+    $possible[0] = $args{default} if $input eq q[];    # timeout, no user input
 
     print $possible[0];
 
@@ -112,7 +142,6 @@ sub read_password ( $self, @ ) {
     print $args{msg}, ': ';
 
     my $input = $self->read_input(
-        line      => 1,
         edit      => 1,
         echo      => $args{echo},
         echo_char => $args{echo_char},
@@ -124,16 +153,12 @@ sub read_password ( $self, @ ) {
 }
 
 # NOTE on_read callback should return:
-# line mode:
-#     - undef  - accept line and return;
-#     - !undef - do not accept line, clear echo, continue reading;
-# char mode:
-#  - undef - accept last char and return;
-#  - 0     - do not accept last char, continue reading;
-#  - 1     - accept last char, continue reading;
+# undef - accept input and return;
+# -1    - clear input and continue reading;
+# 0     - reject last char and continue reading;
+# 1     - accept last char and continue reading;
 sub read_input ( $self, @ ) {
     my %args = (
-        line       => 1,
         edit       => 1,
         echo       => 1,
         echo_char  => undef,
@@ -185,7 +210,7 @@ sub read_input ( $self, @ ) {
     my $key = Term::ReadKey::ReadKey( $args{timeout}, $STDIN );
 
     if ( !defined $key ) {    # timeout
-        undef $input;
+        $input = q[];
     }
     else {
         $args{timeout} = 0;    # drop timout if user start enter something
@@ -193,17 +218,14 @@ sub read_input ( $self, @ ) {
         $key =~ s/\x0D|\x0A//smg;
 
         if ( $key eq q[] ) {    # ENTER
-            if ( $args{line} ) {
-                if ( $args{on_read} ) {
-                    if ( defined $args{on_read}->($input) ) {
-                        $clear_input->();
+            if ( $args{on_read} ) {
+                my $on_read = $args{on_read}->( $input, undef );
 
-                        goto READ;
-                    }
+                if ( defined $on_read ) {
+                    $clear_input->() if $on_read == -1;
+
+                    goto READ;
                 }
-            }
-            else {
-                goto READ;
             }
         }
         elsif ( $key =~ /\e/sm ) {    # ESC seq.
@@ -221,25 +243,27 @@ sub read_input ( $self, @ ) {
         else {
             # TODO decode to UTF-8 under windows
 
-            if ( $args{line} ) {
-                $add_char->($key);
-
-                goto READ;
-            }
-            elsif ( $args{on_read} ) {
-                my $on_read = $args{on_read}->( $input . $key );
+            if ( $args{on_read} ) {
+                my $on_read = $args{on_read}->( $input . $key, $key );
 
                 if ( defined $on_read ) {
-                    $add_char->($key) if $on_read;    # char is accepted
+                    if ( $on_read == -1 ) {    # clear input
+                        $clear_input->();
+                    }
+                    elsif ( $on_read == 1 ) {    # accept last character
+                        $add_char->($key);
+                    }
 
                     goto READ;
                 }
-                else {                                # accept char and return
+                else {                           # accept last char and return
                     $add_char->($key);
                 }
             }
             else {
                 $add_char->($key);
+
+                goto READ;
             }
 
         }
@@ -261,11 +285,13 @@ sub read_input ( $self, @ ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 12                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 49                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
+## │      │ 40                   │ * Subroutine "prompt" with high complexity score (25)                                                          │
+## │      │ 160                  │ * Subroutine "read_input" with high complexity score (27)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 134                  │ Subroutines::ProhibitExcessComplexity - Subroutine "read_input" with high complexity score (28)                │
+## │    3 │ 66                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 193                  │ RegularExpressions::ProhibitSingleCharAlternation - Use [\x0D\x0A] instead of \x0D|\x0A                        │
+## │    1 │ 218                  │ RegularExpressions::ProhibitSingleCharAlternation - Use [\x0D\x0A] instead of \x0D|\x0A                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
