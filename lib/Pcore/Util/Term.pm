@@ -168,8 +168,6 @@ sub read_input ( $self, @ ) {
         @_[ 1 .. $#_ ],
     );
 
-    Term::ReadKey::ReadMode(3);
-
     my $input = q[];
 
     my $add_char = sub ($char) {
@@ -205,6 +203,8 @@ sub read_input ( $self, @ ) {
 
         return;
     };
+
+    Term::ReadKey::ReadMode(3);
 
   READ:
     my $key = Term::ReadKey::ReadKey( $args{timeout}, $STDIN );
