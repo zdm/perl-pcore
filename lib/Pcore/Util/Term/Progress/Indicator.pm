@@ -1,4 +1,4 @@
-package Pcore::Util::Progress::Indicator;
+package Pcore::Util::Term::Progress::Indicator;
 
 use Pcore qw[-role];
 use POSIX qw[strftime];
@@ -234,7 +234,7 @@ sub update ( $self, %args ) {
     # redraw only every 0.5 sec., or if indicator is finished
     return if !$self->is_finished && $LAST_UPDATED && $LAST_UPDATED + 0.5 > Time::HiRes::time();
 
-    Pcore::Util::Progress->_update;
+    Pcore::Util::Term::Progress->_update;
 
     $LAST_UPDATED = Time::HiRes::time();
 
@@ -259,7 +259,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Progress::Indicator
+Pcore::Util::Term::Progress::Indicator
 
 =head1 SYNOPSIS
 

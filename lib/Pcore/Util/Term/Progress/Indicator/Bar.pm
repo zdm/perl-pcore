@@ -1,9 +1,9 @@
-package Pcore::Util::Progress::Indicator::Bar;
+package Pcore::Util::Term::Progress::Indicator::Bar;
 
 use Pcore qw[-class];
 use Term::ANSIColor qw[:constants];
 
-with qw[Pcore::Util::Progress::Indicator];
+with qw[Pcore::Util::Term::Progress::Indicator];
 
 our $PROGRESS_BAR_CHAR = q[■];
 our $MESS_COLOR        = BOLD . YELLOW;
@@ -166,7 +166,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Progress::Indicator::Bar
+Pcore::Util::Term::Progress::Indicator::Bar
 
 =head1 SYNOPSIS
 

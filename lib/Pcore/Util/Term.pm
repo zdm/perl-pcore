@@ -1,28 +1,30 @@
-package Pcore::Util::Prompt;
+package Pcore::Util::Term;
 
 use Pcore;
 use Term::ReadKey qw[];
 use Term::Size::Any qw[chars];
 
-sub width {
-    my $self = shift;
-
+sub width ($self) {
     my ( $width, $height ) = chars;
+
     return $width;
 }
 
-sub pause {
-    my $self = shift;
+sub pause ( $self, @ ) {
+    my %args = (
+        msg     => 'Press any key to continue...',
+        timeout => undef,
+        @_[ 1 .. $#_ ]
+    );
 
-    my $message = shift || 'Press any key to continue...';
-    my %options = @_;
+    say $args{msg};
 
-    say $message;
     Term::ReadKey::ReadMode(4);
 
     my $key;
-    if ( $options{timeout} ) {
-        $key = Term::ReadKey::ReadKey( $options{timeout} );
+
+    if ( $args{timeout} ) {
+        $key = Term::ReadKey::ReadKey( $args{timeout} );
     }
     else {
         while ( !defined( $key = Term::ReadKey::ReadKey(60) ) ) { }
@@ -129,14 +131,16 @@ sub prompt {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 36                   │ Subroutines::ProhibitExcessComplexity - Subroutine "prompt" with high complexity score (32)                    │
+## │    3 │ 38                   │ Subroutines::ProhibitExcessComplexity - Subroutine "prompt" with high complexity score (32)                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 14                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
 __END__
 =head1 NAME
 
-Pcore::Util::Prompt
+Pcore::Util::Term
 
 =head1 METHODS
 
