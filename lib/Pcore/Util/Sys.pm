@@ -40,30 +40,7 @@ sub hostname {
     return $hostname;
 }
 
-# term width
-sub term_width {
-    state $required;
-
-    if ( !defined $required ) {
-        require Term::Size::Any;
-
-        $required = Term::Size::Any::_require_any();
-    }
-
-    return scalar Term::Size::Any::chars();
-}
-
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 50                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

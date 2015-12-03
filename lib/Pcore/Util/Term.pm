@@ -2,12 +2,17 @@ package Pcore::Util::Term;
 
 use Pcore;
 use Term::ReadKey qw[];
-use Term::Size::Any qw[chars];
 
 sub width ($self) {
-    my ( $width, $height ) = chars;
+    state $required = do {
+        require Term::Size::Any;
 
-    return $width;
+        Term::Size::Any::_require_any();
+
+        1;
+    };
+
+    return scalar Term::Size::Any::chars();
 }
 
 sub pause ( $self, @ ) {
@@ -35,7 +40,18 @@ sub pause ( $self, @ ) {
     return $key;
 }
 
-sub prompt {
+sub prompt ( $self, $msg, $opt, @ ) {
+    my %args = (
+        default => 1,
+        enter   => 0,    # enter press is required
+        timeout => 0,    # timeout, after the default value will be accepted
+        @_[ 2 .. $#_ ]
+    );
+
+    return;
+}
+
+sub prompt1 {
     my $self = shift;
 
     my ( $message, $answers, %options ) = @_;
@@ -131,9 +147,11 @@ sub prompt {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 38                   │ Subroutines::ProhibitExcessComplexity - Subroutine "prompt" with high complexity score (32)                    │
+## │    3 │ 10                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 14                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    3 │ 54                   │ Subroutines::ProhibitExcessComplexity - Subroutine "prompt1" with high complexity score (32)                   │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 19, 44               │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

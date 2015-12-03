@@ -45,7 +45,7 @@ has speed => ( is => 'rwp', isa => PositiveOrZeroNum, init_arg => undef );
 
 no Pcore;
 
-my $TERM_WIDTH = P->sys->term_width;
+my $TERM_WIDTH = P->term->width;
 
 our $DEFAULT_SIZE = $TERM_WIDTH ? $TERM_WIDTH - 5 : 80;
 

@@ -113,9 +113,6 @@ feature windows => sub {
     requires 'Win32::Service';
 };
 
-# Pcore::Util::Prompt
-requires 'Term::ReadKey';
-
 # Pcore::Util::Random
 requires 'Bytes::Random::Secure';
 requires 'Math::Random::ISAAC::XS';
@@ -123,6 +120,12 @@ requires 'Crypt::Random::Seed';
 
 # Pcore::Util::Sys
 requires 'Sys::CpuAffinity';
+feature windows => sub {
+    requires 'Win32::RunAsAdmin';
+};
+
+# Pcore::Util::Term
+requires 'Term::ReadKey';
 requires 'Term::Size::Any';
 feature windows => sub {
     requires 'Term::Size::Win32';
