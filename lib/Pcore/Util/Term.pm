@@ -30,7 +30,7 @@ sub pause ( $self, @ ) {
 
     Term::ReadKey::ReadKey( $args{timeout}, $STDIN );
 
-    Term::ReadKey::ReadMode(0);
+    Term::ReadKey::ReadMode(1);
 
     print $LF;
 
@@ -241,7 +241,7 @@ sub read_input ( $self, @ ) {
             goto READ;
         }
         else {
-            # TODO decode to UTF-8 under windows
+            $key = Encode::decode( $Pcore::CON_ENC, $key ) if !utf8::is_utf8($key);
 
             if ( $args{on_read} ) {
                 my $on_read = $args{on_read}->( $input . $key, $key );
@@ -271,7 +271,7 @@ sub read_input ( $self, @ ) {
 
     $clear_echo->() if $args{clear_echo};
 
-    Term::ReadKey::ReadMode(0);
+    Term::ReadKey::ReadMode(1);
 
     return $input;
 }
@@ -287,7 +287,7 @@ sub read_input ( $self, @ ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 40                   │ * Subroutine "prompt" with high complexity score (25)                                                          │
-## │      │ 160                  │ * Subroutine "read_input" with high complexity score (27)                                                      │
+## │      │ 160                  │ * Subroutine "read_input" with high complexity score (28)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 66                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
