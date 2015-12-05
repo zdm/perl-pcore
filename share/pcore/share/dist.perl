@@ -19,7 +19,7 @@
         par => {
             'bin/<: $main_script :>' => {
                 crypt     => 1,
-                noupx     => 0,
+                upx       => 1,
                 clean     => 1,
                 resources => [
 

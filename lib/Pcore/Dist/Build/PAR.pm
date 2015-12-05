@@ -2,9 +2,7 @@ package Pcore::Dist::Build::PAR;
 
 use Pcore qw[-class];
 use Config qw[];
-use Archive::Zip qw[];
-use PAR::Filter;
-use Pcore::Src::File;
+use Pcore::Dist::Build::PAR::Script;
 use Term::ANSIColor qw[:constants];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
@@ -14,64 +12,91 @@ has crypt   => ( is => 'ro', isa => Bool );
 has upx     => ( is => 'ro', isa => Bool );
 has clean   => ( is => 'ro', isa => Bool );
 
-has _pardeps      => ( is => 'lazy', isa => HashRef, init_arg => undef );
-has dist_version  => ( is => 'ro',   isa => Str,     init_arg => undef );
-has build_version => ( is => 'ro',   isa => Str,     init_arg => undef );
-
 no Pcore;
 
-our $PAR_CFG = P->cfg->load( $PROC->res->get( '/data/pcore.perl', lib => 'pcore' ) );
+# sub _build_dist_version ($self) {
+#     return $self->dist->version;
+# }
+#
+# sub _build_build_version ($self) {
+#     return P->date->now_utc->strftime('%Y%m%d%H%M%S');
+# }
 
-sub _build__pardeps ($self) {
+sub run ($self) {
+
+    # load .pardeps.cbor
+    my $pardeps;
+
     if ( -f $self->dist->root . 'data/.pardeps.cbor' ) {
-        return P->cfg->load( $self->dist->root . 'data/.pardeps.cbor' );
+        $pardeps = P->cfg->load( $self->dist->root . 'data/.pardeps.cbor' );
     }
     else {
-        say q["data/.pardeps.cbor" not exists.];
+        say q["data/.pardeps.cbor" is not exists.];
 
         say q[Run source scripts with --scan-deps argument.];
 
         exit 1;
     }
-}
 
-sub _build_dist_version ($self) {
-    return $self->dist->version;
-}
-
-sub _build_build_version ($self) {
-    return P->date->now_utc->strftime('%Y%m%d%H%M%S');
-}
-
-sub run ($self) {
-
-    # read PAR profile
-    my $profile = $self->dist->cfg->{dist}->{par};
-
-    if ( !$profile || ref $profile ne 'HASH' ) {
+    # check for distribution has configure PAR profiles in dist.perl
+    if ( !$self->dist->cfg->{dist}->{par} && !ref $self->dist->cfg->{dist}->{par} eq 'HASH' ) {
         say q[par profile wasn't found.];
 
-        exit;
+        exit 1;
     }
 
+    # load global pcore.perl config
+    my $pcore_cfg = P->cfg->load( $PROC->res->get( '/data/pcore.perl', lib => 'pcore' ) );
+
     # build scripts
-    for my $script ( sort keys $profile->%* ) {
-        $profile->{$script}->{release} = $self->release;
+    for my $script ( sort keys $self->dist->cfg->{dist}->{par}->%* ) {
+        $script = P->path($script);
 
-        $profile->{$script}->{crypt} = $self->crypt if defined $self->crypt;
+        my $profile = $self->dist->cfg->{dist}->{par}->{$script};
 
-        $profile->{$script}->{noupx} = !$self->upx if defined $self->upx;
+        $profile->{dist} = $self->dist;
 
-        $profile->{$script}->{clean} = $self->crypt if defined $self->clean;
+        $profile->{script} = $script->to_string;
 
-        $self->_build_script( $script, $profile->{$script} );
+        $profile->{release} = $self->release;
+
+        $profile->{crypt} = $self->crypt if defined $self->crypt;
+
+        $profile->{upx} = $self->upx if defined $self->upx;
+
+        $profile->{clean} = $self->crypt if defined $self->clean;
+
+        if ( !exists $pardeps->{ $script->filename }->{ $Config::Config{archname} } ) {
+            say BOLD . RED . qq[Deps for $script "$Config::Config{archname}" wasn't scanned.] . RESET;
+
+            say qq[Run "$script ---scan-deps"];
+
+            next;
+        }
+        else {
+            $profile->{pardeps} = $pardeps->{ $script->filename }->{ $Config::Config{archname} };
+        }
+
+        Pcore::Dist::Build::PAR::Script->new($profile)->run;
     }
 
     return;
 }
 
+1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 52                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
+__END__
 sub _build_script ( $self, $script, $profile ) {
-    my $script = P->path($script);
+    $script = P->path($script);
 
     my $exe_path = 'data/' . $script->filename_base . ( $Config::Config{archname} =~ /x64|x86_64/sm ? q[-x64] : q[] );
     $exe_path .= $profile->{release} ? q[-] . $self->dist_version . q[.] . $self->build_version : q[-devel];
@@ -562,28 +587,6 @@ sub _find_module ( $self, $module ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 58, 105, 120         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 73                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_build_script" with high complexity score (25)             │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 134, 222, 244, 556   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 447                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 474                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 505, 507             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 463, 469, 511        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
