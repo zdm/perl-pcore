@@ -677,20 +677,59 @@ sub move ( $self, $from, $to, % ) {
 }
 
 # FIND
-sub find {
-    my $self = shift;
+sub find1 ( $self, $path, @ ) {
+    my %args = (
+        chdir     => 0,
+        finddepth => 0,
+        @_[ 2 .. $#_ - 1 ],
+    );
+
+    my $cb = $_[-1];
 
     require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
 
-    return File::Find::find(@_);
+    if ( $args{finddepth} ) {
+        File::Find::finddepth(
+            {   wanted => sub {
+                    utf8::downgrade($_);
+
+                    $_ = Encode::decode( $Pcore::WIN_ENC, $_ );
+
+                    $cb->();
+                },
+                no_chdir => !$args{chdir},
+            },
+            $path
+        );
+    }
+    else {
+        File::Find::find(
+            {   wanted => sub {
+                    utf8::downgrade($_);
+
+                    $_ = Encode::decode( $Pcore::WIN_ENC, $_ );
+
+                    $cb->();
+                },
+                no_chdir => !$args{chdir},
+            },
+            $path
+        );
+    }
+
+    return;
 }
 
-sub finddepth {
-    my $self = shift;
-
+sub find ( $self, $args, $path ) {
     require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
 
-    return File::Find::finddepth(@_);
+    return File::Find::find( $args, $path );
+}
+
+sub finddepth ( $self, $args, $path ) {
+    require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
+
+    return File::Find::finddepth( $args, $path );
 }
 
 # WHICH / WHERE
