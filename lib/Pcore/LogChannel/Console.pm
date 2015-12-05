@@ -14,8 +14,9 @@ sub send_log {
     my %args = @_;
 
     for my $i ( 0 .. $#{ $args{data} } ) {
-        print {$STDERR} $args{header} . q[ ] if $args{header};
-        say {$STDERR} $args{data}->[$i];
+        print {$STDERR_UTF8} $args{header} . q[ ] if $args{header};
+
+        say {$STDERR_UTF8} $args{data}->[$i];
     }
 
     return 1;

@@ -60,9 +60,8 @@ sub daemonize {
         open STDOUT, '>&STDIN' or die;
         open STDERR, '>&STDIN' or die;
 
-        open $STDIN, '+<', '/dev/null' or die;    ## no critic qw[InputOutput::RequireBriefOpen]
-        open $STDOUT, '>&STDIN' or die;           ## no critic qw[InputOutput::RequireBriefOpen]
-        open $STDERR, '>&STDIN' or die;           ## no critic qw[InputOutput::RequireBriefOpen]
+        open $STDOUT_UTF8, '>&STDIN' or die;    ## no critic qw[InputOutput::RequireBriefOpen]
+        open $STDERR_UTF8, '>&STDIN' or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
         POSIX::setsid() or die qq[Can't set sid: $!];
 

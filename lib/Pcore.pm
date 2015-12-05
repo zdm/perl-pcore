@@ -34,11 +34,12 @@ use AnyEvent;
 
 # define global variables
 BEGIN {
-    $Pcore::INITIALISED      = 0;          # core initialisation flag
-    $Pcore::CALLER           = caller;     # namespace, from P was required first time
-    $Pcore::EMBEDDED         = 0;          # Pcore::Core used in embedded mode
-    $Pcore::ENCODING_CONSOLE = 'UTF-8';    # default console encoding, redefined later for windows
-    $Pcore::NO_ISA_ATTR      = 0;          # do not check isa for class / role attributes
+    $Pcore::INITIALISED = 0;         # core initialisation flag
+    $Pcore::CALLER      = caller;    # namespace, from P was required first time
+    $Pcore::EMBEDDED    = 0;         # Pcore::Core used in embedded mode
+    $Pcore::NO_ISA_ATTR = 0;         # do not check isa for class / role attributes
+    $Pcore::WIN_ENC     = undef;
+    $Pcore::CON_ENC     = undef;
 
     # NOTE workaround for incompatibility with Moo lazy attributes
     # https://rt.cpan.org/Ticket/Display.html?id=102788
@@ -391,37 +392,70 @@ sub _CORE_INIT ($proc_cfg) {
     $PerlIO::encoding::fallback = Encode::FB_CROAK | Encode::STOP_AT_PARTIAL;
 
     if ($MSWIN) {
-        require Win32::API;
+        require Win32;
         require Win32::Console::ANSI;
 
-        # detect windows active codepage
-        $Pcore::ENCODING_CONSOLE = 'cp' . Win32::API::More->new( 'kernel32', 'int GetACP()' )->Call;
+        $Pcore::CON_ENC = 'cp' . Win32::GetConsoleCP();
+        $Pcore::WIN_ENC = 'cp' . Win32::GetACP();
 
         # check if we can properly decode STDIN under MSWIN
         eval {
-            Encode::perlio_ok($Pcore::ENCODING_CONSOLE) or die;
+            Encode::perlio_ok($Pcore::CON_ENC) or die;
 
             1;
         } || do {
-            say qq[FATAL: Console input encoding "$Pcore::ENCODING_CONSOLE" isn't supported. Use chcp to change console codepage.];
+            say qq[FATAL: Console input encoding "$Pcore::CON_ENC" isn't supported. Use chcp to change console codepage.];
 
             exit 1;
         };
     }
+    else {
+        $Pcore::CON_ENC = 'UTF-8';
+        $Pcore::WIN_ENC = 'UTF-8';
+    }
 
     # decode @ARGV
     for (@ARGV) {
-        $_ = Encode::decode( $Pcore::ENCODING_CONSOLE, $_, Encode::FB_CROAK );
+        $_ = Encode::decode( $Pcore::WIN_ENC, $_, Encode::FB_CROAK );
     }
 
     # configure run-time environment
     Pcore::Core::Bootstrap::CORE_INIT($proc_cfg);
 
-    _configure_console();
+    # STDIN
+    if ( -t *STDIN ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
+        if ($MSWIN) {
+            binmode *STDIN, ":raw:crlf:encoding($Pcore::CON_ENC)" or die;
+        }
+        else {
+            binmode *STDIN, ':raw:encoding(UTF-8)' or die;
+        }
+    }
+    else {
+        binmode *STDIN, ':raw' or die;
+    }
 
-    Pcore::Core::Log::CORE_INIT();          # set default log pipes
-    Pcore::Core::Exception::CORE_INIT();    # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
-    Pcore::Core::I18N::CORE_INIT();         # configure default I18N locations
+    # STDOUT
+    open our $STDOUT_UTF8, '>&STDOUT' or $STDOUT_UTF8 = *STDOUT;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles]
+
+    _config_stdout($STDOUT_UTF8);
+
+    # STDERR
+    open our $STDERR_UTF8, '>&STDERR' or $STDERR_UTF8 = *STDERR;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles]
+
+    _config_stdout($STDERR_UTF8);
+
+    select $STDOUT_UTF8;                                            ## no critic qw[InputOutput::ProhibitOneArgSelect]
+
+    STDOUT->autoflush(1);
+    STDERR->autoflush(1);
+
+    $STDOUT_UTF8->autoflush(1);
+    $STDERR_UTF8->autoflush(1);
+
+    Pcore::Core::Log::CORE_INIT();                                  # set default log pipes
+    Pcore::Core::Exception::CORE_INIT();                            # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
+    Pcore::Core::I18N::CORE_INIT();                                 # configure default I18N locations
 
     return;
 }
@@ -505,40 +539,26 @@ sub cv {
     return $cv;
 }
 
-sub _configure_console {
-
-    # clone handles
-    open our $STDIN,  '<&STDIN'  or $STDIN  = *STDIN;     ## no critic qw[InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars]
-    open our $STDOUT, '>&STDOUT' or $STDOUT = *STDOUT;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars]
-    open our $STDERR, '>&STDERR' or $STDERR = *STDERR;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles Variables::RequireLocalizedPunctuationVars]
-
-    # setup default layers for STD* handles
-    binmode STDIN,  q[:raw:encoding(UTF-8)] or die;
-    binmode STDOUT, q[:raw:encoding(UTF-8)] or die;
-    binmode STDERR, q[:raw:encoding(UTF-8)] or die;
-
-    # setup default layers for STD* handles clones
+# TODO add PerlIO::removeEsc layer
+sub _config_stdout ($h) {
     if ($MSWIN) {
-        require Pcore::Core::PerlIOviaWinUniCon;
+        if ( -t $h ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
+            require Pcore::Core::PerlIOviaWinUniCon;
 
-        binmode $STDIN,  qq[:raw:crlf:encoding($Pcore::ENCODING_CONSOLE)] or die;
-        binmode $STDOUT, q[:raw:via(Pcore::Core::PerlIOviaWinUniCon)]     or die;
-        binmode $STDERR, q[:raw:via(Pcore::Core::PerlIOviaWinUniCon)]     or die;
+            binmode $h, ':raw:via(Pcore::Core::PerlIOviaWinUniCon)' or die;    # terminal
+        }
+        else {
+            binmode $h, ':raw:encoding(UTF-8)' or die;                         # file TODO +RemoveESC
+        }
     }
     else {
-        binmode $STDIN,  q[:raw:encoding(UTF-8)] or die;
-        binmode $STDOUT, q[:raw:encoding(UTF-8)] or die;
-        binmode $STDERR, q[:raw:encoding(UTF-8)] or die;
+        if ( -t $h ) {                                                         ## no critic qw[InputOutput::ProhibitInteractiveTest]
+            binmode $h, ':raw:encoding(UTF-8)' or die;                         # terminal
+        }
+        else {
+            binmode $h, ':raw:encoding(UTF-8)' or die;                         # file TODO +RemoveESC
+        }
     }
-
-    select $STDOUT;    ## no critic qw[InputOutput::ProhibitOneArgSelect]
-
-    # make STD* non-caching
-    STDOUT->autoflush(1);
-    STDERR->autoflush(1);
-
-    $STDOUT->autoflush(1);
-    $STDERR->autoflush(1);
 
     return;
 }
@@ -550,21 +570,21 @@ sub _configure_console {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 45                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 46                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 99                   │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
+## │    3 │ 100                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 163                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 164                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 358                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 359                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 402, 451, 468, 516,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 517, 518, 524, 525,  │                                                                                                                │
-## │      │ 526, 529, 530, 531   │                                                                                                                │
+## │    3 │ 403, 428, 431, 435,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 485, 502, 548, 551,  │                                                                                                                │
+## │      │ 556, 559             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 494                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 528                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -28,7 +28,7 @@ sub pause ( $self, @ ) {
 
     Term::ReadKey::ReadMode(3);
 
-    Term::ReadKey::ReadKey( $args{timeout}, $STDIN );
+    Term::ReadKey::ReadKey( $args{timeout} );
 
     Term::ReadKey::ReadMode(1);
 
@@ -207,7 +207,7 @@ sub read_input ( $self, @ ) {
     Term::ReadKey::ReadMode(3);
 
   READ:
-    my $key = Term::ReadKey::ReadKey( $args{timeout}, $STDIN );
+    my $key = Term::ReadKey::ReadKey( $args{timeout} );
 
     if ( !defined $key ) {    # timeout
         $input = q[];
@@ -229,11 +229,11 @@ sub read_input ( $self, @ ) {
             }
         }
         elsif ( $key =~ /\e/sm ) {    # ESC seq.
-            while ( Term::ReadKey::ReadKey( 0, $STDIN ) ne q[~] ) { }    # read and ignore the rest of the ESC seq.
+            while ( Term::ReadKey::ReadKey(0) ne q[~] ) { }    # read and ignore the rest of the ESC seq.
 
             goto READ;
         }
-        elsif ( $key =~ /[[:cntrl:]]/sm ) {                              # control char
+        elsif ( $key =~ /[[:cntrl:]]/sm ) {                    # control char
             if ( $args{edit} && ord($key) == 8 || ord($key) == 127 ) {    # BACKSPACE, DELETE
                 $delete_char->();
             }

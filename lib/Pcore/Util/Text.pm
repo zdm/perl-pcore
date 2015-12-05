@@ -334,14 +334,11 @@ sub decode {
     my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
     my %args       = (
         encoding   => 'UTF-8',
-        stdin      => 0,         # use STDIN encoding
         decode_eol => 1,
         @_,
     );
 
-    $args{encoding} = $Pcore::ENCODING_CONSOLE if $args{stdin};
-
-    state $encoding;
+    state $encoding = {};
 
     if ( defined $scalar_ref->$* && !utf8::is_utf8( $scalar_ref->$* ) ) {
         $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
@@ -375,32 +372,12 @@ sub encode_utf8 {
     }
 }
 
-sub encode_stdout {
-    my $self = shift;
-    my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
-
-    state $encoding = Encode::find_encoding($Pcore::ENCODING_CONSOLE);
-
-    if ( utf8::is_utf8( $scalar_ref->$* ) ) {
-        $scalar_ref->$* = $encoding->encode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-    }
-
-    if ( defined wantarray ) {
-        return $scalar_ref;
-    }
-    else {
-        return;
-    }
-}
-
 # expand number from scientific format to ordinary
-sub expand {
-    my $self = shift;
-    my $n    = shift;
-
+sub expand ( $self, $n ) {
     return $n unless $n =~ /\A(.*)e([-+]?)(.*)\z/sm;
 
     my ( $num, $sign, $exp ) = ( $1, $2, $3 );
+
     my $sig = $sign eq q[-] ? q[.] . ( $exp - 1 + length $num ) : q[];
 
     return sprintf "%${sig}f", $n;

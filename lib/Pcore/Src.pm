@@ -117,7 +117,7 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
     catch {
         my $e = shift;
 
-        say {*STDOUT} $e;
+        say $e;
 
         return Pcore::Src::File->cfg->{EXIT_CODES}->{RUNTIME_ERROR};
     };
@@ -165,7 +165,7 @@ sub run ($self) {
 }
 
 sub _source_stdin_files ($self) {
-    my $files = P->file->read_lines($STDIN);
+    my $files = P->file->read_lines(*STDIN);
 
     # index files, calculate max_path_len
     my @paths_to_process;
@@ -207,17 +207,7 @@ sub _source_stdin ($self) {
     $self->interactive(0);
 
     # read STDIN
-    my $in_buffer;
-
-    {
-        open my $stdin_raw, '<&STDIN' or die;
-
-        binmode $stdin_raw, ':raw' or die;
-
-        $in_buffer = P->file->read_bin($stdin_raw);
-
-        close $stdin_raw or die;
-    }
+    my $in_buffer = P->file->read_bin(*STDIN);
 
     my $res = $self->_process_file(
         undef,
@@ -229,15 +219,7 @@ sub _source_stdin ($self) {
     );
 
     # write STDOUT
-    {
-        open my $stdout_raw, '>&STDOUT' or die;
-
-        binmode $stdout_raw, ':raw' or die;
-
-        print {$stdout_raw} $res->out_buffer->$*;
-
-        close $stdout_raw or die;
-    }
+    print $res->out_buffer->$*;
 
     return;
 }
@@ -306,8 +288,8 @@ sub _set_exit_code ( $self, $exit_code ) {
     return $self->exit_code;
 }
 
-sub _process_file ( $self, $max_path_len, % ) {
-    my $res = Pcore::Src::File->new( { @_[ 2 .. $#_ ] } )->run;
+sub _process_file ( $self, $max_path_len, %args ) {
+    my $res = Pcore::Src::File->new( \%args )->run;
 
     $self->_set_exit_code( $res->severity_range_is('ERROR') ? Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_ERROR} : Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_VALID} );
 
@@ -335,7 +317,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
 
     # print report
     print $hl;
-    printf q[%-*s], $max_path_len, $res->path;
+    printf q[%-*s], $max_path_len, P->text->decode( $res->path->to_string, encoding => $Pcore::WIN_ENC )->$*;
     print q[ ] x 2;
     print RESET;
 
@@ -390,7 +372,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 343                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 325                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -401,6 +401,16 @@ sub append_text {
     return;
 }
 
+sub encode_path ( $self, $path ) {
+    if ($MSWIN) {
+        state $enc = Encode::find_encoding($Pcore::WIN_ENC);
+
+        return $enc->encode( $path, Encode::FB_CROAK ) if utf8::is_utf8($path);
+    }
+
+    return $path;
+}
+
 sub get_fh ( $self, $path, $mode, % ) {
     my %args = (
         mode      => 'rw-------',
@@ -420,7 +430,7 @@ sub get_fh ( $self, $path, $mode, % ) {
         $umask_guard = $self->umask( $args{umask} ) if defined $args{umask};
 
         # encode filename to native OS encoding
-        P->text->encode_stdout($path);
+        $path = $self->encode_path($path);
 
         sysopen my $fh, $path, $mode, $self->calc_chmod( $args{mode} ) or die qq[Can't open file "$path"];
 
@@ -505,6 +515,8 @@ sub touch ( $self, $path, % ) {
         umask => undef,
         @_[ 2 .. $#_ ],
     );
+
+    $path = $self->encode_path($path);
 
     if ( !-e $path ) {
 
