@@ -92,6 +92,8 @@ sub DEMOLISH ( $self, $global ) {
 sub cmd ( $self, @cmd ) {
     my $buf = join qq[\x00], @cmd;
 
+    $buf = Encode::encode( $Pcore::WIN_ENC, $buf, Encode::FB_CROAK );
+
     my $cmd = qq[runcommand\x0A] . pack( 'L>', length $buf ) . $buf;
 
     syswrite $self->_out, $cmd or die;
@@ -104,8 +106,7 @@ sub cmd ( $self, @cmd ) {
     if ( $channel ne 'r' ) {
         chomp $data;
 
-        # TODO
-        P->text->decode( $data, stdin => 1 );
+        P->text->decode( $data, encoding => $Pcore::WIN_ENC );
 
         push $res->{$channel}->@*, $data;
 
@@ -127,41 +128,6 @@ sub _read_chunk ($self) {
     return $channel => $data;
 }
 
-sub _prepare_cmd ( $self, @args ) {
-    my @cmd;
-
-    for my $arg ( grep {$_} @args ) {
-        if ( ref $arg eq 'HASH' ) {
-            for my $key ( sort grep { $arg->{$_} } keys $arg->%* ) {
-                if ( ref $arg->{$key} eq 'ARRAY' ) {
-                    for my $val ( $arg->{$key}->@* ) {
-                        push @cmd, qq[--$key], $val;
-                    }
-                }
-                else {
-                    push @cmd, qq[--$key], $arg->{$key};
-                }
-            }
-        }
-        elsif ( ref $arg eq 'ARRAY' ) {
-            for my $val ( grep {$_} $arg->@* ) {
-                push @cmd, $val;
-            }
-        }
-        else {
-            push @cmd, $arg;
-        }
-    }
-
-    for (@cmd) {
-
-        # TODO
-        P->text->encode_stdout($_);
-    }
-
-    return \@cmd;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -169,11 +135,7 @@ sub _prepare_cmd ( $self, @args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 130                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_prepare_cmd' declared but not used │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 135                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 93, 95               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 93, 97               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
