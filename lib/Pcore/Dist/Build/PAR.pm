@@ -56,7 +56,7 @@ sub run ($self) {
 
         $profile->{dist} = $self->dist;
 
-        $profile->{script} = $script->to_string;
+        $profile->{script} = $script;
 
         $profile->{release} = $self->release;
 
