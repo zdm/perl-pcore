@@ -29,14 +29,18 @@ sub run ($self) {
     ];
 
     if ( my $home = $ENV{HOME} || $ENV{USERPROFILE} ) {
-        P->cfg->store( $home . q[/pcore.ini], $cfg );
+        if ( $home . q[/.pcore/config.ini] ) {
+            exit 0 if P->term->prompt( qq["$home/.pcore/config.ini" already exists. Overwrite?], [qw[yes no]] ) eq 'no';
+        }
 
-        say qq["pcore.ini" template was stored in "$home", fill it manually with correct values];
+        P->cfg->store( $home . q[/.pcore/config.ini], $cfg );
+
+        say qq["$home/.pcore/config.ini" was created, fill it manually with correct values];
 
         exit 0;
     }
     else {
-        say 'User homedir was not detected';
+        say 'User homedir was not found';
 
         exit 3;
     }
