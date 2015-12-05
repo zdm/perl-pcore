@@ -6,10 +6,10 @@ use CBOR::XS qw[];
 
 # store values, for access them later during global destruction
 our $ARCHNAME    = $Config{archname};
-our $DATA_DIR    = $Pcore::DIST->{DATA_DIR}->to_string;
-our $SCRIPT_NAME = $Pcore::PROC->{SCRIPT_NAME};
+our $DATA_DIR    = $PROC->{DATA_DIR}->to_string;
+our $SCRIPT_NAME = $PROC->{SCRIPT_NAME};
 
-if ( $Pcore::DIST->{ROOT} ) {
+if ( $PROC->dist ) {
     our $GUARD = bless {}, __PACKAGE__;
 
     core_support();
