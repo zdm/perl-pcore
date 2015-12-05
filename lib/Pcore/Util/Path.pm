@@ -15,10 +15,14 @@ use overload                     #
   q[~~] => sub {
     return !$_[2] ? $_[0]->to_string ~~ $_[1] : $_[1] ~~ $_[0]->to_string;
   },
+  q[-X] => sub {
+    return eval "-$_[1] '@{[$_[0]->encoded]}'";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+  },
   fallback => undef;
 
-has to_string => ( is => 'lazy', clearer => '_clear_to_string', init_arg => undef );
-has to_uri    => ( is => 'lazy', clearer => '_clear_to_uri',    init_arg => undef );
+has to_string => ( is => 'lazy', init_arg => undef );
+has to_uri    => ( is => 'lazy', init_arg => undef );
+has encoded   => ( is => 'lazy', init_arg => undef );
 
 has lazy    => ( is => 'ro',   default  => 0 );
 has is_abs  => ( is => 'ro',   required => 1 );
@@ -288,6 +292,10 @@ sub _build_to_uri ($self) {
     return $uri;
 }
 
+sub _build_encoded ($self) {
+    return P->file->encode_path( $self->path );
+}
+
 sub _build_is_dir ($self) {
 
     # empty path is dir
@@ -463,9 +471,11 @@ sub TO_DUMP {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (58)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 228, 412             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 19                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 359                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    3 │ 232, 420             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 367                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
