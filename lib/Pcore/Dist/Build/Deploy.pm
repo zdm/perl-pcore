@@ -34,41 +34,37 @@ sub _chmod ($self) {
 
     if ( !$MSWIN ) {
         P->file->find(
-            {   wanted => sub {
-                    if (-d) {
-                        P->file->chmod( 'rwx------', $_ ) or print qq[$!: $_\n];
+            q[.],
+            sub ($path) {
+                if ( -d $path ) {
+                    P->file->chmod( 'rwx------', $path ) or print qq[$!: $path\n];
+                }
+                else {
+                    my $is_exe;
+
+                    if ( ( $path->dirname eq 'bin/' || $path->dirname eq 'script/' ) && !$path->suffix ) {
+                        $is_exe = 1;
                     }
-                    else {
-                        if ( $self->_is_exec($_) ) {
-                            P->file->chmod( 'r-x------', $_ ) or print qq[$!: $_\n];
-                        }
-                        else {
-                            P->file->chmod( 'rw-------', $_ ) or print qq[$!: $_\n];
-                        }
+                    elsif ( $path->suffix eq 'sh' || $path->suffix eq 'pl' || $path->suffix eq 't' ) {
+                        $is_exe = 1;
                     }
 
-                    chown $>, $), $_ or print qq[$!: $_\n];    # EUID, EGID
-                },
-                no_chdir => 1,
-            },
-            q[.]
+                    if ($is_exe) {
+                        P->file->chmod( 'r-x------', $path ) or print qq[$!: $path\n];
+                    }
+                    else {
+                        P->file->chmod( 'rw-------', $path ) or print qq[$!: $path\n];
+                    }
+                }
+
+                chown $>, $), $path or print qq[$!: $path\n];    # EUID, EGID
+
+                return;
+            }
         );
     }
 
     say 'done';
-
-    return;
-}
-
-sub _is_exec ( $self, $path ) {
-    $path = P->path($path);
-
-    if ( ( $path->dirname eq 'bin/' || $path->dirname eq 'script/' ) && !$path->suffix ) {
-        return 1;
-    }
-    elsif ( $path->suffix eq 'sh' || $path->suffix eq 'pl' || $path->suffix eq 't' ) {
-        return 1;
-    }
 
     return;
 }
@@ -168,9 +164,9 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 110                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 106                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 131                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 127                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

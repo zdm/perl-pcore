@@ -24,8 +24,8 @@ sub BUILD ( $self, $args ) {
     $out_w->autoflush(1);
 
     # store old STD* handles
-    open my $old_in,  '<&', \*STDIN  or die;    ## no critic qw[InputOutput::RequireBriefOpen]
-    open my $old_out, '>&', \*STDOUT or die;    ## no critic qw[InputOutput::RequireBriefOpen]
+    open my $old_in,  '<&', *STDIN  or die;    ## no critic qw[InputOutput::RequireBriefOpen]
+    open my $old_out, '>&', *STDOUT or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
     # redirect STD* handles
     open STDIN,  '<&', $in_r  or die;
@@ -104,6 +104,7 @@ sub cmd ( $self, @cmd ) {
     if ( $channel ne 'r' ) {
         chomp $data;
 
+        # TODO
         P->text->decode( $data, stdin => 1 );
 
         push $res->{$channel}->@*, $data;
@@ -153,6 +154,8 @@ sub _prepare_cmd ( $self, @args ) {
     }
 
     for (@cmd) {
+
+        # TODO
         P->text->encode_stdout($_);
     }
 
@@ -166,9 +169,9 @@ sub _prepare_cmd ( $self, @args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 129                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_prepare_cmd' declared but not used │
+## │    3 │ 130                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_prepare_cmd' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 134                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 135                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 93, 95               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

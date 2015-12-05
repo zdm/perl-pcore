@@ -395,19 +395,26 @@ sub _CORE_INIT ($proc_cfg) {
         require Win32;
         require Win32::Console::ANSI;
 
-        $Pcore::CON_ENC = 'cp' . Win32::GetConsoleCP();
         $Pcore::WIN_ENC = 'cp' . Win32::GetACP();
+        $Pcore::CON_ENC = Win32::GetConsoleCP();
 
-        # check if we can properly decode STDIN under MSWIN
-        eval {
-            Encode::perlio_ok($Pcore::CON_ENC) or die;
+        if ($Pcore::CON_ENC) {
+            $Pcore::CON_ENC = 'cp' . $Pcore::CON_ENC;
 
-            1;
-        } || do {
-            say qq[FATAL: Console input encoding "$Pcore::CON_ENC" isn't supported. Use chcp to change console codepage.];
+            # check if we can properly decode STDIN under MSWIN
+            eval {
+                Encode::perlio_ok($Pcore::CON_ENC) or die;
 
-            exit 1;
-        };
+                1;
+            } || do {
+                say qq[FATAL: Console input encoding "$Pcore::CON_ENC" isn't supported. Use chcp to change console codepage.];
+
+                exit 1;
+            };
+        }
+        else {
+            $Pcore::CON_ENC = undef;
+        }
     }
     else {
         $Pcore::CON_ENC = 'UTF-8';
@@ -578,13 +585,13 @@ sub _config_stdout ($h) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 359                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 403, 428, 431, 435,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 485, 502, 548, 551,  │                                                                                                                │
-## │      │ 556, 559             │                                                                                                                │
+## │    3 │ 406, 435, 438, 442,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 492, 509, 555, 558,  │                                                                                                                │
+## │      │ 563, 566             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 528                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 535                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

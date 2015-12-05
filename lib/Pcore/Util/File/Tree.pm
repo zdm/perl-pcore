@@ -15,16 +15,13 @@ sub add_dir ( $self, $dir ) {
     my $chdir_guard = P->file->chdir($dir);
 
     P->file->find(
-        {   wanted => sub {
-                return if -d;
+        q[.],
+        dir => 0,
+        sub ($path) {
+            $self->add_file( $path->to_string, $dir . $_ );
 
-                my $path = P->path($_);
-
-                $self->add_file( $path->to_string, $dir . $path );
-            },
-            no_chdir => 1,
+            return;
         },
-        q[.]
     );
 
     return;
@@ -103,7 +100,7 @@ sub write_to_temp ( $self, $write_manifest = 0 ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 65, 73, 81, 86       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 62, 70, 78, 83       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

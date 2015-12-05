@@ -8,9 +8,7 @@ has app_ns => ( is => 'ro', isa => Str, required => 1 );
 
 no Pcore;
 
-sub scan {
-    my $self = shift;
-
+sub scan ($self) {
     warn q[Indexing API classes in "] . $self->app_ns . q[::API::" namespace];
 
     my $api_map = {};
@@ -20,42 +18,39 @@ sub scan {
     my $ns_path  = $ns_class =~ s[::][/]smgr;
 
     # scan whole @INC directories
-    for my $path ( sort grep { -d qq[$_/$ns_path] } @INC ) {
-        P->file->finddepth(
-            {   wanted => sub {
-                    my $filename = $_;
+    for my $inc_path ( sort grep { -d qq[$_/$ns_path] } @INC ) {
+        P->file->find(
+            qq[$inc_path/$ns_path],
+            dir => 0,
+            sub ($path) {
+                if ( $path->suffix eq 'pm' ) {    # is .pm file
+                    my $class = $path->dirname =~ s[/\z][]smr =~ s[/][::]smgr;
 
-                    if ( $filename =~ s/[.]pm\z//sm ) {    # is .pm file
-                        my $class = $filename =~ s[\A$path/$ns_path][]smr =~ s[/][::]smgr;
+                    warn qq[Found API class "$class"];
 
-                        warn qq[Found API class "$class"];
+                    my $obj = $self->backend->get_api_obj( undef, $class );
 
-                        my $obj = $self->backend->get_api_obj( undef, $class );
-
-                        if ( !$obj->does('Pcore::API::Class') ) {
-                            croak(qq["$class" - API class should be an instance of "Pcore::API::Class"]);
-                        }
-                        else {
-                            my $api_methods = $obj->_api_map->generate_api_map;
-
-                            # skip class if hasn't methods configured
-                            if ( !keys $api_methods->%* ) {
-                                warn qq["$class" - has no API methods configured];
-
-                                return;
-                            }
-
-                            # convert filename to action name
-                            my $action = P->text->to_snake_case( $class, split => q[::], join => q[.] );
-
-                            # store API action methods
-                            $api_map->{$action} = $api_methods;
-                        }
+                    if ( !$obj->does('Pcore::API::Class') ) {
+                        croak(qq["$class" - API class should be an instance of "Pcore::API::Class"]);
                     }
-                },
-                no_chdir => 1
-            },
-            qq[$path/$ns_path]
+                    else {
+                        my $api_methods = $obj->_api_map->generate_api_map;
+
+                        # skip class if hasn't methods configured
+                        if ( !keys $api_methods->%* ) {
+                            warn qq["$class" - has no API methods configured];
+
+                            return;
+                        }
+
+                        # convert filename to action name
+                        my $action = P->text->to_snake_case( $class, split => q[::], join => q[.] );
+
+                        # store API action methods
+                        $api_map->{$action} = $api_methods;
+                    }
+                }
+            }
         );
     }
 
@@ -69,7 +64,7 @@ sub scan {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 40                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

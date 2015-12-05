@@ -677,59 +677,48 @@ sub move ( $self, $from, $to, % ) {
 }
 
 # FIND
-sub find1 ( $self, $path, @ ) {
+sub find ( $self, $path, @ ) {
     my %args = (
-        chdir     => 0,
-        finddepth => 0,
+        abs  => 0,    # return absolute path
+        dir  => 1,    # return found dirs
+        file => 1,    # return found files
         @_[ 2 .. $#_ - 1 ],
     );
 
+    $path = P->path( $path, is_dir => 1 )->realpath or return;
+
     my $cb = $_[-1];
 
-    require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
+    my $chdir_guard;
 
-    if ( $args{finddepth} ) {
-        File::Find::finddepth(
-            {   wanted => sub {
-                    utf8::downgrade($_);
+    $chdir_guard = $self->chdir($path) if !$args{abs};
 
-                    $_ = Encode::decode( $Pcore::WIN_ENC, $_ );
+    my $read_dir;
 
-                    $cb->();
-                },
-                no_chdir => !$args{chdir},
-            },
-            $path
-        );
-    }
-    else {
-        File::Find::find(
-            {   wanted => sub {
-                    utf8::downgrade($_);
+    $read_dir = sub ($dirpath) {
+        for my $file ( $self->read_dir($dirpath)->@* ) {
+            $file = $dirpath . q[/] . Encode::decode( $Pcore::WIN_ENC, $file, Encode::FB_CROAK );
 
-                    $_ = Encode::decode( $Pcore::WIN_ENC, $_ );
+            if ( -d $file ) {
+                $file = P->path( $file, is_dir => 1 );
 
-                    $cb->();
-                },
-                no_chdir => !$args{chdir},
-            },
-            $path
-        );
-    }
+                $cb->($file) if $args{dir};
+
+                $read_dir->($file);
+            }
+            else {
+                $file = P->path( $file, is_dir => 0 );
+
+                $cb->($file) if $args{file};
+            }
+        }
+
+        return;
+    };
+
+    $read_dir->( $args{abs} ? $path : q[./] );
 
     return;
-}
-
-sub find ( $self, $args, $path ) {
-    require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
-
-    return File::Find::find( $args, $path );
-}
-
-sub finddepth ( $self, $args, $path ) {
-    require File::Find;    ## no critic qw[Modules::ProhibitEvilModules]
-
-    return File::Find::finddepth( $args, $path );
 }
 
 # WHICH / WHERE

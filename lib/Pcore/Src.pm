@@ -231,23 +231,20 @@ sub _source_dir ($self) {
 
     my $max_path_len = 0;
 
-    P->file->finddepth(
-        {   wanted => sub {
-                return if -d;
-
-                my $path = P->path( $_, is_dir => 0 );
-
-                my $type = Pcore::Src::File->detect_filetype($path);
-
-                return if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
-
-                push @paths_to_process, $path;
-
-                $max_path_len = length $path if length $path > $max_path_len;
-            },
-            no_chdir => 1
-        },
+    P->file->find(
         $self->path,
+        dir => 0,
+        sub ($path) {
+            my $type = Pcore::Src::File->detect_filetype($path);
+
+            return if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
+
+            push @paths_to_process, $path;
+
+            $max_path_len = length $path if length $path > $max_path_len;
+
+            return;
+        }
     );
 
     # process indexed files
@@ -289,7 +286,9 @@ sub _set_exit_code ( $self, $exit_code ) {
 }
 
 sub _process_file ( $self, $max_path_len, %args ) {
-    my $res = Pcore::Src::File->new( \%args )->run;
+    my $path = ref $args{path} ? $args{path} : P->path( $args{path} );
+
+    my $res = Pcore::Src::File->new( { %args, path => $path->encoded } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
     $self->_set_exit_code( $res->severity_range_is('ERROR') ? Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_ERROR} : Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_VALID} );
 
@@ -372,7 +371,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 325                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 324                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

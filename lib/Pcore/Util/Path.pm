@@ -34,6 +34,7 @@ has path      => ( is => 'ro',   required => 1 );                        # conta
 has canonpath => ( is => 'lazy', isa      => Str, init_arg => undef );
 
 has dirname       => ( is => 'lazy', isa => Str, init_arg => undef );
+has dirname_canon => ( is => 'lazy', isa => Str, init_arg => undef );
 has filename      => ( is => 'lazy', isa => Str, init_arg => undef );
 has filename_base => ( is => 'lazy', isa => Str, init_arg => undef );
 has suffix        => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -313,6 +314,10 @@ sub _build_dirname ($self) {
     return substr $self->path, 0, rindex( $self->path, q[/] ) + 1;
 }
 
+sub _build_dirname_canon ($self) {
+    return $self->dirname =~ s[/\z][]smr;
+}
+
 sub _build_filename ($self) {
     return q[] if $self->path eq q[];
 
@@ -473,9 +478,9 @@ sub TO_DUMP {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 19                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 232, 420             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 233, 425             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 367                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 372                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

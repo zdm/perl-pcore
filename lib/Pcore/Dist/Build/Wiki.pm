@@ -30,47 +30,40 @@ sub update ($self) {
 
     # scan lib/ for .pm files
     Pcore->file->find(
-        {   wanted => sub {
-                return if -d;
+        './lib/',
+        dir => 0,
+        sub ($path) {
+            if ( $path->suffix eq 'pm' ) {
+                my $parser = Pod::Markdown->new(
+                    perldoc_url_prefix       => $base_url,
+                    perldoc_fragment_format  => 'pod_simple_html',    # CodeRef ( $self, $text )
+                    markdown_fragment_format => 'pod_simple_html',    # CodeRef ( $self, $text )
+                    include_meta_tags        => 0,
+                );
 
-                my $path = Pcore->path($_);
+                my $markdown;
 
-                if ( $path->suffix eq 'pm' ) {
-                    my $parser = Pod::Markdown->new(
-                        perldoc_url_prefix       => $base_url,
-                        perldoc_fragment_format  => 'pod_simple_html',    # CodeRef ( $self, $text )
-                        markdown_fragment_format => 'pod_simple_html',    # CodeRef ( $self, $text )
-                        include_meta_tags        => 0,
-                    );
+                $parser->output_string( \$markdown );
 
-                    my $markdown;
+                # generate markdown document
+                $parser->parse_string_document( P->file->read_bin($path)->$* );
 
-                    $parser->output_string( \$markdown );
+                $markdown =~ s/\n+\z//smg;
 
-                    # generate markdown document
-                    $parser->parse_string_document( P->file->read_bin($path)->$* );
+                if ($markdown) {
 
-                    $markdown =~ s/\n+\z//smg;
+                    # add common header, TOC link
+                    $markdown = $header . qq[# [TABLE OF CONTENTS](${base_url}POD)\x0A\x0A] . $markdown;
 
-                    if ($markdown) {
+                    # write markdown to the file
+                    Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
 
-                        # add common header, TOC link
-                        $markdown = $header . qq[# [TABLE OF CONTENTS](${base_url}POD)\x0A\x0A] . $markdown;
+                    push $toc->@*, $path->dirname . $path->filename_base;
 
-                        # write markdown to the file
-                        my $out_path = $path->dirname =~ s[\Alib/][]smr;
-
-                        Pcore->file->mkpath( $wiki_path . 'POD/' . $out_path );
-
-                        push @{$toc}, $out_path . $path->filename_base;
-
-                        Pcore->file->write_text( $wiki_path . 'POD/' . $out_path . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
-                    }
+                    Pcore->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
                 }
-            },
-            no_chdir => 1,
-        },
-        './lib/'
+            }
+        }
     );
 
     # generate TOC
@@ -94,7 +87,7 @@ sub update ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 21, 58               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 21, 56               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 23                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
