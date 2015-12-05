@@ -18,7 +18,7 @@ sub add_dir ( $self, $dir ) {
         q[.],
         dir => 0,
         sub ($path) {
-            $self->add_file( $path->to_string, $dir . $_ );
+            $self->add_file( $path->to_string, $dir . $path );
 
             return;
         },
