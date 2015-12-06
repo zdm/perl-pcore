@@ -208,7 +208,7 @@ sub _build_revision ($self) {
         $revision = $self->scm->server->cmd(qw[id -i])->{o}->[0];
     }
     elsif ( $self->root && -f $self->root . '.hg_archival.txt' ) {
-        my $info = P->file->read_bin( $self->root && -f $self->root . '.hg_archival.txt' );
+        my $info = P->file->read_bin( $self->root . '.hg_archival.txt' );
 
         if ( $info->$* =~ /^node:\s+([[:xdigit:]]+)$/sm ) {
             $revision = $1;
