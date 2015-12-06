@@ -44,9 +44,18 @@ sub run ($self) {
     # increment version
     my @parts = $cur_ver->{version}->@*;
 
-    $parts[0]++ if $self->major;
-    $parts[1]++ if $self->minor;
-    $parts[2]++ if $self->bugfix;
+    if ( $self->major ) {
+        $parts[0]++;
+        $parts[1] = 0;
+        $parts[2] = 0;
+    }
+    elsif ( $self->minor ) {
+        $parts[1]++;
+        $parts[2] = 0;
+    }
+    else {
+        $parts[2]++;
+    }
 
     my $new_ver = version->parse( 'v' . join q[.], @parts );
 
