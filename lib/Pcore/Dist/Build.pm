@@ -77,7 +77,7 @@ sub test ( $self, @ ) {
         all     => 0,
         jobs    => 1,
         verbose => 0,
-        @_[ 1 .. $#_ ]
+        @_[ 1 .. $#_ ],
     );
 
     local $ENV{AUTHOR_TESTING}    = 1 if $args{author}  || $args{all};
@@ -114,7 +114,7 @@ sub par ( $self, @ ) {
         crypt   => undef,
         upx     => undef,
         clean   => undef,
-        @_[ 1 .. $#_ ]
+        @_[ 1 .. $#_ ],
     );
 
     require Pcore::Dist::Build::PAR;
@@ -230,20 +230,42 @@ PERL
 }
 
 sub tgz ($self) {
-    return;
+    my $temp = $self->temp_build;
+
+    require Archive::Tar;
+
+    my $tgz = Archive::Tar->new;
+
+    my $base_dir = $self->dist->name . q[-] . $self->dist->version . q[/];
+
+    P->file->find(
+        $temp,
+        abs => 0,
+        dir => 0,
+        sub ($path) {
+            my $mode;
+
+            if ( $path =~ m[\A(script|t)/]sm ) {
+                $mode = P->file->calc_chmod('rwxr-xr-x');
+            }
+            else {
+                $mode = P->file->calc_chmod('rw-r--r--');
+            }
+
+            $tgz->add_data( $base_dir . $path, P->file->read_bin($path)->$*, { mode => $mode } );
+
+            return;
+        }
+    );
+
+    my $path = $PROC->{SYS_TEMP_DIR} . '.pcore/build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
+
+    $tgz->write( $path, Archive::Tar::COMPRESS_GZIP() );
+
+    return $path;
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 73, 112              │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
