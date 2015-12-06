@@ -54,7 +54,13 @@ sub _build_cmd ($self) {
             }
         }
 
+        my $index;
+
         for my $class (@classes) {
+            next if $index->{$class};
+
+            $index->{$class} = 1;
+
             $class = P->class->load($class);
 
             if ( $class->can('does') && $class->does('Pcore::Core::CLI::Cmd') ) {
@@ -569,13 +575,13 @@ sub help_error ( $self, $msg ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 46                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 83, 86, 144, 225,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 260, 321, 344, 407,  │                                                                                                                │
-## │      │ 470, 475, 479, 488   │                                                                                                                │
+## │    3 │ 89, 92, 150, 231,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 266, 327, 350, 413,  │                                                                                                                │
+## │      │ 476, 481, 485, 494   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 334                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 340                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 368, 508, 536        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 374, 514, 542        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

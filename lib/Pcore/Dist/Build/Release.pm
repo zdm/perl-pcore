@@ -99,6 +99,8 @@ sub run ($self) {
 sub _upload_to_cpan ($self) {
     my $tgz = $self->dist->build->tgz;
 
+    say '.tgz created, now uploaded to CPAN';
+
   REDO:
     my ( $status, $reason ) = $self->_upload( $self->dist->global_cfg->{PAUSE}->{username}, $self->dist->global_cfg->{PAUSE}->{password}, $tgz );
 
