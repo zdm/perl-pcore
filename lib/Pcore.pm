@@ -624,15 +624,7 @@ Documentation will be provided later.
 
 =item * PCORE_DIST_LIB
 
-=item * PCORE_RESOURCES
-
-=item * PCORE_MOUNTED_RESOURCES
-
-=item * MODULE_SIGNATURE_AUTHOR = q["<author-email>"]
-
-=item * __PCORE_SCRIPT_DIR
-
-=item * __PCORE_SCRIPT_NAME
+=item * PCORE_RES_LIB
 
 =back
 

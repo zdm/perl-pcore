@@ -531,9 +531,10 @@ sub help_usage ( $self, $invalid_options = undef ) {
     exit 2;
 }
 
-# TODO
 sub help_version ($self) {
-    say 'VERSION HELP';
+    say $PROC->dist->name . q[ ], $PROC->dist->version, ', rev: ' . $PROC->dist->revision if $PROC->dist;
+
+    say 'Pcore ' . $PROC->pcore->version, ', rev: ' . $PROC->pcore->revision;
 
     exit 2;
 }

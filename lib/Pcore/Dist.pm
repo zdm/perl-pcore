@@ -9,10 +9,11 @@ has is_par       => ( is => 'ro', isa => Bool, required => 1 );   # dist is used
 has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
 has main_module_path => ( is => 'lazy', isa => Str );             # absolute path
 
-has cfg     => ( is => 'lazy', isa => HashRef, init_arg => undef );
-has name    => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist-Name
-has ns      => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist::Name
-has version => ( is => 'lazy', isa => Object,  init_arg => undef );
+has cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has name     => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist-Name
+has ns       => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist::Name
+has version  => ( is => 'lazy', isa => Object,  init_arg => undef );
+has revision => ( is => 'lazy', isa => Str,     init_arg => undef );
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
@@ -20,10 +21,10 @@ has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg 
 around new => sub ( $orig, $self, $path ) {
     my $pkg_name;
 
-    if ( $path =~ /[.]pm\z/smo ) {                                     # Package/Name.pm
+    if ( $path =~ /[.]pm\z/smo ) {                                      # Package/Name.pm
         $pkg_name = $path;
     }
-    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {              # PAR
+    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {               # PAR
         return $self->$orig(
             {   root         => undef,
                 is_installed => 1,
@@ -32,7 +33,7 @@ around new => sub ( $orig, $self, $path ) {
             }
         );
     }
-    elsif ( $path =~ m[[./]]smo ) {                                    # ./path/to/dist
+    elsif ( $path =~ m[[./]]smo ) {                                     # ./path/to/dist
         if ( $path = $self->find_dist_root($path) ) {
             return $self->$orig(
                 {   root         => $path->to_string,
@@ -50,68 +51,47 @@ around new => sub ( $orig, $self, $path ) {
         $pkg_name = $path =~ s[::][/]smgro . q[.pm];
     }
 
-    my $pkg_path;
+    my $pkg_inc;
 
-    if ( exists $INC{$pkg_name} ) {
-        $pkg_path = $INC{$pkg_name};
-    }
-    else {
-        for my $inc (@INC) {
-            next if ref $inc;
+    # try to find package in the @INC
+    for my $inc (@INC) {
+        next if ref $inc;
 
-            if ( -f $inc . q[/] . $pkg_name ) {
-                $pkg_path = $inc . q[/] . $pkg_name;
+        if ( -f $inc . q[/] . $pkg_name ) {
+            $pkg_inc = $inc;
 
-                last;
-            }
+            last;
         }
     }
 
-    if ($pkg_path) {
-        my $is_installed = 0;
+    # package was found
+    if ($pkg_inc) {
+        my $dist_name = $pkg_name =~ s[/][-]smgro;
 
-        # check if package is installed in CPAN location
-        for my $cpan_inc ( $self->cpan_path->@* ) {
-            if ( index( $pkg_path, $cpan_inc ) == 0 ) {
-                $is_installed = 1;
+        substr $dist_name, -3, 3, q[];    # remove ".pm" suffix
 
-                last;
-            }
-        }
+        if ( -f $pkg_inc . qq[/auto/share/dist/$dist_name/dist.perl] ) {
 
-        # package is installed in the one of the CPAN locations
-        # try to find dist share dir in the CPAN locations
-        if ($is_installed) {
-            my $dist_name = $pkg_name =~ s[/][-]smgro;
-
-            substr $dist_name, -3, 3, q[];    # remove ".pm" suffix
-
-            for my $cpan_inc ( $self->cpan_path->@* ) {
-                if ( -f $cpan_inc . qq[/auto/share/dist/$dist_name/dist.perl] ) {
-                    return $self->$orig(
-                        {   root             => undef,
-                            is_installed     => 1,
-                            is_par           => 0,
-                            share_dir        => $cpan_inc . qq[/auto/share/dist/$dist_name/],
-                            main_module_path => $pkg_path,
-                        }
-                    );
+            # package is installed
+            return $self->$orig(
+                {   root             => undef,
+                    is_installed     => 1,
+                    is_par           => 0,
+                    share_dir        => $pkg_inc . qq[/auto/share/dist/$dist_name/],
+                    main_module_path => $pkg_inc . q[/] . $pkg_name,
                 }
-            }
+            );
         }
-        else {
+        elsif ( my $dist_root = $self->find_dist_root($pkg_inc) ) {
 
-            # dist nanespace/package.pm was found in @INC, but located not in CPAN
-            # detect, if this path is belongs to the dist
-            if ( my $dist_root = $self->find_dist_root($pkg_path) ) {
-                return $self->$orig(
-                    {   root         => $dist_root->to_string,
-                        is_installed => 0,
-                        is_par       => 0,
-                        share_dir    => $dist_root . 'share/',
-                    }
-                );
-            }
+            # package is a distribution
+            return $self->$orig(
+                {   root         => $dist_root->to_string,
+                    is_installed => 0,
+                    is_par       => 0,
+                    share_dir    => $dist_root . 'share/',
+                }
+            );
         }
     }
 
@@ -221,6 +201,26 @@ sub _build_version ($self) {
     return version->new($1);
 }
 
+sub _build_revision ($self) {
+    my $revision = 0;
+
+    if ( $self->scm ) {
+        $revision = $self->scm->server->cmd(qw[id -i])->{o}->[0];
+    }
+    elsif ( $self->root && -f $self->root . '.hg_archival.txt' ) {
+        my $info = P->file->read_bin( $self->root && -f $self->root . '.hg_archival.txt' );
+
+        if ( $info->$* =~ /^node:\s+([[:xdigit:]]+)$/sm ) {
+            $revision = $1;
+        }
+    }
+    elsif ( -f $self->share_dir . 'revision.txt' ) {
+        $revision = P->file->read_bin( $self->share_dir . 'revision.txt' )->$*;
+    }
+
+    return $revision;
+}
+
 sub _build_scm ($self) {
     return if $self->is_installed;
 
@@ -238,12 +238,12 @@ sub _build_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
+## │    3 │ 60, 73, 109, 160,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │      │ 186                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 62, 90, 129, 180,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 206                  │                                                                                                                │
+## │    3 │ 201                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 221                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    2 │ 208                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

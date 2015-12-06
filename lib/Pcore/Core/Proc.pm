@@ -80,17 +80,23 @@ sub _build_pcore ($self) {
 }
 
 # TODO
-# new ENV - PCORE_RESOURCES - PCORE_RES_LIB
 sub _build_res ($self) {
     my $res = Pcore::Core::Proc::Resources->new;
 
-    $res->_add_lib( 'pcore', $self->pcore->share_dir );
+    if ( $self->is_par ) {
+
+        # under PAR pcore resources are merged with dist resources
+        $res->_add_lib( 'pcore', $self->dist->share_dir ) if $self->dist;
+    }
+    else {
+        $res->_add_lib( 'pcore', $self->pcore->share_dir );
+    }
 
     $res->_add_lib( 'dist', $self->dist->share_dir ) if $self->dist;
 
     # TODO how to get priority
-    if ( $ENV{PCORE_RESOURCES} && -d $ENV{PCORE_RESOURCES} ) {
-        my $base_path = P->path( $ENV{PCORE_RESOURCES}, is_dir => 1 );
+    if ( $ENV{PCORE_RES_LIB} && -d $ENV{PCORE_RES_LIB} ) {
+        my $base_path = P->path( $ENV{PCORE_RES_LIB}, is_dir => 1 );
 
         for my $path ( P->file->read_dir( $base_path, full_path => 0 )->@* ) {
             my $lib_dir = $base_path . $path;
