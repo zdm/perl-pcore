@@ -15,7 +15,7 @@ const our $XT_TEST => {
     smoke   => [ 'AUTOMATED_TESTING', '"smoke bot" testing' ],
 };
 
-our $CLEAN = {
+const our $CLEAN => {
     dir => [
 
         # general build
