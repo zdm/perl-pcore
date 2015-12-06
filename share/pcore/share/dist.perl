@@ -17,7 +17,7 @@
             }
         },
         par => {
-            'bin/<: $main_script :>' => {
+            '<: $main_script :>' => {
                 crypt     => 1,
                 upx       => 1,
                 clean     => 1,

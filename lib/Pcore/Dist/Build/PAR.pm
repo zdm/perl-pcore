@@ -42,7 +42,7 @@ sub run ($self) {
 
     # build scripts
     for my $script ( sort keys $self->dist->cfg->{dist}->{par}->%* ) {
-        $script = P->path($script);
+        $script = P->path( $self->dist->root . 'bin/' . $script );
 
         my $profile = $self->dist->cfg->{dist}->{par}->{$script};
 
