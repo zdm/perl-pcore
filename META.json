@@ -14,10 +14,8 @@
    "name" : "Pcore",
    "no_index" : {
       "directory" : [
-         "inc",
          "share",
-         "t",
-         "xt"
+         "t"
       ]
    },
    "optional_features" : {
@@ -46,6 +44,7 @@
                   "Term::Size::Win32" : "0",
                   "Win32::Console" : "0",
                   "Win32::Console::ANSI" : "0",
+                  "Win32::RunAsAdmin" : "0",
                   "Win32::Service" : "0"
                }
             }
@@ -72,7 +71,8 @@
             "Perl::Strip" : "0",
             "Perl::Stripper" : "0",
             "Pod::Markdown" : "0",
-            "Software::License" : "0"
+            "Software::License" : "0",
+            "Test::Pod" : "1.41"
          },
          "suggests" : {
             "Devel::Cover" : "0",
@@ -103,7 +103,6 @@
             "EV" : "0",
             "File::Copy::Recursive" : "0",
             "Geo::IP::PurePerl" : "0",
-            "Getopt::Euclid" : "0",
             "HTML::Entities" : "0",
             "HTTP::Date" : "0",
             "HTTP::Parser::XS" : "0",

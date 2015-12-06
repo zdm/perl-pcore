@@ -13,8 +13,4 @@ Documentation will be provided later.
 # ENVIRONMENT
 
 - PCORE\_DIST\_LIB
-- PCORE\_RESOURCES
-- PCORE\_MOUNTED\_RESOURCES
-- MODULE\_SIGNATURE\_AUTHOR = q\["&lt;author-email>"\]
-- \_\_PCORE\_SCRIPT\_DIR
-- \_\_PCORE\_SCRIPT\_NAME
+- PCORE\_RES\_LIB
