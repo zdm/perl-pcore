@@ -125,14 +125,18 @@ sub run ($self) {
     my $parl_path = P->file->temppath( suffix => $self->par_suffix );
 
     print 'write parl ... ';
-    `parl -B -O$parl_path ` . $zip_fh->path or die;
+
+    my $cmd = qq[parl -B -O$parl_path ] . $zip_fh->path;
+
+    `$cmd` or die;
+
     say 'done';
 
-    my $repacked_fh = $self->_repack_parl( $parl_path, $zip );
+    my $repacked_path = $self->_repack_parl( $parl_path, $zip );
 
     my $target_exe = $self->dist->root . 'data/' . $self->exe_filename;
 
-    P->file->move( $repacked_fh->path, $target_exe );
+    P->file->move( $repacked_path, $target_exe );
 
     P->file->chmod( 'r-x------', $target_exe );
 
@@ -573,7 +577,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         say 'done';
     }
 
-    return $repacked_exe_fh;
+    return $repacked_exe_fh->path;
 }
 
 sub _error ( $self, $msg ) {
@@ -589,19 +593,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 166, 202, 525        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 170, 206, 529        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 179, 238, 270, 427   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 183, 242, 274, 431   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 292                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 296                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 461                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 465                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 496                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 500                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 547, 549             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 551, 553             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 483, 489, 553        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 487, 493, 557        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
