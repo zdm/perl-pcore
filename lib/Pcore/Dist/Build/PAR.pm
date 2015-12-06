@@ -8,9 +8,9 @@ use Term::ANSIColor qw[:constants];
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
 has release => ( is => 'ro', isa => Bool, default => 0 );
-has crypt   => ( is => 'ro', isa => Bool, default => 0 );
-has upx     => ( is => 'ro', isa => Bool, default => 1 );
-has clean   => ( is => 'ro', isa => Bool, default => 1 );
+has crypt => ( is => 'ro', isa => Maybe [Bool] );
+has upx   => ( is => 'ro', isa => Maybe [Bool] );
+has clean => ( is => 'ro', isa => Maybe [Bool] );
 
 no Pcore;
 
@@ -42,8 +42,6 @@ sub run ($self) {
 
     # build scripts
     for my $script ( sort keys $self->dist->cfg->{dist}->{par}->%* ) {
-        $script = P->path( $self->dist->root . 'bin/' . $script );
-
         my $profile = $self->dist->cfg->{dist}->{par}->{$script};
 
         $profile->{dist} = $self->dist;
@@ -52,7 +50,7 @@ sub run ($self) {
 
         $profile->{arch_deps} = $pcore_cfg->{arch_deps}->{ $Config::Config{archname} } // {};
 
-        $profile->{script} = $script;
+        $profile->{script} = P->path( $self->dist->root . 'bin/' . $script );
 
         $profile->{release} = $self->release;
 
@@ -62,7 +60,7 @@ sub run ($self) {
 
         $profile->{clean} = $self->clean if defined $self->clean;
 
-        if ( !exists $pardeps->{ $script->filename }->{ $Config::Config{archname} } ) {
+        if ( !exists $pardeps->{$script}->{ $Config::Config{archname} } ) {
             say BOLD . RED . qq[Deps for $script "$Config::Config{archname}" wasn't scanned.] . RESET;
 
             say qq[Run "$script ---scan-deps"];
@@ -70,7 +68,7 @@ sub run ($self) {
             next;
         }
         else {
-            $profile->{script_deps} = $pardeps->{ $script->filename }->{ $Config::Config{archname} };
+            $profile->{script_deps} = $pardeps->{$script}->{ $Config::Config{archname} };
         }
 
         Pcore::Dist::Build::PAR::Script->new($profile)->run;

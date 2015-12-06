@@ -80,9 +80,9 @@ sub release ( $self, $release_type ) {
 sub par ( $self, @ ) {
     my %args = (
         release => 0,
-        crypt   => 0,
-        upx     => 1,
-        clean   => 0,
+        crypt   => undef,
+        upx     => undef,
+        clean   => undef,
         @_[ 1 .. $#_ ]
     );
 
