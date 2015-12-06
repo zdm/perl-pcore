@@ -43,7 +43,7 @@ sub run ($self) {
     $self->script_deps->{'Filter/Crypto/Decrypt.pm'} = 1 if $self->crypt;
 
     # add main script
-    $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl', 0 );
+    $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
 
     # add dist dist.perl
     $self->tree->add_file( 'share/dist.perl', $self->dist->share_dir . '/dist.perl' );
@@ -94,8 +94,6 @@ sub run ($self) {
     say $temp;
 
     # create zipped par
-    my $zip_path = $PROC->{TEMP_DIR} . $self->script->filename_base . q[-] . lc $Config::Config{archname} . q[.zip];
-
     my $zip = Archive::Zip->new;
 
     $zip->addTree(
@@ -104,6 +102,8 @@ sub run ($self) {
             compressionLevel => 9,
         }
     );
+
+    my $zip_path = $PROC->{TEMP_DIR} . $self->script->filename_base . q[-] . lc $Config::Config{archname} . q[.zip];
 
     $zip->writeToFileNamed($zip_path);
 
@@ -242,7 +242,7 @@ sub _add_pkg ( $self, $pkg ) {
     }
 
     # add .pm to the files tree
-    $self->_add_perl_source( $inc_path . $pkg, $target_base . $pkg, $located_in_cpan );
+    $self->_add_perl_source( $inc_path . $pkg, $target_base . $pkg, $located_in_cpan, $pkg );
 
     return 1;
 }
@@ -251,22 +251,20 @@ sub _add_pkg ( $self, $pkg ) {
 # pcore version, changeset id
 # dist version, changeset id
 # build date, UTC
-sub _add_perl_source ( $self, $source, $target, $cpan ) {
-    my $file = $self->tree->add_file( $target, $source );
+sub _add_perl_source ( $self, $source, $target, $located_in_cpan = 0, $pkg = undef ) {
+    my $src = P->file->read_bin($source);
 
-=pod
-    # process perl core and CPAN modules
     if ($pkg) {
 
         # patch content for PAR compatibility
-        $src = PAR::Filter->new('PatchContent')->apply( $src, $pkg );
+        $src = PAR::Filter->new('PatchContent')->apply( $src, $pkg->to_string );
 
         # this is perl core or CPAN module
-        if ($is_public_module) {
-            if ( $profile->{release} ) {
+        if ($located_in_cpan) {
+            if ( $self->release ) {
                 $src = Pcore::Src::File->new(
                     {   action      => 'compress',
-                        path        => $to,
+                        path        => $target,
                         is_realpath => 0,
                         in_buffer   => $src,
                         filter_args => {             #
@@ -278,7 +276,7 @@ sub _add_perl_source ( $self, $source, $target, $cpan ) {
             else {
                 $src = Pcore::Src::File->new(
                     {   action      => 'compress',
-                        path        => $to,
+                        path        => $target,
                         is_realpath => 0,
                         in_buffer   => $src,
                         filter_args => {
@@ -290,19 +288,19 @@ sub _add_perl_source ( $self, $source, $target, $cpan ) {
                 )->run->out_buffer;
             }
 
-            P->file->write_bin( $to, $src );
+            $self->tree->add_file( $target, $src );
 
             return;
         }
     }
 
-    my $crypt = $profile->{crypt} && ( !$pkg || $pkg ne 'Filter/Crypto/Decrypt.pm' );
+    my $crypt = $self->crypt && ( !$pkg || $pkg ne 'Filter/Crypto/Decrypt.pm' );
 
     # we don't compress sources for devel build, preserving line numbers
-    if ( !$profile->{release} ) {
+    if ( !$self->release ) {
         $src = Pcore::Src::File->new(
             {   action      => 'compress',
-                path        => $to,
+                path        => $target,
                 is_realpath => 0,
                 in_buffer   => $src,
                 filter_args => {
@@ -314,10 +312,12 @@ sub _add_perl_source ( $self, $source, $target, $cpan ) {
         )->run->out_buffer;
     }
     else {
-        if ($crypt) {    # for crypted release - only strip sources without preserving line numbers, Filter::Crypto::Decrypt isn't work with compressed sources
+        if ($crypt) {
+
+            # for crypted release - only strip sources without preserving line numbers, Filter::Crypto::Decrypt isn't work with compressed sources
             $src = Pcore::Src::File->new(
                 {   action      => 'compress',
-                    path        => $to,
+                    path        => $target,
                     is_realpath => 0,
                     in_buffer   => $src,
                     filter_args => {
@@ -328,10 +328,12 @@ sub _add_perl_source ( $self, $source, $target, $cpan ) {
                 }
             )->run->out_buffer;
         }
-        else {    # for not crypted release - compress all sources
+        else {
+
+            # for not crypted release - compress all sources
             $src = Pcore::Src::File->new(
                 {   action      => 'compress',
-                    path        => $to,
+                    path        => $target,
                     is_realpath => 0,
                     in_buffer   => $src,
                     filter_args => {             #
@@ -342,11 +344,22 @@ sub _add_perl_source ( $self, $source, $target, $cpan ) {
         }
     }
 
-    P->file->write_bin( $to, $src );
-
     # crypt sources, if nedeed
-    Filter::Crypto::CryptFile::crypt_file( $to->to_string, Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() ) if $crypt;
-=cut
+    if ($crypt) {
+        open $crypt_in_fh, '<', $src or die;
+
+        open $crypt_out_fh, '<', \my $crypted_src or die;
+
+        Filter::Crypto::CryptFile::crypt_file( $crypt_in_fh, $crypt_out_fh, Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() );
+
+        close $crypt_in_fh or die;
+
+        close $crypt_out_fh or die;
+
+        $src = $crypted_src;
+    }
+
+    $self->tree->add_file( $target, $src );
 
     return;
 }
@@ -377,7 +390,7 @@ sub _compress_upx ( $self, $path ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 137, 196, 228        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 257                  │ Documentation::RequirePodAtEnd - POD before __END__                                                            │
+## │    3 │ 254                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

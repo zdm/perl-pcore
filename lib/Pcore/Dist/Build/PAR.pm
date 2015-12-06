@@ -422,40 +422,6 @@ sub _add_perl_source {
     return;
 }
 
-sub _copy_file ( $self, $from, $to ) {
-    my $to_path = P->path($to);
-
-    P->file->mkpath( $to_path->dirname ) if !-d $to_path->dirname;
-
-    P->file->copy( $from, $to );
-
-    if ($MSWIN) {
-        require Win32::File;
-
-        Win32::File::SetAttributes( $to, Win32::File::NORMAL() ) or die;
-    }
-    else {
-        P->file->chmod( 'rw-------', $to );
-    }
-
-    return;
-}
-
-sub _upx ( $self, $path ) {
-    my $upx;
-
-    if ($MSWIN) {
-        $upx = $PROC->res->get('/bin/upx.exe');
-    }
-    else {
-        $upx = $PROC->res->get('/bin/upx_x64');
-    }
-
-    P->capture->sys( $upx, '--best', $path ) if $upx;
-
-    return;
-}
-
 sub _repack_par {
     my $self     = shift;
     my $in_path  = shift;
@@ -565,27 +531,6 @@ sub _repack_par {
     P->file->chmod( 'r-x------', $out_path );
 
     say 'final binary size: ' . BOLD . GREEN . ( reverse join q[_], ( reverse -s $out_path ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
-
-    return;
-}
-
-sub _find_module ( $self, $module ) {
-    state $perl_inc = do {
-        my $index;
-
-        for my $var (qw[privlibexp archlibexp sitelibexp sitearchexp vendorlibexp vendorarchexp]) {
-            $index->{ P->path( $Config::Config{$var}, is_dir => 1 )->canonpath } = 1;
-        }
-
-        $index;
-    };
-
-    # directly use './lib/' because dist can be located outside @INC
-    for my $inc_path ( grep { !ref } './lib/', @INC ) {
-        if ( -f $inc_path . q[/] . $module ) {
-            return [ $inc_path, $perl_inc->{$inc_path} // 0 ];
-        }
-    }
 
     return;
 }
