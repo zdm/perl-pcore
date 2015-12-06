@@ -69,7 +69,9 @@ sub run ($self) {
     $self->_add_shared_libs;
 
     # process script deps
+    print 'add deps ... ';
     $self->_add_script_deps;
+    say 'done';
 
     $self->_add_resources;
 
@@ -102,8 +104,6 @@ sub run ($self) {
 
     $self->_compress_upx( \@compress_upx ) if $self->upx && @compress_upx;
 
-    say $temp;
-
     # create zipped par
     my $zip = Archive::Zip->new;
 
@@ -123,8 +123,9 @@ sub run ($self) {
     # create parl executable
     my $parl_path = P->file->temppath( suffix => $self->par_suffix );
 
-    say 'write parl...';
+    print 'write parl ... ';
     `parl -B -O$parl_path ` . $zip_fh->path or die;
+    say 'done';
 
     my $repacked_fh = $self->_repack_parl( $parl_path, $zip );
 
@@ -146,9 +147,11 @@ sub _add_resources ($self) {
         my $path = $PROC->res->get($res);
 
         if ( !$path ) {
-            die;
+            $self->_error(qq[required resource "$res" wasn't found]);
         }
         else {
+            say qq[resource added: "$res"];
+
             $self->tree->add_file( 'share/' . $res, $path );
         }
     }
@@ -180,12 +183,12 @@ sub _add_shared_libs ($self) {
                 }
 
                 if ($found) {
-                    say 'add shared object: ' . $so_filename;
+                    say qq[shared lib added: "$so_filename"];
 
                     $self->tree->add_file( 'shlib/' . $Config::Config{archname} . q[/] . $so_filename, $found );
                 }
                 else {
-                    say BOLD . RED . qq[Shared object wasn't found: "$so_filename"] . RESET;
+                    $self->_error(qq[shared object wasn't found: "$so_filename"]);
                 }
             }
         }
@@ -198,7 +201,7 @@ sub _add_script_deps ($self) {
     for my $pkg ( grep {/[.](?:pl|pm)\z/sm} keys $self->script_deps->%* ) {
         my $found = $self->_add_pkg($pkg);
 
-        say BOLD . RED . 'not found: ' . $pkg . RESET if !$found && $self->script_deps->{$pkg} !~ /\A[(]eval\s/sm;
+        $self->_error(qq[required deps wasn't found: $pkg]) if !$found && $self->script_deps->{$pkg} !~ /\A[(]eval\s/sm;
     }
 
     return;
@@ -398,9 +401,10 @@ sub _add_perl_source ( $self, $source, $target, $located_in_cpan = 0, $pkg = und
     return;
 }
 
-# TODO implement upx cache
 sub _compress_upx ( $self, $path ) {
     my $upx;
+
+    my $upx_cache_dir = $PROC->{SYS_TEMP_DIR} . '.pcore/upx-cache/';
 
     if ($MSWIN) {
         $upx = $PROC->res->get('/bin/upx.exe');
@@ -410,15 +414,39 @@ sub _compress_upx ( $self, $path ) {
     }
 
     if ($upx) {
-        say q[];
-        P->sys->system( $upx, '--best', $path->@* ) or 1;
+        P->file->mkpath($upx_cache_dir);
+
+        my @files;
+
+        my $file_md5 = {};
+
+        for my $file ( $path->@* ) {
+            $file_md5->{$file} = Digest::MD5->new->add( P->file->read_bin($file)->$* )->hexdigest;
+
+            if ( -e $upx_cache_dir . $file_md5->{$file} ) {
+                P->file->copy( $upx_cache_dir . $file_md5->{$file}, $file );
+            }
+            else {
+                push @files, $file;
+            }
+        }
+
+        if (@files) {
+            say q[];
+
+            P->sys->system( $upx, '--best', @files ) or 1;
+
+            for my $file (@files) {
+                P->file->copy( $file, $upx_cache_dir . $file_md5->{$file} );
+            }
+        }
     }
 
     return;
 }
 
 sub _repack_parl ( $self, $parl_path, $zip ) {
-    print 'repack parl ... ';
+    say 'repack parl ... ';
 
     my $src = P->file->read_bin($parl_path);
 
@@ -493,7 +521,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
     }
 
     if ( $self->upx ) {
-        $self->_compress_upx( [ $parl_so_temp->path . '*.' . $Config::Config{so} ] );
+        $self->_compress_upx( [ keys $parl_so_temp_map->%* ] );
 
         P->file->find(
             $parl_so_temp,
@@ -521,7 +549,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $out_len = $repacked_exe_fh->tell;
 
-    say BOLD . GREEN . q[-] . ( reverse join q[_], ( reverse( $out_len - $in_len ) ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
+    say 'parl repacked: ', BOLD . GREEN . q[-] . ( reverse join q[_], ( reverse( $out_len - $in_len ) ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
 
     # need to close fh before copy / patch file
     $repacked_exe_fh->close;
@@ -547,6 +575,12 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
     return $repacked_exe_fh;
 }
 
+sub _error ( $self, $msg ) {
+    say BOLD . GREEN . 'PAR ERROR: ' . $msg . RESET;
+
+    exit 5;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -554,21 +588,19 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 162, 198             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 165, 201, 524        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175, 234, 266        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 178, 237, 269, 426   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 288                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 291                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 432                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 460                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 467                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 495                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 496                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 546, 548             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 518, 520             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 454, 460, 524        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 482, 488, 552        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
