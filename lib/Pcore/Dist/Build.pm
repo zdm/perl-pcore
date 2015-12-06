@@ -229,6 +229,10 @@ PERL
     return;
 }
 
+sub tgz ($self) {
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

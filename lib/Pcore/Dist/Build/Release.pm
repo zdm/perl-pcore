@@ -14,6 +14,12 @@ has bugfix => ( is => 'ro', isa => Bool, default => 0 );
 no Pcore;
 
 sub run ($self) {
+    if ( $self->dist->cfg->{dist}->{cpan} && ( !$self->dist->global_cfg || ( !$self->dist->global_cfg->{PAUSE}->{username} || $self->dist->global_cfg->{PAUSE}->{password} ) ) ) {
+        say 'You need to specify PAUSE credentials';
+
+        return;
+    }
+
     my $scm = $self->dist->scm->server;
 
     # check for uncommited changes
@@ -75,13 +81,22 @@ sub run ($self) {
 }
 
 sub _upload_to_cpan ($self) {
-    my ( $status, $reason ) = $self->_upload( $stash->username, $stash->password, qq[$archive] );
+    my $tgz = $self->dist->build->tgz;
+
+    print 'Press ENTER to continue...';
+    <STDIN>;
+    exit;
+
+  REDO:
+    my ( $status, $reason ) = $self->_upload( $self->dist->global_cfg->{PAUSE}->{username}, $self->dist->global_cfg->{PAUSE}->{password}, $tgz );
 
     if ( $status == 200 ) {
-        $self->log(qq[Upload to CPAN status: $reason]);
+        say qq[Upload to CPAN status: $reason];
     }
     else {
-        croak qq[Upload to CPAN status: $status, Reason: $reason];
+        say qq[Upload to CPAN status: $status, Reason: $reason];
+
+        goto REDO if P->term->prompt( 'Retry?', [qw[yes no]], enter => 1 );
     }
 
     return;
@@ -163,7 +178,7 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 20                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 26                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
