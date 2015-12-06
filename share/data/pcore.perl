@@ -2,7 +2,7 @@
         'MSWin32-x86-multi-thread-64int' => [qw[Test::TCP]],
         'MSWin32-x64-multi-thread'       => [qw[Test::TCP]],
     },
-    known_deps => {
+    arch_deps => {
         'MSWin32-x86-multi-thread-64int' => {
             pkg => [],    # default packages to include, eg: 'Win32/Unicode.pm'
             so  => {

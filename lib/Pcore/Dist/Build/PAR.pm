@@ -56,6 +56,8 @@ sub run ($self) {
 
         $profile->{dist} = $self->dist;
 
+        $profile->{arch_deps} = $pcore_cfg->{arch_deps}->{ $Config::Config{archname} } // {};
+
         $profile->{script} = $script;
 
         $profile->{release} = $self->release;
@@ -64,7 +66,7 @@ sub run ($self) {
 
         $profile->{upx} = $self->upx if defined $self->upx;
 
-        $profile->{clean} = $self->crypt if defined $self->clean;
+        $profile->{clean} = $self->clean if defined $self->clean;
 
         if ( !exists $pardeps->{ $script->filename }->{ $Config::Config{archname} } ) {
             say BOLD . RED . qq[Deps for $script "$Config::Config{archname}" wasn't scanned.] . RESET;
