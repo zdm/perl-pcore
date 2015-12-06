@@ -30,7 +30,7 @@ sub run ($self) {
 
     if ( my $home = $ENV{HOME} || $ENV{USERPROFILE} ) {
         if ( $home . q[/.pcore/config.ini] ) {
-            exit 0 if P->term->prompt( qq["$home/.pcore/config.ini" already exists. Overwrite?], [qw[yes no]] ) eq 'no';
+            exit 0 if P->term->prompt( qq["$home/.pcore/config.ini" already exists. Overwrite?], [qw[yes no]], enter => 1 ) eq 'no';
         }
 
         P->cfg->store( $home . q[/.pcore/config.ini], $cfg );
