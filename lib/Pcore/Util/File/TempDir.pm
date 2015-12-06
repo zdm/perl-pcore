@@ -33,6 +33,8 @@ sub DEMOLISH ( $self, $global ) {
     # do not unlink files, created by others processes
     return if $self->pid ne P->sys->pid;
 
+    local $SIG{__WARN__} = sub { };
+
     P->file->rmtree( $self->path, safe => 1 );
 
     return;

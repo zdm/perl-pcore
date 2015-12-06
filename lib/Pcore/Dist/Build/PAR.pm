@@ -56,6 +56,8 @@ sub run ($self) {
 
         $profile->{dist} = $self->dist;
 
+        $profile->{par_deps} = $pcore_cfg->{par_deps} // [];
+
         $profile->{arch_deps} = $pcore_cfg->{arch_deps}->{ $Config::Config{archname} } // {};
 
         $profile->{script} = $script;
@@ -76,7 +78,7 @@ sub run ($self) {
             next;
         }
         else {
-            $profile->{pardeps} = $pardeps->{ $script->filename }->{ $Config::Config{archname} };
+            $profile->{script_deps} = $pardeps->{ $script->filename }->{ $Config::Config{archname} };
         }
 
         Pcore::Dist::Build::PAR::Script->new($profile)->run;

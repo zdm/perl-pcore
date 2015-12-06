@@ -39,7 +39,7 @@ sub add_file ( $self, $path, $source ) {
 
     $self->files->{$path} = $file;
 
-    return;
+    return $file;
 }
 
 sub remove_file ( $self, $path ) {

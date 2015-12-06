@@ -2,6 +2,9 @@
         'MSWin32-x86-multi-thread-64int' => [qw[Test::TCP]],
         'MSWin32-x64-multi-thread'       => [qw[Test::TCP]],
     },
+    par_deps => [    # following packages will be added to any PAR automatically
+        'Pcore/Util/Date.pm',
+    ],
     arch_deps => {
         'MSWin32-x86-multi-thread-64int' => {
             pkg => [],    # default packages to include, eg: 'Win32/Unicode.pm'
