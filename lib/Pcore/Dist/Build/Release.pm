@@ -65,10 +65,11 @@ sub run ($self) {
         return;
     }
 
+    say q[];
     say 'Curent version is: ' . $cur_ver;
     say 'New version will be: ' . $new_ver;
 
-    return if P->term->prompt( 'Correct?', [qw[yes no]], enter => 1 ) ne 'yes';
+    return if P->term->prompt( 'Continue release process?', [qw[yes no]], enter => 1 ) ne 'yes';
 
     # update release version in the main_module
     my $main_module = P->file->read_bin( $self->dist->main_module_path );
