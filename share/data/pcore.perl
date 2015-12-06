@@ -4,6 +4,7 @@
     },
     par_deps => [    # following packages will be added to any PAR automatically
         'Pcore/Util/Date.pm',
+        'Pcore/Util/Sys.pm',
     ],
     arch_deps => {
         'MSWin32-x86-multi-thread-64int' => {
