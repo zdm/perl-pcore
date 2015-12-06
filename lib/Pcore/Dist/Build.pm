@@ -102,8 +102,10 @@ sub test ( $self, @ ) {
     return 1;
 }
 
-sub release ( $self, $release_type ) {
-    return;
+sub release ( $self, @args ) {
+    require Pcore::Dist::Build::Release;
+
+    return Pcore::Dist::Build::Release->new( { dist => $self->dist, @args } )->run;
 }
 
 sub par ( $self, @ ) {
@@ -143,6 +145,22 @@ sub temp_build ($self) {
 
     # add revision.txt
     $tree->add_file( 'share/revision.txt', \$self->dist->revision );
+
+    # add t/author-pod-syntax.t
+    $tree->add_file(
+        't/author-pod-syntax.t', \<<'PERL'
+#!perl
+
+# This file was generated automatically.
+
+use strict;
+use warnings;
+use Test::More;
+use Test::Pod 1.41;
+
+all_pod_files_ok();
+PERL
+    );
 
     $tree->find_file(
         sub ($file) {
@@ -218,7 +236,7 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 73, 110              │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 73, 112              │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

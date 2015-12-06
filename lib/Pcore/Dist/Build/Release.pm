@@ -1,4 +1,4 @@
-package Pcore::Dist::Build::Update;
+package Pcore::Dist::Build::Release;
 
 use Pcore qw[-class];
 use Pod::Markdown;
@@ -194,7 +194,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::Build::Update
+Pcore::Dist::Build::Release
 
 =head1 SYNOPSIS
 
