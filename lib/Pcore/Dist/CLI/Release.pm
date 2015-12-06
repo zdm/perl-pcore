@@ -6,27 +6,37 @@ with qw[Pcore::Dist::CLI];
 
 no Pcore;
 
-sub cli_arg ($self) {
-    return [    #
-        {   name => 'release_type',
-            isa  => [qw[major minor bugfix]],
-        },
-    ];
+sub cli_opt ($self) {
+    return {
+        major  => { short => 'M', desc => 'increment major version' },
+        minor  => { desc  => 'increment minor version', },
+        bugfix => { desc  => 'increment bugfix version', },
+    };
 }
 
 sub cli_run ( $self, $opt, $arg, $rest ) {
-    $self->new->run( $arg->{release_type} );
+    $self->new->run($opt);
 
     return;
 }
 
-sub run ( $self, $release_type ) {
-    $self->dist->build->release($release_type);
+sub run ( $self, $opt ) {
+    exit 3 if !$self->dist->build->release( $opt->%* );
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 24                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
