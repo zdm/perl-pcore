@@ -7,7 +7,7 @@ has files => ( is => 'lazy', isa => HashRef [ InstanceOf ['Pcore::Util::File::Tr
 
 no Pcore;
 
-sub add_dir ( $self, $dir ) {
+sub add_dir ( $self, $dir, $root = undef ) {
     $dir = P->path( $dir, is_dir => 1 )->realpath->to_string;
 
     my $files = $self->files;
@@ -18,7 +18,7 @@ sub add_dir ( $self, $dir ) {
         q[.],
         dir => 0,
         sub ($path) {
-            $self->add_file( $path->to_string, $dir . $path );
+            $self->add_file( ( $root // q[] ) . $path->to_string, $dir . $path );
 
             return;
         },
@@ -74,21 +74,36 @@ sub render_tmpl ( $self, $tmpl_args ) {
     return;
 }
 
-sub write_to ( $self, $target_path, $write_manifest = 0 ) {
+sub write_to ( $self, $target_path, @ ) {
+    my %args = (
+        manifest => undef,
+        @_[ 2 .. $#_ ],
+    );
+
     for my $file ( values $self->files->%* ) {
         $file->write_to($target_path);
     }
 
     # write MANIFEST
-    P->file->write_bin( $target_path . q[/MANIFEST], [ sort 'MANIFEST', keys $self->files->%* ] ) if $write_manifest;
+    P->file->write_bin( $target_path . q[/MANIFEST], [ sort 'MANIFEST', keys $self->files->%* ] ) if $args{manifest};
 
     return;
 }
 
-sub write_to_temp ( $self, $write_manifest = 0 ) {
-    my $tempdir = P->file->tempdir;
+sub write_to_temp ( $self, @ ) {
+    my %args = (
+        base     => undef,
+        tmpl     => undef,
+        manifest => undef,
+        @_[ 1 .. $#_ ],
+    );
 
-    $self->write_to( $tempdir, $write_manifest );
+    my $tempdir = P->file->tempdir(    #
+        ( $args{base} ? ( base => $args{base} ) : () ),
+        ( $args{tmpl} ? ( tmpl => $args{tmpl} ) : () ),
+    );
+
+    $self->write_to( $tempdir, manifest => $args{manifest} );
 
     return $tempdir;
 }
@@ -100,7 +115,7 @@ sub write_to_temp ( $self, $write_manifest = 0 ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 62, 70, 78, 83       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 62, 70, 83, 88       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

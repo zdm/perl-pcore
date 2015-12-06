@@ -104,7 +104,7 @@ sub update_meta_json ($self) {
         license        => [ lc $self->dist->cfg->{dist}->{license} ],
         name           => $self->dist->name,
         no_index       => {                                             #
-            directory => [qw[inc share t xt]],
+            directory => [qw[share t]],
         },
         release_status => 'stable',
         version        => undef,

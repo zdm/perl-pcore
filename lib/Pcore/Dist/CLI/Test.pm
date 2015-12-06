@@ -8,9 +8,12 @@ no Pcore;
 
 sub cli_opt ($self) {
     return {
-        release => { desc => 'run release tests', },
-        author  => { desc => 'run author tests', },
-        smoke   => { desc => 'run smoke tests', },
+        author  => { desc => 'enables the AUTHOR_TESTING env variable (default behavior)', default => 1, negated => 1 },
+        release => { desc => 'enables the RELEASE_TESTING env variable', },
+        smoke   => { desc => 'enables the AUTOMATED_TESTING env variable', },
+        all          => { short => undef,                                 desc => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables', },
+        jobs         => { desc  => 'number of parallel test jobs to run', isa  => 'PositiveInt' },
+        test_verbose => { short => undef,                                 desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
     };
 }
 
@@ -33,7 +36,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 24                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 27                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

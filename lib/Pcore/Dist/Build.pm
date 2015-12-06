@@ -1,12 +1,19 @@
 package Pcore::Dist::Build;
 
-use Pcore qw[-class];
+use Pcore qw[-class -const];
+use Pcore::Util::File::Tree;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
 has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ], init_arg => undef );
 
 no Pcore;
+
+const our $XT_TEST => {
+    author  => [ 'AUTHOR_TESTING',    '"smoke bot" testing' ],
+    release => [ 'RELEASE_TESTING',   'release candidate testing' ],
+    smoke   => [ 'AUTOMATED_TESTING', '"smoke bot" testing' ],
+};
 
 our $CLEAN = {
     dir => [
@@ -64,11 +71,23 @@ sub deploy ( $self, %args ) {
 
 sub test ( $self, @ ) {
     my %args = (
-        release => 0,
-        author  => 0,
-        smoke   => 0,
+        author       => 1,
+        release      => 0,
+        smoke        => 0,
+        all          => 0,
+        jobs         => 1,
+        test_verbose => 0,
         @_[ 1 .. $#_ ]
     );
+
+    local $ENV{AUTHOR_TESTING}    = 1 if $args{author}  || $args{all};
+    local $ENV{RELEASE_TESTING}   = 1 if $args{release} || $args{all};
+    local $ENV{AUTOMATED_TESTING} = 1 if $args{smoke}   || $args{all};
+
+    my $build = $self->temp_build;
+
+    print 'Press ENTER to continue...';
+    <STDIN>;
 
     return;
 }
@@ -94,12 +113,90 @@ sub par ( $self, @ ) {
 }
 
 sub temp_build ($self) {
+    $self->update;
 
-    # TODO
-    # copy files to the temp dir;
-    # copy and rename xt/tests according to tests mode;
-    # generate MANIFEST;
-    # return temp dir;
+    my $tree = Pcore::Util::File::Tree->new;
+
+    my $cpan_bin = $self->dist->cfg->{dist}->{cpan} && $self->dist->cfg->{dist}->{cpan_bin};
+
+    my @dir = qw[lib/ share/ t/ xt/];
+
+    push @dir, 'bin/' if $cpan_bin;
+
+    for (@dir) {
+        $tree->add_dir( $self->dist->root . $_, $_ );
+    }
+
+    for (qw[CHANGES cpanfile LICENSE META.json README.md Build.PL]) {
+        $tree->add_file( $_, $self->dist->root . $_ );
+    }
+
+    # add revision.txt
+    $tree->add_file( 'share/revision.txt', \$self->dist->revision );
+
+    $tree->find_file(
+        sub ($file) {
+            if ( $cpan_bin && $file->path =~ m[\Abin/(.+)\z]sm ) {
+                my $name = $1;
+
+                if ( $file->path !~ m[[.].+\z]sm ) {    # no extension
+                    $file->move( 'script/' . $name );
+                }
+                elsif ( $file->path =~ m[[.](?:pl|sh|cmd|bat)\z]sm ) {    # allowed extensions
+                    $file->move( 'script/' . $name );
+                }
+                else {
+                    $file->remove;
+                }
+            }
+            elsif ( $file->path =~ m[\At/(.+)\z]sm && $file->path !~ m[[.]t\z]sm ) {
+                $file->remove;
+            }
+            elsif ( $file->path =~ m[\Axt/(author|release|smoke)/(.+)\z]sm ) {
+                my $test = $1;
+
+                my $name = $2;
+
+                if ( $file->path =~ m[[.]t\z]sm ) {
+                    $file->move("t/$test-$name");
+
+                    $self->_patch_xt( $file, $test );
+                }
+                else {
+                    $file->remove;
+                }
+            }
+
+            return;
+        }
+    );
+
+    # remove /bin, /xt
+    $tree->find_file(
+        sub ($file) {
+            $file->remove if $file->path =~ m[\A(?:bin|xt)/]sm;
+
+            return;
+        }
+    );
+
+    return $tree->write_to_temp( base => $PROC->{SYS_TEMP_DIR} . '.pcore/build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
+}
+
+sub _patch_xt ( $self, $file, $test ) {
+    my $content = $file->content;
+
+    my $patch = <<"PERL";
+BEGIN {
+    unless ( \$ENV{$XT_TEST->{$test}->[0]} ) {
+        require Test::More;
+
+        Test::More::plan( skip_all => 'these tests are for $XT_TEST->{$test}->[1]' );
+    }
+}
+PERL
+
+    $content->$* =~ s/^use\s/$patch\nuse /sm;
 
     return;
 }
@@ -111,7 +208,7 @@ sub temp_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 66, 81               │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 73, 100              │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
