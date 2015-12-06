@@ -71,12 +71,12 @@ sub deploy ( $self, %args ) {
 
 sub test ( $self, @ ) {
     my %args = (
-        author       => 1,
-        release      => 0,
-        smoke        => 0,
-        all          => 0,
-        jobs         => 1,
-        test_verbose => 0,
+        author  => 1,
+        release => 0,
+        smoke   => 0,
+        all     => 0,
+        jobs    => 1,
+        verbose => 0,
         @_[ 1 .. $#_ ]
     );
 
@@ -84,12 +84,22 @@ sub test ( $self, @ ) {
     local $ENV{RELEASE_TESTING}   = 1 if $args{release} || $args{all};
     local $ENV{AUTOMATED_TESTING} = 1 if $args{smoke}   || $args{all};
 
+    local $ENV{HARNESS_OPTIONS} = $ENV{HARNESS_OPTIONS} ? "$ENV{HARNESS_OPTIONS}:j$args{jobs}" : "j$args{jobs}";
+
     my $build = $self->temp_build;
 
-    print 'Press ENTER to continue...';
-    <STDIN>;
+    # build & test
+    {
+        my $chdir_guard = P->file->chdir($build);
 
-    return;
+        return if !P->sys->system(qw[Build.PL]);
+
+        return if !P->sys->system(qw[Build]);
+
+        return if !P->sys->system( qw[Build test], ( $args{verbose} ? '--verbose' : q[] ) );
+    }
+
+    return 1;
 }
 
 sub release ( $self, $release_type ) {
@@ -208,7 +218,7 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 73, 100              │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 73, 110              │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
