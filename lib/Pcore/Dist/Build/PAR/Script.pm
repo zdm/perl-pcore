@@ -150,11 +150,11 @@ sub run ($self) {
 
     say 'done';
 
-    my $repacked_path = $self->_repack_parl( $parl_path, $zip );
+    my $repacked_fh = $self->_repack_parl( $parl_path, $zip );
 
     my $target_exe = $self->dist->root . 'data/' . $self->exe_filename;
 
-    P->file->move( $repacked_path, $target_exe );
+    P->file->move( $repacked_fh->path, $target_exe );
 
     P->file->chmod( 'r-x------', $target_exe );
 
@@ -536,6 +536,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
             # save mapping for temppath -> parl filename
             $parl_so_temp_map->{$temppath} = $filename;
 
+            # will be compressed and added later
             next;
         }
 
@@ -595,7 +596,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         say 'done';
     }
 
-    return $repacked_exe_fh->path;
+    return $repacked_exe_fh;
 }
 
 sub _error ( $self, $msg ) {
@@ -611,7 +612,7 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 188, 224, 547        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 188, 224, 548        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 201, 260, 292, 449   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -621,9 +622,9 @@ sub _error ( $self, $msg ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 518                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 569, 571             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 570, 572             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 505, 511, 575        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 505, 511, 576        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
