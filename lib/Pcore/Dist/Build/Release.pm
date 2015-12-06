@@ -20,6 +20,12 @@ sub run ($self) {
         return;
     }
 
+    if ( !$self->dist->scm ) {
+        say 'SCM is required';
+
+        return;
+    }
+
     my $scm = $self->dist->scm->server;
 
     # check for uncommited changes
@@ -178,7 +184,7 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 26                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 32                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
