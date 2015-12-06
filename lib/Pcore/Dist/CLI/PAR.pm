@@ -10,15 +10,18 @@ sub cli_opt ($self) {
     return {
         release => { desc => 'build release binary', },
         crypt   => {
-            short => 'C',
-            desc  => 'crypt non-core perl sources with Filter::Crypto',
+            short   => 'C',
+            desc    => 'crypt non-core perl sources with Filter::Crypto',
+            negated => 1,
         },
         upx => {
             desc    => 'do not compress shared objects with upx',
             negated => 1,
-            default => 1,
         },
-        clean => { desc => 'clean temp dir on exit', },
+        clean => {
+            desc    => 'clean temp dir on exit',
+            negated => 1,
+        },
     };
 }
 
@@ -41,7 +44,7 @@ sub run ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 32                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 35                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

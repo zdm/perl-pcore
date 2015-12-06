@@ -27,6 +27,7 @@ sub _build_tree ($self) {
     return Pcore::Util::File::Tree->new;
 }
 
+# TODO add resources
 sub run ($self) {
 
     # add common par deps packages to the script_deps
@@ -81,7 +82,7 @@ sub run ($self) {
             }
 
             # compress with upx
-            if ( $path =~ /$Config::Config{dlext}\z/sm ) {
+            if ( $path =~ /\Q$Config::Config{so}\E\z/sm ) {
                 push @compress_upx, $path->realpath;
             }
 
@@ -107,10 +108,13 @@ sub run ($self) {
 
     $zip->writeToFileNamed($zip_path);
 
-    # # create parl executable
-    # my $exe_temp_path = $PROC->{TEMP_DIR} . $script->filename_base . q[-] . lc $Config::Config{archname} . q[.exe];
-    #
-    # `parl -B -O$exe_temp_path $par_path`;
+    # create parl executable
+    my $parl_path = $PROC->{TEMP_DIR} . $self->script->filename_base . q[-] . lc $Config::Config{archname} . q[.exe];
+
+    say 'write parl...';
+    `parl -B -O$parl_path $zip_path` or die;
+
+    $self->_repack_parl( $parl_path, $zip_path );
 
     print 'Press ENTER to continue...';
     <STDIN>;
@@ -247,10 +251,6 @@ sub _add_pkg ( $self, $pkg ) {
     return 1;
 }
 
-# TODO patch pod with version info:
-# pcore version, changeset id
-# dist version, changeset id
-# build date, UTC
 sub _add_perl_source ( $self, $source, $target, $located_in_cpan = 0, $pkg = undef ) {
     my $src = P->file->read_bin($source);
 
@@ -346,9 +346,9 @@ sub _add_perl_source ( $self, $source, $target, $located_in_cpan = 0, $pkg = und
 
     # crypt sources, if nedeed
     if ($crypt) {
-        open $crypt_in_fh, '<', $src or die;
+        open my $crypt_in_fh, '<', $src or die;
 
-        open $crypt_out_fh, '<', \my $crypted_src or die;
+        open my $crypt_out_fh, '+>', \my $crypted_src or die;
 
         Filter::Crypto::CryptFile::crypt_file( $crypt_in_fh, $crypt_out_fh, Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() );
 
@@ -356,7 +356,7 @@ sub _add_perl_source ( $self, $source, $target, $located_in_cpan = 0, $pkg = und
 
         close $crypt_out_fh or die;
 
-        $src = $crypted_src;
+        $src = \$crypted_src;
     }
 
     $self->tree->add_file( $target, $src );
@@ -379,6 +379,113 @@ sub _compress_upx ( $self, $path ) {
     return;
 }
 
+sub _repack_par ( $self, $parl_path, $zip_path ) {
+    print 'repack parl ... ';
+
+    my $src = P->file->read_bin($parl_path);
+
+    my $in_len = length $src->$*;
+
+    my $hash = P->digest->md5_hex( $src->$* );
+
+    $src->$* =~ s/(.{4})\x0APAR[.]pm\x0A\z//sm;
+
+    my $overlay_length = unpack 'N', $1;
+
+    my $overlay = substr $src->$*, length( $src->$* ) - $overlay_length, $overlay_length, q[];
+
+    $overlay =~ s/.{40}\x{00}CACHE\z//sm;
+
+    my $fh = P->file->tempfile;
+
+    # print exe header
+    print {$fh} $src->$*;
+
+    my $exe_header_length = $fh->tell;
+
+    while (1) {
+        last if $overlay !~ s/\AFILE//sm;
+
+        my $filename_length = unpack( 'N', substr( $overlay, 0, 4, q[] ) ) - 9;
+
+        substr $overlay, 0, 9, q[];
+
+        my $filename = substr $overlay, 0, $filename_length, q[];
+
+        my $content_length = unpack( 'N', substr( $overlay, 0, 4, q[] ) );
+
+        my $content = substr $overlay, 0, $content_length, q[];
+
+        if ( $filename =~ /[.](?:pl|pm)\z/sm ) {
+            $content = Pcore::Src::File->new(
+                {   action      => 'compress',
+                    path        => $filename,
+                    is_realpath => 0,
+                    in_buffer   => \$content,
+                    filter_args => {             #
+                        perl_compress => 1,
+                    },
+                }
+            )->run->out_buffer->$*;
+        }
+        elsif ( !$profile->{noupx} && $filename =~ /[.]$Config::Config{dlext}\z/sm ) {
+            state $i;
+
+            my $temp_path = $PROC->{TEMP_DIR} . 'parl_so_' . ++$i;
+
+            P->file->write_bin( $temp_path, $content );
+
+            $self->_upx($temp_path);
+
+            $content = P->file->read_bin($temp_path)->$*;
+        }
+
+        # pack file back to the overlay
+        print {$fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32($content) ) . q[/] . $filename . pack( 'N', length $content ) . $content;
+    }
+
+    # add par itself
+    $zip->writeToFileHandle($fh);
+
+    # write magic strings
+    print {$fh} pack( 'Z40', $hash ) . qq[\x00CACHE];
+
+    print {$fh} pack( 'N', $fh->tell - $exe_header_length ) . "\x0APAR.pm\x0A";
+
+    my $out_len = $fh->tell;
+
+    say BOLD . GREEN . q[-] . ( reverse join q[_], ( reverse( $out_len - $in_len ) ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
+
+    # need to close fh before copy / patch file
+    $fh->close;
+
+    # patch windows exe icon
+    if ($MSWIN) {
+
+        # .ico
+        # 4 layers, 16x16, 32x32, 16x16, 32x32
+        # all layers 8bpp, 1-bit alpha, 256-slot palette
+
+        print 'patch win exe icon ... ';
+
+        require Win32::Exe;
+
+        my $exe = Win32::Exe->new( $fh->path );
+
+        $exe->update( icon => $PROC->res->get('/data/par.ico') );
+
+        say 'done';
+    }
+
+    P->file->copy( $fh->path, $out_path );
+
+    P->file->chmod( 'r-x------', $out_path );
+
+    say 'final binary size: ' . BOLD . GREEN . ( reverse join q[_], ( reverse -s $out_path ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -386,11 +493,21 @@ sub _compress_upx ( $self, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 124, 160             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 128, 164             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 137, 196, 228        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 141, 200, 232        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 254                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 382                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_par' declared but not used  │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 393                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 420                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 451, 453             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 409, 415, 457        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
