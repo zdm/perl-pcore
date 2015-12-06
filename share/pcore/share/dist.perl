@@ -6,14 +6,14 @@
         cpan             => <: $cpan_distribution :>,                # CPAN distribution
         cpan_bin         => 0,                                       # upload bin to CPAN
         meta             => {
-            homepage   => q[],
+            homepage   => undef,
             repository => {
-                web  => q[],
-                url  => q[],
-                type => q[],
+                web  => undef,
+                url  => undef,
+                type => undef,
             },
             bugtracker => {                                          #
-                web => q[],
+                web => undef,
             }
         },
         par => {

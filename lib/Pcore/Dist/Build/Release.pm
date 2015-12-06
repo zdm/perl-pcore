@@ -82,9 +82,7 @@ sub run ($self) {
 
 sub _upload_to_cpan ($self) {
     my $tgz = $self->dist->build->tgz;
-    print 'Press ENTER to continue...';
-    <STDIN>;
-    exit;
+
   REDO:
     my ( $status, $reason ) = $self->_upload( $self->dist->global_cfg->{PAUSE}->{username}, $self->dist->global_cfg->{PAUSE}->{password}, $tgz );
 
