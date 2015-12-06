@@ -10,10 +10,10 @@ has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute pat
 has main_module_path => ( is => 'lazy', isa => Str );             # absolute path
 
 has cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );
-has name     => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist-Name
-has ns       => ( is => 'lazy', isa => Str,     init_arg => undef );    # Dist::Name
-has version  => ( is => 'lazy', isa => Object,  init_arg => undef );
-has revision => ( is => 'lazy', isa => Str,     init_arg => undef );
+has name     => ( is => 'lazy', isa => Str,     init_arg => undef );                  # Dist-Name
+has ns       => ( is => 'lazy', isa => Str,     init_arg => undef );                  # Dist::Name
+has version  => ( is => 'lazy', isa => Object,  clearer  => 1, init_arg => undef );
+has revision => ( is => 'lazy', isa => Str,     clearer  => 1, init_arg => undef );
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
@@ -21,10 +21,10 @@ has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg 
 around new => sub ( $orig, $self, $path ) {
     my $pkg_name;
 
-    if ( $path =~ /[.]pm\z/smo ) {                                      # Package/Name.pm
+    if ( $path =~ /[.]pm\z/smo ) {                                                    # Package/Name.pm
         $pkg_name = $path;
     }
-    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {               # PAR
+    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {                             # PAR
         return $self->$orig(
             {   root         => undef,
                 is_installed => 1,
@@ -33,7 +33,7 @@ around new => sub ( $orig, $self, $path ) {
             }
         );
     }
-    elsif ( $path =~ m[[./]]smo ) {                                     # ./path/to/dist
+    elsif ( $path =~ m[[./]]smo ) {                                                   # ./path/to/dist
         if ( $path = $self->find_dist_root($path) ) {
             return $self->$orig(
                 {   root         => $path->to_string,
