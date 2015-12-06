@@ -590,6 +590,32 @@ sub tempdir ( $self, %args ) {
     return Pcore::Util::File::TempDir->new( \%args );
 }
 
+sub temppath ( $self, @ ) {
+    my %args = (
+        base   => $PROC->{TEMP_DIR},
+        suffix => q[],
+        tmpl   => 'temp-' . P->sys->pid . '-XXXXXXXX',
+        @_[ 1 .. $#_ ],
+    );
+
+    $args{suffix} = q[.] . $args{suffix} if defined $args{suffix} && $args{suffix} ne q[] && substr( $args{suffix}, 0, 1 ) ne q[.];
+
+    require Pcore::Util::File::TempFile;
+
+    P->file->mkpath( $args{base} ) if !-e $args{base};
+
+    my $attempt = 3;
+
+  REDO:
+    die q[Can't create temporary path] if !$attempt--;
+
+    my $filename = $args{tmpl} =~ s/X/$Pcore::Util::File::TempFile::TMPL->[rand $Pcore::Util::File::TempFile::TMPL->@*]/smger . $args{suffix};
+
+    goto REDO if -e $args{base} . q[/] . $filename;
+
+    return P->path( $args{base} . q[/] . $filename );
+}
+
 # COPY / MOVE FILE
 sub copy ( $self, $from, $to, % ) {
     my %args = (

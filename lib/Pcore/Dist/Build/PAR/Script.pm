@@ -20,11 +20,21 @@ has script_deps => ( is => 'ro', isa => HashRef, required => 1 );
 has resources => ( is => 'ro', isa => Maybe [ArrayRef] );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
+has par_suffix   => ( is => 'lazy', isa => Str, init_arg => undef );
+has exe_filename => ( is => 'lazy', isa => Str, init_arg => undef );
 
 no Pcore;
 
 sub _build_tree ($self) {
     return Pcore::Util::File::Tree->new;
+}
+
+sub _build_par_suffix ($self) {
+    return $MSWIN ? '.exe' : q[];
+}
+
+sub _build_exe_filename ($self) {
+    return $self->script->filename_base . $self->par_suffix;
 }
 
 # TODO add resources
@@ -104,17 +114,27 @@ sub run ($self) {
         }
     );
 
-    my $zip_path = $PROC->{TEMP_DIR} . $self->script->filename_base . q[-] . lc $Config::Config{archname} . q[.zip];
+    my $zip_fh = P->file->tempfile( suffix => 'zip' );
 
-    $zip->writeToFileNamed($zip_path);
+    $zip->writeToFileHandle($zip_fh);
+
+    $zip_fh->close;
 
     # create parl executable
-    my $parl_path = $PROC->{TEMP_DIR} . $self->script->filename_base . q[-] . lc $Config::Config{archname} . q[.exe];
+    my $parl_path = P->file->temppath( suffix => $self->par_suffix );
 
     say 'write parl...';
-    `parl -B -O$parl_path $zip_path` or die;
+    `parl -B -O$parl_path ` . $zip_fh->path or die;
 
-    $self->_repack_parl( $parl_path, $zip_path );
+    my $repacked_fh = $self->_repack_parl( $parl_path, $zip );
+
+    my $target_exe = $self->dist->root . 'data/' . $self->exe_filename;
+
+    P->file->move( $repacked_fh->path, $target_exe );
+
+    P->file->chmod( 'r-x------', $target_exe );
+
+    say 'final binary size: ' . BOLD . GREEN . ( reverse join q[_], ( reverse -s $target_exe ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
 
     print 'Press ENTER to continue...';
     <STDIN>;
@@ -374,12 +394,15 @@ sub _compress_upx ( $self, $path ) {
         $upx = $PROC->res->get('/bin/upx_x64');
     }
 
-    P->sys->system( $upx, '--best', $path->@* ) or 1 if $upx;
+    if ($upx) {
+        say q[];
+        P->sys->system( $upx, '--best', $path->@* ) or 1;
+    }
 
     return;
 }
 
-sub _repack_par ( $self, $parl_path, $zip_path ) {
+sub _repack_parl ( $self, $parl_path, $zip ) {
     print 'repack parl ... ';
 
     my $src = P->file->read_bin($parl_path);
@@ -388,20 +411,27 @@ sub _repack_par ( $self, $parl_path, $zip_path ) {
 
     my $hash = P->digest->md5_hex( $src->$* );
 
+    # find zip length
     $src->$* =~ s/(.{4})\x0APAR[.]pm\x0A\z//sm;
 
-    my $overlay_length = unpack 'N', $1;
+    my $zip_overlay_length = unpack 'N', $1;
 
-    my $overlay = substr $src->$*, length( $src->$* ) - $overlay_length, $overlay_length, q[];
+    # cut zip overlay
+    my $overlay = substr $src->$*, length( $src->$* ) - $zip_overlay_length, $zip_overlay_length, q[];
 
+    # cut CACHE_ID, now $overlay contains only parl embedded files
     $overlay =~ s/.{40}\x{00}CACHE\z//sm;
 
-    my $fh = P->file->tempfile;
+    # repacked_exe_fh contains raw exe header, without overlay
+    my $repacked_exe_fh = P->file->tempfile( suffix => $self->par_suffix );
 
-    # print exe header
-    print {$fh} $src->$*;
+    my $exe_header_length = length $src->$*;
 
-    my $exe_header_length = $fh->tell;
+    P->file->write_bin( $repacked_exe_fh, $src );
+
+    my $parl_so_temp = P->file->tempdir;
+
+    my $parl_so_temp_map = {};
 
     while (1) {
         last if $overlay !~ s/\AFILE//sm;
@@ -417,6 +447,8 @@ sub _repack_par ( $self, $parl_path, $zip_path ) {
         my $content = substr $overlay, 0, $content_length, q[];
 
         if ( $filename =~ /[.](?:pl|pm)\z/sm ) {
+
+            # compress perl sources
             $content = Pcore::Src::File->new(
                 {   action      => 'compress',
                     path        => $filename,
@@ -428,36 +460,56 @@ sub _repack_par ( $self, $parl_path, $zip_path ) {
                 }
             )->run->out_buffer->$*;
         }
-        elsif ( !$profile->{noupx} && $filename =~ /[.]$Config::Config{dlext}\z/sm ) {
-            state $i;
+        elsif ( $self->upx && $filename =~ /[.]$Config::Config{so}\z/sm ) {
 
-            my $temp_path = $PROC->{TEMP_DIR} . 'parl_so_' . ++$i;
+            # store shared object to the temporary path
+            my $temppath = P->file->temppath( base => $parl_so_temp, suffix => $Config::Config{so} );
 
-            P->file->write_bin( $temp_path, $content );
+            P->file->write_bin( $temppath, $content );
 
-            $self->_upx($temp_path);
+            # save mapping for temppath -> parl filename
+            $parl_so_temp_map->{$temppath} = $filename;
 
-            $content = P->file->read_bin($temp_path)->$*;
+            next;
         }
 
         # pack file back to the overlay
-        print {$fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32($content) ) . q[/] . $filename . pack( 'N', length $content ) . $content;
+        print {$repacked_exe_fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32($content) ) . q[/] . $filename . pack( 'N', length $content ) . $content;
+    }
+
+    if ( $self->upx ) {
+        $self->_compress_upx( [ $parl_so_temp->path . '*.' . $Config::Config{so} ] );
+
+        P->file->find(
+            $parl_so_temp,
+            abs => 1,
+            dir => 0,
+            sub ($path) {
+                my $content = P->file->read_bin($path)->$*;
+
+                my $filename = $parl_so_temp_map->{$path};
+
+                print {$repacked_exe_fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32($content) ) . q[/] . $filename . pack( 'N', length $content ) . $content;
+
+                return;
+            }
+        );
     }
 
     # add par itself
-    $zip->writeToFileHandle($fh);
+    $zip->writeToFileHandle($repacked_exe_fh);
 
     # write magic strings
-    print {$fh} pack( 'Z40', $hash ) . qq[\x00CACHE];
+    print {$repacked_exe_fh} pack( 'Z40', $hash ) . qq[\x00CACHE];
 
-    print {$fh} pack( 'N', $fh->tell - $exe_header_length ) . "\x0APAR.pm\x0A";
+    print {$repacked_exe_fh} pack( 'N', $repacked_exe_fh->tell - $exe_header_length ) . "\x0APAR.pm\x0A";
 
-    my $out_len = $fh->tell;
+    my $out_len = $repacked_exe_fh->tell;
 
     say BOLD . GREEN . q[-] . ( reverse join q[_], ( reverse( $out_len - $in_len ) ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
 
     # need to close fh before copy / patch file
-    $fh->close;
+    $repacked_exe_fh->close;
 
     # patch windows exe icon
     if ($MSWIN) {
@@ -470,20 +522,14 @@ sub _repack_par ( $self, $parl_path, $zip_path ) {
 
         require Win32::Exe;
 
-        my $exe = Win32::Exe->new( $fh->path );
+        my $exe = Win32::Exe->new( $repacked_exe_fh->path );
 
         $exe->update( icon => $PROC->res->get('/data/par.ico') );
 
         say 'done';
     }
 
-    P->file->copy( $fh->path, $out_path );
-
-    P->file->chmod( 'r-x------', $out_path );
-
-    say 'final binary size: ' . BOLD . GREEN . ( reverse join q[_], ( reverse -s $out_path ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
-
-    return;
+    return $repacked_exe_fh;
 }
 
 1;
@@ -493,21 +539,21 @@ sub _repack_par ( $self, $parl_path, $zip_path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 128, 164             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 148, 184             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 141, 200, 232        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 161, 220, 252        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 254                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 274                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 382                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_repack_par' declared but not used  │
+## │    3 │ 417                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 393                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    2 │ 452                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 420                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 481                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 451, 453             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 503, 505             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 409, 415, 457        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 439, 445, 509        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
