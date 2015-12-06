@@ -33,11 +33,11 @@ sub _build_par_suffix ($self) {
     return $MSWIN ? '.exe' : q[];
 }
 
+# TODO
 sub _build_exe_filename ($self) {
     return $self->script->filename_base . $self->par_suffix;
 }
 
-# TODO add resources
 sub run ($self) {
 
     # add common par deps packages to the script_deps
@@ -71,7 +71,7 @@ sub run ($self) {
     # process script deps
     $self->_add_script_deps;
 
-    # TODO add resources
+    $self->_add_resources;
 
     my $temp = $self->tree->write_to_temp;
 
@@ -135,6 +135,23 @@ sub run ($self) {
     P->file->chmod( 'r-x------', $target_exe );
 
     say 'final binary size: ' . BOLD . GREEN . ( reverse join q[_], ( reverse -s $target_exe ) =~ /(\d{1,3})/smg ) . RESET . ' bytes';
+
+    return;
+}
+
+sub _add_resources ($self) {
+    return if !$self->resources;
+
+    for my $res ( $self->resources->@* ) {
+        my $path = $PROC->res->get($res);
+
+        if ( !$path ) {
+            die;
+        }
+        else {
+            $self->tree->add_file( 'share/' . $res, $path );
+        }
+    }
 
     return;
 }
@@ -537,21 +554,21 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 145, 181             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 162, 198             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 158, 217, 249        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 175, 234, 266        │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 271                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 288                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 415                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 432                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 450                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 467                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 479                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 496                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 501, 503             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 518, 520             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 437, 443, 507        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 454, 460, 524        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

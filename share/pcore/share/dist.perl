@@ -23,8 +23,7 @@
                 clean     => 1,
                 resources => [
 
-                    # [ local => '<path_to_local_resource_file_or_dir>' ],
-                    # [ share => '<path_to_share_resource_file_or_dir>' ],
+                    # '<path_to_local_resource_file_or_dir>',
                 ],
             },
         },

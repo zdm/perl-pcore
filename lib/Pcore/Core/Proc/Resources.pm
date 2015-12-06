@@ -169,13 +169,6 @@ sub store ( $self, $file, $path, $lib, @ ) {
     return $self->_lib->{$lib} . $args{storage} . $path;
 }
 
-# TODO
-# copy directories
-# ignore, if not exitst
-sub copy ( $self, $path, $to ) {
-    return;
-}
-
 1;
 __END__
 =pod
