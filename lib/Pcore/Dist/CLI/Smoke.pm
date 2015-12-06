@@ -1,4 +1,4 @@
-package Pcore::Dist::CLI::Test;
+package Pcore::Dist::CLI::Smoke;
 
 use Pcore qw[-class];
 
@@ -8,12 +8,11 @@ no Pcore;
 
 sub cli_opt ($self) {
     return {
-        author  => { desc => 'enables the AUTHOR_TESTING env variable (default behavior)', default => 1, negated => 1 },
-        release => { desc => 'enables the RELEASE_TESTING env variable', },
-        smoke   => { desc => 'enables the AUTOMATED_TESTING env variable', },
-        all     => { short => undef,                                 desc => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables', },
-        jobs    => { desc  => 'number of parallel test jobs to run', isa  => 'PositiveInt' },
-        verbose => { short => undef,                                 desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
+        author  => { desc  => 'enables the AUTHOR_TESTING env variable (default behavior)' },
+        release => { desc  => 'enables the RELEASE_TESTING env variable', },
+        all     => { short => undef, desc => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables', },
+        jobs    => { desc  => 'number of parallel test jobs to run', isa => 'PositiveInt' },
+        verbose => { short => undef, desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
     };
 }
 
@@ -24,7 +23,7 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ( $self, $args ) {
-    exit 3 if !$self->dist->build->test( $args->%* );
+    exit 3 if !$self->dist->build->test( $args->%*, smoke => 1 );
 
     return;
 }
@@ -36,7 +35,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 27                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 26                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -47,7 +46,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Test - test your distribution
+Pcore::Dist::CLI::Smoke - smoke your distribution
 
 =head1 SYNOPSIS
 

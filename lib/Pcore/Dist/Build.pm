@@ -71,7 +71,7 @@ sub deploy ( $self, %args ) {
 
 sub test ( $self, @ ) {
     my %args = (
-        author  => 1,
+        author  => 0,
         release => 0,
         smoke   => 0,
         all     => 0,
