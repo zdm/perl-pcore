@@ -164,10 +164,10 @@ sub _build_help_spec ($self) {
         }
         else {
             if ( defined $self->default_val ) {
-                $spec .= " [$type]";
+                $spec .= "=[$type]";
             }
             else {
-                $spec .= q[ ] . $type;
+                $spec .= " $type";
             }
         }
     }
