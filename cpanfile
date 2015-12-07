@@ -41,6 +41,11 @@ requires 'Inline::C';
 # Handle
 requires 'BerkeleyDB';
 
+# Pcore::Dist
+requires 'Pod::Markdown';
+requires 'Software::License';
+requires 'Module::CPANfile';
+
 # Pcore::HTTP
 requires 'HTTP::Parser::XS';
 
@@ -146,12 +151,6 @@ requires 'Data::UUID';
 
 on develop => sub {
     requires 'Module::Build::Tiny';
-    requires 'Pod::Markdown';
-    requires 'Software::License';
-
-    feature linux => sub {
-        requires 'Archive::Tar::Wrapper';
-    };
 
     # debugging and profiling
     requires 'Devel::NYTProf';

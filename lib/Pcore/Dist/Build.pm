@@ -92,11 +92,13 @@ sub test ( $self, @ ) {
     {
         my $chdir_guard = P->file->chdir($build);
 
-        return if !P->sys->system(qw[Build.PL]);
+        my $psplit = $MSWIN ? q[\\] : q[/];
 
-        return if !P->sys->system(qw[Build]);
+        return if !P->sys->system(qw[perl Build.PL]);
 
-        return if !P->sys->system( qw[Build test], ( $args{verbose} ? '--verbose' : q[] ) );
+        return if !P->sys->system(".${psplit}Build");
+
+        return if !P->sys->system( ".${psplit}Build", 'test', ( $args{verbose} ? '--verbose' : q[] ) );
     }
 
     return 1;
