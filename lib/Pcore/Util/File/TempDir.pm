@@ -35,7 +35,7 @@ sub DEMOLISH ( $self, $global ) {
 
     local $SIG{__WARN__} = sub { };
 
-    P->file->rmtree( $self->path, safe => 1 );
+    P->file->rmtree( $self->path, safe => 0 );
 
     return;
 }

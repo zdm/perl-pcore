@@ -555,7 +555,7 @@ sub mkpath ( $self, $path, % ) {
 
 sub rmtree ( $self, $path, % ) {
     my %args = (
-        safe      => 0,    # don't die if can't remove something
+        safe      => 0,    # 0 - will attempts to alter file permission
         keep_root => 0,
         @_[ 2 .. $#_ ],
     );
@@ -567,7 +567,7 @@ sub rmtree ( $self, $path, % ) {
 
 sub empty_dir ( $self, $path, % ) {
     my %args = (
-        safe => 0,         # don't die if can't remove something
+        safe => 0,         # 0 - will attempts to alter file permission
         @_[ 2 .. $#_ ],
         keep_root => 1,
     );
