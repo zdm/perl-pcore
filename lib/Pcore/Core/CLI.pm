@@ -276,8 +276,8 @@ sub _parse_opt ( $self, $argv ) {
 
     my $parser = Getopt::Long::Parser->new(
         config => [    #
-            'no_auto_abbrev',
-            'no_getopt_compat',
+            'auto_abbrev',
+            'no_getopt_compat',    # do not allow + to start options
             'gnu_compat',
             'no_require_order',
             'permute',
