@@ -24,9 +24,10 @@ ADD cpanfile /var/local/pcore/
 
 WORKDIR /var/local/pcore/
 
-RUN perl bin/pcore deploy --develop --recommends --suggests \
+# --develop
+RUN perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
     && pcore clean \
     && rm -rf ~/.cpanm
 
-VOLUME ["/var/local/pcore/log/", "/var/local/pcore/resources/", "/var/local/resources/"]
+VOLUME ["/var/local/resources/share/"]
