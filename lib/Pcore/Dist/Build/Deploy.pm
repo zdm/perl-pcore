@@ -37,7 +37,7 @@ sub _chmod ($self) {
             q[.],
             sub ($path) {
                 if ( -d $path ) {
-                    P->file->chmod( 'rwx------', $path ) or print qq[$!: $path\n];
+                    P->file->chmod( 'rwx------', $path ) or say qq[$!: $path];
                 }
                 else {
                     my $is_exe;
@@ -50,14 +50,14 @@ sub _chmod ($self) {
                     }
 
                     if ($is_exe) {
-                        P->file->chmod( 'r-x------', $path ) or print qq[$!: $path\n];
+                        P->file->chmod( 'r-x------', $path ) or say qq[$!: $path];
                     }
                     else {
-                        P->file->chmod( 'rw-------', $path ) or print qq[$!: $path\n];
+                        P->file->chmod( 'rw-------', $path ) or say qq[$!: $path];
                     }
                 }
 
-                chown $>, $), $path or print qq[$!: $path\n];    # EUID, EGID
+                chown $>, $), $path or say qq[$!: $path];    # EUID, EGID
 
                 return;
             }
@@ -88,7 +88,7 @@ sub _cpanm ($self) {
             '--installdeps', q[.],
         );
 
-        print join( q[ ], @args ) . qq[\n];
+        say join q[ ], @args;
 
         Pcore->sys->system(@args) or return;
     }
@@ -98,7 +98,7 @@ sub _cpanm ($self) {
 
 sub _install ($self) {
     if ( !P->pm->is_superuser ) {
-        print qq[Root privileges required to deploy pcore at system level.\n];
+        say qq[Root privileges required to deploy pcore at system level.];
 
         return;
     }
@@ -114,17 +114,17 @@ sub _install ($self) {
         # set $ENV{PERL5LIB}
         P->sys->system(qq[setx.exe /M PERL5LIB "$canon_dist_root/lib;"]) or return;
 
-        print qq[%PERL5LIB% updated\n];
+        say qq[%PERL5LIB% updated];
 
         # set $ENV{PCORE_DIST_LIB}
         P->sys->system(qq[setx.exe /M PCORE_DIST_LIB "$canon_dist_lib_dir"]) or return;
 
-        print qq[%PCORE_DIST_LIB% updated\n];
+        say qq[%PCORE_DIST_LIB% updated];
 
         # set $ENV{PCORE_RES_LIB}
         P->sys->system(qq[setx.exe /M PCORE_RES_LIB "$canon_dist_lib_dir/resources"]) or return;
 
-        print qq[%PCORE_RES_LIB% updated\n];
+        say qq[%PCORE_RES_LIB% updated];
 
         # update $ENV{PATH}
         require Win32::TieRegistry;
@@ -146,7 +146,7 @@ sub _install ($self) {
 
             P->sys->system(qq[setx.exe /M PATH "$ENV{PATH};"]) or return;
 
-            print qq[%PATH% updated\n];
+            say qq[%PATH% updated];
         }
     }
     else {
@@ -158,6 +158,8 @@ export PATH="\$PATH:$canon_bin_dir"
 SH
 
         P->file->write_bin( '/etc/profile.d/pcore.sh', { mode => q[rw-r--r--] }, \$data );
+
+        say '/etc/profile.d script installed';
     }
 
     return 1;
@@ -170,6 +172,9 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 101, 117, 122, 127,  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │      │ 149                  │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 132                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##

@@ -56,6 +56,7 @@ sub _configure_inc {
         }
     }
 
+    # not for PAR
     if ( !$PROC->is_par ) {
         my $dist_lib_path;
 

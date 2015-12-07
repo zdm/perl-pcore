@@ -79,7 +79,7 @@ sub _build_pcore ($self) {
     }
 }
 
-# TODO
+# TODO priority
 sub _build_res ($self) {
     my $res = Pcore::Core::Proc::Resources->new;
 

@@ -16,7 +16,7 @@ const our $RESERVED_LIB_NAME => {
 };
 
 sub add_lib ( $self, $name, $path ) {
-    die qq[resource lib "$name" already exists] if exists $self->lib->{$name};
+    die qq[resource lib "$name" already exists] if exists $self->_lib->{$name};
 
     die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
 
