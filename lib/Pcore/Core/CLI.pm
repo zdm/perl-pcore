@@ -111,17 +111,24 @@ sub _build_arg ($self) {
 
     my $class = $self->class;
 
-    my $last_arg;
+    my $next_arg = 0;    # 0 - any, 1 - min = 0, 2 - no arg
 
     if ( $class->can('cli_arg') && defined( my $cli_arg = $class->cli_arg ) ) {
         for my $cfg ( $cli_arg->@* ) {
-            die q[Can't have other arguments after slurpy argument] if $last_arg;
+            die q[Can't have other arguments after slurpy argument] if $next_arg == 2;
 
             my $arg = Pcore::Core::CLI::Arg->new($cfg);
 
+            die q[Can't have required argument after not mandatory argument] if $next_arg == 1 && $arg->min != 0;
+
             die qq[Argument "@{[$arg->name]}" is duplicated] if exists $index->{ $arg->name };
 
-            $last_arg = $arg->is_last;
+            if ( !defined $arg->max ) {
+                $next_arg = 2;
+            }
+            elsif ( $arg->min == 0 ) {
+                $next_arg = 1;
+            }
 
             push $args->@*, $arg;
 
@@ -337,7 +344,7 @@ sub _parse_opt ( $self, $argv ) {
         }
     }
 
-    return $self->help_usage( [qq[unknown arguments]] ) if $parsed_args->@*;
+    return $self->help_usage( [qq[unexpected arguments]] ) if $parsed_args->@*;
 
     # validate cli
     my $class = $self->class;
@@ -575,13 +582,13 @@ sub help_error ( $self, $msg ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 46                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 89, 92, 150, 231,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 266, 327, 350, 413,  │                                                                                                                │
-## │      │ 476, 481, 485, 494   │                                                                                                                │
+## │    3 │ 89, 92, 157, 238,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 273, 334, 357, 420,  │                                                                                                                │
+## │      │ 483, 488, 492, 501   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 340                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 347                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 374, 514, 542        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 381, 521, 549        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
