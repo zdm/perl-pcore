@@ -53,7 +53,7 @@ sub _build_type ($self) {
 sub _build_help_spec ($self) {
     my $spec;
 
-    if ( $self->min == 0 ) {
+    if ( $self->min == 0 || defined $self->default ) {
         $spec = '[' . uc $self->type . ']';
     }
     else {
