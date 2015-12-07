@@ -10,9 +10,11 @@ has name => ( is => 'ro', isa => Str, required => 1 );
 has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );    # undef - disable short option
 has desc => ( is => 'ro', isa => Str );
 
-has type    => ( is => 'lazy', isa => Maybe [Str] );
-has isa     => ( is => 'ro',   isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
-has default => ( is => 'ro',   isa => Maybe [ Str | ArrayRef | HashRef ] );
+has type => ( is => 'lazy', isa => Maybe [Str] );
+has isa => ( is => 'ro', isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
+
+has default     => ( is => 'ro', isa => Maybe [ Str | ArrayRef | HashRef ] );        # applied, when option is not exists
+has default_val => ( is => 'ro', isa => Maybe [Str] );                               # applied, when option value is not defined
 
 has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                   # 0 - option is not required
 has max => ( is => 'lazy', isa => Maybe [PositiveInt] );                             # undef - unlimited repeated
@@ -48,6 +50,15 @@ sub BUILD ( $self, $args ) {
                 die qq[Option "$name", "default" must be a ArrayRef] if ref $self->default ne 'ARRAY';
             }
         }
+    }
+
+    # default_val
+    if ( defined $self->default_val ) {
+        die qq[Option "$name", "default_val" can not be used for bool options] if $self->is_bool;
+
+        die qq[Option "$name", "default_val" can not be used for hash options] if $self->hash;
+
+        die qq[Option "$name", "default_val" can not be used for repeatable options] if $self->is_repeatable;
     }
 
     if ( $self->is_bool ) {
@@ -87,7 +98,7 @@ sub _build_short ($self) {
 }
 
 sub _build_type ($self) {
-    if ( defined $self->isa ) {
+    if ( !$self->is_bool ) {
         my $ref = ref $self->isa;
 
         if ( !$ref ) {
@@ -118,13 +129,18 @@ sub _build_getopt_spec ($self) {
         $spec .= q[+] if $self->is_repeatable;
     }
     else {
-        $spec .= q[=s];
-
-        if ( $self->hash ) {
-            $spec .= q[%];
+        if ( defined $self->default_val ) {
+            $spec .= q[:s];
         }
-        elsif ( $self->is_repeatable ) {
-            $spec .= q[@];
+        else {
+            $spec .= q[=s];
+
+            if ( $self->hash ) {
+                $spec .= q[%];
+            }
+            elsif ( $self->is_repeatable ) {
+                $spec .= q[@];
+            }
         }
     }
 
@@ -140,14 +156,19 @@ sub _build_help_spec ($self) {
 
     $spec .= $self->getopt_name;
 
-    if ( !$self->is_bool && $self->type ) {
+    if ( !$self->is_bool ) {
         my $type = uc $self->type;
 
         if ( $self->hash ) {
             $spec .= q[ key=] . $type;
         }
         else {
-            $spec .= q[ ] . $type;
+            if ( defined $self->default_val ) {
+                $spec .= " [$type]";
+            }
+            else {
+                $spec .= q[ ] . $type;
+            }
         }
     }
 
@@ -174,6 +195,11 @@ sub validate ( $self, $opt ) {
 
         # apply default value if defined
         $opt->{$name} = $self->default if defined $self->default;
+    }
+    elsif ( defined $self->default_val && $opt->{$name} eq q[] ) {
+
+        # apply default_val if opt is exists. but value is not specified
+        $opt->{$name} = $self->default_val;
     }
 
     # option is not exists and is not required
@@ -218,7 +244,9 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14, 196              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 14, 222              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 34                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (22)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
