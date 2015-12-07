@@ -96,32 +96,26 @@ sub run ($self) {
 
     my $temp = $self->tree->write_to_temp;
 
-    # set permissions, remove read-only attribute for windows
-    my @compress_upx;
+    # compress so with upx
+    if ( $self->upx ) {
+        my @compress_upx;
 
-    P->file->find(
-        $temp->path,
-        dir => 0,
-        sub ($path) {
-            if ($MSWIN) {
-                require Win32::File;
+        P->file->find(
+            $temp->path,
+            dir => 0,
+            sub ($path) {
 
-                Win32::File::SetAttributes( $path, Win32::File::NORMAL() ) or die;
+                # compress with upx
+                if ( $path =~ /\Q$Config::Config{so}\E\z/sm ) {
+                    push @compress_upx, $path->realpath;
+                }
+
+                return;
             }
-            else {
-                P->file->chmod( 'rw-------', $path );
-            }
+        );
 
-            # compress with upx
-            if ( $path =~ /\Q$Config::Config{so}\E\z/sm ) {
-                push @compress_upx, $path->realpath;
-            }
-
-            return;
-        }
-    );
-
-    $self->_compress_upx( \@compress_upx ) if $self->upx && @compress_upx;
+        $self->_compress_upx( \@compress_upx ) if @compress_upx;
+    }
 
     # create zipped par
     my $zip = Archive::Zip->new;
@@ -614,19 +608,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 188, 224, 550        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 182, 218, 544        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 201, 260, 292, 451   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 195, 254, 286, 445   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 314                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 308                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 485                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 479                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 520                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 514                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 572, 574             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 566, 568             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 507, 513, 578        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 501, 507, 572        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
