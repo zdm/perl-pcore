@@ -175,7 +175,7 @@ sub update_meta_json ($self) {
     $meta->{prereqs} = $self->prereqs->as_string_hash;
 
     # create and store META.json
-    CPAN::Meta->create($meta)->save( $self->dist->root . 'META.json' );
+    P->file->write_text( $self->dist->root . 'META.json', { crlf => 0 }, CPAN::Meta->create($meta)->as_string );
 
     return;
 }
