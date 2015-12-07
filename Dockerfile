@@ -6,7 +6,8 @@ USER root
 
 ENV PERL5LIB="/var/local/pcore/lib/" \
     PATH="/var/local/pcore/bin:$PATH" \
-    PCORE_MOUNTED_RESOURCES="/var/local/resources/"
+    PCORE_DIST_LIB="/var/local/" \
+    PCORE_RES_LIB="/var/local/resources/"
 
 # TODO
 # automated build ignore .dockerignore
