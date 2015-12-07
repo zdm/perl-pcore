@@ -138,6 +138,8 @@ sub temp_build ($self) {
     push @dir, 'bin/' if $cpan_bin;
 
     for (@dir) {
+        next if !-d $self->dist->root . $_;
+
         $tree->add_dir( $self->dist->root . $_, $_ );
     }
 

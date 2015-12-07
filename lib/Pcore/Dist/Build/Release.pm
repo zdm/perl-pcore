@@ -29,7 +29,7 @@ sub run ($self) {
     my $scm = $self->dist->scm->server;
 
     # check for uncommited changes
-    if ( $scm->cmd(qw[status -mard])->%* ) {
+    if ( $scm->cmd(qw[status -mard --subrepos])->%* ) {
         say 'Working copy has uncommited changes. Release is impossible.';
 
         return;
@@ -86,7 +86,7 @@ sub run ($self) {
     $self->dist->build->update;
 
     # commit
-    $scm->cmd( 'commit', qq[-m"stable $new_ver"] );
+    $scm->cmd( 'commit', qq[-m"stable $new_ver"], '--subrepos' );
 
     $scm->cmd( 'tag', '-f', 'stable', $new_ver );
 
