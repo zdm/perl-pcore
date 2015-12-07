@@ -12,7 +12,7 @@ has desc => ( is => 'ro', isa => Str );
 
 has type    => ( is => 'lazy', isa => Maybe [Str] );
 has isa     => ( is => 'ro',   isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
-has default => ( is => 'ro',   isa => Maybe [ Str | ArrayRef | HashRef | CodeRef ] );
+has default => ( is => 'ro',   isa => Maybe [ Str | ArrayRef | HashRef ] );
 
 has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                   # 0 - option is not required
 has max => ( is => 'lazy', isa => Maybe [PositiveInt] );                             # undef - unlimited repeated
@@ -36,7 +36,7 @@ sub BUILD ( $self, $args ) {
     die qq[Option "$name", "max" must be >= "min" ] if $self->max && $self->max < $self->min;
 
     # default
-    if ( defined $self->default && ref $self->default ne 'CODE' ) {
+    if ( defined $self->default ) {
         if ( $self->is_bool ) {
             die qq[Option "$name", "default" can be 1 or 0 for boolean option] if $self->default ne '0' && $self->default ne '1';
         }
@@ -173,7 +173,7 @@ sub validate ( $self, $opt ) {
         return qq[option "$name" is required] if $self->is_required;
 
         # apply default value if defined
-        $opt->{$name} = ref $self->default eq 'CODE' ? $self->default->($self) : $self->default if defined $self->default;
+        $opt->{$name} = $self->default if defined $self->default;
     }
 
     # option is not exists and is not required
