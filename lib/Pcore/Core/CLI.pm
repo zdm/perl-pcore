@@ -562,7 +562,7 @@ sub help_usage ( $self, $invalid_options = undef ) {
 sub help_version ($self) {
     say $PROC->dist->name . q[ ], $PROC->dist->version, ', rev: ' . $PROC->dist->revision if $PROC->dist;
 
-    say 'Pcore ' . $PROC->pcore->version, ', rev: ' . $PROC->pcore->revision;
+    say 'Pcore ' . $PROC->pcore->version, ', rev: ' . $PROC->pcore->revision if !$PROC->dist || $PROC->dist->name ne $PROC->pcore->name;
 
     exit 2;
 }
