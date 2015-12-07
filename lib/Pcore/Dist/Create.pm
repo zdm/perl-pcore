@@ -20,7 +20,7 @@ sub BUILDARGS ( $self, $args ) {
 }
 
 sub _build_target_path ($self) {
-    return P->path( $self->path, is_dir => 1 )->realpath->to_string . ( $self->namespace =~ s[::][-]smgr );
+    return P->path( $self->path, is_dir => 1 )->realpath->to_string . lc( $self->namespace =~ s[::][-]smgr );
 }
 
 sub _build_tmpl_params ($self) {
