@@ -103,11 +103,11 @@ sub _install ($self) {
         return;
     }
 
-    my $canon_dist_root = P->file->cwd->realpath->canonpath;
+    my $canon_dist_root = P->path( $self->dist->root )->canonpath;
 
-    my $canon_bin_dir = P->path('./bin/')->realpath->canonpath;
+    my $canon_bin_dir = $canon_dist_root . '/bin';
 
-    my $canon_dist_lib_dir = P->path('./../')->realpath->canonpath;
+    my $canon_dist_lib_dir = P->path("$canon_dist_root/../")->realpath->canonpath;
 
     if ($MSWIN) {
 
@@ -120,6 +120,11 @@ sub _install ($self) {
         P->sys->system(qq[setx.exe /M PCORE_DIST_LIB "$canon_dist_lib_dir"]) or return;
 
         print qq[%PCORE_DIST_LIB% updated\n];
+
+        # set $ENV{PCORE_RES_LIB}
+        P->sys->system(qq[setx.exe /M PCORE_RES_LIB "$canon_dist_lib_dir/resources"]) or return;
+
+        print qq[%PCORE_RES_LIB% updated\n];
 
         # update $ENV{PATH}
         require Win32::TieRegistry;
@@ -148,6 +153,7 @@ sub _install ($self) {
         my $data = <<"SH";
 export PERL5LIB="$canon_dist_root/lib:\$PERL5LIB"
 export PCORE_DIST_LIB="$canon_dist_lib_dir"
+export PCORE_RES_LIB="$canon_dist_lib_dir/resources"
 export PATH="\$PATH:$canon_bin_dir"
 SH
 
@@ -164,9 +170,7 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 106                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 127                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 132                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
