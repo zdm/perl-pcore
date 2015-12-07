@@ -16,7 +16,7 @@ no Pcore;
 sub update ($self) {
     my $chdir_guard = P->file->chdir( $self->dist->root );
 
-    my $wiki_path = 'wiki/';
+    my $wiki_path = P->path('wiki/')->realpath;
 
     my $header = qq[**!!! DO NOT EDIT. This document is generated automatically. !!!**\x0A\x0A];
 
