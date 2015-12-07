@@ -14,6 +14,7 @@ requires 'Variable::Magic';
 requires 'B::Hooks::AtRuntime';
 requires 'B::Hooks::EndOfScope::XS';
 requires 'Const::Fast';
+requires 'Clone';
 
 # Pcore::Core::Dump
 requires 'PerlIO::Layers';
