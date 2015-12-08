@@ -156,9 +156,7 @@ sub compress ( $self, % ) {
     require BerkeleyDB;
 
     state $cache = do {
-        my $path = $PROC->{SYS_TEMP_DIR} . '.pcore/perl-compress.bdb';
-
-        P->file->mkpath( $PROC->{SYS_TEMP_DIR} . '.pcore/' );
+        my $path = $PROC->{PCORE_SYS_DIR} . 'perl-compress.bdb';
 
         tie my %cache, 'BerkeleyDB::Hash', -Filename => $path, -Flags => BerkeleyDB::DB_CREATE();
 
@@ -365,9 +363,9 @@ sub cut_log ($self) {
 ## │    3 │ 8                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (24)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 110, 113, 117, 124,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 242, 278             │                                                                                                                │
+## │      │ 240, 276             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 163                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
+## │    2 │ 161                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 110                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

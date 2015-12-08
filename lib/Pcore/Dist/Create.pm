@@ -43,7 +43,7 @@ sub _build_tmpl_params ($self) {
 sub validate ($self) {
     return 'Target path already exists' if -e $self->target_path;
 
-    return qq["~/.pcore/config.ini" was not found, run "pcore setup"] if !Pcore::Dist->global_cfg;
+    return qq["$PROC->{PCORE_USER_DIR}config.ini" was not found, run "pcore setup"] if !Pcore::Dist->global_cfg;
 
     return;
 }
@@ -70,16 +70,6 @@ sub run ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 46                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

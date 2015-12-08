@@ -28,22 +28,15 @@ sub run ($self) {
         DockerHub => [ username => q[], ],
     ];
 
-    if ( my $home = $ENV{HOME} || $ENV{USERPROFILE} ) {
-        if ( $home . q[/.pcore/config.ini] ) {
-            exit 0 if P->term->prompt( qq["$home/.pcore/config.ini" already exists. Overwrite?], [qw[yes no]], enter => 1 ) eq 'no';
-        }
+    my $config_path = $PROC->{PCORE_USER_DIR} . 'config.ini';
 
-        P->cfg->store( $home . q[/.pcore/config.ini], $cfg );
+    exit 0 if -f $config_path && P->term->prompt( qq["$config_path" already exists. Overwrite?], [qw[yes no]], enter => 1 ) eq 'no';
 
-        say qq["$home/.pcore/config.ini" was created, fill it manually with correct values];
+    P->cfg->store( $config_path, $cfg );
 
-        exit 0;
-    }
-    else {
-        say 'User homedir was not found';
+    say qq["$config_path" was created, fill it manually with correct values];
 
-        exit 3;
-    }
+    exit 0;
 }
 
 1;

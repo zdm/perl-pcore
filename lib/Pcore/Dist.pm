@@ -102,15 +102,7 @@ no Pcore;
 
 # CLASS METHODS
 sub global_cfg ($self) {
-    state $cfg = do {
-        my $_cfg;
-
-        if ( my $home = $ENV{HOME} || $ENV{USERPROFILE} ) {
-            $_cfg = P->cfg->load( $home . '/.pcore/config.ini' ) if -f $home . '/.pcore/config.ini';
-        }
-
-        $_cfg;
-    };
+    state $cfg = -f $PROC->{PCORE_USER_DIR} . 'config.ini' ? P->cfg->load( $PROC->{PCORE_USER_DIR} . 'config.ini' ) : undef;
 
     return $cfg;
 }
@@ -238,12 +230,11 @@ sub _build_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 60, 73, 109, 160,    │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## │      │ 186                  │                                                                                                                │
+## │    3 │ 60, 73, 152, 178     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 201                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 193                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 208                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 200                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

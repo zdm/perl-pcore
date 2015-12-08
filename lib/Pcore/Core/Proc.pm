@@ -14,12 +14,15 @@ has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Proc::Resources'], i
 no Pcore;
 
 sub BUILD ( $self, $args ) {
-    $self->{START_DIR}    = P->file->cwd->to_string;
-    $self->{SCRIPT_NAME}  = $FindBin::RealScript;
-    $self->{SCRIPT_DIR}   = P->path( $FindBin::RealBin, is_dir => 1 )->realpath->to_string;
-    $self->{SCRIPT_PATH}  = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
-    $self->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
-    $self->{TEMP_DIR}     = P->file->tempdir( base => $self->{SYS_TEMP_DIR}, lazy => 1 );
+    $self->{START_DIR}      = P->file->cwd->to_string;
+    $self->{SCRIPT_NAME}    = $FindBin::RealScript;
+    $self->{SCRIPT_DIR}     = P->path( $FindBin::RealBin, is_dir => 1 )->realpath->to_string;
+    $self->{SCRIPT_PATH}    = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
+    $self->{SYS_TEMP_DIR}   = P->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
+    $self->{TEMP_DIR}       = P->file->tempdir( base => $self->{SYS_TEMP_DIR}, lazy => 1 );
+    $self->{USER_DIR}       = P->path( $ENV{HOME} || $ENV{USERPROFILE}, is_dir => 1 );
+    $self->{PCORE_USER_DIR} = P->path( $self->{USER_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
+    $self->{PCORE_SYS_DIR}  = P->path( $self->{SYS_TEMP_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
 
     # load dist.perl
     if ( my $dist = $self->dist ) {

@@ -214,14 +214,14 @@ PERL
     );
 
     if ($keep) {
-        my $path = P->file->temppath( base => $PROC->{SYS_TEMP_DIR} . '.pcore/build/', tmpl => $self->dist->name . '-XXXXXXXX' );
+        my $path = P->file->temppath( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX' );
 
         $tree->write_to( $path, manifest => 1 );
 
         return $path;
     }
     else {
-        return $tree->write_to_temp( base => $PROC->{SYS_TEMP_DIR} . '.pcore/build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
+        return $tree->write_to_temp( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
     }
 }
 
@@ -272,7 +272,7 @@ sub tgz ($self) {
         }
     );
 
-    my $path = $PROC->{SYS_TEMP_DIR} . '.pcore/build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
+    my $path = $PROC->{PCORE_SYS_DIR} . 'build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
 
     $tgz->write( $path, Archive::Tar::COMPRESS_GZIP() );
 
