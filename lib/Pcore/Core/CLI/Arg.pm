@@ -6,14 +6,15 @@ with qw[Pcore::Core::CLI::Type];
 
 has name => ( is => 'ro', isa => Str, required => 1 );
 
-has isa => ( is => 'ro', isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
-has default => ( is => 'ro', isa => Maybe [ Str | ArrayRef ] );
+has isa => ( is => 'ro', isa => Maybe CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] );
+has default => ( is => 'ro', isa => Str | ArrayRef );
 
-has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 1 );    # 0 - option is not required
-has max => ( is => 'lazy', isa => Maybe [PositiveInt] );              # undef - unlimited repeats
+has min => ( is => 'lazy', isa => PositiveOrZeroInt );    # 0 - option is not required
+has max => ( is => 'lazy', isa => PositiveOrZeroInt );    # 0 - unlimited repeats
 
-has type      => ( is => 'lazy', isa => Str, init_arg => undef );
-has help_spec => ( is => 'lazy', isa => Str, init_arg => undef );
+has type          => ( is => 'lazy', isa => Str,  init_arg => undef );
+has is_repeatable => ( is => 'lazy', isa => Bool, init_arg => undef );
+has help_spec     => ( is => 'lazy', isa => Str,  init_arg => undef );
 
 no Pcore;
 
@@ -21,25 +22,29 @@ sub BUILD ( $self, $args ) {
     my $name = $self->name;
 
     # max
-    die qq[Argument "$name", "max" must be >= "min" ] if defined $self->max && $self->max < $self->min;
+    die qq[Argument "$name", "max" must be >= "min" ] if $self->max && $self->max < $self->min;
 
     # default
     if ( defined $self->default ) {
-        die qq[Argument "$name", default value can be used only for required arguments (min >0)] if $self->min == 0;
+        die qq[Argument "$name", default value can be used only for required arguments (min > 0)] if $self->min == 0;
 
         if ( !ref $self->default ) {
-            die qq[Argument "$name", default value must be a ArrayRef for repeatable argument] if !defined $self->max || $self->max > 1;
+            die qq[Argument "$name", default value must be a ArrayRef for repeatable argument] if $self->is_repeatable;
         }
         else {    # default is ArrayRef
-            die qq[Argument "$name", ArrayRef default value can be used only with repeatable argument] if defined $self->max && $self->max == 1;
+            die qq[Argument "$name", ArrayRef default value can be used only with repeatable argument] if !$self->is_repeatable;
 
             die qq[Argument "$name", length of the default value array must be not less, than @{[$self->min]}] if $self->default->@* < $self->min;
 
-            die qq[Argument "$name", length of the default value array must be not greater, than @{[$self->max]}] if defined $self->max && $self->default->@* > $self->max;
+            die qq[Argument "$name", length of the default value array must be not greater, than @{[$self->max]}] if $self->max && $self->default->@* > $self->max;
         }
     }
 
     return;
+}
+
+sub _build_min ($self) {
+    return 1;
 }
 
 sub _build_max ($self) {
@@ -48,6 +53,10 @@ sub _build_max ($self) {
 
 sub _build_type ($self) {
     return uc $self->name =~ s/_/-/smgr;
+}
+
+sub _build_is_repeatable ($self) {
+    return $self->max != 1 ? 1 : 0;
 }
 
 sub _build_help_spec ($self) {
@@ -60,7 +69,7 @@ sub _build_help_spec ($self) {
         $spec = uc $self->type;
     }
 
-    $spec .= '...' if !defined $self->max || $self->max > 1;
+    $spec .= '...' if $self->is_repeatable;
 
     return $spec;
 }
@@ -99,10 +108,8 @@ sub parse ( $self, $from, $to ) {
     }
 
     # validate arg value type
-    if ( $self->isa ) {
-        if ( my $error_msg = $self->_validate_isa( $to->{ $self->name } ) ) {
-            return qq[argument "@{[$self->type]}" $error_msg];
-        }
+    if ( defined $self->isa && ( my $error_msg = $self->_validate_isa( $to->{ $self->name } ) ) ) {
+        return qq[argument "@{[$self->type]}" $error_msg];
     }
 
     return;
