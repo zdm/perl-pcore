@@ -123,7 +123,7 @@ sub _build_arg ($self) {
 
             die qq[Argument "@{[$arg->name]}" is duplicated] if exists $index->{ $arg->name };
 
-            if ( !$arg->max ) {
+            if ( !$arg->max ) {    # slurpy arg
                 $next_arg = 2;
             }
             elsif ( $arg->min == 0 ) {

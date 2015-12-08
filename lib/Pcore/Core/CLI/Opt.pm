@@ -10,20 +10,20 @@ has name => ( is => 'ro', isa => Str, required => 1 );
 has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );    # undef - disable short option
 has desc => ( is => 'ro', isa => Str );
 
-has type => ( is => 'lazy', isa => Maybe [Str] );
-has isa => ( is => 'ro', isa => Maybe [ CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] ] );
+has type => ( is => 'lazy', isa => Str );
+has isa => ( is => 'ro', isa => CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] );
 
-has default     => ( is => 'ro', isa => Maybe [ Str | ArrayRef | HashRef ] );        # applied, when option is not exists
+has default => ( is => 'ro', isa => Str | ArrayRef | HashRef );                      # applied, when option is not exists
 has default_val => ( is => 'ro', isa => Maybe [Str] );                               # applied, when option value is not defined
 
-has min => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                   # 0 - option is not required
-has max => ( is => 'lazy', isa => Maybe [PositiveInt] );                             # undef - unlimited repeated
+has min => ( is => 'lazy', isa => PositiveOrZeroInt );                               # 0 - option is not required
+has max => ( is => 'lazy', isa => PositiveOrZeroInt );                               # 0 - unlimited repeated
 
 has negated => ( is => 'ro', isa => Bool, default => 0 );
 has hash    => ( is => 'ro', isa => Bool, default => 0 );
 
 has getopt_name   => ( is => 'lazy', isa => Str,  init_arg => undef );
-has is_bool       => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_trigger    => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_repeatable => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_required   => ( is => 'lazy', isa => Bool, init_arg => undef );
 has getopt_spec   => ( is => 'lazy', isa => Str,  init_arg => undef );
@@ -39,8 +39,8 @@ sub BUILD ( $self, $args ) {
 
     # default
     if ( defined $self->default ) {
-        if ( $self->is_bool ) {
-            die qq[Option "$name", "default" can be 1 or 0 for boolean option] if $self->default ne '0' && $self->default ne '1';
+        if ( $self->is_trigger ) {
+            die qq[Option "$name", "default" can be 1 or 0 for trigger] if $self->default ne '0' && $self->default ne '1';
         }
         else {
             if ( $self->hash ) {
@@ -54,23 +54,27 @@ sub BUILD ( $self, $args ) {
 
     # default_val
     if ( defined $self->default_val ) {
-        die qq[Option "$name", "default_val" can not be used for bool options] if $self->is_bool;
+        die qq[Option "$name", "default_val" can not be used for trigger] if $self->is_trigger;
 
         die qq[Option "$name", "default_val" can not be used for hash options] if $self->hash;
 
         die qq[Option "$name", "default_val" can not be used for repeatable options] if $self->is_repeatable;
     }
 
-    if ( $self->is_bool ) {
-        die qq[Option "$name", "hash" is useless for boolean option] if $self->hash;
+    if ( $self->is_trigger ) {
+        die qq[Option "$name", "hash" is useless for trigger] if $self->hash;
 
         die qq[Option "$name", "negated" is useless for "short" option] if defined $self->short && $self->negated;
     }
     else {
-        die qq[Option "$name", "negated" is useless for not boolean option] if $self->negated;
+        die qq[Option "$name", "negated" is useless for not trigger] if $self->negated;
     }
 
     return;
+}
+
+sub _build_min ($self) {
+    return 0;
 }
 
 sub _build_max ($self) {
@@ -81,12 +85,12 @@ sub _build_getopt_name ($self) {
     return $self->name =~ s/_/-/smgr;
 }
 
-sub _build_is_bool ($self) {
+sub _build_is_trigger ($self) {
     return defined $self->isa ? 0 : 1;
 }
 
 sub _build_is_repeatable ($self) {
-    return !$self->max || $self->max > 1 ? 1 : 0;
+    return $self->max != 1 ? 1 : 0;
 }
 
 sub _build_is_required ($self) {
@@ -98,7 +102,7 @@ sub _build_short ($self) {
 }
 
 sub _build_type ($self) {
-    if ( !$self->is_bool ) {
+    if ( !$self->is_trigger ) {
         my $ref = ref $self->isa;
 
         if ( !$ref ) {
@@ -115,7 +119,7 @@ sub _build_type ($self) {
         }
     }
 
-    return;
+    return q[];
 }
 
 sub _build_getopt_spec ($self) {
@@ -123,7 +127,7 @@ sub _build_getopt_spec ($self) {
 
     $spec .= q[|] . $self->short if defined $self->short;
 
-    if ( $self->is_bool ) {
+    if ( $self->is_trigger ) {
         $spec .= q[!] if $self->negated;
 
         $spec .= q[+] if $self->is_repeatable;
@@ -156,7 +160,7 @@ sub _build_help_spec ($self) {
 
     $spec .= $self->getopt_name;
 
-    if ( !$self->is_bool ) {
+    if ( !$self->is_trigger ) {
         my $type = uc $self->type;
 
         if ( $self->hash ) {
@@ -209,7 +213,7 @@ sub validate ( $self, $opt ) {
     if ( $self->min || $self->max ) {
         my $count;
 
-        if ( $self->is_bool ) {
+        if ( $self->is_trigger ) {
             $count = $opt->{$name};
         }
         elsif ( !ref $opt->{$name} ) {
@@ -228,7 +232,7 @@ sub validate ( $self, $opt ) {
     }
 
     # validate option value type
-    if ( !$self->is_bool ) {
+    if ( !$self->is_trigger ) {
         if ( my $error_msg = $self->_validate_isa( $opt->{$name} ) ) {
             return qq[option "$name" $error_msg];
         }
@@ -244,7 +248,7 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14, 222              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 14, 226              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 34                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (22)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
