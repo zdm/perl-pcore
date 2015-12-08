@@ -8,11 +8,20 @@ no Pcore;
 
 sub cli_opt ($self) {
     return {
-        author  => { desc  => 'enables the AUTHOR_TESTING env variable (default behavior)' },
-        release => { desc  => 'enables the RELEASE_TESTING env variable', },
-        all     => { short => undef, desc => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables', },
-        jobs    => { desc  => 'number of parallel test jobs to run', isa => 'PositiveInt' },
-        verbose => { short => undef, desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
+        author  => { desc => 'enables the AUTHOR_TESTING env variable (default behavior)' },
+        release => { desc => 'enables the RELEASE_TESTING env variable', },
+        all     => {      #
+            short => undef,
+            desc  => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables',
+        },
+        jobs => {
+            desc => 'number of parallel test jobs to run',
+            isa  => 'PositiveInt',
+        },
+        verbose => {
+            short => undef,
+            desc  => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL'
+        },
     };
 }
 
@@ -35,7 +44,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 26                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 35                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

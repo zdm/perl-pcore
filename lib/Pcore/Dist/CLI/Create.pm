@@ -15,7 +15,6 @@ sub cli_opt ($self) {
     return {
         cpan => {
             desc    => 'create CPAN distribution',
-            negated => 1,
             default => 0,
         },
     };
@@ -25,7 +24,6 @@ sub cli_arg ($self) {
     return [    #
         {   name => 'namespace',
             type => 'Str',
-            min  => 1,
         },
     ];
 }
