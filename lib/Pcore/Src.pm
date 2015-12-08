@@ -53,7 +53,6 @@ action to perform:
     commit       SCM commit hook
 TXT
             isa     => [qw[decompress compress obfuscate commit]],
-            min     => 1,
             default => 'decompress',
         },
         type => {
@@ -371,7 +370,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 324                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 323                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

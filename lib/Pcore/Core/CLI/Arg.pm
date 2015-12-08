@@ -14,6 +14,7 @@ has max => ( is => 'lazy', isa => PositiveOrZeroInt );    # 0 - unlimited repeat
 
 has type          => ( is => 'lazy', isa => Str,  init_arg => undef );
 has is_repeatable => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_required   => ( is => 'lazy', isa => Bool, init_arg => undef );
 has help_spec     => ( is => 'lazy', isa => Str,  init_arg => undef );
 
 no Pcore;
@@ -26,17 +27,13 @@ sub BUILD ( $self, $args ) {
 
     # default
     if ( defined $self->default ) {
-        die qq[Argument "$name", default value can be used only for required arguments (min > 0)] if $self->min == 0;
+        die qq[Argument "$name", default value can be used only for required argument (min > 0)] if $self->min == 0;
 
-        if ( !ref $self->default ) {
-            die qq[Argument "$name", default value must be a ArrayRef for repeatable argument] if $self->is_repeatable;
+        if ( $self->is_repeatable ) {
+            die qq[Argument "$name", default value must be a array for repeatable argument] if ref $self->default ne 'ARRAY';
         }
-        else {    # default is ArrayRef
-            die qq[Argument "$name", ArrayRef default value can be used only with repeatable argument] if !$self->is_repeatable;
-
-            die qq[Argument "$name", length of the default value array must be not less, than @{[$self->min]}] if $self->default->@* < $self->min;
-
-            die qq[Argument "$name", length of the default value array must be not greater, than @{[$self->max]}] if $self->max && $self->default->@* > $self->max;
+        else {
+            die qq[Argument "$name", default value must be a string for plain argument] if ref $self->default;
         }
     }
 
@@ -59,14 +56,18 @@ sub _build_is_repeatable ($self) {
     return $self->max != 1 ? 1 : 0;
 }
 
+sub _build_is_required ($self) {
+    return $self->min && !defined $self->default ? 1 : 0;
+}
+
 sub _build_help_spec ($self) {
     my $spec;
 
-    if ( $self->min == 0 || defined $self->default ) {
-        $spec = '[' . uc $self->type . ']';
+    if ( $self->is_required ) {
+        $spec = uc $self->type;
     }
     else {
-        $spec = uc $self->type;
+        $spec = '[' . uc $self->type . ']';
     }
 
     $spec .= '...' if $self->is_repeatable;
@@ -76,10 +77,10 @@ sub _build_help_spec ($self) {
 
 sub parse ( $self, $from, $to ) {
     if ( !$from->@* ) {
-        if ( $self->min > 0 ) {
-
-            # apply default value
+        if ( $self->min ) {    # argument is required
             if ( defined $self->default ) {
+
+                # apply default value
                 $to->{ $self->name } = $self->default;
             }
             else {
@@ -87,24 +88,31 @@ sub parse ( $self, $from, $to ) {
             }
         }
         else {
+
+            # argument not exists and is not required
             return;
         }
     }
     else {
-        # check for minimum args num
-        return qq[argument "@{[$self->type]}" must be repeated at least @{[$self->min]} time(s)] if $from->@* < $self->min;
-
-        if ( defined $self->max ) {
-            if ( $self->max == 1 ) {
-                $to->{ $self->name } = shift $from->@*;
-            }
-            else {
-                push $to->{ $self->name }->@*, splice $from->@*, 0, $self->max, ();
-            }
-        }
-        else {
+        if ( !$self->max ) {    # slurpy
             push $to->{ $self->name }->@*, splice $from->@*, 0, scalar $from->@*, ();
         }
+        elsif ( $self->max == 1 ) {    # not repeatable
+            $to->{ $self->name } = shift $from->@*;
+        }
+        else {                         # repeatable
+            push $to->{ $self->name }->@*, splice $from->@*, 0, $self->max, ();
+        }
+    }
+
+    # min / max check for the repeatable arg
+    if ( $self->is_repeatable ) {
+
+        # check min args num
+        return qq[argument "@{[$self->type]}" must be repeated at least @{[$self->min]} time(s)] if $to->{ $self->name }->@* < $self->min;
+
+        # check max args num
+        return qq[argument "@{[$self->type]}" can be repeated not more, than @{[$self->max]} time(s)] if $self->max && $to->{ $self->name }->@* > $self->max;
     }
 
     # validate arg value type

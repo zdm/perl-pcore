@@ -19,8 +19,8 @@ has default_val => ( is => 'ro', isa => Maybe [Str] );                          
 has min => ( is => 'lazy', isa => PositiveOrZeroInt );                               # 0 - option is not required
 has max => ( is => 'lazy', isa => PositiveOrZeroInt );                               # 0 - unlimited repeated
 
-has negated => ( is => 'ro', isa => Bool, default => 0 );
-has hash    => ( is => 'ro', isa => Bool, default => 0 );
+has negated => ( is => 'lazy', isa => Bool );
+has hash => ( is => 'ro', isa => Bool, default => 0 );
 
 has getopt_name   => ( is => 'lazy', isa => Str,  init_arg => undef );
 has is_trigger    => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -39,46 +39,71 @@ sub BUILD ( $self, $args ) {
 
     # default
     if ( defined $self->default ) {
+        die qq[Option "$name", default value can be used only for required option (min > 0)] if $self->min == 0;
+
         if ( $self->is_trigger ) {
-            die qq[Option "$name", "default" can be 1 or 0 for trigger] if $self->default ne '0' && $self->default ne '1';
+            if ( $self->is_repeatable ) {
+                die qq[Option "$name", default value can be positive integer for incremental trigger] if $self->default !~ /\A\d+\z/sm;
+            }
+            else {
+                die qq[Option "$name", default value can be 0 or 1 for boolean trigger] if $self->default !~ /\A[01]\z/sm;
+            }
         }
         else {
             if ( $self->hash ) {
-                die qq[Option "$name", "default" must be a HashRef] if ref $self->default ne 'HASH';
+                die qq[Option "$name", default value must be a hash for hash option] if ref $self->default ne 'HASH';
             }
             elsif ( $self->is_repeatable ) {
-                die qq[Option "$name", "default" must be a ArrayRef] if ref $self->default ne 'ARRAY';
+                die qq[Option "$name", default value must be a array for repeatable option] if ref $self->default ne 'ARRAY';
+            }
+            else {
+                die qq[Option "$name", default value must be a string for plain option] if ref $self->default;
             }
         }
     }
 
     # default_val
     if ( defined $self->default_val ) {
-        die qq[Option "$name", "default_val" can not be used for trigger] if $self->is_trigger;
-
-        die qq[Option "$name", "default_val" can not be used for hash options] if $self->hash;
-
-        die qq[Option "$name", "default_val" can not be used for repeatable options] if $self->is_repeatable;
+        die qq[Option "$name", "default_val" can not be used for trigger, hash or repeatable option] if $self->is_trigger || $self->hash || $self->is_repeatable;
     }
 
     if ( $self->is_trigger ) {
-        die qq[Option "$name", "hash" is useless for trigger] if $self->hash;
+        die qq[Option "$name", trigger can't be a hash] if $self->hash;
 
-        die qq[Option "$name", "negated" is useless for "short" option] if defined $self->short && $self->negated;
+        if ( $self->negated ) {
+            die qq[Option "$name", negated can't be used with short option] if defined $self->short;
+
+            die qq[Option "$name", negated can't be used with incremental trigger] if $self->is_repeatable;
+
+            die qq[Option "$name", negated is useless for the boolean trigger with default value = 0] if defined $self->default && $self->default == 0;
+        }
+        else {
+            die qq[Option "$name", negated should be enabled for the boolean trigger with default value = 1] if !$self->is_repeatable && defined $self->default && $self->default == 1;
+        }
     }
     else {
-        die qq[Option "$name", "negated" is useless for not trigger] if $self->negated;
+        die qq[Option "$name", negated can be used only with triggers] if $self->negated;
     }
 
     return;
 }
 
 sub _build_min ($self) {
-    return 0;
+    return defined $self->default ? 1 : 0;
 }
 
 sub _build_max ($self) {
     return $self->min ? $self->min : 1;
+}
+
+sub _build_negated ($self) {
+    if ( $self->is_trigger && defined $self->default ) {
+        return 0 if $self->default == 0;    # negated is useless if default value is already = 0
+
+        return 1 if $self->default == 1 && !$self->is_repeatable;    # negated is mandatory for boolean trigger with default value = 1
+    }
+
+    return 0;
 }
 
 sub _build_getopt_name ($self) {
@@ -164,7 +189,7 @@ sub _build_help_spec ($self) {
         my $type = uc $self->type;
 
         if ( $self->hash ) {
-            $spec .= q[ key=] . $type;
+            $spec .= " key=$type";
         }
         else {
             if ( defined $self->default_val ) {
@@ -193,12 +218,22 @@ sub validate ( $self, $opt ) {
     # remap getopt name to name
     $opt->{$name} = delete $opt->{ $self->getopt_name } if exists $opt->{ $self->getopt_name };
 
-    # check required option
     if ( !exists $opt->{$name} ) {
-        return qq[option "$name" is required] if $self->is_required;
+        if ( $self->min ) {    # option is required
+            if ( defined $self->default ) {
 
-        # apply default value if defined
-        $opt->{$name} = $self->default if defined $self->default;
+                # apply default value
+                $opt->{$name} = $self->default;
+            }
+            else {
+                return qq[option "$name" is required];
+            }
+        }
+        else {
+
+            # option is not exists and is not required
+            return;
+        }
     }
     elsif ( defined $self->default_val && $opt->{$name} eq q[] ) {
 
@@ -206,11 +241,8 @@ sub validate ( $self, $opt ) {
         $opt->{$name} = $self->default_val;
     }
 
-    # option is not exists and is not required
-    return if !exists $opt->{$name};
-
-    # validate min / max
-    if ( $self->min || $self->max ) {
+    # min / max check for the repeatable opt
+    if ( $self->is_repeatable ) {
         my $count;
 
         if ( $self->is_trigger ) {
@@ -226,16 +258,16 @@ sub validate ( $self, $opt ) {
             $count = scalar keys $opt->{$name}->%*;
         }
 
-        return qq[option "$name" must be specified at least @{[$self->min]} time(s)] if $self->min && $count < $self->min;
+        # check min args num
+        return qq[option "$name" must be repeated at least @{[$self->min]} time(s)] if $count < $self->min;
 
-        return qq[option "$name" can be specified not more, than @{[$self->max]} time(s)] if $self->max && $count > $self->max;
+        # check max args num
+        return qq[option "$name" can be repeated not more, than @{[$self->max]} time(s)] if $self->max && $count > $self->max;
     }
 
     # validate option value type
-    if ( !$self->is_trigger ) {
-        if ( my $error_msg = $self->_validate_isa( $opt->{$name} ) ) {
-            return qq[option "$name" $error_msg];
-        }
+    if ( defined $self->isa && ( my $error_msg = $self->_validate_isa( $opt->{$name} ) ) ) {
+        return qq[option "$name" $error_msg];
     }
 
     return;
@@ -248,9 +280,9 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14, 226              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 14, 258              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 34                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (22)                     │
+## │    3 │ 34                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (34)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
