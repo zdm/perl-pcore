@@ -14,6 +14,10 @@ sub cli_opt ($self) {
         all     => { desc => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables', },
         jobs    => { desc => 'number of parallel test jobs to run',                        isa     => 'PositiveInt' },
         verbose => { desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
+        keep    => {
+            desc    => 'keep temp build dir',
+            default => 0,
+        },
     };
 }
 
@@ -36,7 +40,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 27                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -83,6 +83,7 @@
             "CBOR::XS" : "0",
             "Capture::Tiny" : "0",
             "Class::XSAccessor" : "0",
+            "Clone" : "0",
             "Compress::Zlib" : "0",
             "Config::INI" : "0",
             "Const::Fast" : "0",

@@ -77,6 +77,7 @@ sub test ( $self, @ ) {
         all     => 0,
         jobs    => 1,
         verbose => 0,
+        keep    => 0,
         @_[ 1 .. $#_ ],
     );
 
@@ -86,7 +87,7 @@ sub test ( $self, @ ) {
 
     local $ENV{HARNESS_OPTIONS} = $ENV{HARNESS_OPTIONS} ? "$ENV{HARNESS_OPTIONS}:j$args{jobs}" : "j$args{jobs}";
 
-    my $build = $self->temp_build;
+    my $build = $self->temp_build( $args{keep} );
 
     # build & test
     {
@@ -126,7 +127,7 @@ sub par ( $self, @ ) {
     return;
 }
 
-sub temp_build ($self) {
+sub temp_build ( $self, $keep = 0 ) {
     $self->update;
 
     my $tree = Pcore::Util::File::Tree->new;
@@ -212,7 +213,16 @@ PERL
         }
     );
 
-    return $tree->write_to_temp( base => $PROC->{SYS_TEMP_DIR} . '.pcore/build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
+    if ($keep) {
+        my $path = P->file->temppath( base => $PROC->{SYS_TEMP_DIR} . '.pcore/build/', tmpl => $self->dist->name . '-XXXXXXXX' );
+
+        $tree->write_to( $path, manifest => 1 );
+
+        return $path;
+    }
+    else {
+        return $tree->write_to_temp( base => $PROC->{SYS_TEMP_DIR} . '.pcore/build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
+    }
 }
 
 sub _patch_xt ( $self, $file, $test ) {
