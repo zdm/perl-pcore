@@ -44,18 +44,18 @@ sub BUILD ( $self, $args ) {
         $self->{LOG_DIR}  = undef;
     }
 
-    # conligure inline dir
-    if ( $self->dist && $self->dist->is_par ) {
-        $self->{INLINE_DIR} = P->path( $ENV{PAR_TEMP} . '/inc/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
+    # configure INLINE_DIR
+    if ( $self->is_par ) {
+        $self->{INLINE_DIR} = "$ENV{PAR_TEMP}/inc/$Config::Config{version}/$Config::Config{archname}/.inline/";
+    }
+    elsif ( $self->pcore->is_installed ) {
+        $self->{INLINE_DIR} = $self->{PCORE_USER_DIR} . ".inline/$Config::Config{version}/$Config::Config{archname}/";
     }
     else {
-        if ( $self->pcore->is_installed ) {
-            $self->{INLINE_DIR} = P->path( $self->pcore->share_dir . '.inline/', is_dir => 1, lazy => 1 );
-        }
-        else {
-            $self->{INLINE_DIR} = P->path( $self->pcore->root . '.inline/' . $Config::Config{version} . q[/] . $Config::Config{archname} . q[/], is_dir => 1, lazy => 1 );
-        }
+        $self->{INLINE_DIR} = $self->pcore->root . ".inline/$Config::Config{version}/$Config::Config{archname}/";
     }
+
+    $self->{INLINE_DIR} = P->path( $self->{INLINE_DIR}, is_dir => 1, lazy => 1 );
 
     return;
 }

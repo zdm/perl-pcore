@@ -26,8 +26,6 @@ sub CORE_INIT ($proc_cfg) {
 
     _configure_inc();
 
-    _configure_inline();
-
     return;
 }
 
@@ -92,23 +90,6 @@ sub _configure_inc {
     }
 
     @INC = @inc;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
-    return;
-}
-
-sub _configure_inline {
-    P->file->mkpath( $PROC->{INLINE_DIR} ) if !-d $PROC->{INLINE_DIR};
-
-    require Inline;
-
-    Inline->import(
-        config => (
-            directory         => $PROC->{INLINE_DIR},
-            autoname          => 0,
-            clean_after_build => 1,
-            clean_build_area  => 1,
-        )
-    );
 
     return;
 }

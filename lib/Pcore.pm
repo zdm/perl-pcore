@@ -51,16 +51,17 @@ BEGIN {
 
     # define %EXPORT_PRAGMAS for exporter
     %Pcore::EXPORT_PRAGMAS = (
+        autoload    => 0,    # export AUTOLOAD
+        class       => 0,    # package is a Moo class
         config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
+        const       => 0,    # export "const" keyword
         embedded    => 0,    # run in embedded mode
         export      => 0,    # install standart import method
-        no_isa_attr => 0,    # do not check isa for class / role attributes
-        autoload    => 0,    # export AUTOLOAD
+        inline      => 0,    # package use Inline
         no_clean    => 0,    # do not perform namespace autoclean
-        class       => 0,    # package is a Moo class
+        no_isa_attr => 0,    # do not check isa for class / role attributes
         role        => 0,    # package is a Moo role
         types       => 0,    # export types
-        const       => 0,    # export "const" keyword
     );
 
     # configure standard library
@@ -125,6 +126,7 @@ sub import {
     mro::set_mro( $caller, 'c3' ) if $^V ge 'v5.10';
     multidimensional->unimport;
 
+    # process -const pragma
     Const::Fast->import::into( $caller, 'const' ) if $pragma->{const};
 
     # export P sub to avoid indirect calls
@@ -166,11 +168,14 @@ sub import {
             );
         }
 
-        # process "export" pragma
+        # process -export pragma
         Pcore::Core::Exporter->import( -caller => $caller ) if $pragma->{export};
 
-        # process "autoload" pragma
+        # process -autoload pragma
         Pcore::Core::Autoload->import( -caller => $caller ) if $pragma->{autoload};
+
+        # process -inline pragma
+        _configure_inline() if $pragma->{inline};
 
         # store significant pragmas for use in run-time
         $Pcore::EMBEDDED = 1 if $pragma->{embedded};
@@ -570,6 +575,25 @@ sub _config_stdout ($h) {
     return;
 }
 
+sub _configure_inline {
+    state $init = do {
+        require Inline;
+
+        Inline->import(
+            config => (
+                directory         => $PROC->{INLINE_DIR},
+                autoname          => 0,
+                clean_after_build => 1,
+                clean_build_area  => 1,
+            )
+        );
+
+        1;
+    };
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -579,19 +603,19 @@ sub _config_stdout ($h) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 46                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 100                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
+## │    3 │ 101                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (29)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 164                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 166                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 359                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 364                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 406, 435, 438, 442,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 492, 509, 555, 558,  │                                                                                                                │
-## │      │ 563, 566             │                                                                                                                │
+## │    3 │ 411, 440, 443, 447,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 497, 514, 560, 563,  │                                                                                                                │
+## │      │ 568, 571             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 415                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 535                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 540                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

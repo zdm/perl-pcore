@@ -1,20 +1,10 @@
 package Pcore::Core::PerlIOviaWinUniCon;
 
-use Pcore;
+use Pcore qw[-inline];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-if ( $PROC->is_par ) {
-    require DynaLoader;
-
-    push our @ISA, qw[DynaLoader];
-
-    DynaLoader::bootstrap(__PACKAGE__);
-}
-else {
-    require Inline;
-
-    Inline->import(
-        C => <<'CPP',
+Inline->import(
+    C => <<'CPP',
 void* get_std_handle(U32 std_handle) {
     return GetStdHandle(std_handle);
 }
@@ -31,9 +21,8 @@ bool write_console(void* handle, wchar_t* buff) {
     return WriteConsoleW(handle, buff, wcslen(buff), &write_size, NULL);
 }
 CPP
-        ccflagsex => '-Wall -Wextra -O3',
-    );
-}
+    ccflagsex => '-Wall -Wextra -O3',
+);
 
 my $ANSI_RE           = qr/\e.+?m/sm;
 my $STD_OUTPUT_HANDLE = -11;
@@ -107,9 +96,7 @@ sub WRITE {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 9                    │ ClassHierarchies::ProhibitExplicitISA - @ISA used instead of "use base"                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 42                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 31                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

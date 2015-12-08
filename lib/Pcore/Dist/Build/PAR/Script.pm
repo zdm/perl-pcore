@@ -225,82 +225,78 @@ sub _add_script_deps ($self) {
 }
 
 sub _add_pkg ( $self, $pkg ) {
-    $pkg = P->path($pkg);
+    $pkg = P->path($pkg);    # Package/Name.pm is expected
 
-    my $inc_path;
+    my $cfg = {
+        auto_dir => 'auto/' . $pkg->dirname . $pkg->filename_base . q[/],
+        so_path  => 'auto/' . $pkg->dirname . $pkg->filename_base . q[/] . $pkg->filename_base . q[.] . $Config::Config{dlext},
+    };
 
-    my $located_in_cpan;
+    for my $inc ( grep { !ref } $self->dist->root . 'lib/', $PROC->{INLINE_DIR} . 'lib/', @INC ) {
+        if ( !$cfg->{source_path} && -f ( $inc . q[/] . $pkg ) ) {
+            $cfg->{source_inc_dir} = P->path( $inc, is_dir => 1 )->to_string;
 
-    # directly use './lib/' because dist can be located outside @INC
-    for ( grep { !ref } $self->dist->root . 'lib/', @INC ) {
-        if ( -f ( $_ . q[/] . $pkg ) ) {
-            $inc_path = P->path( $_, is_dir => 1 );
+            $cfg->{source_path} = $cfg->{source_inc_dir} . $pkg;
 
-            $located_in_cpan = $inc_path->canonpath ~~ $self->dist->cpan_path ? 1 : 0;
-
-            last;
+            $cfg->{source_is_cpan} = $cfg->{source_inc_dir} ~~ Pcore::Dist->cpan_path ? 1 : 0;
         }
+
+        if ( !$cfg->{so_source_path} && -f ( $inc . q[/] . $cfg->{so_path} ) ) {
+            $cfg->{so_inc_dir} = P->path( $inc, is_dir => 1 )->to_string;
+
+            $cfg->{so_source_path} = $cfg->{so_inc_dir} . $cfg->{so_path};
+
+            $cfg->{so_is_inline} = $cfg->{so_inc_dir} eq $PROC->{INLINE_DIR} . 'lib/' ? 1 : 0;
+        }
+
+        last if $cfg->{source_path} && $cfg->{so_source_path};
     }
 
     # package wasn't found
-    return if !$inc_path;
+    return if !$cfg->{source_path};
 
-    my $target_base = 'lib/';
+    my $target_path;
 
-    my $auto_base = 'auto/' . $pkg->dirname . $pkg->filename_base . q[/];
+    if ( !$cfg->{so_source_path} ) {    # package has no binary deps
+        $target_path = 'lib/';
+    }
+    else {
+        $target_path = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
 
-    # find package shared objects
-    if ($located_in_cpan) {
-        if ( -d $inc_path . $auto_base ) {
-            my $pkg_so_filename = $pkg->filename_base . q[.] . $Config::Config{dlext};
+        if ( $cfg->{so_is_inline} ) {    # package has inline shared object
+            my $inline_target_path = $target_path . '.inline/';
 
-            my $pkg_so_source_path = $inc_path . $auto_base . $pkg_so_filename;
+            # add shared object
+            $self->tree->add_file( $inline_target_path . 'lib/' . $cfg->{so_path}, $cfg->{so_source_path} );
 
-            if ( -f $pkg_so_source_path ) {
+            # add .inl
+            $self->tree->add_file( $inline_target_path . 'lib/' . $cfg->{auto_dir} . $pkg->filename_base . '.inl', $cfg->{so_inc_dir} . $cfg->{auto_dir} . $pkg->filename_base . '.inl' );
 
-                # package has shared object in CPAN
-                $target_base = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
+            # add global inline config
+            my $inline_config_name = 'config-' . $Config::Config{archname} . q[-] . $];
 
-                $self->tree->add_file( $target_base . $auto_base . $pkg_so_filename, $pkg_so_source_path );
+            $self->tree->add_file( $inline_target_path . $inline_config_name, $PROC->{INLINE_DIR} . $inline_config_name );
+        }
+        else {    # package has shared object in CPAN
+            $self->tree->add_file( $target_path . $cfg->{so_path}, $cfg->{so_source_path} );
 
-                # add .ix, .al
-                P->file->find(
-                    $inc_path . $auto_base,
-                    dir => 0,
-                    sub ($path) {
-                        if ( $path->suffix eq 'ix' || $path->suffix eq 'al' ) {
-                            $self->tree->add_file( $target_base . $auto_base . $path, $inc_path . $auto_base . $path );
-                        }
-
-                        return;
+            # add .ix, .al
+            P->file->find(
+                $cfg->{so_inc_dir} . $cfg->{auto_dir},
+                dir => 0,
+                sub ($path) {
+                    if ( $path->suffix eq 'ix' || $path->suffix eq 'al' ) {
+                        $self->tree->add_file( $target_path . $cfg->{auto_dir} . $path, $cfg->{so_inc_dir} . $cfg->{auto_dir} . $path );
                     }
-                );
-            }
+
+                    return;
+                }
+            );
         }
     }
 
-    # find package inline deps
-    my $pkg_inline_source_base = $PROC->{INLINE_DIR} . q[lib/auto/] . $pkg->dirname . $pkg->filename_base . q[/] . $pkg->filename_base . q[.];
-
-    # package has inline shared object
-    if ( -f $pkg_inline_source_base . $Config::Config{dlext} ) {
-        $target_base = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
-
-        my $pkg_inline_target_base = $target_base . q[auto/] . $pkg->dirname . $pkg->filename_base . q[/] . $pkg->filename_base . q[.];
-
-        # add inline shared object
-        $self->tree->add_file( $pkg_inline_target_base . $Config::Config{dlext}, $pkg_inline_source_base . $Config::Config{dlext} );
-
-        $self->tree->add_file( $pkg_inline_target_base . 'inl', $pkg_inline_source_base . 'inl' );
-
-        # add global inline config file
-        my $inline_config_name = 'config-' . $Config::Config{archname} . q[-] . $];
-
-        $self->tree->add_file( $target_base . $inline_config_name, $PROC->{INLINE_DIR} . $inline_config_name );
-    }
-
     # add .pm to the files tree
-    $self->_add_perl_source( $inc_path . $pkg, $target_base . $pkg, $located_in_cpan, $pkg );
+    $self->_add_perl_source( $cfg->{source_path}, $target_path . $pkg, $cfg->{source_is_cpan}, $pkg );
 
     return 1;
 }
@@ -612,19 +608,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 182, 218, 548        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 182, 218, 544        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 195, 254, 286, 445   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 195, 441             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 308                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 304                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 483                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 479                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 518                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 514                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 570, 572             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 566, 568             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 505, 511, 576        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 501, 507, 572        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
