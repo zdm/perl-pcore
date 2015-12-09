@@ -44,7 +44,7 @@ sub BUILD ( $self, $args ) {
         $self->{LOG_DIR}  = undef;
     }
 
-    # configure INLINE_DIR, NOTE inline is not used under PAR
+    # configure INLINE_DIR, NOTE PCORE_USER_DIR is not used under PAR
     if ( $self->pcore->is_installed ) {
         $self->{INLINE_DIR} = $self->{PCORE_USER_DIR} . ".inline/$Config::Config{version}/$Config::Config{archname}/";
     }

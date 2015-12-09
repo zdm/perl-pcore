@@ -227,6 +227,22 @@ sub _add_script_deps ($self) {
 sub _add_pkg ( $self, $pkg ) {
     $pkg = P->path($pkg);    # Package/Name.pm is expected
 
+    state $cpan_path = do {
+        my @cpan_inc;
+
+        my %index;
+
+        for my $var (qw[sitearchexp sitelibexp vendorarchexp vendorlibexp archlibexp privlibexp]) {
+            if ( !exists $index{$var} && -d $Config::Config{$var} ) {
+                push @cpan_inc, P->path( $Config::Config{$var}, is_dir => 1 );
+
+                $index{$var} = 1;
+            }
+        }
+
+        \@cpan_inc;
+    };
+
     my $cfg = {
         auto_dir => 'auto/' . $pkg->dirname . $pkg->filename_base . q[/],
         so_path  => 'auto/' . $pkg->dirname . $pkg->filename_base . q[/] . $pkg->filename_base . q[.] . $Config::Config{dlext},
@@ -238,7 +254,7 @@ sub _add_pkg ( $self, $pkg ) {
 
             $cfg->{source_path} = $cfg->{source_inc_dir} . $pkg;
 
-            $cfg->{source_is_cpan} = $cfg->{source_inc_dir} ~~ Pcore::Dist->cpan_path ? 1 : 0;
+            $cfg->{source_is_cpan} = $cfg->{source_inc_dir} ~~ $cpan_path ? 1 : 0;
         }
 
         if ( !$cfg->{so_source_path} && -f ( $inc . q[/] . $cfg->{so_path} ) ) {
@@ -260,7 +276,7 @@ sub _add_pkg ( $self, $pkg ) {
     }
     else {                              # package has binary so module
 
-        # NOTE inline deps should be placed only under standard PAR @INC dir
+        # NOTE inline deps should be placed only in standard PAR @INC dir
         # otherwise DynaLoader will produce untrackable errors
         $target_path = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
 
@@ -593,19 +609,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 182, 218, 529        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 182, 218, 545        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 195, 426             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 195, 442             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 289                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 305                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 464                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 480                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 499                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 515                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 551, 553             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 567, 569             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 486, 492, 557        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 502, 508, 573        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

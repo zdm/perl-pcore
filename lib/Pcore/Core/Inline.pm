@@ -1,4 +1,5 @@
-package Inline;
+package    # hide from pause
+  Inline;
 
 use Pcore;
 

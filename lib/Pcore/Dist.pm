@@ -107,26 +107,6 @@ sub global_cfg ($self) {
     return $cfg;
 }
 
-sub cpan_path ($self) {
-    state $cpan_path = do {
-        my @cpan_inc;
-
-        my %index;
-
-        for my $var (qw[sitearchexp sitelibexp vendorarchexp vendorlibexp archlibexp privlibexp]) {
-            if ( !exists $index{$var} && -d $Config::Config{$var} ) {
-                push @cpan_inc, P->path( $Config::Config{$var}, is_dir => 1 )->canonpath;
-
-                $index{$var} = 1;
-            }
-        }
-
-        \@cpan_inc;
-    };
-
-    return $cpan_path;
-}
-
 sub find_dist_root ( $self, $path ) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
@@ -230,11 +210,11 @@ sub _build_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 60, 73, 152, 178     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 60, 73, 132, 158     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 193                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 173                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 200                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 180                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
