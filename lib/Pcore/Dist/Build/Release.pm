@@ -3,7 +3,6 @@ package Pcore::Dist::Build::Release;
 use Pcore qw[-class];
 use Pod::Markdown;
 use CPAN::Meta;
-use Module::Metadata;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
@@ -196,7 +195,7 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 32                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

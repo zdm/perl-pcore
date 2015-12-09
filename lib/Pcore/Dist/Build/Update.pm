@@ -3,14 +3,15 @@ package Pcore::Dist::Build::Update;
 use Pcore qw[-class];
 use Pod::Markdown;
 use CPAN::Meta;
-use Module::Metadata;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
-has main_module           => ( is => 'lazy', isa => ScalarRef, init_arg => undef );
-has cpanfile              => ( is => 'lazy', isa => Object,    init_arg => undef );
-has prereqs               => ( is => 'lazy', isa => Object,    init_arg => undef );
-has module_build_tiny_ver => ( is => 'lazy', isa => Str,       init_arg => undef );
+has main_module => ( is => 'lazy', isa => ScalarRef, init_arg => undef );
+has cpanfile    => ( is => 'lazy', isa => Object,    init_arg => undef );
+has prereqs     => ( is => 'lazy', isa => Object,    init_arg => undef );
+
+has module_build_tiny_ver => ( is => 'lazy', default => v0.39.0, init_arg => undef );
+has test_pod_ver          => ( is => 'lazy', default => v1.51.0, init_arg => undef );
 
 no Pcore;
 
@@ -24,10 +25,6 @@ sub _build_cpanfile ($self) {
 
 sub _build_prereqs ($self) {
     return $self->cpanfile->prereqs;
-}
-
-sub _build_module_build_tiny_ver ($self) {
-    return Module::Metadata->new_from_module('Module::Build::Tiny')->version->stringify;
 }
 
 sub run ($self) {
@@ -80,7 +77,7 @@ sub update_license ($self) {
 sub update_build_pl ($self) {
     my $reqs = $self->prereqs->merged_requirements( [qw/configure build test runtime/], ['requires'] );
 
-    my $min_perl = $reqs->requirements_for_module('perl') || '5.022';
+    my $min_perl = $reqs->requirements_for_module('perl') || $];
 
     my $mbt_version = $self->module_build_tiny_ver;
 
@@ -170,7 +167,7 @@ sub update_meta_json ($self) {
     # prereqs
     $self->prereqs->requirements_for( 'configure', 'requires' )->add_minimum( 'Module::Build::Tiny' => $self->module_build_tiny_ver );
 
-    $self->prereqs->requirements_for( 'develop', 'requires' )->add_minimum( 'Test::Pod' => '1.41' );
+    $self->prereqs->requirements_for( 'develop', 'requires' )->add_minimum( 'Test::Pod' => $self->test_pod_ver );
 
     $meta->{prereqs} = $self->prereqs->as_string_hash;
 
@@ -187,7 +184,7 @@ sub update_meta_json ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 133                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 130                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

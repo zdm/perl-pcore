@@ -2,20 +2,43 @@ package Pcore::Util::Perl::ModuleInfo;
 
 use Pcore qw[-class];
 
-has path => ( is => 'lazy', isa => Str );    # absolute path to package .pm file
+has path => ( is => 'lazy', isa => Str );                   # /absolute/Module/Path.pm
+has module_path => ( is => 'lazy', isa => Maybe [Str] );    # Module/Path.pm
 
 has content => ( is => 'lazy', isa => Maybe [ScalarRef] );
 
-has name => ( is => 'lazy', isa => Maybe [Str] );    # Package::Name
-has name_path => ( is => 'lazy', isa => Str );       # Package/Name.pm
+# TODO module can provide more, than one package name
+has pkg_name => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );    # Package::Name
 
 has is_crypted => ( is => 'lazy', isa => Bool, init_arg => undef );
 has abstract => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );
 has version => ( is => 'lazy', isa => Maybe [ InstanceOf ['version'] ], init_arg => undef );
 
-around new => sub ( $orig, $self, $pkg ) {
-    if ( $pkg =~ /[.]p(?:[lm])/sm ) {
-        return $self->$orig( { path => "$pkg" } );
+around new => sub ( $orig, $self, $pkg, @inc ) {
+    if ( ref $pkg eq 'SCALAR' ) {
+        return $self->$orig( { content => $pkg } );
+    }
+    else {
+        my $path;
+
+        if ( $pkg =~ /[.]p(?:[lm])/sm ) {    # pkg has .pl or .pm suffix, this is a module path
+            $path = $pkg;
+        }
+        else {                               # Package::Name
+            $path = $pkg =~ s[::][/]smgr . '.pm';
+        }
+
+        if ( -f $path ) {
+            return $self->$orig( { path => P->path($path)->realpath->to_string } );
+        }
+        else {
+            # try to find in @INC
+            for my $lib ( @inc, @INC ) {
+                next if ref $lib;
+
+                return $self->$orig( { path => P->path("$lib/$path")->realpath->to_string, module_path => $path } ) if -f "$lib/$path";
+            }
+        }
     }
 
     return;
@@ -23,7 +46,23 @@ around new => sub ( $orig, $self, $pkg ) {
 
 no Pcore;
 
-sub _build_name ($self) {
+sub _build_module_path ($self) {
+    if ( my $path = $self->path ) {
+        for my $lib (@INC) {
+            next if ref $lib;
+
+            my $lib_path = P->path( $lib, is_dir => 1 );
+
+            if ( ( my $idx = index( $path, $lib, 0 ) ) == 0 ) {
+                return substr $path, length $lib_path;
+            }
+        }
+    }
+
+    return;
+}
+
+sub _build_pkg_name ($self) {
     if ( $self->content->$* =~ /^\s*package\s+([[:alpha:]][[:alnum:]]*(?:::[[:alnum:]]+)*)/sm ) {
         return $1;
     }
@@ -69,6 +108,11 @@ sub _build_version ($self) {
     return;
 }
 
+# TODO shuoul return abs_deps_name + lib_related_deps_name
+sub get_deps ($self) {
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -76,7 +120,9 @@ sub _build_version ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 53                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 92                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 56                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
