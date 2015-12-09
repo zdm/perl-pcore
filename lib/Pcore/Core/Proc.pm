@@ -44,11 +44,8 @@ sub BUILD ( $self, $args ) {
         $self->{LOG_DIR}  = undef;
     }
 
-    # configure INLINE_DIR
-    if ( $self->is_par ) {
-        $self->{INLINE_DIR} = "$ENV{PAR_TEMP}/inc/$Config::Config{version}/$Config::Config{archname}/.inline/";
-    }
-    elsif ( $self->pcore->is_installed ) {
+    # configure INLINE_DIR, NOTE inline is not used under PAR
+    if ( $self->pcore->is_installed ) {
         $self->{INLINE_DIR} = $self->{PCORE_USER_DIR} . ".inline/$Config::Config{version}/$Config::Config{archname}/";
     }
     else {

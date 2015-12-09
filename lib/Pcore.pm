@@ -175,7 +175,7 @@ sub import {
         Pcore::Core::Autoload->import( -caller => $caller ) if $pragma->{autoload};
 
         # process -inline pragma
-        _configure_inline() if $pragma->{inline};
+        require Pcore::Core::Inline if $pragma->{inline};
 
         # store significant pragmas for use in run-time
         $Pcore::EMBEDDED = 1 if $pragma->{embedded};
@@ -571,25 +571,6 @@ sub _config_stdout ($h) {
             binmode $h, ':raw:encoding(UTF-8)' or die;                         # file TODO +RemoveESC
         }
     }
-
-    return;
-}
-
-sub _configure_inline {
-    state $init = do {
-        require Inline;
-
-        Inline->import(
-            config => (
-                directory         => $PROC->{INLINE_DIR},
-                autoname          => 0,
-                clean_after_build => 1,
-                clean_build_area  => 1,
-            )
-        );
-
-        1;
-    };
 
     return;
 }

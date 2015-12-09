@@ -245,8 +245,6 @@ sub _add_pkg ( $self, $pkg ) {
             $cfg->{so_inc_dir} = P->path( $inc, is_dir => 1 )->to_string;
 
             $cfg->{so_source_path} = $cfg->{so_inc_dir} . $cfg->{so_path};
-
-            $cfg->{so_is_inline} = $cfg->{so_inc_dir} eq $PROC->{INLINE_DIR} . 'lib/' ? 1 : 0;
         }
 
         last if $cfg->{source_path} && $cfg->{so_source_path};
@@ -260,39 +258,26 @@ sub _add_pkg ( $self, $pkg ) {
     if ( !$cfg->{so_source_path} ) {    # package has no binary deps
         $target_path = 'lib/';
     }
-    else {
+    else {                              # package has binary so module
+
+        # NOTE inline deps should be placed only under standard PAR @INC dir
+        # otherwise DynaLoader will produce untrackable errors
         $target_path = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
 
-        if ( $cfg->{so_is_inline} ) {    # package has inline shared object
-            my $inline_target_path = $target_path . '.inline/';
+        $self->tree->add_file( $target_path . $cfg->{so_path}, $cfg->{so_source_path} );
 
-            # add shared object
-            $self->tree->add_file( $inline_target_path . 'lib/' . $cfg->{so_path}, $cfg->{so_source_path} );
-
-            # add .inl
-            $self->tree->add_file( $inline_target_path . 'lib/' . $cfg->{auto_dir} . $pkg->filename_base . '.inl', $cfg->{so_inc_dir} . $cfg->{auto_dir} . $pkg->filename_base . '.inl' );
-
-            # add global inline config
-            my $inline_config_name = 'config-' . $Config::Config{archname} . q[-] . $];
-
-            $self->tree->add_file( $inline_target_path . $inline_config_name, $PROC->{INLINE_DIR} . $inline_config_name );
-        }
-        else {    # package has shared object in CPAN
-            $self->tree->add_file( $target_path . $cfg->{so_path}, $cfg->{so_source_path} );
-
-            # add .ix, .al
-            P->file->find(
-                $cfg->{so_inc_dir} . $cfg->{auto_dir},
-                dir => 0,
-                sub ($path) {
-                    if ( $path->suffix eq 'ix' || $path->suffix eq 'al' ) {
-                        $self->tree->add_file( $target_path . $cfg->{auto_dir} . $path, $cfg->{so_inc_dir} . $cfg->{auto_dir} . $path );
-                    }
-
-                    return;
+        # add .ix, .al
+        P->file->find(
+            $cfg->{so_inc_dir} . $cfg->{auto_dir},
+            dir => 0,
+            sub ($path) {
+                if ( $path->suffix eq 'ix' || $path->suffix eq 'al' ) {
+                    $self->tree->add_file( $target_path . $cfg->{auto_dir} . $path, $cfg->{so_inc_dir} . $cfg->{auto_dir} . $path );
                 }
-            );
-        }
+
+                return;
+            }
+        );
     }
 
     # add .pm to the files tree
@@ -608,19 +593,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 182, 218, 544        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 182, 218, 529        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 195, 441             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 195, 426             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 304                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 289                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 479                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 464                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 514                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 499                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 566, 568             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 551, 553             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 501, 507, 572        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 486, 492, 557        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
