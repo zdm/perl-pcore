@@ -49,7 +49,7 @@
    "prereqs" : {
       "configure" : {
          "requires" : {
-            "Module::Build::Tiny" : "0.039"
+            "Module::Build::Tiny" : "v0.39.0"
          }
       },
       "develop" : {
@@ -65,7 +65,7 @@
             "Perl::Critic" : "0",
             "Perl::Strip" : "0",
             "Perl::Stripper" : "0",
-            "Test::Pod" : "1.41"
+            "Test::Pod" : "v1.51.0"
          },
          "suggests" : {
             "Devel::Cover" : "0",

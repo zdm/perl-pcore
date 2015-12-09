@@ -10,8 +10,8 @@ has main_module => ( is => 'lazy', isa => ScalarRef, init_arg => undef );
 has cpanfile    => ( is => 'lazy', isa => Object,    init_arg => undef );
 has prereqs     => ( is => 'lazy', isa => Object,    init_arg => undef );
 
-has module_build_tiny_ver => ( is => 'lazy', default => v0.39.0, init_arg => undef );
-has test_pod_ver          => ( is => 'lazy', default => v1.51.0, init_arg => undef );
+has module_build_tiny_ver => ( is => 'lazy', default => sub { version->parse(v0.39.0) }, init_arg => undef );
+has test_pod_ver          => ( is => 'lazy', default => sub { version->parse(v1.51.0) }, init_arg => undef );
 
 no Pcore;
 
