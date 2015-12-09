@@ -12,10 +12,11 @@ has main_module_path => ( is => 'lazy', isa => Str );             # absolute pat
 has main_module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::ModuleInfo'], clearer => 1, init_arg => undef );
 has build_info => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
-has name     => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist-Name
-has ns       => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist::Name
-has version  => ( is => 'lazy', isa => Object, clearer  => 1, init_arg => undef );
-has revision => ( is => 'lazy', isa => Str,    clearer  => 1, init_arg => undef );
+has name       => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist-Name
+has ns         => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist::Name
+has version    => ( is => 'lazy', isa => Object, clearer  => 1, init_arg => undef );
+has revision   => ( is => 'lazy', isa => Str,    clearer  => 1, init_arg => undef );
+has build_date => ( is => 'lazy', isa => Str,    clearer  => 1, init_arg => undef );
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
@@ -23,10 +24,10 @@ has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg 
 around new => sub ( $orig, $self, $path ) {
     my $pkg_name;
 
-    if ( $path =~ /[.]pm\z/smo ) {                                                   # Package/Name.pm
+    if ( $path =~ /[.]pm\z/smo ) {                                                     # Package/Name.pm
         $pkg_name = $path;
     }
-    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {                            # PAR
+    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {                              # PAR
         return $self->$orig(
             {   root         => undef,
                 is_installed => 1,
@@ -35,7 +36,7 @@ around new => sub ( $orig, $self, $path ) {
             }
         );
     }
-    elsif ( $path =~ m[[./]]smo ) {                                                  # ./path/to/dist
+    elsif ( $path =~ m[[./]]smo ) {                                                    # ./path/to/dist
         if ( $path = $self->find_dist_root($path) ) {
             return $self->$orig(
                 {   root         => $path->to_string,
@@ -187,7 +188,10 @@ sub _build_version ($self) {
 sub _build_revision ($self) {
     my $revision = 0;
 
-    if ( $self->scm ) {
+    if ( $PROC->is_par || $self->is_installed ) {
+        $revision = $self->build_info->{revision};
+    }
+    elsif ( $self->scm ) {
         $revision = $self->scm->server->cmd(qw[id -i])->{o}->[0];
     }
     elsif ( $self->root && -f $self->root . '.hg_archival.txt' ) {
@@ -197,11 +201,17 @@ sub _build_revision ($self) {
             $revision = $1;
         }
     }
-    elsif ( $self->build_info ) {
-        $revision = $self->build_info->{revision};
-    }
 
     return $revision;
+}
+
+sub _build_build_date ($self) {
+    if ( $PROC->is_par || $self->is_installed ) {
+        return $self->build_info->{build_date};
+    }
+    else {
+        return P->date->now_utc->to_string;
+    }
 }
 
 sub _build_scm ($self) {
@@ -218,7 +228,7 @@ sub create_build_cfg ($self) {
     my $data = {
         version    => $self->version->normal,
         revision   => $self->revision,
-        build_date => P->date->now_utc->to_string,
+        build_date => $self->build_date,
     };
 
     return P->data->to_perl( $data, readable => 1 );
@@ -235,11 +245,9 @@ sub clear ($self) {
 
     $self->clear_revision;
 
-    return;
-}
+    $self->clear_build_date;
 
-sub build_date ($self) {
-    return $self->build_info ? $self->build_info->{build_date} : P->date->now_utc->to_string;
+    return;
 }
 
 1;
@@ -249,9 +257,9 @@ sub build_date ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 62, 75, 134, 168     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 63, 76, 135, 169     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 191                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 195                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
