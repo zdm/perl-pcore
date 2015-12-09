@@ -27,7 +27,7 @@ my $obj = _Bench::Moo::Accessors->new;
 
 my $tests;
 
-for my $attr ( keys P->perl->moo->get_attrs($obj) ) {
+for my $attr ( keys P->perl->moo->get_attrs($obj)->%* ) {
     $tests->{$attr} = sub {
         $obj->$attr;
 
@@ -38,6 +38,18 @@ for my $attr ( keys P->perl->moo->get_attrs($obj) ) {
 Benchmark::cmpthese( Benchmark::timethese( $COUNT, $tests ) );
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 30                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
