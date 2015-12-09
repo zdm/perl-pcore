@@ -18,8 +18,6 @@ sub update ($self) {
 
     my $wiki_path = P->path('wiki/')->realpath;
 
-    my $header = qq[**!!! DO NOT EDIT. This document is generated automatically. !!!**$LF$LF];
-
     my $upstream = P->class->load('Pcore::Src::SCM')->new($wiki_path)->upstream;
 
     my $base_url = q[/] . $upstream->username . q[/] . $upstream->reponame . q[/wiki/];
@@ -51,13 +49,15 @@ sub update ($self) {
                 $pod_markdown =~ s/\n+\z//smg;
 
                 if ($pod_markdown) {
-                    my $markdown = $header;
+                    my $markdown = <<"MD";
+**!!! DO NOT EDIT. This document is generated automatically. !!!**
 
-                    $markdown .= "[POD index](${base_url}POD)$LF$LF";
+back to **[INDEX](${base_url}POD)**
 
-                    $markdown .= "[TOC]$LF$LF";
+[TOC]
 
-                    $markdown .= $pod_markdown;
+$pod_markdown
+MD
 
                     # write markdown to the file
                     Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
@@ -71,8 +71,10 @@ sub update ($self) {
     );
 
     # generate POD.md
-    my $toc_md = $header;
+    my $toc_md = <<'MD';
+**!!! DO NOT EDIT. This document is generated automatically. !!!**
 
+MD
     for my $link ( sort keys $toc->%* ) {
         my $package_name = $link =~ s[/][::]smgr;
 
@@ -96,9 +98,9 @@ sub update ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 76                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 78                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 23                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 21                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
