@@ -71,15 +71,13 @@ sub run ($self) {
     return if P->term->prompt( 'Continue release process?', [qw[yes no]], enter => 1 ) ne 'yes';
 
     # update release version in the main_module
-    my $main_module = P->file->read_bin( $self->dist->main_module_path );
-
-    unless ( $main_module->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
+    unless ( $self->dist->main_module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
         say 'Error updating version';
 
         return;
     }
 
-    P->file->write_bin( $self->dist->main_module_path, $main_module );
+    P->file->write_bin( $self->dist->main_module_path, $self->dist->main_module->content );
 
     # update working copy
     $self->dist->build->update;
@@ -196,6 +194,8 @@ sub _upload ( $self, $username, $password, $path ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 74                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -6,10 +6,8 @@ use CPAN::Meta;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
-# TODO remove
-has main_module => ( is => 'lazy', isa => ScalarRef, init_arg => undef );
-has cpanfile    => ( is => 'lazy', isa => Object,    init_arg => undef );
-has prereqs     => ( is => 'lazy', isa => Object,    init_arg => undef );
+has cpanfile => ( is => 'lazy', isa => Object, init_arg => undef );
+has prereqs  => ( is => 'lazy', isa => Object, init_arg => undef );
 
 has module_build_tiny_ver => ( is => 'lazy', default => sub { version->parse(v0.39.0) }, init_arg => undef );
 has test_pod_ver          => ( is => 'lazy', default => sub { version->parse(v1.51.0) }, init_arg => undef );
@@ -56,7 +54,7 @@ sub update_readme_md ($self) {
     $parser->output_string( \my $markdown );
 
     # generate markdown document
-    $parser->parse_string_document( $self->main_module->$* );
+    $parser->parse_string_document( $self->dist->main_module->content->$* );
 
     P->file->write_bin( $self->dist->root . 'README.md', $markdown );
 
@@ -113,19 +111,10 @@ sub update_meta_json ($self) {
     };
 
     # version
-    if ( $self->main_module->$* =~ m[^\s*package\s+\w[\w\:\']*\s+(v?[\d._]+)\s*;]sm ) {
-        $meta->{version} = version->new($1);
-    }
-    else {
-        die q[main module version wasn't found];
-    }
+    $meta->{version} = $self->dist->main_module->version;
 
     # abstract
-    my $class = $self->dist->cfg->{dist}->{name} =~ s[-][::]smgr;
-
-    if ( $self->main_module->$* =~ m[=head1\s+NAME\s*$class\s*-\s*([^\n]+)]smi ) {
-        $meta->{abstract} = $1;
-    }
+    $meta->{abstract} = $self->dist->main_module->abstract if $self->dist->main_module->abstract;
 
     # resources
     my $upstream_meta = $self->dist->scm && $self->dist->scm->upstream ? $self->dist->scm->upstream->meta_resources : {};
@@ -185,7 +174,7 @@ sub update_meta_json ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 131                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 57, 120              │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
