@@ -3,14 +3,12 @@
         'MSWin32-x64-multi-thread'       => [qw[Test::TCP]],
     },
     par_deps => [    # following packages will be added to any PAR automatically
-        'Pcore/Util/Date.pm',
-        'Pcore/Util/Sys.pm',
-        'Pcore/Core/Inline.pm',
     ],
     arch_deps => {
         'MSWin32-x86-multi-thread-64int' => {
-            pkg => [],    # default packages to include, eg: 'Win32/Unicode.pm'
-            so  => {
+            pkg => [    # default packages to include, eg: 'Win32/Unicode.pm'
+            ],
+            so => {
                 'B/Hooks/OP/Check.pm'      => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
                 'Filter/Crypto/Decrypt.pm' => [ 'libeay32_.dll', 'zlib1_.dll' ],
                 'Net/SSLeay.pm'            => [ 'ssleay32_.dll', 'libeay32_.dll', 'zlib1_.dll' ],
@@ -19,8 +17,9 @@
             },
         },
         'MSWin32-x64-multi-thread' => {
-            pkg => [],    # default packages to include, eg: 'Win32/Unicode.pm'
-            so  => {
+            pkg => [    # default packages to include, eg: 'Win32/Unicode.pm'
+            ],
+            so => {
                 'B/Hooks/OP/Check.pm'      => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
                 'Filter/Crypto/Decrypt.pm' => [ 'libeay32__.dll', 'zlib1__.dll' ],
                 'Net/SSLeay.pm'            => [ 'ssleay32__.dll', 'libeay32__.dll', 'zlib1__.dll' ],

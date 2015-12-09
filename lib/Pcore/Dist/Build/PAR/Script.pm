@@ -25,6 +25,14 @@ has exe_filename => ( is => 'lazy', isa => Str, init_arg => undef );
 
 no Pcore;
 
+our $PAR_DEPS = [    # common deps, will be included in any PAR
+    'Pcore/Util/Date.pm',
+    'Time/Moment.pm',    # required by Pcore/Util/Date.pm
+    'HTTP/Date.pm',      # required by Pcore/Util/Date.pm
+    'Time/Zone.pm',      # required by Pcore/Util/Date.pm
+    'Pcore/Util/Sys.pm',
+];
+
 sub _build_tree ($self) {
     return Pcore::Util::File::Tree->new;
 }
@@ -54,7 +62,7 @@ sub run ($self) {
     say BOLD . GREEN . qq[\nbuild] . ( $self->crypt ? ' crypted' : BOLD . RED . q[ not crypted] . BOLD . GREEN ) . qq[ "@{[$self->exe_filename]}" for $Config::Config{archname}] . RESET;
 
     # add common par deps packages to the script_deps
-    for my $pkg ( $self->par_deps->@* ) {
+    for my $pkg ( $PAR_DEPS->@*, $self->par_deps->@* ) {
         $self->script_deps->{$pkg} = 1;
     }
 
@@ -62,6 +70,9 @@ sub run ($self) {
     for my $pkg ( $self->arch_deps->{pkg}->@* ) {
         $self->script_deps->{$pkg} = 1;
     }
+
+    # replace Inline.pm with Pcore/Core/Inline.pm
+    $self->script_deps->{'Pcore/Core/Inline.pm'} = 1 if delete $self->script_deps->{'Inline.pm'};
 
     # add Filter::Crypto::Decrypt deps if crypt mode is used
     $self->script_deps->{'Filter/Crypto/Decrypt.pm'} = 1 if $self->crypt;
@@ -609,19 +620,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 182, 218, 545        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 193, 229, 556        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 195, 442             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 206, 453             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 305                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 316                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 480                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 491                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 515                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 526                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 567, 569             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 578, 580             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 502, 508, 573        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 513, 519, 584        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
