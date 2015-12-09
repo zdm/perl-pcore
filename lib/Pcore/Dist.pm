@@ -140,7 +140,7 @@ sub _build_main_module ($self) {
 }
 
 sub _build_build_info ($self) {
-    return -f $self->share_dir . 'build.txt' ? P->cfg->load( $self->share_dir . 'build.perl' ) : undef;
+    return -f $self->share_dir . 'build.perl' ? P->cfg->load( $self->share_dir . 'build.perl' ) : undef;
 }
 
 sub _build_cfg ($self) {
