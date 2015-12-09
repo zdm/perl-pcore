@@ -26,7 +26,7 @@ sub update ($self) {
 
     Pcore->file->rmtree( $wiki_path . 'POD/' );
 
-    my $toc = [];
+    my $toc = {};
 
     # scan lib/ for .pm files
     Pcore->file->find(
@@ -62,7 +62,7 @@ sub update ($self) {
                     # write markdown to the file
                     Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
 
-                    push $toc->@*, $path->dirname . $path->filename_base;
+                    $toc->{ $path->dirname . $path->filename_base } = undef;
 
                     Pcore->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
                 }
@@ -73,12 +73,14 @@ sub update ($self) {
     # generate POD.md
     my $toc_md = $header;
 
-    for my $link ( sort $toc->@* ) {
-        my $indent = $link =~ tr[/][/];
-
+    for my $link ( sort keys $toc->%* ) {
         my $package_name = $link =~ s[/][::]smgr;
 
-        $toc_md .= ( q[    ] x $indent ) . "* [${package_name}](${base_url}POD/${link})$LF";
+        $toc_md .= "**[${package_name}](${base_url}POD/${link})**";
+
+        $toc_md .= " - $toc->{$link}" if $toc->{$link};
+
+        $toc_md .= "  $LF";    # two spaces make single line break
     }
 
     # write POD.md
@@ -94,6 +96,8 @@ sub update ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 76                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 23                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
