@@ -1,6 +1,7 @@
 package Pcore::Dist::Build::Wiki;
 
 use Pcore qw[-class];
+use Pcore::Util::Perl::ModuleInfo;
 use Pod::Markdown;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
@@ -39,12 +40,14 @@ sub update ($self) {
                     include_meta_tags        => 0,
                 );
 
+                my $pkg_info = Pcore::Util::Perl::ModuleInfo->new($path);
+
                 my $pod_markdown;
 
                 $parser->output_string( \$pod_markdown );
 
                 # generate markdown document
-                $parser->parse_string_document( P->file->read_bin($path)->$* );
+                $parser->parse_string_document( $pkg_info->content->$* );
 
                 $pod_markdown =~ s/\n+\z//smg;
 
@@ -64,7 +67,7 @@ MD
                     # write markdown to the file
                     Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
 
-                    $toc->{ $path->dirname . $path->filename_base } = undef;
+                    $toc->{ $path->dirname . $path->filename_base } = $pkg_info->abstract;
 
                     Pcore->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
                 }
@@ -82,6 +85,7 @@ MD
 
         $toc_md .= "**[${package_name}](${base_url}POD/${link})**";
 
+        # add abstract
         $toc_md .= " - $toc->{$link}" if $toc->{$link};
 
         $toc_md .= "  $LF";    # two spaces make single line break
@@ -100,9 +104,9 @@ MD
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 80                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 21                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 22                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
