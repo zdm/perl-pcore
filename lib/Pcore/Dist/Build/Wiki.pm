@@ -18,7 +18,7 @@ sub update ($self) {
 
     my $wiki_path = P->path('wiki/')->realpath;
 
-    my $header = qq[**!!! DO NOT EDIT. This document is generated automatically. !!!**\x0A\x0A];
+    my $header = qq[**!!! DO NOT EDIT. This document is generated automatically. !!!**$LF${LF}[TOC]$LF$LF];
 
     my $upstream = P->class->load('Pcore::Src::SCM')->new($wiki_path)->upstream;
 
@@ -66,7 +66,7 @@ sub update ($self) {
         }
     );
 
-    # generate TOC
+    # generate POD.md
     my $toc_md = $header;
 
     for my $link ( @{$toc} ) {
@@ -75,6 +75,7 @@ sub update ($self) {
         $toc_md .= qq[## [${package_name}](${base_url}POD/${link})\n\n];
     }
 
+    # write POD.md
     Pcore->file->write_text( $wiki_path . 'POD.md', { crlf => 0 }, \$toc_md );
 
     return;
@@ -87,9 +88,9 @@ sub update ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 21, 56               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 23                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 56                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
