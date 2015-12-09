@@ -73,10 +73,12 @@ sub update ($self) {
     # generate POD.md
     my $toc_md = $header;
 
-    for my $link ( @{$toc} ) {
+    for my $link ( sort $toc->@* ) {
+        my $indent = $link =~ tr[/][/];
+
         my $package_name = $link =~ s[/][::]smgr;
 
-        $toc_md .= qq[## [${package_name}](${base_url}POD/${link})\n\n];
+        $toc_md .= q[ ] x $indent . " [${package_name}](${base_url}POD/${link})$LF$LF";
     }
 
     # write POD.md
