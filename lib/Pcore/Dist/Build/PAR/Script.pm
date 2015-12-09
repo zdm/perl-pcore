@@ -26,11 +26,19 @@ has exe_filename => ( is => 'lazy', isa => Str, init_arg => undef );
 no Pcore;
 
 our $PAR_DEPS = [    # common deps, will be included in any PAR
+
+    # following deps are needed to generate exception
+    'File/Path.pm',
+    'HTTP/Date.pm',
+    'Pcore/Core/H/Role.pm',
+    'Pcore/Core/H/Role/Wrapper.pm',
+    'Pcore/Handle/File.pm',
     'Pcore/Util/Date.pm',
-    'Time/Moment.pm',    # required by Pcore/Util/Date.pm
-    'HTTP/Date.pm',      # required by Pcore/Util/Date.pm
-    'Time/Zone.pm',      # required by Pcore/Util/Date.pm
     'Pcore/Util/Sys.pm',
+    'Time/Local.pm',
+    'Time/Moment.pm',
+    'Time/Zone.pm',
+    'bytes_heavy.pl',
 ];
 
 sub _build_tree ($self) {
@@ -620,19 +628,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 193, 229, 556        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 201, 237, 564        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 206, 453             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 214, 461             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 316                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 324                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 491                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 499                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 526                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 534                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 578, 580             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 586, 588             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 513, 519, 584        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 521, 527, 592        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

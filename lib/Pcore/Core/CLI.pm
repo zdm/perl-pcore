@@ -378,36 +378,9 @@ sub _get_class_cmd ( $self, $class = undef ) {
 
 # HELP
 sub _help_class_abstract ( $self, $class = undef ) {
-    my $abstract;
-
     $class //= $self->class;
 
-    if ( $class->can('cli_abstract') ) {
-        $abstract = $class->cli_abstract;
-    }
-
-    if ( !defined $abstract ) {
-        my $path;
-
-        if ( $class eq 'main' ) {
-            $path = $PROC->{SCRIPT_PATH};
-        }
-        else {
-            $path = $INC{ $class =~ s[::][/]smgr . '.pm' };
-        }
-
-        my $content = P->file->read_bin($path);
-
-        if ( $content->$* =~ m[=head1\s+NAME\s*$class\s*-\s*([^\n]+)]smi ) {
-            $abstract = $1;
-        }
-    }
-
-    $abstract //= q[];
-
-    $abstract =~ s/\n+\z//sm;
-
-    return $abstract;
+    return $class->can('cli_abstract') ? $class->cli_abstract // q[] : q[];
 }
 
 sub _help_usage_string ($self) {
@@ -446,7 +419,6 @@ sub _help_alias ($self) {
     }
 }
 
-# TODO try to get help from POD =head DESCRIPTION
 sub _help ($self) {
     my $help;
 
@@ -583,12 +555,12 @@ sub help_error ( $self, $msg ) {
 ## │    3 │ 46                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 89, 92, 157, 238,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 273, 334, 357, 420,  │                                                                                                                │
-## │      │ 483, 488, 492, 501   │                                                                                                                │
+## │      │ 273, 334, 357, 393,  │                                                                                                                │
+## │      │ 455, 460, 464, 473   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 347                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 381, 521, 549        │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 493, 521             │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
