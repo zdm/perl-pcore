@@ -216,7 +216,7 @@ sub _build_build ($self) {
 
 sub create_build_cfg ($self) {
     my $data = {
-        version    => $self->version->stringify,
+        version    => $self->version->normal,
         revision   => $self->revision,
         build_date => P->date->now_utc->to_string,
     };

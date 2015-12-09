@@ -52,7 +52,7 @@ sub run ($self) {
         $parts[1]++;
         $parts[2] = 0;
     }
-    else {
+    elsif ( $self->bugfix ) {
         $parts[2]++;
     }
 

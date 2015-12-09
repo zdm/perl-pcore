@@ -9,8 +9,8 @@ has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 has cpanfile => ( is => 'lazy', isa => Object, init_arg => undef );
 has prereqs  => ( is => 'lazy', isa => Object, init_arg => undef );
 
-has module_build_tiny_ver => ( is => 'lazy', default => sub { version->parse(v0.39.0) }, init_arg => undef );
-has test_pod_ver          => ( is => 'lazy', default => sub { version->parse(v1.51.0) }, init_arg => undef );
+has module_build_tiny_ver => ( is => 'ro', default => version->parse(v0.39.0)->normal, init_arg => undef );
+has test_pod_ver          => ( is => 'ro', default => version->parse(v1.51.0)->normal, init_arg => undef );
 
 no Pcore;
 
@@ -76,7 +76,7 @@ sub update_license ($self) {
 sub update_build_pl ($self) {
     my $reqs = $self->prereqs->merged_requirements( [qw/configure build test runtime/], ['requires'] );
 
-    my $min_perl = $reqs->requirements_for_module('perl') || $];
+    my $min_perl = $reqs->requirements_for_module('perl') || version->new($])->normal;
 
     my $mbt_version = $self->module_build_tiny_ver;
 
