@@ -45,14 +45,19 @@ sub BUILD ( $self, $args ) {
     }
 
     # configure INLINE_DIR, NOTE PCORE_USER_DIR is not used under PAR
-    if ( $self->pcore->is_installed ) {
-        $self->{INLINE_DIR} = $self->{PCORE_USER_DIR} . ".inline/$Config::Config{version}/$Config::Config{archname}/";
+    if ( $self->is_par ) {
+        $self->{INLINE_DIR} = undef;
     }
     else {
-        $self->{INLINE_DIR} = $self->pcore->root . ".inline/$Config::Config{version}/$Config::Config{archname}/";
-    }
+        if ( $self->pcore->is_installed ) {
+            $self->{INLINE_DIR} = $self->{PCORE_USER_DIR} . ".inline/$Config::Config{version}/$Config::Config{archname}/";
+        }
+        else {
+            $self->{INLINE_DIR} = $self->pcore->root . ".inline/$Config::Config{version}/$Config::Config{archname}/";
+        }
 
-    $self->{INLINE_DIR} = P->path( $self->{INLINE_DIR}, is_dir => 1, lazy => 1 );
+        $self->{INLINE_DIR} = P->path( $self->{INLINE_DIR}, is_dir => 1, lazy => 1 );
+    }
 
     return;
 }
