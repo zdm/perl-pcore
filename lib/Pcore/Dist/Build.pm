@@ -148,8 +148,8 @@ sub temp_build ( $self, $keep = 0 ) {
         $tree->add_file( $_, $self->dist->root . $_ );
     }
 
-    # add revision.txt
-    $tree->add_file( 'share/revision.txt', \$self->dist->revision );
+    # add build.perl
+    $tree->add_file( 'share/build.perl', $self->dist->create_build_cfg );
 
     # add t/author-pod-syntax.t
     $tree->add_file(

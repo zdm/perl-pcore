@@ -532,9 +532,13 @@ sub help_usage ( $self, $invalid_options = undef ) {
 }
 
 sub help_version ($self) {
-    say $PROC->dist->name . q[ ], $PROC->dist->version, ', rev: ' . $PROC->dist->revision if $PROC->dist;
+    my $format_info = sub ($dist) {
+        return $dist->name . q[ ], $dist->version, ', revision: ' . $dist->revision, ', build date: ' . $dist->build_date;
+    };
 
-    say 'Pcore ' . $PROC->pcore->version, ', rev: ' . $PROC->pcore->revision if !$PROC->dist || $PROC->dist->name ne $PROC->pcore->name;
+    say $format_info->( $PROC->dist ) if $PROC->dist;
+
+    say $format_info->( $PROC->pcore ) if !$PROC->dist || $PROC->dist->name ne $PROC->pcore->name;
 
     exit 2;
 }

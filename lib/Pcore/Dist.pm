@@ -9,11 +9,13 @@ has is_par       => ( is => 'ro', isa => Bool, required => 1 );   # dist is used
 has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
 has main_module_path => ( is => 'lazy', isa => Str );             # absolute path
 
-has cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );
-has name     => ( is => 'lazy', isa => Str,     init_arg => undef );                  # Dist-Name
-has ns       => ( is => 'lazy', isa => Str,     init_arg => undef );                  # Dist::Name
-has version  => ( is => 'lazy', isa => Object,  clearer  => 1, init_arg => undef );
-has revision => ( is => 'lazy', isa => Str,     clearer  => 1, init_arg => undef );
+has main_module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::ModuleInfo'], clearer => 1, init_arg => undef );
+has build_info => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
+has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
+has name     => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist-Name
+has ns       => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist::Name
+has version  => ( is => 'lazy', isa => Object, clearer  => 1, init_arg => undef );
+has revision => ( is => 'lazy', isa => Str,    clearer  => 1, init_arg => undef );
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
@@ -21,10 +23,10 @@ has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg 
 around new => sub ( $orig, $self, $path ) {
     my $pkg_name;
 
-    if ( $path =~ /[.]pm\z/smo ) {                                                    # Package/Name.pm
+    if ( $path =~ /[.]pm\z/smo ) {                                                   # Package/Name.pm
         $pkg_name = $path;
     }
-    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {                             # PAR
+    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {                            # PAR
         return $self->$orig(
             {   root         => undef,
                 is_installed => 1,
@@ -33,7 +35,7 @@ around new => sub ( $orig, $self, $path ) {
             }
         );
     }
-    elsif ( $path =~ m[[./]]smo ) {                                                   # ./path/to/dist
+    elsif ( $path =~ m[[./]]smo ) {                                                  # ./path/to/dist
         if ( $path = $self->find_dist_root($path) ) {
             return $self->$orig(
                 {   root         => $path->to_string,
@@ -133,6 +135,14 @@ sub dir_is_dist ( $self, $path ) {
 }
 
 # BUILDERS
+sub _build_main_module ($self) {
+    return P->perl->module_info( $self->main_module_path );
+}
+
+sub _build_build_info ($self) {
+    return -f $self->share_dir . 'build.txt' ? P->cfg->load( $self->share_dir . 'build.perl' ) : undef;
+}
+
 sub _build_cfg ($self) {
     return P->cfg->load( $self->share_dir . 'dist.perl' );
 }
@@ -166,11 +176,12 @@ sub _build_main_module_path ($self) {
 }
 
 sub _build_version ($self) {
-    my $main_module = P->file->read_bin( $self->main_module_path );
-
-    $main_module->$* =~ m[^\s*package\s+\w[\w\:\']*\s+(v?[\d._]+)\s*;]sm;
-
-    return version->new($1);
+    if ( $PROC->is_par || $self->is_installed ) {
+        return version->new( $self->build_info->{version} );
+    }
+    else {
+        return $self->main_module->version;
+    }
 }
 
 sub _build_revision ($self) {
@@ -186,8 +197,8 @@ sub _build_revision ($self) {
             $revision = $1;
         }
     }
-    elsif ( -f $self->share_dir . 'revision.txt' ) {
-        $revision = P->file->read_bin( $self->share_dir . 'revision.txt' )->$*;
+    elsif ( $self->build_info ) {
+        $revision = $self->build_info->{revision};
     }
 
     return $revision;
@@ -203,6 +214,34 @@ sub _build_build ($self) {
     return P->class->load('Pcore::Dist::Build')->new( { dist => $self } );
 }
 
+sub create_build_cfg ($self) {
+    my $data = {
+        version    => $self->version->stringify,
+        revision   => $self->revision,
+        build_date => P->date->now_utc->to_string,
+    };
+
+    return P->data->to_perl( $data, readable => 1 );
+}
+
+sub clear ($self) {
+    $self->clear_main_module;
+
+    $self->clear_build_info;
+
+    $self->clear_cfg;
+
+    $self->clear_version;
+
+    $self->clear_revision;
+
+    return;
+}
+
+sub build_date ($self) {
+    return $self->build_info ? $self->build_info->{build_date} : P->date->now_utc->to_string;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -210,11 +249,9 @@ sub _build_build ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 60, 73, 132, 158     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 62, 75, 134, 168     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 173                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 180                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 191                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

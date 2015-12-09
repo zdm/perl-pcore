@@ -6,6 +6,7 @@ use CPAN::Meta;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
+# TODO remove
 has main_module => ( is => 'lazy', isa => ScalarRef, init_arg => undef );
 has cpanfile    => ( is => 'lazy', isa => Object,    init_arg => undef );
 has prereqs     => ( is => 'lazy', isa => Object,    init_arg => undef );
@@ -28,9 +29,9 @@ sub _build_prereqs ($self) {
 }
 
 sub run ($self) {
-    $self->dist->clear_version;
 
-    $self->dist->clear_revision;
+    # drop cached info
+    $self->dist->clear;
 
     $self->update_readme_md;
 
@@ -184,7 +185,7 @@ sub update_meta_json ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 130                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 131                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
