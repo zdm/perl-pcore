@@ -78,7 +78,7 @@ sub update ($self) {
 
         my $package_name = $link =~ s[/][::]smgr;
 
-        $toc_md .= ( q[    ] x $indent ) . "* [${package_name}](${base_url}POD/${link})$LF$LF";
+        $toc_md .= ( q[    ] x $indent ) . "* [${package_name}](${base_url}POD/${link})$LF";
     }
 
     # write POD.md
