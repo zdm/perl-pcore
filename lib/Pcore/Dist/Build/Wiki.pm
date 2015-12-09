@@ -1,7 +1,6 @@
 package Pcore::Dist::Build::Wiki;
 
 use Pcore qw[-class];
-use Pcore::Util::Perl::ModuleInfo;
 use Pod::Markdown;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
@@ -40,14 +39,14 @@ sub update ($self) {
                     include_meta_tags        => 0,
                 );
 
-                my $pkg_info = Pcore::Util::Perl::ModuleInfo->new($path);
+                my $module_info = P->perl->module_info($path);
 
                 my $pod_markdown;
 
                 $parser->output_string( \$pod_markdown );
 
                 # generate markdown document
-                $parser->parse_string_document( $pkg_info->content->$* );
+                $parser->parse_string_document( $module_info->content->$* );
 
                 $pod_markdown =~ s/\n+\z//smg;
 
@@ -67,7 +66,7 @@ MD
                     # write markdown to the file
                     Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
 
-                    $toc->{ $path->dirname . $path->filename_base } = $pkg_info->abstract;
+                    $toc->{ $path->dirname . $path->filename_base } = $module_info->abstract;
 
                     Pcore->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
                 }
@@ -104,9 +103,9 @@ MD
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 82                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 22                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 21                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

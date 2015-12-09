@@ -27,7 +27,7 @@ my $obj = _Bench::Moo::Accessors->new;
 
 my $tests;
 
-for my $attr ( keys P->moo->get_attrs($obj) ) {
+for my $attr ( keys P->perl->moo->get_attrs($obj) ) {
     $tests->{$attr} = sub {
         $obj->$attr;
 
