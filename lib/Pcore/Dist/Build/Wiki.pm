@@ -18,7 +18,7 @@ sub update ($self) {
 
     my $wiki_path = P->path('wiki/')->realpath;
 
-    my $header = qq[**!!! DO NOT EDIT. This document is generated automatically. !!!**$LF${LF}[TOC]$LF$LF];
+    my $header = qq[**!!! DO NOT EDIT. This document is generated automatically. !!!**$LF$LF];
 
     my $upstream = P->class->load('Pcore::Src::SCM')->new($wiki_path)->upstream;
 
@@ -41,19 +41,26 @@ sub update ($self) {
                     include_meta_tags        => 0,
                 );
 
-                my $markdown;
+                my $pod_markdown;
 
-                $parser->output_string( \$markdown );
+                $parser->output_string( \$pod_markdown );
 
                 # generate markdown document
                 $parser->parse_string_document( P->file->read_bin($path)->$* );
 
-                $markdown =~ s/\n+\z//smg;
+                $pod_markdown =~ s/\n+\z//smg;
 
-                if ($markdown) {
+                if ($pod_markdown) {
+                    my $markdown = $header;
 
                     # add common header, TOC link
                     $markdown = $header . qq[# [TABLE OF CONTENTS](${base_url}POD)\x0A\x0A] . $markdown;
+
+                    $markdown .= "[POD index](${base_url}POD)$LF$LF";
+
+                    $markdown .= "[TOC]$LF$LF";
+
+                    $markdown .= $pod_markdown;
 
                     # write markdown to the file
                     Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
@@ -90,7 +97,7 @@ sub update ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 23                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 56                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 57                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
