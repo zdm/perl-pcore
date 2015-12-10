@@ -13,10 +13,6 @@ has test_pod_ver          => ( is => 'ro', default => version->parse(v1.51.0)->n
 
 no Pcore;
 
-sub _build_main_module ($self) {
-    return P->file->read_bin( $self->dist->main_module_path );
-}
-
 sub _build_cpanfile ($self) {
     return P->class->load('Module::CPANfile')->load( $self->dist->root . 'cpanfile' );
 }
@@ -30,16 +26,25 @@ sub run ( $self, $keep = 0 ) {
     # drop cached info
     $self->dist->clear;
 
-    $self->update_build_pl;
+    my $tree = $self->_gather_files;
 
-    $self->update_meta_json;
+    $self->_generate_build_pl($tree);
 
-    return;
+    $self->_generate_meta_json($tree);
+
+    if ($keep) {
+        my $path = P->file->temppath( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX' );
+
+        $tree->write_to( $path, manifest => 1 );
+
+        return $path;
+    }
+    else {
+        return $tree->write_to_temp( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
+    }
 }
 
-sub fff {
-    $self->update;
-
+sub _gather_files ($self) {
     my $tree = Pcore::Util::File::Tree->new;
 
     my $cpan_bin = $self->dist->cfg->{dist}->{cpan} && $self->dist->cfg->{dist}->{cpan_bin};
@@ -54,7 +59,7 @@ sub fff {
         $tree->add_dir( $self->dist->root . $_, $_ );
     }
 
-    for (qw[CHANGES cpanfile LICENSE META.json README.md Build.PL]) {
+    for (qw[CHANGES cpanfile LICENSE README.md]) {
         $tree->add_file( $_, $self->dist->root . $_ );
     }
 
@@ -80,6 +85,8 @@ PERL
     $tree->find_file(
         sub ($file) {
             if ( $cpan_bin && $file->path =~ m[\Abin/(.+)\z]sm ) {
+
+                # relocate scripts from the /bin/ to /script/
                 my $name = $1;
 
                 if ( $file->path !~ m[[.].+\z]sm ) {    # no extension
@@ -93,9 +100,13 @@ PERL
                 }
             }
             elsif ( $file->path =~ m[\At/(.+)\z]sm && $file->path !~ m[[.]t\z]sm ) {
+
+                # remove everything from the /t/ dir, that os not a .t file
                 $file->remove;
             }
             elsif ( $file->path =~ m[\Axt/(author|release|smoke)/(.+)\z]sm ) {
+
+                # path /xt/*/.t files and relocate to the /t/ dir
                 my $test = $1;
 
                 my $name = $2;
@@ -123,22 +134,13 @@ PERL
         }
     );
 
-    if ($keep) {
-        my $path = P->file->temppath( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX' );
-
-        $tree->write_to( $path, manifest => 1 );
-
-        return $path;
-    }
-    else {
-        return $tree->write_to_temp( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
-    }
+    return $tree;
 }
 
-sub update_build_pl ($self) {
-    my $reqs = $self->prereqs->merged_requirements( [qw/configure build test runtime/], ['requires'] );
+sub _generate_build_pl ( $self, $tree ) {
+    my $reqs = $self->prereqs->merged_requirements( [qw[configure build test runtime]], ['requires'] );
 
-    my $min_perl = $reqs->requirements_for_module('perl') || version->new($])->normal;
+    my $perl_version = $reqs->requirements_for_module('perl') || version->new($])->normal;
 
     my $mbt_version = $self->module_build_tiny_ver;
 
@@ -146,17 +148,17 @@ sub update_build_pl ($self) {
 use strict;
 use warnings;
 
-use $min_perl;
+use $perl_version;
 use Module::Build::Tiny $mbt_version;
 Build_PL();
 BUILD_PL
 
-    P->file->write_bin( $self->dist->root . 'Build.PL', $template );
+    $tree->add( 'Build.PL', \$template );
 
     return;
 }
 
-sub update_meta_json ($self) {
+sub _generate_meta_json ( $self, $tree ) {
     my $meta = {
         abstract => 'unknown',
         author   => [            #
@@ -173,7 +175,7 @@ sub update_meta_json ($self) {
     };
 
     # version
-    $meta->{version} = $self->dist->main_module->version;
+    $meta->{version} = $self->dist->version;
 
     # abstract
     $meta->{abstract} = $self->dist->main_module->abstract if $self->dist->main_module->abstract;
@@ -223,8 +225,10 @@ sub update_meta_json ($self) {
 
     $meta->{prereqs} = $self->prereqs->as_string_hash;
 
-    # create and store META.json
-    P->file->write_text( $self->dist->root . 'META.json', { crlf => 0 }, CPAN::Meta->create($meta)->as_string );
+    # add META.json
+    $tree->add( 'META.json', \CPAN::Meta->create($meta)->as_string );
+
+    # P->file->write_text( $self->dist->root . 'META.json', { crlf => 0 }, CPAN::Meta->create($meta)->as_string );
 
     return;
 }
@@ -254,7 +258,7 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 182                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 184                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

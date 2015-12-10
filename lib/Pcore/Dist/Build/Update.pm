@@ -8,7 +8,6 @@ has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 no Pcore;
 
 sub run ($self) {
-
     $self->update_readme_md;
 
     $self->update_license;
@@ -54,7 +53,7 @@ sub update_license ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 31                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 30                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
