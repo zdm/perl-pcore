@@ -13,7 +13,7 @@ around new => sub ( $orig, $self, $args ) {
 
 no Pcore;
 
-sub update ($self) {
+sub run ($self) {
     my $chdir_guard = P->file->chdir( $self->dist->root );
 
     my $wiki_path = P->path('wiki/')->realpath;

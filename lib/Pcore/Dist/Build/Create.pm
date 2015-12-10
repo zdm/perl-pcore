@@ -1,8 +1,10 @@
-package Pcore::Dist::Create;
+package Pcore::Dist::Build::Create;
 
 use Pcore qw[-class];
 use Pcore::Dist;
 use Pcore::Util::File::Tree;
+
+has build => ( is => 'ro', isa => InstanceOf ['Pcore::Dist::Build'], required => 1 );
 
 has path      => ( is => 'ro', isa => Str,  required => 1 );
 has namespace => ( is => 'ro', isa => Str,  required => 1 );    # Dist::Name
@@ -12,6 +14,8 @@ has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 no Pcore;
+
+our $ERROR;
 
 sub BUILDARGS ( $self, $args ) {
     $args->{namespace} =~ s/-/::/smg if $args->{namespace};
@@ -25,31 +29,33 @@ sub _build_target_path ($self) {
 
 sub _build_tmpl_params ($self) {
     return {
-        dist_name          => $self->namespace =~ s/::/-/smgr,                                                              # Package-Name
-        dist_path          => lc $self->namespace =~ s/::/-/smgr,                                                           # package-name
-        module_name        => $self->namespace,                                                                             # Package::Name
+        dist_name          => $self->namespace =~ s/::/-/smgr,                                                            # Package-Name
+        dist_path          => lc $self->namespace =~ s/::/-/smgr,                                                         # package-name
+        module_name        => $self->namespace,                                                                           # Package::Name
         main_script        => 'main.pl',
-        author             => Pcore::Dist->global_cfg->{_}->{author},
-        author_email       => Pcore::Dist->global_cfg->{_}->{email},
+        author             => $self->build->user_cfg->{_}->{author},
+        author_email       => $self->build->user_cfg->{_}->{email},
         copyright_year     => P->date->now->year,
-        copyright_holder   => Pcore::Dist->global_cfg->{_}->{copyright_holder} || Pcore::Dist->global_cfg->{_}->{author},
-        license            => Pcore::Dist->global_cfg->{_}->{license},
-        bitbucket_username => Pcore::Dist->global_cfg->{Bitbucket}->{username} // 'username',
-        dockerhub_username => Pcore::Dist->global_cfg->{DockerHub}->{username} // 'username',
+        copyright_holder   => $self->build->user_cfg->{_}->{copyright_holder} || $self->build->user_cfg->{_}->{author},
+        license            => $self->build->user_cfg->{_}->{license},
+        bitbucket_username => $self->build->user_cfg->{Bitbucket}->{username} // 'username',
+        dockerhub_username => $self->build->user_cfg->{DockerHub}->{username} // 'username',
         cpan_distribution  => $self->cpan,
     };
 }
 
-sub validate ($self) {
-    return 'Target path already exists' if -e $self->target_path;
-
-    return qq["$PROC->{PCORE_USER_DIR}config.ini" was not found, run "pcore setup"] if !Pcore::Dist->global_cfg;
-
-    return;
-}
-
 sub run ($self) {
-    return if $self->validate;
+    if ( -e $self->target_path ) {
+        $ERROR = 'Target path already exists';
+
+        return;
+    }
+
+    if ( !$self->build->user_cfg ) {
+        $ERROR = qq["@{[$self->build->user_cfg_path]}" was not found, run "pcore setup"];
+
+        return;
+    }
 
     my $files = Pcore::Util::File::Tree->new;
 
@@ -77,7 +83,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::Create
+Pcore::Dist::Build::Create
 
 =head1 SYNOPSIS
 

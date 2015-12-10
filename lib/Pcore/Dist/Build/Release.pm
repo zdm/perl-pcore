@@ -13,7 +13,7 @@ has bugfix => ( is => 'ro', isa => Bool, default => 0 );
 no Pcore;
 
 sub run ($self) {
-    if ( $self->dist->cfg->{dist}->{cpan} && !$self->dist->global_cfg || ( !$self->dist->global_cfg->{PAUSE}->{username} || !$self->dist->global_cfg->{PAUSE}->{password} ) ) {
+    if ( $self->dist->cfg->{dist}->{cpan} && !$self->dist->build->user_cfg || ( !$self->dist->build->user_cfg->{PAUSE}->{username} || !$self->dist->build->user_cfg->{PAUSE}->{password} ) ) {
         say 'You need to specify PAUSE credentials';
 
         return;
@@ -82,6 +82,9 @@ sub run ($self) {
     # update working copy
     $self->dist->build->update;
 
+    # generate wiki
+    $self->dist->build->wiki->run if $self->dist->build->wiki;
+
     # commit
     $scm->cmd( 'commit', qq[-m"stable $new_ver"], '--subrepos' );
 
@@ -99,7 +102,7 @@ sub _upload_to_cpan ($self) {
     say '.tgz created, now uploaded to CPAN';
 
   REDO:
-    my ( $status, $reason ) = $self->_upload( $self->dist->global_cfg->{PAUSE}->{username}, $self->dist->global_cfg->{PAUSE}->{password}, $tgz );
+    my ( $status, $reason ) = $self->_upload( $self->dist->build->user_cfg->{PAUSE}->{username}, $self->dist->build->user_cfg->{PAUSE}->{password}, $tgz );
 
     if ( $status == 200 ) {
         say qq[Upload to CPAN status: $reason];
@@ -195,7 +198,7 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 74                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 16, 74, 105          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

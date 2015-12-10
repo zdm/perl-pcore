@@ -13,30 +13,11 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ($self) {
-    my $cfg = [
-        _ => [
-            author           => q[],
-            email            => q[],
-            license          => 'Perl_5',
-            copyright_holder => q[],
-        ],
-        PAUSE => [
-            username  => q[],
-            passwword => q[],
-        ],
-        Bitbucket => [ username => q[], ],
-        DockerHub => [ username => q[], ],
-    ];
+    require Pcore::Dist::Build;
 
-    my $config_path = $PROC->{PCORE_USER_DIR} . 'config.ini';
+    Pcore::Dist::Build->new->setup;
 
-    exit 0 if -f $config_path && P->term->prompt( qq["$config_path" already exists. Overwrite?], [qw[yes no]], enter => 1 ) eq 'no';
-
-    P->cfg->store( $config_path, $cfg );
-
-    say qq["$config_path" was created, fill it manually with correct values];
-
-    exit 0;
+    return;
 }
 
 1;

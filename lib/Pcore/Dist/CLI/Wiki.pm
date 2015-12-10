@@ -19,7 +19,7 @@ sub run ($self) {
         exit 3;
     }
 
-    $self->dist->build->wiki->update;
+    $self->dist->build->wiki->run;
 
     return;
 }

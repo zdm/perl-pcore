@@ -3,8 +3,10 @@ package Pcore::Dist::Build;
 use Pcore qw[-class -const];
 use Pcore::Util::File::Tree;
 
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
+has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
 
+has user_cfg_path => ( is => 'lazy', isa => Str, init_arg => undef );
+has user_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );
 has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ], init_arg => undef );
 
 no Pcore;
@@ -37,8 +39,47 @@ const our $CLEAN => {
     ],
 };
 
+sub _build_user_cfg_path ($self) {
+    return $PROC->{PCORE_USER_DIR} . 'pcore.ini';
+}
+
+sub _build_user_cfg ($self) {
+    return -f $self->user_cfg_path ? P->cfg->load( $self->user_cfg_path ) : undef;
+}
+
 sub _build_wiki ($self) {
     return P->class->load('Pcore::Dist::Build::Wiki')->new( { dist => $self->dist } );
+}
+
+sub create ( $self, @args ) {
+    require Pcore::Dist::Build::Create;
+
+    return Pcore::Dist::Build::Create->new( { @args, build => $self } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+}
+
+sub setup ($self) {
+    my $cfg = [
+        _ => [
+            author           => q[],
+            email            => q[],
+            license          => 'Perl_5',
+            copyright_holder => q[],
+        ],
+        PAUSE => [
+            username  => q[],
+            passwword => q[],
+        ],
+        Bitbucket => [ username => q[], ],
+        DockerHub => [ username => q[], ],
+    ];
+
+    return if -f $self->user_cfg_path && P->term->prompt( qq["@{[$self->user_cfg_path]}" already exists. Overwrite?], [qw[yes no]], enter => 1 ) eq 'no';
+
+    P->cfg->store( $self->user_cfg_path, $cfg );
+
+    say qq["@{[$self->user_cfg_path]}" was created, fill it manually with correct values];
+
+    return;
 }
 
 sub clean ($self) {

@@ -104,12 +104,6 @@ around new => sub ( $orig, $self, $path ) {
 no Pcore;
 
 # CLASS METHODS
-sub global_cfg ($self) {
-    state $cfg = -f $PROC->{PCORE_USER_DIR} . 'config.ini' ? P->cfg->load( $PROC->{PCORE_USER_DIR} . 'config.ini' ) : undef;
-
-    return $cfg;
-}
-
 sub find_dist_root ( $self, $path ) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
@@ -133,6 +127,11 @@ sub find_dist_root ( $self, $path ) {
 
 sub dir_is_dist ( $self, $path ) {
     return -f $path . '/share/dist.perl' && $path !~ m[/share/pcore/\z]sm ? 1 : 0;
+}
+
+# CONSTRUCTOR
+sub create ( $self, @args ) {
+    return P->class->load('Pcore::Dist::Build')->new->create(@args);
 }
 
 # BUILDERS
@@ -257,9 +256,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 63, 76, 135, 169     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 63, 76, 129, 168     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 195                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 194                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

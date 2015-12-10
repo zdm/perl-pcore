@@ -1,6 +1,7 @@
 package Pcore::Dist::CLI::Create;
 
 use Pcore qw[-class];
+use Pcore::Dist;
 
 with qw[Pcore::Core::CLI::Cmd];
 
@@ -29,26 +30,31 @@ sub cli_arg ($self) {
 }
 
 sub cli_run ( $self, $opt, $arg, $rest ) {
-    require Pcore::Dist::Create;
-
     $opt->{namespace} = $arg->{namespace};
 
     $opt->{path} = $PROC->{START_DIR};
 
-    my $create = Pcore::Dist::Create->new($opt);
-
-    if ( my $err = $create->validate ) {
-        say $err . $LF;
+    if ( my $dist = Pcore::Dist->create( $opt->%* ) ) {
+        return;
+    }
+    else {
+        say $Pcore::Dist::Build::Create::ERROR . $LF;
 
         exit 3;
     }
-
-    $create->run;
-
-    return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 37                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
