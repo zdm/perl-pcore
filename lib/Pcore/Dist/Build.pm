@@ -129,125 +129,15 @@ sub par ( $self, @ ) {
 
     require Pcore::Dist::Build::PAR;
 
-    Pcore::Dist::Build::PAR->new( { dist => $self->dist, %args } )->run;
+    Pcore::Dist::Build::PAR->new( { %args, dist => $self->dist } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
     return;
 }
 
 sub temp_build ( $self, $keep = 0 ) {
-    $self->update;
+    require Pcore::Dist::Build::Temp;
 
-    my $tree = Pcore::Util::File::Tree->new;
-
-    my $cpan_bin = $self->dist->cfg->{dist}->{cpan} && $self->dist->cfg->{dist}->{cpan_bin};
-
-    my @dir = qw[lib/ share/ t/ xt/];
-
-    push @dir, 'bin/' if $cpan_bin;
-
-    for (@dir) {
-        next if !-d $self->dist->root . $_;
-
-        $tree->add_dir( $self->dist->root . $_, $_ );
-    }
-
-    for (qw[CHANGES cpanfile LICENSE META.json README.md Build.PL]) {
-        $tree->add_file( $_, $self->dist->root . $_ );
-    }
-
-    # add build.perl
-    $tree->add_file( 'share/build.perl', $self->dist->create_build_cfg );
-
-    # add t/author-pod-syntax.t
-    $tree->add_file(
-        't/author-pod-syntax.t', \<<'PERL'
-#!perl
-
-# This file was generated automatically.
-
-use strict;
-use warnings;
-use Test::More;
-use Test::Pod 1.41;
-
-all_pod_files_ok();
-PERL
-    );
-
-    $tree->find_file(
-        sub ($file) {
-            if ( $cpan_bin && $file->path =~ m[\Abin/(.+)\z]sm ) {
-                my $name = $1;
-
-                if ( $file->path !~ m[[.].+\z]sm ) {    # no extension
-                    $file->move( 'script/' . $name );
-                }
-                elsif ( $file->path =~ m[[.](?:pl|sh|cmd|bat)\z]sm ) {    # allowed extensions
-                    $file->move( 'script/' . $name );
-                }
-                else {
-                    $file->remove;
-                }
-            }
-            elsif ( $file->path =~ m[\At/(.+)\z]sm && $file->path !~ m[[.]t\z]sm ) {
-                $file->remove;
-            }
-            elsif ( $file->path =~ m[\Axt/(author|release|smoke)/(.+)\z]sm ) {
-                my $test = $1;
-
-                my $name = $2;
-
-                if ( $file->path =~ m[[.]t\z]sm ) {
-                    $file->move("t/$test-$name");
-
-                    $self->_patch_xt( $file, $test );
-                }
-                else {
-                    $file->remove;
-                }
-            }
-
-            return;
-        }
-    );
-
-    # remove /bin, /xt
-    $tree->find_file(
-        sub ($file) {
-            $file->remove if $file->path =~ m[\A(?:bin|xt)/]sm;
-
-            return;
-        }
-    );
-
-    if ($keep) {
-        my $path = P->file->temppath( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX' );
-
-        $tree->write_to( $path, manifest => 1 );
-
-        return $path;
-    }
-    else {
-        return $tree->write_to_temp( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
-    }
-}
-
-sub _patch_xt ( $self, $file, $test ) {
-    my $content = $file->content;
-
-    my $patch = <<"PERL";
-BEGIN {
-    unless ( \$ENV{$XT_TEST->{$test}->[0]} ) {
-        require Test::More;
-
-        Test::More::plan( skip_all => 'these tests are for $XT_TEST->{$test}->[1]' );
-    }
-}
-PERL
-
-    $content->$* =~ s/^use\s/$patch\nuse /sm;
-
-    return;
+    return Pcore::Dist::Build::Temp->new( { dist => $self->dist } )->run($keep);
 }
 
 sub tgz ($self) {
