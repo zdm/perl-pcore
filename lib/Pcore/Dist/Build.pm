@@ -54,6 +54,14 @@ sub setup ($self) {
     return;
 }
 
+sub clean ($self) {
+    require Pcore::Dist::Build::Clean;
+
+    Pcore::Dist::Build::Clean->new( { dist => $self->dist } )->run;
+
+    return;
+}
+
 sub update ($self) {
     require Pcore::Dist::Build::Update;
 
