@@ -1,4 +1,4 @@
-package Pcore::Dist::CLI::Clean;
+package Pcore::Dist::CLI::Update;
 
 use Pcore qw[-class];
 
@@ -13,7 +13,7 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ($self) {
-    $self->dist->build->clean;
+    $self->dist->build->update;
 
     return;
 }
@@ -26,7 +26,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Clean - clean dist directory from known build garbage
+Pcore::Dist::CLI::Update - update README.md and LICENSE
 
 =head1 SYNOPSIS
 

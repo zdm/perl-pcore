@@ -17,28 +17,6 @@ const our $XT_TEST => {
     smoke   => [ 'AUTOMATED_TESTING', '"smoke bot" testing' ],
 };
 
-const our $CLEAN => {
-    dir => [
-
-        # general build
-        'blib',
-
-        # Module::Build
-        '_build',
-    ],
-    file => [
-
-        # general build
-        qw[META.yml MYMETA.json MYMETA.yml],
-
-        # Module::Build
-        qw[_build_params Build Build.bat],
-
-        # MakeMaker
-        qw[Makefile pm_to_blib],
-    ],
-};
-
 sub _build_user_cfg_path ($self) {
     return $PROC->{PCORE_USER_DIR} . 'pcore.ini';
 }
@@ -78,18 +56,6 @@ sub setup ($self) {
     P->cfg->store( $self->user_cfg_path, $cfg );
 
     say qq["@{[$self->user_cfg_path]}" was created, fill it manually with correct values];
-
-    return;
-}
-
-sub clean ($self) {
-    for my $dir ( $CLEAN->{dir}->@* ) {
-        P->file->rmtree($dir);
-    }
-
-    for my $file ( $CLEAN->{file}->@* ) {
-        unlink $file or die qq[Can't unlink "$file"] if -f $file;
-    }
 
     return;
 }
