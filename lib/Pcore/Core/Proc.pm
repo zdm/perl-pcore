@@ -29,7 +29,7 @@ sub BUILD ( $self, $args ) {
     if ( my $dist = $self->dist ) {
         $self->{CFG} = $args ? P->hash->merge( $dist->cfg, $args ) : $dist->cfg;
 
-        if ( $dist->is_par ) {
+        if ( $self->is_par ) {
             $self->{DATA_DIR} = undef;
             $self->{LOG_DIR} = P->path( $ENV{PAR_TEMP} . '/log/', is_dir => 1, lazy => 1 );
         }

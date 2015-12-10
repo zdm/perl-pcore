@@ -5,7 +5,6 @@ use Config qw[];
 
 has root => ( is => 'ro', isa => Maybe [Str], required => 1 );    # absolute path to the dist root
 has is_installed => ( is => 'ro', isa => Bool, required => 1 );   # dist is installed as CPAN module, root is undefined
-has is_par       => ( is => 'ro', isa => Bool, required => 1 );   # dist is used as PAR
 has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
 has main_module_path => ( is => 'lazy', isa => Str );             # absolute path
 
@@ -31,7 +30,6 @@ around new => sub ( $orig, $self, $path ) {
         return $self->$orig(
             {   root         => undef,
                 is_installed => 1,
-                is_par       => 1,
                 share_dir    => P->path( $ENV{PAR_TEMP} . '/inc/share/' )->to_string,
             }
         );
@@ -41,7 +39,6 @@ around new => sub ( $orig, $self, $path ) {
             return $self->$orig(
                 {   root         => $path->to_string,
                     is_installed => 0,
-                    is_par       => 0,
                     share_dir    => $path . 'share/',
                 }
             );
@@ -79,7 +76,6 @@ around new => sub ( $orig, $self, $path ) {
             return $self->$orig(
                 {   root             => undef,
                     is_installed     => 1,
-                    is_par           => 0,
                     share_dir        => $pkg_inc . qq[/auto/share/dist/$dist_name/],
                     main_module_path => $pkg_inc . q[/] . $pkg_name,
                 }
@@ -91,7 +87,6 @@ around new => sub ( $orig, $self, $path ) {
             return $self->$orig(
                 {   root         => $dist_root->to_string,
                     is_installed => 0,
-                    is_par       => 0,
                     share_dir    => $dist_root . 'share/',
                 }
             );
@@ -256,9 +251,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 63, 76, 129, 168     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 60, 73, 124, 163     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 194                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 189                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
