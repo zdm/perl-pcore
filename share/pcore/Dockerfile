@@ -10,7 +10,6 @@ WORKDIR /var/local/<: $dist_path :>/
 
 RUN pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
-    && pcore clean \
     && rm -rf ~/.cpanm
 
 VOLUME ["/var/local/<: $dist_path :>/data/", "/var/local/<: $dist_path :>/log/"]

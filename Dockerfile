@@ -16,7 +16,6 @@ WORKDIR /var/local/pcore/
 # --develop
 RUN perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
-    && pcore clean \
     && rm -rf ~/.cpanm
 
 VOLUME ["/var/local/resources/share/"]
