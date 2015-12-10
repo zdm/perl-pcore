@@ -1,6 +1,6 @@
 package Pcore::Dist::Build;
 
-use Pcore qw[-class -const];
+use Pcore qw[-class];
 use Pcore::Util::File::Tree;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
@@ -10,12 +10,6 @@ has user_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );
 has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ], init_arg => undef );
 
 no Pcore;
-
-const our $XT_TEST => {
-    author  => [ 'AUTHOR_TESTING',    '"smoke bot" testing' ],
-    release => [ 'RELEASE_TESTING',   'release candidate testing' ],
-    smoke   => [ 'AUTOMATED_TESTING', '"smoke bot" testing' ],
-};
 
 sub _build_user_cfg_path ($self) {
     return $PROC->{PCORE_USER_DIR} . 'pcore.ini';

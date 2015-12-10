@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Temp;
 
-use Pcore qw[-class];
+use Pcore qw[-class -const];
 use CPAN::Meta;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
@@ -12,6 +12,12 @@ has module_build_tiny_ver => ( is => 'ro', default => version->parse(v0.39.0)->n
 has test_pod_ver          => ( is => 'ro', default => version->parse(v1.51.0)->normal, init_arg => undef );
 
 no Pcore;
+
+const our $XT_TEST => {
+    author  => [ 'AUTHOR_TESTING',    '"smoke bot" testing' ],
+    release => [ 'RELEASE_TESTING',   'release candidate testing' ],
+    smoke   => [ 'AUTOMATED_TESTING', '"smoke bot" testing' ],
+};
 
 sub _build_cpanfile ($self) {
     return P->class->load('Module::CPANfile')->load( $self->dist->root . 'cpanfile' );
@@ -153,7 +159,7 @@ use Module::Build::Tiny $mbt_version;
 Build_PL();
 BUILD_PL
 
-    $tree->add( 'Build.PL', \$template );
+    $tree->add_file( 'Build.PL', \$template );
 
     return;
 }
@@ -226,7 +232,7 @@ sub _generate_meta_json ( $self, $tree ) {
     $meta->{prereqs} = $self->prereqs->as_string_hash;
 
     # add META.json
-    $tree->add( 'META.json', \CPAN::Meta->create($meta)->as_string );
+    $tree->add_file( 'META.json', \CPAN::Meta->create($meta)->as_string );
 
     # P->file->write_text( $self->dist->root . 'META.json', { crlf => 0 }, CPAN::Meta->create($meta)->as_string );
 
@@ -258,7 +264,7 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 184                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 190                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
