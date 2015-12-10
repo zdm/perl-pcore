@@ -23,6 +23,7 @@ sub BUILD ( $self, $args ) {
     $self->{USER_DIR}       = P->path( $ENV{HOME} || $ENV{USERPROFILE}, is_dir => 1 );
     $self->{PCORE_USER_DIR} = P->path( $self->{USER_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
     $self->{PCORE_SYS_DIR}  = P->path( $self->{SYS_TEMP_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
+    $self->{INLINE_DIR}     = $self->is_par ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config::Config{version}/$Config::Config{archname}/", is_dir => 1, lazy => 1 );
 
     # load dist.perl
     if ( my $dist = $self->dist ) {
@@ -42,21 +43,6 @@ sub BUILD ( $self, $args ) {
 
         $self->{DATA_DIR} = undef;
         $self->{LOG_DIR}  = undef;
-    }
-
-    # configure INLINE_DIR, NOTE PCORE_USER_DIR is not used under PAR
-    if ( $self->is_par ) {
-        $self->{INLINE_DIR} = undef;
-    }
-    else {
-        if ( $self->pcore->is_installed ) {
-            $self->{INLINE_DIR} = $self->{PCORE_USER_DIR} . ".inline/$Config::Config{version}/$Config::Config{archname}/";
-        }
-        else {
-            $self->{INLINE_DIR} = $self->pcore->root . ".inline/$Config::Config{version}/$Config::Config{archname}/";
-        }
-
-        $self->{INLINE_DIR} = P->path( $self->{INLINE_DIR}, is_dir => 1, lazy => 1 );
     }
 
     return;
