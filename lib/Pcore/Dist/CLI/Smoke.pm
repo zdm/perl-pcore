@@ -12,9 +12,15 @@ sub cli_abstract ($self) {
 
 sub cli_opt ($self) {
     return {
-        author  => { desc => 'enables the AUTHOR_TESTING env variable (default behavior)' },
-        release => { desc => 'enables the RELEASE_TESTING env variable', },
-        all     => {      #
+        author => {
+            desc    => 'enables the AUTHOR_TESTING env variable (default behavior)',
+            default => 0,
+        },
+        release => {
+            desc    => 'enables the RELEASE_TESTING env variable',
+            default => 0,
+        },
+        all => {    #
             short => undef,
             desc  => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables',
         },
@@ -48,7 +54,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 45                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

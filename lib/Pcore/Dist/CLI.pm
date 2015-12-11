@@ -10,8 +10,6 @@ has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], init_arg => undef )
 around run => sub ( $orig, $self, @args ) {
     if ( my $dist = Pcore::Dist->new( $PROC->{START_DIR} ) ) {
         $self->{dist} = $dist;
-
-        chdir $dist->root or die;
     }
     else {
         say 'Pcore distribution was not found' . $LF;

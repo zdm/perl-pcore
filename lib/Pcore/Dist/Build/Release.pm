@@ -28,8 +28,8 @@ sub run ($self) {
     my $scm = $self->dist->scm->server;
 
     # check for uncommited changes
-    if ( $scm->cmd(qw[status -mard --subrepos])->%* ) {
-        say 'Working copy has uncommited changes. Release is impossible.';
+    if ( $scm->cmd(qw[status -mardu --subrepos])->%* ) {
+        say 'Working copy or subrepos has uncommited changes or unknown files. Release is impossible.';
 
         return;
     }

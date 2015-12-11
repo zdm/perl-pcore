@@ -73,8 +73,7 @@ sub _gather_files ($self) {
     $tree->add_file( 'share/build.perl', $self->dist->create_build_cfg );
 
     # add t/author-pod-syntax.t
-    $tree->add_file(
-        't/author-pod-syntax.t', \<<'PERL'
+    my $t = <<'PERL';
 #!perl
 
 # This file was generated automatically.
@@ -86,7 +85,8 @@ use Test::Pod 1.41;
 
 all_pod_files_ok();
 PERL
-    );
+
+    $self->_patch_xt( $tree->add_file( 't/author-pod-syntax.t', \$t ), 'author' );
 
     $tree->find_file(
         sub ($file) {
