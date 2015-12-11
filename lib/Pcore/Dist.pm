@@ -176,23 +176,33 @@ sub _build_ns ($self) {
 }
 
 sub _build_main_module_path ($self) {
-    my $path = $self->ns =~ s[::][/]smgr . '.pm';
+    my $module = $self->name =~ s[-][/]smgr . '.pm';
 
-    if ( exists $INC{$path} ) {
-        return $INC{$path};
-    }
-    elsif ( $self->is_installed ) {
-        for my $inc (@INC) {
-            next if ref $inc;
+    my $path;
 
-            return $inc . q[/] . $path if -f $inc . q[/] . $path;
+    if ( $self->is_installed ) {
+        if ( exists $INC{$module} ) {
+            $path = $INC{$module};
+        }
+        else {
+            for my $inc (@INC) {
+                next if ref $inc;
+
+                if ( -f "$inc/$module" ) {
+                    $path = "$inc/$module";
+
+                    last;
+                }
+            }
         }
     }
     else {
-        return $self->root . 'lib/' . $path;
+        $path = $self->root . 'lib/' . $module;
     }
 
-    die 'Main module was not found, this is totally unexpected...';
+    die 'Main module was not found, this is totally unexpected...' if !$path || !-f $path;
+
+    return $path;
 }
 
 sub _build_version ($self) {
@@ -278,9 +288,9 @@ sub clear ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 149, 188             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 149                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 214                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 224                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
