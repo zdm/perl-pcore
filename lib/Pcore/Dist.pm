@@ -20,80 +20,105 @@ has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
 
-around new => sub ( $orig, $self, $path ) {
-    my $pkg_name;
+around new => sub ( $orig, $self, $dist ) {
+    my $path;
 
-    if ( $path =~ /[.]pm\z/smo ) {                                                     # Package/Name.pm
-        $pkg_name = $path;
+    my $module;
+
+    if ( $dist =~ /[.]pm\z/smo ) {
+        $module = $dist;
     }
-    elsif ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {                              # PAR
-        return $self->$orig(
-            {   root         => undef,
+    elsif ( $dist =~ m[[./]]smo ) {
+        $path = $dist;
+    }
+    else {
+        $module = $dist =~ s[(?:::|-)][/]smgr . '.pm';
+    }
+
+    my $args;
+
+    if ($path) {
+        if ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {
+            $args = {
+                root         => undef,
                 is_installed => 1,
                 share_dir    => P->path( $ENV{PAR_TEMP} . '/inc/share/' )->to_string,
-            }
-        );
-    }
-    elsif ( $path =~ m[[./]]smo ) {                                                    # ./path/to/dist
-        if ( $path = $self->find_dist_root($path) ) {
-            return $self->$orig(
-                {   root         => $path->to_string,
-                    is_installed => 0,
-                    share_dir    => $path . 'share/',
-                }
-            );
+            };
         }
         else {
+            if ( my $root = $self->find_dist_root($path) ) {
+                $args = {
+                    root         => $root->to_string,
+                    is_installed => 0,
+                    share_dir    => $root . 'share/',
+                };
+            }
+            else {
+
+                # path is not a part of a dist
+                return;
+            }
+        }
+    }
+    else {
+        my $module_path;
+
+        if ( exists $INC{$module} ) {
+            $module_path = $INC{$module};
+        }
+        else {
+            for my $inc (@INC) {
+                next if ref $inc;
+
+                if ( -f "$inc/$module" ) {
+                    $module_path = "$inc/$module";
+
+                    last;
+                }
+            }
+        }
+
+        # module was not found in @INC
+        return if !$module_path;
+
+        my $lib = $module_path;
+
+        die q[Module path is not related to lib, please report] if $lib !~ s/\Q$module\E\z//sm;
+
+        # convert Module/Name.pm to Dist-Name
+        my $dist_name = $module =~ s[/][-]smgr;
+
+        $dist_name =~ s/[.]pm\z//sm;
+
+        if ( -f "$lib/auto/share/dist/$dist_name/dist.perl" ) {
+
+            # module is installed
+            $args = {
+                root             => undef,
+                is_installed     => 1,
+                share_dir        => $lib . "auto/share/dist/$dist_name/",
+                main_module_path => $module_path,
+            };
+        }
+        elsif ( -f "$lib/../share/dist.perl" ) {
+            my $root = P->path("$lib/../")->realpath;
+
+            # module is a dist
+            $args = {
+                root             => $root->to_string,
+                is_installed     => 0,
+                share_dir        => $root . 'share/',
+                main_module_path => $module_path,
+            };
+        }
+        else {
+
+            # module is not a dist main module
             return;
         }
     }
-    else {    # Package::Name
-        $pkg_name = $path =~ s[::][/]smgro . q[.pm];
-    }
 
-    my $pkg_inc;
-
-    # try to find package in the @INC
-    for my $inc (@INC) {
-        next if ref $inc;
-
-        if ( -f $inc . q[/] . $pkg_name ) {
-            $pkg_inc = $inc;
-
-            last;
-        }
-    }
-
-    # package was found
-    if ($pkg_inc) {
-        my $dist_name = $pkg_name =~ s[/][-]smgro;
-
-        substr $dist_name, -3, 3, q[];    # remove ".pm" suffix
-
-        if ( -f $pkg_inc . qq[/auto/share/dist/$dist_name/dist.perl] ) {
-
-            # package is installed
-            return $self->$orig(
-                {   root             => undef,
-                    is_installed     => 1,
-                    share_dir        => $pkg_inc . qq[/auto/share/dist/$dist_name/],
-                    main_module_path => $pkg_inc . q[/] . $pkg_name,
-                }
-            );
-        }
-        elsif ( my $dist_root = $self->find_dist_root($pkg_inc) ) {
-
-            # package is a distribution
-            return $self->$orig(
-                {   root         => $dist_root->to_string,
-                    is_installed => 0,
-                    share_dir    => $dist_root . 'share/',
-                }
-            );
-        }
-    }
-
-    return;
+    return $self->$orig($args);
 };
 
 no Pcore;
@@ -251,9 +276,11 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 60, 73, 124, 163     │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 189                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 149, 188             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 214                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

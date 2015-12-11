@@ -62,11 +62,13 @@ sub _build_dist ($self) {
 }
 
 sub _build_pcore ($self) {
-    if ( $self->dist && $self->dist->name eq 'Pcore' ) {
+    my $pcore = Pcore::Dist->new('Pcore.pm');
+
+    if ( $self->dist && $self->dist->main_module_path eq $pcore->main_module_path ) {
         return $self->dist;
     }
     else {
-        return Pcore::Dist->new('Pcore.pm');
+        return $pcore;
     }
 }
 
