@@ -6,6 +6,10 @@ with qw[Pcore::Dist::CLI];
 
 no Pcore;
 
+sub cli_abstract ($self) {
+    return 'build PAR executable';
+}
+
 sub cli_opt ($self) {
     return {
         release => { desc => 'build release binary', },
@@ -43,7 +47,7 @@ sub run ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 34                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 38                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

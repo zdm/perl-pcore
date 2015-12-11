@@ -14,18 +14,18 @@ has is_crypted => ( is => 'lazy', isa => Bool, init_arg => undef );
 has abstract => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );
 has version => ( is => 'lazy', isa => Maybe [ InstanceOf ['version'] ], init_arg => undef );
 
-around new => sub ( $orig, $self, $pkg, @inc ) {
-    if ( ref $pkg eq 'SCALAR' ) {
-        return $self->$orig( { content => $pkg } );
+around new => sub ( $orig, $self, $module, @inc ) {
+    if ( ref $module eq 'SCALAR' ) {
+        return $self->$orig( { content => $module } );
     }
     else {
         my $path;
 
-        if ( $pkg =~ /[.]p(?:[lm])/sm ) {    # pkg has .pl or .pm suffix, this is a module path
-            $path = $pkg;
+        if ( $module =~ /[.]p(?:[lm])/sm ) {    # $module has .pl or .pm suffix, this is a module path
+            $path = $module;
         }
-        else {                               # Package::Name
-            $path = $pkg =~ s[::][/]smgr . '.pm';
+        else {                                  # Package::Name
+            $path = $module =~ s[::][/]smgr . '.pm';
         }
 
         if ( -f $path ) {
@@ -110,6 +110,7 @@ sub _build_version ($self) {
 
 # TODO shuoul return abs_deps_name + lib_related_deps_name
 sub get_deps ($self) {
+
     return;
 }
 

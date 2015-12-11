@@ -6,6 +6,10 @@ with qw[Pcore::Dist::CLI];
 
 no Pcore;
 
+sub cli_abstract ($self) {
+    return 'clean dist directory from known build garbage';
+}
+
 sub cli_run ( $self, $opt, $arg, $rest ) {
     $self->new->run;
 

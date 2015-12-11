@@ -6,6 +6,10 @@ with qw[Pcore::Dist::CLI];
 
 no Pcore;
 
+sub cli_abstract ($self) {
+    return 'release distribution';
+}
+
 sub cli_opt ($self) {
     return {
         major  => { short => 'M', desc => 'increment major version' },
@@ -33,7 +37,7 @@ sub run ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 24                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 28                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

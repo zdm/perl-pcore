@@ -6,6 +6,10 @@ with qw[Pcore::Dist::CLI];
 
 no Pcore;
 
+sub cli_abstract ($self) {
+    return 'deploy distribution';
+}
+
 sub cli_opt ($self) {
     return {
         install    => { desc => 'install bin/ to PATH and lib/ to PERL5LIB', },
@@ -34,7 +38,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 25                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 29                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
