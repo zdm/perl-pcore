@@ -19,6 +19,8 @@ if ($@) {
 }
 
 sub CORE_INIT ($proc_cfg) {
+    _normalize_inc();
+
     $PROC = Pcore::Core::Proc->new( $proc_cfg // () );
 
     # register util accessors
@@ -29,7 +31,7 @@ sub CORE_INIT ($proc_cfg) {
     return;
 }
 
-sub _configure_inc {
+sub _normalize_inc {
     my @inc;
 
     my $inc_index;
@@ -49,6 +51,32 @@ sub _configure_inc {
         next if !-d $inc_path;
 
         $inc_path = P->path( $inc_path, is_dir => 1 )->realpath->canonpath;
+
+        # ignore already added path
+        if ( !exists $inc_index->{$inc_path} ) {
+            $inc_index->{$inc_path} = 1;
+
+            push @inc, $inc_path;
+        }
+    }
+
+    @INC = @inc;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+
+    return;
+}
+
+sub _configure_inc {
+    my @inc;
+
+    my $inc_index;
+
+    # index @INC, resolve @INC paths, remove duplicates, preserve REF items
+    for my $inc_path (@INC) {
+        if ( ref $inc_path ) {
+            push @inc, $inc_path;
+
+            next;
+        }
 
         # ignore already added path
         if ( !exists $inc_index->{$inc_path} ) {
@@ -114,9 +142,7 @@ sub _configure_inc {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 8                    │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 32                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_configure_inc" with high complexity score (21)            │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 80                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 108                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
