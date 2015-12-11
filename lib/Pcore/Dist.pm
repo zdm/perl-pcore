@@ -28,7 +28,7 @@ around new => sub ( $orig, $self, $dist ) {
     if ( $dist =~ /[.]pm\z/smo ) {
         $module = $dist;
     }
-    elsif ( $dist =~ m[[./]]smo ) {
+    elsif ( $dist =~ m[[./\\]]smo ) {
         $path = $dist;
     }
     else {
