@@ -88,13 +88,12 @@ sub _configure_inc {
 
     # not for PAR
     if ( !$PROC->is_par ) {
-        my $dist_lib_path;
-
-        my $module_build_test = $PROC->dist && exists $inc_index->{ $PROC->dist->root . 'blib/lib' } ? 1 : 0;
+        my $is_module_build_test = $PROC->dist && exists $inc_index->{ $PROC->dist->root . 'blib/lib' } ? 1 : 0;
 
         # add dist lib and PCORE_DIST_LIB to @INC only if we are int on the PAR archive and not in the Module::Build testing environment
         # under Module::Build dist lib is already added and PCORE_DIST_LIB is not added to emulate clean CPAN installation
-        if ( !$module_build_test ) {
+        if ( !$is_module_build_test ) {
+            my $dist_lib_path;
 
             # detect dist lib path
             if ( $PROC->dist && !exists $inc_index->{ $PROC->dist->root . 'lib' } && -d $PROC->dist->root . 'lib/' ) {
@@ -142,7 +141,7 @@ sub _configure_inc {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 8                    │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 108                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 107                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
