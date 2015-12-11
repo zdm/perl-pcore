@@ -6,6 +6,8 @@ use Pcore;
 no Pcore;
 
 if ( $PROC->is_par ) {
+    $INC{'Inline.pm'} = 1;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+
     require DynaLoader;
 
     *import = sub {

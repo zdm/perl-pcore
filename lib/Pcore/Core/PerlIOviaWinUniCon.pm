@@ -3,7 +3,7 @@ package Pcore::Core::PerlIOviaWinUniCon;
 use Pcore qw[-inline];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-Inline->import(
+use Inline(
     C => <<'CPP',
 void* get_std_handle(U32 std_handle) {
     return GetStdHandle(std_handle);
