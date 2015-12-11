@@ -2,9 +2,8 @@ package Pcore::Util::Perl::ModuleInfo;
 
 use Pcore qw[-class];
 
-has path => ( is => 'lazy', isa => Str );                   # /absolute/Module/Path.pm
-has module_path => ( is => 'lazy', isa => Maybe [Str] );    # Module/Path.pm
-
+has path    => ( is => 'lazy', isa => Str );                 # /absolute/Module/Name.pm
+has module  => ( is => 'lazy', isa => Maybe [Str] );         # Module/Name.pm
 has content => ( is => 'lazy', isa => Maybe [ScalarRef] );
 
 # TODO module can provide more, than one package name
@@ -36,7 +35,7 @@ around new => sub ( $orig, $self, $module, @inc ) {
             for my $lib ( @inc, @INC ) {
                 next if ref $lib;
 
-                return $self->$orig( { path => P->path("$lib/$path")->realpath->to_string, module_path => $path } ) if -f "$lib/$path";
+                return $self->$orig( { path => P->path("$lib/$path")->realpath->to_string, module => $path } ) if -f "$lib/$path";
             }
         }
     }
@@ -46,7 +45,7 @@ around new => sub ( $orig, $self, $module, @inc ) {
 
 no Pcore;
 
-sub _build_module_path ($self) {
+sub _build_module ($self) {
     if ( my $path = $self->path ) {
         for my $lib (@INC) {
             next if ref $lib;
@@ -121,9 +120,9 @@ sub get_deps ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 92                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 91                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 56                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 55                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
