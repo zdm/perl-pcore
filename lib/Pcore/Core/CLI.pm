@@ -533,7 +533,7 @@ sub help_usage ( $self, $invalid_options = undef ) {
 
 sub help_version ($self) {
     my $format_info = sub ($dist) {
-        return "@{[$dist->name]}-@{[$dist->version]} @{[$dist->revision]} @{[$dist->build_date]}";
+        return "@{[$dist->name]} @{[$dist->version]} @{[$dist->revision]} @{[$dist->build_date]}";
     };
 
     say $format_info->( $PROC->dist ) if $PROC->dist;
