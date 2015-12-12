@@ -108,7 +108,7 @@ sub run ($self) {
 
     # process script deps
     print 'adding deps ... ';
-    $self->_add_script_deps;
+    $self->_add_modules;
     say 'done';
 
     $self->_add_resources;
@@ -233,104 +233,53 @@ sub _add_shared_libs ($self) {
     return;
 }
 
-sub _add_script_deps ($self) {
-    for my $pkg ( grep {/[.](?:pl|pm)\z/sm} keys $self->script_deps->%* ) {
-        my $found = $self->_add_pkg($pkg);
+sub _add_modules ($self) {
+    for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->script_deps->%* ) {
+        my $found = $self->_add_module($module);
 
-        $self->_error(qq[required deps wasn't found: $pkg]) if !$found && $self->script_deps->{$pkg} !~ /\A[(]eval\s/sm;
+        $self->_error(qq[required deps wasn't found: $module]) if !$found && $self->script_deps->{$module} !~ /\A[(]eval\s/sm;
     }
 
     return;
 }
 
-sub _add_pkg ( $self, $pkg ) {
-    $pkg = P->path($pkg);    # Package/Name.pm is expected
+sub _add_module ( $self, $module ) {
+    $module = P->perl->module( $module, $self->dist->root . 'lib/' );
 
-    state $cpan_path = do {
-        my @cpan_inc;
+    # module wasn't found
+    return if !$module;
 
-        my %index;
+    my $target;
 
-        for my $var (qw[sitearchexp sitelibexp vendorarchexp vendorlibexp archlibexp privlibexp]) {
-            if ( !exists $index{$var} && -d $Config::Config{$var} ) {
-                push @cpan_inc, P->path( $Config::Config{$var}, is_dir => 1 );
+    if ( my $auto_deps = $module->auto_deps ) {
 
-                $index{$var} = 1;
-            }
+        # module have auto deps
+        $target = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
+
+        for my $deps ( keys $auto_deps->%* ) {
+            $self->tree->add_file( $target . $deps, $auto_deps->{$deps} );
         }
-
-        \@cpan_inc;
-    };
-
-    my $cfg = {
-        auto_dir => 'auto/' . $pkg->dirname . $pkg->filename_base . q[/],
-        so_path  => 'auto/' . $pkg->dirname . $pkg->filename_base . q[/] . $pkg->filename_base . q[.] . $Config::Config{dlext},
-    };
-
-    for my $inc ( grep { !ref } $self->dist->root . 'lib/', $PROC->{INLINE_DIR} . 'lib/', @INC ) {
-        if ( !$cfg->{source_path} && -f ( $inc . q[/] . $pkg ) ) {
-            $cfg->{source_inc_dir} = P->path( $inc, is_dir => 1 )->to_string;
-
-            $cfg->{source_path} = $cfg->{source_inc_dir} . $pkg;
-
-            $cfg->{source_is_cpan} = $cfg->{source_inc_dir} ~~ $cpan_path ? 1 : 0;
-        }
-
-        if ( !$cfg->{so_source_path} && -f ( $inc . q[/] . $cfg->{so_path} ) ) {
-            $cfg->{so_inc_dir} = P->path( $inc, is_dir => 1 )->to_string;
-
-            $cfg->{so_source_path} = $cfg->{so_inc_dir} . $cfg->{so_path};
-        }
-
-        last if $cfg->{source_path} && $cfg->{so_source_path};
     }
-
-    # package wasn't found
-    return if !$cfg->{source_path};
-
-    my $target_path;
-
-    if ( !$cfg->{so_source_path} ) {    # package has no binary deps
-        $target_path = 'lib/';
-    }
-    else {                              # package has binary so module
-
-        # NOTE inline deps should be placed only in standard PAR @INC dir
-        # otherwise DynaLoader will produce untrackable errors
-        $target_path = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
-
-        $self->tree->add_file( $target_path . $cfg->{so_path}, $cfg->{so_source_path} );
-
-        # add .ix, .al
-        P->file->find(
-            $cfg->{so_inc_dir} . $cfg->{auto_dir},
-            dir => 0,
-            sub ($path) {
-                if ( $path->suffix eq 'ix' || $path->suffix eq 'al' ) {
-                    $self->tree->add_file( $target_path . $cfg->{auto_dir} . $path, $cfg->{so_inc_dir} . $cfg->{auto_dir} . $path );
-                }
-
-                return;
-            }
-        );
+    else {
+        $target = 'lib/';
     }
 
     # add .pm to the files tree
-    $self->_add_perl_source( $cfg->{source_path}, $target_path . $pkg, $cfg->{source_is_cpan}, $pkg );
+    $self->_add_perl_source( $module->path, $target . $module->name, $module->is_installed, $module->name );
 
     return 1;
 }
 
-sub _add_perl_source ( $self, $source, $target, $located_in_cpan = 0, $pkg = undef ) {
+sub _add_perl_source ( $self, $source, $target, $is_installed = 0, $module = undef ) {
     my $src = P->file->read_bin($source);
 
-    if ($pkg) {
+    if ($module) {
 
         # patch content for PAR compatibility
-        $src = PAR::Filter->new('PatchContent')->apply( $src, $pkg->to_string );
+        $src = PAR::Filter->new('PatchContent')->apply( $src, $module );
 
         # this is perl core or CPAN module
-        if ($located_in_cpan) {
+        if ($is_installed) {
             if ( $self->release ) {
                 $src = Pcore::Src::File->new(
                     {   action      => 'compress',
@@ -364,7 +313,7 @@ sub _add_perl_source ( $self, $source, $target, $located_in_cpan = 0, $pkg = und
         }
     }
 
-    my $crypt = $self->crypt && ( !$pkg || $pkg ne 'Filter/Crypto/Decrypt.pm' );
+    my $crypt = $self->crypt && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' );
 
     # we don't compress sources for devel build, preserving line numbers
     if ( !$self->release ) {
@@ -628,19 +577,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 201, 237, 564        │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 201, 237, 259, 513   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 214, 461             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 214, 410             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 324                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 273                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 499                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 448                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 534                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 483                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 586, 588             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 535, 537             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 521, 527, 592        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 470, 476, 541        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
