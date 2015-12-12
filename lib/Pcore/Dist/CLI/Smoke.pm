@@ -28,10 +28,7 @@ sub cli_opt ($self) {
             desc => 'number of parallel test jobs to run',
             isa  => 'PositiveInt',
         },
-        verbose => {
-            short => undef,
-            desc  => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL'
-        },
+        verbose => { desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
     };
 }
 
@@ -54,7 +51,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 45                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
