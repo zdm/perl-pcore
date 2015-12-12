@@ -27,7 +27,7 @@ sub update_readme_md ($self) {
     $parser->output_string( \my $markdown );
 
     # generate markdown document
-    $parser->parse_string_document( $self->dist->main_module->content->$* );
+    $parser->parse_string_document( $self->dist->module->content->$* );
 
     P->file->write_bin( $self->dist->root . 'README.md', $markdown );
 

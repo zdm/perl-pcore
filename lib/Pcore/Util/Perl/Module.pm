@@ -4,19 +4,21 @@ use Pcore qw[-class];
 use Config qw[];
 
 has name => ( is => 'lazy', isa => Maybe [Str] );    # Module/Name.pm
-has content => ( is => 'lazy', isa => ScalarRef );
+has content => ( is => 'lazy', isa => ScalarRef, clearer => 1 );
 
 has path => ( is => 'lazy', isa => Maybe [Str] );    # /absolute/path/to/lib/Module/Name.pm
 has lib  => ( is => 'lazy', isa => Maybe [Str] );    # /absolute/path/to/lib/
 
-has is_installed => ( is => 'lazy', isa => Bool, init_arg => undef );
-has is_crypted   => ( is => 'lazy', isa => Bool, init_arg => undef );
-has abstract => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );
-has version => ( is => 'lazy', isa => Maybe [ InstanceOf ['version'] ], init_arg => undef );
+has is_installed => ( is => 'lazy', isa => Bool, init_arg => undef );                # module has lib and lib is a part of pcore dist
+has is_crypted => ( is => 'lazy', isa => Bool, clearer => 1, init_arg => undef );    # module is crypted with Filter::Crypto
+has abstract => ( is => 'lazy', isa => Maybe [Str], clearer => 1, init_arg => undef );    # abstract from POD
+has version => ( is => 'lazy', isa => Maybe [ InstanceOf ['version'] ], clearer => 1, init_arg => undef );    # parsed version
 has auto_deps => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );
 
 around new => sub ( $orig, $self, $module, @inc ) {
     if ( ref $module eq 'SCALAR' ) {
+
+        # module content is passed as ScalarRef
         return $self->$orig(
             {   name    => undef,
                 path    => undef,
@@ -27,14 +29,19 @@ around new => sub ( $orig, $self, $module, @inc ) {
     }
     else {
 
+        # if module is not contain .pl or .pl suffixes - this is Package::Name
         # convert Package::Name to Module/Name.pm
-        if ( $module !~ /[.]p(?:[lm])/smo ) {
+        my $suffix = substr $module, -3, 3;
+
+        if ( $suffix ne '.pm' && $suffix ne '.pl' ) {
             $module =~ s[::][/]smg;
 
             $module .= '.pm';
         }
 
         if ( -f $module ) {
+
+            # module was found at full path
             return $self->$orig( { path => P->path($module)->realpath->to_string } );
         }
         else {
@@ -58,12 +65,15 @@ sub _split_path ($self) {
         for my $lib (@INC) {
             next if ref $lib;
 
-            if ( substr( $path, 0, length $lib ) eq $lib ) {
+            # remove last "/" from lib path
+            $lib =~ s[[/\\]+\z][]sm;
+
+            if ( $path =~ m[\A\Q$lib\E/(.+)\z]sm ) {
                 my $res;
 
-                $res->{lib} = P->path( $lib, is_dir => 1 )->to_string;
+                $res->{lib} = $lib;
 
-                $res->{name} = substr $path, length $res->{lib};
+                $res->{name} = $1;
 
                 return $res;
             }
@@ -108,7 +118,7 @@ sub _build_content ($self) {
 sub _build_is_installed ($self) {
     return 0 if !$self->lib;
 
-    return -f $self->lib . '/../share/dist.perl' ? 0 : 1;
+    return Pcore::Dist->dir_is_dist( $self->lib . '/../' );
 }
 
 sub _build_is_crypted ($self) {
@@ -176,6 +186,18 @@ sub _build_auto_deps ($self) {
     return $deps;
 }
 
+sub clear ($self) {
+    $self->clear_content;
+
+    $self->clear_is_crypted;
+
+    $self->clear_version;
+
+    $self->clear_abstract;
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -183,9 +205,9 @@ sub _build_auto_deps ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 127                  │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 137                  │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 160                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 170                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

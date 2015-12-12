@@ -70,14 +70,14 @@ sub run ($self) {
 
     return if P->term->prompt( 'Continue release process?', [qw[yes no]], enter => 1 ) ne 'yes';
 
-    # update release version in the main_module
-    unless ( $self->dist->main_module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
+    # update release version in the main module
+    unless ( $self->dist->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
         say 'Error updating version';
 
         return;
     }
 
-    P->file->write_bin( $self->dist->main_module_path, $self->dist->main_module->content );
+    P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
 
     # update working copy
     $self->dist->build->update;

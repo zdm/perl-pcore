@@ -6,121 +6,131 @@ use Config qw[];
 has root => ( is => 'ro', isa => Maybe [Str], required => 1 );    # absolute path to the dist root
 has is_installed => ( is => 'ro', isa => Bool, required => 1 );   # dist is installed as CPAN module, root is undefined
 has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
-has main_module_path => ( is => 'lazy', isa => Str );             # absolute path
 
-has main_module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::ModuleInfo'], clearer => 1, init_arg => undef );
+has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'] );
+
 has build_info => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
-has name       => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist-Name
-has ns         => ( is => 'lazy', isa => Str,    init_arg => undef );                  # Dist::Name
-has version    => ( is => 'lazy', isa => Object, clearer  => 1, init_arg => undef );
-has revision   => ( is => 'lazy', isa => Str,    clearer  => 1, init_arg => undef );
-has build_date => ( is => 'lazy', isa => Str,    clearer  => 1, init_arg => undef );
+has name => ( is => 'lazy', isa => Str, init_arg => undef );      # Dist-Name
+
+has version    => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
+has revision   => ( is => 'lazy', isa => Str,    clearer => 1, init_arg => undef );
+has build_date => ( is => 'lazy', isa => Str,    clearer => 1, init_arg => undef );
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
 
 around new => sub ( $orig, $self, $dist ) {
-    my $path;
 
-    my $module;
+    # PAR dist processing
+    if ( $ENV{PAR_TEMP} && $dist eq $ENV{PAR_TEMP} ) {
 
-    if ( $dist =~ /[.]pm\z/smo ) {
-        $module = $dist;
-    }
-    elsif ( $dist =~ m[[./\\]]smo ) {
-        $path = $dist;
-    }
-    else {
-        $module = $dist =~ s[(?:::|-)][/]smgr . '.pm';
-    }
-
-    my $args;
-
-    if ($path) {
-        if ( $ENV{PAR_TEMP} && $path eq $ENV{PAR_TEMP} ) {
-            $args = {
-                root         => undef,
+        # dist is the PAR dist
+        return $self->$orig(
+            {   root         => undef,
                 is_installed => 1,
                 share_dir    => P->path( $ENV{PAR_TEMP} . '/inc/share/' )->to_string,
-            };
-        }
-        else {
-            if ( my $root = $self->find_dist_root($path) ) {
-                $args = {
-                    root         => $root->to_string,
+            }
+        );
+    }
+
+    my $module_name;
+
+    if ( substr( $dist, -3, 3 ) eq '.pm' ) {
+
+        # if $dist contain .pm suffix - this is a full or related module name
+        $module_name = $dist;
+    }
+    elsif ( $dist =~ m[[./\\]]smo ) {
+
+        # if $dist doesn't contain .pm suffix, but contain ".", "/" or "\" - this is a path
+        # try find dist by path
+        if ( my $root = $self->find_dist_root($dist) ) {
+
+            # path is a part of the dist
+            return $self->$orig(
+                {   root         => $root->to_string,
                     is_installed => 0,
                     share_dir    => $root . 'share/',
-                };
-            }
-            else {
-
-                # path is not a part of a dist
-                return;
-            }
-        }
-    }
-    else {
-        my $module_path;
-
-        if ( exists $INC{$module} ) {
-            $module_path = $INC{$module};
-        }
-        else {
-            for my $inc (@INC) {
-                next if ref $inc;
-
-                if ( -f "$inc/$module" ) {
-                    $module_path = "$inc/$module";
-
-                    last;
                 }
-            }
-        }
-
-        # module was not found in @INC
-        return if !$module_path;
-
-        $module_path = P->path($module_path)->to_string;
-
-        my $lib = $module_path;
-
-        die q[Module path is not related to lib, please report] if $lib !~ s/\Q$module\E\z//sm;
-
-        # convert Module/Name.pm to Dist-Name
-        my $dist_name = $module =~ s[/][-]smgr;
-
-        $dist_name =~ s/[.]pm\z//sm;
-
-        if ( -f "$lib/auto/share/dist/$dist_name/dist.perl" ) {
-
-            # module is installed
-            $args = {
-                root             => undef,
-                is_installed     => 1,
-                share_dir        => $lib . "auto/share/dist/$dist_name/",
-                main_module_path => $module_path,
-            };
-        }
-        elsif ( -f "$lib/../share/dist.perl" ) {
-            my $root = P->path("$lib/../")->realpath;
-
-            # module is a dist
-            $args = {
-                root             => $root->to_string,
-                is_installed     => 0,
-                share_dir        => $root . 'share/',
-                main_module_path => $module_path,
-            };
+            );
         }
         else {
 
-            # module is not a dist main module
+            # path is NOT a part of a dist
             return;
         }
     }
+    else {
 
-    return $self->$orig($args);
+        # otherwise $dist is a Package::Name
+        $module_name = $dist =~ s[(?:::|-)][/]smgr . '.pm';
+    }
+
+    # find dist by module name
+    my $module_lib;
+
+    # find full module path
+    if ( $module_lib = $INC{$module_name} ) {
+
+        # if module is already loaded - get full module path from %INC
+        # cut module name, throw error in case, where: 'Module/Name.pm' => '/path/to/Other/Module.pm'
+        die q[Invalid module name in %INC, please report] if $module_lib !~ s[[/\\]\Q$module_name\E\z][]sm;
+    }
+    else {
+
+        # or try to find module in @INC
+        for my $inc (@INC) {
+            next if ref $inc;
+
+            if ( -f "$inc/$module_name" ) {
+                $module_lib = $inc;
+
+                last;
+            }
+        }
+    }
+
+    # module was not found in @INC
+    return if !$module_lib;
+
+    # normalize module lib
+    $module_lib = P->path( $module_lib, is_dir => 1 )->to_string;
+
+    if ( $self->dir_is_dist("$module_lib/../") ) {
+        my $root = P->path("$module_lib/../")->to_string;
+
+        # module is a dist
+        return $self->$orig(
+            {   root         => $root,
+                is_installed => 0,
+                share_dir    => $root . 'share/',
+                module       => P->perl->module( $module_name, $module_lib ),
+            }
+        );
+    }
+    else {
+
+        # convert Module/Name.pm to Dist-Name
+        my $dist_name = $module_name =~ s[/][-]smgr;
+
+        # remove .pm suffix
+        substr $dist_name, -3, 3, q[];
+
+        if ( -f $module_lib . "auto/share/dist/$dist_name/dist.perl" ) {
+
+            # module is installed
+            return $self->$orig(
+                {   root         => undef,
+                    is_installed => 1,
+                    share_dir    => $module_lib . "auto/share/dist/$dist_name/",
+                    module       => P->perl->module( $module_name, $module_lib ),
+                }
+            );
+        }
+    }
+
+    return;
 };
 
 no Pcore;
@@ -157,8 +167,25 @@ sub create ( $self, @args ) {
 }
 
 # BUILDERS
-sub _build_main_module ($self) {
-    return P->perl->module_info( $self->main_module_path );
+sub _build_module ($self) {
+    my $module_name = $self->name =~ s[-][/]smgr . '.pm';
+
+    my $module;
+
+    if ( $self->is_installed ) {
+
+        # find main module in @INC
+        $module = P->perl->module($module);
+    }
+    elsif ( -f $self->root . 'lib/' . $module_name ) {
+
+        # get main module from dist root lib
+        $module = P->perl->module( $module_name, $self->root . 'lib/' );
+    }
+
+    die qq[Disr main module "$module_name" wasn't found] if !$module;
+
+    return $module;
 }
 
 sub _build_build_info ($self) {
@@ -173,53 +200,19 @@ sub _build_name ($self) {
     return $self->cfg->{dist}->{name};
 }
 
-sub _build_ns ($self) {
-    return $self->name =~ s/-/::/smgr;
-}
-
-sub _build_main_module_path ($self) {
-    my $module = $self->name =~ s[-][/]smgr . '.pm';
-
-    my $path;
-
-    if ( $self->is_installed ) {
-        if ( exists $INC{$module} ) {
-            $path = $INC{$module};
-        }
-        else {
-            for my $inc (@INC) {
-                next if ref $inc;
-
-                if ( -f "$inc/$module" ) {
-                    $path = "$inc/$module";
-
-                    last;
-                }
-            }
-        }
-    }
-    else {
-        $path = $self->root . 'lib/' . $module;
-    }
-
-    die 'Main module was not found, this is totally unexpected...' if !$path || !-f $path;
-
-    return $path;
-}
-
 sub _build_version ($self) {
-    if ( $PROC->is_par || $self->is_installed ) {
+    if ( $self->is_installed ) {
         return version->new( $self->build_info->{version} );
     }
     else {
-        return $self->main_module->version;
+        return $self->module->version;
     }
 }
 
 sub _build_revision ($self) {
     my $revision = 0;
 
-    if ( $PROC->is_par || $self->is_installed ) {
+    if ( $self->is_installed ) {
         $revision = $self->build_info->{revision};
     }
     elsif ( $self->scm ) {
@@ -237,7 +230,7 @@ sub _build_revision ($self) {
 }
 
 sub _build_build_date ($self) {
-    if ( $PROC->is_par || $self->is_installed ) {
+    if ( $self->is_installed ) {
         return $self->build_info->{build_date};
     }
     else {
@@ -255,7 +248,7 @@ sub _build_build ($self) {
     return P->class->load('Pcore::Dist::Build')->new( { dist => $self } );
 }
 
-sub create_build_cfg ($self) {
+sub create_build_info ($self) {
     my $data = {
         version    => $self->version->normal,
         revision   => $self->revision,
@@ -266,7 +259,7 @@ sub create_build_cfg ($self) {
 }
 
 sub clear ($self) {
-    $self->clear_main_module;
+    $self->module->clear;
 
     $self->clear_build_info;
 
@@ -288,11 +281,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               │
+## │    3 │ 120, 161             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 151                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 226                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 219                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

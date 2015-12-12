@@ -39,14 +39,14 @@ sub run ($self) {
                     include_meta_tags        => 0,
                 );
 
-                my $module_info = P->perl->module_info($path);
+                my $module = P->perl->module($path);
 
                 my $pod_markdown;
 
                 $parser->output_string( \$pod_markdown );
 
                 # generate markdown document
-                $parser->parse_string_document( $module_info->content->$* );
+                $parser->parse_string_document( $module->content->$* );
 
                 $pod_markdown =~ s/\n+\z//smg;
 
@@ -66,7 +66,7 @@ MD
                     # write markdown to the file
                     Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
 
-                    $toc->{ $path->dirname . $path->filename_base } = $module_info->abstract;
+                    $toc->{ $path->dirname . $path->filename_base } = $module->abstract;
 
                     Pcore->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
                 }

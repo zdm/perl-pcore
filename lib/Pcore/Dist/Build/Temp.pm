@@ -70,7 +70,7 @@ sub _gather_files ($self) {
     }
 
     # add build.perl
-    $tree->add_file( 'share/build.perl', $self->dist->create_build_cfg );
+    $tree->add_file( 'share/build.perl', $self->dist->create_build_info );
 
     # add t/author-pod-syntax.t
     my $t = <<'PERL';
@@ -184,7 +184,7 @@ sub _generate_meta_json ( $self, $tree ) {
     $meta->{version} = $self->dist->version;
 
     # abstract
-    $meta->{abstract} = $self->dist->main_module->abstract if $self->dist->main_module->abstract;
+    $meta->{abstract} = $self->dist->module->abstract if $self->dist->module->abstract;
 
     # resources
     my $upstream_meta = $self->dist->scm && $self->dist->scm->upstream ? $self->dist->scm->upstream->meta_resources : {};

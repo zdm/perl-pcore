@@ -92,13 +92,13 @@ sub run ($self) {
     $self->tree->add_file( 'share/dist.perl', $self->dist->share_dir . '/dist.perl' );
 
     # add dist build.perl
-    $self->tree->add_file( 'share/build.perl', $self->dist->create_build_cfg );
+    $self->tree->add_file( 'share/build.perl', $self->dist->create_build_info );
 
     # add Pcore dist.perl
     $self->tree->add_file( 'lib/auto/share/dist/Pcore/dist.perl', $PROC->res->get_lib('pcore') . 'dist.perl' );
 
     # add Pcore build.perl
-    $self->tree->add_file( 'lib/auto/share/dist/Pcore/build.perl', $PROC->pcore->create_build_cfg );
+    $self->tree->add_file( 'lib/auto/share/dist/Pcore/build.perl', $PROC->pcore->create_build_info );
 
     # add META.yml
     $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->clean;
