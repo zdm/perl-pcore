@@ -6,34 +6,37 @@ has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
 no Pcore;
 
-const our $CLEAN => {
-    dir => [
+const our $DIR => [
 
-        # general build
-        'blib',
+    # general build
+    'blib/',
 
-        # Module::Build
-        '_build',
-    ],
-    file => [
+    # Module::Build
+    '_build/',
+];
 
-        # general build
-        qw[META.json META.yml MYMETA.json MYMETA.yml],
+const our $FILE => [
 
-        # Module::Build
-        qw[_build_params Build.PL Build Build.bat],
+    # general build
+    qw[META.json META.yml MYMETA.json MYMETA.yml],
 
-        # MakeMaker
-        qw[Makefile pm_to_blib],
-    ],
-};
+    # Module::Build
+    qw[_build_params Build.PL Build Build.bat],
+
+    # MakeMaker
+    qw[Makefile pm_to_blib],
+];
 
 sub run ($self) {
-    for my $dir ( $CLEAN->{dir}->@* ) {
+    for my $dir ( sort $DIR->@* ) {
+        say 'rmtree ' . $dir;
+
         P->file->rmtree( $self->dist->root . $dir );
     }
 
-    for my $file ( $CLEAN->{file}->@* ) {
+    for my $file ( sort $FILE->@* ) {
+        say 'unlink ' . $file;
+
         unlink $self->dist->root . $file or die qq[Can't unlink "$file"] if -f $self->dist->root . $file;
     }
 
