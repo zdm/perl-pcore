@@ -1,16 +1,15 @@
-package    # hide from pause
-  Inline;
+package Pcore::Core::Inline;
 
 use Pcore;
 
 no Pcore;
 
 if ( $PROC->is_par ) {
-    $INC{'Inline.pm'} = 1;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $INC{'Inline.pm'} = $INC{'Pcore/Core/Inline.pm'};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     require DynaLoader;
 
-    *import = sub {
+    *Inline::import = sub {
         my $caller = caller;
 
         no strict qw[refs];
@@ -36,6 +35,16 @@ else {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    2 │ 49                   │ Documentation::RequirePodLinksIncludeText - Link L<Inline> on line 65 does not specify text                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
@@ -43,16 +52,16 @@ __END__
 
 =head1 NAME
 
-Inline
+Pcore::Core::Inline - Pcore Inline wrapper
 
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
 
-=head1 ATTRIBUTES
-
-=head1 METHODS
+Inline wrapper provides centralized configuration and PAR compatibility layer.
 
 =head1 SEE ALSO
+
+L<Inline>
 
 =cut
