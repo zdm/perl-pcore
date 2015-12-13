@@ -93,7 +93,7 @@ MD
     # write POD.md
     Pcore->file->write_text( $wiki_path . 'POD.md', { crlf => 0 }, \$toc_md );
 
-    say keys( $toc->%* ) + 1 . ' wiki pages was generated';
+    say keys( $toc->%* ) + 1 . ' wiki pages were generated';
 
     return;
 }
