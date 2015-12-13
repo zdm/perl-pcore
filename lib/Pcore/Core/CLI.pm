@@ -187,7 +187,7 @@ sub _parse_cmd ( $self, $argv ) {
 
     my $parser = Getopt::Long::Parser->new(
         config => [    #
-            'no_auto_abbrev',
+            'auto_abbrev',
             'no_getopt_compat',
             'gnu_compat',
             'no_require_order',
