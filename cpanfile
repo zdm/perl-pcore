@@ -27,7 +27,6 @@ requires 'Type::Tiny';
 requires 'Type::Tiny::XS';
 
 # AnyEvent
-suggests 'Coro';
 requires 'EV';
 feature linux => sub {
     requires 'IO::AIO';

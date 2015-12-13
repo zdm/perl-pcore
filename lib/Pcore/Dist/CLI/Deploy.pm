@@ -16,6 +16,7 @@ sub cli_opt ($self) {
         develop    => { desc => 'cpanm --with-develop', },
         recommends => { desc => 'cpanm --with-recommends', },
         suggests   => { desc => 'cpanm --with-suggests', },
+        verbose    => { desc => 'cpanm --verbose', },
     };
 }
 
@@ -38,7 +39,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

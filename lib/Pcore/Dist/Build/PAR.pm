@@ -25,7 +25,7 @@ sub run ($self) {
     else {
         say q["data/.pardeps.cbor" is not exists.];
 
-        say q[Run source scripts with --scan-deps argument.];
+        say q[Run source scripts with --scan-deps option.];
 
         exit 1;
     }

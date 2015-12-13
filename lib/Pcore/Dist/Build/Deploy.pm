@@ -9,6 +9,7 @@ has install    => ( is => 'ro', isa => Bool, default => 0 );
 has develop    => ( is => 'ro', isa => Bool, default => 0 );
 has recommends => ( is => 'ro', isa => Bool, default => 0 );
 has suggests   => ( is => 'ro', isa => Bool, default => 0 );
+has verbose    => ( is => 'ro', isa => Bool, default => 0 );
 
 # TODO under windows aqquire superuser automatically with use Win32::RunAsAdmin qw[force];
 
@@ -84,6 +85,7 @@ sub _cpanm ($self) {
             ( $self->develop    ? '--with-develop'    : () ),
             ( $self->recommends ? '--with-recommends' : () ),
             ( $self->suggests   ? '--with-suggests'   : () ),
+            ( $self->verbose    ? '--verbose'         : () ),
             '--cpanfile',    'cpanfile',
             '--installdeps', q[.],
         );
@@ -172,10 +174,10 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 101, 117, 122, 127,  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
-## │      │ 149                  │                                                                                                                │
+## │    3 │ 103, 119, 124, 129,  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │      │ 151                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 132                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 134                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
