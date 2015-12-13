@@ -97,7 +97,24 @@ around new => sub ( $orig, $self, $dist ) {
     # normalize module lib
     $module_lib = P->path( $module_lib, is_dir => 1 )->to_string;
 
-    if ( $self->dir_is_dist("$module_lib/../") ) {
+    # convert Module/Name.pm to Dist-Name
+    my $dist_name = $module_name =~ s[/][-]smgr;
+
+    # remove .pm suffix
+    substr $dist_name, -3, 3, q[];
+
+    if ( -f $module_lib . "auto/share/dist/$dist_name/dist.perl" ) {
+
+        # module is installed
+        return $self->$orig(
+            {   root         => undef,
+                is_installed => 1,
+                share_dir    => $module_lib . "auto/share/dist/$dist_name/",
+                module       => P->perl->module( $module_name, $module_lib ),
+            }
+        );
+    }
+    elsif ( $self->dir_is_dist("$module_lib/../") ) {
         my $root = P->path("$module_lib/../")->to_string;
 
         # module is a dist
@@ -108,26 +125,6 @@ around new => sub ( $orig, $self, $dist ) {
                 module       => P->perl->module( $module_name, $module_lib ),
             }
         );
-    }
-    else {
-
-        # convert Module/Name.pm to Dist-Name
-        my $dist_name = $module_name =~ s[/][-]smgr;
-
-        # remove .pm suffix
-        substr $dist_name, -3, 3, q[];
-
-        if ( -f $module_lib . "auto/share/dist/$dist_name/dist.perl" ) {
-
-            # module is installed
-            return $self->$orig(
-                {   root         => undef,
-                    is_installed => 1,
-                    share_dir    => $module_lib . "auto/share/dist/$dist_name/",
-                    module       => P->perl->module( $module_name, $module_lib ),
-                }
-            );
-        }
     }
 
     return;
@@ -175,15 +172,16 @@ sub _build_module ($self) {
     if ( $self->is_installed ) {
 
         # find main module in @INC
-        $module = P->perl->module($module);
+        $module = P->perl->module($module_name);
     }
     elsif ( -f $self->root . 'lib/' . $module_name ) {
 
+        # we check -f manually, because perl->module will search for Module/Name.pm in whole @INC, but we need only to search module in dist root
         # get main module from dist root lib
         $module = P->perl->module( $module_name, $self->root . 'lib/' );
     }
 
-    die qq[Disr main module "$module_name" wasn't found] if !$module;
+    die qq[Disr main module "$module_name" wasn't found, distribution is corrupted] if !$module;
 
     return $module;
 }
@@ -281,9 +279,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 120, 161             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 106, 158             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 219                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 217                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
