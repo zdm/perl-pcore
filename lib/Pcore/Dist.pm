@@ -7,7 +7,7 @@ has root => ( is => 'ro', isa => Maybe [Str], required => 1 );    # absolute pat
 has is_installed => ( is => 'ro', isa => Bool, required => 1 );   # dist is installed as CPAN module, root is undefined
 has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute path to the dist share dir
 
-has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'] );
+has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], predicate => 1 );
 
 has build_info => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
@@ -257,7 +257,7 @@ sub create_build_info ($self) {
 }
 
 sub clear ($self) {
-    $self->module->clear;
+    $self->module->clear if $self->has_module;
 
     $self->clear_build_info;
 
