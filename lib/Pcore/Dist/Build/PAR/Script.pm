@@ -388,7 +388,7 @@ sub _compress_upx ( $self, $path ) {
 
     my $upx;
 
-    my $upx_cache_dir = $PROC->{PCORE_SYS_DIR} . 'upx-cache/';
+    my $upx_cache_dir = $PROC->{PCORE_USER_DIR} . 'upx-cache/';
 
     if ($MSWIN) {
         $upx = $PROC->res->get('/bin/upx.exe');
