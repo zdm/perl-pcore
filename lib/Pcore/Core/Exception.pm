@@ -27,6 +27,7 @@ sub CORE_INIT {
     # we don't need stacktrace from Error::TypeTiny exceptions
     $Error::TypeTiny::StackTrace = 0;
 
+    # redefine Carp::longmess, Carp::shotmess, disable stack trace
     {
         no warnings qw[redefine];
 
@@ -44,11 +45,11 @@ sub CORE_INIT {
 }
 
 sub SIGINT {
-    exit;
+    exit 128 + 2;
 }
 
 sub SIGTERM {
-    exit;
+    exit 128 + 15;
 }
 
 # SIGNALS
@@ -62,12 +63,12 @@ sub SIGDIE {
     CORE::die $_[0] unless defined $e;    # fallback to standart behavior if exception wasn't created for some reasons
 
     if ( !defined $^S || $^S ) {          # ERROR, catched in eval
-        $e->send_log( level => 'ERROR' ) unless $IGNORE_ERRORS;
+        $e->send_log( level => $ERROR ) unless $IGNORE_ERRORS;
 
         return CORE::die $e;              # terminate standart die behavior
     }
     else {                                # FATAL
-        $e->send_log( level => 'FATAL', force => 1 );
+        $e->send_log( level => $FATAL, force => 1 );
 
         exit $e->exit_code;
     }
@@ -83,16 +84,31 @@ sub SIGWARN {
         return;
     }
 
-    $e->send_log( level => 'WARN' );
+    $e->send_log( level => $WARN );
 
     return;    # terminate standart warn behavior
 }
 
 # HOOKS
 sub GLOBAL_DIE {
-    my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : 'Died';
+    my $msg;
 
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 1, from_hook => 1 );
+    if (@_) {
+        if ( @_ > 1 ) {
+            $msg = join q[], @_;
+        }
+        else {
+            $msg = $_[0];
+        }
+    }
+    elsif ($@) {
+        $msg = $@ . ' ...propagated';
+    }
+    else {
+        $msg = 'Died';
+    }
+
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 1 );
 
     if ( defined $e ) {
         return CORE::die $e;
@@ -103,9 +119,24 @@ sub GLOBAL_DIE {
 }
 
 sub GLOBAL_WARN {
-    my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : q[Warning: something's wrong];
+    my $msg;
 
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => $WARN, skip_frames => 1, trace => 1, from_hook => 1 );
+    if (@_) {
+        if ( @_ > 1 ) {
+            $msg = join q[], @_;
+        }
+        else {
+            $msg = $_[0];
+        }
+    }
+    elsif ($@) {
+        $msg = $@ . ' ...caught';
+    }
+    else {
+        $msg = q[Warning: something's wrong];
+    }
+
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $WARN, skip_frames => 1, trace => 1 );
 
     if ( defined $e ) {
         return CORE::warn $e;
@@ -117,9 +148,24 @@ sub GLOBAL_WARN {
 
 # die without trace
 sub croak {
-    my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : 'Died';
+    my $msg;
 
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 0, from_hook => 1 );
+    if (@_) {
+        if ( @_ > 1 ) {
+            $msg = join q[], @_;
+        }
+        else {
+            $msg = $_[0];
+        }
+    }
+    elsif ($@) {
+        $msg = $@ . ' ...propagated';
+    }
+    else {
+        $msg = 'Died';
+    }
+
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 0 );
 
     if ( defined $e ) {
         return CORE::die $e;
@@ -129,11 +175,26 @@ sub croak {
     }
 }
 
-# warn with trace
+# warn without trace
 sub cluck {
-    my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : q[Warning: something's wrong];
+    my $msg;
 
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => $WARN, skip_frames => 1, trace => 1, from_hook => 1 );
+    if (@_) {
+        if ( @_ > 1 ) {
+            $msg = join q[], @_;
+        }
+        else {
+            $msg = $_[0];
+        }
+    }
+    elsif ($@) {
+        $msg = $@ . ' ...caught';
+    }
+    else {
+        $msg = q[Warning: something's wrong];
+    }
+
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $WARN, skip_frames => 1, trace => 0 );
 
     if ( defined $e ) {
         return CORE::warn $e;
@@ -143,42 +204,44 @@ sub cluck {
     }
 }
 
-# propagate
-sub propagate {
-    my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : 'PROPAGATED';
-
+# create and throw new propagated exception
+sub propagate ($msg) {
     return Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 1, propagated => 1 )->propagate;
 }
 
 # TRY
-sub try : prototype(&@) {
-    my ( $try, @code_refs ) = @_;
-
+sub try ( $try, @code_refs ) : prototype(&@) {
     my $wantarray = wantarray;
+
     my $catch;
-    foreach my $code_ref (@code_refs) {
+
+    for my $code_ref (@code_refs) {
         my $ref = ref $code_ref;
 
-        if ( $ref eq 'Pcore::Core::ExceptionCatch' ) {
+        if ( $ref eq 'Pcore::Core::Exception::_Catch' ) {
             die 'Invalid usage, only one catch block allowed' if $catch;
 
-            $catch = ${$code_ref};
+            $catch = $code_ref->$*;
         }
         else {
-            die "Unknown code ref type given '${ref}'. Check your usage & try again";
+            die "Unknown code ref type given '$ref'. Check your usage & try again";
         }
     }
 
     P->class->set_subname( '::try' => $try );
+
     P->class->set_subname( '::catch' => $catch ) if $catch;
 
     # eval
     my $prev_error = $@;
+
     my @res;
+
     my $failed = not eval {
         local $SIG{__DIE__} = \&SIGDIE;
 
-        $@ = $prev_error;    ## no critic qw[Variables::RequireLocalizedPunctuationVars] make previous $@ accesible inside eval, eval clean $@ before start
+        # make previous $@ accesible inside eval, eval clean $@ before start
+        $@ = $prev_error;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
         if ($wantarray) {
             @res = $try->();
@@ -210,7 +273,9 @@ sub try : prototype(&@) {
         }
 
         if ( $e->is_propagated ) {
-            $@ = q[];    ## no critic qw[Variables::RequireLocalizedPunctuationVars], clear $@ because handled propagated exception treat as not error
+
+            # clear $@ because handled propagated exception treat as not an error
+            $@ = q[];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
             $e->propagate unless $e->_stop_propagate;
         }
@@ -219,13 +284,21 @@ sub try : prototype(&@) {
     return $wantarray ? @res : $res[0];
 }
 
-sub catch : prototype(&@) {
-    my $code = shift;
-
-    return ( bless( \$code, 'Pcore::Core::ExceptionCatch' ), @_ );
+sub catch ($code) : prototype(&) {
+    return bless( \$code, 'Pcore::Core::Exception::_Catch' );
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    1 │ 288                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
