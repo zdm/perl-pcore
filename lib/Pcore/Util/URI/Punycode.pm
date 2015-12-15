@@ -2,7 +2,7 @@ package Pcore::Util::URI::Punycode;
 
 use Pcore qw[-export -const];
 
-our @EXPORT_OK = qw[to_punycode from_punycode];
+our $EXPORT = [qw[to_punycode from_punycode]];
 
 # punycode directly stolen from the Mojo::Util (c)
 

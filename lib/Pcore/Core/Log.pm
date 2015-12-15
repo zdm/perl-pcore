@@ -2,11 +2,11 @@ package Pcore::Core::Log;
 
 use Pcore qw[-export];
 
-our @EXPORT_OK   = qw[has_logs error info debug set_log];
-our %EXPORT_TAGS = (                                        #
-    CORE => [qw[set_log]]
-);
-our @EXPORT = qw[has_logs error info debug];
+our $EXPORT = {
+    ALL     => [qw[has_logs error info debug set_log]],
+    CORE    => [qw[set_log]],
+    DEFAULT => [qw[has_logs error info debug]],
+};
 
 our $LEVELS = {
     FATAL => 1,

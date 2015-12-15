@@ -2,11 +2,10 @@ package Pcore::Core::I18N;
 
 use Pcore qw[-export];
 
-our @EXPORT_OK   = qw[i18n i18n_locale];
-our %EXPORT_TAGS = (                       #
-    CORE => [qw[i18n_locale]]
-);
-our @EXPORT = qw[i18n];
+our $EXPORT = {    #
+    CORE    => [qw[i18n_locale]],
+    DEFAULT => [qw[i18n]],
+};
 
 our $LOCALE    = 'en_US';
 our $LOCATIONS = [];
@@ -264,17 +263,17 @@ sub _t {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 90                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
+## │    3 │ 89                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 183, 197             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 182, 196             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 108, 111             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
+## │    2 │ 107, 110             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 135                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 134                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 116, 130, 131        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 115, 129, 130        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 179                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 178                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

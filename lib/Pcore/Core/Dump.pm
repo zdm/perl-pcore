@@ -1,15 +1,15 @@
 package Pcore::Core::Dump;
 
 use Pcore qw[-export];
-use Pcore::Core::Dump::Dumper;
 
-our @EXPORT_OK   = qw[dump filedump ffiledump];
-our %EXPORT_TAGS = (                              #
-    CORE => \@EXPORT_OK
-);
-our @EXPORT = qw[dump];
+our $EXPORT = {
+    CORE    => [qw[dump filedump ffiledump]],
+    DEFAULT => [qw[dump]],
+};
 
-sub dump {                                        ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+require Pcore::Core::Dump::Dumper;
+
+sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my %args = (
         color       => 1,
         indent      => 4,
@@ -17,7 +17,7 @@ sub dump {                                        ## no critic qw[Subroutines::P
         splice( @_, 1 ),
     );
 
-    return q[$VAR = ] . Pcore::Core::Dump::Dumper->new( \%args )->dump( $_[0] );
+    return q[$VAR = ] . Pcore::Core::Dump::Dumper->new( \%args )->run( $_[0] );
 }
 
 sub filedump {
@@ -27,7 +27,7 @@ sub filedump {
 }
 
 sub ffiledump ( $self, $filename, @ ) {
-    P->file->append_text( $PROC->{LOG_DIR} . $filename, Pcore::Core::Dump::dump( @_, color => 0 ), qq[\n] );
+    P->file->append_text( $PROC->{LOG_DIR} . $filename, Pcore::Core::Dump::dump( @_, color => 0 ), $LF );
 
     return;
 }

@@ -50,7 +50,7 @@ BEGIN {
     };
 
     # define %EXPORT_PRAGMA for exporter
-    %Pcore::EXPORT_PRAGMA = (
+    $Pcore::EXPORT_PRAGMA = {
         autoload    => 0,    # export AUTOLOAD
         class       => 0,    # package is a Moo class
         config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
@@ -62,7 +62,7 @@ BEGIN {
         no_isa_attr => 0,    # do not check isa for class / role attributes
         role        => 0,    # package is a Moo role
         types       => 0,    # export types
-    );
+    };
 
     # configure standard library
     $Pcore::UTIL = {

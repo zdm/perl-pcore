@@ -1,6 +1,6 @@
 package Pcore::Core::Dump::Dumper;
 
-use Pcore qw[-class !dump];
+use Pcore qw[-class];
 use re qw[];
 use Sort::Naturally qw[nsort];
 use Term::ANSIColor qw[colored];
@@ -68,26 +68,29 @@ our $DUMPERS = {
     },
 };
 
+sub run ( $self, @args ) {
+    return $self->_dump(@args);
+}
+
 # INTERNAL METHODS
-sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    my $self = shift;
+sub _dump ( $self, @ ) {
     my %args = (
         path    => q[$VAR],
         unbless => 0,
-        splice( @_, 1 ),
+        @_[ 2 .. $#_ ],
     );
 
     local $ENV{ANSI_COLORS_DISABLED} = 1 unless $self->color;
 
-    my ( $var_type, $blessed ) = $self->_var_type( $_[0], unbless => $args{unbless} );
+    my ( $var_type, $blessed ) = $self->_var_type( $_[1], unbless => $args{unbless} );
 
     # detect var addr
     my $var_addr = qq[${var_type}_];
-    if ( ref $_[0] ) {
-        $var_addr .= P->scalar->refaddr( $_[0] );
+    if ( ref $_[1] ) {
+        $var_addr .= P->scalar->refaddr( $_[1] );
     }
     else {
-        $var_addr .= P->scalar->refaddr( \$_[0] );
+        $var_addr .= P->scalar->refaddr( \$_[1] );
     }
 
     my $res;
@@ -100,11 +103,11 @@ sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
         my $dump_method = $blessed ? 'BLESSED' : $var_type;
         $dump_method = 'UNKNOWN' if !$self->can($dump_method);
 
-        ( $res, $tags ) = $self->$dump_method( $_[0], path => $args{path}, var_type => $var_type );
+        ( $res, $tags ) = $self->$dump_method( $_[1], path => $args{path}, var_type => $var_type );
     }
 
     # weak
-    push @{$tags}, q[weak] if P->scalar->isweak( $_[0] );
+    push @{$tags}, q[weak] if P->scalar->isweak( $_[1] );
 
     # add tags
     $self->_add_tags( $tags, $res );
@@ -176,7 +179,7 @@ sub _dump_blessed {
         @_,
     );
 
-    return q[blessed: ] . $self->dump( $obj, path => $args{path}, unbless => 1 );
+    return q[blessed: ] . $self->_dump( $obj, path => $args{path}, unbless => 1 );
 }
 
 sub _tied_to {
@@ -282,7 +285,7 @@ sub REF {
         @_,
     );
 
-    return colored( q[\\ ], $COLOR->{refs} ) . $self->dump( ${$ref}, path => $args{path} . q[->$*] );
+    return colored( q[\\ ], $COLOR->{refs} ) . $self->_dump( ${$ref}, path => $args{path} . q[->$*] );
 }
 
 sub SCALAR {
@@ -356,7 +359,7 @@ sub ARRAY {
             my $index = sprintf( q[%-*s], $max_index_length, qq[[$i]] ) . q[ ];
             $res .= $self->_indent . colored( $index, $COLOR->{array} );
 
-            my $el = $self->dump( $array_ref->[$i], path => $args{path} . "->[$i]" );
+            my $el = $self->_dump( $array_ref->[$i], path => $args{path} . "->[$i]" );
             $self->_indent_text($el);
 
             $res .= $el;
@@ -410,7 +413,7 @@ sub HASH {
             $res .= $self->_indent . q["] . colored( $keys->[$i]->{escaped_key}->$*, $COLOR->{hash} ) . q["];
             $res .= sprintf q[%*s], ( $max_length - $keys->[$i]->{escaped_key_nc_len} + 4 ), q[ => ];
 
-            my $el = $self->dump( $hash_ref->{ $keys->[$i]->{raw_key} }, path => $args{path} . '->{"' . $keys->[$i]->{escaped_key_nc} . '"}' );
+            my $el = $self->_dump( $hash_ref->{ $keys->[$i]->{raw_key} }, path => $args{path} . '->{"' . $keys->[$i]->{escaped_key_nc} . '"}' );
             $self->_indent_text($el);
 
             $res .= $el;
@@ -516,7 +519,7 @@ sub LVALUE {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 75, 226, 285         │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 78, 229, 288         │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

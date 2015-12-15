@@ -3,9 +3,9 @@ package Pcore::Core::H;
 use Pcore qw[-export];
 use Pcore::Core::H::Cache;
 
-our @EXPORT_OK   = qw[H];
-our %EXPORT_TAGS = ();
-our @EXPORT      = qw[H];
+our $EXPORT = {    #
+    DEFAULT => [qw[H]],
+};
 
 sub H {
     state $H = Pcore::Core::H::Cache->new;
