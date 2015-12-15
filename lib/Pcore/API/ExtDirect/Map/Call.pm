@@ -277,7 +277,7 @@ sub exception {
 
     $self->_set__exception_data( \%args );
 
-    return propagate('API::EXCEPTION');
+    return Pcore::Core::Exception::propagate('API::EXCEPTION');
 }
 
 # UTIL

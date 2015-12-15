@@ -1,12 +1,13 @@
 package Pcore::Core::Exception::Object;
 
-use Pcore -class;
+use Pcore -class, -const, -export => { CONST => [ '$ERROR', '$WARN' ] };
 use Devel::StackTrace qw[];
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 
-# string overloading can happens only from perl internals calls, such as eval in "use" or "require", or not handled "die", so we don't need full trace here
 use overload                     #
   q[""] => sub {
+
+    # string overloading can happens only from perl internals calls, such as eval in "use" or "require", or not handled "die", so we don't need full trace here
     return $_[0]->to_string( short_trace => 1 ) . $LF;
   },
   q[0+] => sub {
@@ -17,9 +18,12 @@ use overload                     #
   },
   fallback => undef;
 
+const our $ERROR => 1;
+const our $WARN  => 2;
+
 has msg       => ( is => 'ro', isa => Str, default => q[] );
 has exit_code => ( is => 'rw', isa => Int, builder => 1 );
-has level => ( is => 'ro', isa => Enum [qw[ERROR WARN]], required => 1 );
+has level => ( is => 'ro', isa => Enum [ $ERROR, $WARN ], required => 1 );
 has ns          => ( is => 'lazy', isa => Str );
 has propagated  => ( is => 'ro',   isa => Bool, default => 0 );
 has skip_frames => ( is => 'ro',   isa => Int, default => 0 );
@@ -34,14 +38,7 @@ has _to_string      => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has _logged         => ( is => 'rw',   isa => Bool,    default  => 0, init_arg => undef );
 has _stop_propagate => ( is => 'rw',   isa => Bool,    default  => 0, init_arg => undef );
 
-no Pcore;
-
-# CLASS METHODS
-sub new_exception {
-    my $self = shift;
-    my $msg  = shift;
-    my %args = @_;
-
+around new => sub ( $orig, $self, $msg, %args ) {
     if ( blessed $msg ) {
         my $ref = ref $msg;
 
@@ -65,16 +62,21 @@ sub new_exception {
     # always skip current method call and eval below
     $args{skip_frames} += 2;
 
-    # stringify $msg
-    local $@;                                               # handle errors during exception object creation
+    # handle errors during exception object creation
+    local $@;
 
     my $e = eval {
-        __PACKAGE__->new( { %args, msg => "$msg" } );       ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+
+        # stringify $msg
+        $self->$orig( { %args, msg => "$msg" } );    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
     };
 
     return $e;
-}
+};
 
+no Pcore;
+
+# CLASS METHODS
 sub PROPAGATE {
     my $self = shift;
     my $file = shift;
@@ -224,7 +226,7 @@ sub send_log {
 sub propagate {
     my $self = shift;
 
-    if ( $self->level eq 'ERROR' ) {
+    if ( $self->level eq $ERROR ) {
         return die $self;
     }
     else {
@@ -245,9 +247,11 @@ sub stop_propagate {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 69                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 66                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 218                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 220                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 3                    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

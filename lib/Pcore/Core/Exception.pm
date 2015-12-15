@@ -1,11 +1,10 @@
 package Pcore::Core::Exception;
 
 use Pcore -export => {    #
-    ALL     => [qw[propagate]],
     DEFAULT => [qw[croak cluck try catch]],
 };
 use Carp qw[];
-use Pcore::Core::Exception::Object;
+use Pcore::Core::Exception::Object qw[:CONST];
 
 our $IGNORE_ERRORS = 1;    # do not write errors to error log channel by default
 
@@ -58,7 +57,7 @@ sub SIGTERM {
 # die in BEGIN generates parsing error, no matter in eval or not;
 # compile-time errors / warnings belongs to namespace, from which compilation was requested;
 sub SIGDIE {
-    my $e = Pcore::Core::Exception::Object->new_exception( $_[0], level => 'ERROR', skip_frames => 1, trace => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $_[0], level => $ERROR, skip_frames => 1, trace => 1 );
 
     CORE::die $_[0] unless defined $e;    # fallback to standart behavior if exception wasn't created for some reasons
 
@@ -75,7 +74,7 @@ sub SIGDIE {
 }
 
 sub SIGWARN {
-    my $e = Pcore::Core::Exception::Object->new_exception( $_[0], level => 'WARN', skip_frames => 1, trace => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $_[0], level => $WARN, skip_frames => 1, trace => 1 );
 
     # fallback to standart behavior if exception wasn't created for some reasons
     unless ( defined $e ) {
@@ -93,7 +92,7 @@ sub SIGWARN {
 sub GLOBAL_DIE {
     my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : 'Died';
 
-    my $e = Pcore::Core::Exception::Object->new_exception( $msg, level => 'ERROR', skip_frames => 1, trace => 1, from_hook => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 1, from_hook => 1 );
 
     if ( defined $e ) {
         return CORE::die $e;
@@ -106,7 +105,7 @@ sub GLOBAL_DIE {
 sub GLOBAL_WARN {
     my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : q[Warning: something's wrong];
 
-    my $e = Pcore::Core::Exception::Object->new_exception( $msg, level => 'WARN', skip_frames => 1, trace => 1, from_hook => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $WARN, skip_frames => 1, trace => 1, from_hook => 1 );
 
     if ( defined $e ) {
         return CORE::warn $e;
@@ -120,7 +119,7 @@ sub GLOBAL_WARN {
 sub croak {
     my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : 'Died';
 
-    my $e = Pcore::Core::Exception::Object->new_exception( $msg, level => 'ERROR', skip_frames => 1, trace => 0, from_hook => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 0, from_hook => 1 );
 
     if ( defined $e ) {
         return CORE::die $e;
@@ -134,7 +133,7 @@ sub croak {
 sub cluck {
     my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : q[Warning: something's wrong];
 
-    my $e = Pcore::Core::Exception::Object->new_exception( $msg, level => 'WARN', skip_frames => 1, trace => 1, from_hook => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => $WARN, skip_frames => 1, trace => 1, from_hook => 1 );
 
     if ( defined $e ) {
         return CORE::warn $e;
@@ -148,7 +147,7 @@ sub cluck {
 sub propagate {
     my $msg = defined $_[0] ? $_[0] : defined $@ ? $@ : 'PROPAGATED';
 
-    return Pcore::Core::Exception::Object->new_exception( $msg, level => 'ERROR', skip_frames => 1, trace => 1, propagated => 1 )->propagate;
+    return Pcore::Core::Exception::Object->new( $msg, level => $ERROR, skip_frames => 1, trace => 1, propagated => 1 )->propagate;
 }
 
 # TRY
