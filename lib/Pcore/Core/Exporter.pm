@@ -157,8 +157,8 @@ sub parse_import {
             if ( $1 eq 'level' || $1 eq 'caller' ) {
                 $pragma->{$1} = shift;
             }
-            elsif ( exists ${ $caller . '::EXPORT_PRAGMAS' }{$1} ) {
-                $pragma->{$1} = ${ $caller . '::EXPORT_PRAGMAS' }{$1} ? shift : 1;
+            elsif ( exists ${ $caller . '::EXPORT_PRAGMA' }{$1} ) {
+                $pragma->{$1} = ${ $caller . '::EXPORT_PRAGMA' }{$1} ? shift : 1;
             }
             else {
                 die qq[Unknown exporter pragma found "$arg" while importing package "$caller"];
@@ -211,7 +211,7 @@ See Exporter documentation for how to use exporting tags.
 
 %EXPORT_TAGS - Hash[ArrayRef] of tags and appropriate symbols.
 
-%EXPORT_PRAGMAS - hash of pragmas, supported by exporter package. Pragmas "-level" and "-caller" are added automatically.
+%EXPORT_PRAGMA - hash of pragmas, supported by exporter package. Pragmas "-level" and "-caller" are added automatically.
 
 @EXPORT symbols are exported only if used explicitly, or if no other imports specified. If first tag is negated (!tag) - @EXPORT will be implied automatically.
 

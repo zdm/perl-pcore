@@ -49,8 +49,8 @@ BEGIN {
         require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
     };
 
-    # define %EXPORT_PRAGMAS for exporter
-    %Pcore::EXPORT_PRAGMAS = (
+    # define %EXPORT_PRAGMA for exporter
+    %Pcore::EXPORT_PRAGMA = (
         autoload    => 0,    # export AUTOLOAD
         class       => 0,    # package is a Moo class
         config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
