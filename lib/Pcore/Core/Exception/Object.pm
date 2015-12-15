@@ -1,6 +1,6 @@
 package Pcore::Core::Exception::Object;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Devel::StackTrace qw[];
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 

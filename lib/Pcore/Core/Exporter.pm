@@ -4,6 +4,10 @@ use Pcore;
 use if $^V ge 'v5.10', feature  => ':all';
 no  if $^V ge 'v5.18', warnings => 'experimental';
 
+our $EXPORT_PRAGMA = {    #
+    export => 1,
+};
+
 our $CACHE;
 
 no Pcore;
@@ -16,6 +20,53 @@ sub import {
 
     # find caller
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
+
+    # process -export pragma
+    if ( !exists $CACHE->{$caller} ) {
+        $pragma->{export} = { ALL => $pragma->{export} } if ref $pragma->{export} eq 'ARRAY';
+
+        my $tags;    # 0 - processing, 1 - done
+
+        my $process_tag = sub ($tag) {
+
+            # tag is already processed
+            return if $tags->{$tag};
+
+            die qq[Cyclic reference found whils processing export tag "$tag"] if exists $tags->{$tag} && !$tags->{$tag};
+
+            $tags->{$tag} = 0;
+
+            for ( $pragma->{export}->{$tag}->@* ) {
+                my $sym = $_;
+
+                my $type = $sym =~ s/\A([:&\$@%*])//sm ? $1 : q[];
+
+                if ( $type ne q[:] ) {
+                    $type = q[] if $type eq q[&];
+
+                    $CACHE->{$caller}->{$tag}->{ $type . $sym } = 1;
+
+                    $CACHE->{$caller}->{ALL}->{ $type . $sym } = [ $sym, $type ];
+                }
+                else {
+                    die qq["ALL" export tag can not contain references to the other tags in package "$caller"] if $tag eq 'ALL';
+
+                    __SUB__->($sym);
+
+                    $CACHE->{$caller}->{$tag}->@{ keys $CACHE->{$caller}->{$sym}->%* } = values $CACHE->{$caller}->{$sym}->%*;
+                }
+            }
+
+            # mark tag as processed
+            $tags->{$tag} = 1;
+
+            return;
+        };
+
+        for my $tag ( keys $pragma->{export}->%* ) {
+            $process_tag->($tag);
+        }
+    }
 
     # export import, unimport methods
     {
@@ -114,78 +165,10 @@ sub _unimport {
 }
 
 sub _export_tags ( $self, $caller, $tag ) {
-
-    # cache exporter configuration
-    if ( !exists $CACHE->{$self} ) {
-        my $export_tag = do {
-            no strict qw[refs];
-
-            ${ $self . '::EXPORT' };
-        };
-
-        if ( !$export_tag ) {
-            $CACHE->{$self} = undef;
-        }
-        else {
-            my $cache;
-
-            $export_tag = { ALL => $export_tag } if ref $export_tag eq 'ARRAY';
-
-            my $tags;    # 0 - processing, 1 - done
-
-            my $process_tag = sub ($tag) {
-
-                # tag is already processed
-                return if $tags->{$tag};
-
-                die qq[Cyclic reference found whils processing export tag "$tag"] if exists $tags->{$tag} && !$tags->{$tag};
-
-                $tags->{$tag} = 0;
-
-                for ( $export_tag->{$tag}->@* ) {
-                    my $sym = $_;
-
-                    my $type = $sym =~ s/\A([:&\$@%*])//sm ? $1 : q[];
-
-                    if ( $type ne q[:] ) {
-                        $type = q[] if $type eq q[&];
-
-                        $cache->{$tag}->{ $type . $sym } = 1;
-
-                        $cache->{ALL}->{ $type . $sym } = [ $sym, $type ];
-                    }
-                    else {
-                        die qq["ALL" export tag can not contain references to the other tags in package "$self"] if $tag eq 'ALL';
-
-                        __SUB__->($sym);
-
-                        $cache->{$tag}->@{ keys $cache->{$sym}->%* } = values $cache->{$sym}->%*;
-                    }
-                }
-
-                # mark tag as processed
-                $tags->{$tag} = 1;
-
-                return;
-            };
-
-            for my $tag ( keys $export_tag->%* ) {
-                die qq["ALL" tag name is reserved in package "$self"] if $tag eq ':ALL';
-
-                $process_tag->($tag);
-            }
-
-            $CACHE->{$self} = $cache;
-        }
-    }
-
     my $export = $CACHE->{$self};
 
     if ( !$tag ) {
-        if ( !$export ) {
-            return;
-        }
-        elsif ( !exists $export->{DEFAULT} ) {
+        if ( !exists $export->{DEFAULT} ) {
             return;
         }
         else {
@@ -270,10 +253,10 @@ sub _export_tags ( $self, $caller, $tag ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 106, 162, 172, 222,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 225, 243, 244        │                                                                                                                │
+## │    3 │ 56, 66, 157, 205,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 208, 226, 227        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 116                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (42)              │
+## │    3 │ 167                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (26)              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

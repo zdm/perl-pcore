@@ -56,7 +56,7 @@ BEGIN {
         config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
         const       => 0,    # export "const" keyword
         embedded    => 0,    # run in embedded mode
-        export      => 0,    # install standart import method
+        export      => 1,    # install standart import method
         inline      => 0,    # package use Inline
         no_clean    => 0,    # do not perform namespace autoclean
         no_isa_attr => 0,    # do not check isa for class / role attributes
@@ -149,7 +149,7 @@ sub import {
         mro::method_changed_in($caller);
     }
 
-    # export Pcore::Core
+    # re-export core packages
     Pcore::Core::Const->import( -caller => $caller, $tags->@* );
     Pcore::Core::Dump->import( -caller => $caller, $tags->@* );
     Pcore::Core::Exception->import( -caller => $caller, $tags->@* );
@@ -169,7 +169,7 @@ sub import {
         }
 
         # process -export pragma
-        Pcore::Core::Exporter->import( -caller => $caller ) if $pragma->{export};
+        Pcore::Core::Exporter->import( -caller => $caller, -export => $pragma->{export} ) if $pragma->{export};
 
         # process -autoload pragma
         Pcore::Core::Autoload->import( -caller => $caller ) if $pragma->{autoload};

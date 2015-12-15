@@ -1,11 +1,9 @@
 package Pcore::Core::H;
 
-use Pcore qw[-export];
-use Pcore::Core::H::Cache;
-
-our $EXPORT = {    #
+use Pcore -export => {    #
     DEFAULT => [qw[H]],
 };
+use Pcore::Core::H::Cache;
 
 sub H {
     state $H = Pcore::Core::H::Cache->new;

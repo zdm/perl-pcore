@@ -1,13 +1,11 @@
 package Pcore::Core::Exception;
 
-use Pcore qw[-export];
-use Carp qw[];
-
-our $EXPORT = {    #
-    DEFAULT => [qw[croak cluck propagate try catch]],
+use Pcore -export => {    #
+    ALL     => [qw[propagate]],
+    DEFAULT => [qw[croak cluck try catch]],
 };
-
-require Pcore::Core::Exception::Object;
+use Carp qw[];
+use Pcore::Core::Exception::Object;
 
 our $IGNORE_ERRORS = 1;    # do not write errors to error log channel by default
 

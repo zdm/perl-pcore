@@ -1,13 +1,10 @@
 package Pcore::Core::Dump;
 
-use Pcore qw[-export];
-
-our $EXPORT = {
+use Pcore -export => {
     CORE    => [qw[dump filedump ffiledump]],
     DEFAULT => [qw[dump]],
 };
-
-require Pcore::Core::Dump::Dumper;
+use Pcore::Core::Dump::Dumper;
 
 sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my %args = (
@@ -39,7 +36,7 @@ sub ffiledump ( $self, $filename, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 20                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 17                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

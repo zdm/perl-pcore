@@ -1,8 +1,6 @@
 package Pcore::Core::Log;
 
-use Pcore qw[-export];
-
-our $EXPORT = {
+use Pcore -export => {
     ALL     => [qw[has_logs error info debug set_log]],
     CORE    => [qw[set_log]],
     DEFAULT => [qw[has_logs error info debug]],
@@ -330,12 +328,12 @@ sub _resolve_data_colors {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29, 95, 125, 131,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 136, 158, 159, 171,  │                                                                                                                │
-## │      │ 178, 179, 180, 185,  │                                                                                                                │
-## │      │ 187                  │                                                                                                                │
+## │    3 │ 27, 93, 123, 129,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 134, 156, 157, 169,  │                                                                                                                │
+## │      │ 176, 177, 178, 183,  │                                                                                                                │
+## │      │ 185                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 45                   │ Subroutines::ProhibitExcessComplexity - Subroutine "set_log" with high complexity score (21)                   │
+## │    3 │ 43                   │ Subroutines::ProhibitExcessComplexity - Subroutine "set_log" with high complexity score (21)                   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

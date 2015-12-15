@@ -1,11 +1,9 @@
 package Pcore::Core::EV;
 
-use Pcore qw[-export];
-use Pcore::Core::EV::Queue;
-
-our $EXPORT = {    #
+use Pcore -export => {    #
     CORE => [qw[EV]],
 };
+use Pcore::Core::EV::Queue;
 
 sub EV {
     state $EV = Pcore::Core::EV::Queue->new;

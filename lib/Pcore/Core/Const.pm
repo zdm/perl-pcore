@@ -1,14 +1,14 @@
 package Pcore::Core::Const;
 
-use Pcore qw[-export -const];
-
-use Types::Serialiser qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-
-our $EXPORT = {
+use Pcore
+  -const,
+  -export => {
     ALL     => [qw[$MSWIN $CRLF $LF $TRUE $FALSE $PROC $STDOUT_UTF8 $STDERR_UTF8]],
     CORE    => [':ALL'],
     DEFAULT => [':ALL'],
-};
+  };
+
+use Types::Serialiser qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our $PROC;
 
