@@ -13,6 +13,7 @@ sub import {
     my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
 
     no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
+
     no warnings qw[redefine];
 
     *{ $caller . '::import' } = \&_import;
@@ -179,7 +180,7 @@ sub parse_import {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 87                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 88                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
