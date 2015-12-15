@@ -18,7 +18,7 @@ sub DEMOLISH ( $self, $global ) {
     return;
 }
 
-after DEMOLISH => sub ($self) {
+after DEMOLISH => sub ( $self, $global ) {
     $self->h_disconnect;
 
     return;
