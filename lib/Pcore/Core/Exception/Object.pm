@@ -90,22 +90,20 @@ sub BUILD {
     my $self = shift;
 
     $self->_trace;
+
     $self->_caller_frame;
 
     return;
 }
 
-sub _build_exit_code {
-    my $self = shift;
+sub _build_exit_code ($self) {
 
     # return $! if $!;              # errno
     # return $? >> 8 if $? >> 8;    # child exit status
     return 255;    # last resort
 }
 
-sub _build__trace {
-    my $self = shift;
-
+sub _build__trace ($self) {
     my $trace = Devel::StackTrace->new(
         unsafe_ref_capture => 0,
         no_args            => 1,
@@ -119,28 +117,19 @@ sub _build__trace {
     return \@frames;
 }
 
-sub _build__caller_frame {
-    my $self = shift;
-
-    return shift @{ $self->_trace };
+sub _build__caller_frame ($self) {
+    return shift $self->_trace->@*;
 }
 
-sub _build_ns {
-    my $self = shift;
-
+sub _build_ns ($self) {
     return $self->caller_package;
 }
 
-sub caller_package {
-    my $self = shift;
-
+sub caller_package ($self) {
     return $self->_caller_frame->package;
 }
 
-sub is_propagated {
-    my $self      = shift;
-    my @propagate = @_;      # propagate classes for comparison
-
+sub is_propagated ( $self, @propagate ) {
     if ( !$self->propagated ) {
         return;
     }
@@ -154,9 +143,7 @@ sub is_propagated {
     }
 }
 
-sub _build__to_string {
-    my $self = shift;
-
+sub _build__to_string ($self) {
     my $res = {
         msg    => $self->msg,
         caller => ', caught at ' . $self->_caller_frame->filename . ' line ' . $self->_caller_frame->line . q[.],
@@ -223,9 +210,7 @@ sub send_log {
     return Pcore::Core::Log::send_log( [ $self->to_string ], level => $args{level}, ns => $args{ns}, header => $args{header}, tags => $args{tags} );
 }
 
-sub propagate {
-    my $self = shift;
-
+sub propagate ($self) {
     if ( $self->level eq $ERROR ) {
         return die $self;
     }
@@ -234,9 +219,7 @@ sub propagate {
     }
 }
 
-sub stop_propagate {
-    my $self = shift;
-
+sub stop_propagate ($self) {
     return $self->_stop_propagate(1);
 }
 
@@ -249,7 +232,7 @@ sub stop_propagate {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 66                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 220                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 207                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 3                    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
