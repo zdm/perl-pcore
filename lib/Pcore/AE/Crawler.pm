@@ -1,6 +1,6 @@
 package Pcore::AE::Crawler;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 use Pcore::AE::Handle::ProxyPool;
 
 with qw[Pcore::AE::Status];

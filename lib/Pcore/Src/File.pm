@@ -1,6 +1,6 @@
 package Pcore::Src::File;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Term::ANSIColor qw[:constants];
 
 has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate]], required => 1 );

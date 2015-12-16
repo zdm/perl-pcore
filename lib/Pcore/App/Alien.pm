@@ -1,12 +1,12 @@
 package Pcore::App::Alien::Role;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 requires qw[master_proc alien_proc];
 
 package Pcore::App::Alien;
 
-use Pcore qw[-class];
+use Pcore -class;
 use POSIX qw[:sys_wait_h];
 
 extends qw[Pcore::App];

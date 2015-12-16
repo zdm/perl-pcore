@@ -1,6 +1,6 @@
 package Pcore::AE::Handle::ProxyPool::Source;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Pcore::AE::Handle::ProxyPool::Proxy;
 
 requires qw[load];

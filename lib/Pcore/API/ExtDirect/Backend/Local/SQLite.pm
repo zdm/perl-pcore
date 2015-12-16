@@ -1,6 +1,6 @@
 package Pcore::API::Backend::Local::SQLite;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::API::Backend::Local];
 

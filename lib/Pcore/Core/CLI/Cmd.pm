@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Cmd;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 no Pcore;
 

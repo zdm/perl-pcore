@@ -1,6 +1,6 @@
 package Pcore::API::Call;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::API::Call::Action::Request;
 use Pcore::API::Call::Action::Response;
 

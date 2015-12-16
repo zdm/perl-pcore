@@ -1,6 +1,6 @@
 package Pcore::Core::H::Role::Wrapper;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 with qw[Pcore::Core::H::Role];
 

@@ -1,6 +1,6 @@
 package Pcore::AppX::Tmpl;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::AppX];
 

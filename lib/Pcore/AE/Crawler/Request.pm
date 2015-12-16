@@ -1,6 +1,6 @@
 package Pcore::AE::Crawler::Request;
 
-use Pcore qw[-role -const];
+use Pcore -role, -const;
 
 const our $PROXY_MAYBE  => 2;
 const our $PROXY_ALWAYS => 3;

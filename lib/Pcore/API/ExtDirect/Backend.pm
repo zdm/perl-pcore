@@ -1,6 +1,6 @@
 package Pcore::API::Backend;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Pcore::API::Call;
 
 requires qw[deploy_api preload_api_map get_api_map get_api_class_js call_api do_authentication do_signout];

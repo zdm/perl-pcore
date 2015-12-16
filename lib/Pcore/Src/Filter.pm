@@ -1,6 +1,6 @@
 package Pcore::Src::Filter;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 has file => ( is => 'ro', isa => InstanceOf ['Pcore::Src::File'], required => 1, weak_ref => 1 );
 has buffer    => ( is => 'ro',   isa => ScalarRef, required => 1 );

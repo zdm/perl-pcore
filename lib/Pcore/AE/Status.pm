@@ -1,6 +1,6 @@
 package Pcore::AE::Status;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 has _on_status => ( is => 'ro', isa => CodeRef, predicate => 1, init_arg => 'on_status' );
 

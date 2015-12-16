@@ -1,6 +1,6 @@
 package Pcore::AE::Handle::ProxyPool;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::AE::Handle::ProxyPool::Storage;
 
 has id => ( is => 'lazy', isa => Int, init_arg => undef );

@@ -1,6 +1,6 @@
 package Pcore::API::Map::Records::Record;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has records => ( is => 'ro', isa => InstanceOf ['Pcore::API::Map::Records'], required => 1, weak_ref => 1 );
 

@@ -1,6 +1,6 @@
 package Pcore::Handle::File;
 
-use Pcore qw[-class];
+use Pcore -class;
 use IO::File;
 
 with qw[Pcore::Core::H::Role::Wrapper];

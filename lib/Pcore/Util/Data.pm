@@ -329,7 +329,7 @@ sub decode {
         ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
         $res = eval <<"CODE";
 package $ns;
-use Pcore qw[-config];
+use Pcore -config;
 no warnings qw[redefine];
 local *i18n = sub { return Pcore::Util::Data::_I18N->new( { args => [ \@_ ] } ) };
 $data_ref->$*
@@ -799,7 +799,7 @@ sub from_uri_query {
 
 package Pcore::Util::Data::_I18N;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 use overload    #
   q[""] => sub {

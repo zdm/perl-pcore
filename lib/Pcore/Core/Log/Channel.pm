@@ -1,6 +1,6 @@
 package Pcore::Core::Log::Channel;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 has channel => ( is => 'lazy', isa => Str, default => sub { lc ref( $_[0] ) =~ s/\A.+:://smr }, init_arg => undef );
 has stream  => ( is => 'ro',   isa => Str, default => q[] );

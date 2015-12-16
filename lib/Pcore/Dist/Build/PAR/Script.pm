@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::PAR::Script;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::Util::File::Tree;
 use Archive::Zip qw[];
 use PAR::Filter;

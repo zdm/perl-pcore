@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Create;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::Dist;
 use Pcore::Util::File::Tree;
 

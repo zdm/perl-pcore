@@ -1,6 +1,6 @@
 package Pcore::Src::SCM::Upstream;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], required => 1 );
 has clone_is_git => ( is => 'ro', isa => Bool, default => 0 );

@@ -1,6 +1,6 @@
 package Pcore::API::Class::Amcharts;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 with qw[Pcore::API::Class];
 

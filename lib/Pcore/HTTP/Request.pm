@@ -1,6 +1,6 @@
 package Pcore::HTTP::Request;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 use Pcore::HTTP::UA;
 use Pcore::HTTP::Response;
 use Pcore::HTTP::CookieJar;

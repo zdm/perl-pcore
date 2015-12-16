@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Opt::Daemonize;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 around cli_opt => sub ( $orig, $self ) {
     my $opt = $self->$orig // {};

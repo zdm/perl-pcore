@@ -1,6 +1,6 @@
 package Pcore::Util::URI::Web2;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 has _web2_parsed => ( is => 'lazy', isa => ArrayRef, init_arg => undef );    # [ $is_web2_domain, $web2_id, $web2_domain, $web2_canon ]
 

@@ -1,6 +1,6 @@
 package Pcore::API::Class;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Pcore::API::Map;
 
 with qw[Pcore::JS::ExtJS::Namespace];

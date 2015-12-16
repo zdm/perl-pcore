@@ -1,6 +1,6 @@
 package Pcore::Util::Text::Table;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Text::ASCIITable qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 has row_line => ( is => 'ro', isa => Bool, default => 1 );

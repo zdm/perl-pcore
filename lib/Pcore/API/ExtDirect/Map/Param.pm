@@ -1,6 +1,6 @@
 package Pcore::API::Map::Param;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has name => ( is => 'ro', isa => StrMatch [qr/\A[[:lower:][:digit:]_]+\z/sm], required => 1 );
 has alias_name => ( is => 'lazy', isa => Str, init_arg => undef );

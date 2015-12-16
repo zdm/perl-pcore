@@ -1,6 +1,6 @@
 package Pcore::Util::Hash;
 
-use Pcore qw[-autoload];
+use Pcore -autoload;
 use Hash::Util qw[];      ## no critic qw[Modules::ProhibitEvilModules]
 use Scalar::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::Hash::Multivalue;

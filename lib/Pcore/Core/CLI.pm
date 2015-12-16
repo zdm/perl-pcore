@@ -1,6 +1,6 @@
 package Pcore::Core::CLI;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Getopt::Long qw[];
 use Pcore::Core::CLI::Opt;
 use Pcore::Core::CLI::Arg;

@@ -1,6 +1,6 @@
 package Pcore::Util::Term::Progress;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Scalar::Util qw[weaken];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $INDICATOR       = {};

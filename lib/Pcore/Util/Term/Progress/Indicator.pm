@@ -1,6 +1,6 @@
 package Pcore::Util::Term::Progress::Indicator;
 
-use Pcore qw[-role];
+use Pcore -role;
 use POSIX qw[strftime];
 use Time::HiRes qw[];
 

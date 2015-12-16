@@ -1,6 +1,6 @@
 package Pcore::Util::File::Tree::File;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has tree => ( is => 'ro', isa => InstanceOf ['Pcore::Util::File::Tree'], required => 1, weak_ref => 1 );
 has path => ( is => 'ro', isa => Str, required => 1 );

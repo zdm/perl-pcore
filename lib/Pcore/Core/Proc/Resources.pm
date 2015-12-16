@@ -1,6 +1,6 @@
 package Pcore::Core::Proc::Resources;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 
 has _lib         => ( is => 'ro',   isa => HashRef,  default => sub { {} }, init_arg => undef );
 has _lib_order   => ( is => 'ro',   isa => ArrayRef, default => sub { [] }, init_arg => undef );

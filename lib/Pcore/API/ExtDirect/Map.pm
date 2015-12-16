@@ -1,6 +1,6 @@
 package Pcore::API::Map;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::API::Map::Call;
 
 has api_class => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Class'], required => 1, weak_ref => 1 );

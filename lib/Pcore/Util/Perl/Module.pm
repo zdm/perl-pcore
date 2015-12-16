@@ -1,6 +1,6 @@
 package Pcore::Util::Perl::Module;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Config qw[];
 
 has name => ( is => 'lazy', isa => Maybe [Str] );    # Module/Name.pm

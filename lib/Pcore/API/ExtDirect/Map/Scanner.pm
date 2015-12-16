@@ -1,6 +1,6 @@
 package Pcore::API::Map::Scanner;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has h_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Core::H::Cache'],      required => 1, weak_ref => 1 );    # handles cache object
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Backend::Local'], required => 1, weak_ref => 1 );

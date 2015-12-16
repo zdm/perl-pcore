@@ -1,6 +1,6 @@
 package Pcore::AppX;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 with qw[Pcore::AppX::Role];
 

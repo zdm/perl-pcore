@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Temp;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 use CPAN::Meta;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );

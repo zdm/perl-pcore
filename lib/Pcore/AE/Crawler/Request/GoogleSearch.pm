@@ -1,6 +1,6 @@
 package Pcore::AE::Crawler::Request::GoogleSearch;
 
-use Pcore qw[-class];
+use Pcore -class;
 use HTML::LinkExtor qw[];
 use Pcore::Captcha::Antigate;
 

@@ -1,6 +1,6 @@
 package Pcore::Src::Filter::HTML;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::Src::Filter::JS;
 use Pcore::Src::Filter::CSS;
 

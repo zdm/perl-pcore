@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::PAR;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Config qw[];
 use Pcore::Dist::Build::PAR::Script;
 use Term::ANSIColor qw[:constants];

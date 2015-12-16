@@ -1,6 +1,6 @@
 package Pcore::AE::Handle::ProxyPool::Proxy;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::AE::Handle::ProxyPool::Proxy::Removed;
 use Pcore::AE::Handle qw[:ALL];
 

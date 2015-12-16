@@ -1,6 +1,6 @@
 package Pcore::Core::H::Role;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 has h_disconnect_on => ( is => 'ro', isa => Maybe [ Enum [ 'PID_CHANGE', 'BEFORE_FORK', 'REQ_FINISH' ] ], default => undef );
 

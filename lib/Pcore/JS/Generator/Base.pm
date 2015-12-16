@@ -1,6 +1,6 @@
 package Pcore::JS::Generator::Base;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 requires qw[as_js];
 

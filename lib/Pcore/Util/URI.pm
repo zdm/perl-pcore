@@ -1,8 +1,8 @@
 package Pcore::Util::URI;
 
-use Pcore qw[-class];
+use Pcore -class;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 use Pcore::Util::URI::Path;
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 

@@ -1,6 +1,6 @@
 package Pcore::JS::Generator;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Pcore::JS::Generator::Raw;
 use Pcore::JS::Generator::Func;
 use Pcore::JS::Generator::Call;

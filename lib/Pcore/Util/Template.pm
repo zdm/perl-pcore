@@ -1,6 +1,6 @@
 package Pcore::Util::Template;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Text::Xslate qw[];
 
 has _renderer => ( is => 'ro', isa => InstanceOf ['Text::Xslate'], required => 1 );

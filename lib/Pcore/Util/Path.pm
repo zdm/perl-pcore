@@ -1,6 +1,6 @@
 package Pcore::Util::Path;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Storable qw[];
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::URI;

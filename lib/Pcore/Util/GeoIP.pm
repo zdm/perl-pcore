@@ -1,6 +1,6 @@
 package Pcore::Util::GeoIP;
 
-use Pcore qw[-autoload -const];
+use Pcore -autoload, -const;
 
 const our $GEOIP_STANDARD     => 0;    # PP
 const our $GEOIP_MEMORY_CACHE => 1;    # PP

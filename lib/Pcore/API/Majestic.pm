@@ -1,6 +1,6 @@
 package Pcore::API::Majestic;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has api_key              => ( is => 'ro',   isa => Str );
 has openapp_key          => ( is => 'ro',   isa => Str );

@@ -1,6 +1,6 @@
 package Pcore::Core::Proc;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Config qw[];
 use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules] needed to find system temp dir
 use Pcore::Dist;

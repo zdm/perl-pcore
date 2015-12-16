@@ -1,6 +1,6 @@
 package Pcore::HTTP::UA;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 
 BEGIN {
     const our $TLS_CTX_LOW  => 1;

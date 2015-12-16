@@ -1,6 +1,6 @@
 package Pcore::Util::File::UmaskGuard;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 use overload    #
   q[""] => sub {

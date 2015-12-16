@@ -1,6 +1,6 @@
 package Pcore::API::Map::Field::Id;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 extends qw[Pcore::API::Map::Field::Int];
 

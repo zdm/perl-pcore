@@ -2,7 +2,7 @@ package Pcore::Core::CLI::Opt;
 
 # NOTE http://docopt.org/
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Core::CLI::Type];
 

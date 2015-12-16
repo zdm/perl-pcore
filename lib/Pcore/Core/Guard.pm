@@ -1,6 +1,6 @@
 package Pcore::Core::Guard;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Variable::Magic;
 
 my $WIZ = Variable::Magic::wizard(

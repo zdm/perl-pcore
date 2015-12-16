@@ -1,6 +1,6 @@
 package Pcore::Src;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::Src::File;
 use Term::ANSIColor qw[:constants];
 

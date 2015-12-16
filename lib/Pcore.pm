@@ -617,7 +617,7 @@ Pcore - perl applications development environment
 
 =head1 SYNOPSIS
 
-    use Pcore qw[-<pragma> <import>], {config};
+    use Pcore -<pragma> qw[<import>], {config};
 
 =head1 DESCRIPTION
 

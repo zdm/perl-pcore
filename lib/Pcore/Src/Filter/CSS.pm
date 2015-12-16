@@ -1,6 +1,6 @@
 package Pcore::Src::Filter::CSS;
 
-use Pcore qw[-class];
+use Pcore -class;
 use CSS::Packer qw[];
 
 # CSS::Compressor();

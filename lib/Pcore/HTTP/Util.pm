@@ -1,6 +1,6 @@
 package Pcore::HTTP::Util;
 
-use Pcore qw[-const];
+use Pcore -const;
 use Errno qw[];
 use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];

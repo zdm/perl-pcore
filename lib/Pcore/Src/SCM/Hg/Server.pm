@@ -1,6 +1,6 @@
 package Pcore::Src::SCM::Hg::Server;
 
-use Pcore qw[-class];
+use Pcore -class;
 use AnyEvent::Util qw[portable_socketpair];
 
 has root => ( is => 'ro', isa => Str, required => 1 );

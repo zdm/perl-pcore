@@ -1,6 +1,6 @@
 package Pcore::JS::ExtJS::Request;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::JS::ExtJS::Class::Descriptor;
 
 has app_ns     => ( is => 'ro', isa => Str, required => 1 );

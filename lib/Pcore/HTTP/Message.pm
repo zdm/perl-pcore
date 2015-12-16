@@ -1,6 +1,6 @@
 package Pcore::HTTP::Message;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::HTTP::Message::Headers;
 
 has status => ( is => 'ro', isa => PositiveInt, writer => 'set_status', default => 200 );

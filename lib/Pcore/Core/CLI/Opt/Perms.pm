@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Opt::Perms;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 around cli_opt => sub ( $orig, $self ) {
     my $opt = $self->$orig // {};

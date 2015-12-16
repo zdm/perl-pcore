@@ -1,6 +1,6 @@
 package Pcore::Src::SCM::Hg;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 extends qw[Pcore::Src::SCM];
 

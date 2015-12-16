@@ -34,17 +34,15 @@ sub md5_hex {
     return unpack 'H*', $self->md5(@_);
 }
 
-sub bcrypt {
-    my $self     = shift;
-    my $password = shift;
-    my $salt     = shift;
-    my $cost     = shift || $BCRYPT_COST_DEFAULT;
-
+sub bcrypt ( $self, $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
     require Digest::Bcrypt;    ## no critic qw[Modules::ProhibitEvilModules]
 
     my $bcrypt = Digest::Bcrypt->new;
+
     $bcrypt->cost($cost);
+
     $bcrypt->salt($salt);
+
     $bcrypt->add($password);
 
     return $bcrypt->digest;
@@ -57,6 +55,16 @@ sub bcrypt_hex {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 37                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

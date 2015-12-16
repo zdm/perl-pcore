@@ -1,6 +1,6 @@
 package Pcore::API::Map::Field::Date;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 extends qw[Pcore::API::Map::Field];
 

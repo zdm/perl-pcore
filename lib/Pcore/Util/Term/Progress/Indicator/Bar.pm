@@ -1,6 +1,6 @@
 package Pcore::Util::Term::Progress::Indicator::Bar;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Term::ANSIColor qw[:constants];
 
 with qw[Pcore::Util::Term::Progress::Indicator];

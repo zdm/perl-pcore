@@ -2,14 +2,14 @@
 
 package main v0.1.0;
 
-use Pcore qw[-const];
+use Pcore -const;
 use Benchmark qw[];
 
 const our $COUNT => -5;
 
 package _Bench::Moo::Accessors {
 
-    use Pcore qw[-class];
+    use Pcore -class;
 
     has ro            => ( is => 'ro' );
     has ro_isa        => ( is => 'ro', isa => Bool );

@@ -1,6 +1,6 @@
 package Pcore::JS::ExtJS::Class;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::JS::Generator];
 

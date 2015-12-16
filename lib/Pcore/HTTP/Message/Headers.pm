@@ -1,6 +1,6 @@
 package Pcore::HTTP::Message::Headers;
 
-use Pcore qw[-class];
+use Pcore -class;
 extends qw[Pcore::Util::Hash::Multivalue];
 
 no Pcore;

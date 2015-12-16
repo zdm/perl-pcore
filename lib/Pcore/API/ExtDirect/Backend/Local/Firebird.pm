@@ -1,6 +1,6 @@
 package Pcore::API::Backend::Local::Firebird;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::API::Backend::Local];
 

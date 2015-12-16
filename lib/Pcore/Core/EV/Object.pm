@@ -1,6 +1,6 @@
 package Pcore::Core::EV::Object;
 
-use Pcore qw[-class];
+use Pcore -class;
 use overload    #
   q[""] => sub {
     return $_[0]->class;

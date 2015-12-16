@@ -1,6 +1,6 @@
 package Pcore::HTTP::CookieJar;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has cookies => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 

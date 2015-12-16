@@ -1,6 +1,6 @@
 package Pcore::Src::Filter::JS;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Src::Filter];
 

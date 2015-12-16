@@ -1,6 +1,6 @@
 package Pcore::API::Map::Method::Read;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 extends qw[Pcore::API::Map::Method];
 

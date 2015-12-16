@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Cmd::Service;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Core::CLI::Cmd];
 

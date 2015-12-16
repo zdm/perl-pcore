@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Release;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pod::Markdown;
 use CPAN::Meta;
 

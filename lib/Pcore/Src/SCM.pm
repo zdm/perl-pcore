@@ -1,6 +1,6 @@
 package Pcore::Src::SCM;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::Src::SCM::Upstream;
 
 has root => ( is => 'ro', isa => Str, required => 1 );

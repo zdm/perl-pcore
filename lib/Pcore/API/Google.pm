@@ -1,6 +1,6 @@
 package Pcore::Handle::API::Google;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Core::H::Role::Wrapper];
 
@@ -78,7 +78,7 @@ sub _prepare_params {
 
 package Pcore::Handle::API::Google::_Role;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 sub call {
     my $self = shift;

@@ -1,6 +1,6 @@
 package Pcore::JS::ExtJS::Class::Descriptor;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has descriptor => ( is => 'ro', isa => Str, required => 1 );
 

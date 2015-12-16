@@ -1,6 +1,6 @@
 package Pcore::Util::URI::Host;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 use AnyEvent::Socket qw[];
 use Pcore::Util::URI::Punycode qw[:ALL];
 

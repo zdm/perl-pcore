@@ -1,6 +1,6 @@
 package Pcore::AE::Handle::ProxyPool::Storage;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has pool_id => ( is => 'ro', isa => Int, required => 1 );
 

@@ -1,10 +1,10 @@
 package Pcore::App::Role;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 package Pcore::AppX::Role;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Term::ANSIColor qw[:constants];
 
 has _appx_enum     => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
@@ -104,7 +104,7 @@ around app_reset => sub ( $orig, $self ) {
 
 package Pcore::App;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::AppX::HasAppX;
 
 with qw[Pcore::App::Role];

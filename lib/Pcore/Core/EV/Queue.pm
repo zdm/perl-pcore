@@ -1,6 +1,6 @@
 package Pcore::Core::EV::Queue;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::Core::EV::Object;
 
 has _queue => ( is => 'lazy', isa => HashRef, init_arg => undef );

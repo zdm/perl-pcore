@@ -1,6 +1,6 @@
 package Pcore::API::Map::Field;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 has api_map => ( is => 'ro', isa => InstanceOf ['Pcore::API::Map'], required => 1, weak_ref => 1 );
 has name => ( is => 'ro', isa => StrMatch [qr/\A[[:lower:][:digit:]_]+\z/sm], required => 1 );

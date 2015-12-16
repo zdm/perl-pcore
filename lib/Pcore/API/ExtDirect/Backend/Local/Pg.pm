@@ -1,6 +1,6 @@
 package Pcore::API::Backend::Local::Pg;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::API::Backend::Local];
 

@@ -1,6 +1,6 @@
 package Pcore::AE::Handle::Cache;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::AE::Handle::Cache::Storage;
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
 

@@ -1,6 +1,6 @@
 package Pcore::API::Class::Upload::File;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Imager;
 
 with qw[Pcore::API::Class::Grid];

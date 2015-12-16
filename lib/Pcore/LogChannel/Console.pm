@@ -1,6 +1,6 @@
 package Pcore::LogChannel::Console;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Term::ANSIColor qw[:constants];
 
 with qw[Pcore::Core::Log::Channel];

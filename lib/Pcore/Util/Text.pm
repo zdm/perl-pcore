@@ -1,6 +1,6 @@
 package Pcore::Util::Text;
 
-use Pcore qw[-autoload];
+use Pcore -autoload;
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
 

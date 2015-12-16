@@ -2,7 +2,7 @@
 
 package Str1;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 use overload    #
   q[""] => sub {
@@ -28,7 +28,7 @@ no Pcore;
 
 package Str2;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 use overload    #
   q[""] => sub {

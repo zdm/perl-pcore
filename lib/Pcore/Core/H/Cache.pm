@@ -1,6 +1,6 @@
 package Pcore::Core::H::Cache;
 
-use Pcore qw[-class -autoload];
+use Pcore -class, -autoload;
 
 has _h_cache => ( is => 'lazy', isa => HashRef [ ConsumerOf ['Pcore::Core::H::Role'] ], init_arg => undef );
 has _h_supported_events => ( is => 'lazy', isa => HashRef, init_arg => undef );

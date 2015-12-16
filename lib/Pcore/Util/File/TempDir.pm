@@ -1,6 +1,6 @@
 package Pcore::Util::File::TempDir;
 
-use Pcore qw[-class -const];
+use Pcore -class, -const;
 use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
 
 has base => ( is => 'lazy', isa => Str );

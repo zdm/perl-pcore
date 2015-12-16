@@ -1,6 +1,6 @@
 package Pcore::AppX::HasAppX;
 
-use Pcore qw[-types];
+use Pcore -types;
 
 sub import ($self) {
     my $caller = caller;

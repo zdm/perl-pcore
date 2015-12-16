@@ -1,6 +1,6 @@
 package Pcore::AppX::OpenSSL;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 # openssl help - http://pro-ldap.ru/tr/zytrax/tech/ssl.html
 

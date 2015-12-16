@@ -1,6 +1,6 @@
 package Pcore::Handle::API;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Core::H::Role::Wrapper];
 

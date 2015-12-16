@@ -1,6 +1,6 @@
 package Pcore::Dist;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Config qw[];
 
 has root => ( is => 'ro', isa => Maybe [Str], required => 1 );    # absolute path to the dist root

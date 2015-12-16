@@ -1,6 +1,6 @@
 package Pcore::Core::Dump::Dumper;
 
-use Pcore qw[-class];
+use Pcore -class;
 use re qw[];
 use Sort::Naturally qw[nsort];
 use Term::ANSIColor qw[colored];

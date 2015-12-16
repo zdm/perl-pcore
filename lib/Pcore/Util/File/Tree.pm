@@ -1,6 +1,6 @@
 package Pcore::Util::File::Tree;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Pcore::Util::File::Tree::File;
 
 has files => ( is => 'lazy', isa => HashRef [ InstanceOf ['Pcore::Util::File::Tree::File'] ], default => sub { {} }, init_arg => undef );

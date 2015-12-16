@@ -1,6 +1,6 @@
 package Pcore::Handle::API::Google::Youtube;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 with qw[Pcore::Handle::API::Google::_Role];
 

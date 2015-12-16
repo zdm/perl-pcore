@@ -1,6 +1,6 @@
 package Pcore::Util::List;
 
-use Pcore qw[-autoload];
+use Pcore -autoload;
 use List::AllUtils qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub autoload {

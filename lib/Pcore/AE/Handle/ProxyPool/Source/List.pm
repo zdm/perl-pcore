@@ -1,6 +1,6 @@
 package Pcore::AE::Handle::ProxyPool::Source::List;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::AE::Handle::ProxyPool::Source];
 

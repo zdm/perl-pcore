@@ -1,6 +1,6 @@
 package Pcore::Util::URI::sftp;    ## no critic qw[NamingConventions::Capitalization]
 
-use Pcore qw[-class];
+use Pcore -class;
 
 extends qw[Pcore::Util::URI];
 

@@ -2,7 +2,7 @@
 
 package main v0.1.0;
 
-use Pcore qw[-const];
+use Pcore -const;
 use Benchmark;
 use URI;
 

@@ -1,6 +1,6 @@
 package Pcore::Handle::API::Google::Youtube::Videos;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Handle::API::Google::Youtube];
 

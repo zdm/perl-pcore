@@ -1,6 +1,6 @@
 package Pcore::JS::ExtJS::Namespace;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Pcore::JS::ExtJS::Request;
 use Pcore::JS::ExtJS::Class;
 

@@ -1,6 +1,6 @@
 package Pcore::API::Call::Action;
 
-use Pcore qw[-role];
+use Pcore -role;
 
 has type   => ( is => 'ro', isa => Str, default   => 'rpc' );
 has action => ( is => 'ro', isa => Str, required  => 1 );

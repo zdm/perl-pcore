@@ -1,6 +1,6 @@
 package Pcore::LogChannel::Jabber;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Core::Log::Channel];
 

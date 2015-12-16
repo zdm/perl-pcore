@@ -1,6 +1,6 @@
 package Pcore::Dist::CLI;
 
-use Pcore qw[-role];
+use Pcore -role;
 use Pcore::Dist;
 
 with qw[Pcore::Core::CLI::Cmd];

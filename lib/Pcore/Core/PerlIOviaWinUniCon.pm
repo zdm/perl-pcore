@@ -1,6 +1,6 @@
 package Pcore::Core::PerlIOviaWinUniCon;
 
-use Pcore qw[-inline];
+use Pcore -inline;
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 use Inline(

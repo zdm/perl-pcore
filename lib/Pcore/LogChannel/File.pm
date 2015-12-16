@@ -1,6 +1,6 @@
 package Pcore::LogChannel::File;
 
-use Pcore qw[-class];
+use Pcore -class;
 use IO::File;
 use Fcntl qw[:flock];
 

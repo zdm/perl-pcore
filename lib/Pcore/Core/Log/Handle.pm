@@ -1,6 +1,6 @@
 package Pcore::Core::Log::Handle;
 
-use Pcore qw[-class];
+use Pcore -class;
 use MooseX::GlobRef;
 use IO::Handle;
 

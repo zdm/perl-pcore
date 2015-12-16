@@ -1,6 +1,6 @@
 package Pcore::Dist::CLI::Release;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 

@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Deploy;
 
-use Pcore qw[-class];
+use Pcore -class;
 use Config qw[];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );

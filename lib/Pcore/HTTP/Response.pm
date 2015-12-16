@@ -1,6 +1,6 @@
 package Pcore::HTTP::Response;
 
-use Pcore qw[-class];
+use Pcore -class;
 
 extends qw[Pcore::HTTP::Message];
 

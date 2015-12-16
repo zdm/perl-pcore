@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Type;
 
-use Pcore qw[-role -const];
+use Pcore -role, -const;
 
 const our $TYPE => {
     Str => sub ($val) {

@@ -1,6 +1,6 @@
 package Pcore::Util::Scalar;
 
-use Pcore qw[-autoload];
+use Pcore -autoload;
 use Scalar::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub is_hash {
