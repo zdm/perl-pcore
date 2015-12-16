@@ -1,18 +1,10 @@
-# mercurial
-.hg/
-.hgignore
-.hgsub
-.hgsubstate
-.hgtags
-
-# git
-.git/
-.gitignore
-.gitattributes
-.gitmodules
-.mailmap
+# SCM
+.hg*
+.git*
 
 # pcore
+contrib/
 data/
 log/
 wiki/
+xt/
