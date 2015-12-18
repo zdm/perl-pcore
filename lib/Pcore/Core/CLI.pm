@@ -540,6 +540,8 @@ sub help_version ($self) {
 
     say $format_info->( $PROC->pcore ) if !$PROC->dist || $PROC->dist->name ne $PROC->pcore->name;
 
+    say 'Perl ' . version->new($])->normal . " $Config::Config{archname}";
+
     exit 2;
 }
 
