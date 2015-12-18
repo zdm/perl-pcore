@@ -532,13 +532,18 @@ sub help_usage ( $self, $invalid_options = undef ) {
 }
 
 sub help_version ($self) {
-    my $format_info = sub ($dist) {
+    my $format_dist_info = sub ($dist) {
         return "@{[$dist->name]} @{[$dist->version]} @{[$dist->revision]} @{[$dist->build_date]}";
     };
 
-    say $format_info->( $PROC->dist ) if $PROC->dist;
+    if ( $PROC->dist ) {
+        say $format_dist_info->( $PROC->dist );
+    }
+    else {
+        say join q[ ], $PROC->{SCRIPT_NAME}, ( $main::VERSION ? version->new($main::VERSION)->normal : () );
+    }
 
-    say $format_info->( $PROC->pcore ) if !$PROC->dist || $PROC->dist->name ne $PROC->pcore->name;
+    say $format_dist_info->( $PROC->pcore ) if !$PROC->dist || $PROC->dist->name ne $PROC->pcore->name;
 
     say 'Perl ' . version->new($])->normal . " $Config::Config{archname}";
 
