@@ -72,7 +72,7 @@ sub _chmod ($self) {
 
 sub _cpanm ($self) {
     if ( -f 'cpanfile' ) {
-        my $cfg = P->cfg->load( $PROC->res->get( '/data/pcore.perl', lib => 'pcore' ) );
+        my $cfg = P->cfg->load( $ENV->res->get( '/data/pcore.perl', lib => 'pcore' ) );
 
         # install known platform exceptions without tests
         if ( exists $cfg->{cpanm}->{ $Config::Config{archname} } && $cfg->{cpanm}->{ $Config::Config{archname} }->@* ) {

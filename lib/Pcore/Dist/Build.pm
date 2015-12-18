@@ -12,7 +12,7 @@ has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki
 no Pcore;
 
 sub _build_user_cfg_path ($self) {
-    return $PROC->{PCORE_USER_DIR} . 'pcore.ini';
+    return $ENV->{PCORE_USER_DIR} . 'pcore.ini';
 }
 
 sub _build_user_cfg ($self) {
@@ -171,7 +171,7 @@ sub tgz ($self) {
         }
     );
 
-    my $path = $PROC->{PCORE_SYS_DIR} . 'build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
+    my $path = $ENV->{PCORE_SYS_DIR} . 'build/' . $self->dist->name . q[-] . $self->dist->version . '.tar.gz';
 
     $tgz->write( $path, Archive::Tar::COMPRESS_GZIP() );
 

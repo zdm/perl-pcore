@@ -45,10 +45,10 @@ sub send_log {
                     level   => lc $args{level},
                     tags    => {
                         namespace    => $args{ns},
-                        script_name  => $PROC->{SCRIPT_NAME},
-                        script_dir   => $PROC->{SCRIPT_DIR},
-                        script_path  => $PROC->{SCRIPT_PATH},
-                        process_name => $PROC->{SERVICE_NAME} || q[],
+                        script_name  => $ENV->{SCRIPT_NAME},
+                        script_dir   => $ENV->{SCRIPT_DIR},
+                        script_path  => $ENV->{SCRIPT_PATH},
+                        process_name => $ENV->{SERVICE_NAME} || q[],
                         %{ $args{tags} }
                     },
                 }

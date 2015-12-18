@@ -23,9 +23,9 @@ around cli_opt => sub ( $orig, $self ) {
 around cli_run => sub ( $orig, $self, $opt, @args ) {
 
     # store uid and gid
-    $PROC->{UID} = $opt->{UID} if $opt->{UID};
+    $ENV->{UID} = $opt->{UID} if $opt->{UID};
 
-    $PROC->{GID} = $opt->{GID} if $opt->{GID};
+    $ENV->{GID} = $opt->{GID} if $opt->{GID};
 
     return $self->$orig( $opt, @args );
 };

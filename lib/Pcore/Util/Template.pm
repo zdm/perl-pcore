@@ -20,12 +20,12 @@ sub NEW ( $self, %args ) {
 
     my $path = [$string_tmpl_cache];    # virtual path
 
-    push $path->@*, $PROC->res->get_storage('tmpl')->@*;
+    push $path->@*, $ENV->res->get_storage('tmpl')->@*;
 
     my $args_def = {
         path        => $path,
         cache       => 1,
-        cache_dir   => $PROC->{TEMP_DIR} . '.xslate',
+        cache_dir   => $ENV->{TEMP_DIR} . '.xslate',
         input_layer => q[:encoding(UTF-8)],
         type        => 'html',                              # html, text}
         syntax      => 'Kolon',                             # Kolon, TTerse

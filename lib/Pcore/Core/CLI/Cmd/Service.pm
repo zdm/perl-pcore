@@ -6,7 +6,7 @@ with qw[Pcore::Core::CLI::Cmd];
 
 no Pcore;
 
-# TODO this command should be added automatically, if $PROC->{CFG}->{SERVICE_NAME} is defined
+# TODO this command should be added automatically, if $ENV->{CFG}->{SERVICE_NAME} is defined
 
 sub cli_name ($self) {
     return 'service';
@@ -22,7 +22,7 @@ sub cli_opt ($self) {
             short   => undef,
             desc    => 'service name',
             isa     => 'Str',
-            default => $PROC->{CFG}->{SERVICE_NAME},
+            default => $ENV->{CFG}->{SERVICE_NAME},
         }
     };
 }
@@ -43,9 +43,9 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 
 sub _install_service ( $self, $service_name ) {
     if ($MSWIN) {
-        my $wrapper = $PROC->res->get('/bin/nssm_x64.exe');
+        my $wrapper = $ENV->res->get('/bin/nssm_x64.exe');
 
-        my $output = P->capture->sys( $wrapper, 'install', $service_name, 'perl.exe', $PROC->{SCRIPT_PATH} );
+        my $output = P->capture->sys( $wrapper, 'install', $service_name, 'perl.exe', $ENV->{SCRIPT_PATH} );
     }
     else {
         my $TMPL = <<"TXT";
@@ -53,7 +53,7 @@ sub _install_service ( $self, $service_name ) {
 After=network.target
 
 [Service]
-ExecStart=/bin/bash -c ". /etc/profile; exec $PROC->{SCRIPT_PATH}"
+ExecStart=/bin/bash -c ". /etc/profile; exec $ENV->{SCRIPT_PATH}"
 Restart=always
 
 [Install]

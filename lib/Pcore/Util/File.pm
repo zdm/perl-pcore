@@ -592,7 +592,7 @@ sub tempdir ( $self, %args ) {
 
 sub temppath ( $self, @ ) {
     my %args = (
-        base   => $PROC->{TEMP_DIR},
+        base   => $ENV->{TEMP_DIR},
         suffix => q[],
         tmpl   => 'temp-' . P->sys->pid . '-XXXXXXXX',
         @_[ 1 .. $#_ ],

@@ -206,7 +206,7 @@ sub _build_name_camel_case ($self) {
 }
 
 sub _build_app_dir ($self) {
-    my $dir = $PROC->{DATA_DIR} . $self->name . q[/];
+    my $dir = $ENV->{DATA_DIR} . $self->name . q[/];
 
     P->file->mkpath($dir);
 

@@ -45,7 +45,7 @@ no Pcore;
 
 sub pub_suffixes ($force_download = 0) {
     state $suffixes = do {
-        my $path = $PROC->res->get('/data/pub_suffix.dat');
+        my $path = $ENV->res->get('/data/pub_suffix.dat');
 
         if ( !$path || $force_download ) {
             P->ua->request(
@@ -91,7 +91,7 @@ sub pub_suffixes ($force_download = 0) {
                             }
                         }
 
-                        $path = $PROC->res->store( \join( $LF, sort keys $_suffixes->%* ), '/data/pub_suffix.dat', 'pcore' );
+                        $path = $ENV->res->store( \join( $LF, sort keys $_suffixes->%* ), '/data/pub_suffix.dat', 'pcore' );
                     }
 
                     return;
@@ -107,7 +107,7 @@ sub pub_suffixes ($force_download = 0) {
 
 sub tlds ($force_download = 0) {
     state $tlds = do {
-        my $path = $PROC->res->get('/data/tld.dat');
+        my $path = $ENV->res->get('/data/tld.dat');
 
         if ( !$path || $force_download ) {
             P->ua->request(
@@ -117,7 +117,7 @@ sub tlds ($force_download = 0) {
                 blocking    => $force_download ? $force_download : 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = $PROC->res->store( P->text->encode_utf8( \join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
+                        $path = $ENV->res->store( P->text->encode_utf8( \join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
                     }
 
                     return;

@@ -47,7 +47,7 @@ sub BUILD ( $self, $args ) {
 }
 
 sub _build_base ($self) {
-    return "$PROC->{TEMP_DIR}";
+    return "$ENV->{TEMP_DIR}";
 }
 
 sub _build_tmpl ($self) {

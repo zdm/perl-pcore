@@ -491,16 +491,16 @@ sub _CORE_RUN {
         if ( !$MSWIN ) {
 
             # GID is inherited from UID by default
-            if ( defined $PROC->{UID} && !defined $PROC->{GID} ) {
-                my $uid = $PROC->{UID} =~ /\A\d+\z/sm ? $PROC->{UID} : getpwnam $PROC->{UID};
+            if ( defined $ENV->{UID} && !defined $ENV->{GID} ) {
+                my $uid = $ENV->{UID} =~ /\A\d+\z/sm ? $ENV->{UID} : getpwnam $ENV->{UID};
 
-                die qq[Can't find uid "$PROC->{UID}"] if !defined $uid;
+                die qq[Can't find uid "$ENV->{UID}"] if !defined $uid;
 
-                $PROC->{GID} = [ getpwuid $uid ]->[2];
+                $ENV->{GID} = [ getpwuid $uid ]->[2];
             }
 
             # change priv
-            Pcore->pm->change_priv( gid => $PROC->{GID}, uid => $PROC->{UID} );
+            Pcore->pm->change_priv( gid => $ENV->{GID}, uid => $ENV->{UID} );
         }
     }
 

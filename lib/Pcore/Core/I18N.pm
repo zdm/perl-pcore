@@ -10,7 +10,7 @@ our $LOCATIONS = [];
 our $CACHE     = {};
 
 sub CORE_INIT {
-    if ( my $i18n_res = $PROC->res->get_storage('i18n') ) {
+    if ( my $i18n_res = $ENV->res->get_storage('i18n') ) {
         for my $path ( $i18n_res->@* ) {
             _add_location($path);
         }
@@ -286,7 +286,7 @@ Pcore::Core::I18N - P internationalization subsystem.
 
 =head1 SYNOPSIS
 
-    GO->I18N->add_location($PROC->{I18N_DIR});
+    GO->I18N->add_location($ENV->{I18N_DIR});
     GO->I18N->locale('ru_RU');
 
 =head1 Config strings internationalization
@@ -302,8 +302,8 @@ Pcore::Core::I18N - P internationalization subsystem.
 
 Для ресолвинга интернациональных строк в конфиге использовать вызов:
 
-    i18n($PROC->{string});
-    i18n($PROC->{plural_string}, $plural_value); $plural_value - числовое значение множественной формы
+    i18n($ENV->{string});
+    i18n($ENV->{plural_string}, $plural_value); $plural_value - числовое значение множественной формы
 
 
 =head1 Template toolkit templates internationalization

@@ -2,7 +2,7 @@ package Pcore::Core::Bootstrap;
 
 use Pcore;
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-use Pcore::Core::Proc;
+use Pcore::Core::Env;
 
 # may not work, if executed in one-liner script
 eval { require FindBin; };
@@ -21,10 +21,10 @@ if ($@) {
 sub CORE_INIT ($proc_cfg) {
     _normalize_inc();
 
-    $PROC = Pcore::Core::Proc->new( $proc_cfg // () );
+    $ENV = Pcore::Core::Env->new( $proc_cfg // () );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     # register util accessors
-    P->hash->merge( $Pcore::Core::Util::UTIL, $PROC->{CFG}->{util} ) if $PROC->{CFG}->{util};
+    P->hash->merge( $Pcore::Core::Util::UTIL, $ENV->{CFG}->{util} ) if $ENV->{CFG}->{util};
 
     _configure_inc();
 
@@ -87,8 +87,8 @@ sub _configure_inc {
     }
 
     # not for PAR
-    if ( !$PROC->is_par ) {
-        my $is_module_build_test = $PROC->dist && exists $inc_index->{ $PROC->dist->root . 'blib/lib' } ? 1 : 0;
+    if ( !$ENV->is_par ) {
+        my $is_module_build_test = $ENV->dist && exists $inc_index->{ $ENV->dist->root . 'blib/lib' } ? 1 : 0;
 
         # add dist lib and PCORE_DIST_LIB to @INC only if we are int on the PAR archive and not in the Module::Build testing environment
         # under Module::Build dist lib is already added and PCORE_DIST_LIB is not added to emulate clean CPAN installation
@@ -96,8 +96,8 @@ sub _configure_inc {
             my $dist_lib_path;
 
             # detect dist lib path
-            if ( $PROC->dist && !exists $inc_index->{ $PROC->dist->root . 'lib' } && -d $PROC->dist->root . 'lib/' ) {
-                $dist_lib_path = $PROC->dist->root . 'lib';
+            if ( $ENV->dist && !exists $inc_index->{ $ENV->dist->root . 'lib' } && -d $ENV->dist->root . 'lib/' ) {
+                $dist_lib_path = $ENV->dist->root . 'lib';
 
                 $inc_index->{$dist_lib_path} = 1;
             }
@@ -118,7 +118,7 @@ sub _configure_inc {
         }
 
         # add absolute script path, only if not in PAR mode
-        my $script_path = P->path( $PROC->{SCRIPT_DIR}, is_dir => 1 )->canonpath;
+        my $script_path = P->path( $ENV->{SCRIPT_DIR}, is_dir => 1 )->canonpath;
 
         if ( !exists $inc_index->{$script_path} ) {
             $inc_index->{$script_path} = 1;

@@ -95,10 +95,10 @@ sub run ($self) {
     $self->tree->add_file( 'share/build.perl', $self->dist->create_build_info );
 
     # add Pcore dist.perl
-    $self->tree->add_file( 'lib/auto/share/dist/Pcore/dist.perl', $PROC->res->get_lib('pcore') . 'dist.perl' );
+    $self->tree->add_file( 'lib/auto/share/dist/Pcore/dist.perl', $ENV->res->get_lib('pcore') . 'dist.perl' );
 
     # add Pcore build.perl
-    $self->tree->add_file( 'lib/auto/share/dist/Pcore/build.perl', $PROC->pcore->create_build_info );
+    $self->tree->add_file( 'lib/auto/share/dist/Pcore/build.perl', $ENV->pcore->create_build_info );
 
     # add META.yml
     $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->clean;
@@ -180,7 +180,7 @@ sub _add_resources ($self) {
     return if !$self->resources;
 
     for my $res ( $self->resources->@* ) {
-        my $path = $PROC->res->get($res);
+        my $path = $ENV->res->get($res);
 
         if ( !$path ) {
             $self->_error(qq[required resource "$res" wasn't found]);
@@ -388,13 +388,13 @@ sub _compress_upx ( $self, $path ) {
 
     my $upx;
 
-    my $upx_cache_dir = $PROC->{PCORE_USER_DIR} . 'upx-cache/';
+    my $upx_cache_dir = $ENV->{PCORE_USER_DIR} . 'upx-cache/';
 
     if ($MSWIN) {
-        $upx = $PROC->res->get('/bin/upx.exe');
+        $upx = $ENV->res->get('/bin/upx.exe');
     }
     else {
-        $upx = $PROC->res->get('/bin/upx_x64');
+        $upx = $ENV->res->get('/bin/upx_x64');
     }
 
     if ($upx) {
@@ -556,7 +556,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
         my $exe = Win32::Exe->new( $repacked_exe_fh->path );
 
-        $exe->update( icon => $PROC->res->get('/data/par.ico') );
+        $exe->update( icon => $ENV->res->get('/data/par.ico') );
 
         say 'done';
     }

@@ -36,7 +36,7 @@ sub cli_arg ($self) {
 sub cli_run ( $self, $opt, $arg, $rest ) {
     $opt->{namespace} = $arg->{namespace};
 
-    $opt->{path} = $PROC->{START_DIR};
+    $opt->{path} = $ENV->{START_DIR};
 
     if ( my $dist = Pcore::Dist->create( $opt->%* ) ) {
         return;

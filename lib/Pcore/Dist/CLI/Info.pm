@@ -32,7 +32,7 @@ share_dir: <: $dist.share_dir :>
 lib_dir: <: $dist.module.lib :>
 TMPL
 
-    say P->tmpl->render( \$tmpl, { dist => $pcore ? $PROC->pcore : $self->dist } )->$*;
+    say P->tmpl->render( \$tmpl, { dist => $pcore ? $ENV->pcore : $self->dist } )->$*;
 
     return;
 }

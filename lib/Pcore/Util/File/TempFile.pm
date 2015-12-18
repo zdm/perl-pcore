@@ -31,7 +31,7 @@ END {
 
 sub new ( $self, @ ) {
     my %args = (
-        base      => $PROC->{TEMP_DIR},
+        base      => $ENV->{TEMP_DIR},
         suffix    => q[],
         tmpl      => 'temp-' . P->sys->pid . '-XXXXXXXX',
         exclusive => 0,

@@ -24,7 +24,7 @@ sub filedump {
 }
 
 sub ffiledump ( $self, $filename, @ ) {
-    P->file->append_text( $PROC->{LOG_DIR} . $filename, Pcore::Core::Dump::dump( @_, color => 0 ), $LF );
+    P->file->append_text( $ENV->{LOG_DIR} . $filename, Pcore::Core::Dump::dump( @_, color => 0 ), $LF );
 
     return;
 }

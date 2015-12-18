@@ -419,7 +419,7 @@ sub is_root ($self) {
 # MIME
 sub _get_mime_types ($self) {
     unless ($MIME_TYPES) {
-        $MIME_TYPES = P->cfg->load( $PROC->res->get('/data/mime.perl') );
+        $MIME_TYPES = P->cfg->load( $ENV->res->get('/data/mime.perl') );
 
         # index MIME categories
         for my $suffix ( keys $MIME_TYPES->{suffix}->%* ) {

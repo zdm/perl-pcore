@@ -39,14 +39,14 @@ sub run ( $self, $keep = 0 ) {
     $self->_generate_meta_json($tree);
 
     if ($keep) {
-        my $path = P->file->temppath( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX' );
+        my $path = P->file->temppath( base => $ENV->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX' );
 
         $tree->write_to( $path, manifest => 1 );
 
         return $path;
     }
     else {
-        return $tree->write_to_temp( base => $PROC->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
+        return $tree->write_to_temp( base => $ENV->{PCORE_SYS_DIR} . 'build/', tmpl => $self->dist->name . '-XXXXXXXX', manifest => 1 );
     }
 }
 

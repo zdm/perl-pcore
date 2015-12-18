@@ -96,7 +96,7 @@ sub cli_arg ($self) {
 }
 
 sub cli_run ( $self, $opt, $arg, $rest ) {
-    P->file->chdir( $PROC->{START_DIR} );
+    P->file->chdir( $ENV->{START_DIR} );
 
     my $exit_code = try {
         my $src = Pcore::Src->new(

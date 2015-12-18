@@ -17,7 +17,7 @@ has _cmd_index => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 no Pcore;
 
-my $SCAN_DEPS = !$PROC->is_par && $PROC->dist && $PROC->dist->cfg->{dist}->{par} && exists $PROC->dist->cfg->{dist}->{par}->{ $PROC->{SCRIPT_NAME} };
+my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->cfg->{dist}->{par} && exists $ENV->dist->cfg->{dist}->{par}->{ $ENV->{SCRIPT_NAME} };
 
 sub _build_cmd ($self) {
     my $cmd = [];
@@ -384,7 +384,7 @@ sub _help_class_abstract ( $self, $class = undef ) {
 }
 
 sub _help_usage_string ($self) {
-    my $usage = join q[ ], P->path( $PROC->{SCRIPT_NAME} )->filename, $self->cmd_path->@*;
+    my $usage = join q[ ], P->path( $ENV->{SCRIPT_NAME} )->filename, $self->cmd_path->@*;
 
     if ( $self->is_cmd ) {
         $usage .= ' [COMMAND] [OPTION]...';
@@ -536,14 +536,14 @@ sub help_version ($self) {
         return "@{[$dist->name]} @{[$dist->version]} @{[$dist->revision]} @{[$dist->build_date]}";
     };
 
-    if ( $PROC->dist ) {
-        say $format_dist_info->( $PROC->dist );
+    if ( $ENV->dist ) {
+        say $format_dist_info->( $ENV->dist );
     }
     else {
-        say join q[ ], $PROC->{SCRIPT_NAME}, ( $main::VERSION ? version->new($main::VERSION)->normal : () );
+        say join q[ ], $ENV->{SCRIPT_NAME}, ( $main::VERSION ? version->new($main::VERSION)->normal : () );
     }
 
-    say $format_dist_info->( $PROC->pcore ) if !$PROC->dist || $PROC->dist->name ne $PROC->pcore->name;
+    say $format_dist_info->( $ENV->pcore ) if !$ENV->dist || $ENV->dist->name ne $ENV->pcore->name;
 
     say 'Perl ' . version->new($])->normal . " $Config::Config{archname}";
 

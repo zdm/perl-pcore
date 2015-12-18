@@ -1,4 +1,4 @@
-package Pcore::Core::Proc::Resources;
+package Pcore::Core::Env::Resources;
 
 use Pcore -class, -const;
 
@@ -177,7 +177,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Proc::Resources
+Pcore::Core::Env::Resources
 
 =head1 SYNOPSIS
 

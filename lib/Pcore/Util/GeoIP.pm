@@ -20,7 +20,7 @@ my $H;
 
 sub country2_path ( $self, $force = undef, $cv = undef ) {
     state $path = do {
-        my $_path = $PROC->res->get('/data/geoip2_country.dat');
+        my $_path = $ENV->res->get('/data/geoip2_country.dat');
 
         if ( !$_path || $force ) {
             P->ua->request(
@@ -36,7 +36,7 @@ sub country2_path ( $self, $force = undef, $cv = undef ) {
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
-                        $_path = $PROC->res->store( $temp->path, '/data/geoip2_country.dat', 'pcore' );
+                        $_path = $ENV->res->store( $temp->path, '/data/geoip2_country.dat', 'pcore' );
                     }
 
                     return;
@@ -52,7 +52,7 @@ sub country2_path ( $self, $force = undef, $cv = undef ) {
 
 sub city2_path ( $self, $force = undef, $cv = undef ) {
     state $path = do {
-        my $_path = $PROC->res->get('/data/geoip2_city.dat');
+        my $_path = $ENV->res->get('/data/geoip2_city.dat');
 
         if ( !$_path || $force ) {
             P->ua->request(
@@ -68,7 +68,7 @@ sub city2_path ( $self, $force = undef, $cv = undef ) {
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
-                        $_path = $PROC->res->store( $temp->path, '/data/geoip2_city.dat', 'pcore' );
+                        $_path = $ENV->res->store( $temp->path, '/data/geoip2_city.dat', 'pcore' );
                     }
 
                     return;
@@ -84,7 +84,7 @@ sub city2_path ( $self, $force = undef, $cv = undef ) {
 
 sub country_path ( $self, $force = undef, $cv = undef ) {
     state $path = do {
-        my $_path = $PROC->res->get('/data/geoip_country.dat');
+        my $_path = $ENV->res->get('/data/geoip_country.dat');
 
         if ( !$_path || $force ) {
             P->ua->request(
@@ -100,7 +100,7 @@ sub country_path ( $self, $force = undef, $cv = undef ) {
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
-                        $_path = $PROC->res->store( $temp->path, '/data/geoip_country.dat', 'pcore' );
+                        $_path = $ENV->res->store( $temp->path, '/data/geoip_country.dat', 'pcore' );
                     }
 
                     return;
@@ -116,7 +116,7 @@ sub country_path ( $self, $force = undef, $cv = undef ) {
 
 sub country_v6_path ( $self, $force = undef, $cv = undef ) {
     state $path = do {
-        my $_path = $PROC->res->get('/data/geoip_country_v6.dat');
+        my $_path = $ENV->res->get('/data/geoip_country_v6.dat');
 
         if ( !$_path || $force ) {
             P->ua->request(
@@ -132,7 +132,7 @@ sub country_v6_path ( $self, $force = undef, $cv = undef ) {
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp, BinModeOut => 1 );
 
-                        $_path = $PROC->res->store( $temp->path, '/data/geoip_country_v6.dat', 'pcore' );
+                        $_path = $ENV->res->store( $temp->path, '/data/geoip_country_v6.dat', 'pcore' );
                     }
 
                     return;
@@ -148,7 +148,7 @@ sub country_v6_path ( $self, $force = undef, $cv = undef ) {
 
 sub city_path ( $self, $force = undef, $cv = undef ) {
     state $path = do {
-        my $_path = $PROC->res->get('/data/geoip_city.dat');
+        my $_path = $ENV->res->get('/data/geoip_city.dat');
 
         if ( !$_path || $force ) {
             P->ua->request(
@@ -164,7 +164,7 @@ sub city_path ( $self, $force = undef, $cv = undef ) {
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
-                        $_path = $PROC->res->store( $temp->path, '/data/geoip_city.dat', 'pcore' );
+                        $_path = $ENV->res->store( $temp->path, '/data/geoip_city.dat', 'pcore' );
                     }
 
                     return;
@@ -180,7 +180,7 @@ sub city_path ( $self, $force = undef, $cv = undef ) {
 
 sub city_v6_path ( $self, $force = undef, $cv = undef ) {
     state $path = do {
-        my $_path = $PROC->res->get('/data/geoip_city_v6.dat');
+        my $_path = $ENV->res->get('/data/geoip_city_v6.dat');
 
         if ( !$_path || $force ) {
             P->ua->request(
@@ -196,7 +196,7 @@ sub city_v6_path ( $self, $force = undef, $cv = undef ) {
 
                         IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
-                        $_path = $PROC->res->store( $temp->path, '/data/geoip_city_v6.dat', 'pcore' );
+                        $_path = $ENV->res->store( $temp->path, '/data/geoip_city_v6.dat', 'pcore' );
                     }
 
                     return;

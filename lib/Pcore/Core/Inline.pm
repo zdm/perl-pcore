@@ -4,7 +4,7 @@ use Pcore;
 
 no Pcore;
 
-if ( $PROC->is_par ) {
+if ( $ENV->is_par ) {
     $INC{'Inline.pm'} = $INC{'Pcore/Core/Inline.pm'};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     require DynaLoader;
@@ -26,7 +26,7 @@ else {
 
     Inline->import(
         config => (
-            directory         => $PROC->{INLINE_DIR},
+            directory         => $ENV->{INLINE_DIR},
             autoname          => 0,
             clean_after_build => 1,
             clean_build_area  => 1,

@@ -14,7 +14,7 @@ has h           => ( is       => 'lazy', isa => Str, init_arg => undef );
 sub _build_h {
     my $self = shift;
 
-    my $h = $PROC->{LOG_DIR} . $self->stream;
+    my $h = $ENV->{LOG_DIR} . $self->stream;
 
     H->add(
         $h        => 'File',
@@ -30,7 +30,7 @@ sub send_log {
     my $self = shift;
     my %args = @_;
 
-    return unless $PROC->{LOG_DIR};
+    return unless $ENV->{LOG_DIR};
 
     my $stream = $self->h;
 

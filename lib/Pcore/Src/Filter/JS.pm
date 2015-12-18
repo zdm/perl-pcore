@@ -112,7 +112,7 @@ sub run_js_hint ($self) {
 
         syswrite $in_temp, $self->buffer->$* or die;
 
-        my $out_temp = $PROC->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
+        my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
 
         require Win32::Process;
 
