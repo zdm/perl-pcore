@@ -1,6 +1,6 @@
 package Pcore::Util::Digest;
 
-use Pcore;
+use Pcore -export => [qw[md5 md5_hex bcypt bcypt_hex crc32]];
 use Digest qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $BCRYPT_COST_DEFAULT = 10;
@@ -9,7 +9,11 @@ sub md5 {
     my $self = shift;
     my @data = @_;
 
-    require Digest::MD5;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = do {
+        require Digest::MD5;    ## no critic qw[Modules::ProhibitEvilModules]
+
+        1;
+    };
 
     # prepare data for serialization
     for my $item (@data) {
@@ -18,7 +22,7 @@ sub md5 {
                 $item = P->data->encode($item)->$*;
             }
             else {
-                $item = ${$item};
+                $item = $item->$*;
             }
         }
 
@@ -29,13 +33,15 @@ sub md5 {
 }
 
 sub md5_hex {
-    my $self = shift;
-
-    return unpack 'H*', $self->md5(@_);
+    return unpack 'H*', md5(@_);
 }
 
 sub bcrypt ( $self, $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
-    require Digest::Bcrypt;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = do {
+        require Digest::Bcrypt;    ## no critic qw[Modules::ProhibitEvilModules]
+
+        1;
+    };
 
     my $bcrypt = Digest::Bcrypt->new;
 
@@ -49,9 +55,17 @@ sub bcrypt ( $self, $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
 }
 
 sub bcrypt_hex {
-    my $self = shift;
+    return unpack 'H*', bcrypt(@_);
+}
 
-    return unpack 'H*', $self->bcrypt(@_);
+sub crc32 {
+    state $init = do {
+        require String::CRC32;
+
+        1;
+    };
+
+    return String::CRC32::crc32(@_);
 }
 
 1;
@@ -61,7 +75,7 @@ sub bcrypt_hex {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 37                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 39                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -92,6 +92,7 @@ requires 'Time::Moment';
 requires 'Digest';
 requires 'Digest::MD5';
 requires 'Digest::Bcrypt';
+requires 'String::CRC32';
 
 # Pcore::Util::File
 requires 'File::Copy::Recursive';

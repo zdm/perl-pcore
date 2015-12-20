@@ -515,7 +515,7 @@ sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloa
 
     my $class = $Pcore::UTIL->{$method};
 
-    require $class =~ s[::][/]smgr . q[.pm];
+    require $class =~ s[::][/]smgr . '.pm';
 
     if ( $class->can('NEW') ) {
         no strict qw[refs];
