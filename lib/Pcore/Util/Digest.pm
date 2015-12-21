@@ -1,12 +1,11 @@
 package Pcore::Util::Digest;
 
-use Pcore -export => [qw[md5 md5_hex bcypt bcypt_hex crc32]];
+use Pcore -export => [qw[md5 md5_hex bcypt bcypt_hex crc321]];
 use Digest qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $BCRYPT_COST_DEFAULT = 10;
 
 sub md5 {
-    my $self = shift;
     my @data = @_;
 
     state $init = do {
@@ -36,7 +35,7 @@ sub md5_hex {
     return unpack 'H*', md5(@_);
 }
 
-sub bcrypt ( $self, $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
+sub bcrypt ( $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
     state $init = do {
         require Digest::Bcrypt;    ## no critic qw[Modules::ProhibitEvilModules]
 
@@ -65,7 +64,7 @@ sub crc32 {
         1;
     };
 
-    return String::CRC32::crc32(@_);
+    return &String::CRC32::crc32;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 1;
@@ -75,7 +74,7 @@ sub crc32 {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 39                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 38                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
