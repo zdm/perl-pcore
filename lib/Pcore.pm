@@ -530,14 +530,18 @@ sub AUTOLOAD {
 
     no strict qw[refs];
 
+    die qq[Sub "$class\::\$method" is not defined] if !defined &{"$class\::\$method"};
+
+    my \$ref = \\&{"$class\::\$method"};
+
     # install method wrapper
     *{\$method} = sub {
         shift;
 
-        return &{"$class\::\$method"};
+        goto \$ref;
     };
 
-    return &{\$method};
+    goto &{\$method};
 }
 PERL
         eval $package;    ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
@@ -546,7 +550,7 @@ PERL
         *{$util} = sub : const {"$self\::$util"};
     }
 
-    return &{$util};
+    goto &{$util};
 }
 
 sub cv {

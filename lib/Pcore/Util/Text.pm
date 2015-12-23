@@ -1,6 +1,6 @@
 package Pcore::Util::Text;
 
-use Pcore -autoload, -export, [qw[decode]];
+use Pcore -export, [qw[decode]];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
 
@@ -43,9 +43,9 @@ our $SUB = {
 
     # "trim" functions removes spaces and tabs
     trim => sub {          # see below
-        &ltrim;
+        &ltrim;            ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
-        &rtrim;
+        &rtrim;            ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
         return;
     },
@@ -60,9 +60,9 @@ our $SUB = {
         return;
     },
     trim_multi => sub {    # see below
-        &ltrim_multi;
+        &ltrim_multi;      ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
-        &rtrim_multi;
+        &rtrim_multi;      ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
         return;
     },
@@ -79,9 +79,9 @@ our $SUB = {
 
     # "cut" functions compress several \n to one \n
     cut => sub {            # replace all \n series with single \n
-        &lcut;
+        &lcut;              ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
-        &rcut;
+        &rcut;              ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
         $_[0] =~ s/\v+/\n/smg;
 
@@ -100,9 +100,9 @@ our $SUB = {
 
     # "cut_all" functions combines trim and cut functionality together
     cut_all => sub {        # trim_multi + cut
-        &trim_multi;
+        &trim_multi;        ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
-        &cut;
+        &cut;               ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
         return;
     },
@@ -152,7 +152,7 @@ our $SUB = {
 
         $_[0] =~ s/%.|://smg;
 
-        &trim;
+        &trim;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
         return;
     },
@@ -467,9 +467,6 @@ sub unmark_raw {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    4 │ 46, 48, 63, 65, 82,  │ Subroutines::ProhibitAmpersandSigils - Subroutine called with "&" sigil                                        │
-## │      │ 84, 103, 105, 155    │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 39                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 168                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
