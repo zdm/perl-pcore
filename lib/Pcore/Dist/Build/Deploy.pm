@@ -92,7 +92,7 @@ sub _cpanm ($self) {
 
         say join q[ ], @args;
 
-        Pcore->sys->system(@args) or return;
+        P->sys->system(@args) or return;
     }
 
     return 1;

@@ -1,26 +1,12 @@
 package Pcore::Util::Hash;
 
-use Pcore -autoload;
-use Hash::Util qw[];      ## no critic qw[Modules::ProhibitEvilModules]
-use Scalar::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore;
+use Hash::Util qw[];             ## no critic qw[Modules::ProhibitEvilModules]
+use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::Hash::Multivalue;
 use Pcore::Util::Hash::RandKey;
 
-sub autoload {
-    my $self   = shift;
-    my $method = shift;
-
-    my $sub_name = 'Hash::Util::' . $method;
-
-    return sub {
-        my $self = shift;
-
-        goto &{$sub_name};
-    };
-}
-
 sub merge {
-    my $self = shift;
     my $res = defined wantarray ? {} : shift;
 
     for my $hash_ref (@_) {
@@ -35,7 +21,7 @@ sub _merge {
     my $b = shift;
 
     foreach my $key ( keys %{$b} ) {
-        if ( Scalar::Util::blessed( $a->{$key} ) && $a->{$key}->can('MERGE') ) {
+        if ( blessed( $a->{$key} ) && $a->{$key}->can('MERGE') ) {
             $a->{$key} = $a->{$key}->MERGE( $b->{$key} );
         }
         elsif ( ref( $b->{$key} ) eq 'HASH' ) {
@@ -55,14 +41,10 @@ sub _merge {
 }
 
 sub multivalue {
-    my $self = shift;
-
     return Pcore::Util::Hash::Multivalue->new(@_);
 }
 
 sub randkey {
-    my $self = shift;
-
     return Pcore::Util::Hash::RandKey->new;
 }
 

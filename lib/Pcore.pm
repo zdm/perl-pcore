@@ -13,13 +13,13 @@ use if $^V ge 'v5.10', mro     => 'c3';
 no multidimensional;
 
 use namespace::clean qw[];
-use Const::Fast qw[];
-use Encode qw[];
+use Const::Fast qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Encode qw[];         ## no critic qw[Modules::ProhibitEvilModules]
 
 # preload Moo
 use Import::Into;
-use Moo qw[];
-use Moo::Role qw[];
+use Moo qw[];            ## no critic qw[Modules::ProhibitEvilModules]
+use Moo::Role qw[];      ## no critic qw[Modules::ProhibitEvilModules]
 
 # preload console related packages
 use Term::ANSIColor qw[];
@@ -48,6 +48,9 @@ BEGIN {
 
         require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
     };
+
+    # define alias for export
+    $Pcore::P = sub : const {'Pcore'};
 
     # define %EXPORT_PRAGMA for exporter
     $Pcore::EXPORT_PRAGMA = {
@@ -131,19 +134,9 @@ sub import {
 
     # export P sub to avoid indirect calls
     {
-        state $val;
-
-        if ( !$val ) {
-            $val = 'Pcore';
-
-            Internals::SvREADONLY( $val, 1 );
-        }
-
         no strict qw[refs];
 
-        my $symtab = \%{ $caller . q[::] };
-
-        $symtab->{P} = \$val;
+        *{"$caller\::P"} = $Pcore::P;
 
         # flush the cache exactly once if we make any direct symbol table changes
         mro::method_changed_in($caller);
@@ -323,9 +316,9 @@ sub _import_types {
         local $ENV{PERL_TYPES_STANDARD_STRICTNUM} = 0;    # 0 - Num = LaxNum, 1 - Num = StrictNum
 
         require Pcore::Core::Types;
-        require Types::TypeTiny;
-        require Types::Standard;
-        require Types::Common::Numeric;
+        require Types::TypeTiny;                          ## no critic qw[Modules::ProhibitEvilModules]
+        require Types::Standard;                          ## no critic qw[Modules::ProhibitEvilModules]
+        require Types::Common::Numeric;                   ## no critic qw[Modules::ProhibitEvilModules]
 
         # require Types::Common::String;
         # require Types::Encodings();
@@ -509,40 +502,51 @@ sub _CORE_RUN {
 
 # AUTOLOAD
 sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
-    my $method = our $AUTOLOAD =~ s/\A.*:://smr;
+    my $util = our $AUTOLOAD =~ s/\A.*:://smr;
 
-    die qq[Unregistered Pcore::Util "$method".] unless exists $Pcore::UTIL->{$method};
-
-    my $class = $Pcore::UTIL->{$method};
+    die qq[Unregistered Pcore::Util "$util".] unless my $class = $Pcore::UTIL->{$util};
 
     require $class =~ s[::][/]smgr . '.pm';
 
-    if ( $class->can('NEW') ) {
-        no strict qw[refs];
+    no strict qw[refs];
 
-        *{ $self . q[::] . $method } = \&{ $class . '::NEW' };
+    if ( $class->can('new') ) {
+        *{"$self\::$util"} = sub {
+            shift;
 
-        goto &{ $self . q[::] . $method };
+            return $class->new(@_);
+        };
     }
     else {
-        my $val = $Pcore::UTIL->{$method};
 
-        my $symtab;
+        # create util namespace with AUTOLOAD method
+        my $package = <<"PERL";
+package $self\::$util;
 
-        # get symbol table ref
-        {
-            no strict qw[refs];
+use Pcore;
 
-            $symtab = \%{ $self . q[::] };
-        }
+sub AUTOLOAD {
+    my \$method = our \$AUTOLOAD =~ s/\\A.*:://smr;
 
-        # install method
-        $symtab->{$method} = sub : prototype() {$val};
+    no strict qw[refs];
 
-        mro::method_changed_in($self);
+    # install method wrapper
+    *{\$method} = sub {
+        shift;
 
-        return $val;
+        return &{"$class\::\$method"};
+    };
+
+    return &{\$method};
+}
+PERL
+        eval $package;    ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
+
+        # create util namespace access method
+        *{$util} = sub : const {"$self\::$util"};
     }
+
+    return &{$util};
 }
 
 sub cv {
@@ -578,25 +582,17 @@ sub _config_stdout ($h) {
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
-## PerlCritic profile "common" policy violations:
+## PerlCritic profile "pcore-script" policy violations:
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 46                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 101                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (29)                    │
+## │    3 │ 104                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 166                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 159                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 364                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 411, 440, 443, 447,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 497, 514, 560, 563,  │                                                                                                                │
-## │      │ 568, 571             │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 415                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 540                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    3 │ 357                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -4,9 +4,7 @@ use Pcore;
 
 # in case of error return undef
 sub system {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    my $self = shift;
-
-    CORE::system(@_);
+    &CORE::system;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
     die qq[System call exit code: $?] if $? && !defined wantarray;
 
@@ -16,26 +14,26 @@ sub system {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 }
 
 sub cpus_num {
-    require Sys::CpuAffinity;
+    state $cpus_num = do {
+        require Sys::CpuAffinity;
 
-    state $cpus_num = Sys::CpuAffinity::getNumCpus();
+        Sys::CpuAffinity::getNumCpus();
+    };
 
     return $cpus_num;
 }
 
 # return PID combined with TID (if threads used)
 sub pid {
-    my $self = shift;
-
     return *threads::tid{CODE} ? qq[$$-] . threads->tid : qq[$$-0];
 }
 
 sub hostname {
-    my $self = shift;
+    state $hostname = do {
+        require Sys::Hostname;    ## no critic qw[Modules::ProhibitEvilModules]
 
-    require Sys::Hostname;    ## no critic qw[Modules::ProhibitEvilModules]
-
-    state $hostname = Sys::Hostname::hostname();
+        Sys::Hostname::hostname();
+    };
 
     return $hostname;
 }

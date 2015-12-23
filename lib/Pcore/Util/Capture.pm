@@ -4,7 +4,6 @@ use Pcore;
 use Capture::Tiny qw[:all];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub sys {
-    my $self = shift;
     my @args = @_;
 
     return capture_merged {
@@ -13,7 +12,6 @@ sub sys {
 }
 
 sub code {
-    my $self = shift;
     my $code = shift;
 
     return &Capture::Tiny::capture_merged($code);    ## no critic qw[Subroutines::ProhibitAmpersandSigils]

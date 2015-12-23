@@ -22,12 +22,12 @@ sub run ($self) {
 
     my $base_url = q[/] . $upstream->username . q[/] . $upstream->reponame . q[/wiki/];
 
-    Pcore->file->rmtree( $wiki_path . 'POD/' );
+    P->file->rmtree( $wiki_path . 'POD/' );
 
     my $toc = {};
 
     # scan lib/ for .pm files
-    Pcore->file->find(
+    P->file->find(
         './lib/',
         dir => 0,
         sub ($path) {
@@ -64,11 +64,11 @@ $pod_markdown
 MD
 
                     # write markdown to the file
-                    Pcore->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
+                    P->file->mkpath( $wiki_path . 'POD/' . $path->dirname );
 
                     $toc->{ $path->dirname . $path->filename_base } = $module->abstract;
 
-                    Pcore->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
+                    P->file->write_text( $wiki_path . 'POD/' . $path->dirname . $path->filename_base . q[.md], { crlf => 0 }, \$markdown );
                 }
             }
         }
@@ -91,7 +91,7 @@ MD
     }
 
     # write POD.md
-    Pcore->file->write_text( $wiki_path . 'POD.md', { crlf => 0 }, \$toc_md );
+    P->file->write_text( $wiki_path . 'POD.md', { crlf => 0 }, \$toc_md );
 
     say keys( $toc->%* ) + 1 . ' wiki pages were generated';
 

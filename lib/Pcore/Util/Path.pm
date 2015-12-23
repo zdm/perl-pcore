@@ -252,13 +252,6 @@ no Pcore;
 # http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?view=co
 our $MIME_TYPES;
 
-# Pcore::Util interface
-sub NEW {
-    shift;
-
-    return __PACKAGE__->new(@_);
-}
-
 sub _build_to_string ($self) {
     my $path = $self->path;
 

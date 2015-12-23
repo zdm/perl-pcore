@@ -4,13 +4,13 @@ use Pcore;
 
 no Pcore;
 
-sub module ( $self, @args ) {
+sub module {
     require Pcore::Util::Perl::Module;
 
-    return Pcore::Util::Perl::Module->new(@args);
+    return Pcore::Util::Perl::Module->new(@_);
 }
 
-sub moo ( $self, @args ) {
+sub moo {
     require Pcore::Util::Perl::Moo;
 
     return 'Pcore::Util::Perl::Moo';

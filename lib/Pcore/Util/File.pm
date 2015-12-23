@@ -4,18 +4,18 @@ use Pcore;
 use Fcntl qw[:DEFAULT];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-sub cat_path ( $self, @ ) {
+sub cat_path {
     return P->path( join q[/], splice @_, 1 );
 }
 
 # return cwd, symlinks are resolved
-sub cwd ($self) {
+sub cwd {
     return P->path( Cwd::realpath(q[.]), is_dir => 1 );
 }
 
-sub chdir ( $self, $path ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub chdir ($path) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined wantarray ) {
-        my $cwd = $self->cwd->to_string;
+        my $cwd = cwd->to_string;
 
         return unless chdir $path;
 
@@ -32,25 +32,25 @@ sub chdir ( $self, $path ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 }
 
 # change umask and return old umask
-sub umask ( $self, $mode ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub umask ($mode) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return '00' if $MSWIN;
 
     if ( defined wantarray ) {
         require Pcore::Util::File::UmaskGuard;
 
-        return Pcore::Util::File::UmaskGuard->new( { old_umask => umask $self->calc_umask($mode) } );
+        return Pcore::Util::File::UmaskGuard->new( { old_umask => CORE::umask calc_umask($mode) } );
     }
     else {
-        return umask $self->calc_umask($mode);
+        return CORE::umask calc_umask($mode);
     }
 }
 
-sub calc_umask ( $self, $mode, % ) {
+sub calc_umask ( $mode, % ) {
     return unless defined $mode;
 
     my %args = (
         oct => 0,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
     if ( $mode =~ /[^[:digit:]]/smi ) {
@@ -89,10 +89,10 @@ sub calc_umask ( $self, $mode, % ) {
 }
 
 # mkdir with chmod support
-sub mkdir ( $self, $path, $mode = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub mkdir ( $path, $mode = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined wantarray ) {
         if ( defined $mode ) {
-            return mkdir $path, $self->calc_chmod($mode);
+            return mkdir $path, calc_chmod($mode);
         }
         else {
             return mkdir $path;
@@ -100,7 +100,7 @@ sub mkdir ( $self, $path, $mode = undef ) {    ## no critic qw[Subroutines::Proh
     }
     else {
         if ( defined $mode ) {
-            mkdir $path, $self->calc_chmod($mode) or die qq[Can't mkdir "$path". $!];
+            mkdir $path, calc_chmod($mode) or die qq[Can't mkdir "$path". $!];
         }
         else {
             mkdir $path or die qq[Can't mkdir "$path". $!];
@@ -110,21 +110,21 @@ sub mkdir ( $self, $path, $mode = undef ) {    ## no critic qw[Subroutines::Proh
     }
 }
 
-sub chmod ( $self, $mode, @path ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub chmod ( $mode, @path ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     if ( defined wantarray ) {
-        return chmod $self->calc_chmod($mode), @path;
+        return CORE::chmod calc_chmod($mode), @path;
     }
     else {
-        return chmod( $self->calc_chmod($mode), @path ) || die qq[$! during chmod $mode, ] . join q[, ], @path;
+        return CORE::chmod( calc_chmod($mode), @path ) || die qq[$! during chmod $mode, ] . join q[, ], @path;
     }
 }
 
-sub calc_chmod ( $self, $mode, % ) {
+sub calc_chmod ( $mode, % ) {
     return unless defined $mode;
 
     my %args = (
         oct => 0,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
     if ( $mode =~ /[^[:digit:]]/smi ) {
@@ -163,14 +163,14 @@ sub calc_chmod ( $self, $mode, % ) {
 }
 
 # READ / WRITE
-sub read_bin ( $self, $path, % ) {
+sub read_bin ( $path, % ) {
     my %args = (
         cb       => undef,
         buf_size => 1_048_576,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
-    my $fh = $self->get_fh( $path, O_RDONLY, crlf => 0 );
+    my $fh = get_fh( $path, O_RDONLY, crlf => 0 );
 
     my $tail = q[];
 
@@ -203,16 +203,16 @@ sub read_bin ( $self, $path, % ) {
     }
 }
 
-sub read_text ( $self, $path, % ) {
+sub read_text ( $path, % ) {
     my %args = (
         crlf     => 1,                    # undef - auto, 1 - on, 0 - off (for binary files)
         binmode  => ':encoding(UTF-8)',
         cb       => undef,
         buf_size => 1_048_576,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
-    my $fh = $self->get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
+    my $fh = get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
 
     my $tail = q[];
 
@@ -245,17 +245,17 @@ sub read_text ( $self, $path, % ) {
     }
 }
 
-sub read_lines ( $self, $path, % ) {
+sub read_lines ( $path, % ) {
     my %args = (
         crlf        => 1,                    # undef - auto, 1 - on, 0 - off (for binary files)
         binmode     => ':encoding(UTF-8)',
         cb          => undef,
         buf_size    => 1_048_576,
         empty_lines => 0,                    # only for array_ref mode, don't skip empty lines
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
-    my $fh = $self->get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
+    my $fh = get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
 
     my $tail = q[];
 
@@ -338,7 +338,6 @@ sub read_lines ( $self, $path, % ) {
 }
 
 sub write_bin {
-    my $self = shift;
     my $path = shift;
     my %args = (
         mode      => 'rw-------',
@@ -347,13 +346,12 @@ sub write_bin {
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args, crlf => 0 ), @_ );
+    _write_to_fh( get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args, crlf => 0 ), @_ );
 
     return;
 }
 
 sub append_bin {
-    my $self = shift;
     my $path = shift;
     my %args = (
         mode      => 'rw-------',
@@ -362,13 +360,12 @@ sub append_bin {
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args, crlf => 0 ), @_ );
+    _write_to_fh( get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args, crlf => 0 ), @_ );
 
     return;
 }
 
 sub write_text {
-    my $self = shift;
     my $path = shift;
     my %args = (
         crlf      => undef,                # undef - auto, 1 - on, 0 - off (for binary files)
@@ -379,13 +376,12 @@ sub write_text {
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args ), @_ );
+    _write_to_fh( get_fh( $path, O_WRONLY | O_CREAT | O_TRUNC, %args ), @_ );
 
     return;
 }
 
 sub append_text {
-    my $self = shift;
     my $path = shift;
     my %args = (
         crlf      => undef,                # undef - auto, 1 - on, 0 - off (for binary files)
@@ -396,12 +392,12 @@ sub append_text {
         ( ref $_[0] eq 'HASH' ? %{ shift @_ } : () ),
     );
 
-    $self->_write_to_fh( $self->get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args ), @_ );
+    _write_to_fh( get_fh( $path, O_WRONLY | O_CREAT | O_APPEND, %args ), @_ );
 
     return;
 }
 
-sub encode_path ( $self, $path ) {
+sub encode_path ($path) {
     if ($MSWIN) {
         state $enc = Encode::find_encoding($Pcore::WIN_ENC);
 
@@ -411,14 +407,14 @@ sub encode_path ( $self, $path ) {
     return $path;
 }
 
-sub get_fh ( $self, $path, $mode, % ) {
+sub get_fh ( $path, $mode, @ ) {
     my %args = (
         mode      => 'rw-------',
         umask     => undef,
         crlf      => 0,             # undef - auto, 1 - on, 0 - off (for binary files)
         binmode   => undef,
         autoflush => 1,
-        @_[ 3 .. $#_ ],
+        @_[ 2 .. $#_ ],
     );
 
     if ( P->scalar->is_glob($path) ) {
@@ -427,12 +423,12 @@ sub get_fh ( $self, $path, $mode, % ) {
     else {
         my $umask_guard;
 
-        $umask_guard = $self->umask( $args{umask} ) if defined $args{umask};
+        $umask_guard = &umask( $args{umask} ) if defined $args{umask};
 
         # encode filename to native OS encoding
-        $path = $self->encode_path($path);
+        $path = encode_path($path);
 
-        sysopen my $fh, $path, $mode, $self->calc_chmod( $args{mode} ) or die qq[Can't open file "$path"];
+        sysopen my $fh, $path, $mode, calc_chmod( $args{mode} ) or die qq[Can't open file "$path"];
 
         my $binmode = q[];
 
@@ -456,8 +452,7 @@ sub get_fh ( $self, $path, $mode, % ) {
 }
 
 sub _write_to_fh {
-    my $self = shift;
-    my $fh   = shift;
+    my $fh = shift;
 
     for my $str (@_) {
         if ( ref $str eq 'ARRAY' ) {
@@ -477,11 +472,11 @@ sub _write_to_fh {
 }
 
 # READ DIR
-sub read_dir ( $self, $path, % ) {
+sub read_dir ( $path, % ) {
     my %args = (
         keep_dot  => 0,
         full_path => 0,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
     opendir my $dh, $path or die qq[Can't open dir "$path"];
@@ -507,23 +502,23 @@ sub read_dir ( $self, $path, % ) {
 }
 
 # TOUCH
-sub touch ( $self, $path, % ) {
+sub touch ( $path, % ) {
     my %args = (
         atime => undef,
         mtime => undef,
         mode  => q[rw-------],
         umask => undef,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
-    $path = $self->encode_path($path);
+    $path = encode_path($path);
 
     if ( !-e $path ) {
 
         # set umask if defined
-        my $umask_guard = defined $args{umask} ? $self->umask( $args{umask} ) : undef;
+        my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;
 
-        sysopen my $FH, $path, Fcntl::O_WRONLY | Fcntl::O_CREAT | Fcntl::O_APPEND, $self->calc_chmod( $args{mode} ) or die qq[Can't touch file "$path"];
+        sysopen my $FH, $path, Fcntl::O_WRONLY | Fcntl::O_CREAT | Fcntl::O_APPEND, calc_chmod( $args{mode} ) or die qq[Can't touch file "$path"];
 
         close $FH or die;
     }
@@ -537,27 +532,27 @@ sub touch ( $self, $path, % ) {
 }
 
 # MKPATH, RMTREE, EMPTY_DIR
-sub mkpath ( $self, $path, % ) {
+sub mkpath ( $path, % ) {
     my %args = (
         mode  => q[rwx------],
         umask => undef,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
     require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
 
-    $args{mode} = $self->calc_chmod( $args{mode} );
+    $args{mode} = calc_chmod( $args{mode} );
 
-    my $umask_guard = defined $args{umask} ? $self->umask( delete $args{umask} ) : delete $args{umask};
+    my $umask_guard = defined $args{umask} ? &umask( delete $args{umask} ) : delete $args{umask};
 
     return File::Path::make_path( "$path", \%args );
 }
 
-sub rmtree ( $self, $path, % ) {
+sub rmtree ( $path, @ ) {
     my %args = (
         safe      => 0,    # 0 - will attempts to alter file permission
         keep_root => 0,
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
     );
 
     require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
@@ -565,10 +560,10 @@ sub rmtree ( $self, $path, % ) {
     return File::Path::remove_tree( "$path", \%args );
 }
 
-sub empty_dir ( $self, $path, % ) {
+sub empty_dir ( $path, @ ) {
     my %args = (
         safe => 0,         # 0 - will attempts to alter file permission
-        @_[ 2 .. $#_ ],
+        @_[ 1 .. $#_ ],
         keep_root => 1,
     );
 
@@ -578,24 +573,24 @@ sub empty_dir ( $self, $path, % ) {
 }
 
 # TEMP
-sub tempfile ( $self, %args ) {
+sub tempfile (%args) {
     require Pcore::Util::File::TempFile;
 
     return Pcore::Util::File::TempFile->new(%args);
 }
 
-sub tempdir ( $self, %args ) {
+sub tempdir (%args) {
     require Pcore::Util::File::TempDir;
 
     return Pcore::Util::File::TempDir->new( \%args );
 }
 
-sub temppath ( $self, @ ) {
+sub temppath {
     my %args = (
         base   => $ENV->{TEMP_DIR},
         suffix => q[],
         tmpl   => 'temp-' . P->sys->pid . '-XXXXXXXX',
-        @_[ 1 .. $#_ ],
+        @_,
     );
 
     $args{suffix} = q[.] . $args{suffix} if defined $args{suffix} && $args{suffix} ne q[] && substr( $args{suffix}, 0, 1 ) ne q[.];
@@ -617,7 +612,7 @@ sub temppath ( $self, @ ) {
 }
 
 # COPY / MOVE FILE
-sub copy ( $self, $from, $to, % ) {
+sub copy ( $from, $to, @ ) {
     my %args = (
         glob      => undef,
         dir_mode  => q[rwxr-xr-x],
@@ -628,12 +623,12 @@ sub copy ( $self, $from, $to, % ) {
         rm_dir    => 1,              # remove target dir before copying, 0 - off, 1 - die if can't remove, 2 - return if can't remove
         pfs_check => 1,
         cprf      => 1,              # only if $to is dir, if $to/ is exists put $from/ content into $to/ instead of replace $to/ with $from/
-        @_[ 3 .. $#_ ],
+        @_[ 2 .. $#_ ],
     );
 
-    my $umask_guard = defined $args{umask} ? $self->umask( $args{umask} ) : undef;
+    my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;
 
-    local $File::Copy::Recursive::DirPerms = $self->calc_chmod( $args{dir_mode}, oct => 1 );
+    local $File::Copy::Recursive::DirPerms = calc_chmod( $args{dir_mode}, oct => 1 );
     local $File::Copy::Recursive::CopyLink = $args{copy_link};
     local $File::Copy::Recursive::RMTrgFil = $args{rm_file};
     local $File::Copy::Recursive::RMTrgDir = $args{rm_dir};
@@ -660,7 +655,7 @@ sub copy ( $self, $from, $to, % ) {
     return;
 }
 
-sub move ( $self, $from, $to, % ) {
+sub move ( $from, $to, @ ) {
     my %args = (
         dir_mode  => q[rwxr-xr-x],
         umask     => undef,
@@ -670,12 +665,12 @@ sub move ( $self, $from, $to, % ) {
         rm_dir    => 1,              # remove target dir before copying, 0 - off, 1 - die if can't remove, 2 - return if can't remove
         pfs_check => 1,
         cprf      => 1,              # only if $to is dir, if $to/ is exists put $from/ content into $to/ instead of replace $to/ with $from/
-        @_[ 3 .. $#_ ],
+        @_[ 2 .. $#_ ],
     );
 
-    my $umask_guard = defined $args{umask} ? $self->umask( $args{umask} ) : undef;
+    my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;
 
-    local $File::Copy::Recursive::DirPerms = $self->calc_chmod( $args{dir_mode}, oct => 1 );
+    local $File::Copy::Recursive::DirPerms = calc_chmod( $args{dir_mode}, oct => 1 );
     local $File::Copy::Recursive::CopyLink = $args{copy_link};
     local $File::Copy::Recursive::RMTrgFil = $args{rm_file};
     local $File::Copy::Recursive::RMTrgDir = $args{rm_dir};
@@ -703,12 +698,12 @@ sub move ( $self, $from, $to, % ) {
 }
 
 # FIND
-sub find ( $self, $path, @ ) {
+sub find ( $path, @ ) {
     my %args = (
         abs  => 0,    # return absolute path
         dir  => 1,    # return found dirs
         file => 1,    # return found files
-        @_[ 2 .. $#_ - 1 ],
+        @_[ 1 .. $#_ - 1 ],
     );
 
     $path = P->path( $path, is_dir => 1 )->realpath or return;
@@ -717,12 +712,12 @@ sub find ( $self, $path, @ ) {
 
     my $chdir_guard;
 
-    $chdir_guard = $self->chdir($path) if !$args{abs};
+    $chdir_guard = &chdir($path) if !$args{abs};
 
     my $read_dir;
 
     $read_dir = sub ($dirpath) {
-        for my $file ( $self->read_dir($dirpath)->@* ) {
+        for my $file ( read_dir($dirpath)->@* ) {
             $file = $dirpath . q[/] . Encode::decode( $Pcore::WIN_ENC, $file, Encode::FB_CROAK );
 
             if ( -d $file ) {
@@ -748,13 +743,13 @@ sub find ( $self, $path, @ ) {
 }
 
 # WHICH / WHERE
-sub which ( $self, $filename ) {
+sub which ($filename) {
     require File::Which;
 
     return File::Which::which($filename);
 }
 
-sub where ( $self, $filename ) {
+sub where ($filename) {
     require File::Which;
 
     return File::Which::where($filename);
@@ -771,6 +766,8 @@ sub where ( $self, $filename ) {
 ## │      │ 48                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
 ## │      │ 122                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
 ## │      │ 248                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 426, 715             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

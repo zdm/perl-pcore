@@ -1,20 +1,7 @@
 package Pcore::Util::List;
 
-use Pcore -autoload;
-use List::AllUtils qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-
-sub autoload {
-    my $self   = shift;
-    my $method = shift;
-
-    my $sub_name = 'List::AllUtils::' . $method;
-
-    return sub {
-        my $self = shift;
-
-        goto &{$sub_name};
-    };
-}
+use Pcore;
+use List::AllUtils qw[:all];    ## no critic qw[Modules::ProhibitEvilModules]
 
 1;
 __END__

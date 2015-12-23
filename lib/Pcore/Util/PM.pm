@@ -4,8 +4,6 @@ use Pcore;
 use POSIX qw[];
 
 sub rename_process {
-    my $self = shift;
-
     return 0 if *threads::tid{CODE} && threads->tid != 0;    # don't allow rename process from thread
 
     $0 = shift;                                              ## no critic (Variables::RequireLocalizedPunctuationVars)
@@ -14,7 +12,6 @@ sub rename_process {
 }
 
 sub change_priv {
-    my $self = shift;
     my %args = (
         gid => undef,
         uid => undef,
@@ -43,8 +40,6 @@ sub change_priv {
 }
 
 sub daemonize {
-    my $self = shift;
-
     state $daemonized = 0;
 
     return 0 if $daemonized;
@@ -72,7 +67,6 @@ sub daemonize {
 }
 
 sub is_process_alive {
-    my $self         = shift;
     my $process_name = shift;
 
     if ($MSWIN) {
@@ -98,8 +92,6 @@ sub is_process_alive {
 }
 
 sub is_superuser {
-    my $self = shift;
-
     if ($MSWIN) {
         return Win32::IsAdminUser();
     }

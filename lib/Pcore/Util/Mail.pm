@@ -5,7 +5,6 @@ use Net::SMTPS;
 use Mail::IMAPClient qw[];
 
 sub send_mail {
-    my $self = shift;
     my %args = (
         host         => undef,
         port         => undef,
@@ -69,22 +68,22 @@ sub send_mail {
         if ( ref $args{attachments} eq 'HASH' ) {
             my $path = $args{attachments}->{path};
             my $name = $args{attachments}->{name} || q[];
-            $self->_send_attachment( $h, $boundary, $path, $name );
+            _send_attachment( $h, $boundary, $path, $name );
         }
         elsif ( ref $args{attachments} eq 'ARRAY' ) {
             for my $item ( @{ $args{attachments} } ) {
                 if ( ref $item eq 'HASH' ) {
                     my $path = $item->{path};
                     my $name = $item->{name} || q[];
-                    $self->_send_attachment( $h, $boundary, $path, $name );
+                    _send_attachment( $h, $boundary, $path, $name );
                 }
                 else {
-                    $self->_send_attachment( $h, $boundary, $item );
+                    _send_attachment( $h, $boundary, $item );
                 }
             }
         }
         else {
-            $self->_send_attachment( $h, $boundary, $args{attachments} );
+            _send_attachment( $h, $boundary, $args{attachments} );
         }
     }
 
@@ -98,7 +97,6 @@ sub send_mail {
 }
 
 sub _send_attachment {
-    my $self     = shift;
     my $h        = shift;
     my $boundary = shift;
     my $file     = shift;
@@ -127,7 +125,6 @@ sub _send_attachment {
 }
 
 sub get_mail {
-    my $self = shift;
     my %args = (
         gmail           => 0,
         host            => undef,
@@ -193,7 +190,7 @@ sub get_mail {
         if ( my $res = $imap->search($search_string) ) {
             if ( @{$res} ) {
                 debug( 'IMAP found: ' . scalar @{$res} );
-                push @{$messages}, @{ $self->_get_messages( $imap, $folder, $res, $args{found_action} ) };
+                push $messages->@*, _get_messages( $imap, $folder, $res, $args{found_action} )->@*;
             }
         }
     }
@@ -218,7 +215,6 @@ sub get_mail {
 }
 
 sub _get_messages {
-    my $self         = shift;
     my $imap         = shift;
     my $folder       = shift;
     my $messages     = shift;

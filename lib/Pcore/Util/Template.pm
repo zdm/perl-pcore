@@ -15,7 +15,7 @@ has _string_tmpl => ( is => 'ro', isa => HashRef, required => 1 );
 # cache => 2:
 # - file tmpl builded and cached at first use only if not cached previously;
 # - string tmpl same as cache => 1;
-sub NEW ( $self, %args ) {
+around new => sub ( $orig, $self, %args ) {
     my $string_tmpl_cache = {};
 
     my $path = [$string_tmpl_cache];    # virtual path
@@ -37,8 +37,8 @@ sub NEW ( $self, %args ) {
         },
     };
 
-    return __PACKAGE__->new( { _renderer => Text::Xslate->new( P->hash->merge( $args_def, \%args )->%* ), _string_tmpl => $string_tmpl_cache } );
-}
+    return $self->$orig( { _renderer => Text::Xslate->new( P->hash->merge( $args_def, \%args )->%* ), _string_tmpl => $string_tmpl_cache } );
+};
 
 sub cache_string_tmpl ( $self, %args ) {
     for my $name ( keys %args ) {

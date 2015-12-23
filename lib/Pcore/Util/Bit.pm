@@ -3,11 +3,9 @@ package Pcore::Util::Bit;
 use Pcore;
 
 sub set_bit {
-    my $self = shift;
-
     if ( defined wantarray ) {
         if ( defined $_[2] ) {
-            return ( $self->clear_bit( $_[0], $_[1] ) | $self->clear_bit( $_[2], ~$_[1] ) );
+            return ( clear_bit( $_[0], $_[1] ) | clear_bit( $_[2], ~$_[1] ) );
         }
         else {
             return $_[0] | $_[1];
@@ -15,7 +13,7 @@ sub set_bit {
     }
     else {
         if ( defined $_[2] ) {
-            $_[0] = ( $self->clear_bit( $_[0], $_[1] ) | $self->clear_bit( $_[2], ~$_[1] ) );
+            $_[0] = ( clear_bit( $_[0], $_[1] ) | clear_bit( $_[2], ~$_[1] ) );
         }
         else {
             $_[0] = $_[0] | $_[1];
@@ -26,11 +24,9 @@ sub set_bit {
 }
 
 sub clear_bit {
-    my $self = shift;
-
     if ( defined wantarray ) {
         if ( defined $_[2] ) {
-            return ( $self->set_bit( $_[0], $_[1] ) & ~$self->clear_bit( $_[2], ~$_[1] ) );
+            return ( set_bit( $_[0], $_[1] ) & ~clear_bit( $_[2], ~$_[1] ) );
         }
         else {
             return $_[0] & ~$_[1];
@@ -38,7 +34,7 @@ sub clear_bit {
     }
     else {
         if ( defined $_[2] ) {
-            $_[0] = ( $self->set_bit( $_[0], $_[1] ) & ~$self->clear_bit( $_[2], ~$_[1] ) );
+            $_[0] = ( set_bit( $_[0], $_[1] ) & ~clear_bit( $_[2], ~$_[1] ) );
         }
         else {
             $_[0] = $_[0] & ~$_[1];
@@ -49,8 +45,6 @@ sub clear_bit {
 }
 
 sub inverse_bit {
-    my $self = shift;
-
     if ( defined wantarray ) {
         return $_[0] ^ $_[1];
     }

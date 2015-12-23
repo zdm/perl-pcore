@@ -1,41 +1,20 @@
 package Pcore::Util::Scalar;
 
-use Pcore -autoload;
-use Scalar::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore;
+use Scalar::Util qw[blessed dualvar isdual readonly refaddr reftype tainted weaken isweak isvstring looks_like_number set_prototype];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub is_hash {
-    my $self = shift;
-
-    return ( $self->reftype( $_[0] ) // q[] ) eq 'HASH' ? 1 : 0;
+    return ( reftype( $_[0] ) // q[] ) eq 'HASH' ? 1 : 0;
 }
 
 sub is_array {
-    my $self = shift;
-
-    return ( $self->reftype( $_[0] ) // q[] ) eq 'ARRAY' ? 1 : 0;
+    return ( reftype( $_[0] ) // q[] ) eq 'ARRAY' ? 1 : 0;
 }
 
 sub is_glob {
-    my $self = shift;
-
-    if ( eval { $_[0]->isa('GLOB') || $_[0]->isa('IO') } ) {
-        return 1;
-    }
+    return 1 if eval { $_[0]->isa('GLOB') || $_[0]->isa('IO') };
 
     return 0;
-}
-
-sub autoload {
-    my $self   = shift;
-    my $method = shift;
-
-    my $sub_name = 'Scalar::Util::' . $method;
-
-    return sub {
-        my $self = shift;
-
-        goto &{$sub_name};
-    };
 }
 
 1;

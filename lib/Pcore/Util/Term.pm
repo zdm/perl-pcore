@@ -5,8 +5,8 @@ use Term::ReadKey qw[];
 
 no Pcore;
 
-sub width ($self) {
-    state $required = do {
+sub width {
+    state $init = do {
         require Term::Size::Any;
 
         Term::Size::Any::_require_any();
@@ -17,11 +17,11 @@ sub width ($self) {
     return scalar Term::Size::Any::chars();
 }
 
-sub pause ( $self, @ ) {
+sub pause {
     my %args = (
         msg     => 'Press any key to continue...',
         timeout => 0,
-        @_[ 1 .. $#_ ],
+        @_,
     );
 
     print $args{msg};
@@ -37,13 +37,13 @@ sub pause ( $self, @ ) {
     return;
 }
 
-sub prompt ( $self, $msg, $opt, @ ) {
+sub prompt ( $msg, $opt, @ ) {
     my %args = (
         default => undef,
         enter   => 0,       # user should press ENTER
         echo    => 1,
         timeout => 0,       # timeout, after the default value will be accepted
-        @_[ 3 .. $#_ ],
+        @_[ 2 .. $#_ ],
     );
 
     my $index = {};
@@ -76,7 +76,7 @@ sub prompt ( $self, $msg, $opt, @ ) {
   READ:
     my @possible = ();
 
-    my $input = $self->read_input(
+    my $input = read_input(
         edit       => 1,
         echo       => $args{echo},
         echo_char  => undef,
@@ -131,17 +131,17 @@ sub prompt ( $self, $msg, $opt, @ ) {
     return $possible[0];
 }
 
-sub read_password ( $self, @ ) {
+sub read_password {
     my %args = (
         msg       => 'Enter password',
         echo      => 1,
         echo_char => q[*],
-        @_[ 1 .. $#_ ],
+        @_,
     );
 
     print $args{msg}, ': ';
 
-    my $input = $self->read_input(
+    my $input = read_input(
         edit      => 1,
         echo      => $args{echo},
         echo_char => $args{echo_char},
@@ -157,7 +157,7 @@ sub read_password ( $self, @ ) {
 # -1    - clear input and continue reading;
 # 0     - reject last char and continue reading;
 # 1     - accept last char and continue reading;
-sub read_input ( $self, @ ) {
+sub read_input {
     my %args = (
         edit       => 1,
         echo       => 1,
@@ -165,7 +165,7 @@ sub read_input ( $self, @ ) {
         timeout    => 0,
         clear_echo => 0,       # clear echo on return
         on_read    => undef,
-        @_[ 1 .. $#_ ],
+        @_,
     );
 
     my $input = q[];

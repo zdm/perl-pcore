@@ -13,10 +13,9 @@ my $_PID = P->sys->pid;
 my $_RANDOM;
 
 sub _random {
-    my $self = shift;
-
     my $pid = P->sys->pid;
-    if ( $pid ne $_PID ) {
+    
+	if ( $pid ne $_PID ) {
         $_PID    = $pid;
         $_RANDOM = undef;
     }
@@ -27,24 +26,21 @@ sub _random {
 }
 
 sub bytes {
-    my $self  = shift;
     my $bytes = shift;
 
-    return $self->_random->bytes($bytes);
+    return _random->bytes($bytes);
 }
 
 sub bytes_hex {
-    my $self  = shift;
     my $bytes = shift;
 
-    return $self->_random->bytes_hex($bytes);
+    return _random->bytes_hex($bytes);
 }
 
 sub password {
-    my $self = shift;
     my $length = shift || $PASSWORD_LENGTH;
 
-    return $self->_random->string_from( $PASSWORD_SYMBOLS, $length );
+    return _random->string_from( $PASSWORD_SYMBOLS, $length );
 }
 
 1;

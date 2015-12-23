@@ -1,6 +1,6 @@
 package Pcore::Util::Text;
 
-use Pcore -autoload;
+use Pcore -autoload, -export, [qw[decode]];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
 
@@ -29,17 +29,13 @@ our %STRFTIME_JQUERY = (
     q[%s] => q[@],     # epoch
 );
 
-our $METHOD = {
+our $SUB = {
     decode_eol => sub {    # convert EOL to internal \n representation
-        my $self = shift;
-
         $_[0] =~ s/\x0D?\x0A/\n/smg;
 
         return;
     },
     remove_bom => sub {    # remove BOM
-        my $self = shift;
-
         $_[0] =~ s/\A(?:\x00\x00\xFE\xFF|\xFF\xFE\x00\x00|\xFE\xFF|\xFF\xFE|\xEF\xBB\xBF)//sm;
 
         return;
@@ -47,45 +43,35 @@ our $METHOD = {
 
     # "trim" functions removes spaces and tabs
     trim => sub {          # see below
-        my $self = shift;
+        &ltrim;
 
-        $self->ltrim( $_[0] );
-        $self->rtrim( $_[0] );
+        &rtrim;
 
         return;
     },
     ltrim => sub {         # treats string as single-line, remove all \h (space, tab) before first \n, non-space or non-tab character)
-        my $self = shift;
-
         $_[0] =~ s/\A\h+//sm;
 
         return;
     },
     rtrim => sub {         # treats string as single-line, remove all \h (space, tab) after last \n, non-space or non-tab character
-        my $self = shift;
-
         $_[0] =~ s/\h+\z//sm;
 
         return;
     },
     trim_multi => sub {    # see below
-        my $self = shift;
+        &ltrim_multi;
 
-        $self->ltrim_multi( $_[0] );
-        $self->rtrim_multi( $_[0] );
+        &rtrim_multi;
 
         return;
     },
     ltrim_multi => sub {    # treats string as multi-line, remove \h just after each \n or string begin
-        my $self = shift;
-
         $_[0] =~ s/^\h+//smg;
 
         return;
     },
     rtrim_multi => sub {    # treats string as multi-line, remove \h before each \n
-        my $self = shift;
-
         $_[0] =~ s/\h+$//smg;
 
         return;
@@ -93,24 +79,20 @@ our $METHOD = {
 
     # "cut" functions compress several \n to one \n
     cut => sub {            # replace all \n series with single \n
-        my $self = shift;
+        &lcut;
 
-        $self->lcut( $_[0] );
-        $self->rcut( $_[0] );
+        &rcut;
+
         $_[0] =~ s/\v+/\n/smg;
 
         return;
     },
     lcut => sub {           # treats string as single-line, cut all \n before first character
-        my $self = shift;
-
         $_[0] =~ s/\A\v+//sm;
 
         return;
     },
     rcut => sub {           # treats string as single-line, remove all \n after last character, including last \n
-        my $self = shift;
-
         $_[0] =~ s/\v+\z//sm;
 
         return;
@@ -118,23 +100,18 @@ our $METHOD = {
 
     # "cut_all" functions combines trim and cut functionality together
     cut_all => sub {        # trim_multi + cut
-        my $self = shift;
+        &trim_multi;
 
-        $self->trim_multi( $_[0] );
-        $self->cut( $_[0] );
+        &cut;
 
         return;
     },
     lcut_all => sub {       # remove empty lines and lines, consisting only of spaces and tabs, from string start
-        my $self = shift;
-
         $_[0] =~ s/\A\s+//sm;
 
         return;
     },
     rcut_all => sub {       # remove empty lines and lines, consisting only of spaces and tabs, from string end, including last \n
-        my $self = shift;
-
         $_[0] =~ s/\s+\z//sm;
 
         return;
@@ -144,8 +121,6 @@ our $METHOD = {
     # Used to convert HTML tags to plain text:
     # <textarea>[% data | html %]</textarea>, <p>[% data | html %]</p>
     encode_html => sub {
-        my $self = shift;
-
         $_[0] =~ s/([&<>"'])/q[&#] . ord $1/smge;
 
         return;
@@ -154,8 +129,6 @@ our $METHOD = {
     # Used to quote HTML tag attribute, example:
     # <input type="text" value="[% data | html_attr %]">
     encode_html_attr => sub {
-        my $self = shift;
-
         $_[0] =~ s/(\W)/q[&#] . ord $1/smge;
 
         return;
@@ -166,8 +139,6 @@ our $METHOD = {
     # onclick="alert('[% data | js_string %]')"
     # onclick="alert(&#34;[% data | js_string %]&#34;)" - hint: &#34; = "
     encode_js_string => sub {
-        my $self = shift;
-
         $_[0] =~ s/(\W)/sprintf q[\x%02lx], ord $1/smge;
 
         return;
@@ -175,39 +146,58 @@ our $METHOD = {
 
     # used to convert strftime patterns to jquery formatDate patterns
     encode_strftime_jquery => sub {
-        my $self = shift;
-
         for ( keys %STRFTIME_JQUERY ) {
             $_[0] =~ s/($_)/$STRFTIME_JQUERY{$1}/smg;
         }
 
         $_[0] =~ s/%.|://smg;
-        $self->trim( $_[0] );
+
+        &trim;
 
         return;
     },
 
     encode_hex => sub {
-        my $self = shift;
-
         $_[0] = unpack 'H*', $_[0];
 
         return;
     },
 };
 
-# AUTOLOAD
-sub autoload {
-    my $self   = shift;
-    my $method = shift;
+# create sccessors
+for my $sub ( keys $SUB->%* ) {
+    no strict qw[refs];
 
-    die qq[Unknown sub "$method"] unless $METHOD->{$method};
+    *{$sub} = sub {
+        my $scalar_ref = do {    # want a copy
+            if ( defined wantarray ) {
 
-    return sub {
-        my $self = shift;
-        my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
+                # make a copy and stringify
+                if ( ref $_[0] ) {
+                    \( q[] . $_[0]->$* );
+                }
+                else {
+                    \( q[] . $_[0] );
+                }
+            }
+            else {               # modify string in-place
+                if ( ref $_[0] ) {
+                    if ( ref $_[0] eq 'SCALAR' ) {
+                        $_[0];
+                    }
+                    else {
 
-        $METHOD->{$method}->( $self, $scalar_ref->$* );
+                        # make a copy and stringify, this behaviour is unclear
+                        \( q[] . $_[0] );
+                    }
+                }
+                else {
+                    \$_[0];
+                }
+            }
+        };
+
+        $SUB->{$sub}->( $scalar_ref->$* );
 
         if ( defined wantarray ) {
             return $scalar_ref->$*;
@@ -218,16 +208,18 @@ sub autoload {
     };
 }
 
+# TODO
+# - text - crunch - use this name;
+# - review String::Util;
+# - P->text - disallow to accept references, only plain scalars, test, how it will work with objects;
+# - P->text - clear trim functions names, eg, P->text->rcut_all -> P->text->trim_trailing_hs
+
 # UTIL
 sub table {
-    my $self = shift;
-
     return P->class->load('Pcore::Util::Text::Table')->new(@_);
 }
 
 sub remove_ansi_color {
-    my $self = shift;
-
     if ( defined wantarray ) {
         my $res;
 
@@ -247,9 +239,8 @@ sub remove_ansi_color {
 }
 
 sub escape_scalar {
-    my $self       = shift;
     my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
-    my %args       = (
+    my %args = (
         bin         => undef,     # if TRUE - always treats scalar as binary data
         utf8_encode => 1,         # if FALSE - in bin mode escape utf8 multi-byte chars as \x{...}
         esc_color   => undef,
@@ -274,7 +265,7 @@ sub escape_scalar {
     if ( $args{bin} ) {
         if ( utf8::is_utf8( $scalar_ref->$* ) ) {
             if ( $args{utf8_encode} ) {
-                $self->encode_utf8($scalar_ref);
+                encode_utf8($scalar_ref);
 
                 $scalar_ref->$* =~ s/(.)/sprintf q[\x%X], ord $1/smge;
             }
@@ -305,20 +296,19 @@ sub escape_scalar {
 
 # HTML ENTITIES
 sub decode_html_entities {
-    my $self       = shift;
     my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
-    my %args       = (
+    my %args = (
         trim => undef,
         @_,
     );
 
     require HTML::Entities;
 
-    $self->decode($scalar_ref);
+    decode($scalar_ref);
 
     HTML::Entities::decode_entities( $scalar_ref->$* );
 
-    $self->trim($scalar_ref) if $args{trim};
+    trim($scalar_ref) if $args{trim};
 
     if ( defined wantarray ) {
         return $scalar_ref;
@@ -330,9 +320,8 @@ sub decode_html_entities {
 
 # DECODE, ENCODE
 sub decode {
-    my $self       = shift;
     my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
-    my %args       = (
+    my %args = (
         encoding   => 'UTF-8',
         decode_eol => 1,
         @_,
@@ -345,7 +334,7 @@ sub decode {
 
         $scalar_ref->$* = $encoding->{ $args{encoding} }->decode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-        $self->decode_eol($scalar_ref) if $args{decode_eol};
+        decode_eol($scalar_ref) if $args{decode_eol};
     }
 
     if ( defined wantarray ) {
@@ -357,7 +346,6 @@ sub decode {
 }
 
 sub encode_utf8 {
-    my $self = shift;
     my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
 
     # Encode::_utf8_off( ${$scalar} ) if utf8::is_utf8( ${$scalar} );    ## no critic qw[Subroutines::ProtectPrivateSubs]
@@ -373,7 +361,7 @@ sub encode_utf8 {
 }
 
 # expand number from scientific format to ordinary
-sub expand ( $self, $n ) {
+sub expand ($n) {
     return $n unless $n =~ /\A(.*)e([-+]?)(.*)\z/sm;
 
     my ( $num, $sign, $exp ) = ( $1, $2, $3 );
@@ -384,8 +372,7 @@ sub expand ( $self, $n ) {
 }
 
 sub to_snake_case {
-    my $self = shift;
-    my $str  = defined wantarray ? \( q[] . shift ) : \$_[0];
+    my $str = defined wantarray ? \( q[] . shift ) : \$_[0];
     my %args = (
         split => undef,
         join  => undef,
@@ -424,8 +411,7 @@ sub to_snake_case {
 }
 
 sub to_camel_case {
-    my $self = shift;
-    my $str  = defined wantarray ? \( q[] . shift ) : \$_[0];
+    my $str = defined wantarray ? \( q[] . shift ) : \$_[0];
     my %args = (
         ucfirst => undef,
         split   => undef,
@@ -467,11 +453,11 @@ sub to_camel_case {
 
 # TEMPL METHODS
 sub mark_raw {
-    return Text::Xslate::mark_raw( $_[1] );
+    return Text::Xslate::mark_raw( $_[0] );
 }
 
 sub unmark_raw {
-    return Text::Xslate::unmark_raw( $_[1] );
+    return Text::Xslate::unmark_raw( $_[0] );
 }
 
 1;
@@ -481,7 +467,12 @@ sub unmark_raw {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 43                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    4 │ 46, 48, 63, 65, 82,  │ Subroutines::ProhibitAmpersandSigils - Subroutine called with "&" sigil                                        │
+## │      │ 84, 103, 105, 155    │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 39                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 168                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 8, 9, 10, 11, 12,    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## │      │ 13, 14               │                                                                                                                │

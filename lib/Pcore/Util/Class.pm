@@ -4,7 +4,6 @@ use Pcore;
 use Sub::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub load {
-    my $self  = shift;
     my $class = shift;
     my %args  = (
         ns   => undef,
@@ -18,20 +17,21 @@ sub load {
         $class_filename = $class;
     }
     else {
-        $class = $self->resolve_class_name( $class, $args{ns} );
-        $class_filename = ( $class =~ s[::][/]smgr ) . q[.pm];
+        $class = resolve_class_name( $class, $args{ns} );
+        
+		$class_filename = ( $class =~ s[::][/]smgr ) . q[.pm];
     }
 
     require $class_filename;
 
     die qq[Error loading class "$class". Class must be instance of "$args{isa}"]  if $args{isa}  && !$class->isa( $args{isa} );
-    die qq[Error loading class "$class". Class must be consumer of "$args{does}"] if $args{does} && !$class->does( $args{does} );
+    
+	die qq[Error loading class "$class". Class must be consumer of "$args{does}"] if $args{does} && !$class->does( $args{does} );
 
     return $class;
 }
 
 sub resolve_class_name {
-    my $self  = shift;
     my $class = shift;
     my $ns    = shift;
 
@@ -44,35 +44,25 @@ sub resolve_class_name {
 }
 
 sub set_sub_prototype {
-    my $self = shift;
-
-    return Sub::Util::set_prototype(@_);
+    return &Sub::Util::set_prototype;
 }
 
 sub get_sub_prototype {
-    my $self = shift;
-
-    return Sub::Util::prototype(@_);
+    return &Sub::Util::prototype;
 }
 
 # allow to specify name as '::<name>', caller namespace will be used as full sub name
 sub set_subname {
-    my $self = shift;
-
-    return Sub::Util::set_subname(@_);
+    return &Sub::Util::set_subname;
 }
 
 sub get_sub_name {
-    my $self = shift;
-
     my ( $package, $name ) = Sub::Util::subname( $_[0] ) =~ /^(.+)::(.+)$/sm;
 
     return $name;
 }
 
 sub get_sub_fullname {
-    my $self = shift;
-
     my $full_name = Sub::Util::subname( $_[0] );
 
     if (wantarray) {

@@ -95,13 +95,6 @@ const our $RESERVED_SUB_DELIMS => quotemeta q[!$&'()*+,;=];
 const our $ESCAPE_RE           => qq[^${UNRESERVED}${RESERVED_GEN_DELIMS}${RESERVED_SUB_DELIMS}%];
 const our $ESC_CHARS           => { map { chr $_ => sprintf '%%%02X', $_ } ( 0 .. 255 ) };
 
-# Pcore::Util interface
-sub NEW {
-    shift;
-
-    return __PACKAGE__->new(@_);
-}
-
 sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
     my %args;
 

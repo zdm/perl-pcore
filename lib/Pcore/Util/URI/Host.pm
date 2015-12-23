@@ -131,10 +131,6 @@ sub tlds ($force_download = 0) {
     return $tlds;
 }
 
-sub NEW {
-    goto &new;
-}
-
 sub to_string ($self) {
     return $self->{name};
 }
@@ -333,7 +329,7 @@ sub _build_root_domain_utf8 ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 73, 80, 94           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 274, 277             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 270, 273             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

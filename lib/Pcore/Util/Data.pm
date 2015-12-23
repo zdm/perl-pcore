@@ -5,6 +5,7 @@ use Sort::Naturally qw[nsort];
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use URI::Escape::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
 use WWW::Form::UrlEncoded::XS qw[];
+use Pcore::Util::Text qw[];
 
 our $TOKEN = {
     serializer => {
@@ -30,7 +31,6 @@ our $JSON_CACHE;
 # objects should have TO_JSON method, otherwise object will be serialized as null
 # base64 encoder is used by default, it generates more compressed data
 sub encode {
-    my $self = shift;
     my $data = shift;
     my %args = (
         to                 => 'JSON',              # PERL, JSON, CBOR, YAML, XML, INI
@@ -108,14 +108,14 @@ sub encode {
     }
     elsif ( $args{to} eq 'JSON' ) {
         if ( $args{readable} ) {
-            $res = \$self->to_json( $data, cache => 'serializer_readable', ascii => 0, latin1 => 0, utf8 => 1, pretty => 1 );
+            $res = \to_json( $data, cache => 'serializer_readable', ascii => 0, latin1 => 0, utf8 => 1, pretty => 1 );
         }
         else {
-            $res = \$self->to_json( $data, cache => 'serializer_portable', ascii => 1, latin1 => 0, utf8 => 1, pretty => 0 );
+            $res = \to_json( $data, cache => 'serializer_portable', ascii => 1, latin1 => 0, utf8 => 1, pretty => 0 );
         }
     }
     elsif ( $args{to} eq 'CBOR' ) {
-        $res = \$self->_get_cbor_obj->encode($data);
+        $res = \_get_cbor_obj->encode($data);
     }
     elsif ( $args{to} eq 'YAML' ) {
         require YAML::XS;
@@ -237,7 +237,6 @@ sub encode {
 # JSON data should be without UTF8 flag
 # objects isn't deserialized automatically from JSON
 sub decode {
-    my $self = shift;
     my $data_ref = ref $_[0] ? shift : \shift;
 
     my %args = (
@@ -256,7 +255,7 @@ sub decode {
 
     # parse token
     if ( $args{token} ) {
-        if ( my $token = $self->_parse_token($data_ref) ) {
+        if ( my $token = _parse_token($data_ref) ) {
             P->hash->merge( \%args, $token );
 
             # cut token from data
@@ -272,7 +271,7 @@ sub decode {
         $args{portable} = 'b64' if $args{portable} eq '1';
 
         if ( $args{portable} eq 'b64' ) {
-            $data_ref = \$self->from_b64_url( $data_ref->$* );
+            $data_ref = \from_b64_url( $data_ref->$* );
         }
         elsif ( $args{portable} eq 'hex' ) {
             $data_ref = \pack 'H*', $data_ref->$*;
@@ -324,7 +323,7 @@ sub decode {
     if ( $args{from} eq 'PERL' ) {
         my $ns = $args{ns} || '_Pcore::CONFIG::SANDBOX';
 
-        P->text->decode( $data_ref->$* );
+        Pcore::Util::Text::decode( $data_ref->$* );
 
         ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
         $res = eval <<"CODE";
@@ -339,10 +338,10 @@ CODE
         die q[Config must return value] unless $res;
     }
     elsif ( $args{from} eq 'JSON' ) {
-        $res = $self->from_json( $data_ref->$*, cache => 'deserializer_utf8_' . $args{json_utf8}, utf8 => $args{json_utf8} );
+        $res = from_json( $data_ref->$*, cache => 'deserializer_utf8_' . $args{json_utf8}, utf8 => $args{json_utf8} );
     }
     elsif ( $args{from} eq 'CBOR' ) {
-        $res = $self->_get_cbor_obj->decode( $data_ref->$* );
+        $res = _get_cbor_obj->decode( $data_ref->$* );
     }
     elsif ( $args{from} eq 'YAML' ) {
         require YAML::XS;
@@ -391,7 +390,6 @@ CODE
 }
 
 sub _parse_token {
-    my $self     = shift;
     my $data_ref = shift;
 
     state $reversed_token;
@@ -465,20 +463,15 @@ sub _parse_token {
 
 # PERL
 sub to_perl {
-    my $self = shift;
-
-    return $self->encode( @_, to => 'PERL' );
+    return encode( @_, to => 'PERL' );
 }
 
 sub from_perl {
-    my $self = shift;
-
-    return $self->decode( @_, from => 'PERL' );
+    return decode( @_, from => 'PERL' );
 }
 
 # JSON
 sub to_json {
-    my $self = shift;
     my $data = shift;
     my %args = (
         cache => undef,    # cache id, get JSON object from cache
@@ -532,7 +525,6 @@ sub to_json {
 }
 
 sub from_json {
-    my $self = shift;
     my $data = shift;
     my %args = (
         cache => undef,    # cache id, get object from cache
@@ -574,107 +566,81 @@ sub from_json {
 
 # CBOR
 sub _get_cbor_obj {
-    my $self = shift;
-
-    state $cbor;
-
-    if ( !$cbor ) {    # create ant cache CBOR object
+    state $cbor = do {    # create and cache CBOR object
         require CBOR::XS;
 
-        $cbor = CBOR::XS->new;
+        my $cbor1 = CBOR::XS->new;
 
-        $cbor->max_depth(512);
-        $cbor->max_size(0);    # max. string size is unlimited
-        $cbor->allow_unknown(0);
-        $cbor->allow_sharing(1);
-        $cbor->allow_cycles(1);
-        $cbor->pack_strings(1);
-        $cbor->validate_utf8(0);
-        $cbor->filter(undef);
-    }
+        $cbor1->max_depth(512);
+        $cbor1->max_size(0);    # max. string size is unlimited
+        $cbor1->allow_unknown(0);
+        $cbor1->allow_sharing(1);
+        $cbor1->allow_cycles(1);
+        $cbor1->pack_strings(1);
+        $cbor1->validate_utf8(0);
+        $cbor1->filter(undef);
+
+        $cbor1;
+    };
 
     return $cbor;
 }
 
 sub to_cbor {
-    my $self = shift;
-
-    return $self->encode( @_, to => 'CBOR' );
+    return encode( @_, to => 'CBOR' );
 }
 
 sub from_cbor {
-    my $self = shift;
-
-    return $self->decode( @_, from => 'CBOR' );
+    return decode( @_, from => 'CBOR' );
 }
 
 # YAML
 sub to_yaml {
-    my $self = shift;
-
-    return $self->encode( @_, to => 'YAML' );
+    return encode( @_, to => 'YAML' );
 }
 
 sub from_yaml {
-    my $self = shift;
-
-    return $self->decode( @_, from => 'YAML' );
+    return decode( @_, from => 'YAML' );
 }
 
 # XML
 sub to_xml {
-    my $self = shift;
-
-    return $self->encode( @_, to => 'XML' );
+    return encode( @_, to => 'XML' );
 }
 
 sub from_xml {
-    my $self = shift;
-
-    return $self->decode( @_, from => 'XML' );
+    return decode( @_, from => 'XML' );
 }
 
 # INI
 sub to_ini {
-    my $self = shift;
-
-    return $self->encode( @_, to => 'INI' );
+    return encode( @_, to => 'INI' );
 }
 
 sub from_ini {
-    my $self = shift;
-
-    return $self->decode( @_, from => 'INI' );
+    return decode( @_, from => 'INI' );
 }
 
 # BASE64
 sub to_b64 {
-    my $self = shift;
-
     require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::encode_base64( $_[0], $_[1] );
 }
 
 sub to_b64_url {
-    my $self = shift;
-
     require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::encode_base64url(@_);
 }
 
 sub from_b64 {
-    my $self = shift;
-
     require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::decode_base64(@_);
 }
 
 sub from_b64_url {
-    my $self = shift;
-
     require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
     return MIME::Base64::decode_base64url(@_);
@@ -682,8 +648,6 @@ sub from_b64_url {
 
 # URI
 sub to_uri {
-    my $self = shift;
-
     if ( ref $_[0] ) {
         return WWW::Form::UrlEncoded::XS::build_urlencoded( blessed $_[0] && $_[0]->isa('Pcore::Util::Hash::Multivalue') ? $_[0]->get_hash : $_[0] );
     }
@@ -694,7 +658,6 @@ sub to_uri {
 
 # always return scalar string
 sub from_uri {
-    my $self = shift;
     my %args = (
         encoding => 'UTF-8',
         splice( @_, 1 ),
@@ -744,7 +707,6 @@ sub from_uri {
 
 # always return HashMultivalue
 sub from_uri_query {
-    my $self = shift;
     my %args = (
         encoding => 'UTF-8',
         splice( @_, 1 ),
@@ -818,12 +780,15 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 32                   │ * Subroutine "encode" with high complexity score (35)                                                          │
-## │      │ 239                  │ * Subroutine "decode" with high complexity score (31)                                                          │
+## │      │ 238                  │ * Subroutine "decode" with high complexity score (31)                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 63, 149, 151, 372,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 400, 402, 404, 406   │                                                                                                                │
+## │    3 │ 62, 148, 150, 370,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 397, 399, 401, 403   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 711, 729, 770, 779   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 567                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_cbor_obj' declared but not     │
+## │      │                      │ used                                                                                                           │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 673, 691, 731, 740   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

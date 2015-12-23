@@ -3,7 +3,6 @@ package Pcore::Util::Config;
 use Pcore;
 
 sub load {
-    my $self   = shift;
     my $config = shift;    # scalar || scalar ref
     my %args   = (
         ns   => undef,     # load cfg into specified namespace, only for perl configs
@@ -38,7 +37,6 @@ sub load {
 }
 
 sub store {
-    my $self = shift;
     my $path = shift;
     my $cfg  = shift;
     my %args = (
