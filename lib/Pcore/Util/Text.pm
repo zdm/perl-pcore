@@ -29,6 +29,12 @@ our %STRFTIME_JQUERY = (
     q[%s] => q[@],     # epoch
 );
 
+# TODO
+# - text - crunch - use this name;
+# - review String::Util;
+# - P->text - disallow to accept references, only plain scalars, test, how it will work with objects;
+# - P->text - clear trim functions names, eg, P->text->rcut_all -> P->text->trim_trailing_hs
+
 our $SUB = {
     decode_eol => sub {    # convert EOL to internal \n representation
         $_[0] =~ s/\x0D?\x0A/\n/smg;
@@ -165,6 +171,8 @@ our $SUB = {
 };
 
 # create sccessors
+#  TODO
+#  inline args wrapper + sub body
 for my $sub ( keys $SUB->%* ) {
     no strict qw[refs];
 
@@ -207,12 +215,6 @@ for my $sub ( keys $SUB->%* ) {
         }
     };
 }
-
-# TODO
-# - text - crunch - use this name;
-# - review String::Util;
-# - P->text - disallow to accept references, only plain scalars, test, how it will work with objects;
-# - P->text - clear trim functions names, eg, P->text->rcut_all -> P->text->trim_trailing_hs
 
 # UTIL
 sub table {
@@ -334,7 +336,7 @@ sub decode {
 
         $scalar_ref->$* = $encoding->{ $args{encoding} }->decode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-        decode_eol($scalar_ref) if $args{decode_eol};
+        $scalar_ref->$* =~ s/\x0D?\x0A/\n/smg if $args{decode_eol};
     }
 
     if ( defined wantarray ) {
@@ -373,6 +375,7 @@ sub expand ($n) {
 
 sub to_snake_case {
     my $str = defined wantarray ? \( q[] . shift ) : \$_[0];
+
     my %args = (
         split => undef,
         join  => undef,
@@ -397,8 +400,10 @@ sub to_snake_case {
         }
     }
     else {
+
         # convert camelCase to snake_case notation
         $str->$* = lcfirst $str->$*;
+
         $str->$* =~ s/([[:upper:]])/q[_] . lc $1/smge;
     }
 
@@ -412,6 +417,7 @@ sub to_snake_case {
 
 sub to_camel_case {
     my $str = defined wantarray ? \( q[] . shift ) : \$_[0];
+
     my %args = (
         ucfirst => undef,
         split   => undef,
@@ -426,7 +432,9 @@ sub to_camel_case {
 
         for (@parts) {
             $_ = lc;
+
             s/_(.)/uc $1/smge;    # convert snake_case to camelCase notation
+
             $_ = ucfirst if $args{ucfirst};
         }
 
@@ -439,7 +447,9 @@ sub to_camel_case {
     }
     else {
         $str->$* = lc $str->$*;
+
         $str->$* =~ s/_(.)/uc $1/smge;    # convert snake_case to camelCase notation
+
         $str->$* = ucfirst $str->$* if $args{ucfirst};
     }
 
@@ -467,9 +477,9 @@ sub unmark_raw {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 39                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 45                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 168                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 176                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 8, 9, 10, 11, 12,    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## │      │ 13, 14               │                                                                                                                │
