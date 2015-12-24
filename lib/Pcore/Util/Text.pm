@@ -1,6 +1,6 @@
 package Pcore::Util::Text;
 
-use Pcore -export, [qw[decode]];
+use Pcore -export, [qw[decode trim encode_hex]];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
 

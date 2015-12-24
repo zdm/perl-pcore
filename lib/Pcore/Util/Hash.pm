@@ -20,17 +20,19 @@ sub _merge {
     my $a = shift;
     my $b = shift;
 
-    foreach my $key ( keys %{$b} ) {
+    foreach my $key ( keys $b->%* ) {
         if ( blessed( $a->{$key} ) && $a->{$key}->can('MERGE') ) {
             $a->{$key} = $a->{$key}->MERGE( $b->{$key} );
         }
         elsif ( ref( $b->{$key} ) eq 'HASH' ) {
             $a->{$key} = {} unless ( ref( $a->{$key} ) eq 'HASH' );
+
             _merge( $a->{$key}, $b->{$key} );
         }
         elsif ( ref( $b->{$key} ) eq 'ARRAY' ) {
             $a->{$key} = [];
-            @{ $a->{$key} } = @{ $b->{$key} };
+
+            $a->{$key}->@* = $b->{$key}->@*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
         }
         else {
             $a->{$key} = $b->{$key};
@@ -49,6 +51,16 @@ sub randkey {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 23                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
