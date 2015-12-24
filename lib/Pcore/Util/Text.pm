@@ -182,13 +182,18 @@ for my $sub ( keys $SUB->%* ) {
 
                 # make a copy and stringify
                 if ( ref $_[0] ) {
-                    \( q[] . $_[0]->$* );
+                    if ( ref $_[0] eq 'SCALAR' ) {
+                        \( q[] . $_[0]->$* );
+                    }
+                    else {
+                        \( q[] . $_[0] );
+                    }
                 }
                 else {
                     \( q[] . $_[0] );
                 }
             }
-            else {               # modify string in-place
+            else {    # modify string in-place
                 if ( ref $_[0] ) {
                     if ( ref $_[0] eq 'SCALAR' ) {
                         $_[0];
@@ -196,7 +201,9 @@ for my $sub ( keys $SUB->%* ) {
                     else {
 
                         # make a copy and stringify, this behaviour is unclear
-                        \( q[] . $_[0] );
+                        $_[0] = q[] . $_[0];
+
+                        \$_[0];
                     }
                 }
                 else {
