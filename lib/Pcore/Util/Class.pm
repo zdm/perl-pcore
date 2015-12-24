@@ -18,15 +18,15 @@ sub load {
     }
     else {
         $class = resolve_class_name( $class, $args{ns} );
-        
-		$class_filename = ( $class =~ s[::][/]smgr ) . q[.pm];
+
+        $class_filename = ( $class =~ s[::][/]smgr ) . q[.pm];
     }
 
     require $class_filename;
 
-    die qq[Error loading class "$class". Class must be instance of "$args{isa}"]  if $args{isa}  && !$class->isa( $args{isa} );
-    
-	die qq[Error loading class "$class". Class must be consumer of "$args{does}"] if $args{does} && !$class->does( $args{does} );
+    die qq[Error loading class "$class". Class must be instance of "$args{isa}"] if $args{isa} && !$class->isa( $args{isa} );
+
+    die qq[Error loading class "$class". Class must be consumer of "$args{does}"] if $args{does} && !$class->does( $args{does} );
 
     return $class;
 }
@@ -44,16 +44,16 @@ sub resolve_class_name {
 }
 
 sub set_sub_prototype {
-    return &Sub::Util::set_prototype;
+    return &Sub::Util::set_prototype;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub get_sub_prototype {
-    return &Sub::Util::prototype;
+    return &Sub::Util::prototype;        ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 # allow to specify name as '::<name>', caller namespace will be used as full sub name
 sub set_subname {
-    return &Sub::Util::set_subname;
+    return &Sub::Util::set_subname;      ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub get_sub_name {

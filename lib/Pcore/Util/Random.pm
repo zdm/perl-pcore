@@ -14,8 +14,8 @@ my $_RANDOM;
 
 sub _random {
     my $pid = P->sys->pid;
-    
-	if ( $pid ne $_PID ) {
+
+    if ( $pid ne $_PID ) {
         $_PID    = $pid;
         $_RANDOM = undef;
     }
@@ -44,6 +44,16 @@ sub password {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 15                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_random' declared but not used      │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

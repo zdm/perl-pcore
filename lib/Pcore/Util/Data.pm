@@ -779,16 +779,16 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 32                   │ * Subroutine "encode" with high complexity score (35)                                                          │
-## │      │ 238                  │ * Subroutine "decode" with high complexity score (31)                                                          │
+## │      │ 33                   │ * Subroutine "encode" with high complexity score (35)                                                          │
+## │      │ 239                  │ * Subroutine "decode" with high complexity score (31)                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 62, 148, 150, 370,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 397, 399, 401, 403   │                                                                                                                │
+## │    3 │ 63, 149, 151, 371,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 398, 400, 402, 404   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 567                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_cbor_obj' declared but not     │
+## │    3 │ 568                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_cbor_obj' declared but not     │
 ## │      │                      │ used                                                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 673, 691, 731, 740   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 674, 692, 732, 741   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

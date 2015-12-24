@@ -423,7 +423,7 @@ sub get_fh ( $path, $mode, @ ) {
     else {
         my $umask_guard;
 
-        $umask_guard = &umask( $args{umask} ) if defined $args{umask};
+        $umask_guard = &umask( $args{umask} ) if defined $args{umask};    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
         # encode filename to native OS encoding
         $path = encode_path($path);
@@ -516,7 +516,7 @@ sub touch ( $path, % ) {
     if ( !-e $path ) {
 
         # set umask if defined
-        my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;
+        my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
         sysopen my $FH, $path, Fcntl::O_WRONLY | Fcntl::O_CREAT | Fcntl::O_APPEND, calc_chmod( $args{mode} ) or die qq[Can't touch file "$path"];
 
@@ -543,31 +543,31 @@ sub mkpath ( $path, % ) {
 
     $args{mode} = calc_chmod( $args{mode} );
 
-    my $umask_guard = defined $args{umask} ? &umask( delete $args{umask} ) : delete $args{umask};
+    my $umask_guard = defined $args{umask} ? &umask( delete $args{umask} ) : delete $args{umask};    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
     return File::Path::make_path( "$path", \%args );
 }
 
 sub rmtree ( $path, @ ) {
     my %args = (
-        safe      => 0,    # 0 - will attempts to alter file permission
+        safe      => 0,                                                                              # 0 - will attempts to alter file permission
         keep_root => 0,
         @_[ 1 .. $#_ ],
     );
 
-    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
+    require File::Path;                                                                              ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Path::remove_tree( "$path", \%args );
 }
 
 sub empty_dir ( $path, @ ) {
     my %args = (
-        safe => 0,         # 0 - will attempts to alter file permission
+        safe => 0,                                                                                   # 0 - will attempts to alter file permission
         @_[ 1 .. $#_ ],
         keep_root => 1,
     );
 
-    require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
+    require File::Path;                                                                              ## no critic qw[Modules::ProhibitEvilModules]
 
     return File::Path::remove_tree( "$path", \%args );
 }
@@ -626,7 +626,7 @@ sub copy ( $from, $to, @ ) {
         @_[ 2 .. $#_ ],
     );
 
-    my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;
+    my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
     local $File::Copy::Recursive::DirPerms = calc_chmod( $args{dir_mode}, oct => 1 );
     local $File::Copy::Recursive::CopyLink = $args{copy_link};
@@ -668,7 +668,7 @@ sub move ( $from, $to, @ ) {
         @_[ 2 .. $#_ ],
     );
 
-    my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;
+    my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
     local $File::Copy::Recursive::DirPerms = calc_chmod( $args{dir_mode}, oct => 1 );
     local $File::Copy::Recursive::CopyLink = $args{copy_link};
@@ -712,7 +712,7 @@ sub find ( $path, @ ) {
 
     my $chdir_guard;
 
-    $chdir_guard = &chdir($path) if !$args{abs};
+    $chdir_guard = &chdir($path) if !$args{abs};    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
     my $read_dir;
 
@@ -766,8 +766,6 @@ sub where ($filename) {
 ## │      │ 48                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
 ## │      │ 122                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
 ## │      │ 248                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 426, 715             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
