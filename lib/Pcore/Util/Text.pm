@@ -1,8 +1,9 @@
 package Pcore::Util::Text;
 
-use Pcore -export, [qw[decode trim encode_hex]];
+use Pcore -export, [qw[decode trim encode_hex mark_raw unmark_raw]];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
+use Text::Xslate qw[mark_raw unmark_raw];
 
 our %ESC_ANSI_CTRL = (
     qq[\a] => q[\a],
@@ -30,8 +31,8 @@ our %STRFTIME_JQUERY = (
 );
 
 # TODO
-# - text - crunch - use this name;
-# - review String::Util;
+# - crunch - ?;
+# - fullchomp - ?;
 # - P->text - disallow to accept references, only plain scalars, test, how it will work with objects;
 # - P->text - clear trim functions names, eg, P->text->rcut_all -> P->text->trim_trailing_hs
 
@@ -468,15 +469,6 @@ sub to_camel_case {
     }
 }
 
-# TEMPL METHODS
-sub mark_raw {
-    return Text::Xslate::mark_raw( $_[0] );
-}
-
-sub unmark_raw {
-    return Text::Xslate::unmark_raw( $_[0] );
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -484,12 +476,12 @@ sub unmark_raw {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 45                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 46                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 176                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 177                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 8, 9, 10, 11, 12,    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
-## │      │ 13, 14               │                                                                                                                │
+## │    1 │ 9, 10, 11, 12, 13,   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │      │ 14, 15               │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
