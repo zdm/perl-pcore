@@ -1,6 +1,13 @@
 package Pcore::Util::Text;
 
-use Pcore -export, [qw[decode trim encode_hex mark_raw unmark_raw]];
+use Pcore -export, [
+    qw[
+      trim encode_hex
+      decode encode_utf8
+      to_snake_case to_camel_case
+      mark_raw unmark_raw
+      ]
+];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
 use Text::Xslate qw[mark_raw unmark_raw];
@@ -171,9 +178,8 @@ our $SUB = {
     },
 };
 
-# create sccessors
-#  TODO
-#  inline args wrapper + sub body
+# create accessors
+#  TODO inline args wrapper + sub body
 for my $sub ( keys $SUB->%* ) {
     no strict qw[refs];
 
@@ -226,7 +232,13 @@ for my $sub ( keys $SUB->%* ) {
 
 # UTIL
 sub table {
-    return P->class->load('Pcore::Util::Text::Table')->new(@_);
+    state $init = do {
+        require Pcore::Util::Text::Table;
+
+        1;
+    };
+
+    return Pcore::Util::Text::Table->new(@_);
 }
 
 sub remove_ansi_color {
@@ -250,6 +262,7 @@ sub remove_ansi_color {
 
 sub escape_scalar {
     my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
+
     my %args = (
         bin         => undef,     # if TRUE - always treats scalar as binary data
         utf8_encode => 1,         # if FALSE - in bin mode escape utf8 multi-byte chars as \x{...}
@@ -281,6 +294,7 @@ sub escape_scalar {
             }
             else {
                 $scalar_ref->$* =~ s/([[:ascii:]])/sprintf q[\x%X], ord $1/smge;
+
                 $scalar_ref->$* =~ s/([[:^ascii:]])/sprintf q[\x{%X}], ord $1/smge;
             }
         }
@@ -289,10 +303,12 @@ sub escape_scalar {
         }
     }
     else {
-        my $esc_color   = $args{esc_color} ? Term::ANSIColor::color( $args{esc_color} )   : q[];
+        my $esc_color = $args{esc_color} ? Term::ANSIColor::color( $args{esc_color} ) : q[];
+
         my $reset_color = $args{esc_color} ? Term::ANSIColor::color( $args{reset_color} ) : q[];
 
-        $scalar_ref->$* =~ s/([\a\b\t\n\f\r\e])/${esc_color}$ESC_ANSI_CTRL{$1}${reset_color}/smg;                       # escape ANSI
+        $scalar_ref->$* =~ s/([\a\b\t\n\f\r\e])/${esc_color}$ESC_ANSI_CTRL{$1}${reset_color}/smg;    # escape ANSI
+
         $scalar_ref->$* =~ s/([\x00-\x1A\x1C-\x1F\x7F])/$esc_color . sprintf( q[\x%X], ord $1 ) . $reset_color/smge;    # hex ANSI non-printable chars
     }
 
@@ -476,12 +492,12 @@ sub to_camel_case {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 46                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 53                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 177                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 183                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 9, 10, 11, 12, 13,   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
-## │      │ 14, 15               │                                                                                                                │
+## │    1 │ 16, 17, 18, 19, 20,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │      │ 21, 22               │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
