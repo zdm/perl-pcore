@@ -137,7 +137,7 @@ sub send_log ( $self, @ ) {
         ns     => $self->ns,
         header => undef,
         tags   => {},
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     return 0 if $self->_logged && !$args{force};    # prevent doble logging same exception

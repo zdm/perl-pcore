@@ -234,14 +234,14 @@ sub request ( $self, @ ) {
     if ( ref $_[1] eq 'HASH' || ( blessed( $_[1] ) && $_[1]->isa('Pcore::HTTP::Request') ) ) {    # first arg is req object or HashRef
         $req = ref $_[1] eq 'HASH' ? Pcore::HTTP::Request->new( $_[1] ) : $_[1];
 
-        $req_args = ref $_[2] eq 'HASH' ? $_[2] : { @_[ 2 .. $#_ ] };
+        $req_args = ref $_[2] eq 'HASH' ? $_[2] : { splice @_, 2 };
     }
     else {
         if ( exists $Pcore::HTTP::Request::HTTP_METHODS->{ $_[1] } ) {                            # first arg is method name
-            $req = Pcore::HTTP::Request->new( { method => $_[1], url => $_[2], @_[ 3 .. $#_ ] } );
+            $req = Pcore::HTTP::Request->new( { method => $_[1], url => $_[2], splice @_, 3 } );
         }
         else {                                                                                    # first arg is url, method = GET
-            $req = Pcore::HTTP::Request->new( { method => 'GET', url => $_[1], @_[ 2 .. $#_ ] } );
+            $req = Pcore::HTTP::Request->new( { method => 'GET', url => $_[1], splice @_, 2 } );
         }
     }
 
@@ -368,14 +368,14 @@ sub _redefine_method ( $self, $method, @ ) {
     if ( ref $_[2] eq 'HASH' || ( blessed( $_[2] ) && $_[2]->isa('Pcore::HTTP::Request') ) ) {    # second arg is req object or HashRef
         $req = $_[2];
 
-        $req_args = ref $_[3] eq 'HASH' ? $_[3] : { @_[ 3 .. $#_ ] };
+        $req_args = ref $_[3] eq 'HASH' ? $_[3] : { splice @_, 3 };
     }
     else {
         if ( exists $Pcore::HTTP::Request::HTTP_METHODS->{ $_[2] } ) {                            # second arg is method name
-            $req = { method => $_[2], url => $_[3], @_[ 4 .. $#_ ] };
+            $req = { method => $_[2], url => $_[3], splice @_, 4 };
         }
         else {
-            $req = { method => 'GET', url => $_[2], @_[ 3 .. $#_ ] };                             # second arg is url
+            $req = { method => 'GET', url => $_[2], splice @_, 3 };                               # second arg is url
         }
     }
 
@@ -395,16 +395,16 @@ sub mirror ( $self, @ ) {
 
         $target = $_[2];
 
-        $req_args = ref $_[3] eq 'HASH' ? $_[3] : { @_[ 3 .. $#_ ] };
+        $req_args = ref $_[3] eq 'HASH' ? $_[3] : { splice @_, 3 };
     }
     else {
         if ( exists $Pcore::HTTP::Request::HTTP_METHODS->{ $_[1] } ) {
-            $req = { method => $_[1], url => $_[2], @_[ 4 .. $#_ ] };
+            $req = { method => $_[1], url => $_[2], splice @_, 4 };
 
             $target = $_[3];
         }
         else {
-            $req = { method => 'GET', url => $_[1], @_[ 3 .. $#_ ] };
+            $req = { method => 'GET', url => $_[1], splice @_, 3 };
 
             $target = $_[2];
         }

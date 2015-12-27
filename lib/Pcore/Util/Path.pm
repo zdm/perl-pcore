@@ -50,7 +50,7 @@ around new => sub ( $orig, $self, $path = q[], @ ) {
         base     => q[],
         lazy     => 0,
         from_uri => 0,
-        @_[ 3 .. $#_ ],
+        splice @_, 3,
     );
 
     $self = ref $self if blessed $self;

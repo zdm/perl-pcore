@@ -103,7 +103,7 @@ sub get_slot ( $self, $connect, @ ) {
     my %args = (
         wait   => 0,
         ban_id => undef,    # check for ban
-        @_[ 2 .. $#_ - 1 ],
+        splice @_, 2, -1,
     );
 
     # parse connect attribute

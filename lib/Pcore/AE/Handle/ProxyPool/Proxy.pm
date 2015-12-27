@@ -204,7 +204,7 @@ sub get_slot ( $self, $connect, @ ) {
     my %args = (
         wait   => 0,    # wait for proxy slot
         ban_id => 0,    # check for ban
-        @_[ 2 .. $#_ - 1 ],
+        splice @_, 2, -1,
     );
 
     if ( $self->{connect_error} ) {

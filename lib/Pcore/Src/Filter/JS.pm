@@ -8,7 +8,7 @@ with qw[Pcore::Src::Filter];
 sub decompress ( $self, % ) {
     my %args = (
         js_hint => 1,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     return 0 if !length $self->buffer->$*;

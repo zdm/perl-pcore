@@ -43,7 +43,7 @@ sub prompt ( $msg, $opt, @ ) {
         enter   => 0,       # user should press ENTER
         echo    => 1,
         timeout => 0,       # timeout, after the default value will be accepted
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     my $index = {};

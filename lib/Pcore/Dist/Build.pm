@@ -87,7 +87,7 @@ sub test ( $self, @ ) {
         jobs    => 1,
         verbose => 0,
         keep    => 0,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     local $ENV{AUTHOR_TESTING}    = 1 if $args{author}  || $args{all};
@@ -126,7 +126,7 @@ sub par ( $self, @ ) {
         crypt   => undef,
         upx     => undef,
         clean   => undef,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     require Pcore::Dist::Build::PAR;

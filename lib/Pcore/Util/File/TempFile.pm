@@ -40,7 +40,7 @@ sub new ( $self, @ ) {
         crlf      => 0,                                     # undef - auto, 1 - on, 0 - off (for binary files)
         binmode   => undef,
         autoflush => 1,
-        @_[ 1 .. $#_ ]
+        splice @_, 1,
     );
 
     $args{suffix} = q[.] . $args{suffix} if defined $args{suffix} && $args{suffix} ne q[] && substr( $args{suffix}, 0, 1 ) ne q[.];
@@ -94,7 +94,7 @@ sub pid ($self) {
 sub TO_DUMP ( $self, $dumper, @ ) {
     my %args = (
         path => undef,
-        @_[ 2 .. $#_ ]
+        splice @_, 2,
     );
 
     my $res;
@@ -114,8 +114,6 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 65, 87, 91           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 33                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

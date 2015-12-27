@@ -78,7 +78,7 @@ sub _dump ( $self, @ ) {
     my %args = (
         path    => q[$VAR],
         unbless => 0,
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     local $ENV{ANSI_COLORS_DISABLED} = 1 unless $self->color;

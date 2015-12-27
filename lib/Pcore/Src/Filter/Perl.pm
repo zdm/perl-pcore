@@ -11,7 +11,7 @@ sub decompress ( $self, % ) {
         perl_verbose => 0,
         perl_tidy    => q[],
         perl_critic  => 0,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     my $err      = q[];
@@ -151,7 +151,7 @@ sub compress ( $self, % ) {
         perl_strip_ws             => 1,
         perl_strip_comment        => 1,
         perl_strip_pod            => 1,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     require BerkeleyDB;

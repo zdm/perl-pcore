@@ -50,7 +50,7 @@ sub calc_umask ( $mode, % ) {
 
     my %args = (
         oct => 0,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     if ( $mode =~ /[^[:digit:]]/smi ) {
@@ -124,7 +124,7 @@ sub calc_chmod ( $mode, % ) {
 
     my %args = (
         oct => 0,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     if ( $mode =~ /[^[:digit:]]/smi ) {
@@ -167,7 +167,7 @@ sub read_bin ( $path, % ) {
     my %args = (
         cb       => undef,
         buf_size => 1_048_576,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     my $fh = get_fh( $path, O_RDONLY, crlf => 0 );
@@ -209,7 +209,7 @@ sub read_text ( $path, % ) {
         binmode  => ':encoding(UTF-8)',
         cb       => undef,
         buf_size => 1_048_576,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     my $fh = get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
@@ -252,7 +252,7 @@ sub read_lines ( $path, % ) {
         cb          => undef,
         buf_size    => 1_048_576,
         empty_lines => 0,                    # only for array_ref mode, don't skip empty lines
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     my $fh = get_fh( $path, O_RDONLY, crlf => $args{crlf}, binmode => $args{binmode} );
@@ -414,7 +414,7 @@ sub get_fh ( $path, $mode, @ ) {
         crlf      => 0,             # undef - auto, 1 - on, 0 - off (for binary files)
         binmode   => undef,
         autoflush => 1,
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     if ( P->scalar->is_glob($path) ) {
@@ -476,7 +476,7 @@ sub read_dir ( $path, % ) {
     my %args = (
         keep_dot  => 0,
         full_path => 0,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     opendir my $dh, $path or die qq[Can't open dir "$path"];
@@ -508,7 +508,7 @@ sub touch ( $path, % ) {
         mtime => undef,
         mode  => q[rw-------],
         umask => undef,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     $path = encode_path($path);
@@ -536,7 +536,7 @@ sub mkpath ( $path, % ) {
     my %args = (
         mode  => q[rwx------],
         umask => undef,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     require File::Path;    ## no critic qw[Modules::ProhibitEvilModules]
@@ -552,7 +552,7 @@ sub rmtree ( $path, @ ) {
     my %args = (
         safe      => 0,                                                                              # 0 - will attempts to alter file permission
         keep_root => 0,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     require File::Path;                                                                              ## no critic qw[Modules::ProhibitEvilModules]
@@ -563,7 +563,7 @@ sub rmtree ( $path, @ ) {
 sub empty_dir ( $path, @ ) {
     my %args = (
         safe => 0,                                                                                   # 0 - will attempts to alter file permission
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
         keep_root => 1,
     );
 
@@ -623,7 +623,7 @@ sub copy ( $from, $to, @ ) {
         rm_dir    => 1,              # remove target dir before copying, 0 - off, 1 - die if can't remove, 2 - return if can't remove
         pfs_check => 1,
         cprf      => 1,              # only if $to is dir, if $to/ is exists put $from/ content into $to/ instead of replace $to/ with $from/
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
@@ -665,7 +665,7 @@ sub move ( $from, $to, @ ) {
         rm_dir    => 1,              # remove target dir before copying, 0 - off, 1 - die if can't remove, 2 - return if can't remove
         pfs_check => 1,
         cprf      => 1,              # only if $to is dir, if $to/ is exists put $from/ content into $to/ instead of replace $to/ with $from/
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     my $umask_guard = defined $args{umask} ? &umask( $args{umask} ) : undef;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
@@ -703,7 +703,7 @@ sub find ( $path, @ ) {
         abs  => 0,    # return absolute path
         dir  => 1,    # return found dirs
         file => 1,    # return found files
-        @_[ 1 .. $#_ - 1 ],
+        splice @_, 1, -1,
     );
 
     $path = P->path( $path, is_dir => 1 )->realpath or return;

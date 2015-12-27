@@ -77,7 +77,7 @@ sub render_tmpl ( $self, $tmpl_args ) {
 sub write_to ( $self, $target_path, @ ) {
     my %args = (
         manifest => undef,
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     for my $file ( values $self->files->%* ) {
@@ -95,7 +95,7 @@ sub write_to_temp ( $self, @ ) {
         base     => undef,
         tmpl     => undef,
         manifest => undef,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     my $tempdir = P->file->tempdir(    #

@@ -14,7 +14,7 @@ sub import ($self) {
             predicate => 1,
             clearer   => 1,
             init_arg  => undef,
-            @_[ 1 .. $#_ ]
+            splice @_, 1,
         );
 
         my $caller_class = caller;
@@ -56,7 +56,7 @@ sub _default_appx_builder ( $self, $name, @ ) {
         isa  => undef,
         does => undef,
         ns   => undef,
-        @_[ 2 .. $#_ ]
+        splice @_, 2,
     );
 
     my $key  = uc $name;                                               # config hash key
@@ -83,8 +83,6 @@ sub _default_appx_builder ( $self, $name, @ ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 8, 44, 45, 46        │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 9, 55                │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

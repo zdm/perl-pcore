@@ -52,7 +52,7 @@ around new => sub ( $orig, $self, $uri, @ ) {
     my %args = (
         base      => undef,
         authority => undef,
-        @_[ 3 .. $#_ ],
+        splice @_, 3,
     );
 
     my $uri_args = $self->_parse_uri_string( $uri, $args{authority} );

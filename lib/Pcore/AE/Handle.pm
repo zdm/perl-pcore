@@ -81,7 +81,7 @@ sub new ( $self, @ ) {
         proxy_ban_id    => undef,               # ban key
         persistent      => $PERSISTENT_IDENT,
         session         => undef,
-        @_[ 1 .. $#_ ],
+        splice @_, 1,
     );
 
     if ( $args{fh} ) {
@@ -687,7 +687,7 @@ sub read_http_body ( $self, $on_read, @ ) {
         length   => undef,    # false - read until EOF
         headers  => 0,
         buf_size => 65_536,
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     my $on_read_buf = sub ( $buf_ref, $error_message ) {

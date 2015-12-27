@@ -38,7 +38,7 @@ sub t_copy_splice {
     my %args = (
         aaa => 1,
         bbb => 2,
-        splice( @_, 1 ),
+        splice @_, 1,
     );
 
     return;
@@ -59,7 +59,7 @@ sub t_sign_splice ( $self, @ ) {
     my %args = (
         aaa => 'default',
         bbb => 'default',
-        splice( @_, 1 ),
+        splice @_, 1,
     );
 
     return;

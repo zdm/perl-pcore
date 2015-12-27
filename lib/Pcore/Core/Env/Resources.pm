@@ -85,7 +85,7 @@ sub get ( $self, $path, @ ) {
     my %args = (
         storage => undef,
         lib     => undef,
-        @_[ 2 .. $#_ ],
+        splice @_, 2,
     );
 
     die qq[resource lib is not exists "$args{lib}"] if $args{lib} && !exists $self->_lib->{ $args{lib} };
@@ -128,7 +128,7 @@ sub get ( $self, $path, @ ) {
 sub store ( $self, $file, $path, $lib, @ ) {
     my %args = (
         storage => undef,
-        @_[ 4 .. $#_ ],
+        splice @_, 4,
     );
 
     die qq[resource lib is not exists "$lib"] if !exists $self->_lib->{$lib};
