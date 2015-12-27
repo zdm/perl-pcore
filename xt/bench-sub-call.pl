@@ -11,24 +11,81 @@ sub sub1 {
     return;
 }
 
+sub sub2 {
+    &sub1;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+
+    return;
+}
+
+sub sub3 {
+    sub1(@_);
+
+    return;
+}
+
+sub sub4 {
+    sub1 @_;
+
+    return;
+}
+
+sub goto1 {
+    goto &sub1;
+}
+
+my $goto_tests = {
+    'goto()' => sub {
+        goto1();
+
+        return;
+    },
+    'goto(@_)' => sub {
+        goto1(1);
+
+        return;
+    },
+    'sub()' => sub {
+        sub2();
+
+        return;
+    },
+    'sub(@_)' => sub {
+        sub2(1);
+
+        return;
+    },
+};
+
 my $proxy_tests = {
     'sub(@_)' => sub {    # static function, new stack
-        sub1(@_);
+        sub3(1);
 
         return;
     },
     'sub @_' => sub {     # static function, new stack, checked at compile time
-        sub1 @_;
+        sub4(1);
 
         return;
     },
-    '&sub' => sub {       # static function, reuse stack
-        &sub1;            ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    '&sub(@_)' => sub {    # static function, reuse stack
+        sub2(1);
 
         return;
     },
-    'goto &sub' => sub {
-        goto &sub1;
+    '&sub()' => sub {      # static function, reuse stack
+        sub2();
+
+        return;
+    },
+    'goto (@_)' => sub {
+        goto1(1);
+
+        return;
+    },
+    'goto ()' => sub {
+        goto1();
+
+        return;
     },
 };
 
@@ -63,6 +120,7 @@ my $method_tests = {
     },
 };
 
+Benchmark::cmpthese( Benchmark::timethese( -5, $goto_tests ) );
 Benchmark::cmpthese( Benchmark::timethese( -5, $proxy_tests ) );
 Benchmark::cmpthese( Benchmark::timethese( -5, $call_tests ) );
 Benchmark::cmpthese( Benchmark::timethese( -5, $method_tests ) );
@@ -74,8 +132,9 @@ Benchmark::cmpthese( Benchmark::timethese( -5, $method_tests ) );
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 15, 20, 36, 41, 46,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
-## │      │ 54, 59               │                                                                                                                │
+## │    1 │ 42, 52, 60, 65, 70,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │      │ 80, 93, 98, 103,     │                                                                                                                │
+## │      │ 111, 116             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
