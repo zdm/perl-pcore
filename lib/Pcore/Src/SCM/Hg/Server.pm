@@ -107,7 +107,7 @@ sub cmd ( $self, @cmd ) {
     if ( $channel ne 'r' ) {
         chomp $data;
 
-        decode_uft8( $data, encoding => $Pcore::WIN_ENC );
+        decode_utf8( $data, encoding => $Pcore::WIN_ENC );
 
         push $res->{$channel}->@*, $data;
 

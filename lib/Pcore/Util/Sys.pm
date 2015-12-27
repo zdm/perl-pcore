@@ -4,7 +4,7 @@ use Pcore;
 
 # in case of error return undef
 sub system {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    &CORE::system;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    CORE::system @_;
 
     die qq[System call exit code: $?] if $? && !defined wantarray;
 
