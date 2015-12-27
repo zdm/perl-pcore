@@ -1,6 +1,7 @@
 package Pcore::Dist::Build::Release;
 
 use Pcore -class;
+use Pcore::Util::Text qw[encode_utf8];
 use Pod::Markdown;
 use CPAN::Meta;
 
@@ -123,9 +124,9 @@ sub _upload_to_cpan ($self) {
 sub _upload ( $self, $username, $password, $path ) {
     my $body;
 
-    P->text->encode_utf8($username);
+    encode_utf8 $username;
 
-    P->text->encode_utf8($password);
+    encode_utf8 $password;
 
     $path = P->path($path);
 

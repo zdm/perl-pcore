@@ -1,6 +1,7 @@
 package Pcore::AE::Handle::ProxyPool::Source::AwmProxy;
 
 use Pcore -class;
+use Pcore::Util::Text qw[decode_eol];
 
 with qw[Pcore::AE::Handle::ProxyPool::Source];
 
@@ -27,7 +28,7 @@ sub load ( $self, $cb ) {
             my $proxies;
 
             if ( $res->status == 200 && $res->has_body ) {
-                P->text->decode_eol( $res->body );
+                decode_eol $res->body->$*;
 
                 for my $addr ( split /\n/sm, $res->body->$* ) {
                     my ( $addr, $real_ip, $country, $speed, $time ) = split /;/sm, $addr;

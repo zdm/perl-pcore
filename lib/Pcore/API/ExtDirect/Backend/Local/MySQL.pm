@@ -1,6 +1,7 @@
 package Pcore::API::Backend::Local::MySQL;
 
 use Pcore -class;
+use Pcore::Util::Text qw[to_camel_case];
 
 with qw[Pcore::API::Backend::Local];
 
@@ -184,7 +185,7 @@ sub _build_api_map {
         for my $row ( $res->@* ) {
             $api_map->{ $row->{action_name} } //= {
                 id      => $row->{action},
-                class   => P->text->to_camel_case( $row->{action_name}, ucfirst => 1, split => q[.], join => q[::] ),
+                class   => to_camel_case( $row->{action_name}, ucfirst => 1, split => q[.], join => q[::] ),
                 methods => {},
             };
 

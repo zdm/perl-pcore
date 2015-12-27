@@ -1,6 +1,7 @@
 package Pcore::API::Map::Param;
 
 use Pcore -class;
+use Pcore::Util::Text qw[to_camel_case];
 
 has name => ( is => 'ro', isa => StrMatch [qr/\A[[:lower:][:digit:]_]+\z/sm], required => 1 );
 has alias_name => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -21,7 +22,7 @@ no Pcore;
 sub _build_alias_name {
     my $self = shift;
 
-    return P->text->to_camel_case( $self->name );
+    return to_camel_case( $self->name );
 }
 
 sub _build_null {

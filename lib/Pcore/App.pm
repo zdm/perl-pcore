@@ -106,6 +106,7 @@ package Pcore::App;
 
 use Pcore -class;
 use Pcore::AppX::HasAppX;
+use Pcore::Util::Text qw[to_camel_case];
 
 with qw[Pcore::App::Role];
 with qw[Pcore::AppX::Role];
@@ -202,7 +203,7 @@ sub BUILD ( $self, $args ) {
 
 # CFG
 sub _build_name_camel_case ($self) {
-    return P->text->to_camel_case( $self->name, ucfirst => 1 );
+    return to_camel_case( $self->name, ucfirst => 1 );
 }
 
 sub _build_app_dir ($self) {

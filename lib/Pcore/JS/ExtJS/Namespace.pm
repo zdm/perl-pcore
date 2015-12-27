@@ -1,6 +1,7 @@
 package Pcore::JS::ExtJS::Namespace;
 
 use Pcore -role;
+use Pcore::Util::Text qw[to_camel_case to_snake_case];
 use Pcore::JS::ExtJS::Request;
 use Pcore::JS::ExtJS::Class;
 
@@ -33,13 +34,13 @@ no Pcore;
 sub _build_app_name_camel_case {
     my $self = shift;
 
-    return P->text->to_camel_case( $self->app_name, ucfirst => 1 );
+    return to_camel_case( $self->app_name, ucfirst => 1 );
 }
 
 sub _build_ext_app_name_camel_case {
     my $self = shift;
 
-    return P->text->to_camel_case( $self->ext_app_name, ucfirst => 1 );
+    return to_camel_case( $self->ext_app_name, ucfirst => 1 );
 }
 
 sub _build_ext_app_ns {
@@ -66,7 +67,7 @@ sub ext_generate_class {
         @_,
     );
 
-    my $method = 'ext_class_' . P->text->to_snake_case( $self->ext_req->class_name );
+    my $method = 'ext_class_' . to_snake_case( $self->ext_req->class_name );
 
     return $self->_ext_generate_class( $self->$method, \%args ) if $self->can($method);
 

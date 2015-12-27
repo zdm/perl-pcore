@@ -5,7 +5,7 @@ use Sort::Naturally qw[nsort];
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use URI::Escape::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
 use WWW::Form::UrlEncoded::XS qw[];
-use Pcore::Util::Text qw[];
+use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
 
 our $TOKEN = {
     serializer => {
@@ -84,7 +84,7 @@ sub encode {
             no warnings qw[redefine];
 
             local *Data::Dumper::qquote = sub {
-                return q["] . P->text->encode_utf8( P->text->escape_scalar( $_[0] ) )->$* . q["];
+                return q["] . encode_utf8( escape_scalar $_[0] ) . q["];
             };
 
             $res = \Data::Dumper->Dump( [$data] );
@@ -323,7 +323,7 @@ sub decode {
     if ( $args{from} eq 'PERL' ) {
         my $ns = $args{ns} || '_Pcore::CONFIG::SANDBOX';
 
-        Pcore::Util::Text::decode( $data_ref->$* );
+        decode_utf8 $data_ref->$*;
 
         ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
         $res = eval <<"CODE";

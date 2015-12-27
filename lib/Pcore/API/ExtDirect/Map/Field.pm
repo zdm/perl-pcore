@@ -1,6 +1,7 @@
 package Pcore::API::Map::Field;
 
 use Pcore -class;
+use Pcore::Util::Text qw[to_camel_case];
 
 has api_map => ( is => 'ro', isa => InstanceOf ['Pcore::API::Map'], required => 1, weak_ref => 1 );
 has name => ( is => 'ro', isa => StrMatch [qr/\A[[:lower:][:digit:]_]+\z/sm], required => 1 );
@@ -88,7 +89,7 @@ sub generate_api_map {
 sub _build_alias_name {
     my $self = shift;
 
-    return P->text->to_camel_case( $self->name );
+    return to_camel_case( $self->name );
 }
 
 sub _build_null {

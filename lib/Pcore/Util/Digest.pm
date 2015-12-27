@@ -1,6 +1,7 @@
 package Pcore::Util::Digest;
 
 use Pcore -export => [qw[md5 md5_hex bcypt bcypt_hex crc321]];
+use Pcore::Util::Text qw[encode_utf8];
 use Digest qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $BCRYPT_COST_DEFAULT = 10;
@@ -25,7 +26,7 @@ sub md5 {
             }
         }
 
-        P->text->encode_utf8($item);
+        encode_utf8 $item;
     }
 
     return Digest::MD5::md5(@data);

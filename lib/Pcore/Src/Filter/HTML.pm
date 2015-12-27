@@ -1,6 +1,7 @@
 package Pcore::Src::Filter::HTML;
 
 use Pcore -class;
+use Pcore::Util::Text qw[trim];
 use Pcore::Src::Filter::JS;
 use Pcore::Src::Filter::CSS;
 
@@ -42,7 +43,7 @@ sub compress ($self) {
         if ( $script[$i] =~ m[\A</script]sm && $script[ $i - 1 ] ) {
             Pcore::Src::Filter::JS->new( { file => $self->file, buffer => \$script[ $i - 1 ] } )->compress;
 
-            P->text->trim( $script[ $i - 1 ] );
+            trim $script[ $i - 1 ];
         }
     }
 

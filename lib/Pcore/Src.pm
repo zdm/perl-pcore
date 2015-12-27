@@ -1,6 +1,7 @@
 package Pcore::Src;
 
 use Pcore -class;
+use Pcore::Util::Text qw[decode_utf8];
 use Pcore::Src::File;
 use Term::ANSIColor qw[:constants];
 
@@ -315,7 +316,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
 
     # print report
     print $hl;
-    printf q[%-*s], $max_path_len, P->text->decode( $res->path->to_string, encoding => $Pcore::WIN_ENC )->$*;
+    printf q[%-*s], $max_path_len, decode_utf8( $res->path->to_string, encoding => $Pcore::WIN_ENC );
     print q[ ] x 2;
     print RESET;
 

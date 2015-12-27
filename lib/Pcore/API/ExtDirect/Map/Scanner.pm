@@ -1,6 +1,7 @@
 package Pcore::API::Map::Scanner;
 
 use Pcore -class;
+use Pcore::Util::Text qw[to_snake_case];
 
 has h_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Core::H::Cache'],      required => 1, weak_ref => 1 );    # handles cache object
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Backend::Local'], required => 1, weak_ref => 1 );
@@ -44,7 +45,7 @@ sub scan ($self) {
                         }
 
                         # convert filename to action name
-                        my $action = P->text->to_snake_case( $class, split => q[::], join => q[.] );
+                        my $action = to_snake_case( $class, split => q[::], join => q[.] );
 
                         # store API action methods
                         $api_map->{$action} = $api_methods;

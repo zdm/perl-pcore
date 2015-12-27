@@ -1,6 +1,7 @@
 package Pcore::Core::Dump::Dumper;
 
 use Pcore -class;
+use Pcore::Util::Text qw[escape_scalar remove_ansi_color];
 use re qw[];
 use Sort::Naturally qw[nsort];
 use Term::ANSIColor qw[colored];
@@ -304,7 +305,7 @@ sub SCALAR {
         my $item         = $_[0];                  # scalar become untied
         my $bytes_length = bytes::length($item);
         my $length       = length $item;
-        P->text->escape_scalar( $item, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{string} );
+        escape_scalar( $item, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{string} );
 
         if ( utf8::is_utf8($item) ) {              # characters
             push @{$tags}, q[UTF8];
@@ -391,14 +392,15 @@ sub HASH {
         $res = colored( '{', $COLOR->{refs} ) . $LF;
         my $keys;
         my $max_length = 0;
-        for ( nsort keys %{$hash_ref} ) {
+        for ( nsort keys $hash_ref->%* ) {
             my $indexed_key = {
                 raw_key     => $_,
-                escaped_key => P->text->escape_scalar( $_, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{hash} ),
+                escaped_key => \escape_scalar( $_, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{hash} ),
             };
 
             $indexed_key->{escaped_key_nc} = $indexed_key->{escaped_key}->$*;
-            P->text->remove_ansi_color( $indexed_key->{escaped_key_nc} );
+            
+			remove_ansi_color $indexed_key->{escaped_key_nc};
 
             $indexed_key->{escaped_key_nc_len} = length $indexed_key->{escaped_key_nc};
 

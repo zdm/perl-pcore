@@ -1,6 +1,7 @@
 package Pcore::Util::Mail;
 
 use Pcore;
+use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Net::SMTPS;
 use Mail::IMAPClient qw[];
 
@@ -27,9 +28,9 @@ sub send_mail {
 
     $h->auth( $args{username}, $args{password} ) or die 'SMTP authentication failed for username ' . $args{username};
 
-    P->text->encode_utf8( $args{subject} );
+    encode_utf8 $args{subject};
 
-    P->text->encode_utf8( $args{body} );
+    encode_utf8 $args{body};
 
     # Create arbitrary boundary text used to seperate
     # different parts of the message\n
@@ -110,7 +111,7 @@ sub _send_attachment {
 
     my $mimetype = $path->mime_type;
     $filename = $path->filename unless $filename;
-    P->text->encode_utf8($filename);
+    encode_utf8 $filename;
 
     if ($data) {
         $h->datasend("--$boundary$CRLF");
@@ -225,9 +226,9 @@ sub _get_messages {
         my $body = $imap->body_string($msg);
         my $content_type = $imap->get_header( $msg, 'Content-Type' );
         if ( $content_type =~ /charset="(.+?)"/sm ) {
-            P->text->decode( $body, encoding => $1 );
+            decode_utf8( $body, encoding => $1 );
         }
-        push @{$bodies}, $body;
+        push $bodies->@*, $body;
     }
     if ($found_action) {
         debug( 'IMAP apply found action: ' . $found_action );

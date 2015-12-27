@@ -1,6 +1,7 @@
 package Pcore::API::Backend::Local;
 
 use Pcore -role;
+use Pcore::Util::Text qw[to_camel_case to_snake_case];
 
 with qw[Pcore::API::Backend];
 
@@ -128,7 +129,7 @@ sub get_api_class_js {
         @_,
     );
 
-    my $perl_class = P->text->to_camel_case( $args{path}, ucfirst => 1, split => q[/], join => q[::] );
+    my $perl_class = to_camel_case( $args{path}, ucfirst => 1, split => q[/], join => q[::] );
 
     if ( my $obj = $self->get_api_obj( undef, $perl_class ) ) {
         $obj->_set_ext_class_name( $args{class} );
@@ -200,7 +201,7 @@ sub get_api_obj {
         $class = $self->api_map->{$action}->{class};
     }
     else {
-        $action = P->text->to_snake_case( $class, split => q[::], join => q[.] );
+        $action = to_snake_case( $class, split => q[::], join => q[.] );
     }
 
     if ( !exists $self->_api_obj_cache->{$class} ) {

@@ -1,6 +1,7 @@
 package Pcore::API::Map::Method;
 
 use Pcore -class;
+use Pcore::Util::Text qw[to_camel_case];
 
 has name => ( is => 'ro', isa => StrMatch [qr/\A[[:lower:][:digit:]_]+\z/sm], required => 1 );
 has api_map => ( is => 'ro', isa => InstanceOf ['Pcore::API::Map'], required => 1, weak_ref => 1 );
@@ -62,7 +63,7 @@ sub add_params {
         my $class;
 
         if ( my $type = delete $args->{type} ) {
-            $class = P->text->to_camel_case( $type, ucfirst => 1 );
+            $class = to_camel_case( $type, ucfirst => 1 );
         }
         else {
             $class = '+Pcore::API::Map::Param';

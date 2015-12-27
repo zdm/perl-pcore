@@ -1,6 +1,7 @@
 package Pcore::AE::Handle::ProxyPool::Source::File;
 
 use Pcore -class;
+use Pcore::Util::Text qw[trim];
 
 with qw[Pcore::AE::Handle::ProxyPool::Source];
 
@@ -13,7 +14,7 @@ sub load ( $self, $cb ) {
 
     if ( -f $self->path ) {
         for my $uri ( P->file->read_lines( $self->path )->@* ) {
-            P->text->trim($uri);
+            trim $uri;
 
             push $proxies->@*, $uri if $uri;
         }

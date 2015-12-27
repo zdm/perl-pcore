@@ -1,6 +1,7 @@
 package Pcore::API::Map;
 
 use Pcore -class;
+use Pcore::Util::Text qw[to_camel_case];
 use Pcore::API::Map::Call;
 
 has api_class => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Class'], required => 1, weak_ref => 1 );
@@ -45,7 +46,7 @@ sub add_fields {
         my $class;
 
         if ( my $type = delete $args->{type} ) {
-            $class = P->text->to_camel_case( $type, ucfirst => 1 );
+            $class = to_camel_case( $type, ucfirst => 1 );
         }
         else {
             $class = '+Pcore::API::Map::Field';
@@ -95,7 +96,7 @@ sub add_methods {
         my $class;
 
         if ( my $type = delete $args->{type} ) {
-            $class = P->text->to_camel_case( $type, ucfirst => 1 );
+            $class = to_camel_case( $type, ucfirst => 1 );
         }
         else {
             $class = '+Pcore::API::Map::Method';

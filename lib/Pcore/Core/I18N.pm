@@ -4,6 +4,7 @@ use Pcore -export => {
     CORE    => [qw[i18n_locale]],
     DEFAULT => [qw[i18n]],
 };
+use Pcore::Util::Text qw[decode_utf8];
 
 our $LOCALE    = 'en_US';
 our $LOCATIONS = [];
@@ -249,7 +250,7 @@ sub _t {
         $trans = $trans[$plural] if defined $trans[$plural];
     }
 
-    P->text->decode($trans);
+    decode_utf8 $trans;
 
     return $trans;
 }

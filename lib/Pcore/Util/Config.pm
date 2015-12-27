@@ -1,6 +1,7 @@
 package Pcore::Util::Config;
 
 use Pcore;
+use Pcore::Util::Text qw[encode_utf8];
 
 sub load {
     my $config = shift;    # scalar || scalar ref
@@ -28,7 +29,7 @@ sub load {
         $config = P->file->read_bin($config);
     }
     else {
-        P->text->encode_utf8( $config->$* );
+        encode_utf8 $config->$*;
     }
 
     $from //= 'PERL';

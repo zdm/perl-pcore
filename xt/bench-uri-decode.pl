@@ -4,6 +4,7 @@ package main v0.1.0;
 
 use Pcore -const;
 use Benchmark;
+use Pcore::Util::Text qw[decode_utf8];
 use WWW::Form::UrlEncoded::XS qw[];
 use URI::Escape qw[];        ## no critic qw[Modules::ProhibitEvilModules]
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
@@ -16,9 +17,9 @@ my $uri = P->data->to_uri('мама мыла раму');
 
 say dump $uri;
 
-say P->text->decode( URI::Escape::XS::decodeURIComponent($uri) )->$*;
+say decode_utf8 URI::Escape::XS::decodeURIComponent $uri;
 
-say P->text->decode( URI::Escape::uri_unescape($uri) )->$*;
+say decode_utf8 URI::Escape::uri_unescape $uri;
 
 say P->data->from_uri($uri);
 

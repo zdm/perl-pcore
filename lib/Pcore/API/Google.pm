@@ -1,6 +1,7 @@
 package Pcore::Handle::API::Google;
 
 use Pcore -class;
+use Pcore::Util::Text qw[to_camel_case];
 
 with qw[Pcore::Core::H::Role::Wrapper];
 
@@ -47,7 +48,7 @@ sub call {
 
     $method = 'api_' . $method;
 
-    my $class = P->text->to_camel_case( $class_path, ucfirst => 1, split => q[/], join => q[::] );
+    my $class = to_camel_case( $class_path, ucfirst => 1, split => q[/], join => q[::] );
 
     my $obj = P->class->load( $class, ns => ref $self, does => 'Pcore::Handle::API::Google::_Role' )->new;
 

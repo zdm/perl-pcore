@@ -1,6 +1,7 @@
 package Pcore::AE::Handle::ProxyPool::Source::WorldOfProxy;
 
 use Pcore -class;
+use Pcore::Util::Text qw[decode_eol];
 
 with qw[Pcore::AE::Handle::ProxyPool::Source];
 
@@ -38,7 +39,7 @@ sub load ( $self, $cb ) {
             blocking  => $cv,
             on_finish => sub ($res) {
                 if ( $res->status == 200 && $res->has_body ) {
-                    P->text->decode_eol( $res->body );
+                    decode_eol $res->body->$*;
 
                     for my $addr ( split /\n/sm, $res->body->$* ) {
                         push $proxies, $addr;

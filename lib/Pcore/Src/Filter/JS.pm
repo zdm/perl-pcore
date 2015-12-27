@@ -1,6 +1,7 @@
 package Pcore::Src::Filter::JS;
 
 use Pcore -class;
+use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Src::Filter];
 
@@ -81,7 +82,7 @@ sub obfuscate ($self) {
 sub cut_log ($self) {
     $self->buffer->$* =~ s[/[*] -----SOURCE FILTER LOG BEGIN-----.*-----SOURCE FILTER LOG END----- [*]/\n*][]sm;
 
-    P->text->rcut_all( $self->buffer->$* );
+    rcut_all $self->buffer->$*;
 
     return;
 }
@@ -90,7 +91,7 @@ sub _append_log ( $self, $log ) {
     $self->cut_log;
 
     if ($log) {
-        P->text->encode_utf8($log);
+        encode_utf8 $log;
 
         $self->buffer->$* .= qq[\n/* -----SOURCE FILTER LOG BEGIN-----\n *\n];
 

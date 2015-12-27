@@ -2,15 +2,44 @@ package Pcore::Util::Text;
 
 use Pcore -export, [
     qw[
-      fullchomp trim encode_hex
-      decode encode_utf8
-      to_snake_case to_camel_case
-      mark_raw unmark_raw
+      cut
+      cut_all
+      decode_eol
+      decode_html_entities
+      decode_utf8
+      encode_hex
+      encode_html
+      encode_html_attr
+      encode_js_string
+      encode_utf8
+      escape_scalar
+      expand_num
+      format_num
+      fullchomp
+      lcut
+      lcut_all
+      ltrim
+      ltrim_multi
+      mark_raw
+      rcut
+      rcut_all
+      remove_ansi_color
+      remove_bom
+      rtrim
+      rtrim_multi
+      table
+      to_camel_case
+      to_snake_case
+      trim
+      trim_multi
+      unmark_raw
       ]
 ];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Term::ANSIColor qw[];
 use Text::Xslate qw[mark_raw unmark_raw];
+
+our $ENC_CACHE = {};
 
 our %ESC_ANSI_CTRL = (
     qq[\a] => q[\a],
@@ -117,6 +146,32 @@ PERL
     encode_hex => <<'PERL',
         $_ = unpack 'H*', $_;
 PERL
+
+    # DECODE, ENCODE
+    decode_utf8 => <<'PERL',
+        my %args = (
+            encoding   => 'UTF-8',
+            decode_eol => 1,
+            splice @_, 1,
+        );
+
+        if ( defined && !utf8::is_utf8 $_ ) {
+            my $enc = $ENC_CACHE->{ $args{encoding} } // do {
+                $ENC_CACHE->{ $args{encoding} } = Encode::find_encoding( $args{encoding} );
+            };
+
+            $_ = $enc->decode( $_, Encode::FB_CROAK | Encode::LEAVE_SRC );
+
+            s/\x0D?\x0A/\n/smg if $args{decode_eol};
+        }
+PERL
+
+    encode_utf8 => <<'PERL',
+        # Encode::_utf8_off $_ if utf8::is_utf8 $_;    ## no critic qw[Subroutines::ProtectPrivateSubs]
+
+        utf8::encode $_ if utf8::is_utf8 $_;
+PERL
+
 };
 
 # create accessors
@@ -125,46 +180,15 @@ for my $name ( keys $CODE->%* ) {
 sub <: $name :> {
     my $_;
 
-    if ( defined wantarray ) {    # want a copy
-
-        # make a copy and stringify
-        if ( ref $_[0] ) {
-            if ( ref $_[0] eq 'SCALAR' ) {
-                $_ = $_[0]->$*;
-            }
-            else {
-                $_ = "$_[0]";
-            }
-        }
-        else {
-            $_ = $_[0];
-        }
+    if ( defined wantarray ) {
+        $_ = $_[0];
 
         <: $code :>
 
         return $_;
     }
-    else {    # modify string in-place
-        if ( ref $_[0] ) {
-            if ( ref $_[0] eq 'SCALAR' ) {
-
-                # get alias
-                \$_ = $_[0];
-            }
-            else {
-
-                # replace $_[0] with stringified value
-                $_[0] = "$_[0]";
-
-                # get alias
-                \$_ = \$_[0];
-            }
-        }
-        else {
-
-            # get alias
-            \$_ = \$_[0];
-        }
+    else {
+        \$_ = \$_[0];
 
         <: $code :>
 
@@ -193,13 +217,7 @@ sub table {
 
 sub remove_ansi_color {
     if ( defined wantarray ) {
-        my $res;
-
-        for (@_) {
-            $res .= s/\e.+?m//smgr;
-        }
-
-        return \$res;
+        return join q[], map {s/\e.+?m//smgr} @_;
     }
     else {
         for (@_) {    # convert in-place
@@ -211,45 +229,52 @@ sub remove_ansi_color {
 }
 
 sub escape_scalar {
-    my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
+    my $_;
+
+    if ( defined wantarray ) {
+        $_ = $_[0];
+    }
+    else {
+        \$_ = \$_[0];
+    }
 
     my %args = (
         bin         => undef,     # if TRUE - always treats scalar as binary data
         utf8_encode => 1,         # if FALSE - in bin mode escape utf8 multi-byte chars as \x{...}
         esc_color   => undef,
         reset_color => 'reset',
-        @_,
+        splice @_, 1,
     );
 
     # automatically detect scalar type
     if ( !defined $args{bin} ) {
-        if ( utf8::is_utf8( $scalar_ref->$* ) ) {    # UTF-8 scalar
+        if ( utf8::is_utf8 $_ ) {    # UTF-8 scalar
             $args{bin} = 0;
         }
-        elsif ( $scalar_ref->$* =~ /[[:^ascii:]]/sm ) {    # latin1 octets
+        elsif (/[[:^ascii:]]/sm) {    # latin1 octets
             $args{bin} = 1;
         }
-        else {                                             # ASCII bytes
+        else {                        # ASCII bytes
             $args{bin} = 0;
         }
     }
 
     # escape scalar
     if ( $args{bin} ) {
-        if ( utf8::is_utf8( $scalar_ref->$* ) ) {
+        if ( utf8::is_utf8 $_ ) {
             if ( $args{utf8_encode} ) {
-                encode_utf8($scalar_ref);
+                encode_utf8 $_;
 
-                $scalar_ref->$* =~ s/(.)/sprintf q[\x%X], ord $1/smge;
+                s/(.)/sprintf q[\x%X], ord $1/smge;
             }
             else {
-                $scalar_ref->$* =~ s/([[:ascii:]])/sprintf q[\x%X], ord $1/smge;
+                s/([[:ascii:]])/sprintf q[\x%X], ord $1/smge;
 
-                $scalar_ref->$* =~ s/([[:^ascii:]])/sprintf q[\x{%X}], ord $1/smge;
+                s/([[:^ascii:]])/sprintf q[\x{%X}], ord $1/smge;
             }
         }
         else {
-            $scalar_ref->$* =~ s/(.)/sprintf q[\x%X], ord $1/smge;
+            s/(.)/sprintf q[\x%X], ord $1/smge;
         }
     }
     else {
@@ -257,13 +282,13 @@ sub escape_scalar {
 
         my $reset_color = $args{esc_color} ? Term::ANSIColor::color( $args{reset_color} ) : q[];
 
-        $scalar_ref->$* =~ s/([\a\b\t\n\f\r\e])/${esc_color}$ESC_ANSI_CTRL{$1}${reset_color}/smg;    # escape ANSI
+        s/([\a\b\t\n\f\r\e])/${esc_color}$ESC_ANSI_CTRL{$1}${reset_color}/smg;    # escape ANSI
 
-        $scalar_ref->$* =~ s/([\x00-\x1A\x1C-\x1F\x7F])/$esc_color . sprintf( q[\x%X], ord $1 ) . $reset_color/smge;    # hex ANSI non-printable chars
+        s/([\x00-\x1A\x1C-\x1F\x7F])/$esc_color . sprintf( q[\x%X], ord $1 ) . $reset_color/smge;    # hex ANSI non-printable chars
     }
 
     if ( defined wantarray ) {
-        return $scalar_ref;
+        return $_;
     }
     else {
         return;
@@ -272,64 +297,34 @@ sub escape_scalar {
 
 # HTML ENTITIES
 sub decode_html_entities {
-    my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
+    my $_;
+
+    if ( defined wantarray ) {
+        $_ = $_[0];
+    }
+    else {
+        \$_ = \$_[0];
+    }
+
     my %args = (
         trim => undef,
-        @_,
+        splice @_, 1,
     );
 
-    require HTML::Entities;
+    state $init = do {
+        require HTML::Entities;
 
-    decode($scalar_ref);
+        1;
+    };
 
-    HTML::Entities::decode_entities( $scalar_ref->$* );
+    decode $_;
 
-    trim($scalar_ref) if $args{trim};
+    HTML::Entities::decode_entities $_;
 
-    if ( defined wantarray ) {
-        return $scalar_ref;
-    }
-    else {
-        return;
-    }
-}
-
-# DECODE, ENCODE
-sub decode {
-    my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
-    my %args = (
-        encoding   => 'UTF-8',
-        decode_eol => 1,
-        @_,
-    );
-
-    state $encoding = {};
-
-    if ( defined $scalar_ref->$* && !utf8::is_utf8( $scalar_ref->$* ) ) {
-        $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
-
-        $scalar_ref->$* = $encoding->{ $args{encoding} }->decode( $scalar_ref->$*, Encode::FB_CROAK | Encode::LEAVE_SRC );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
-        $scalar_ref->$* =~ s/\x0D?\x0A/\n/smg if $args{decode_eol};
-    }
+    trim $_ if $args{trim};
 
     if ( defined wantarray ) {
-        return $scalar_ref;
-    }
-    else {
-        return;
-    }
-}
-
-sub encode_utf8 {
-    my $scalar_ref = defined wantarray ? ref $_[0] ? \( q[] . shift->$* ) : \( q[] . shift ) : ref $_[0] ? ref $_[0] eq 'SCALAR' ? shift : \( q[] . shift ) : \shift;
-
-    # Encode::_utf8_off( ${$scalar} ) if utf8::is_utf8( ${$scalar} );    ## no critic qw[Subroutines::ProtectPrivateSubs]
-
-    utf8::encode( $scalar_ref->$* ) if utf8::is_utf8( $scalar_ref->$* );
-
-    if ( defined wantarray ) {
-        return $scalar_ref;
+        return $_;
     }
     else {
         return;
@@ -337,52 +332,63 @@ sub encode_utf8 {
 }
 
 # expand number from scientific format to ordinary
-sub expand ($n) {
-    return $n unless $n =~ /\A(.*)e([-+]?)(.*)\z/sm;
+sub expand_num ($num) {
+    return $num unless $num =~ /\A(.*)e([-+]?)(.*)\z/sm;
 
-    my ( $num, $sign, $exp ) = ( $1, $2, $3 );
+    my ( $abs, $sign, $exp ) = ( $1, $2, $3 );
 
-    my $sig = $sign eq q[-] ? q[.] . ( $exp - 1 + length $num ) : q[];
+    my $sig = $sign eq q[-] ? q[.] . ( $exp - 1 + length $abs ) : q[];
 
-    return sprintf "%${sig}f", $n;
+    return sprintf "%${sig}f", $num;
+}
+
+# pretty print number 1234567 -> 1_234_567
+sub format_num ($num) {
+    return scalar reverse join q[_], ( reverse $num ) =~ /(\d{1,3})/smg;
 }
 
 sub to_snake_case {
-    my $str = defined wantarray ? \( q[] . shift ) : \$_[0];
+    my $str;
+
+    if ( defined wantarray ) {
+        $str = $_[0];
+    }
+    else {
+        \$str = \$_[0];
+    }
 
     my %args = (
         split => undef,
         join  => undef,
-        ( defined wantarray ? @_ : splice @_, 1 ),
+        splice @_, 1,
     );
 
-    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
     if ( $args{split} ) {
-        my @parts = split /\Q$args{split}\E/sm, $str->$*;
+        my @parts = split /\Q$args{split}\E/sm, $str;
 
         for (@parts) {
             $_ = lcfirst;
+
             s/([[:upper:]])/q[_] . lc $1/smge;
         }
 
         if ( $args{join} ) {
-            $str->$* = join $args{join}, @parts;
+            $str = join $args{join}, @parts;
         }
         else {
-            $str->$* = join $args{split}, @parts;
+            $str = join $args{split}, @parts;
         }
     }
     else {
 
         # convert camelCase to snake_case notation
-        $str->$* = lcfirst $str->$*;
+        $str = lcfirst $str;
 
-        $str->$* =~ s/([[:upper:]])/q[_] . lc $1/smge;
+        $str =~ s/([[:upper:]])/q[_] . lc $1/smge;
     }
 
     if ( defined wantarray ) {
-        return $str->$*;
+        return $str;
     }
     else {
         return;
@@ -390,19 +396,24 @@ sub to_snake_case {
 }
 
 sub to_camel_case {
-    my $str = defined wantarray ? \( q[] . shift ) : \$_[0];
+    my $str;
+
+    if ( defined wantarray ) {
+        $str = $_[0];
+    }
+    else {
+        \$str = \$_[0];
+    }
 
     my %args = (
         ucfirst => undef,
         split   => undef,
         join    => undef,
-        ( defined wantarray ? @_ : splice @_, 1 ),
+        splice @_, 1,
     );
 
-    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
     if ( $args{split} ) {
-        my @parts = split /\Q$args{split}\E/sm, $str->$*;
+        my @parts = split /\Q$args{split}\E/sm, $str;
 
         for (@parts) {
             $_ = lc;
@@ -413,22 +424,22 @@ sub to_camel_case {
         }
 
         if ( $args{join} ) {
-            $str->$* = join $args{join}, @parts;
+            $str = join $args{join}, @parts;
         }
         else {
-            $str->$* = join $args{split}, @parts;
+            $str = join $args{split}, @parts;
         }
     }
     else {
-        $str->$* = lc $str->$*;
+        $str = lc $str;
 
-        $str->$* =~ s/_(.)/uc $1/smge;    # convert snake_case to camelCase notation
+        $str =~ s/_(.)/uc $1/smge;    # convert snake_case to camelCase notation
 
-        $str->$* = ucfirst $str->$* if $args{ucfirst};
+        $str = ucfirst $str if $args{ucfirst};
     }
 
     if ( defined wantarray ) {
-        return $str->$*;
+        return $str;
     }
     else {
         return;
@@ -442,12 +453,12 @@ sub to_camel_case {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 123                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 178                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 180                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 204                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 16, 17, 18, 19, 20,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
-## │      │ 21, 22               │                                                                                                                │
+## │    1 │ 45, 46, 47, 48, 49,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │      │ 50, 51               │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

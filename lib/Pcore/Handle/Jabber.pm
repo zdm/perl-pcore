@@ -1,6 +1,7 @@
 package Pcore::Handle::Jabber;
 
 use Pcore -class;
+use Pcore::Util::Text qw[encode_utf8];
 
 with qw[Pcore::Core::H::Role::Wrapper];
 
@@ -87,15 +88,21 @@ sub h_disconnect {
 
 # JABBER
 sub send_message {
-    my $self    = shift;
+    my $self = shift;
+
     my %options = @_;
 
     if ( ref $self->h eq ' Jabber::Connection ' ) {
         my $message = ref $options{message} ? ${ $options{message} } : $options{message};
-        P->text->encode_utf8($message);
+
+        encode_utf8 $message;
+
         my $msg = $self->h->{nf}->newNode(' message ');
+
         $msg->insertTag(' body ')->data($message);
+
         $msg->attr( ' to ', ref $options{to} ? ${ $options{to} } : $options{to} );
+
         $self->h->send($msg);
     }
     elsif ( ref $self->h eq ' Net::XMPP::Client ' ) {

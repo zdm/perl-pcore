@@ -1,6 +1,7 @@
 package Pcore::AE::Crawler::Request::GoogleSearch;
 
 use Pcore -class;
+use Pcore::Util::Text qw[decode_eol decode_html_entities];
 use HTML::LinkExtor qw[];
 use Pcore::Captcha::Antigate;
 
@@ -52,7 +53,7 @@ sub process_response ( $self, $res ) {
 
 # PARSERS
 sub _process_content ( $self, $content_ref ) {
-    P->text->decode_eol( $content_ref->$* );
+    decode_eol $content_ref->$*;
 
     $content_ref->$* =~ s/\n//smg;                                                     # remove \n
     $content_ref->$* =~ s[\A.+(<body[^>]*>.+?</body[^>]*>).*\z][$1]sm;                 # leave only <body>...</body> content
@@ -168,7 +169,7 @@ sub _remove_tags {
     my $str  = shift;
 
     try {
-        P->text->decode_html_entities($str);
+        decode_html_entities $str->$*;
     };
 
     $str->$* =~ s[<[^>]+?>][]smg;    # remove tags

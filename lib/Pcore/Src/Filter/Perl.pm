@@ -1,6 +1,7 @@
 package Pcore::Src::Filter::Perl;
 
 use Pcore -class;
+use Pcore::Util::Text qw[decode_utf8 encode_utf8 rcut_all trim];
 use Clone qw[];
 
 with qw[Pcore::Src::Filter];
@@ -35,7 +36,7 @@ sub decompress ( $self, % ) {
 
     # temporary conver source to the utf8
     # https://rt.cpan.org/Public/Bug/Display.html?id=32905
-    P->text->decode( $self->buffer );
+    decode_utf8 $self->buffer->$*;
 
     Perl::Tidy::perltidy(
         source      => $self->buffer,
@@ -47,7 +48,7 @@ sub decompress ( $self, % ) {
     );
 
     # convert source back to raw
-    P->text->encode_utf8( $self->buffer );
+    encode_utf8 $self->buffer->$*;
 
     my $error_log;
 
@@ -182,7 +183,7 @@ sub compress ( $self, % ) {
 
             my $transform = Perl::Strip->new( optimise_size => 1, keep_nl => 0 );
 
-            $cache->{$key} = P->text->rcut_all( $transform->strip( $self->buffer->$* ) );
+            $cache->{$key} = rcut_all $transform->strip( $self->buffer->$* );
         }
     }
     else {
@@ -199,7 +200,7 @@ sub compress ( $self, % ) {
                 strip_log      => 0,                                   # strip Log::Any log statements
             );
 
-            $cache->{$key} = P->text->rcut_all( $transform->strip( $self->buffer->$* ) );
+            $cache->{$key} = rcut_all $transform->strip( $self->buffer->$* );
         }
     }
 
@@ -212,7 +213,7 @@ sub _append_log ( $self, $log ) {
     $self->cut_log;
 
     if ($log) {
-        P->text->encode_utf8($log);
+        encode_utf8 $log;
 
         $log = qq[-----SOURCE FILTER LOG BEGIN-----\n\n$log\n-----SOURCE FILTER LOG END-----\n];
 
@@ -313,7 +314,7 @@ sub _format_sub_signature ( $sub_name, $sub_sign ) {
     my @formatted_signs = ();
 
     for my $sign (@signs) {
-        P->text->trim($sign);
+        trim $sign;
 
         next unless $sign;
 
@@ -324,9 +325,9 @@ sub _format_sub_signature ( $sub_name, $sub_sign ) {
 
             substr $val, 0, 1, q[];
 
-            P->text->trim($var);
+            trim $var;
 
-            P->text->trim($val);
+            trim $val;
 
             $sign = qq[$var =];
 
@@ -348,7 +349,7 @@ sub _format_sub_signature ( $sub_name, $sub_sign ) {
 sub cut_log ($self) {
     $self->buffer->$* =~ s/^## -----SOURCE FILTER LOG BEGIN-----.*?## -----SOURCE FILTER LOG END-----\n?//sm;    ## no critic qw[RegularExpressions::ProhibitComplexRegexes]
 
-    P->text->rcut_all( $self->buffer->$* );
+    rcut_all $self->buffer->$*;
 
     return;
 }

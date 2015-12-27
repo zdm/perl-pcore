@@ -6,6 +6,7 @@ use Pcore -const,
     CORE    => [qw[set_log]],
     DEFAULT => [qw[has_logs error info debug]],
   };
+ use Pcore::Util::Text qw[remove_ansi_color];
 
 const our $LEVELS => {
     FATAL => 1,
@@ -312,7 +313,8 @@ sub _resolve_data_colors {
             $data->{no_color} = [];
             for my $str ( $data->{color}->@* ) {
                 push $data->{no_color}->@*, $str;
-                P->text->remove_ansi_color( $data->{no_color}->[-1] );
+                
+				remove_ansi_color $data->{no_color}->[-1];
             }
         }
         return $data->{no_color};

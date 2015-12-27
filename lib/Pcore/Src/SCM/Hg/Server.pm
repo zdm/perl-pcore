@@ -1,6 +1,7 @@
 package Pcore::Src::SCM::Hg::Server;
 
 use Pcore -class;
+use Pcore::Util::Text qw[decode_utf8];
 use AnyEvent::Util qw[portable_socketpair];
 
 has root => ( is => 'ro', isa => Str, required => 1 );
@@ -106,7 +107,7 @@ sub cmd ( $self, @cmd ) {
     if ( $channel ne 'r' ) {
         chomp $data;
 
-        P->text->decode( $data, encoding => $Pcore::WIN_ENC );
+        decode_uft8( $data, encoding => $Pcore::WIN_ENC );
 
         push $res->{$channel}->@*, $data;
 
