@@ -262,17 +262,17 @@ sub _t {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 87                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
+## │    3 │ 88                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 180, 194             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 181, 195             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 105, 108             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
+## │    2 │ 106, 109             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 132                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 133                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 113, 127, 128        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 114, 128, 129        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 176                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 177                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

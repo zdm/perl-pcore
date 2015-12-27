@@ -6,7 +6,7 @@ use Pcore -const,
     CORE    => [qw[set_log]],
     DEFAULT => [qw[has_logs error info debug]],
   };
- use Pcore::Util::Text qw[remove_ansi_color];
+use Pcore::Util::Text qw[remove_ansi_color];
 
 const our $LEVELS => {
     FATAL => 1,
@@ -313,8 +313,8 @@ sub _resolve_data_colors {
             $data->{no_color} = [];
             for my $str ( $data->{color}->@* ) {
                 push $data->{no_color}->@*, $str;
-                
-				remove_ansi_color $data->{no_color}->[-1];
+
+                remove_ansi_color $data->{no_color}->[-1];
             }
         }
         return $data->{no_color};
@@ -331,12 +331,12 @@ sub _resolve_data_colors {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 28, 94, 124, 130,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 135, 157, 158, 170,  │                                                                                                                │
-## │      │ 177, 178, 179, 184,  │                                                                                                                │
-## │      │ 186                  │                                                                                                                │
+## │    3 │ 29, 95, 125, 131,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 136, 158, 159, 171,  │                                                                                                                │
+## │      │ 178, 179, 180, 185,  │                                                                                                                │
+## │      │ 187                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 44                   │ Subroutines::ProhibitExcessComplexity - Subroutine "set_log" with high complexity score (21)                   │
+## │    3 │ 45                   │ Subroutines::ProhibitExcessComplexity - Subroutine "set_log" with high complexity score (21)                   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

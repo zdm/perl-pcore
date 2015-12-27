@@ -309,11 +309,11 @@ sub ext_model_field {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 171                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 172                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 204                  │ * Private subroutine/method '_read_field' declared but not used                                                │
-## │      │ 262                  │ * Private subroutine/method '_write_field' declared but not used                                               │
+## │      │ 205                  │ * Private subroutine/method '_read_field' declared but not used                                                │
+## │      │ 263                  │ * Private subroutine/method '_write_field' declared but not used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

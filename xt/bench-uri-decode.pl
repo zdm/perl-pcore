@@ -89,6 +89,16 @@ my $escape = {
 Benchmark::cmpthese( Benchmark::timethese( $COUNT, $escape ) );
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    1 │ 20, 22               │ InputOutput::RequireBracedFileHandleWithPrint - File handle for "print" or "printf" is not braced              │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

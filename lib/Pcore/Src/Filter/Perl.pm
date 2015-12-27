@@ -361,14 +361,14 @@ sub cut_log ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 8                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (24)                │
+## │    3 │ 9                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (24)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 110, 113, 117, 124,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 240, 276             │                                                                                                                │
+## │    3 │ 111, 114, 118, 125,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 241, 277             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 161                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
+## │    2 │ 162                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 110                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 111                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

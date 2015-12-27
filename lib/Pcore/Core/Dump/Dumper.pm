@@ -399,8 +399,8 @@ sub HASH {
             };
 
             $indexed_key->{escaped_key_nc} = $indexed_key->{escaped_key}->$*;
-            
-			remove_ansi_color $indexed_key->{escaped_key_nc};
+
+            remove_ansi_color $indexed_key->{escaped_key_nc};
 
             $indexed_key->{escaped_key_nc_len} = length $indexed_key->{escaped_key_nc};
 
@@ -521,7 +521,9 @@ sub LVALUE {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 78, 229, 288         │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    3 │ 395                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 79, 230, 289         │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
