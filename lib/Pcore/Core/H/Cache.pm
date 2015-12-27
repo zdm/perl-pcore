@@ -5,26 +5,21 @@ use Pcore -class, -autoload;
 has _h_cache => ( is => 'lazy', isa => HashRef [ ConsumerOf ['Pcore::Core::H::Role'] ], init_arg => undef );
 has _h_supported_events => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-sub _build__h_cache {
-    my $self = shift;
-
+sub _build__h_cache ($self) {
     P->EV->register( 'CORE#PROC::BEFORE_FORK' => \&_h_ev_before_fork, args => [ \$self ] );
 
     return {};
 }
 
-sub _build__h_supported_events {
-    my $self = shift;
-
+sub _build__h_supported_events ($self) {
     return {
         PID_CHANGE  => 1,
         BEFORE_FORK => 1,
     };
 }
 
-sub _h_ev_before_fork {
-    my $ev   = shift;
-    my $self = ${ shift @_ };
+sub _h_ev_before_fork ( $ev, $self ) {
+    $self = $self->$*;
 
     if ($self) {
         $self->run_event('BEFORE_FORK');
@@ -36,10 +31,7 @@ sub _h_ev_before_fork {
     return;
 }
 
-sub run_event {
-    my $self  = shift;
-    my $event = shift;
-
+sub run_event ( $self, $event ) {
     for my $id ( grep { $self->_h_cache->{$_}->{event} && $self->_h_cache->{$_}->{event} eq $event } keys %{ $self->_h_cache } ) {
         if ( my $h = $self->_get($id) ) {
             $h->h_disconnect;
@@ -49,10 +41,7 @@ sub run_event {
     return;
 }
 
-sub _get {
-    my $self = shift;
-    my $id   = shift;
-
+sub _get ( $self, $id ) {
     my $cache_id = $self->_h_cache->{$id};
 
     if ( !$cache_id->{h} ) {
@@ -94,16 +83,13 @@ sub autoload {
 }
 
 # PUBLIC
-sub add {
-    my $self  = shift;
-    my $id    = shift;
-    my $class = shift;
-    my %args  = (@_);
+sub add ( $self, $id, $class, %args ) {
 
     # handle object ref can be weak if not exists in cache (new handle) or already weaken
     my $can_weak = $self->_h_cache->{$id}->{h} ? P->scalar->isweak( $self->_h_cache->{$id}->{h} ) : 1;
 
     my $h;
+
     if ( P->scalar->blessed($class) ) {
         $h     = $class;
         $class = ref $class;
@@ -130,10 +116,7 @@ sub add {
     }
 }
 
-sub remove {
-    my $self = shift;
-    my $id   = shift;
-
+sub remove ( $self, $id ) {
     delete $self->_h_cache->{$id};
 
     return;

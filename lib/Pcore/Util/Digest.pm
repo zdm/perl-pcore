@@ -29,7 +29,7 @@ sub md5 {
 }
 
 sub md5_hex {
-    return unpack 'H*', md5(@_);
+    return unpack 'H*', &md5;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub bcrypt ( $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
@@ -47,7 +47,7 @@ sub bcrypt ( $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
 }
 
 sub bcrypt_hex {
-    return unpack 'H*', bcrypt(@_);
+    return unpack 'H*', &bcrypt;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub crc32 {

@@ -625,25 +625,25 @@ sub from_ini {
 sub to_b64 {
     state $init = !!require MIME::Base64;
 
-    return MIME::Base64::encode_base64( $_[0], $_[1] );
+    goto &MIME::Base64::encode_base64;
 }
 
 sub to_b64_url {
     state $init = !!require MIME::Base64;
 
-    return MIME::Base64::encode_base64url(@_);
+    goto &MIME::Base64::encode_base64url;
 }
 
 sub from_b64 {
     state $init = !!require MIME::Base64;
 
-    return MIME::Base64::decode_base64(@_);
+    goto &MIME::Base64::decode_base64;
 }
 
 sub from_b64_url {
     state $init = !!require MIME::Base64;
 
-    return MIME::Base64::decode_base64url(@_);
+    goto &MIME::Base64::decode_base64url;
 }
 
 # URI
