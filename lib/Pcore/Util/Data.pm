@@ -1,6 +1,6 @@
 package Pcore::Util::Data;
 
-use Pcore;
+use Pcore -export, [qw[to_b64]];
 use Sort::Naturally qw[nsort];
 use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use URI::Escape::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
@@ -625,25 +625,25 @@ sub from_ini {
 sub to_b64 {
     state $init = !!require MIME::Base64;
 
-    goto &MIME::Base64::encode_base64;
+    return &MIME::Base64::encode_base64;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub to_b64_url {
     state $init = !!require MIME::Base64;
 
-    goto &MIME::Base64::encode_base64url;
+    return &MIME::Base64::encode_base64url;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub from_b64 {
     state $init = !!require MIME::Base64;
 
-    goto &MIME::Base64::decode_base64;
+    return &MIME::Base64::decode_base64;       ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 sub from_b64_url {
     state $init = !!require MIME::Base64;
 
-    goto &MIME::Base64::decode_base64url;
+    return &MIME::Base64::decode_base64url;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 # URI
