@@ -13,13 +13,13 @@ use if $^V ge 'v5.10', mro     => 'c3';
 no multidimensional;
 
 use namespace::clean qw[];
-use Const::Fast qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-use Encode qw[];         ## no critic qw[Modules::ProhibitEvilModules]
+use Const::Fast qw[];
+use Encode qw[];
 
 # preload Moo
 use Import::Into;
-use Moo qw[];            ## no critic qw[Modules::ProhibitEvilModules]
-use Moo::Role qw[];      ## no critic qw[Modules::ProhibitEvilModules]
+use Moo qw[];
+use Moo::Role qw[];
 
 # preload console related packages
 use Term::ANSIColor qw[];
@@ -294,9 +294,9 @@ sub _import_types ($caller) {
         local $ENV{PERL_TYPES_STANDARD_STRICTNUM} = 0;                     # 0 - Num = LaxNum, 1 - Num = StrictNum
 
         require Pcore::Core::Types;
-        require Types::TypeTiny;                                           ## no critic qw[Modules::ProhibitEvilModules]
-        require Types::Standard;                                           ## no critic qw[Modules::ProhibitEvilModules]
-        require Types::Common::Numeric;                                    ## no critic qw[Modules::ProhibitEvilModules]
+        require Types::TypeTiny;
+        require Types::Standard;
+        require Types::Common::Numeric;
 
         # require Types::Common::String;
         # require Types::Encodings();
@@ -477,43 +477,44 @@ sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloa
     no strict qw[refs];
 
     if ( $class->can('new') ) {
-        *{"$self\::$util"} = sub {
-            shift;
+        eval <<"PERL";         ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
+            *{$util} = sub {
+                shift;
 
-            return $class->new(@_);
-        };
+                return $class->new(\@_);
+            };
+PERL
     }
     else {
 
         # create util namespace with AUTOLOAD method
-        my $package = <<"PERL";
-package $self\::$util;
+        eval <<"PERL";         ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
+            package $self\::Util::_$util;
 
-use Pcore;
+            use Pcore;
 
-sub AUTOLOAD {
-    my \$method = our \$AUTOLOAD =~ s/\\A.*:://smr;
+            sub AUTOLOAD {
+                my \$method = our \$AUTOLOAD =~ s/\\A.*:://smr;
 
-    no strict qw[refs];
+                no strict qw[refs];
 
-    die qq[Sub "$class\::\$method" is not defined] if !defined &{"$class\::\$method"};
+                die qq[Sub "$class\::\$method" is not defined] if !defined &{"$class\::\$method"};
 
-    my \$ref = \\&{"$class\::\$method"};
+                # install method wrapper
+                eval <<"EVAL";
+                    *{\$method} = sub {
+                        shift;
 
-    # install method wrapper
-    *{\$method} = sub {
-        shift;
+                        return &$class\::\$method;
+                    };
+EVAL
 
-        goto \$ref;
-    };
-
-    goto &{\$method};
-}
+                goto &{\$method};
+            }
 PERL
-        eval $package;    ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
 
         # create util namespace access method
-        *{$util} = sub : const {"$self\::$util"};
+        *{$util} = sub : const {"$self\::Util::_$util"};
     }
 
     goto &{$util};
@@ -552,7 +553,7 @@ sub _config_stdout ($h) {
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
-## PerlCritic profile "pcore-script" policy violations:
+## PerlCritic profile "common" policy violations:
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
@@ -563,6 +564,12 @@ sub _config_stdout ($h) {
 ## │    3 │ 159                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 331                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 371, 400, 403, 407,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 456, 473, 535, 538,  │                                                                                                                │
+## │      │ 543, 546             │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 375                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
