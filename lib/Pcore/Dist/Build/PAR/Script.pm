@@ -553,7 +553,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
         print 'patch win exe icon ... ';
 
-        require Win32::Exe;
+        state $init = !!require Win32::Exe;
 
         my $exe = Win32::Exe->new( $repacked_exe_fh->path );
 

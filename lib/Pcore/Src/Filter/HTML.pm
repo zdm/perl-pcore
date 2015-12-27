@@ -19,7 +19,7 @@ sub decompress ($self) {
 
         syswrite $temp, $self->buffer->$* or die;
 
-        require Win32::Process;
+        state $init = !!require Win32::Process;
 
         Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C html-beautify $html_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
 
@@ -62,9 +62,9 @@ sub compress ($self) {
 
     my $html_packer_minify_args = $self->dist_cfg->{HTML_PACKER_MINIFY} || $self->src_cfg->{HTML_PACKER_MINIFY};
 
-    try {
-        require HTML::Packer;
+    state $init = !!require HTML::Packer;
 
+    try {
         $self->buffer->$* = HTML::Packer->init->minify( $self->buffer, $html_packer_minify_args );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
     };
 

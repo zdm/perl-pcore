@@ -24,7 +24,7 @@ sub decompress ( $self, % ) {
     # format heredocs
     $self->_format_heredoc;
 
-    require Perl::Tidy;
+    state $init = !!require Perl::Tidy;
 
     my $perltidy_argv = $self->src_cfg->{PERLTIDY};
 
@@ -60,7 +60,7 @@ sub decompress ( $self, % ) {
         $error_log .= qq[\n$log] if $args{perl_verbose};
     }
     elsif ( my $perl_critic_profile_name = $self->_get_perlcritic_profile_name( $args{perl_critic} ) ) {    # run perlcritic ONLY if no perltidy errors detected
-        require Perl::Critic;
+        state $init1 = !!require Perl::Critic;
 
         # create table object
         my $t = P->text->table( { row_line => 0 } );
@@ -154,9 +154,9 @@ sub compress ( $self, % ) {
         splice @_, 1,
     );
 
-    require BerkeleyDB;
-
     state $cache = do {
+        require BerkeleyDB;
+
         my $path = $ENV->{PCORE_USER_DIR} . 'perl-compress.bdb';
 
         tie my %cache, 'BerkeleyDB::Hash', -Filename => $path, -Flags => BerkeleyDB::DB_CREATE();
@@ -179,7 +179,7 @@ sub compress ( $self, % ) {
         $key = 'compress_' . $md5;
 
         if ( !exists $cache->{$key} ) {
-            require Perl::Strip;
+            state $init = !!require Perl::Strip;
 
             my $transform = Perl::Strip->new( optimise_size => 1, keep_nl => 0 );
 
@@ -190,7 +190,7 @@ sub compress ( $self, % ) {
         $key = 'strip_' . $args{perl_strip_maintain_linum} . $args{perl_strip_ws} . $args{perl_strip_comment} . $args{perl_strip_pod} . $md5;
 
         if ( !exists $cache->{$key} ) {
-            require Perl::Stripper;
+            state $init = !!require Perl::Stripper;
 
             my $transform = Perl::Stripper->new(
                 maintain_linum => $args{perl_strip_maintain_linum},    # keep line numbers unchanged

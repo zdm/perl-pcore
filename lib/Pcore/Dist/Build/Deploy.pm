@@ -129,7 +129,7 @@ sub _install ($self) {
         say qq[%PCORE_RES_LIB% updated];
 
         # update $ENV{PATH}
-        require Win32::TieRegistry;
+        state $init = !!require Win32::TieRegistry;
 
         my $system_path = Win32::TieRegistry->new('LMachine\SYSTEM\CurrentControlSet\Control\Session Manager\Environment')->GetValue('PATH');
 

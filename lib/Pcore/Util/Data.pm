@@ -57,7 +57,7 @@ sub encode {
 
     # encode
     if ( $args{to} eq 'PERL' ) {
-        require Data::Dumper;    ## no critic qw[Modules::ProhibitEvilModules]
+        state $init = !!require Data::Dumper;
 
         state $sort_keys = sub {
             return [ nsort keys $_[0]->%* ];
@@ -91,7 +91,7 @@ sub encode {
         }
 
         if ( $args{readable} ) {
-            require Pcore::Src::File;
+            state $init1 = !!require Pcore::Src::File;
 
             $res = Pcore::Src::File->new(
                 {   action      => 'decompress',
@@ -118,7 +118,7 @@ sub encode {
         $res = \_get_cbor_obj->encode($data);
     }
     elsif ( $args{to} eq 'YAML' ) {
-        require YAML::XS;
+        state $init = !!require YAML::XS;
 
         local $YAML::XS::UseCode = 0;
 
@@ -129,7 +129,7 @@ sub encode {
         $res = \YAML::XS::Dump($data);
     }
     elsif ( $args{to} eq 'XML' ) {
-        require XML::Hash::XS;
+        state $init = !!require XML::Hash::XS;
 
         state $xml_args = {
             root      => 'root',
@@ -153,7 +153,7 @@ sub encode {
         $res = \$xml_obj->hash2xml( $data->{$root}, root => $root, indent => $args{readable} ? 4 : 0 );
     }
     elsif ( $args{to} eq 'INI' ) {
-        require Config::INI::Writer;
+        state $init = !!require Config::INI::Writer;
 
         $res = \Config::INI::Writer->write_string($data);
     }
@@ -165,7 +165,7 @@ sub encode {
     if ( $args{compress} ) {
         if ( length $res->$* >= $args{compress_threshold} ) {
             if ( $args{compressor} eq 'Compress::Zlib' ) {
-                require Compress::Zlib;
+                state $init = !!require Compress::Zlib;
 
                 $res = \Compress::Zlib::compress( $res->$* );
             }
@@ -190,7 +190,7 @@ sub encode {
         }
 
         if ( defined $secret ) {
-            require Crypt::CBC;
+            state $init = !!require Crypt::CBC;
 
             $res = \Crypt::CBC->new(
                 -key    => $secret,
@@ -293,7 +293,7 @@ sub decode {
         }
 
         if ( defined $secret ) {
-            require Crypt::CBC;
+            state $init = !!require Crypt::CBC;
 
             $data_ref = \Crypt::CBC->new(
                 -key    => $secret,
@@ -306,7 +306,7 @@ sub decode {
     # decompress
     if ( $args{compress} ) {
         if ( $args{compressor} eq 'Compress::Zlib' ) {
-            require Compress::Zlib;
+            state $init = !!require Compress::Zlib;
 
             $data_ref = \Compress::Zlib::uncompress($data_ref);
 
@@ -344,7 +344,7 @@ CODE
         $res = _get_cbor_obj->decode( $data_ref->$* );
     }
     elsif ( $args{from} eq 'YAML' ) {
-        require YAML::XS;
+        state $init = !!require YAML::XS;
 
         local $YAML::XS::UseCode = 0;
 
@@ -355,7 +355,7 @@ CODE
         $res = YAML::XS::Load( $data_ref->$* );
     }
     elsif ( $args{from} eq 'XML' ) {
-        require XML::Hash::XS;
+        state $init = !!require XML::Hash::XS;
 
         state $xml_args = {
             encoding      => 'UTF-8',
@@ -373,7 +373,7 @@ CODE
         $res = $xml_obj->xml2hash($data_ref);
     }
     elsif ( $args{from} eq 'INI' ) {
-        require Config::INI::Reader;
+        state $init = !!require Config::INI::Reader;
 
         $res = Config::INI::Reader->read_string( $data_ref->$* );
     }
@@ -499,7 +499,7 @@ sub to_json {
         @_,
     );
 
-    require JSON::XS;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require JSON::XS;
 
     # create and configure JSON serializer object
     my $json;
@@ -543,7 +543,7 @@ sub from_json {
         @_,
     );
 
-    require JSON::XS;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require JSON::XS;
 
     # create and configure JSON deserializer object
     my $json;
@@ -623,25 +623,25 @@ sub from_ini {
 
 # BASE64
 sub to_b64 {
-    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64;
 
     return MIME::Base64::encode_base64( $_[0], $_[1] );
 }
 
 sub to_b64_url {
-    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64;
 
     return MIME::Base64::encode_base64url(@_);
 }
 
 sub from_b64 {
-    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64;
 
     return MIME::Base64::decode_base64(@_);
 }
 
 sub from_b64_url {
-    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
+    state $init = !!require MIME::Base64;
 
     return MIME::Base64::decode_base64url(@_);
 }

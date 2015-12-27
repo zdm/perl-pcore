@@ -5,13 +5,13 @@ use Pcore;
 no Pcore;
 
 sub module {
-    require Pcore::Util::Perl::Module;
+    state $init = !!require Pcore::Util::Perl::Module;
 
     return Pcore::Util::Perl::Module->new(@_);
 }
 
 sub moo {
-    require Pcore::Util::Perl::Moo;
+    state $init = !!require Pcore::Util::Perl::Moo;
 
     return 'Pcore::Util::Perl::Moo';
 }

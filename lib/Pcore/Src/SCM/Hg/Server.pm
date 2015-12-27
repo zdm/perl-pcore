@@ -39,7 +39,7 @@ sub BUILD ( $self, $args ) {
         local $ENV{HGENCODING} = 'UTF-8';
 
         if ($MSWIN) {
-            require Win32::Process;
+            state $init = !!require Win32::Process;
 
             Win32::Process::Create(    #
                 $self->{_pid},

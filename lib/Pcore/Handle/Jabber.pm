@@ -25,7 +25,7 @@ sub h_connect {
     my $h;
 
     if ( $self->driver eq ' Jabber::Connection ' ) {
-        require Jabber::Connection;
+        state $init1 = !!require Jabber::Connection;
 
         $h = Jabber::Connection->new(
             server => $ENV->{CFG}->{H}->{ $self->name }->{SERVER},
@@ -44,7 +44,7 @@ sub h_connect {
         };
     }
     else {
-        require Net::XMPP;
+        state $init2 = !!require Net::XMPP;
 
         $h = Net::XMPP::Client->new(
             debuglevel => 0,

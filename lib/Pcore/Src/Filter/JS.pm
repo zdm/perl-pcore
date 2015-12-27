@@ -22,7 +22,7 @@ sub decompress ( $self, % ) {
 
         syswrite $temp, $self->buffer->$* or die;
 
-        require Win32::Process;
+        state $init = !!require Win32::Process;
 
         Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C js-beautify $js_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
 
@@ -60,21 +60,17 @@ sub decompress ( $self, % ) {
 }
 
 sub compress ($self) {
-    try {
-        require JavaScript::Packer;
+    state $init = !!require JavaScript::Packer;
 
-        $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'clean' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-    };
+    $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'clean' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }
 
 sub obfuscate ($self) {
-    try {
-        require JavaScript::Packer;
+    state $init = !!require JavaScript::Packer;
 
-        $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'obfuscate' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-    };
+    $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'obfuscate' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }
@@ -115,7 +111,7 @@ sub run_js_hint ($self) {
 
         my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
 
-        require Win32::Process;
+        state $init = !!require Win32::Process;
 
         Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C jshint $js_hint_args "$in_temp"> "$out_temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
 
@@ -163,7 +159,7 @@ sub run_js_hint ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 83                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 79                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

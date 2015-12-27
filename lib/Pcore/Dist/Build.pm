@@ -24,7 +24,7 @@ sub _build_wiki ($self) {
 }
 
 sub create ( $self, @args ) {
-    require Pcore::Dist::Build::Create;
+    state $init = !!require Pcore::Dist::Build::Create;
 
     return Pcore::Dist::Build::Create->new( { @args, build => $self } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 }
@@ -55,7 +55,7 @@ sub setup ($self) {
 }
 
 sub clean ($self) {
-    require Pcore::Dist::Build::Clean;
+    state $init = !!require Pcore::Dist::Build::Clean;
 
     Pcore::Dist::Build::Clean->new( { dist => $self->dist } )->run;
 
@@ -63,7 +63,7 @@ sub clean ($self) {
 }
 
 sub update ($self) {
-    require Pcore::Dist::Build::Update;
+    state $init = !!require Pcore::Dist::Build::Update;
 
     Pcore::Dist::Build::Update->new( { dist => $self->dist } )->run;
 
@@ -71,7 +71,7 @@ sub update ($self) {
 }
 
 sub deploy ( $self, %args ) {
-    require Pcore::Dist::Build::Deploy;
+    state $init = !!require Pcore::Dist::Build::Deploy;
 
     Pcore::Dist::Build::Deploy->new( { dist => $self->dist, %args } )->run;
 
@@ -115,7 +115,7 @@ sub test ( $self, @ ) {
 }
 
 sub release ( $self, @args ) {
-    require Pcore::Dist::Build::Release;
+    state $init = !!require Pcore::Dist::Build::Release;
 
     return Pcore::Dist::Build::Release->new( { dist => $self->dist, @args } )->run;
 }
@@ -129,7 +129,7 @@ sub par ( $self, @ ) {
         splice @_, 1,
     );
 
-    require Pcore::Dist::Build::PAR;
+    state $init = !!require Pcore::Dist::Build::PAR;
 
     Pcore::Dist::Build::PAR->new( { %args, dist => $self->dist } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
@@ -137,7 +137,7 @@ sub par ( $self, @ ) {
 }
 
 sub temp_build ( $self, $keep = 0 ) {
-    require Pcore::Dist::Build::Temp;
+    state $init = !!require Pcore::Dist::Build::Temp;
 
     return Pcore::Dist::Build::Temp->new( { dist => $self->dist } )->run($keep);
 }
@@ -145,7 +145,7 @@ sub temp_build ( $self, $keep = 0 ) {
 sub tgz ($self) {
     my $temp = $self->temp_build;
 
-    require Archive::Tar;
+    state $init = !!require Archive::Tar;
 
     my $tgz = Archive::Tar->new;
 

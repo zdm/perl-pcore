@@ -45,7 +45,7 @@ sub deploy_api {
 
     $self->run_ddl;
 
-    require Pcore::API::Map::Scanner;
+    state $init = !!require Pcore::API::Map::Scanner;
 
     my $scanner = Pcore::API::Map::Scanner->new(
         {   backend => $self,

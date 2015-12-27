@@ -206,11 +206,7 @@ PERL
 
 # UTIL
 sub table {
-    state $init = do {
-        require Pcore::Util::Text::Table;
-
-        1;
-    };
+    state $init = !!require Pcore::Util::Text::Table;
 
     return Pcore::Util::Text::Table->new(@_);
 }
@@ -311,11 +307,7 @@ sub decode_html_entities {
         splice @_, 1,
     );
 
-    state $init = do {
-        require HTML::Entities;
-
-        1;
-    };
+    state $init = !!require HTML::Entities;
 
     decode $_;
 

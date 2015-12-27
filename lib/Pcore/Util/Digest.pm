@@ -9,11 +9,7 @@ my $BCRYPT_COST_DEFAULT = 10;
 sub md5 {
     my @data = @_;
 
-    state $init = do {
-        require Digest::MD5;    ## no critic qw[Modules::ProhibitEvilModules]
-
-        1;
-    };
+    state $init = !!require Digest::MD5;
 
     # prepare data for serialization
     for my $item (@data) {
@@ -37,11 +33,7 @@ sub md5_hex {
 }
 
 sub bcrypt ( $password, $salt, $cost = $BCRYPT_COST_DEFAULT ) {
-    state $init = do {
-        require Digest::Bcrypt;    ## no critic qw[Modules::ProhibitEvilModules]
-
-        1;
-    };
+    state $init = !!require Digest::Bcrypt;
 
     my $bcrypt = Digest::Bcrypt->new;
 
@@ -59,11 +51,7 @@ sub bcrypt_hex {
 }
 
 sub crc32 {
-    state $init = do {
-        require String::CRC32;
-
-        1;
-    };
+    state $init = !!require String::CRC32;
 
     return &String::CRC32::crc32;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
@@ -75,7 +63,7 @@ sub crc32 {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 39                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 35                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

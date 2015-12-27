@@ -73,7 +73,7 @@ sub is_process_alive {
         return;
     }
     else {
-        require Proc::ProcessTable;
+        state $init = !!require Proc::ProcessTable;
 
         my $t = Proc::ProcessTable->new;
 

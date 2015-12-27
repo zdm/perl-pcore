@@ -168,7 +168,9 @@ sub import {
         Pcore::Core::Autoload->import( -caller => $caller ) if $pragma->{autoload};
 
         # process -inline pragma
-        require Pcore::Core::Inline if $pragma->{inline};
+        if ( $pragma->{inline} ) {
+            state $inline_required = !!require Pcore::Core::Inline;
+        }
 
         # store significant pragmas for use in run-time
         $Pcore::EMBEDDED = 1 if $pragma->{embedded};
@@ -201,10 +203,10 @@ sub import {
             $pragma->{types} = 1;
 
             if ( $pragma->{class} ) {
-                $self->_import_moo( caller => $caller, class => 1 );
+                _import_moo( $caller, 0 );
             }
             elsif ( $pragma->{role} ) {
-                $self->_import_moo( caller => $caller, role => 1 );
+                _import_moo( $caller, 1 );
             }
 
             # reconfigure warnings, after Moo exported
@@ -213,11 +215,11 @@ sub import {
             warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef] ) if $^V lt 'v5.23';
 
             # apply default roles
-            # $self->_apply_roles( caller => $caller, roles => [qw[Pcore::Core::Autoload::Role]] );
+            # _apply_roles( $caller, qw[Pcore::Core::Autoload::Role] );
         }
 
         # export types
-        $self->_import_types( caller => $caller ) if $pragma->{types};
+        _import_types($caller) if $pragma->{types};
     }
 
     # cleanup
@@ -236,39 +238,31 @@ sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $caller = caller;
 
     # try to unimport Moo keywords
-    $self->_unimport_moo( caller => $caller );
+    _unimport_moo($caller);
 
     # unimport types
-    $self->_unimport_types( caller => $caller );
+    _unimport_types($caller);
 
     return;
 }
 
-sub _import_moo {
-    my $self = shift;
-    my %args = (
-        caller => undef,
-        class  => undef,
-        role   => undef,
-        @_,
-    );
-
-    if ( $args{class} ) {
-        Moo->import::into( $args{caller} );
+sub _import_moo ( $caller, $role ) {
+    if ($role) {
+        Moo::Role->import::into($caller);
     }
     else {
-        Moo::Role->import::into( $args{caller} );
+        Moo->import::into($caller);
     }
 
     # install "has" hook
     {
         no strict qw[refs];
 
-        my $has = *{ $args{caller} . '::has' }{CODE};
+        my $has = *{"$caller\::has"}{CODE};
 
         no warnings qw[redefine];
 
-        *{ $args{caller} . '::has' } = sub {
+        *{"$caller\::has"} = sub {
             my ( $name_proto, %spec ) = @_;
 
             # disable type checking
@@ -284,91 +278,64 @@ sub _import_moo {
     return;
 }
 
-sub _unimport_moo {
-    my $self = shift;
-    my %args = (
-        caller => undef,
-        @_,
-    );
-
-    if ( $Moo::MAKERS{ $args{caller} } && $Moo::MAKERS{ $args{caller} }->{is_class} ) {    # Moo class
-        Moo->unimport::out_of( $args{caller} );
+sub _unimport_moo ($caller) {
+    if ( $Moo::MAKERS{$caller} && $Moo::MAKERS{$caller}->{is_class} ) {    # Moo class
+        Moo->unimport::out_of($caller);
     }
-    elsif ( Moo::Role->is_role( $args{caller} ) ) {                                        # Moo::Role
-        Moo::Role->unimport::out_of( $args{caller} );
+    elsif ( Moo::Role->is_role($caller) ) {                                # Moo::Role
+        Moo::Role->unimport::out_of($caller);
     }
 
     return;
 }
 
-sub _import_types {
-    my $self = shift;
-    my %args = (
-        caller => undef,
-        @_,
-    );
-
-    state $required;
-
-    if ( !$required ) {
-        $required = 1;
-
-        local $ENV{PERL_TYPES_STANDARD_STRICTNUM} = 0;    # 0 - Num = LaxNum, 1 - Num = StrictNum
+sub _import_types ($caller) {
+    state $init = do {
+        local $ENV{PERL_TYPES_STANDARD_STRICTNUM} = 0;                     # 0 - Num = LaxNum, 1 - Num = StrictNum
 
         require Pcore::Core::Types;
-        require Types::TypeTiny;                          ## no critic qw[Modules::ProhibitEvilModules]
-        require Types::Standard;                          ## no critic qw[Modules::ProhibitEvilModules]
-        require Types::Common::Numeric;                   ## no critic qw[Modules::ProhibitEvilModules]
+        require Types::TypeTiny;                                           ## no critic qw[Modules::ProhibitEvilModules]
+        require Types::Standard;                                           ## no critic qw[Modules::ProhibitEvilModules]
+        require Types::Common::Numeric;                                    ## no critic qw[Modules::ProhibitEvilModules]
 
         # require Types::Common::String;
         # require Types::Encodings();
         # require Types::XSD::Lite();
-    }
 
-    Types::TypeTiny->import( { into => $args{caller} }, qw[StringLike HashLike ArrayLike CodeLike TypeTiny] );
+        1;
+    };
 
-    Types::Standard->import( { into => $args{caller} }, ':types' );
+    Types::TypeTiny->import( { into => $caller }, qw[StringLike HashLike ArrayLike CodeLike TypeTiny] );
 
-    Types::Common::Numeric->import( { into => $args{caller} }, ':types' );
+    Types::Standard->import( { into => $caller }, ':types' );
 
-    Pcore::Core::Types->import( { into => $args{caller} }, ':types' );
+    Types::Common::Numeric->import( { into => $caller }, ':types' );
 
-    return;
-}
-
-sub _unimport_types {
-    my $self = shift;
-    my %args = (
-        caller => undef,
-        @_,
-    );
-
-    Pcore::Core::Types->unimport( { into => $args{caller} }, ':types' );
-
-    Types::Common::Numeric->unimport( { into => $args{caller} }, ':types' );
-
-    Types::Standard->unimport( { into => $args{caller} }, ':types' );
-
-    Types::TypeTiny->unimport( { into => $args{caller} }, qw[StringLike HashLike ArrayLike CodeLike TypeTiny] );
+    Pcore::Core::Types->import( { into => $caller }, ':types' );
 
     return;
 }
 
-sub _apply_roles {
-    my $self = shift;
-    my %args = (
-        caller => undef,
-        roles  => undef,
-        @_,
-    );
+sub _unimport_types ($caller) {
+    Pcore::Core::Types->unimport( { into => $caller }, ':types' );
 
-    Moo::Role->apply_roles_to_package( $args{caller}, $args{roles}->@* );
+    Types::Common::Numeric->unimport( { into => $caller }, ':types' );
 
-    if ( Moo::Role->is_role( $args{caller} ) ) {
-        Moo::Role->_maybe_reset_handlemoose( $args{caller} );    ## no critic qw[Subroutines::ProtectPrivateSubs]
+    Types::Standard->unimport( { into => $caller }, ':types' );
+
+    Types::TypeTiny->unimport( { into => $caller }, qw[StringLike HashLike ArrayLike CodeLike TypeTiny] );
+
+    return;
+}
+
+sub _apply_roles ( $caller, @roles ) {
+    Moo::Role->apply_roles_to_package( $caller, @roles );
+
+    if ( Moo::Role->is_role($caller) ) {
+        Moo::Role->_maybe_reset_handlemoose($caller);    ## no critic qw[Subroutines::ProtectPrivateSubs]
     }
     else {
-        Moo->_maybe_reset_handlemoose( $args{caller} );          ## no critic qw[Subroutines::ProtectPrivateSubs]
+        Moo->_maybe_reset_handlemoose($caller);          ## no critic qw[Subroutines::ProtectPrivateSubs]
     }
 
     return;
@@ -473,8 +440,7 @@ sub _CORE_RUN {
     # process will not daemonized;
 
     if ( !$Pcore::EMBEDDED ) {
-
-        require Pcore::Core::CLI;
+        state $init_cli = !!require Pcore::Core::CLI;
 
         Pcore::Core::CLI->new( { class => 'main' } )->run( \@ARGV );
 
@@ -563,7 +529,7 @@ sub cv {
 sub _config_stdout ($h) {
     if ($MSWIN) {
         if ( -t $h ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
-            require Pcore::Core::PerlIOviaWinUniCon;
+            state $init = !!require Pcore::Core::PerlIOviaWinUniCon;
 
             binmode $h, ':raw:via(Pcore::Core::PerlIOviaWinUniCon)' or die;    # terminal
         }
@@ -596,7 +562,7 @@ sub _config_stdout ($h) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 159                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 357                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │ 331                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

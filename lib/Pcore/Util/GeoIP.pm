@@ -23,14 +23,14 @@ sub country2_path ( $self, $force = undef, $cv = undef ) {
         my $_path = $ENV->res->get('/data/geoip2_country.dat');
 
         if ( !$_path || $force ) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
             P->ua->request(
                 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
-                    require IO::Uncompress::Gunzip;
-
                     if ( $res->status == 200 ) {
                         my $temp = P->file->tempfile;
 
@@ -55,14 +55,14 @@ sub city2_path ( $self, $force = undef, $cv = undef ) {
         my $_path = $ENV->res->get('/data/geoip2_city.dat');
 
         if ( !$_path || $force ) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
             P->ua->request(
                 'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
-                    require IO::Uncompress::Gunzip;
-
                     if ( $res->status == 200 ) {
                         my $temp = P->file->tempfile;
 
@@ -87,14 +87,14 @@ sub country_path ( $self, $force = undef, $cv = undef ) {
         my $_path = $ENV->res->get('/data/geoip_country.dat');
 
         if ( !$_path || $force ) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
             P->ua->request(
                 'https://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
-                    require IO::Uncompress::Gunzip;
-
                     if ( $res->status == 200 ) {
                         my $temp = P->file->tempfile;
 
@@ -119,14 +119,14 @@ sub country_v6_path ( $self, $force = undef, $cv = undef ) {
         my $_path = $ENV->res->get('/data/geoip_country_v6.dat');
 
         if ( !$_path || $force ) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
             P->ua->request(
                 'https://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
-                    require IO::Uncompress::Gunzip;
-
                     if ( $res->status == 200 ) {
                         my $temp = P->file->tempfile;
 
@@ -151,14 +151,14 @@ sub city_path ( $self, $force = undef, $cv = undef ) {
         my $_path = $ENV->res->get('/data/geoip_city.dat');
 
         if ( !$_path || $force ) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
             P->ua->request(
                 'https://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
-                    require IO::Uncompress::Gunzip;
-
                     if ( $res->status == 200 ) {
                         my $temp = P->file->tempfile;
 
@@ -183,14 +183,14 @@ sub city_v6_path ( $self, $force = undef, $cv = undef ) {
         my $_path = $ENV->res->get('/data/geoip_city_v6.dat');
 
         if ( !$_path || $force ) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
             P->ua->request(
                 'https://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz',
                 buf_size    => 1,
                 on_progress => $cv ? 1 : 0,
                 blocking => $cv || 1,
                 on_finish => sub ($res) {
-                    require IO::Uncompress::Gunzip;
-
                     if ( $res->status == 200 ) {
                         my $temp = P->file->tempfile;
 
@@ -219,11 +219,11 @@ sub _get_h ( $self, $type ) {
         my $use_pure_perl = $GEOIP_PURE_PERL;
 
         if ($use_pure_perl) {
-            require Geo::IP::PurePerl;    ## no critic qw[Modules::ProhibitEvilModules]
+            state $init = !!require Geo::IP::PurePerl;
         }
         else {
             $use_pure_perl = try {
-                require Geo::IP;          ## no critic qw[Modules::ProhibitEvilModules]
+                require Geo::IP;    ## no critic qw[Modules::ProhibitEvilModules]
 
                 return 0;
             }
