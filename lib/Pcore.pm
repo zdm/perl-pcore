@@ -502,7 +502,7 @@ PERL
 
                 # install method wrapper
                 eval <<"EVAL";
-                    *{\$method} = sub {
+                    *{"$self\::Util::_$util\::\$method"} = sub {
                         shift;
 
                         return &$class\::\$method;
