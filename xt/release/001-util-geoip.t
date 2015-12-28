@@ -28,7 +28,7 @@ our $TESTS = {
 plan tests => scalar keys $TESTS->%*;
 
 for my $ip ( keys $TESTS->%* ) {
-    ok( P->geoip->country_code_by_addr($ip) eq $TESTS->{$ip}, 'country_code_by_addr_' . $ip );
+    ok( P->geoip->country->country_code_by_addr($ip) eq $TESTS->{$ip}, 'country_code_by_addr_' . $ip );
 }
 
 done_testing scalar keys $TESTS->%*;

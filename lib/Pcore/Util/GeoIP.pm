@@ -1,16 +1,18 @@
 package Pcore::Util::GeoIP;
 
-use Pcore -autoload, -const;
+use Pcore -const;
 
 const our $GEOIP_STANDARD     => 0;    # PP
 const our $GEOIP_MEMORY_CACHE => 1;    # PP
 const our $GEOIP_CHECK_CACHE  => 2;    # when using memory cache you can force a reload if the file is updated by setting GEOIP_CHECK_CACHE
 const our $GEOIP_INDEX_CACHE  => 4;    # caches the most frequently accessed index portion of the database, resulting in faster lookups than GEOIP_STANDARD, but less memory usage than GEOIP_MEMORY_CACHE - useful for larger databases such as GeoIP Legacy Organization and GeoIP City. Note, for GeoIP Country, Region and Netspeed databases, GEOIP_INDEX_CACHE is equivalent to GEOIP_MEMORY_CACHE
 
-const our $TYPE_CITY       => 1;
-const our $TYPE_CITY_V6    => 2;
-const our $TYPE_COUNTRY    => 3;
-const our $TYPE_COUNTRY_V6 => 4;
+const our $TYPE_COUNTRY    => 1;
+const our $TYPE_COUNTRY_V6 => 2;
+const our $TYPE_COUNTRY2   => 3;
+const our $TYPE_CITY       => 4;
+const our $TYPE_CITY_V6    => 5;
+const our $TYPE_CITY2      => 5;
 
 our $GEOIP_PURE_PERL          = 0;                     # force to use pure perl mode
 our $GEOIP_COUNTRY_CACHE_MODE = $GEOIP_MEMORY_CACHE;
@@ -18,305 +20,280 @@ our $GEOIP_CITY_CACHE_MODE    = $GEOIP_INDEX_CACHE;
 
 my $H;
 
-sub country2_path ( $self, $force = undef, $cv = undef ) {
-    state $path = do {
-        my $_path = $ENV->res->get('/data/geoip2_country.dat');
-
-        if ( !$_path || $force ) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz',
-                buf_size    => 1,
-                on_progress => $cv ? 1 : 0,
-                blocking => $cv || 1,
-                on_finish => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $_path = $ENV->res->store( $temp->path, '/data/geoip2_country.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        $_path;
-    };
-
-    return $path;
-}
-
-sub city2_path ( $self, $force = undef, $cv = undef ) {
-    state $path = do {
-        my $_path = $ENV->res->get('/data/geoip2_city.dat');
-
-        if ( !$_path || $force ) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz',
-                buf_size    => 1,
-                on_progress => $cv ? 1 : 0,
-                blocking => $cv || 1,
-                on_finish => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $_path = $ENV->res->store( $temp->path, '/data/geoip2_city.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        $_path;
-    };
-
-    return $path;
-}
-
-sub country_path ( $self, $force = undef, $cv = undef ) {
-    state $path = do {
-        my $_path = $ENV->res->get('/data/geoip_country.dat');
-
-        if ( !$_path || $force ) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz',
-                buf_size    => 1,
-                on_progress => $cv ? 1 : 0,
-                blocking => $cv || 1,
-                on_finish => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $_path = $ENV->res->store( $temp->path, '/data/geoip_country.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        $_path;
-    };
-
-    return $path;
-}
-
-sub country_v6_path ( $self, $force = undef, $cv = undef ) {
-    state $path = do {
-        my $_path = $ENV->res->get('/data/geoip_country_v6.dat');
-
-        if ( !$_path || $force ) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz',
-                buf_size    => 1,
-                on_progress => $cv ? 1 : 0,
-                blocking => $cv || 1,
-                on_finish => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp, BinModeOut => 1 );
-
-                        $_path = $ENV->res->store( $temp->path, '/data/geoip_country_v6.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        $_path;
-    };
-
-    return $path;
-}
-
-sub city_path ( $self, $force = undef, $cv = undef ) {
-    state $path = do {
-        my $_path = $ENV->res->get('/data/geoip_city.dat');
-
-        if ( !$_path || $force ) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz',
-                buf_size    => 1,
-                on_progress => $cv ? 1 : 0,
-                blocking => $cv || 1,
-                on_finish => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $_path = $ENV->res->store( $temp->path, '/data/geoip_city.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        $_path;
-    };
-
-    return $path;
-}
-
-sub city_v6_path ( $self, $force = undef, $cv = undef ) {
-    state $path = do {
-        my $_path = $ENV->res->get('/data/geoip_city_v6.dat');
-
-        if ( !$_path || $force ) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz',
-                buf_size    => 1,
-                on_progress => $cv ? 1 : 0,
-                blocking => $cv || 1,
-                on_finish => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $_path = $ENV->res->store( $temp->path, '/data/geoip_city_v6.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        $_path;
-    };
-
-    return $path;
-}
-
-sub _get_h ( $self, $type ) {
-    if ( !defined $H->{$type} ) {
-        my $db_path;
-
-        my $default_cache_mode;
-
-        my $use_pure_perl = $GEOIP_PURE_PERL;
-
-        if ($use_pure_perl) {
-            state $init = !!require Geo::IP::PurePerl;
-        }
-        else {
-            $use_pure_perl = try {
-                require Geo::IP;    ## no critic qw[Modules::ProhibitEvilModules]
-
-                return 0;
-            }
-            catch {
-                require Geo::IP::PurePerl;    ## no critic qw[Modules::ProhibitEvilModules]
-
-                return 1;
-            };
-        }
-
-        if ( $type == $TYPE_COUNTRY ) {
-            $db_path = $self->country_path;
-
-            $default_cache_mode = $GEOIP_COUNTRY_CACHE_MODE;
-        }
-        elsif ( $type == $TYPE_COUNTRY_V6 ) {
-            $db_path = $self->country_path_v6;
-
-            $default_cache_mode = $GEOIP_COUNTRY_CACHE_MODE;
-        }
-        elsif ( $type == $TYPE_CITY ) {
-            $db_path = $self->city_path;
-
-            $default_cache_mode = $GEOIP_CITY_CACHE_MODE;
-        }
-        elsif ( $type == $TYPE_CITY_V6 ) {
-            $db_path = $self->city_path_v6;
-
-            $default_cache_mode = $GEOIP_CITY_CACHE_MODE;
-        }
-
-        # use $GEOIP_MEMORY_CACHE instead of $GEOIP_INDEX_CACHE if $GEOIP_INDEX_CACHE is not supported
-        my $flags = $use_pure_perl && $default_cache_mode == $GEOIP_INDEX_CACHE ? $GEOIP_MEMORY_CACHE : $default_cache_mode;
-
-        $flags = $flags | $GEOIP_CHECK_CACHE if !$use_pure_perl;
-
-        my $class = $use_pure_perl ? 'Geo::IP::PurePerl' : 'Geo::IP';
-
-        $H->{$type} = $class->open( $db_path, $flags );
-    }
-
-    return $H->{$type};
-}
-
-sub reconnect ($self) {
+sub clear {
     undef $H;
 
     return;
 }
 
-sub update ($self) {
-    $H = undef;
+sub update {
+    clear();
 
     my $cv = AE::cv;
 
-    $self->country2_path( 1, $cv );
+    country($cv);
 
-    $self->city2_path( 1, $cv );
+    country_v6($cv);
 
-    $self->country_path( 1, $cv );
+    country2($cv);
 
-    $self->country_v6_path( 1, $cv );
+    city($cv);
 
-    $self->city_path( 1, $cv );
+    city_v6($cv);
 
-    $self->city_v6_path( 1, $cv );
+    city2($cv);
 
     $cv->recv;
-
-    # $self->_connect;
 
     return;
 }
 
-sub autoload ( $self, $method, @ ) {
-    return sub {
-        my $self = shift;
+sub country ($update = undef) {
+    if ( !exists $H->{$TYPE_COUNTRY} || $update ) {
+        if ($update) {
+            state $init = !!require IO::Uncompress::Gunzip;
 
-        return $self->_get_h($TYPE_COUNTRY)->$method(@_);
-    };
+            P->ua->request(
+                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz',
+                buf_size    => 1,
+                on_progress => 1,
+                blocking    => $update,
+                on_finish   => sub ($res) {
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $ENV->res->store( $temp->path, '/data/geoip_country.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        my $path = $ENV->res->get('/data/geoip_country.dat');
+
+        return if !$path;
+
+        $H->{$TYPE_COUNTRY} = _get_h( $TYPE_COUNTRY, $path );
+    }
+
+    return $H->{$TYPE_COUNTRY};
 }
 
-# city methods
-sub record_by_addr {
-    my $self = shift;
+sub country_v6 ($update = undef) {
+    if ( !exists $H->{$TYPE_COUNTRY_V6} || $update ) {
+        if ($update) {
+            state $init = !!require IO::Uncompress::Gunzip;
 
-    return $self->_get_h($TYPE_CITY)->record_by_addr(@_);
+            P->ua->request(
+                'https://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz',
+                buf_size    => 1,
+                on_progress => 1,
+                blocking    => $update,
+                on_finish   => sub ($res) {
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $ENV->res->store( $temp->path, '/data/geoip_country_v6.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        my $path = $ENV->res->get('/data/geoip_country_v6.dat');
+
+        return if !$path;
+
+        $H->{$TYPE_COUNTRY_V6} = _get_h( $TYPE_COUNTRY_V6, $path );
+    }
+
+    return $H->{$TYPE_COUNTRY_V6};
 }
 
-sub record_by_name {
-    my $self = shift;
+sub country2 ($update = undef) {
+    if ( !exists $H->{$TYPE_COUNTRY2} || $update ) {
+        if ($update) {
+            state $init = !!require IO::Uncompress::Gunzip;
 
-    return $self->_get_h($TYPE_CITY)->record_by_name(@_);
+            P->ua->request(
+                'https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz',
+                buf_size    => 1,
+                on_progress => 1,
+                blocking    => $update,
+                on_finish   => sub ($res) {
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $ENV->res->store( $temp->path, '/data/geoip2_country.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        my $path = $ENV->res->get('/data/geoip2_country.dat');
+
+        return if !$path;
+
+        # $H->{$TYPE_COUNTRY2} = _get_h( $TYPE_COUNTRY2, $path );
+    }
+
+    return $H->{$TYPE_COUNTRY2};
+}
+
+sub city ($update = undef) {
+    if ( !exists $H->{$TYPE_CITY} || $update ) {
+        if ($update) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
+            P->ua->request(
+                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz',
+                buf_size    => 1,
+                on_progress => 1,
+                blocking    => $update,
+                on_finish   => sub ($res) {
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $ENV->res->store( $temp->path, '/data/geoip_city.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        my $path = $ENV->res->get('/data/geoip_city.dat');
+
+        return if !$path;
+
+        $H->{$TYPE_CITY} = _get_h( $TYPE_CITY, $path );
+    }
+
+    return $H->{$TYPE_CITY};
+}
+
+sub city_v6 ($update = undef) {
+    if ( !exists $H->{$TYPE_CITY_V6} || $update ) {
+        if ($update) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
+            P->ua->request(
+                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz',
+                buf_size    => 1,
+                on_progress => 1,
+                blocking    => $update,
+                on_finish   => sub ($res) {
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $ENV->res->store( $temp->path, '/data/geoip_city_v6.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        my $path = $ENV->res->get('/data/geoip_city_v6.dat');
+
+        return if !$path;
+
+        $H->{$TYPE_CITY_V6} = _get_h( $TYPE_CITY_V6, $path );
+    }
+
+    return $H->{$TYPE_CITY_V6};
+}
+
+sub city2 ($update = undef) {
+    if ( !exists $H->{$TYPE_CITY2} || $update ) {
+        if ($update) {
+            state $init = !!require IO::Uncompress::Gunzip;
+
+            P->ua->request(
+                'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz',
+                buf_size    => 1,
+                on_progress => 1,
+                blocking    => $update,
+                on_finish   => sub ($res) {
+                    if ( $res->status == 200 ) {
+                        my $temp = P->file->tempfile;
+
+                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+
+                        $ENV->res->store( $temp->path, '/data/geoip_city2.dat', 'pcore' );
+                    }
+
+                    return;
+                }
+            );
+        }
+
+        my $path = $ENV->res->get('/data/geoip_city2.dat');
+
+        return if !$path;
+
+        # $H->{$TYPE_CITY2} = _get_h( $TYPE_CITY2, $path );
+    }
+
+    return $H->{$TYPE_CITY2};
+}
+
+sub _get_h ( $type, $path ) {
+    my $default_cache_mode;
+
+    my $use_pure_perl = $GEOIP_PURE_PERL;
+
+    if ($use_pure_perl) {
+        state $init = !!require Geo::IP::PurePerl;
+    }
+    else {
+        $use_pure_perl = try {
+            state $init = !!require Geo::IP;
+
+            return 0;
+        }
+        catch {
+            state $init = !!require Geo::IP::PurePerl;
+
+            return 1;
+        };
+    }
+
+    if ( $type == $TYPE_COUNTRY ) {
+        $default_cache_mode = $GEOIP_COUNTRY_CACHE_MODE;
+    }
+    elsif ( $type == $TYPE_COUNTRY_V6 ) {
+        $default_cache_mode = $GEOIP_COUNTRY_CACHE_MODE;
+    }
+    elsif ( $type == $TYPE_CITY ) {
+        $default_cache_mode = $GEOIP_CITY_CACHE_MODE;
+    }
+    elsif ( $type == $TYPE_CITY_V6 ) {
+        $default_cache_mode = $GEOIP_CITY_CACHE_MODE;
+    }
+
+    # use $GEOIP_MEMORY_CACHE instead of $GEOIP_INDEX_CACHE if $GEOIP_INDEX_CACHE is not supported
+    my $flags = $use_pure_perl && $default_cache_mode == $GEOIP_INDEX_CACHE ? $GEOIP_MEMORY_CACHE : $default_cache_mode;
+
+    $flags = $flags | $GEOIP_CHECK_CACHE if !$use_pure_perl;
+
+    my $class = $use_pure_perl ? 'Geo::IP::PurePerl' : 'Geo::IP';
+
+    return $class->open( $path, $flags );
 }
 
 1;
