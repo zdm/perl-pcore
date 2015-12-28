@@ -32,7 +32,6 @@ has caller_frame => ( is => 'ro', isa => InstanceOf ['Devel::StackTrace::Frame']
 has propagated => ( is => 'ro', isa => Bool, default => 0 );
 has ns => ( is => 'lazy', isa => Str );
 
-has shortmess => ( is => 'lazy', isa => Str, init_arg => undef );
 has longmess  => ( is => 'lazy', isa => Str, init_arg => undef );
 has to_string => ( is => 'lazy', isa => Str, init_arg => undef );
 
@@ -61,14 +60,11 @@ around new => sub ( $orig, $self, $msg, %args ) {
     }
 
     # cut trailing "\n" from $msg
-    my $ended_with_newline = do {
-        local $/ = q[];                                     # remove all trailing newlines with chomp
+    {
+        local $/ = q[];
 
         chomp $msg;
     };
-
-    # disable trace if exception was catched from die / warn call and message is ended with "\n"
-    $args{trace} = 0 if $ended_with_newline;
 
     # handle errors during exception object creation
     local $@;
@@ -113,17 +109,8 @@ sub _build_ns ($self) {
     return $self->caller_frame->package;
 }
 
-sub _build_shortmess ($self) {
-    return $self->msg . ', at ' . $self->caller_frame->filename . ' line ' . $self->caller_frame->line;
-}
-
 sub _build_longmess ($self) {
-    if ( $self->call_stack->@* ) {
-        return $self->shortmess . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->call_stack->@*;
-    }
-    else {
-        return $self->shortmess;
-    }
+    return $self->msg . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->caller_frame, $self->call_stack->@*;
 }
 
 sub _build_to_string ($self) {
@@ -189,9 +176,9 @@ sub stop_propagate ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 74                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 70                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 152                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 139                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
