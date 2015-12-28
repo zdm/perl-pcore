@@ -69,7 +69,7 @@ sub autoload ( $self, $method, @ ) {
 
     return <<"PERL";
         sub (\$self) {
-            if ( my \$h = \$self->_get($method) ) {
+            if ( my \$h = \$self->_get(q[$method]) ) {
                 return \$h;
             }
             else {
