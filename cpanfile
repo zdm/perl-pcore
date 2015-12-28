@@ -28,11 +28,13 @@ requires 'Type::Tiny::XS';
 
 # AnyEvent
 requires 'EV';
-feature linux => sub {
-    requires 'IO::AIO';
-};
 requires 'AnyEvent';
 requires 'Net::DNS::Resolver';
+requires 'Guard';
+feature linux => sub {
+    requires 'AnyEvent::AIO';
+    requires 'IO::AIO';
+};
 
 # Inline
 requires 'Inline';
