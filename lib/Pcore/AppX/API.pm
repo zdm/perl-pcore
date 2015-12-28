@@ -1,6 +1,6 @@
 package Pcore::AppX::API;
 
-use Pcore -class;
+use Pcore -class, -autoload;
 
 with qw[Pcore::AppX];
 
@@ -77,12 +77,14 @@ sub app_reset ($self) {
 # TODO
 # API backend signout
 # return unless defined $self->{_backend};    # _backend can be destroyed first during global destruction
-sub AUTOLOAD {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
-    my $self = shift;
+sub autoload ( $self, $method, @ ) {
+    return <<"PERL";
+        sub {
+            my \$self = shift;
 
-    my $method = our $AUTOLOAD =~ s/\A.*:://smr;
-
-    return $self->_api_backend->$method(@_);
+            return \$self->_api_backend->$method(\@_);
+        };
+PERL
 }
 
 1;

@@ -298,10 +298,7 @@ sub update ($self) {
     return;
 }
 
-sub autoload {
-    my $self   = shift;
-    my $method = shift;
-
+sub autoload ( $self, $method, @ ) {
     return sub {
         my $self = shift;
 

@@ -64,22 +64,19 @@ sub _get ( $self, $id ) {
     }
 }
 
-sub autoload {
-    my $self = shift;
-    my $id   = shift;
+sub autoload ( $self, $method, @ ) {
+    die qq[Handle "$method" not exists in cache] unless $self->_h_cache->{$method};
 
-    die qq[Handle "$id" not exists in cache] unless $self->_h_cache->{$id};
-
-    return sub {
-        my $self = shift;
-
-        if ( my $h = $self->_get($id) ) {
-            return $h;
-        }
-        else {
-            die qq[Handle "$id" was removed from cache];
-        }
-    }, not_create_method => 0;
+    return <<"PERL";
+        sub (\$self) {
+            if ( my \$h = \$self->_get($method) ) {
+                return \$h;
+            }
+            else {
+                die qq[Handle "$method" was removed from cache];
+            }
+        };
+PERL
 }
 
 # PUBLIC

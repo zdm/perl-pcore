@@ -32,6 +32,8 @@ use B::Hooks::EndOfScope::XS qw[];
 use EV;
 use AnyEvent;
 
+use Pcore::Core::Exporter qw[];
+
 # define global variables
 BEGIN {
     $Pcore::INITIALISED = 0;         # core initialisation flag
@@ -98,9 +100,6 @@ BEGIN {
     };
 }
 
-use Pcore::Core::Exporter qw[];
-use Pcore::Core::Autoload qw[];
-
 sub import {
     my $self = shift;
 
@@ -162,25 +161,26 @@ sub import {
         }
 
         # process -export pragma
-        Pcore::Core::Exporter->import( -caller => $caller, -export => $pragma->{export} ) if $pragma->{export};
+        if ( $pragma->{export} ) {
+            Pcore::Core::Exporter->import( -caller => $caller, -export => $pragma->{export} );
+        }
 
         # process -autoload pragma
-        Pcore::Core::Autoload->import( -caller => $caller ) if $pragma->{autoload};
+        if ( $pragma->{autoload} ) {
+            state $init = !!require Pcore::Core::Autoload;
+
+            Pcore::Core::Autoload->import( -caller => $caller );
+        }
 
         # process -inline pragma
         if ( $pragma->{inline} ) {
-            state $inline_required = !!require Pcore::Core::Inline;
+            state $init = !!require Pcore::Core::Inline;
         }
 
         # store significant pragmas for use in run-time
         $Pcore::EMBEDDED = 1 if $pragma->{embedded};
 
         $Pcore::NO_ISA_ATTR = 1 if $pragma->{no_isa_attr};
-
-        # CLI
-        if ( $pragma->{cli} ) {
-            push @Pcore::Core::CLI::PACKAGES, $caller;
-        }
 
         # re-export Moo
         if ( $pragma->{class} || $pragma->{role} ) {
@@ -557,11 +557,11 @@ sub _config_stdout ($h) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 46                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 48                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 104                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (28)                    │
+## │    3 │ 103                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (27)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 159                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 158                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 331                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤

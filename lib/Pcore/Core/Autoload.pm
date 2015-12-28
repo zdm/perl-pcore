@@ -1,28 +1,8 @@
 package Pcore::Core::Autoload;
 
-use Pcore;
-use Pcore::Core::Exporter qw[];
+use Pcore -export, { DEFAULT => ['AUTOLOAD'] };
 
-sub import {
-    my $self = shift;
-
-    # parse tags and pragmas
-    my ( $tags, $pragma ) = Pcore::Core::Exporter::parse_import( $self, @_ );
-
-    # find caller
-    my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
-
-    no strict qw[refs];
-    no warnings qw[redefine];
-
-    *{ $caller . '::AUTOLOAD' } = \&_AUTOLOAD;
-
-    return;
-}
-
-sub _AUTOLOAD {
-    my $self = $_[0];
-
+sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
     die qq["autoload" method is required in "$self" by "-autoload" pragma] unless $self->can('autoload');
 
     my $method = our $AUTOLOAD =~ s/\A.*:://smr;
@@ -30,16 +10,19 @@ sub _AUTOLOAD {
     my $class = ref $self || $self;
 
     # request CODEREF
-    my ( $code, %args ) = $self->autoload( $method, @_ );
+    my $code = $self->autoload( $method, @_ );
 
     # install returned coderef as method
-    if ( !$args{not_create_method} ) {
-        no strict qw[refs];
+    no strict qw[refs];
 
-        *{ $class . q[::] . $method } = $code;
+    if ( ref $code ) {
+        *{"$class\::$method"} = $code;
+    }
+    else {
+        eval "\*{'$class\::$method'} = $code";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
     }
 
-    goto &{$code};
+    goto &{"$class\::$method"};
 }
 
 1;
