@@ -552,6 +552,13 @@ sub _config_stdout ($h) {
     return;
 }
 
+# TODO remove
+sub ua {
+    state $init = !!require Pcore::HTTP::UA;
+
+    return 'Pcore::HTTP::UA';
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

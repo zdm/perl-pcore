@@ -12,7 +12,16 @@ const our $TYPE_COUNTRY_V6 => 2;
 const our $TYPE_COUNTRY2   => 3;
 const our $TYPE_CITY       => 4;
 const our $TYPE_CITY_V6    => 5;
-const our $TYPE_CITY2      => 5;
+const our $TYPE_CITY2      => 6;
+
+const our $RES => {
+    $TYPE_COUNTRY    => [ '/data/geoip_country.dat',    'https://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz' ],
+    $TYPE_COUNTRY_V6 => [ '/data/geoip_country_v6.dat', 'https://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz' ],
+    $TYPE_COUNTRY2   => [ '/data/geoip2_country.dat',   'https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz' ],
+    $TYPE_CITY       => [ '/data/geoip_city.dat',       'https://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz' ],
+    $TYPE_CITY_V6    => [ '/data/geoip_city_v6.dat',    'https://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz' ],
+    $TYPE_CITY2      => [ '/data/geoip2_city.dat',      'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz' ],
+};
 
 our $GEOIP_PURE_PERL          = 0;                     # force to use pure perl mode
 our $GEOIP_COUNTRY_CACHE_MODE = $GEOIP_MEMORY_CACHE;
@@ -26,233 +35,85 @@ sub clear {
     return;
 }
 
-sub update {
-    clear();
-
+sub update_all {
     my $cv = AE::cv;
 
-    country($cv);
-
-    country_v6($cv);
-
-    country2($cv);
-
-    city($cv);
-
-    city_v6($cv);
-
-    city2($cv);
+    for ( keys $RES->%* ) {
+        update( $_, $cv );
+    }
 
     $cv->recv;
 
     return;
 }
 
-sub country ($update = undef) {
-    if ( !exists $H->{$TYPE_COUNTRY} || $update ) {
-        if ($update) {
-            state $init = !!require IO::Uncompress::Gunzip;
+sub update ( $type, $cv = 1 ) {
+    state $init = !!require IO::Uncompress::Gunzip;
 
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz',
-                buf_size    => 1,
-                on_progress => 1,
-                blocking    => $update,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
+    P->ua->request(
+        $RES->{$type}->[1],
+        buf_size    => 1,
+        on_progress => 1,
+        blocking    => $cv,
+        on_finish   => sub ($res) {
+            if ( $res->status == 200 ) {
+                my $temp = P->file->tempfile;
 
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
+                IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
 
-                        $ENV->res->store( $temp->path, '/data/geoip_country.dat', 'pcore' );
-                    }
+                $ENV->res->store( $temp->path, $RES->{$type}->[0], 'pcore' );
 
-                    return;
-                }
-            );
+                delete $H->{$type};
+            }
+
+            return;
         }
+    );
 
-        my $path = $ENV->res->get('/data/geoip_country.dat');
+    return;
+}
 
-        return if !$path;
-
-        $H->{$TYPE_COUNTRY} = _get_h( $TYPE_COUNTRY, $path );
-    }
+sub country {
+    _get_h($TYPE_COUNTRY) if !exists $H->{$TYPE_COUNTRY};
 
     return $H->{$TYPE_COUNTRY};
 }
 
 sub country_v6 ($update = undef) {
-    if ( !exists $H->{$TYPE_COUNTRY_V6} || $update ) {
-        if ($update) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoIPv6.dat.gz',
-                buf_size    => 1,
-                on_progress => 1,
-                blocking    => $update,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $ENV->res->store( $temp->path, '/data/geoip_country_v6.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        my $path = $ENV->res->get('/data/geoip_country_v6.dat');
-
-        return if !$path;
-
-        $H->{$TYPE_COUNTRY_V6} = _get_h( $TYPE_COUNTRY_V6, $path );
-    }
+    _get_h($TYPE_COUNTRY_V6) if !exists $H->{$TYPE_COUNTRY_V6};
 
     return $H->{$TYPE_COUNTRY_V6};
 }
 
 sub country2 ($update = undef) {
-    if ( !exists $H->{$TYPE_COUNTRY2} || $update ) {
-        if ($update) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz',
-                buf_size    => 1,
-                on_progress => 1,
-                blocking    => $update,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $ENV->res->store( $temp->path, '/data/geoip2_country.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        my $path = $ENV->res->get('/data/geoip2_country.dat');
-
-        return if !$path;
-
-        # $H->{$TYPE_COUNTRY2} = _get_h( $TYPE_COUNTRY2, $path );
-    }
+    _get_h($TYPE_COUNTRY2) if !exists $H->{$TYPE_COUNTRY2};
 
     return $H->{$TYPE_COUNTRY2};
 }
 
 sub city ($update = undef) {
-    if ( !exists $H->{$TYPE_CITY} || $update ) {
-        if ($update) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz',
-                buf_size    => 1,
-                on_progress => 1,
-                blocking    => $update,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $ENV->res->store( $temp->path, '/data/geoip_city.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        my $path = $ENV->res->get('/data/geoip_city.dat');
-
-        return if !$path;
-
-        $H->{$TYPE_CITY} = _get_h( $TYPE_CITY, $path );
-    }
+    _get_h($TYPE_CITY) if !exists $H->{$TYPE_CITY};
 
     return $H->{$TYPE_CITY};
 }
 
 sub city_v6 ($update = undef) {
-    if ( !exists $H->{$TYPE_CITY_V6} || $update ) {
-        if ($update) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'https://geolite.maxmind.com/download/geoip/database/GeoLiteCityv6-beta/GeoLiteCityv6.dat.gz',
-                buf_size    => 1,
-                on_progress => 1,
-                blocking    => $update,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $ENV->res->store( $temp->path, '/data/geoip_city_v6.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        my $path = $ENV->res->get('/data/geoip_city_v6.dat');
-
-        return if !$path;
-
-        $H->{$TYPE_CITY_V6} = _get_h( $TYPE_CITY_V6, $path );
-    }
+    _get_h($TYPE_CITY_V6) if !exists $H->{$TYPE_CITY_V6};
 
     return $H->{$TYPE_CITY_V6};
 }
 
 sub city2 ($update = undef) {
-    if ( !exists $H->{$TYPE_CITY2} || $update ) {
-        if ($update) {
-            state $init = !!require IO::Uncompress::Gunzip;
-
-            P->ua->request(
-                'http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz',
-                buf_size    => 1,
-                on_progress => 1,
-                blocking    => $update,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $temp = P->file->tempfile;
-
-                        IO::Uncompress::Gunzip::gunzip( $res->body, $temp->path, BinModeOut => 1 );
-
-                        $ENV->res->store( $temp->path, '/data/geoip_city2.dat', 'pcore' );
-                    }
-
-                    return;
-                }
-            );
-        }
-
-        my $path = $ENV->res->get('/data/geoip_city2.dat');
-
-        return if !$path;
-
-        # $H->{$TYPE_CITY2} = _get_h( $TYPE_CITY2, $path );
-    }
+    _get_h($TYPE_CITY2) if !exists $H->{$TYPE_CITY2};
 
     return $H->{$TYPE_CITY2};
 }
 
-sub _get_h ( $type, $path ) {
+sub _get_h ($type) {
+    my $path = $ENV->res->get( $RES->{$type}->[0] );
+
+    return if !$path;
+
     my $default_cache_mode;
 
     my $use_pure_perl = $GEOIP_PURE_PERL;
@@ -293,10 +154,22 @@ sub _get_h ( $type, $path ) {
 
     my $class = $use_pure_perl ? 'Geo::IP::PurePerl' : 'Geo::IP';
 
-    return $class->open( $path, $flags );
+    $H->{$type} = $class->open( $path, $flags );
+
+    return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 41                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
