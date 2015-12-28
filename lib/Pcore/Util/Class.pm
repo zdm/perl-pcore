@@ -3,16 +3,16 @@ package Pcore::Util::Class;
 use Pcore;
 use Sub::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-sub load {
-    my $class = shift;
-    my %args  = (
+sub load ( $class, @ ) {
+    my %args = (
         ns   => undef,
         isa  => undef,    # InstanceOf
         does => undef,    # ConsumerOf
-        @_,
+        splice @_, 1,
     );
 
     my $class_filename;
+
     if ( $class =~ /[.]pm\z/sm ) {
         $class_filename = $class;
     }
@@ -31,10 +31,7 @@ sub load {
     return $class;
 }
 
-sub resolve_class_name {
-    my $class = shift;
-    my $ns    = shift;
-
+sub resolve_class_name ( $class, $ns = undef ) {
     if ( $class =~ s/\A[+]//sm ) {
         return $class;
     }
@@ -57,13 +54,13 @@ sub set_subname {
 }
 
 sub get_sub_name {
-    my ( $package, $name ) = Sub::Util::subname( $_[0] ) =~ /^(.+)::(.+)$/sm;
+    my ( $package, $name ) = &Sub::Util::subname =~ /^(.+)::(.+)$/sm;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
     return $name;
 }
 
 sub get_sub_fullname {
-    my $full_name = Sub::Util::subname( $_[0] );
+    my $full_name = &Sub::Util::subname;                                 ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 
     if (wantarray) {
         my ( $package, $name ) = $full_name =~ /^(.+)::(.+)$/sm;
