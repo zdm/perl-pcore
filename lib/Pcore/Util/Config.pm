@@ -3,46 +3,43 @@ package Pcore::Util::Config;
 use Pcore;
 use Pcore::Util::Text qw[encode_utf8];
 
-sub load {
-    my $config = shift;    # scalar || scalar ref
-    my %args   = (
-        ns   => undef,     # load cfg into specified namespace, only for perl configs
-        from => undef,     # PERL, JSON, CBOR, YAML, XML, INI
-        @_,
+sub load ( $cfg, @ ) {
+    my %args = (
+        ns   => undef,    # load cfg into specified namespace, only for perl configs
+        from => undef,    # PERL, JSON, CBOR, YAML, XML, INI
+        splice @_, 1,
     );
 
     my $from = delete $args{from};
 
-    if ( !ref $config ) {
-        if ( !-f $config ) {
-            die qq[Config file "$config" wasn't found.];
+    if ( !ref $cfg ) {
+        if ( !-f $cfg ) {
+            die qq[Config file "$cfg" wasn't found.];
         }
 
         if ( !$from ) {
-            if ( my ($ext) = $config =~ /[.](json|cbor|yaml|yml|xml|ini)\z/sm ) {
+            if ( my ($ext) = $cfg =~ /[.](json|cbor|yaml|yml|xml|ini)\z/sm ) {
                 $from = $ext;
 
                 $from = 'yaml' if $from eq 'yml';
             }
         }
 
-        $config = P->file->read_bin($config);
+        $cfg = P->file->read_bin($cfg);
     }
     else {
-        encode_utf8 $config->$*;
+        encode_utf8 $cfg->$*;
     }
 
     $from //= 'PERL';
 
-    return P->data->decode( $config, %args, from => uc $from );
+    return P->data->decode( $cfg, %args, from => uc $from );
 }
 
-sub store {
-    my $path = shift;
-    my $cfg  = shift;
+sub store ( $path, $cfg, @ ) {
     my %args = (
         to => undef,    # PERL, JSON, CBOR, YAML, XML, INI
-        @_,
+        splice @_, 2,
     );
 
     my $to = delete $args{to};
