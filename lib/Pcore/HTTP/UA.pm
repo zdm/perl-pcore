@@ -209,19 +209,13 @@ const our $HTTP_METHODS => {
     }
 };
 
-sub BUILDARGS {
-    my $self = shift;
-    my $args = shift;
-
+sub BUILDARGS ( $self, $args ) {
     $args->{cookie_jar} = Pcore::HTTP::CookieJar->new if $args->{cookie_jar} && $args->{cookie_jar} == 1;
 
     return $args;
 }
 
-sub BUILD {
-    my $self = shift;
-    my $args = shift;
-
+sub BUILD ( $self, $args ) {
     $self->headers->add( $args->{headers} ) if $args->{headers};
 
     return;
@@ -442,9 +436,9 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 230                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
+## │    3 │ 224                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 426                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 420                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,12 +1,12 @@
 package Pcore::Util::Term::Progress;
 
-use Pcore -class;
+use Pcore;
 use Scalar::Util qw[weaken];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $INDICATOR       = {};
 my $INDICATOR_ORDER = 0;
 
-sub get_indicator ( $self, %args ) {
+sub get_indicator (%args) {
     my $all_finished = 1;
 
     for my $id ( sort keys $INDICATOR->%* ) {
@@ -35,7 +35,7 @@ sub _update {
 
     for my $id ( sort keys $INDICATOR->%* ) {
         if ( !defined $INDICATOR->{$id} ) {
-            $buffer .= "\n";    # move cursor to the next line, skip rendering
+            $buffer .= $LF;    # move cursor to the next line, skip rendering
         }
         else {
             $buffer .= $INDICATOR->{$id}->_draw . $LF;
