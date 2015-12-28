@@ -27,11 +27,11 @@ has exit_code => ( is => 'lazy', isa => Int );
 has level => ( is => 'ro', isa => Enum [ $ERROR, $WARN ], required => 1 );
 has trace      => ( is => 'ro', isa => Bool,     default  => 1 );
 has call_stack => ( is => 'ro', isa => ArrayRef, required => 1 );
-has caller_frame => ( is => 'ro', isa => InstanceOf ['Devel::StackTrace::Frame'], required => 1 );
 
 has propagated => ( is => 'ro', isa => Bool, default => 0 );
 has ns => ( is => 'lazy', isa => Str );
 
+has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame'], init_arg => undef );
 has longmess  => ( is => 'lazy', isa => Str, init_arg => undef );
 has to_string => ( is => 'lazy', isa => Str, init_arg => undef );
 
@@ -39,10 +39,12 @@ has _logged         => ( is => 'rw', isa => Bool, default => 0, init_arg => unde
 has _stop_propagate => ( is => 'rw', isa => Bool, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $msg, %args ) {
+    $args{skip_frames} //= 0;
+
     if ( blessed $msg ) {
         my $ref = ref $msg;
 
-        if ( $ref eq __PACKAGE__ ) {    # already catched
+        if ( $ref eq __PACKAGE__ ) {    # already cought
             return $msg;
         }
         elsif ( $ref eq 'Error::TypeTiny::Assertion' ) {    # catch TypeTiny exceptions
@@ -66,29 +68,19 @@ around new => sub ( $orig, $self, $msg, %args ) {
         chomp $msg;
     };
 
-    # handle errors during exception object creation
-    local $@;
-
-    my $e = eval {
-
-        # build stack trace
-        my $trace = Devel::StackTrace->new(
+    # collect stack trace
+    $args{call_stack} = [
+        Devel::StackTrace->new(
             unsafe_ref_capture => 0,
             no_args            => 0,
             max_arg_length     => 32,
             indent             => 0,
-            skip_frames        => $args{skip_frames} + 4,    # skip useless frames
-        );
+            skip_frames        => $args{skip_frames} + 3,    # skip useless frames: Devel::StackTrace::new, around new, new
+        )->frames
+    ];
 
-        $args{call_stack} = [ $trace->frames ];
-
-        $args{caller_frame} = shift $args{call_stack}->@*;
-
-        # stringify $msg
-        $self->$orig( { %args, msg => "$msg" } );            ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
-    };
-
-    return $e;
+    # stringify $msg
+    return $self->$orig( { %args, msg => "$msg" } );         ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 };
 
 no Pcore;
@@ -105,12 +97,16 @@ sub _build_exit_code ($self) {
     return 255;    # last resort
 }
 
+sub _build_caller_frame ($self) {
+    return $self->call_stack->[0];
+}
+
 sub _build_ns ($self) {
     return $self->caller_frame->package;
 }
 
 sub _build_longmess ($self) {
-    return $self->msg . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->caller_frame, $self->call_stack->@*;
+    return $self->msg . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->call_stack->@*;
 }
 
 sub _build_to_string ($self) {
@@ -176,9 +172,7 @@ sub stop_propagate ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 70                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 139                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 135                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
