@@ -5,22 +5,16 @@ package main v0.1.0;
 use Pcore;
 use Pcore::Util::URI::Host;
 
-# update GeoIP
-P->geoip->update;
-
 # update TLD
-my $cv = AE::cv;
-
-Pcore::Util::URI::Host->tlds($cv);
-
-$cv->recv;
+say 'update tld.dat';
+Pcore::Util::URI::Host->tlds(1);
 
 # update pub. suffixes, should be updated after TLDs
-$cv = AE::cv;
+say 'update pub_suffix.dat';
+Pcore::Util::URI::Host->pub_suffixes(1);
 
-Pcore::Util::URI::Host->pub_suffixes($cv);
-
-$cv->recv;
+# update GeoIP
+P->geoip->update;
 
 1;
 __END__

@@ -53,7 +53,7 @@ sub pub_suffixes ( $self, $force_download = 0 ) {
                 'https://publicsuffix.org/list/effective_tld_names.dat',
                 buf_size    => 0,
                 on_progress => 0,
-                blocking    => $force_download ? $force_download : 1,
+                blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
                         my $_suffixes = {};
@@ -115,7 +115,7 @@ sub tlds ( $self, $force_download = 0 ) {
                 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt',
                 buf_size    => 0,
                 on_progress => 0,
-                blocking    => $force_download ? $force_download : 1,
+                blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
                         $path = $ENV->res->store( \encode_utf8( join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
