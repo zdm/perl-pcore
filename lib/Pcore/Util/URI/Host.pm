@@ -118,7 +118,7 @@ sub tlds ( $self, $force_download = 0 ) {
                 blocking    => $force_download ? $force_download : 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = $ENV->res->store( \encode_utf8( \join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
+                        $path = $ENV->res->store( \encode_utf8( join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
                     }
 
                     return;
