@@ -1,8 +1,8 @@
 package Pcore::Util::Hash;
 
 use Pcore;
-use Hash::Util qw[];             ## no critic qw[Modules::ProhibitEvilModules]
-use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
+use Hash::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::Hash::Multivalue;
 use Pcore::Util::Hash::RandKey;
 

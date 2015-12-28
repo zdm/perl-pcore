@@ -1,6 +1,6 @@
 package Pcore::Util::Scalar;
 
-use Pcore;
+use Pcore -export, [qw[blessed refaddr reftype weaken isweak looks_like_number is_hash is_array is_glob]];
 use Scalar::Util qw[blessed dualvar isdual readonly refaddr reftype tainted weaken isweak isvstring looks_like_number set_prototype];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub is_hash {
@@ -12,7 +12,11 @@ sub is_array {
 }
 
 sub is_glob {
-    return 1 if eval { $_[0]->isa('GLOB') || $_[0]->isa('IO') };
+    return 1 if eval {
+        local $SIG{__DIE__} = undef;
+
+        $_[0]->isa('GLOB') || $_[0]->isa('IO');
+    };
 
     return 0;
 }

@@ -2,8 +2,8 @@ package Pcore::Util::Data;
 
 use Pcore -export, [qw[to_b64]];
 use Sort::Naturally qw[nsort];
-use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
-use URI::Escape::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[blessed];
+use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use WWW::Form::UrlEncoded::XS qw[];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
 

@@ -1,6 +1,7 @@
 package Pcore::Util::File;
 
 use Pcore;
+use Pcore::Util::Scalar qw[is_glob];
 use Fcntl qw[:DEFAULT];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
@@ -417,7 +418,7 @@ sub get_fh ( $path, $mode, @ ) {
         splice @_, 2,
     );
 
-    if ( P->scalar->is_glob($path) ) {
+    if ( is_glob($path) ) {
         return $path;
     }
     else {
@@ -763,9 +764,9 @@ sub where ($filename) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 48                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
-## │      │ 122                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
-## │      │ 248                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
+## │      │ 49                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
+## │      │ 123                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
+## │      │ 249                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

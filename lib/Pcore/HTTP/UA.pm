@@ -1,6 +1,7 @@
 package Pcore::HTTP::UA;
 
 use Pcore -class, -const;
+use Pcore::Util::Scalar qw[blessed is_glob];
 
 BEGIN {
     const our $TLS_CTX_LOW  => 1;
@@ -11,7 +12,6 @@ BEGIN {
     };
 }
 
-use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::AE::Handle qw[:PERSISTENT];
 use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
@@ -311,7 +311,7 @@ sub request ( $self, @ ) {
     $args->{on_finish} = sub {
 
         # rewind body fh
-        $res->body->seek( 0, 0 ) if $res->has_body && P->scalar->is_glob( $res->body );
+        $res->body->seek( 0, 0 ) if $res->has_body && is_glob( $res->body );
 
         # before_finish callback
         $req_args->{before_finish}->($res) if $req_args->{before_finish};

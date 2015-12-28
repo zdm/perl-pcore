@@ -3,9 +3,9 @@ package Pcore::Util::File::TempFile;
 use Pcore -const;
 use base qw[IO::Handle IO::Seekable];
 use Fcntl qw[:DEFAULT];
-use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[refaddr];
 
-use overload                     #
+use overload    #
   q[""] => sub {
     return $_[0]->path;
   },

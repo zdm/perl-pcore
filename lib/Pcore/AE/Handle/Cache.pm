@@ -2,7 +2,7 @@ package Pcore::AE::Handle::Cache;
 
 use Pcore -class;
 use Pcore::AE::Handle::Cache::Storage;
-use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[refaddr];
 
 has default_timeout => ( is => 'ro', isa => PositiveInt, default => 4 );
 

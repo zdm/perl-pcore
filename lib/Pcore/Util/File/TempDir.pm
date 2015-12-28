@@ -1,7 +1,7 @@
 package Pcore::Util::File::TempDir;
 
 use Pcore -class, -const;
-use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[refaddr];
 
 has base => ( is => 'lazy', isa => Str );
 has tmpl => ( is => 'lazy', isa => Str );
@@ -12,7 +12,7 @@ has lazy => ( is => 'ro', isa => Bool, default => 0 );
 has path => ( is => 'lazy', isa => Str, init_arg => undef );
 has pid  => ( is => 'lazy', isa => Str, init_arg => undef );
 
-use overload                     #
+use overload    #
   q[""] => sub {
     return $_[0]->path;
   },

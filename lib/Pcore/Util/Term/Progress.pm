@@ -1,7 +1,7 @@
 package Pcore::Util::Term::Progress;
 
 use Pcore;
-use Scalar::Util qw[weaken];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[weaken];
 
 my $INDICATOR       = {};
 my $INDICATOR_ORDER = 0;

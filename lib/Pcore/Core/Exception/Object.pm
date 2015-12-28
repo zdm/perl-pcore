@@ -2,9 +2,9 @@ package Pcore::Core::Exception::Object;
 
 use Pcore -class, -const, -export => { CONST => [qw[$FATAL $ERROR $WARN]] };
 use Devel::StackTrace qw[];
-use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[blessed];
 
-use overload                     #
+use overload    #
   q[""] => sub {
 
     # string overloading can happens only from perl internals calls, such as eval in "use" or "require" (or other compilation errors), or not handled "die", so we don't need full trace here

@@ -2,10 +2,10 @@ package Pcore::Util::Path;
 
 use Pcore -class;
 use Storable qw[];
-use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::URI;
 
-use overload                     #
+use overload    #
   q[""] => sub {
     return $_[0]->to_string;
   },

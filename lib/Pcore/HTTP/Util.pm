@@ -3,7 +3,7 @@ package Pcore::HTTP::Util;
 use Pcore -const;
 use Errno qw[];
 use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
-use Scalar::Util qw[refaddr];    ## no critic qw[Modules::ProhibitEvilModules];
+use Pcore::Util::Scalar qw[refaddr];
 use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
 
 no Pcore;
