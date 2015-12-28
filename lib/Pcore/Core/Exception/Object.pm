@@ -7,8 +7,8 @@ use Scalar::Util qw[blessed];    ## no critic qw[Modules::ProhibitEvilModules]
 use overload                     #
   q[""] => sub {
 
-    # string overloading can happens only from perl internals calls, such as eval in "use" or "require", or not handled "die", so we don't need full trace here
-    return $_[0]->shortmess . $LF;
+    # string overloading can happens only from perl internals calls, such as eval in "use" or "require" (or other compilation errors), or not handled "die", so we don't need full trace here
+    return $_[0]->msg . $LF;
   },
   q[0+] => sub {
     return $_[0]->exit_code;
@@ -46,7 +46,7 @@ around new => sub ( $orig, $self, $msg, %args ) {
         if ( $ref eq __PACKAGE__ ) {    # already catched
             return $msg;
         }
-        elsif ( $ref eq 'Error::TypeTiny::Assertion' ) {    # catch Moose exceptions
+        elsif ( $ref eq 'Error::TypeTiny::Assertion' ) {    # catch TypeTiny exceptions
             $msg = $msg->message;
 
             # skip frames: Error::TypeTiny::throw, Type::Tiny::_failed_check, eval {...}
@@ -55,7 +55,7 @@ around new => sub ( $orig, $self, $msg, %args ) {
         elsif ( $ref =~ /\AMoose::Exception/sm ) {          # catch Moose exceptions
             $msg = $msg->message;
         }
-        else {                                              # foreign exception object returned as-is
+        else {                                              # other foreign exception objects are returned as-is
             return;
         }
     }
