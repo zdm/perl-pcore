@@ -6,6 +6,7 @@ use Pcore -const,
     CORE    => [qw[set_log]],
     DEFAULT => [qw[has_logs error info debug]],
   };
+use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::Text qw[remove_ansi_color];
 
 const our $LEVELS => {
@@ -76,13 +77,15 @@ sub set_log {
 
     unless ( $PIPES->{$pipe_id} ) {
         $PIPES->{$pipe_id} = $pipe;
-        P->scalar->weaken( $PIPES->{$pipe_id} );    # pipe ref always weaken
+
+        weaken( $PIPES->{$pipe_id} );    # pipe ref always weaken
     }
     else {
         $pipe = $PIPES->{$pipe_id};
     }
 
     my $levels_to_add = {};
+
     if ( ref $args{level} eq 'ARRAY' ) {
         foreach my $level ( $args{level}->@* ) {
             _parse_level( uc $level, $levels_to_add );
@@ -100,7 +103,8 @@ sub set_log {
         }
         else {
             $REGISTRY->{$level}->{ $args{ns} }->{$pipe_id} = $pipe;
-            P->scalar->weaken( $REGISTRY->{$level}->{ $args{ns} }->{$pipe_id} ) if $temp;
+
+            weaken( $REGISTRY->{$level}->{ $args{ns} }->{$pipe_id} ) if $temp;
         }
     }
 
@@ -331,12 +335,12 @@ sub _resolve_data_colors {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29, 95, 125, 131,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 136, 158, 159, 171,  │                                                                                                                │
-## │      │ 178, 179, 180, 185,  │                                                                                                                │
-## │      │ 187                  │                                                                                                                │
+## │    3 │ 30, 98, 129, 135,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 140, 162, 163, 175,  │                                                                                                                │
+## │      │ 182, 183, 184, 189,  │                                                                                                                │
+## │      │ 191                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 45                   │ Subroutines::ProhibitExcessComplexity - Subroutine "set_log" with high complexity score (21)                   │
+## │    3 │ 46                   │ Subroutines::ProhibitExcessComplexity - Subroutine "set_log" with high complexity score (21)                   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,6 +1,6 @@
 package Pcore::Util::Scalar;
 
-use Pcore -export, [qw[blessed refaddr reftype weaken isweak looks_like_number is_hash is_array is_glob]];
+use Pcore -export, [qw[blessed refaddr reftype weaken isweak looks_like_number tainted is_hash is_array is_glob]];
 use Scalar::Util qw[blessed dualvar isdual readonly refaddr reftype tainted weaken isweak isvstring looks_like_number set_prototype];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub is_hash {

@@ -1,6 +1,7 @@
 package Pcore::Util::Hash::Multivalue;
 
 use Pcore;
+use Pcore::Util::Scalar qw[is_array is_hash];
 use List::Util qw[pairkeys];    ## no critic qw[Modules::ProhibitEvilModules]
 use Storable qw[dclone];
 use Tie::Hash;
@@ -101,7 +102,7 @@ sub clear ($self) {
 sub _parse_args {
     my $self = shift;
 
-    return P->scalar->is_array( $_[0] ) ? $_[0] : P->scalar->is_hash( $_[0] ) ? [ $_[0]->%* ] : [@_];
+    return is_array( $_[0] ) ? $_[0] : is_hash( $_[0] ) ? [ $_[0]->%* ] : [@_];
 }
 
 sub to_uri ($self) {
@@ -133,12 +134,12 @@ sub TO_DUMP ( $self, $dumper, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 16, 42, 51, 96, 104, │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 116, 126             │                                                                                                                │
+## │    3 │ 17, 43, 52, 97, 105, │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 117, 127             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 16                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
+## │    2 │ 17                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 61                   │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 62                   │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

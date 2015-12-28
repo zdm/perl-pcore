@@ -1,6 +1,7 @@
 package Pcore::Core::H::Cache;
 
 use Pcore -class, -autoload;
+use Pcore::Util::Scalar qw[blessed isweak weaken];
 
 has _h_cache => ( is => 'lazy', isa => HashRef [ ConsumerOf ['Pcore::Core::H::Role'] ], init_arg => undef );
 has _h_supported_events => ( is => 'lazy', isa => HashRef, init_arg => undef );
@@ -83,11 +84,11 @@ PERL
 sub add ( $self, $id, $class, %args ) {
 
     # handle object ref can be weak if not exists in cache (new handle) or already weaken
-    my $can_weak = $self->_h_cache->{$id}->{h} ? P->scalar->isweak( $self->_h_cache->{$id}->{h} ) : 1;
+    my $can_weak = $self->_h_cache->{$id}->{h} ? isweak( $self->_h_cache->{$id}->{h} ) : 1;
 
     my $h;
 
-    if ( P->scalar->blessed($class) ) {
+    if ( blessed($class) ) {
         $h     = $class;
         $class = ref $class;
     }
@@ -104,7 +105,7 @@ sub add ( $self, $id, $class, %args ) {
     };
 
     if ( defined wantarray ) {
-        P->scalar->weaken( $self->_h_cache->{$id}->{h} ) if $can_weak;
+        weaken( $self->_h_cache->{$id}->{h} ) if $can_weak;
 
         return $h;
     }

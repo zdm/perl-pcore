@@ -1,6 +1,7 @@
 package Pcore::Core::Dump::Dumper;
 
 use Pcore -class;
+use Pcore::Util::Scalar qw[refaddr isweak reftype blessed looks_like_number tainted];
 use Pcore::Util::Text qw[escape_scalar remove_ansi_color];
 use re qw[];
 use Sort::Naturally qw[nsort];
@@ -88,10 +89,10 @@ sub _dump ( $self, @ ) {
     # detect var addr
     my $var_addr = qq[${var_type}_];
     if ( ref $_[1] ) {
-        $var_addr .= P->scalar->refaddr( $_[1] );
+        $var_addr .= refaddr( $_[1] );
     }
     else {
-        $var_addr .= P->scalar->refaddr( \$_[1] );
+        $var_addr .= refaddr( \$_[1] );
     }
 
     my $res;
@@ -108,7 +109,7 @@ sub _dump ( $self, @ ) {
     }
 
     # weak
-    push @{$tags}, q[weak] if P->scalar->isweak( $_[1] );
+    push @{$tags}, q[weak] if isweak( $_[1] );
 
     # add tags
     $self->_add_tags( $tags, $res );
@@ -123,9 +124,9 @@ sub _var_type {
         splice( @_, 1 ),
     );
 
-    my $ref_type = P->scalar->reftype( $_[0] );
+    my $ref_type = reftype( $_[0] );
 
-    if ( my $blessed = P->scalar->blessed( $_[0] ) ) {    # blessed
+    if ( my $blessed = blessed( $_[0] ) ) {    # blessed
         if ( $args{unbless} ) {
             return $ref_type;
         }
@@ -298,7 +299,7 @@ sub SCALAR {
     if ( !defined $_[0] ) {    # undefined value
         $res = colored( 'undef', $COLOR->{undef} );
     }
-    elsif ( P->scalar->looks_like_number( $_[0] ) ) {
+    elsif ( looks_like_number( $_[0] ) ) {
         $res = colored( $_[0], $COLOR->{number} );
     }
     else {
@@ -329,7 +330,7 @@ sub SCALAR {
         }
 
         push @{$tags}, q[bytes::len = ] . $bytes_length;
-        push @{$tags}, q[tied to ] . ref tied $_[0] if P->scalar->tainted( $_[0] );
+        push @{$tags}, q[tied to ] . ref tied $_[0] if tainted( $_[0] );
 
         $res = q["] . colored( $item, $COLOR->{string} ) . q["];
     }
@@ -521,9 +522,9 @@ sub LVALUE {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 395                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 396                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 79, 230, 289         │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 80, 231, 290         │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

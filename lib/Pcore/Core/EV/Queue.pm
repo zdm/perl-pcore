@@ -1,6 +1,7 @@
 package Pcore::Core::EV::Queue;
 
 use Pcore -class;
+use Pcore::Util::Scalar qw[weaken];
 use Pcore::Core::EV::Object;
 
 has _queue => ( is => 'lazy', isa => HashRef, init_arg => undef );
@@ -47,7 +48,7 @@ sub register {
     };
 
     P->class->set_subname( "${caller}::${ev}_event_handler" => $self->_queue->{$ev}->{$id}->{code_ref} );
-    P->scalar->weaken( $self->_queue->{$ev}->{$id}->{id} ) if defined wantarray;
+    weaken( $self->_queue->{$ev}->{$id}->{id} ) if defined wantarray;
     return \$id;
 }
 
@@ -97,7 +98,7 @@ sub has_queue {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 63                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 64                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
