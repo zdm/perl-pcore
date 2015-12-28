@@ -1,6 +1,7 @@
 package Pcore::API::Backend::Remote;
 
 use Pcore -class;
+use Pcore::Util::List qw[pairs];
 
 with qw[Pcore::API::Backend];
 
@@ -110,7 +111,7 @@ sub call_api {
         for my $action ( grep { $_->uploads } $call->actions->@* ) {
 
             # add upload TID header
-            for my $pair ( P->list->pairs( $action->uploads->@* ) ) {
+            for my $pair ( pairs( $action->uploads->@* ) ) {
                 $pair->value->replace_headers( TID => $action->tid );
 
                 push $req, $pair->key, $pair->value;

@@ -6,6 +6,7 @@ use Pcore::Util::Scalar qw[blessed];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use WWW::Form::UrlEncoded::XS qw[];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
+use Pcore::Util::List qw[pairs];
 
 our $TOKEN = {
     serializer => {
@@ -722,7 +723,7 @@ sub from_uri_query {
 
     my $hash = $res->get_hash;
 
-    for my $pair ( P->list->pairs( $array->@* ) ) {
+    for my $pair ( pairs( $array->@* ) ) {
         $pair->[1] = undef if defined $pair->[1] && $pair->[1] eq q[];
 
         if ( $args{encoding} ) {
@@ -779,16 +780,16 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 33                   │ * Subroutine "encode" with high complexity score (35)                                                          │
-## │      │ 239                  │ * Subroutine "decode" with high complexity score (31)                                                          │
+## │      │ 34                   │ * Subroutine "encode" with high complexity score (35)                                                          │
+## │      │ 240                  │ * Subroutine "decode" with high complexity score (31)                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 63, 149, 151, 371,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 398, 400, 402, 404   │                                                                                                                │
+## │    3 │ 64, 150, 152, 372,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 399, 401, 403, 405   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 568                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_cbor_obj' declared but not     │
+## │    3 │ 569                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_cbor_obj' declared but not     │
 ## │      │                      │ used                                                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 674, 692, 732, 741   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 675, 693, 733, 742   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -3,8 +3,6 @@ package Pcore::Util::Hash;
 use Pcore;
 use Hash::Util qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Util::Scalar qw[blessed];
-use Pcore::Util::Hash::Multivalue;
-use Pcore::Util::Hash::RandKey;
 
 sub merge {
     my $res = defined wantarray ? {} : shift;
@@ -43,10 +41,14 @@ sub _merge {
 }
 
 sub multivalue {
+    state $init = !!require Pcore::Util::Hash::Multivalue;
+
     return Pcore::Util::Hash::Multivalue->new(@_);
 }
 
 sub randkey {
+    state $init = !!require Pcore::Util::Hash::RandKey;
+
     return Pcore::Util::Hash::RandKey->new;
 }
 
@@ -57,7 +59,7 @@ sub randkey {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 23                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 21                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -4,6 +4,7 @@ package main v0.1.0;
 
 use Pcore;
 use Test::More;
+use Pcore::Util::List qw[pairs];
 
 our $tests = [
 
@@ -48,7 +49,7 @@ plan tests => $TESTS;
 
 my $i;
 
-for my $pair ( P->list->pairs( $tests->@* ) ) {
+for my $pair ( pairs( $tests->@* ) ) {
     my $uri = P->uri( $pair->key->@* );
 
     if ( $uri->to_string ne $pair->value ) {

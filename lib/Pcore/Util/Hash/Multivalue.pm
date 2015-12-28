@@ -2,7 +2,7 @@ package Pcore::Util::Hash::Multivalue;
 
 use Pcore;
 use Pcore::Util::Scalar qw[is_array is_hash];
-use List::Util qw[pairkeys];    ## no critic qw[Modules::ProhibitEvilModules]
+use Pcore::Util::List qw[pairkeys];
 use Storable qw[dclone];
 use Tie::Hash;
 use base qw[Tie::StdHash];
