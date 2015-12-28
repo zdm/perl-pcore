@@ -59,10 +59,7 @@ sub BUILDARGS ( $self, $args = undef ) {
     return $args;
 }
 
-sub BUILD {
-    my $self = shift;
-    my $args = shift;
-
+sub BUILD ( $self, $args ) {
     $self->headers->set( $args->{headers} ) if $args->{headers};
 
     $self->set_body( $args->{body} ) if $args->{body};
