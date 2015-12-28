@@ -44,7 +44,7 @@ around new => sub ( $orig, $self, $host ) {
 
 no Pcore;
 
-sub pub_suffixes ($force_download = 0) {
+sub pub_suffixes ( $self, $force_download = 0 ) {
     state $suffixes = do {
         my $path = $ENV->res->get('/data/pub_suffix.dat');
 
@@ -71,7 +71,7 @@ sub pub_suffixes ($force_download = 0) {
 
                         # add tlds
                         # TODO inherit force download tlds
-                        for my $tld ( keys tlds()->%* ) {
+                        for my $tld ( keys $self->tlds->%* ) {
                             utf8::encode($tld);
 
                             $_suffixes->{$tld} = 1;
@@ -106,7 +106,7 @@ sub pub_suffixes ($force_download = 0) {
     return $suffixes;
 }
 
-sub tlds ($force_download = 0) {
+sub tlds ( $self, $force_download = 0 ) {
     state $tlds = do {
         my $path = $ENV->res->get('/data/tld.dat');
 
@@ -215,7 +215,7 @@ sub _build_tld_utf8 ($self) {
 }
 
 sub _build_tld_is_valid ($self) {
-    return exists tlds()->{ $self->tld_utf8 } ? 1 : 0;
+    return exists $self->tlds->{ $self->tld_utf8 } ? 1 : 0;
 }
 
 sub _build_canon ($self) {
@@ -239,13 +239,13 @@ sub _build_is_pub_suffix ($self) {
 sub _build_is_pub_suffix_parent ($self) {
     return 0 unless $self->is_domain;
 
-    return exists pub_suffixes()->{ q[.] . $self->name_utf8 } ? 1 : 0;
+    return exists $self->pub_suffixes->{ q[.] . $self->name_utf8 } ? 1 : 0;
 }
 
 sub _build_pub_suffix ($self) {
     return q[] unless $self->is_domain;
 
-    my $pub_suffixes = pub_suffixes();
+    my $pub_suffixes = $self->pub_suffixes;
 
     my $pub_suffix_utf8;
 

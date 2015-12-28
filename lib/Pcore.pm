@@ -349,6 +349,8 @@ use Pcore::Core::Dump qw[:CORE];
 use Pcore::Core::Exception qw[];
 use Pcore::Core::H qw[];
 use Pcore::Core::Log qw[:CORE];
+
+# TODO load I18N on demand
 use Pcore::Core::I18N qw[:CORE];
 
 sub _CORE_INIT ($proc_cfg) {
@@ -565,11 +567,11 @@ sub _config_stdout ($h) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 331                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 371, 400, 403, 407,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 456, 473, 535, 538,  │                                                                                                                │
-## │      │ 543, 546             │                                                                                                                │
+## │    3 │ 373, 402, 405, 409,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 458, 475, 537, 540,  │                                                                                                                │
+## │      │ 545, 548             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 375                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 377                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
