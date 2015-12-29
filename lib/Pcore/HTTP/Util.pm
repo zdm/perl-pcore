@@ -681,7 +681,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::Util - Pcore::HTTP::UA helper class
+Pcore::HTTP::Util - Pcore::HTTP helper class
 
 =head1 SYNOPSIS
 

@@ -1,14 +1,14 @@
 package Pcore::HTTP::Request;
 
 use Pcore -class, -const;
-use Pcore::HTTP::UA;
+use Pcore::HTTP;
 use Pcore::HTTP::Response;
 use Pcore::HTTP::CookieJar;
 
 extends qw[Pcore::HTTP::Message];
 
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'] );
-has method => ( is => 'ro', isa => Enum [ keys $HTTP_METHODS->%* ], required => 1 );
+has method => ( is => 'ro', isa => Enum [ keys $Pcore::HTTP::HTTP_METHODS->%* ], required => 1 );
 has url => ( is => 'ro', isa => Str, required => 1 );
 
 has recurse    => ( is => 'ro', isa => PositiveOrZeroInt );
@@ -16,7 +16,7 @@ has timeout    => ( is => 'ro', isa => PositiveOrZeroInt );
 has persistent => ( is => 'ro', isa => Bool );
 has session    => ( is => 'ro', isa => Str );
 has cookie_jar => ( is => 'ro', isa => Ref );
-has tls_ctx    => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::UA::TLS_CTX_LOW, $Pcore::HTTP::UA::TLS_CTX_HIGH ] | HashRef ] );
+has tls_ctx    => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::TLS_CTX_LOW, $Pcore::HTTP::TLS_CTX_HIGH ] | HashRef ] );
 
 has handle_params => ( is => 'ro', isa => HashRef );
 

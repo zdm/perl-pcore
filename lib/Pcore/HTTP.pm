@@ -1,4 +1,4 @@
-package Pcore::HTTP::UA;
+package Pcore::HTTP;
 
 use Pcore -const,
   -export => {
@@ -9,7 +9,7 @@ use Pcore::Util::Scalar qw[blessed is_glob];
 use Pcore::AE::Handle qw[:PERSISTENT];
 use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
-use Pcore::HTTP::Request;
+use Pcore::HTTP::Response;
 use Pcore::HTTP::CookieJar;
 
 no Pcore;
@@ -302,7 +302,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::UA
+Pcore::HTTP
 
 =head1 SYNOPSIS
 

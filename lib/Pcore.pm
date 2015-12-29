@@ -82,7 +82,7 @@ BEGIN {
         geoip    => 'Pcore::Util::GeoIP',
         hash     => 'Pcore::Util::Hash',
         host     => 'Pcore::Util::URI::Host',
-        http     => 'Pcore::HTTP::UA',
+        http     => 'Pcore::HTTP',
         list     => 'Pcore::Util::List',
         mail     => 'Pcore::Util::Mail',
         path     => 'Pcore::Util::Path',
