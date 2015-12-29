@@ -27,7 +27,7 @@ sub _random {
     return $_RANDOM;
 }
 
-sub bytes (bytes) {
+sub bytes ($bytes) {
     return _random->bytes($bytes);
 }
 
