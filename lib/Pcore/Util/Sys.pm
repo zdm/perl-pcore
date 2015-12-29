@@ -1,6 +1,6 @@
 package Pcore::Util::Sys;
 
-use Pcore;
+use Pcore -export, [qw[pid]];
 
 # in case of error return undef
 sub system {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]

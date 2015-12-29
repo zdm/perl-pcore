@@ -3,6 +3,7 @@
 package main v0.1.0;
 
 use Pcore;
+use Pcore::Util::Sys qw[pid];
 
 our $THREADS = 30;
 our $REQS    = 100;
@@ -15,13 +16,13 @@ sub init {
 }
 
 sub parent {
-    say q[PARENT: ] . P->sys->pid;
+    say q[PARENT: ] . pid();
 
     return;
 }
 
 sub child {
-    say q[CHILD: ] . P->sys->pid;
+    say q[CHILD: ] . pid();
 
     try {
         for ( 1 .. $REQS ) {

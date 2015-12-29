@@ -2,6 +2,7 @@ package Pcore::Util::File::TempDir;
 
 use Pcore -class, -const;
 use Pcore::Util::Scalar qw[refaddr];
+use Pcore::Util::Sys qw[pid];
 
 has base => ( is => 'lazy', isa => Str );
 has tmpl => ( is => 'lazy', isa => Str );
@@ -9,8 +10,8 @@ has mode => ( is => 'lazy', isa => Maybe [ Int | Str ], default => 'rwx------' )
 has umask => ( is => 'ro', isa => Maybe [ Int | Str ] );
 has lazy => ( is => 'ro', isa => Bool, default => 0 );
 
-has path => ( is => 'lazy', isa => Str, init_arg => undef );
-has pid  => ( is => 'lazy', isa => Str, init_arg => undef );
+has path      => ( is => 'lazy', isa => Str, init_arg => undef );
+has owner_pid => ( is => 'lazy', isa => Str, init_arg => undef );
 
 use overload    #
   q[""] => sub {
@@ -31,7 +32,7 @@ no Pcore;
 sub DEMOLISH ( $self, $global ) {
 
     # do not unlink files, created by others processes
-    return if $self->pid ne P->sys->pid;
+    return if $self->owner_pid ne pid();
 
     local $SIG{__WARN__} = sub { };
 
@@ -51,7 +52,7 @@ sub _build_base ($self) {
 }
 
 sub _build_tmpl ($self) {
-    return 'temp-' . P->sys->pid . '-XXXXXXXX';
+    return 'temp-' . pid() . '-XXXXXXXX';
 }
 
 sub _build_path ($self) {
@@ -73,8 +74,8 @@ sub _build_path ($self) {
     return P->path( $self->base . q[/] . $dirname, is_dir => 1 )->realpath->to_string;
 }
 
-sub _build_pid ($self) {
-    return P->sys->pid;
+sub _build_owner_pid ($self) {
+    return pid();
 }
 
 1;

@@ -4,6 +4,7 @@ use Pcore -const;
 use base qw[IO::Handle IO::Seekable];
 use Fcntl qw[:DEFAULT];
 use Pcore::Util::Scalar qw[refaddr];
+use Pcore::Util::Sys qw[pid];
 
 use overload    #
   q[""] => sub {
@@ -33,11 +34,11 @@ sub new ( $self, @ ) {
     my %args = (
         base      => $ENV->{TEMP_DIR},
         suffix    => q[],
-        tmpl      => 'temp-' . P->sys->pid . '-XXXXXXXX',
+        tmpl      => 'temp-' . pid() . '-XXXXXXXX',
         exclusive => 0,
         mode      => 'rw-------',
         umask     => undef,
-        crlf      => 0,                                     # undef - auto, 1 - on, 0 - off (for binary files)
+        crlf      => 0,                               # undef - auto, 1 - on, 0 - off (for binary files)
         binmode   => undef,
         autoflush => 1,
         splice @_, 1,
@@ -62,7 +63,7 @@ sub new ( $self, @ ) {
 
     my $fh = P->file->get_fh( $args{base} . q[/] . $filename, $mode, %args );
 
-    *$fh->$* = [ P->path( $args{base} . q[/] . $filename )->realpath->to_string, P->sys->pid ];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    *$fh->$* = [ P->path( $args{base} . q[/] . $filename )->realpath->to_string, pid() ];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return bless $fh, $self;
 }
@@ -72,7 +73,7 @@ sub new ( $self, @ ) {
 sub DESTROY ($self) {
 
     # do not unlink files, created by others processes
-    return if $self->pid ne P->sys->pid;
+    return if $self->owner_pid ne pid();
 
     close $self or 1;
 
@@ -87,7 +88,7 @@ sub path ($self) {
     return *$self->$*->[0];
 }
 
-sub pid ($self) {
+sub owner_pid ($self) {
     return *$self->$*->[1];
 }
 
@@ -113,7 +114,7 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 65, 87, 91           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 66, 88, 92           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
