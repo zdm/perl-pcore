@@ -55,6 +55,20 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
+sub run_request ($self) {
+    return P->http->_request( $self->to_http_request->@* );
+}
+
+sub to_http_request ($self) {
+    my @args;
+
+    for my $method ( keys $Pcore::HTTP::DEFAULT->%* ) {
+        push @args, $method, $self->$method;
+    }
+
+    return \@args;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -62,7 +76,9 @@ sub BUILD ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 11, 39               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 11, 39, 65           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 59                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

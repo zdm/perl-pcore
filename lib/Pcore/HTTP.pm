@@ -28,8 +28,8 @@ our $DEFAULT = {
     useragent         => "Mozilla/5.0 (compatible; U; Pcore-HTTP-UA/$Pcore::VERSION",
     recurse           => 7,                                                             # max. redirects
     timeout           => 300,                                                           # timeout in seconds
-    accept_compressed => 1,
-    decompress        => 1,
+    accept_compressed => 1,                                                             # add ACCEPT_ENCODIING header
+    decompress        => 1,                                                             # automatically decompress
     persistent        => $PERSISTENT_IDENT,
     session           => undef,
     cookie_jar        => undef,                                                         # 1 - create cookie jar object automatically
@@ -44,7 +44,7 @@ our $DEFAULT = {
     headers => undef,
     body    => undef,
 
-    # 1 - create progress indicator, HashRef - progress indicator params, CoreRef - on_progress callback
+    # 1 - create progress indicator, HashRef - progress indicator params, CodeRef - on_progress callback
     on_progress => undef,
     on_header   => undef,
     on_body     => undef,
@@ -105,13 +105,63 @@ const our $HTTP_METHODS => {
 *http_mirror  = \&mirror;
 
 sub request ( $method, $url, @ ) {
-    my %args = (
-        $DEFAULT->%*,
-        splice( @_, 2 ),
-        method => $method,
-        url    => ref $url ? $url : P->uri( $url, base => q[http://], authority => 1 ),
-        res    => Pcore::HTTP::Response->new,
-    );
+    return _request( splice( @_, 2 ), method => $method, url => $url );
+}
+
+sub get ( $url, @ ) {
+    return _request( 'url', @_, method => 'GET' );
+}
+
+sub post ( $url, @ ) {
+    return _request( 'url', @_, method => 'POST' );
+}
+
+# mirror($target_path, $url, $params) or mirror($target_path, $method, $url, $params)
+# additional params supported:
+# no_cache => 1;
+sub mirror ( $target, @ ) {
+    my ( $method, $url, %args );
+
+    if ( exists $HTTP_METHODS->{ $_[1] } ) {
+        ( $method, $url, %args ) = splice @_, 1;
+    }
+    else {
+        $method = 'GET';
+
+        ( $url, %args ) = splice @_, 1;
+    }
+
+    $args{buf_size} = 1;
+
+    $args{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
+
+    my $on_finish = delete $args{on_finish};
+
+    $args{on_finish} = sub ($res) {
+        if ( $res->status == 200 ) {
+            P->file->move( $res->body->path, $target );
+
+            if ( my $last_modified = $res->headers->{LAST_MODIFIED} ) {
+                my $mtime = P->date->parse($last_modified)->at_utc->epoch;
+
+                utime $mtime, $mtime, $target or die;
+            }
+        }
+
+        $on_finish->($res) if $on_finish;
+
+        return;
+    };
+
+    return _request( %args, method => $method, url => $url );
+}
+
+sub _request {
+    my %args = ( $DEFAULT->%*, @_ );
+
+    $args{res} = Pcore::HTTP::Response->new;
+
+    $args{url} = P->uri( $args{url}, base => q[http://], authority => 1 ) if !ref $args{url};
 
     # merge handle_params
     if ( my $handle_params = delete $args{handle_params} ) {
@@ -213,54 +263,6 @@ sub request ( $method, $url, @ ) {
     return;
 }
 
-sub get ( $url, @ ) {
-    return request( 'GET', @_ );
-}
-
-sub post ( $url, @ ) {
-    return request( 'POST', @_ );
-}
-
-# mirror($target_path, $url, $params) or mirror($target_path, $method, $url, $params)
-# additional params supported:
-# no_cache => 1;
-sub mirror ( $target, @ ) {
-    my ( $method, $url, %args );
-
-    if ( exists $HTTP_METHODS->{ $_[1] } ) {
-        ( $method, $url, %args ) = splice @_, 1;
-    }
-    else {
-        $method = 'GET';
-
-        ( $url, %args ) = splice @_, 1;
-    }
-
-    $args{buf_size} = 1;
-
-    $args{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
-
-    my $on_finish = delete $args{on_finish};
-
-    $args{on_finish} = sub ($res) {
-        if ( $res->status == 200 ) {
-            P->file->move( $res->body->path, $target );
-
-            if ( my $last_modified = $res->headers->{LAST_MODIFIED} ) {
-                my $mtime = P->date->parse($last_modified)->at_utc->epoch;
-
-                utime $mtime, $mtime, $target or die;
-            }
-        }
-
-        $on_finish->($res) if $on_finish;
-
-        return;
-    };
-
-    return request( $method, $url, %args );
-}
-
 sub _get_on_progress_cb (%args) {
     return sub ( $res, $content_length, $bytes_received ) {
         state $indicator;
@@ -287,11 +289,11 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 107                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (26)                   │
+## │    3 │ 159                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (26)                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 109, 119, 120, 155   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 160, 169, 170, 205   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 250                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 145                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
