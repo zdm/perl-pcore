@@ -72,9 +72,9 @@ sub import {
     {
         no strict qw[refs];
 
-        *{ $caller . '::import' } = \&_import;
+        *{"$caller\::import"} = \&_import;
 
-        *{ $caller . '::unimport' } = \&_unimport;
+        *{"$caller\::unimport"} = \&_unimport;
     }
 
     return;
@@ -205,11 +205,17 @@ sub _export_tags ( $self, $caller, $tag ) {
                 delete $symbols->@{ keys $export->{$sym}->%* };
             }
             else {
-                $symbols->@{ keys $export->{$sym}->%* } = values $export->{$sym}->%*;
+                $symbols->@{ keys $export->{$sym}->%* } = ();
             }
         }
         else {
+
+            # remove "&" sigil
             $sym =~ s/\A&//sm;
+
+            my $alias;
+
+            ( $sym, $alias ) = $sym =~ /(.+)=(.+)/sm if index( $sym, q[=] ) > 0;
 
             die qq[Unknown symbol "$sym" to import from package "$self"] if !exists $export->{ALL}->{$sym};
 
@@ -217,27 +223,31 @@ sub _export_tags ( $self, $caller, $tag ) {
                 delete $symbols->{$sym};
             }
             else {
-                $symbols->{$sym} = 1;
+                $symbols->{$sym} = $alias;
             }
         }
     }
 
     # export
     if ( $symbols->%* ) {
+        my $export_all = $export->{ALL};
+
         for my $sym ( keys $symbols->%* ) {
-            my $type = $export->{ALL}->{$sym}->[1];
+            my $type = $export_all->{$sym}->[1];
+
+            my $alias = $symbols->{$sym} // $export_all->{$sym}->[0];
 
             {
                 no strict qw[refs];
 
                 no warnings qw[once];
 
-                *{"$caller\::$export->{ALL}->{$sym}->[0]"}
-                  = $type eq q[]  ? \&{"$self\::$export->{ALL}->{$sym}->[0]"}
-                  : $type eq q[$] ? \${"$self\::$export->{ALL}->{$sym}->[0]"}
-                  : $type eq q[@] ? \@{"$self\::$export->{ALL}->{$sym}->[0]"}
-                  : $type eq q[%] ? \%{"$self\::$export->{ALL}->{$sym}->[0]"}
-                  : $type eq q[*] ? *{"$self\::$export->{ALL}->{$sym}->[0]"}
+                *{"$caller\::$alias"}
+                  = $type eq q[]  ? \&{"$self\::$export_all->{$sym}->[0]"}
+                  : $type eq q[$] ? \${"$self\::$export_all->{$sym}->[0]"}
+                  : $type eq q[@] ? \@{"$self\::$export_all->{$sym}->[0]"}
+                  : $type eq q[%] ? \%{"$self\::$export_all->{$sym}->[0]"}
+                  : $type eq q[*] ? *{"$self\::$export_all->{$sym}->[0]"}
                   :                 die;
             }
         }
@@ -254,9 +264,9 @@ sub _export_tags ( $self, $caller, $tag ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 56, 66, 157, 205,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 208, 226, 227        │                                                                                                                │
+## │      │ 208, 232, 235        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 167                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (26)              │
+## │    3 │ 167                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (27)              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -291,6 +301,9 @@ Pcore::Core::Exporter
     ...
 
     use Package qw[-trigger -option OPTION_VALUE :TAG1 !:TAG2 sub1 !sub2 $var1 !$var2 @arr1 !@arr2 %hash1 !%hash2 *sym1 !*sym2], {};
+
+    # export aliases
+    use Package qw[$SYM=alias1 @SYM=alias2 sub=alias3]
 
 =head1 DESCRIPTION
 
