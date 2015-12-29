@@ -38,7 +38,7 @@ sub get_index_item_info ( $self, $domains, $cb ) {
 
     my $url = q[http://api.majestic.com/api/json?] . P->data->to_uri($url_params);
 
-    P->ua->request(
+    P->http->get(
         $url,
         on_finish => sub ($res) {
             if ( $res->status == 200 ) {

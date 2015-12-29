@@ -170,7 +170,7 @@ sub _upload ( $self, $username, $password, $path ) {
 
     my $reason;
 
-    P->ua->post(
+    P->http->post(
         'https://pause.perl.org/pause/authenquery',
         headers => {
             AUTHORIZATION => 'Basic ' . P->data->to_b64_url( $username . q[:] . $password ) . q[==],

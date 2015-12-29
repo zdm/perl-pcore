@@ -1,418 +1,248 @@
 package Pcore::HTTP::UA;
 
-use Pcore -class, -const;
+use Pcore -const,
+  -export => {
+    ALL     => [qw[http_request http_get http_post http_mirror]],
+    TLS_CTX => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]],
+  };
 use Pcore::Util::Scalar qw[blessed is_glob];
-
-BEGIN {
-    const our $TLS_CTX_LOW  => 1;
-    const our $TLS_CTX_HIGH => 2;
-    const our $TLS_CTX      => {
-        $TLS_CTX_LOW  => { cache => 1, sslv2  => 1 },
-        $TLS_CTX_HIGH => { cache => 1, verify => 1, verify_peername => 'https' },
-    };
-}
-
 use Pcore::AE::Handle qw[:PERSISTENT];
 use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Request;
 use Pcore::HTTP::CookieJar;
 
-# 594 - errors during proxy handshake.
-# 595 - errors during connection establishment.
-# 596 - errors during TLS negotiation, request sending and header processing.
-# 597 - errors during body receiving or processing.
-# 598 - user aborted request via on_header or on_body.
-# 599 - other, usually nonretryable, errors (garbled URL etc.).
-
-our $USERAGENT = "Mozilla/5.0 (compatible; U; Pcore-HTTP-UA/$Pcore::VERSION";
-our $RECURSE   = 7;
-our $TIMEOUT   = 300;
-
-our $HANDLE_PARAMS = { max_read_size => 1_048_576 };
-
-has useragent  => ( is => 'lazy', isa => Str,               default => $USERAGENT );
-has recurse    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $RECURSE );
-has timeout    => ( is => 'lazy', isa => PositiveOrZeroInt, default => $TIMEOUT );
-has persistent => ( is => 'lazy', isa => Bool,              default => $PERSISTENT_IDENT );
-has session    => ( is => 'ro',   isa => Str );
-
-has cookie_jar => ( is => 'rwp', isa => Ref );
-has proxy => ( is => 'rw' );
-has tls_ctx => ( is => 'lazy', isa => Enum [ $Pcore::HTTP::UA::TLS_CTX_LOW, $Pcore::HTTP::UA::TLS_CTX_HIGH ] | HashRef, default => $Pcore::HTTP::UA::TLS_CTX_LOW );
-
-has headers => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Message::Headers'], default => sub { Pcore::HTTP::Message::Headers->new }, init_arg => undef );
-
-has handle_params => ( is => 'ro', isa => HashRef, default => sub { { max_read_size => 1_048_576 } } );
-
-has accept_compressed => ( is => 'ro', default => 1 );
-has decompress        => ( is => 'ro', default => 1 );
-
 no Pcore;
 
-const our $HTTP_METHODS => {
-    ACL => {
-        idempotent => 1,
-        safe       => 0
-    },
-    'BASELINE-CONTROL' => {
-        idempotent => 1,
-        safe       => 0
-    },
-    BIND => {
-        idempotent => 1,
-        safe       => 0
-    },
-    CHECKIN => {
-        idempotent => 1,
-        safe       => 0
-    },
-    CHECKOUT => {
-        idempotent => 1,
-        safe       => 0
-    },
-    CONNECT => {
-        idempotent => 0,
-        safe       => 0
-    },
-    COPY => {
-        idempotent => 1,
-        safe       => 0
-    },
-    DELETE => {
-        idempotent => 1,
-        safe       => 0
-    },
-    GET => {
-        idempotent => 1,
-        safe       => 1
-    },
-    HEAD => {
-        idempotent => 1,
-        safe       => 1
-    },
-    LABEL => {
-        idempotent => 1,
-        safe       => 0
-    },
-    LINK => {
-        idempotent => 1,
-        safe       => 0
-    },
-    LOCK => {
-        idempotent => 0,
-        safe       => 0
-    },
-    MERGE => {
-        idempotent => 1,
-        safe       => 0
-    },
-    MKACTIVITY => {
-        idempotent => 1,
-        safe       => 0
-    },
-    MKCALENDAR => {
-        idempotent => 1,
-        safe       => 0
-    },
-    MKCOL => {
-        idempotent => 1,
-        safe       => 0
-    },
-    MKREDIRECTREF => {
-        idempotent => 1,
-        safe       => 0
-    },
-    MKWORKSPACE => {
-        idempotent => 1,
-        safe       => 0
-    },
-    MOVE => {
-        idempotent => 1,
-        safe       => 0
-    },
-    OPTIONS => {
-        idempotent => 1,
-        safe       => 1
-    },
-    ORDERPATCH => {
-        idempotent => 1,
-        safe       => 0
-    },
-    PATCH => {
-        idempotent => 0,
-        safe       => 0
-    },
-    POST => {
-        idempotent => 0,
-        safe       => 0
-    },
-    PRI => {
-        idempotent => 1,
-        safe       => 1
-    },
-    PROPFIND => {
-        idempotent => 1,
-        safe       => 1
-    },
-    PROPPATCH => {
-        idempotent => 1,
-        safe       => 0
-    },
-    PUT => {
-        idempotent => 1,
-        safe       => 0
-    },
-    REBIND => {
-        idempotent => 1,
-        safe       => 0
-    },
-    REPORT => {
-        idempotent => 1,
-        safe       => 1
-    },
-    SEARCH => {
-        idempotent => 1,
-        safe       => 1
-    },
-    TRACE => {
-        idempotent => 1,
-        safe       => 1
-    },
-    UNBIND => {
-        idempotent => 1,
-        safe       => 0
-    },
-    UNCHECKOUT => {
-        idempotent => 1,
-        safe       => 0
-    },
-    UNLINK => {
-        idempotent => 1,
-        safe       => 0
-    },
-    UNLOCK => {
-        idempotent => 1,
-        safe       => 0
-    },
-    UPDATE => {
-        idempotent => 1,
-        safe       => 0
-    },
-    UPDATEREDIRECTREF => {
-        idempotent => 1,
-        safe       => 0
-    },
-    'VERSION-CONTROL' => {
-        idempotent => 1,
-        safe       => 0
-    }
+const our $TLS_CTX_LOW  => 1;
+const our $TLS_CTX_HIGH => 2;
+const our $TLS_CTX      => {
+    $TLS_CTX_LOW  => { cache => 1, sslv2  => 1 },
+    $TLS_CTX_HIGH => { cache => 1, verify => 1, verify_peername => 'https' },
 };
 
-sub BUILDARGS ( $self, $args ) {
-    $args->{cookie_jar} = Pcore::HTTP::CookieJar->new if $args->{cookie_jar} && $args->{cookie_jar} == 1;
+our $DEFAULT = {
+    method => undef,
+    url    => undef,
 
-    return $args;
-}
+    useragent         => "Mozilla/5.0 (compatible; U; Pcore-HTTP-UA/$Pcore::VERSION",
+    recurse           => 7,                                                             # max. redirects
+    timeout           => 300,                                                           # timeout in seconds
+    accept_compressed => 1,
+    decompress        => 1,
+    persistent        => $PERSISTENT_IDENT,
+    session           => undef,
+    cookie_jar        => undef,                                                         # 1 - create cookie jar object automatically
+    proxy             => undef,
 
-sub BUILD ( $self, $args ) {
-    $self->headers->add( $args->{headers} ) if $args->{headers};
+    # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
+    buf_size => 0,
 
-    return;
-}
+    tls_ctx       => $TLS_CTX_LOW,
+    handle_params => undef,
 
-sub request ( $self, @ ) {
-    my ( $req, $req_args );
+    headers => undef,
+    body    => undef,
 
-    # parse request args
-    if ( ref $_[1] eq 'HASH' || ( blessed( $_[1] ) && $_[1]->isa('Pcore::HTTP::Request') ) ) {    # first arg is req object or HashRef
-        $req = ref $_[1] eq 'HASH' ? Pcore::HTTP::Request->new( $_[1] ) : $_[1];
+    # 1 - create progress indicator, HashRef - progress indicator params, CoreRef - on_progress callback
+    on_progress => undef,
+    on_header   => undef,
+    on_body     => undef,
+    on_finish   => undef,
+};
 
-        $req_args = ref $_[2] eq 'HASH' ? $_[2] : { splice @_, 2 };
+our $DEFAULT_HANDLE_PARAMS = {    #
+    max_read_size => 1_048_576,
+};
+
+# $method => [$idempotent, $safe]
+const our $HTTP_METHODS => {
+    ACL                => [ 1, 0 ],
+    'BASELINE-CONTROL' => [ 1, 0 ],
+    BIND               => [ 1, 0 ],
+    CHECKIN            => [ 1, 0 ],
+    CHECKOUT           => [ 1, 0 ],
+    CONNECT            => [ 0, 0 ],
+    COPY               => [ 1, 0 ],
+    DELETE             => [ 1, 0 ],
+    GET                => [ 1, 1 ],
+    HEAD               => [ 1, 1 ],
+    LABEL              => [ 1, 0 ],
+    LINK               => [ 1, 0 ],
+    LOCK               => [ 0, 0 ],
+    MERGE              => [ 1, 0 ],
+    MKACTIVITY         => [ 1, 0 ],
+    MKCALENDAR         => [ 1, 0 ],
+    MKCOL              => [ 1, 0 ],
+    MKREDIRECTREF      => [ 1, 0 ],
+    MKWORKSPACE        => [ 1, 0 ],
+    MOVE               => [ 1, 0 ],
+    OPTIONS            => [ 1, 1 ],
+    ORDERPATCH         => [ 1, 0 ],
+    PATCH              => [ 0, 0 ],
+    POST               => [ 0, 0 ],
+    PRI                => [ 1, 1 ],
+    PROPFIND           => [ 1, 1 ],
+    PROPPATCH          => [ 1, 0 ],
+    PUT                => [ 1, 0 ],
+    REBIND             => [ 1, 0 ],
+    REPORT             => [ 1, 1 ],
+    SEARCH             => [ 1, 1 ],
+    TRACE              => [ 1, 1 ],
+    UNBIND             => [ 1, 0 ],
+    UNCHECKOUT         => [ 1, 0 ],
+    UNLINK             => [ 1, 0 ],
+    UNLOCK             => [ 1, 0 ],
+    UPDATE             => [ 1, 0 ],
+    UPDATEREDIRECTREF  => [ 1, 0 ],
+    'VERSION-CONTROL'  => [ 1, 0 ],
+};
+
+# create aliases for export
+*http_request = \&request;
+*http_get     = \&get;
+*http_post    = \&post;
+*http_mirror  = \&mirror;
+
+sub request ( $method, $url, @ ) {
+    my %args = (
+        $DEFAULT->%*,
+        splice( @_, 2 ),
+        method => $method,
+        url    => ref $url ? $url : P->uri( $url, base => q[http://], authority => 1 ),
+        res    => Pcore::HTTP::Response->new,
+    );
+
+    # merge handle_params
+    if ( my $handle_params = delete $args{handle_params} ) {
+        $args{handle_params} = {    #
+            $DEFAULT_HANDLE_PARAMS->%*,
+            $handle_params->%*,
+        };
     }
     else {
-        if ( exists $Pcore::HTTP::Request::HTTP_METHODS->{ $_[1] } ) {                            # first arg is method name
-            $req = Pcore::HTTP::Request->new( { method => $_[1], url => $_[2], splice @_, 3 } );
+        $args{handle_params} = $DEFAULT_HANDLE_PARAMS;
+    }
+
+    # headers
+    my $headers;
+
+    if ( $args{headers} ) {
+        $headers = Pcore::HTTP::Message::Headers->new( blessed( $args{headers} ) ? $args{headers}->get_hash : $args{headers} );
+    }
+    else {
+        $headers = Pcore::HTTP::Message::Headers->new;
+    }
+
+    if ( my $useragent = delete $args{useragent} ) {
+        $headers->{USER_AGENT} = $useragent if !exists $headers->{USER_AGENT};
+    }
+
+    $args{headers} = $headers;
+
+    # resolve cookie_jar shortcut
+    $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};
+
+    # resolve TLS context shortcut
+    $args{tls_ctx} = $TLS_CTX->{ $args{tls_ctx} } if !ref $args{tls_ctx};
+
+    # resolve on_progress shortcut
+    if ( $args{on_progress} && ref $args{on_progress} ne 'CODE' ) {
+        if ( !ref $args{on_progress} ) {
+            $args{on_progress} = _get_on_progress_cb();
         }
-        else {                                                                                    # first arg is url, method = GET
-            $req = Pcore::HTTP::Request->new( { method => 'GET', url => $_[1], splice @_, 2 } );
-        }
-    }
-
-    my $method = $req_args->{method} || $req->method;
-
-    my $cv = $req->blocking // $req_args->{blocking} // 0;
-
-    # create res object
-    my $res = Pcore::HTTP::Response->new;
-
-    my $self_is_obj = ref $self ? 1 : 0;
-
-    # create AnyEvent::HTTP params
-    my $args = {
-        method => $method,
-        url    => ref $req->url ? $req->url : P->uri( $req->url, base => q[http://], authority => 1 ),
-
-        res => $res,
-
-        recurse    => $req->recurse    // ( $self_is_obj ? $self->recurse    : $RECURSE ),
-        timeout    => $req->timeout    // ( $self_is_obj ? $self->timeout    : $TIMEOUT ),
-        persistent => $req->persistent // ( $self_is_obj ? $self->persistent : $PERSISTENT_IDENT ),
-        session    => $req->session    // ( $self_is_obj ? $self->session    : undef ),
-        cookie_jar => $req->cookie_jar // ( $self_is_obj ? $self->cookie_jar : undef ),
-        proxy      => $req->proxy      // ( $self_is_obj ? $self->proxy      : undef ),
-
-        handle_params => $req->handle_params // ( $self_is_obj ? $self->handle_params : $HANDLE_PARAMS ),
-
-        accept_compressed => $req->accept_compressed // ( $self_is_obj ? $self->accept_compressed : 1 ),
-        decompress        => $req->decompress        // ( $self_is_obj ? $self->decompress        : 1 ),
-
-        tls_ctx => $req->tls_ctx // ( $self_is_obj ? $self->tls_ctx : $Pcore::HTTP::UA::TLS_CTX_LOW ),
-
-        buf_size => $req_args->{buf_size} // $req->buf_size,
-
-        headers => $req->headers->clone,
-        body    => $req->body,
-
-        on_progress => $req->on_progress,
-        on_header   => $req->on_header,
-        on_body     => $req->on_body,
-    };
-
-    # prepare headers
-    $args->{headers}->replace( $self->headers->get_hash ) if $self_is_obj;
-
-    $args->{headers}->replace( $req_args->{headers} ) if $req_args->{headers};
-
-    $args->{headers}->{USER_AGENT} = $self_is_obj ? $self->useragent : $USERAGENT unless exists $args->{headers}->{USER_AGENT};
-
-    # prepate TLS context
-    if ( !$args->{tls_ctx} ) {
-        $args->{tls_ctx} = $Pcore::HTTP::UA::TLS_CTX->{$Pcore::HTTP::UA::TLS_CTX_LOW};
-    }
-    elsif ( !ref $args->{tls_ctx} ) {
-        $args->{tls_ctx} = $Pcore::HTTP::UA::TLS_CTX->{ $args->{tls_ctx} };
-    }
-
-    # prepare body, if req has body and method allow send body
-    if ( $req->has_body && $Pcore::HTTP::Request::HTTP_METHODS->{$method} ) {
-        $args->{body} = $req->body_to_ae_http;
-
-        if ( ref $args->{body} eq 'CODE' ) {
-            delete $args->{headers}->{CONTENT_LENGTH};
-
-            $args->{headers}->{TRANSFER_ENCODING} = 'chunked';
+        elsif ( ref $args{on_progress} eq 'HASH' ) {
+            $args{on_progress} = _get_on_progress_cb( $args{on_progress}->%* );
         }
         else {
-            $args->{headers}->{CONTENT_LENGTH} = bytes::length( ref $args->{body} eq 'SCALAR' ? $args->{body}->$* : $args->{body} );
+            die q["on_progress" can be CodeRef, HashRef or "1"];
         }
     }
 
-    $args->{on_finish} = sub {
+    # TODO prepare body
+    # TODO if method allow body
+    # if ( $req->has_body && $Pcore::HTTP::Request::HTTP_METHODS->{$method} ) {
+    #     $args->{body} = $req->body_to_ae_http;
+    #
+    #     if ( ref $args->{body} eq 'CODE' ) {
+    #         delete $args->{headers}->{CONTENT_LENGTH};
+    #
+    #         $args->{headers}->{TRANSFER_ENCODING} = 'chunked';
+    #     }
+    #     else {
+    #         $args->{headers}->{CONTENT_LENGTH} = bytes::length( ref $args->{body} eq 'SCALAR' ? $args->{body}->$* : $args->{body} );
+    #     }
+    # }
+
+    # blocking cv
+    my $cv = delete $args{blocking};
+
+    my $blocking;
+
+    if ( $cv && !ref $cv ) {
+        $cv = AE::cv;
+
+        $blocking = 1;
+    }
+
+    # on_finish wrapper
+    my $on_finish = delete $args{on_finish};
+
+    my $res = $args{res};
+
+    $args{on_finish} = sub {
 
         # rewind body fh
         $res->body->seek( 0, 0 ) if $res->has_body && is_glob( $res->body );
 
-        # before_finish callback
-        $req_args->{before_finish}->($res) if $req_args->{before_finish};
-
         # on_finish callback
-        $req->on_finish->($res) if $req->on_finish;
+        $on_finish->($res) if $on_finish;
 
         $cv->end if $cv;
 
         return;
     };
 
-    my $blocking;
-
-    if ($cv) {
-        if ( !ref $cv ) {
-            $cv = AE::cv;
-
-            $blocking = 1;
-        }
-
-        $cv->begin;
-    }
+    $cv->begin if $cv;
 
     # throw request
-    Pcore::HTTP::Util::http_request($args);
+    Pcore::HTTP::Util::http_request( \%args );
 
-    $cv->recv if $blocking;
+    $cv->recv if $cv && $blocking;
 
     return;
 }
 
-sub get {
-    my $self = shift;
-
-    return $self->_redefine_method( 'GET', @_ );
+sub get ( $url, @ ) {
+    return request( 'GET', @_ );
 }
 
-sub post {
-    my $self = shift;
-
-    return $self->_redefine_method( 'POST', @_ );
+sub post ( $url, @ ) {
+    return request( 'POST', @_ );
 }
 
-sub _redefine_method ( $self, $method, @ ) {
-    my ( $req, $req_args );
-
-    if ( ref $_[2] eq 'HASH' || ( blessed( $_[2] ) && $_[2]->isa('Pcore::HTTP::Request') ) ) {    # second arg is req object or HashRef
-        $req = $_[2];
-
-        $req_args = ref $_[3] eq 'HASH' ? $_[3] : { splice @_, 3 };
-    }
-    else {
-        if ( exists $Pcore::HTTP::Request::HTTP_METHODS->{ $_[2] } ) {                            # second arg is method name
-            $req = { method => $_[2], url => $_[3], splice @_, 4 };
-        }
-        else {
-            $req = { method => 'GET', url => $_[2], splice @_, 3 };                               # second arg is url
-        }
-    }
-
-    $req_args->{method} = $method;
-
-    return $self->request( $req, $req_args );
-}
-
+# mirror($target_path, $url, $params) or mirror($target_path, $method, $url, $params)
 # additional params supported:
 # no_cache => 1;
-sub mirror ( $self, @ ) {
-    my ( $req, $target, $req_args );
+sub mirror ( $target, @ ) {
+    my ( $method, $url, %args );
 
-    # parse request args
-    if ( ref $_[1] eq 'HASH' || ( blessed( $_[1] ) && $_[1]->isa('Pcore::HTTP::Request') ) ) {
-        $req = $_[1];
-
-        $target = $_[2];
-
-        $req_args = ref $_[3] eq 'HASH' ? $_[3] : { splice @_, 3 };
+    if ( exists $HTTP_METHODS->{ $_[1] } ) {
+        ( $method, $url, %args ) = splice @_, 1;
     }
     else {
-        if ( exists $Pcore::HTTP::Request::HTTP_METHODS->{ $_[1] } ) {
-            $req = { method => $_[1], url => $_[2], splice @_, 4 };
+        $method = 'GET';
 
-            $target = $_[3];
-        }
-        else {
-            $req = { method => 'GET', url => $_[1], splice @_, 3 };
-
-            $target = $_[2];
-        }
-
-        $req_args->{no_cache} = delete $req->{no_cache};
+        ( $url, %args ) = splice @_, 1;
     }
 
-    $req_args->{buf_size} = 1;
+    $args{buf_size} = 1;
 
-    if ( !$req_args->{no_cache} && -f $target ) {
-        $req_args->{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date;
-    }
+    $args{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
 
-    $req_args->{before_finish} = sub ($res) {
+    my $on_finish = delete $args{on_finish};
+
+    $args{on_finish} = sub ($res) {
         if ( $res->status == 200 ) {
             P->file->move( $res->body->path, $target );
 
@@ -423,10 +253,31 @@ sub mirror ( $self, @ ) {
             }
         }
 
+        $on_finish->($res) if $on_finish;
+
         return;
     };
 
-    return $self->request( $req, $req_args );
+    return request( $method, $url, %args );
+}
+
+sub _get_on_progress_cb (%args) {
+    return sub ( $res, $content_length, $bytes_received ) {
+        state $indicator;
+
+        if ( !$bytes_received ) {    # called after headers received
+            $args{network} = 1;
+
+            $args{total} = $content_length;
+
+            $indicator = P->progress->get_indicator(%args);
+        }
+        else {
+            $indicator->update( value => $bytes_received );
+        }
+
+        return;
+    };
 }
 
 1;
@@ -436,9 +287,11 @@ sub mirror ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 224                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (41)                   │
+## │    3 │ 107                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (26)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 420                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 109, 119, 120, 155   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 250                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -457,12 +310,8 @@ Pcore::HTTP::UA
 
 =head1 ATTRIBUTES
 
-=head2 persistent = Bool
-
-Store connection in cache. C<FALSE> - do not cache connection. C<TRUE> - cache connection. Connection will not be cached in cases where proxies was used or on HTTP protocol errors.
-
-Default value is C<1>.
-
 =head1 METHODS
+
+=head1 SEE ALSO
 
 =cut

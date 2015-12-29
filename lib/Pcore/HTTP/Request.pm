@@ -7,18 +7,6 @@ use Pcore::HTTP::CookieJar;
 
 extends qw[Pcore::HTTP::Message];
 
-# METHOD => $ALLOW_BODY
-const our $HTTP_METHODS => {
-    OPTIONS => 1,
-    GET     => 0,
-    HEAD    => 0,
-    POST    => 1,
-    PUT     => 1,
-    DELETE  => 0,
-    TRACE   => 0,
-    CONNECT => 0,
-};
-
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'] );
 has method => ( is => 'ro', isa => Enum [ keys $HTTP_METHODS->%* ], required => 1 );
 has url => ( is => 'ro', isa => Str, required => 1 );
@@ -67,25 +55,6 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-sub _get_progress_bar_cb ( $self, %args ) {
-    return sub ( $res, $content_length, $bytes_received ) {
-        state $indicator;
-
-        if ( !$bytes_received ) {    # called after headers received
-            $args{network} = 1;
-
-            $args{total} = $content_length;
-
-            $indicator = P->progress->get_indicator(%args);
-        }
-        else {
-            $indicator->update( value => $bytes_received );
-        }
-
-        return;
-    };
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -93,7 +62,7 @@ sub _get_progress_bar_cb ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 23, 51               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 11, 39               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

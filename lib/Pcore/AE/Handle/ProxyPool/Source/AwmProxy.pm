@@ -21,7 +21,7 @@ sub BUILD ( $self, $args ) {
 }
 
 sub load ( $self, $cb ) {
-    P->ua->request(
+    P->http->get(
         'http://awmproxy.com/allproxy.php?full=1',
         timeout   => $self->http_timeout,
         on_finish => sub ($res) {
@@ -49,7 +49,7 @@ sub load ( $self, $cb ) {
 sub bind_ip ($self) {
     die if !$self->has_username || !$self->has_password;
 
-    P->ua->request( 'http://awmproxy.com/setmyip.php?Login=' . $self->username . '&Password=' . $self->password, blocking => 1 );
+    P->http->get( 'http://awmproxy.com/setmyip.php?Login=' . $self->username . '&Password=' . $self->password, blocking => 1 );
 
     return;
 }

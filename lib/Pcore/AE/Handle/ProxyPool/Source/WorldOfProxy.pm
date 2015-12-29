@@ -33,7 +33,7 @@ sub load ( $self, $cb ) {
     };
 
     for my $url ( values $self->_urls->%* ) {
-        P->ua->request(
+        P->http->get(
             $url,
             timeout   => $self->http_timeout,
             blocking  => $cv,

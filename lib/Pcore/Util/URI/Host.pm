@@ -49,7 +49,7 @@ sub pub_suffixes ( $self, $force_download = 0 ) {
         my $path = $ENV->res->get('/data/pub_suffix.dat');
 
         if ( !$path || $force_download ) {
-            P->ua->request(
+            P->http->get(
                 'https://publicsuffix.org/list/effective_tld_names.dat',
                 buf_size    => 0,
                 on_progress => 0,
@@ -111,7 +111,7 @@ sub tlds ( $self, $force_download = 0 ) {
         my $path = $ENV->res->get('/data/tld.dat');
 
         if ( !$path || $force_download ) {
-            P->ua->request(
+            P->http->get(
                 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt',
                 buf_size    => 0,
                 on_progress => 0,

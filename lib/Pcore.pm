@@ -82,6 +82,7 @@ BEGIN {
         geoip    => 'Pcore::Util::GeoIP',
         hash     => 'Pcore::Util::Hash',
         host     => 'Pcore::Util::URI::Host',
+        http     => 'Pcore::HTTP::UA',
         list     => 'Pcore::Util::List',
         mail     => 'Pcore::Util::Mail',
         path     => 'Pcore::Util::Path',
@@ -94,7 +95,6 @@ BEGIN {
         term     => 'Pcore::Util::Term',
         text     => 'Pcore::Util::Text',
         tmpl     => 'Pcore::Util::Template',
-        ua       => 'Pcore::HTTP::UA',
         uri      => 'Pcore::Util::URI',
         uuid     => 'Pcore::Util::UUID',
     };
@@ -550,13 +550,6 @@ sub _config_stdout ($h) {
     }
 
     return;
-}
-
-# TODO remove
-sub ua {
-    state $init = !!require Pcore::HTTP::UA;
-
-    return 'Pcore::HTTP::UA';
 }
 
 1;

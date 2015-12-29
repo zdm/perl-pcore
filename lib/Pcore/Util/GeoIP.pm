@@ -50,7 +50,7 @@ sub update_all {
 sub update ( $type, $cv = 1 ) {
     state $init = !!require IO::Uncompress::Gunzip;
 
-    P->ua->request(
+    P->http->get(
         $RES->{$type}->[1],
         buf_size    => 1,
         on_progress => 1,
