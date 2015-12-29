@@ -48,7 +48,7 @@ sub _body_to_psgi ($self) {
 # body chunked if body is FH or FilePath, and size > $self->buf_size;
 # body is multipart if has content parts with different content-types;
 # universal response coderef;
-sub body_to_ae_http ($self) {
+sub body_to_http ($self) {
     return $self->body;
 }
 

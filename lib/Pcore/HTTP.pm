@@ -162,7 +162,7 @@ sub request ( $method, $url, @ ) {
     # TODO prepare body
     # TODO if method allow body
     # if ( $req->has_body && $Pcore::HTTP::Request::HTTP_METHODS->{$method} ) {
-    #     $args->{body} = $req->body_to_ae_http;
+    #     $args->{body} = $req->body_to_http;
     #
     #     if ( ref $args->{body} eq 'CODE' ) {
     #         delete $args->{headers}->{CONTENT_LENGTH};
