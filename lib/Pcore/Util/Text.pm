@@ -336,7 +336,15 @@ sub expand_num ($num) {
 
 # pretty print number 1234567 -> 1_234_567
 sub format_num ($num) {
-    return scalar reverse join q[_], ( reverse $num ) =~ /(\d{1,3})/smg;
+    my $sign = $num =~ s/\A([^\d])//sm ? $1 : q[];
+
+    my $fraction = $num =~ s/[.](\d+)\z//sm ? $1 : undef;
+
+    $num = scalar reverse join q[_], ( reverse $num ) =~ /(.{1,3})/smg;
+
+    $num .= q[.] . scalar reverse join q[_], ( reverse $fraction ) =~ /(.{1,3})/smg if $fraction;
+
+    return $sign . $num;
 }
 
 sub to_snake_case {
