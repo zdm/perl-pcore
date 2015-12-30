@@ -5,6 +5,8 @@ use Storable qw[];
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::URI;
 
+no Pcore;
+
 use overload    #
   q[""] => sub {
     return $_[0]->to_string;
@@ -246,8 +248,6 @@ around mime_type => sub ( $orig, $self, $shebang = undef ) {
     return $self->{mime_type} || $self->default_mime_type;
 };
 
-no Pcore;
-
 # apache MIME types
 # http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types?view=co
 our $MIME_TYPES;
@@ -469,9 +469,9 @@ sub TO_DUMP {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 1                    │ Modules::ProhibitExcessMainComplexity - Main code has high complexity score (58)                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 19                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 21                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 233, 418             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 235, 418             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 365                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

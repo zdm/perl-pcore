@@ -4,6 +4,8 @@ use Pcore -class, -const;
 use Pcore::Util::Scalar qw[refaddr];
 use Pcore::Util::Sys qw[pid];
 
+no Pcore;
+
 has base => ( is => 'lazy', isa => Str );
 has tmpl => ( is => 'lazy', isa => Str );
 has mode => ( is => 'lazy', isa => Maybe [ Int | Str ], default => 'rwx------' );
@@ -26,8 +28,6 @@ use overload    #
   fallback => undef;
 
 const our $TMPL => [ 0 .. 9, 'a' .. 'z', 'A' .. 'Z' ];
-
-no Pcore;
 
 sub DEMOLISH ( $self, $global ) {
 

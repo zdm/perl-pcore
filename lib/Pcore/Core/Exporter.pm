@@ -4,13 +4,13 @@ use Pcore;
 use if $^V ge 'v5.10', feature  => ':all';
 no  if $^V ge 'v5.18', warnings => 'experimental';
 
+no Pcore;
+
 our $EXPORT_PRAGMA = {    #
     export => 1,
 };
 
 our $CACHE;
-
-no Pcore;
 
 sub import {
     my $self = shift;
