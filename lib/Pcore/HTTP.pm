@@ -2,9 +2,10 @@ package Pcore::HTTP;
 
 use Pcore -const,
   -export => {
-    ALL     => [qw[http_ua http_request http_mirror]],
-    METHODS => [qw[http_acl http_baseline_control http_bind http_checkin http_checkout http_connect http_copy http_delete http_get http_head http_label http_link http_lock http_merge http_mkactivity http_mkcalendar http_mkcol http_mkredirectref http_mkworkspace http_move http_options http_orderpatch http_patch http_post http_pri http_propfind http_proppatch http_put http_rebind http_report http_search http_trace http_unbind http_uncheckout http_unlink http_unlock http_update http_updateredirectref http_version_control]],
-    TLS_CTX => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]],
+    ALL        => [qw[http_ua http_request http_mirror]],
+    METHODS    => [qw[http_acl http_baseline_control http_bind http_checkin http_checkout http_connect http_copy http_delete http_get http_head http_label http_link http_lock http_merge http_mkactivity http_mkcalendar http_mkcol http_mkredirectref http_mkworkspace http_move http_options http_orderpatch http_patch http_post http_pri http_propfind http_proppatch http_put http_rebind http_report http_search http_trace http_unbind http_uncheckout http_unlink http_unlock http_update http_updateredirectref http_version_control]],
+    TLS_CTX    => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]],
+    PERSISTENT => [qw[$PERSISTENT_IDENT $PERSISTENT_ANY $PERSISTENT_NO_PROXY]],
   };
 use Pcore::Util::Scalar qw[blessed is_glob];
 use Pcore::AE::Handle qw[:PERSISTENT];
@@ -426,14 +427,14 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 105, 173, 184, 218,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 219, 243             │                                                                                                                │
+## │    3 │ 106, 174, 185, 219,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 220, 244             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 108                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 109                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 169                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
+## │    3 │ 170                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 155                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 156                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
