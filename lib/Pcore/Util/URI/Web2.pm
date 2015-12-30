@@ -12,8 +12,6 @@ has web2_domain => ( is => 'lazy', isa => Str, init_arg => undef );
 has web2_canon  => ( is => 'lazy', isa => Str, init_arg => undef );
 has web2_url => ( is => 'lazy', init_arg => undef );
 
-no Pcore;
-
 our $WEB2_CFG = P->cfg->load( $ENV->res->get('/data/web2.perl') );
 
 our $WEB2_HOST_RE;
@@ -119,7 +117,7 @@ sub is_web2_available ( $self, $http_res ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 24                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 22                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
