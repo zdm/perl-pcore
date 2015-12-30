@@ -12,7 +12,10 @@ use if $^V ge 'v5.22', re      => 'strict';
 use if $^V ge 'v5.10', mro     => 'c3';
 no multidimensional;
 
+use Package::Stash qw[];
+use Sub::Util qw[];
 use namespace::clean qw[];
+
 use Const::Fast qw[];
 use Encode qw[];
 
@@ -99,6 +102,35 @@ BEGIN {
     };
 }
 
+sub namespace_clean ($class) {
+    state $EXCEPT = {
+        import   => 1,
+        unimport => 1,
+        AUTOLOAD => 1,
+    };
+
+    my $stash = Package::Stash->new($class);
+
+    my @clean;
+
+    for my $subname ( $stash->list_all_symbols('CODE') ) {
+        my $fullname = Sub::Util::subname( $stash->get_symbol("&$subname") );
+
+        if ( "$class\::$subname" ne $fullname && !exists $EXCEPT->{$subname} && substr( $subname, 0, 1 ) ne q[(] ) {
+            push @clean, $subname;
+        }
+
+        # $stash->remove_symbol("&$subname") if "$class\::$subname" ne $fullname;
+    }
+
+    # say $class;
+    # say dump [sort @clean];
+
+    namespace::clean->clean_subroutines( $class, @clean ) if @clean;
+
+    return;
+}
+
 sub import {
     my $self = shift;
 
@@ -154,7 +186,9 @@ sub import {
         if ( $caller eq $Pcore::CALLER ) {
             B::Hooks::AtRuntime::at_runtime(
                 sub {
-                    Pcore->_CORE_RUN();
+                    Pcore::_CORE_RUN();
+
+                    return;
                 }
             );
         }
@@ -162,6 +196,13 @@ sub import {
         # process -export pragma
         if ( $pragma->{export} ) {
             Pcore::Core::Exporter->import( -caller => $caller, -export => $pragma->{export} );
+        }
+
+        # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
+        if ( $pragma->{autoload} ) {
+            state $init = !!require Pcore::Core::Autoload;
+
+            Pcore::Core::Autoload->import( -caller => $caller );
         }
 
         # process -inline pragma
@@ -180,6 +221,8 @@ sub import {
             # install universal serializer methods
             B::Hooks::EndOfScope::XS::on_scope_end(
                 sub {
+                    namespace_clean($caller);
+
                     no strict qw[refs];
 
                     if ( my $ref = $caller->can('TO_DATA') ) {
@@ -210,13 +253,6 @@ sub import {
             # _apply_roles( $caller, qw[Pcore::Core::Autoload::Role] );
         }
 
-        # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
-        if ( $pragma->{autoload} ) {
-            state $init = !!require Pcore::Core::Autoload;
-
-            Pcore::Core::Autoload->import( -caller => $caller );
-        }
-
         # export types
         _import_types($caller) if $pragma->{types};
     }
@@ -225,16 +261,17 @@ sub import {
 }
 
 sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    my $self = shift;
+
+    # my $self = shift;
 
     # parse pragmas and tags
-    my ( $tags, $pragma ) = Pcore::Core::Exporter::parse_import( $self, @_ );
+    # my ( $tags, $pragma ) = Pcore::Core::Exporter::parse_import( $self, @_ );
 
     # find caller
-    my $caller = caller;
+    # my $caller = caller;
 
     # cleanup
-    namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] );
+    # namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] );
 
     # try to unimport Moo keywords
     # _unimport_moo($caller);
@@ -558,22 +595,23 @@ sub _config_stdout ($h) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 48                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 51                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 102                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
+## │    3 │ 134                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 157                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 189                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 280                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 318                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 330                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 317                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 355                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 367                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 473                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 372, 401, 404, 408,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 457, 474, 536, 539,  │                                                                                                                │
-## │      │ 544, 547             │                                                                                                                │
+## │    3 │ 409, 438, 441, 445,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 494, 511, 573, 576,  │                                                                                                                │
+## │      │ 581, 584             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 376                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 413                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
