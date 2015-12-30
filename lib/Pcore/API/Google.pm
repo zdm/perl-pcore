@@ -10,7 +10,6 @@ has '+h_disconnect_on' => ( default => undef );
 has key => ( is => 'ro', isa => Str, required => 1 );
 
 has api_url => ( is => 'lazy', isa => Str, init_arg => undef );
-has _ua => ( is => 'lazy', init_arg => undef );
 
 no Pcore;
 
@@ -33,12 +32,6 @@ sub _build_api_url {
     return 'https://www.googleapis.com/';
 }
 
-sub _build__ua {
-    my $self = shift;
-
-    return P->ua->new;
-}
-
 sub call {
     my $self   = shift;
     my $path   = shift;
@@ -54,7 +47,7 @@ sub call {
 
     my $url = $self->api_url . $obj->api_path . q[?] . $self->_prepare_params($params);
 
-    return $obj->$method( $self->_ua, $url );
+    return $obj->$method($url);
 }
 
 sub _prepare_params {
@@ -100,7 +93,7 @@ sub call {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 68                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 61                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

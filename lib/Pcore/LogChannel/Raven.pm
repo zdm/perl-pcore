@@ -4,25 +4,21 @@ use Pcore -class;
 
 with qw[Pcore::Core::Log::Channel];
 
-has '+stream'   => ( required => 1 );                                                                  # <SCHEME>://<PUBLIC_KEY>:<PRIVATE_KEY><HOST[:<PORT>]>/<PROJECT_ID>
+has '+stream'   => ( required => 1 );                                                                       # <SCHEME>://<PUBLIC_KEY>:<PRIVATE_KEY><HOST[:<PORT>]>/<PROJECT_ID>
 has '+header'   => ( default  => q[] );
 has '+priority' => ( default  => 4 );
 has timeout     => ( is       => 'rw', isa => Int, default => 1 );
-has _ua         => ( is       => 'lazy', isa => InstanceOf ['Pcore::Util::UA'], init_arg => undef );
+has _ua         => ( is       => 'lazy', isa => InstanceOf ['Pcore::HTTP::Request'], init_arg => undef );
 has _sentry_url         => ( is => 'rwp', isa => Str, init_arg => undef );
 has _sentry_public_key  => ( is => 'rwp', isa => Str, init_arg => undef );
 has _sentry_private_key => ( is => 'rwp', isa => Str, init_arg => undef );
 
 our $SENTRY_VERSION = 4;
 
-sub _build__ua {
-    my $self = shift;
-
-    my $ua = P->ua->new( { timeout => $self->timeout } );
-
+sub _build__ua ($self) {
     my $u = P->uri( $self->stream );
 
-    $self->_set__sentry_url( $u->scheme . '://' . $u->host_port . '/api' . $u->path . '/store/' );
+    my $ua = P->http->ua( { method => 'POST', url => $u->scheme . '://' . $u->host_port . '/api' . $u->path . '/store/', timeout => $self->timeout } );
 
     my ( $pub, $priv ) = split /:/sm, $u->userinfo;
 
@@ -33,14 +29,11 @@ sub _build__ua {
     return $ua;
 }
 
-sub send_log {
-    my $self = shift;
-    my %args = @_;
-
+sub send_log ( $self, %args ) {
     for my $i ( 0 .. $#{ $args{data} } ) {
-        my $res = $self->_ua->post(
-            $self->_sentry_url,
-            $self->_build_message(
+        $self->_ua->request(
+            headers => { X_SENTRY_AUTH => "Sentry sentry_version=$SENTRY_VERSION, sentry_client=perl_client/0.01, sentry_timestamp=" . time() . ', sentry_key=' . $self->_sentry_public_key . ', sentry_secret=' . $self->_sentry_private_key, },
+            body    => $self->_build_message(
                 {   message => $args{data}->[$i],
                     level   => lc $args{level},
                     tags    => {
@@ -53,18 +46,13 @@ sub send_log {
                     },
                 }
             ),
-            'X-Sentry-Auth' => "Sentry sentry_version=$SENTRY_VERSION, sentry_client=perl_client/0.01, sentry_timestamp=" . time() . ', sentry_key=' . $self->_sentry_public_key . ', sentry_secret=' . $self->_sentry_private_key,
         );
-
-        return 0 unless $res->is_success;
     }
 
     return 1;
 }
 
-sub _build_message {
-    my ( $self, $params ) = @_;
-
+sub _build_message ( $self, $params ) {
     my $data = {
         'event_id'    => P->uuid->str,
         'message'     => $params->{'message'},

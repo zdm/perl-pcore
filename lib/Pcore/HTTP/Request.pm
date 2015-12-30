@@ -25,9 +25,10 @@ has tls_ctx => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::TLS_CTX_LOW, $P
 has handle_params => ( is => 'ro', isa => Maybe [HashRef], default => $Pcore::HTTP::DEFAULT->{handle_params} );
 
 has on_progress => ( is => 'ro', isa => Maybe [ Bool | CodeRef ], default => $Pcore::HTTP::DEFAULT->{on_progress} );
-has on_header => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_header} );
-has on_body   => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_body} );
-has on_finish => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_finish} );
+has on_header     => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_header} );
+has on_body       => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_body} );
+has before_finish => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{before_finish} );
+has on_finish     => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_finish} );
 
 no Pcore;
 
@@ -41,8 +42,8 @@ sub BUILDARGS ( $self, @ ) {
     return $args;
 }
 
-sub http_request ( $self, @ ) {
-    return P->http->_request(@_);
+sub request ( $self, @ ) {
+    return P->http->request(@_);
 }
 
 1;
@@ -53,8 +54,6 @@ sub http_request ( $self, @ ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 10                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 45                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

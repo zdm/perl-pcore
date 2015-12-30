@@ -8,14 +8,12 @@ with qw[Pcore::API::Backend];
 has addr => ( is => 'ro', isa => Str, required => 1 );
 
 has session_cookie_name => ( is => 'lazy', isa => Str, default => 'sid' );
-has _ua => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::UA'], init_arg => undef );
+has _ua => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Request'], init_arg => undef );
 
 no Pcore;
 
-sub _build__ua {
-    my $self = shift;
-
-    my $ua = P->ua->new;
+sub _build__ua ($self) {
+    my $ua = P->http->ua();
 
     # if ( $self->has_ca ) {
     #     $ua->ssl_opts( verify_hostname => 1 );

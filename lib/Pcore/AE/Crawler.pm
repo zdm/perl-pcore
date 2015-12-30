@@ -12,7 +12,7 @@ has put_request => ( is => 'ro', isa => CodeRef, required => 1 );
 
 has max_threads => ( is => 'ro', isa => PositiveInt, default => 100 );
 
-has ua => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Request'], default => sub { P->ua->new }, init_arg => undef );
+has ua => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Request'], default => sub { P->http->ua }, init_arg => undef );
 
 # proxy
 has proxy_pool => ( is => 'rwp', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool'], predicate => 1, init_arg => undef );

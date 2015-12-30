@@ -2,7 +2,8 @@ package Pcore::HTTP;
 
 use Pcore -const,
   -export => {
-    ALL     => [qw[http_request http_head http_get http_post http_mirror]],
+    ALL     => [qw[http_ua http_request http_mirror]],
+    METHODS => [qw[http_acl http_baseline_control http_bind http_checkin http_checkout http_connect http_copy http_delete http_get http_head http_label http_link http_lock http_merge http_mkactivity http_mkcalendar http_mkcol http_mkredirectref http_mkworkspace http_move http_options http_orderpatch http_patch http_post http_pri http_propfind http_proppatch http_put http_rebind http_report http_search http_trace http_unbind http_uncheckout http_unlink http_unlock http_update http_updateredirectref http_version_control]],
     TLS_CTX => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]],
   };
 use Pcore::Util::Scalar qw[blessed is_glob];
@@ -46,10 +47,11 @@ our $DEFAULT = {
     body    => undef,
 
     # 1 - create progress indicator, HashRef - progress indicator params, CodeRef - on_progress callback
-    on_progress => undef,
-    on_header   => undef,
-    on_body     => undef,
-    on_finish   => undef,
+    on_progress   => undef,
+    on_header     => undef,
+    on_body       => undef,
+    before_finish => undef,
+    on_finish     => undef,
 };
 
 our $DEFAULT_HANDLE_PARAMS = {    #
@@ -99,33 +101,29 @@ const our $HTTP_METHODS => {
     'VERSION-CONTROL'  => [ 1, 0 ],
 };
 
-# create aliases for export
-*http_request = \&request;
-*http_head    = \&head;
-*http_get     = \&get;
-*http_post    = \&post;
-*http_mirror  = \&mirror;
+# generate subs
+for my $method ( keys $HTTP_METHODS->%* ) {
+    my $sub_name = lc $method =~ s/-/_/smgr;
+
+    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+        *$sub_name = sub {
+            return request( splice( \@_, 1 ), method => '$method', url => \$_[0] );
+        };
+PERL
+
+    no strict qw[refs];
+
+    # create alias for export
+    *{"http_$sub_name"} = \&{$sub_name};
+
+    # name sub
+    P->class->set_subname( 'Pcore::HTTP::' . $sub_name, \&{$sub_name} );
+}
 
 sub ua {
     state $init = !!require Pcore::HTTP::Request;
 
     return Pcore::HTTP::Request->new(@_);
-}
-
-sub request ( $method, $url, @ ) {
-    return _request( splice( @_, 2 ), method => $method, url => $url );
-}
-
-sub head ( $url, @ ) {
-    return _request( 'url', @_, method => 'HEAD' );
-}
-
-sub get ( $url, @ ) {
-    return _request( 'url', @_, method => 'GET' );
-}
-
-sub post ( $url, @ ) {
-    return _request( 'url', @_, method => 'POST' );
 }
 
 # mirror($target_path, $url, $params) or mirror($target_path, $method, $url, $params)
@@ -165,10 +163,10 @@ sub mirror ( $target, @ ) {
         return;
     };
 
-    return _request( %args, method => $method, url => $url );
+    return request( %args, method => $method, url => $url );
 }
 
-sub _request {
+sub request {
     my %args;
 
     if ( !blessed $_[0] ) {
@@ -273,6 +271,8 @@ sub _request {
     }
 
     # on_finish wrapper
+    my $before_finish = delete $args{before_finish};
+
     my $on_finish = delete $args{on_finish};
 
     my $res = $args{res};
@@ -281,6 +281,9 @@ sub _request {
 
         # rewind body fh
         $res->body->seek( 0, 0 ) if $res->has_body && is_glob( $res->body );
+
+        # before_finish callback
+        $before_finish->($res) if $before_finish;
 
         # on_finish callback
         $on_finish->($res) if $on_finish;
@@ -326,12 +329,14 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 171                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (43)                  │
+## │    3 │ 105, 173, 184, 218,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 219, 243             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175, 186, 220, 221,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 245                  │                                                                                                                │
+## │    3 │ 108                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 157                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 169                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 155                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

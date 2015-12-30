@@ -14,7 +14,7 @@ has captcha_api_key => ( is => 'ro', isa => Str );
 
 has _captcha => ( is => 'lazy', isa => InstanceOf ['Pcore::Captcha::Antigate'], init_arg => undef );
 
-has _ua => ( is => 'lazy', default => sub { P->ua->new( { useragent => 'Links (2.1; Linux 2.6.18-gentoo-r6 x86_64; 80x24)', cookie_jar => 1 } ) }, init_arg => undef );
+has _ua => ( is => 'lazy', default => sub { P->http->ua( { useragent => 'Links (2.1; Linux 2.6.18-gentoo-r6 x86_64; 80x24)', cookie_jar => 1 } ) }, init_arg => undef );
 
 no Pcore;
 
@@ -245,7 +245,7 @@ sub _get_captcha_image ( $self, $id, $url, $cb ) {
     my $uri = P->uri( '/sorry/image', base => $url );
 
     $self->_ua->request(
-        $uri->to_string . qq[?id=$id&hl=en],
+        url       => $uri->to_string . qq[?id=$id&hl=en],
         on_finish => sub ($res) {
             $cb->( $res->body );
 
@@ -260,7 +260,7 @@ sub _verify_captcha ( $self, $responder, $captcha, $url, $id, $continue ) {
     my $uri = P->uri( '/sorry/CaptchaRedirect', base => $url );
 
     $self->_ua->request(
-        $uri->to_string . qq[?continue=$continue&id=$id&submit=Submit&captcha=] . $captcha->result,
+        url       => $uri->to_string . qq[?continue=$continue&id=$id&submit=Submit&captcha=] . $captcha->result,
         on_finish => sub ($res) {
             if ( $res->status == 503 ) {    # captcha recognized incorrectly
                 $self->_captcha->report_failure($captcha);
