@@ -13,6 +13,15 @@ const our $CONTENT_ENCODING_COMPRESS => 2;
 const our $CONTENT_ENCODING_DEFLATE  => 3;
 const our $CONTENT_ENCODING_IDENTITY => 4;
 
+# $status => $switch_method_to_GET
+const our $REDIRECT => {
+    301 => 1,                                 # should ask user to repeat request, in auto mode - repeat as GET
+    302 => 1,                                 # resend request as GET
+    303 => 1,                                 # always change method to GET, used in POST-GET requeusts chain
+    307 => 0,                                 # do not change method
+    308 => 0,                                 # do not change method
+};
+
 sub http_request ($args) {
 
     # set final url to the last accessed url
@@ -73,15 +82,14 @@ sub http_request ($args) {
                     else {
                         $args->{recurse}--;
 
-                        if ( $runtime->{res}->status ~~ [ 301, 302, 303 ] ) {
+                        # redirect type may require to switch request method during redirect
+                        if ( $REDIRECT->{ $runtime->{res}->status } ) {
 
-                            # HTTP/1.1 is unclear on how to mutate the method
-                            if ( $args->{method} ne 'HEAD' ) {
-                                $args->{method} = 'GET';
+                            # change method to GET if original method was not "GET" or "HEAD"
+                            $args->{method} = 'GET' if $args->{method} ne 'HEAD';
 
-                                # do not resend request body in this case
-                                delete $args->{body};
-                            }
+                            # do not resend request body
+                            delete $args->{body};
                         }
 
                         $args->{url} = $runtime->{res}->headers->{LOCATION};
@@ -299,7 +307,8 @@ sub _read_headers ( $args, $runtime, $cb ) {
                     # parse LOCATION header, create uri object
                     $res->{headers}->{LOCATION} = P->uri( $res->{headers}->{LOCATION}, base => $args->{url} );
 
-                    if ( $res->{status} ~~ [ 301, 302, 303, 307, 308 ] ) {
+                    # this is a redirect
+                    if ( exists $REDIRECT->{ $res->{status} } ) {
                         $runtime->{redirect} = 1;
 
                         # create new response object and set it as default response for current request
@@ -568,12 +577,12 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 16                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 335                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 25                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
+## │      │ 344                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 90, 103, 104, 199    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 98, 111, 112, 207    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 518                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 527                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
