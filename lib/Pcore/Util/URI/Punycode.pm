@@ -12,8 +12,6 @@ const our $PC_DAMP         => 700;
 const our $PC_INITIAL_BIAS => 72;
 const our $PC_INITIAL_N    => 128;
 
-no Pcore;
-
 sub to_punycode ($domain) {
     $domain = lc join q[.], map { /[^\x00-\x7f]/smo ? 'xn--' . punycode_encode($_) : $_ } split /[.]/smo, $domain, -1;
 
@@ -172,11 +170,11 @@ sub _adapt ( $delta, $numpoints, $firsttime ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 114                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 112                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 50                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 48                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 59, 69, 122          │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 57, 67, 120          │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -3,8 +3,6 @@ package Pcore::Util::Term;
 use Pcore;
 use Term::ReadKey qw[];
 
-no Pcore;
-
 sub width {
     state $init = do {
         require Term::Size::Any;
@@ -283,15 +281,15 @@ sub read_input {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 12                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 10                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 40                   │ * Subroutine "prompt" with high complexity score (25)                                                          │
-## │      │ 160                  │ * Subroutine "read_input" with high complexity score (28)                                                      │
+## │      │ 38                   │ * Subroutine "prompt" with high complexity score (25)                                                          │
+## │      │ 158                  │ * Subroutine "read_input" with high complexity score (28)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 66                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 64                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 218                  │ RegularExpressions::ProhibitSingleCharAlternation - Use [\x0D\x0A] instead of \x0D|\x0A                        │
+## │    1 │ 216                  │ RegularExpressions::ProhibitSingleCharAlternation - Use [\x0D\x0A] instead of \x0D|\x0A                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

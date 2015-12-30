@@ -58,8 +58,6 @@ around new => sub ( $orig, $self, $module, @inc ) {
     return;
 };
 
-no Pcore;
-
 # CLASS METHODS
 sub lib_is_dist ( $self, $lib ) {
     if ( -d "$lib/auto/" ) {
@@ -215,9 +213,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 147                  │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 145                  │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 180                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 178                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

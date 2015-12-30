@@ -6,8 +6,6 @@ with qw[Pcore::Core::Guard];
 
 has dir => ( is => 'ro', isa => Str, required => 1 );
 
-no Pcore;
-
 sub ON_DESTROY {
     my $self = shift;
 
@@ -23,7 +21,7 @@ sub ON_DESTROY {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 31                   │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 35 does not match the package declaration       │
+## │    1 │ 29                   │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 33 does not match the package declaration       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

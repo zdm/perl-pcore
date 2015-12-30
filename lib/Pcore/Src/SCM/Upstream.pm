@@ -22,8 +22,6 @@ has clone_uri_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
 
 has meta_resources => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-no Pcore;
-
 # NOTE https://bitbucket.org/username/reponame - upstream SCM type can't be recognized correctly, use ".git" suffix fot git repositories
 
 sub BUILDARGS ( $self, $args ) {

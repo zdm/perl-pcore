@@ -4,8 +4,6 @@ use Pcore -class;
 
 with qw[Pcore::Core::CLI::Cmd];
 
-no Pcore;
-
 sub cli_abstract ($self) {
     return 'setup pcore.ini';
 }

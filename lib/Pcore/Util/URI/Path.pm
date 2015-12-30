@@ -15,8 +15,6 @@ use overload    #
   },
   fallback => undef;
 
-no Pcore;
-
 1;
 __END__
 =pod

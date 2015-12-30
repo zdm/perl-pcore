@@ -12,8 +12,6 @@ has _in  => ( is => 'ro', init_arg => undef );    # read from child
 has _out => ( is => 'ro', init_arg => undef );    # write to child
 has _pid => ( is => 'ro', init_arg => undef );
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     ( my $in_r, $self->{_out} ) = portable_socketpair();
 
@@ -136,7 +134,7 @@ sub _read_chunk ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 94, 98               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 92, 96               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

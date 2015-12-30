@@ -6,8 +6,6 @@ extends qw[Pcore::Src::SCM];
 
 has '+is_git' => ( default => 1 );
 
-no Pcore;
-
 sub _build_upstream ($self) {
     if ( -f $self->root . '/.git/config' ) {
         my $config = P->file->read_text( $self->root . '/.git/config' );

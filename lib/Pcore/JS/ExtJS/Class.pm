@@ -12,8 +12,6 @@ has cfg => ( is => 'lazy', default => sub { {} }, init_arg => undef );
 
 has _generated_as_class => ( is => 'rwp', isa => Bool, default => 0, init_arg => undef );
 
-no Pcore;
-
 sub BUILD {
     my $self = shift;
     my $args = shift;

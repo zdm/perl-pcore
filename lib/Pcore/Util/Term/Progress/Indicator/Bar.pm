@@ -9,8 +9,6 @@ our $PROGRESS_BAR_CHAR = q[■];
 our $MESS_COLOR        = BOLD . YELLOW;
 our $BAR_COLOR         = YELLOW;
 
-no Pcore;
-
 sub _draw ($self) {
     my $info = q[];
 
@@ -153,9 +151,9 @@ sub _draw ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_draw" with high complexity score (25)                     │
+## │    3 │ 12                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_draw" with high complexity score (25)                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 14                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_draw' declared but not used        │
+## │    3 │ 12                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_draw' declared but not used        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

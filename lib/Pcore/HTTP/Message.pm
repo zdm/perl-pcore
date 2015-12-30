@@ -12,8 +12,6 @@ has content_length => ( is => 'rwp', isa => PositiveOrZeroInt, default => 0, ini
 
 has buf_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     $self->headers->add( $args->{headers} ) if $args->{headers};
 

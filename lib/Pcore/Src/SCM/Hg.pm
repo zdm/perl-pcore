@@ -6,8 +6,6 @@ extends qw[Pcore::Src::SCM];
 
 has '+is_hg' => ( default => 1 );
 
-no Pcore;
-
 sub _build_upstream ($self) {
     if ( -f $self->root . '/.hg/hgrc' ) {
         my $hgrc = P->file->read_text( $self->root . '/.hg/hgrc' );

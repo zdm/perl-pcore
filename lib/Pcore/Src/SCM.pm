@@ -53,8 +53,6 @@ sub _build_server ($self) {
     return P->class->load( 'Server', ns => ref $self )->new( { root => $self->root } );
 }
 
-no Pcore;
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

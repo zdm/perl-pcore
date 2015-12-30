@@ -6,8 +6,6 @@ extends qw[Pcore::Util::URI];
 
 has '+default_port' => ( default => 21 );
 
-no Pcore;
-
 1;
 __END__
 =pod

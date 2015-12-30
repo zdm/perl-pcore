@@ -14,8 +14,6 @@ use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Response;
 use Pcore::HTTP::CookieJar;
 
-no Pcore;
-
 const our $TLS_CTX_LOW  => 1;
 const our $TLS_CTX_HIGH => 2;
 const our $TLS_CTX      => {
@@ -427,14 +425,14 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 106, 174, 185, 219,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 220, 244             │                                                                                                                │
+## │    3 │ 104, 172, 183, 217,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 218, 242             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 109                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 107                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 170                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
+## │    3 │ 168                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 156                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 154                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

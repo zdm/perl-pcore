@@ -2,8 +2,6 @@ package Pcore::Util::Perl::Moo;
 
 use Pcore;
 
-no Pcore;
-
 sub get_attrs {
     my $self = shift;
     my $class = ref $_[0] || $_[0];

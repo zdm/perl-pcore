@@ -11,8 +11,6 @@ has requires => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, predicat
 
 has _descriptors_cache => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 sub class {
     my $self = shift;
     my $desc = shift;

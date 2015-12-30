@@ -5,8 +5,6 @@ use Pcore::Util::File::Tree::File;
 
 has files => ( is => 'lazy', isa => HashRef [ InstanceOf ['Pcore::Util::File::Tree::File'] ], default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 sub add_dir ( $self, $dir, $root = undef ) {
     $dir = P->path( $dir, is_dir => 1 )->realpath->to_string;
 
@@ -115,7 +113,7 @@ sub write_to_temp ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 62, 70, 83, 88       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 60, 68, 81, 86       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

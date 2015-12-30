@@ -7,8 +7,6 @@ with qw[Pcore::JS::Generator::Base];
 has func_name => ( is => 'ro', isa => Str, required => 1 );
 has func_args => ( is => 'ro', isa => ArrayRef );
 
-no Pcore;
-
 sub as_js {
     my $self = shift;
 

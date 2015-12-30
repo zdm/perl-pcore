@@ -86,8 +86,6 @@ around new => sub ( $orig, $self, $uri, @ ) {
     return bless $uri_args, $self;
 };
 
-no Pcore;
-
 # http://tools.ietf.org/html/rfc3986#section-2.2
 const our $UNRESERVED          => '0-9a-zA-Z' . quotemeta q[-._~];
 const our $RESERVED_GEN_DELIMS => quotemeta q[:/?#[]@];
@@ -340,10 +338,10 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 110, 113, 120, 130,  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
-## │      │ 141, 146, 149        │                                                                                                                │
+## │    3 │ 108, 111, 118, 128,  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │      │ 139, 144, 147        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 94                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 92                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

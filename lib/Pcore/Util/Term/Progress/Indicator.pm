@@ -43,8 +43,6 @@ has total_time  => ( is => 'rwp',  isa => Int,               default => 0,      
 has eta         => ( is => 'lazy', isa => PositiveOrZeroNum, writer  => '_set_eta', default  => 0, init_arg => undef );                     # seconds, left to complete, 0 - unknown
 has speed => ( is => 'rwp', isa => PositiveOrZeroNum, init_arg => undef );
 
-no Pcore;
-
 my $TERM_WIDTH = P->term->width;
 
 our $DEFAULT_SIZE = $TERM_WIDTH ? $TERM_WIDTH - 5 : 80;
@@ -248,7 +246,7 @@ sub update ( $self, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 237                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 235                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -6,8 +6,6 @@ requires qw[as_js];
 
 has id => ( is => 'lazy', isa => Str, init_arg => undef );
 
-no Pcore;
-
 sub _build_id {
     my $self = shift;
 

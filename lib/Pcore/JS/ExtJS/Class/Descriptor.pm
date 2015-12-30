@@ -14,8 +14,6 @@ has ext_alias => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );
 
 has _parsed => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-no Pcore;
-
 our $EXT = P->cfg->load( $ENV->res->get('/data/extjs.perl') );
 
 __PACKAGE__->register_classes( P->cfg->load( $ENV->res->get('/data/extjs_pcore.perl') ) );
@@ -169,7 +167,7 @@ sub _build_ext_alias {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 58                   │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 56                   │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

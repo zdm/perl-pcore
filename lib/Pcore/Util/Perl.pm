@@ -2,8 +2,6 @@ package Pcore::Util::Perl;
 
 use Pcore;
 
-no Pcore;
-
 sub module {
     state $init = !!require Pcore::Util::Perl::Module;
 

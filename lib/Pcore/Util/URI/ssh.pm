@@ -7,8 +7,6 @@ extends qw[Pcore::Util::URI];
 has '+is_secure'    => ( default => 1 );
 has '+default_port' => ( default => 22 );
 
-no Pcore;
-
 1;
 __END__
 =pod

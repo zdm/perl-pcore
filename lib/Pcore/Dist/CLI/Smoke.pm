@@ -4,8 +4,6 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-no Pcore;
-
 sub cli_abstract ($self) {
     return 'smoke your distribution';
 }
@@ -51,7 +49,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 40                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

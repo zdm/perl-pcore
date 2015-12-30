@@ -6,8 +6,6 @@ with qw[Pcore::JS::Generator::Base];
 
 has body => ( is => 'ro', isa => Str, required => 1 );
 
-no Pcore;
-
 sub as_js {
     my $self = shift;
 

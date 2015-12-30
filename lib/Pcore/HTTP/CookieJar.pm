@@ -4,8 +4,6 @@ use Pcore -class;
 
 has cookies => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 sub clear ($self) {
     $self->{cookies} = {};
 
@@ -223,9 +221,9 @@ sub _match_path ( $self, $url_path, $cookie_path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 15                   │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (31)             │
+## │    3 │ 13                   │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (31)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 184, 186             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 182, 184             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

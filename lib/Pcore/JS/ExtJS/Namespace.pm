@@ -29,8 +29,6 @@ around _set_ext_class_name => sub {
     return;
 };
 
-no Pcore;
-
 sub _build_app_name_camel_case {
     my $self = shift;
 

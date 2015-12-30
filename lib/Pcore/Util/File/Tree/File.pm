@@ -7,8 +7,6 @@ has path => ( is => 'ro', isa => Str, required => 1 );
 has source_path => ( is => 'ro', isa => Str );
 has content => ( is => 'lazy', isa => ScalarRef, predicate => 1 );
 
-no Pcore;
-
 sub _build_content ($self) {
     return P->file->read_bin( $self->source_path );
 }

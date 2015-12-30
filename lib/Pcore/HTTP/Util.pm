@@ -6,8 +6,6 @@ use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
 use Pcore::Util::Scalar qw[refaddr];
 use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
 
-no Pcore;
-
 const our $CONTENT_ENCODING_GZIP     => 1;    # NOTE only gzip is supported now
 const our $CONTENT_ENCODING_COMPRESS => 2;
 const our $CONTENT_ENCODING_DEFLATE  => 3;
@@ -577,12 +575,12 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 25                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 344                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 23                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
+## │      │ 342                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 98, 111, 112, 207    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 96, 109, 110, 205    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 527                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 525                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

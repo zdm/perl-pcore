@@ -5,8 +5,6 @@ use base qw[Time::Moment];
 use HTTP::Date qw[];
 use Time::Zone qw[];
 
-no Pcore;
-
 sub parse ( $self, $date ) {
     if ( my @http_date = HTTP::Date::parse_date($date) ) {
         return $self->new(

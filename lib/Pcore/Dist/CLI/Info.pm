@@ -4,8 +4,6 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-no Pcore;
-
 sub cli_abstract ($self) {
     return 'show different distribution info';
 }

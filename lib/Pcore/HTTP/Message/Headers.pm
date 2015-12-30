@@ -3,8 +3,6 @@ package Pcore::HTTP::Message::Headers;
 use Pcore -class;
 extends qw[Pcore::Util::Hash::Multivalue];
 
-no Pcore;
-
 sub to_psgi ($self) {
     my $hash = $self->get_hash;
 
@@ -42,7 +40,7 @@ sub to_string ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 13, 27               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 11, 25               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

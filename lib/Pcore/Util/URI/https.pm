@@ -9,8 +9,6 @@ with qw[Pcore::Util::URI::Web2];
 has '+is_secure'    => ( default => 1 );
 has '+default_port' => ( default => 443 );
 
-no Pcore;
-
 1;
 __END__
 =pod

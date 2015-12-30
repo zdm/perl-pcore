@@ -10,8 +10,6 @@ use overload    #
 
 has old_umask => ( is => 'ro', isa => Int, required => 1 );
 
-no Pcore;
-
 sub DEMOLISH ( $self, $global ) {
     umask $self->old_umask;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 

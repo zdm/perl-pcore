@@ -42,8 +42,6 @@ around new => sub ( $orig, $self, $host ) {
     return bless { name => $host }, __PACKAGE__;
 };
 
-no Pcore;
-
 sub pub_suffixes ( $self, $force_download = 0 ) {
     state $suffixes = do {
         my $path = $ENV->res->get('/data/pub_suffix.dat');
@@ -328,9 +326,9 @@ sub _build_root_domain_utf8 ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 74, 81, 95           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 72, 79, 93           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 271, 274             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 269, 272             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

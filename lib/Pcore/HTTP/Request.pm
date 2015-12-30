@@ -30,8 +30,6 @@ has on_body       => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HT
 has before_finish => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{before_finish} );
 has on_finish     => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_finish} );
 
-no Pcore;
-
 sub BUILDARGS ( $self, @ ) {
     my $args = ref $_[1] ? $_[1] : { splice @_, 1 };
 

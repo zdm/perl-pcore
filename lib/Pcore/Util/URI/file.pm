@@ -4,8 +4,6 @@ use Pcore -class;
 
 extends qw[Pcore::Util::URI];
 
-no Pcore;
-
 1;
 __END__
 =pod

@@ -8,8 +8,6 @@ has func_name => ( is => 'ro', isa => Maybe [Str] );
 has func_args => ( is => 'ro', isa => Maybe [ArrayRef] );
 has func_body => ( is => 'ro', isa => Str, required => 1 );
 
-no Pcore;
-
 sub as_js {
     my $self = shift;
 
@@ -29,7 +27,7 @@ sub as_js {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 19                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 17                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
