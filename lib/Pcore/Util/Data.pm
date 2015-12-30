@@ -342,7 +342,7 @@ CODE
         $res = from_json( $data_ref->$*, cache => 'deserializer_utf8_' . $args{json_utf8}, utf8 => $args{json_utf8} );
     }
     elsif ( $args{from} eq 'CBOR' ) {
-        $res = _get_cbor_obj->decode( $data_ref->$* );
+        $res = _get_cbor_obj()->decode( $data_ref->$* );
     }
     elsif ( $args{from} eq 'YAML' ) {
         state $init = !!require YAML::XS;
@@ -785,9 +785,6 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 64, 150, 152, 372,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## │      │ 399, 401, 403, 405   │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 569                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_cbor_obj' declared but not     │
-## │      │                      │ used                                                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 675, 693, 733, 742   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
