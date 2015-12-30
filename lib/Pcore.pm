@@ -63,7 +63,6 @@ BEGIN {
         embedded    => 0,    # run in embedded mode
         export      => 1,    # install standart import method
         inline      => 0,    # package use Inline
-        no_clean    => 0,    # do not perform namespace autoclean
         no_isa_attr => 0,    # do not check isa for class / role attributes
         role        => 0,    # package is a Moo role
         types       => 0,    # export types
@@ -222,9 +221,6 @@ sub import {
         _import_types($caller) if $pragma->{types};
     }
 
-    # cleanup
-    namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] ) unless $pragma->{no_clean};
-
     return;
 }
 
@@ -237,11 +233,14 @@ sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     # find caller
     my $caller = caller;
 
+    # cleanup
+    # namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] ) if $caller->can('new');
+
     # try to unimport Moo keywords
-    _unimport_moo($caller);
+    # _unimport_moo($caller);
 
     # unimport types
-    _unimport_types($caller);
+    # _unimport_types($caller);
 
     return;
 }
@@ -561,17 +560,20 @@ sub _config_stdout ($h) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 48                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 103                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (27)                    │
+## │    3 │ 102                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 158                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 157                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 331                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_apply_roles' declared but not used │
+## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
+## │      │ 280                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 318                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 330                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 373, 402, 405, 409,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 458, 475, 537, 540,  │                                                                                                                │
-## │      │ 545, 548             │                                                                                                                │
+## │    3 │ 372, 401, 404, 408,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 457, 474, 536, 539,  │                                                                                                                │
+## │      │ 544, 547             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 377                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 376                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
