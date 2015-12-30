@@ -6,8 +6,6 @@ with qw[Pcore::AppX];
 
 has _api_backend => ( is => 'rwp', isa => ConsumerOf ['Pcore::API::Backend'], predicate => 1, init_arg => undef );
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     my $api_backend;
 
@@ -94,7 +92,7 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 53                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_create_local_cfg' declared but not │
+## │    3 │ 51                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_create_local_cfg' declared but not │
 ## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##

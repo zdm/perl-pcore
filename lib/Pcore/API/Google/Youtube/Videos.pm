@@ -6,8 +6,6 @@ with qw[Pcore::Handle::API::Google::Youtube];
 
 has api_path => ( is => 'lazy', isa => Str, init_arg => undef );
 
-no Pcore;
-
 sub _build_api_path {
     my $self = shift;
 

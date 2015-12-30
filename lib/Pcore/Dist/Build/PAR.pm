@@ -12,8 +12,6 @@ has crypt => ( is => 'ro', isa => Maybe [Bool] );
 has upx   => ( is => 'ro', isa => Maybe [Bool] );
 has clean => ( is => 'ro', isa => Maybe [Bool] );
 
-no Pcore;
-
 sub run ($self) {
 
     # load .pardeps.cbor
@@ -84,7 +82,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 44                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

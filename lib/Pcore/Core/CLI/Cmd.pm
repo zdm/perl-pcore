@@ -2,8 +2,6 @@ package Pcore::Core::CLI::Cmd;
 
 use Pcore -role;
 
-no Pcore;
-
 # COMMON
 sub cli_class ($self) {
     return;

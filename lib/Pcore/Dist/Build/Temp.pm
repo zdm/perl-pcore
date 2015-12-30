@@ -11,8 +11,6 @@ has prereqs  => ( is => 'lazy', isa => Object, init_arg => undef );
 has module_build_tiny_ver => ( is => 'ro', default => version->parse(v0.39.0)->normal, init_arg => undef );
 has test_pod_ver          => ( is => 'ro', default => version->parse(v1.51.0)->normal, init_arg => undef );
 
-no Pcore;
-
 const our $XT_TEST => {
     author  => [ 'AUTHOR_TESTING',    '"smoke bot" testing' ],
     release => [ 'RELEASE_TESTING',   'release candidate testing' ],
@@ -264,7 +262,7 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 190                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 188                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

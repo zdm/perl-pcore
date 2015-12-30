@@ -29,8 +29,6 @@ has is_required   => ( is => 'lazy', isa => Bool, init_arg => undef );
 has getopt_spec   => ( is => 'lazy', isa => Str,  init_arg => undef );
 has help_spec     => ( is => 'lazy', isa => Str,  init_arg => undef );
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     my $name = $self->name;
 
@@ -280,9 +278,9 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14, 258              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 14, 256              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 34                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (34)                     │
+## │    3 │ 32                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (34)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

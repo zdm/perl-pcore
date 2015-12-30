@@ -11,8 +11,6 @@ has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_ar
 has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );
 has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Resources'], init_arg => undef );
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     $self->{START_DIR}      = P->file->cwd->to_string;
     $self->{SCRIPT_NAME}    = $FindBin::RealScript;

@@ -17,8 +17,6 @@ has is_repeatable => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_required   => ( is => 'lazy', isa => Bool, init_arg => undef );
 has help_spec     => ( is => 'lazy', isa => Str,  init_arg => undef );
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     my $name = $self->name;
 

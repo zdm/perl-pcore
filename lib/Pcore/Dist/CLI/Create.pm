@@ -5,8 +5,6 @@ use Pcore::Dist;
 
 with qw[Pcore::Core::CLI::Cmd];
 
-no Pcore;
-
 # CLI
 sub cli_abstract ($self) {
     return 'create new distribution';
@@ -55,7 +53,7 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 41                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

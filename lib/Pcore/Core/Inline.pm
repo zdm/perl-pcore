@@ -2,8 +2,6 @@ package Pcore::Core::Inline;
 
 use Pcore;
 
-no Pcore;
-
 if ( $ENV->is_par ) {
     $INC{'Inline.pm'} = $INC{'Pcore/Core/Inline.pm'};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
@@ -41,7 +39,7 @@ else {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 49                   │ Documentation::RequirePodLinksIncludeText - Link L<Inline> on line 65 does not specify text                    │
+## │    2 │ 37                   │ Documentation::RequirePodLinksIncludeText - Link L<Inline> on line 53 does not specify text                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

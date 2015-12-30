@@ -7,8 +7,6 @@ has h_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Core::H::Cache'],      r
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Backend::Local'], required => 1, weak_ref => 1 );
 has app_ns => ( is => 'ro', isa => Str, required => 1 );
 
-no Pcore;
-
 sub scan ($self) {
     warn q[Indexing API classes in "] . $self->app_ns . q[::API::" namespace];
 
@@ -65,7 +63,7 @@ sub scan ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 41                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

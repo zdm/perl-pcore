@@ -4,8 +4,6 @@ use Pcore -class;
 
 with qw[Pcore::Core::CLI::Cmd];
 
-no Pcore;
-
 # TODO this command should be added automatically, if $ENV->{CFG}->{SERVICE_NAME} is defined
 
 sub cli_name ($self) {

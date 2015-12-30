@@ -4,8 +4,6 @@ use Pcore -class, -const;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
-no Pcore;
-
 const our $DIR => [
 
     # general build

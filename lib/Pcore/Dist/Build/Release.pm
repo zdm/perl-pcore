@@ -11,8 +11,6 @@ has major  => ( is => 'ro', isa => Bool, default => 0 );
 has minor  => ( is => 'ro', isa => Bool, default => 0 );
 has bugfix => ( is => 'ro', isa => Bool, default => 0 );
 
-no Pcore;
-
 sub run ($self) {
     if ( $self->dist->cfg->{dist}->{cpan} && !$self->dist->build->user_cfg || ( !$self->dist->build->user_cfg->{PAUSE}->{username} || !$self->dist->build->user_cfg->{PAUSE}->{password} ) ) {
         say 'You need to specify PAUSE credentials';
@@ -197,9 +195,9 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 32                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 17, 75, 106          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 15, 73, 104          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

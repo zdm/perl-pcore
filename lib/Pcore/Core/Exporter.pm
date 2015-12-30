@@ -4,8 +4,6 @@ use Pcore;
 use if $^V ge 'v5.10', feature  => ':all';
 no  if $^V ge 'v5.18', warnings => 'experimental';
 
-no Pcore;
-
 our $EXPORT_PRAGMA = {    #
     export => 1,
 };
@@ -267,10 +265,10 @@ sub _export_tags ( $self, $caller, $tag ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 56, 66, 157, 205,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 208, 232, 235        │                                                                                                                │
+## │    3 │ 54, 64, 155, 203,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 206, 230, 233        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 167                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
+## │    3 │ 165                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

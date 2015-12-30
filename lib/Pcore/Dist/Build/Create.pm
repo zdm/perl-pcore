@@ -13,8 +13,6 @@ has cpan      => ( is => 'ro', isa => Bool, default  => 0 );
 has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-no Pcore;
-
 our $ERROR;
 
 sub BUILDARGS ( $self, $args ) {

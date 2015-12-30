@@ -9,8 +9,6 @@ has user_cfg_path => ( is => 'lazy', isa => Str, init_arg => undef );
 has user_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );
 has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ], init_arg => undef );
 
-no Pcore;
-
 sub _build_user_cfg_path ($self) {
     return $ENV->{PCORE_USER_DIR} . 'pcore.ini';
 }

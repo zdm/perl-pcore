@@ -20,8 +20,6 @@ around run => sub ( $orig, $self, @args ) {
     return $self->$orig(@args);
 };
 
-no Pcore;
-
 1;
 __END__
 =pod

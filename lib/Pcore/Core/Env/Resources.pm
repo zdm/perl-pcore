@@ -7,8 +7,6 @@ has _lib_order   => ( is => 'ro',   isa => ArrayRef, default => sub { [] }, init
 has _storage     => ( is => 'lazy', isa => HashRef,  default => sub { {} }, clearer  => 1, init_arg => undef );
 has _lib_storage => ( is => 'lazy', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 const our $RESERVED_LIB_NAME => {
     pcore => 1,
     dist  => 1,

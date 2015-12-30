@@ -83,8 +83,6 @@ around new => sub ( $orig, $self, $msg, %args ) {
     return $self->$orig( { %args, msg => "$msg" } );         ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 };
 
-no Pcore;
-
 # CLASS METHODS
 sub PROPAGATE ( $self, $file, $line ) {
     return $self;
@@ -172,7 +170,7 @@ sub stop_propagate ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 135                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 133                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

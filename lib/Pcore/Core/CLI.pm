@@ -15,8 +15,6 @@ has arg => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 has is_cmd     => ( is => 'lazy', isa => Bool,    init_arg => undef );
 has _cmd_index => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-no Pcore;
-
 my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->cfg->{dist}->{par} && exists $ENV->dist->cfg->{dist}->{par}->{ $ENV->{SCRIPT_NAME} };
 
 sub _build_cmd ($self) {
@@ -563,15 +561,15 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 46                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 44                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 89, 92, 157, 238,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 273, 334, 357, 393,  │                                                                                                                │
-## │      │ 455, 460, 464, 473   │                                                                                                                │
+## │    3 │ 87, 90, 155, 236,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 271, 332, 355, 391,  │                                                                                                                │
+## │      │ 453, 458, 462, 471   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 347                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 345                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 493, 521             │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 491, 519             │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

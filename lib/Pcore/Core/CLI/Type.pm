@@ -32,8 +32,6 @@ const our $TYPE => {
     },
 };
 
-no Pcore;
-
 sub _validate_isa ( $self, @ ) {
     my $vals = ref $_[1] eq 'ARRAY' ? $_[1] : ref $_[1] eq 'HASH' ? [ \values $_[1]->%* ] : [ \$_[1] ];
 
@@ -80,10 +78,10 @@ sub _validate_isa ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 37                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_validate_isa' declared but not     │
+## │    3 │ 35                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_validate_isa' declared but not     │
 ## │      │                      │ used                                                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 38                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 36                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -32,8 +32,6 @@ around cli_run => sub ( $orig, $self, $opt, @args ) {
     return $self->$orig( $opt, @args );
 };
 
-no Pcore;
-
 1;
 __END__
 =pod

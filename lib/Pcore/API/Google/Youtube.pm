@@ -4,8 +4,6 @@ use Pcore -role;
 
 with qw[Pcore::Handle::API::Google::_Role];
 
-no Pcore;
-
 1;
 __END__
 =pod
