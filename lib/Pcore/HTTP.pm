@@ -173,40 +173,46 @@ sub _request {
 
     if ( !blessed $_[0] ) {
         %args = ( $DEFAULT->%*, @_ );
+
+        $args{headers} = blessed $args{headers} ? $args{headers}->clone : Pcore::HTTP::Message::Headers->new->replace( $args{headers} ) if $args{headers};
     }
     else {
         while (@_) {
+            my $old_headers = delete $args{headers};
+
             if ( blessed $_[0] ) {
                 my $obj = shift;
 
                 for my $arg ( keys $DEFAULT->%* ) {
                     $args{$arg} = $obj->$arg;
                 }
+
+                $args{headers} = $args{headers} ? $old_headers->replace( $args{headers}->get_hash ) : $old_headers if $old_headers;
             }
             else {
                 %args = ( %args, @_ );
+
+                # headers were aadded
+                if ($old_headers) {
+                    $args{headers} = $args{headers} ? $old_headers->replace( blessed $args{headers} ? $args{headers}->get_hash : $args{headers} ) : $old_headers;
+                }
+
+                # headers were created
+                elsif ( $args{headers} ) {
+                    $args{headers} = blessed $args{headers} ? $args{headers}->clone : Pcore::HTTP::Message::Headers->new->replace( $args{headers} );
+                }
 
                 last;
             }
         }
     }
 
+    # create empty headers object if no headers were added
+    $args{headers} = Pcore::HTTP::Message::Headers->new if !$args{headers};
+
     $args{res} = Pcore::HTTP::Response->new;
 
     $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !ref $args{url};
-
-    # headers
-    if ( $args{headers} ) {
-        if ( blessed $args{headers} ) {
-            $args{headers} = $args{headers}->clone;
-        }
-        else {
-            $args{headers} = Pcore::HTTP::Message::Headers->new->replace( $args{headers} );
-        }
-    }
-    else {
-        $args{headers} = Pcore::HTTP::Message::Headers->new;
-    }
 
     # merge handle_params
     if ( my $handle_params = delete $args{handle_params} ) {
@@ -320,10 +326,10 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 171                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (37)                  │
+## │    3 │ 171                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (43)                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175, 182, 214, 215,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 239                  │                                                                                                                │
+## │    3 │ 175, 186, 220, 221,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 245                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 157                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
