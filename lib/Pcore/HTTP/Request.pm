@@ -36,6 +36,8 @@ sub BUILDARGS ( $self, @ ) {
 
     $args->{cookie_jar} = Pcore::HTTP::CookieJar->new if $args->{cookie_jar} && !ref $args->{cookie_jar};
 
+    $args->{url} = P->uri( $args->{url}, base => 'http://', authority => 1 ) if $args->{url} && !ref $args->{url};
+
     return $args;
 }
 
@@ -52,7 +54,7 @@ sub http_request ( $self, @ ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 10                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 43                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 45                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

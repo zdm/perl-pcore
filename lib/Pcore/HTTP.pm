@@ -193,7 +193,7 @@ sub _request {
 
     $args{res} = Pcore::HTTP::Response->new;
 
-    $args{url} = P->uri( $args{url}, base => q[http://], authority => 1 ) if !ref $args{url};
+    $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !ref $args{url};
 
     # headers
     if ( $args{headers} ) {

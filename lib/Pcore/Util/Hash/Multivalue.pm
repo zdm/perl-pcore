@@ -55,9 +55,9 @@ sub get_hash ($self) {
 sub add {
     my $self = shift;
 
-    my $args = $self->_parse_args(@_);
+    my $args = is_array( $_[0] ) ? $_[0] : is_hash( $_[0] ) ? [ $_[0]->%* ] : [@_];
 
-    my $hash = $self->get_hash;
+    my $hash = tied $self->%*;
 
     for ( my $i = 0; $i <= $args->$#*; $i += 2 ) {
         if ( !exists $hash->{ $args->[$i] } ) {
@@ -80,9 +80,13 @@ sub set {    ## no critic qw[NamingConventions::ProhibitAmbiguousNames]
 sub replace {
     my $self = shift;
 
-    my $args = $self->_parse_args(@_);
+    my $args = is_array( $_[0] ) ? $_[0] : is_hash( $_[0] ) ? [ $_[0]->%* ] : [@_];
 
-    return $self->remove( pairkeys $args->@* )->add($args);
+    my $hash = tied $self->%*;
+
+    delete $hash->@{ pairkeys $args->@* };
+
+    return $self->add($args);
 }
 
 sub remove {
@@ -97,12 +101,6 @@ sub clear ($self) {
     $self->get_hash->%* = ();
 
     return $self;
-}
-
-sub _parse_args {
-    my $self = shift;
-
-    return is_array( $_[0] ) ? $_[0] : is_hash( $_[0] ) ? [ $_[0]->%* ] : [@_];
 }
 
 sub to_uri ($self) {
@@ -134,8 +132,9 @@ sub TO_DUMP ( $self, $dumper, %args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 17, 43, 52, 97, 105, │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 117, 127             │                                                                                                                │
+## │    3 │ 17, 43, 52, 58, 60,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 83, 85, 101, 115,    │                                                                                                                │
+## │      │ 125                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 17                   │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
