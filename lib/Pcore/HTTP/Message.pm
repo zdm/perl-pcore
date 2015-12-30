@@ -14,10 +14,7 @@ has buf_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # wri
 
 no Pcore;
 
-sub BUILD {
-    my $self = shift;
-    my $args = shift;
-
+sub BUILD ( $self, $args ) {
     $self->headers->add( $args->{headers} ) if $args->{headers};
 
     $self->set_body( $args->{body} ) if $args->{body};

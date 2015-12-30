@@ -2,7 +2,7 @@ package Pcore::HTTP;
 
 use Pcore -const,
   -export => {
-    ALL     => [qw[http_request http_get http_post http_mirror]],
+    ALL     => [qw[http_request http_head http_get http_post http_mirror]],
     TLS_CTX => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]],
   };
 use Pcore::Util::Scalar qw[blessed is_glob];
@@ -22,8 +22,9 @@ const our $TLS_CTX      => {
 };
 
 our $DEFAULT = {
-    method => undef,
-    url    => undef,
+    method   => undef,
+    url      => undef,
+    blocking => undef,
 
     useragent         => "Mozilla/5.0 (compatible; U; Pcore-HTTP-UA/$Pcore::VERSION",
     recurse           => 7,                                                             # max. redirects
@@ -100,12 +101,23 @@ const our $HTTP_METHODS => {
 
 # create aliases for export
 *http_request = \&request;
+*http_head    = \&head;
 *http_get     = \&get;
 *http_post    = \&post;
 *http_mirror  = \&mirror;
 
+sub ua {
+    state $init = !!require Pcore::HTTP::Request;
+
+    return Pcore::HTTP::Request->new(@_);
+}
+
 sub request ( $method, $url, @ ) {
     return _request( splice( @_, 2 ), method => $method, url => $url );
+}
+
+sub head ( $url, @ ) {
+    return _request( 'url', @_, method => 'HEAD' );
 }
 
 sub get ( $url, @ ) {
@@ -157,11 +169,44 @@ sub mirror ( $target, @ ) {
 }
 
 sub _request {
-    my %args = ( $DEFAULT->%*, @_ );
+    my %args;
+
+    if ( !blessed $_[0] ) {
+        %args = ( $DEFAULT->%*, @_ );
+    }
+    else {
+        while (@_) {
+            if ( blessed $_[0] ) {
+                my $obj = shift;
+
+                for my $arg ( keys $DEFAULT->%* ) {
+                    $args{$arg} = $obj->$arg;
+                }
+            }
+            else {
+                %args = ( %args, @_ );
+
+                last;
+            }
+        }
+    }
 
     $args{res} = Pcore::HTTP::Response->new;
 
     $args{url} = P->uri( $args{url}, base => q[http://], authority => 1 ) if !ref $args{url};
+
+    # headers
+    if ( $args{headers} ) {
+        if ( blessed $args{headers} ) {
+            $args{headers} = $args{headers}->clone;
+        }
+        else {
+            $args{headers} = Pcore::HTTP::Message::Headers->new->replace( $args{headers} );
+        }
+    }
+    else {
+        $args{headers} = Pcore::HTTP::Message::Headers->new;
+    }
 
     # merge handle_params
     if ( my $handle_params = delete $args{handle_params} ) {
@@ -174,21 +219,10 @@ sub _request {
         $args{handle_params} = $DEFAULT_HANDLE_PARAMS;
     }
 
-    # headers
-    my $headers;
-
-    if ( $args{headers} ) {
-        $headers = Pcore::HTTP::Message::Headers->new( blessed( $args{headers} ) ? $args{headers}->get_hash : $args{headers} );
-    }
-    else {
-        $headers = Pcore::HTTP::Message::Headers->new;
-    }
-
+    # apply useragent
     if ( my $useragent = delete $args{useragent} ) {
-        $headers->{USER_AGENT} = $useragent if !exists $headers->{USER_AGENT};
+        $args{headers}->{USER_AGENT} = $useragent if !exists $args{headers}->{USER_AGENT};
     }
-
-    $args{headers} = $headers;
 
     # resolve cookie_jar shortcut
     $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};
@@ -209,20 +243,17 @@ sub _request {
         }
     }
 
-    # TODO prepare body
-    # TODO if method allow body
-    # if ( $req->has_body && $Pcore::HTTP::Request::HTTP_METHODS->{$method} ) {
-    #     $args->{body} = $req->body_to_http;
-    #
-    #     if ( ref $args->{body} eq 'CODE' ) {
-    #         delete $args->{headers}->{CONTENT_LENGTH};
-    #
-    #         $args->{headers}->{TRANSFER_ENCODING} = 'chunked';
-    #     }
-    #     else {
-    #         $args->{headers}->{CONTENT_LENGTH} = bytes::length( ref $args->{body} eq 'SCALAR' ? $args->{body}->$* : $args->{body} );
-    #     }
-    # }
+    # prepare body
+    if ( defined $args{body} ) {
+        if ( ref $args{body} eq 'CODE' ) {
+            delete $args{headers}->{CONTENT_LENGTH};
+
+            $args{headers}->{TRANSFER_ENCODING} = 'chunked';
+        }
+        else {
+            $args{headers}->{CONTENT_LENGTH} = bytes::length( ref $args{body} eq 'SCALAR' ? $args{body}->$* : $args{body} );
+        }
+    }
 
     # blocking cv
     my $cv = delete $args{blocking};
@@ -289,11 +320,12 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 159                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (26)                  │
+## │    3 │ 171                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (37)                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 160, 169, 170, 205   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 175, 182, 214, 215,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 239                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 145                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 157                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

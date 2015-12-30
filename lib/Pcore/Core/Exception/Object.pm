@@ -72,7 +72,7 @@ around new => sub ( $orig, $self, $msg, %args ) {
     $args{call_stack} = [
         Devel::StackTrace->new(
             unsafe_ref_capture => 0,
-            no_args            => 0,
+            no_args            => 1,
             max_arg_length     => 32,
             indent             => 0,
             skip_frames        => $args{skip_frames} + 3,    # skip useless frames: Devel::StackTrace::new, around new, new

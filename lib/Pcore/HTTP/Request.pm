@@ -1,72 +1,46 @@
 package Pcore::HTTP::Request;
 
 use Pcore -class, -const;
+use Pcore::AE::Handle qw[:PERSISTENT];
 use Pcore::HTTP;
-use Pcore::HTTP::Response;
 use Pcore::HTTP::CookieJar;
 
 extends qw[Pcore::HTTP::Message];
 
-has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'] );
 has method => ( is => 'ro', isa => Enum [ keys $Pcore::HTTP::HTTP_METHODS->%* ], required => 1 );
-has url => ( is => 'ro', isa => Str, required => 1 );
+has url => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'], required => 1 );
+has blocking => ( is => 'ro', isa => Maybe [ Bool | InstanceOf ['AnyEvent::CondVar'] ], default => $Pcore::HTTP::DEFAULT->{blocking} );
 
-has recurse    => ( is => 'ro', isa => PositiveOrZeroInt );
-has timeout    => ( is => 'ro', isa => PositiveOrZeroInt );
-has persistent => ( is => 'ro', isa => Bool );
-has session    => ( is => 'ro', isa => Str );
-has cookie_jar => ( is => 'ro', isa => Ref );
-has tls_ctx    => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::TLS_CTX_LOW, $Pcore::HTTP::TLS_CTX_HIGH ] | HashRef ] );
-
-has handle_params => ( is => 'ro', isa => HashRef );
-
-has accept_compressed => ( is => 'ro', default => 1 );
-has decompress        => ( is => 'ro', default => 1 );
-
+has useragent         => ( is => 'ro', isa => Str,               default => $Pcore::HTTP::DEFAULT->{useragent} );
+has recurse           => ( is => 'ro', isa => PositiveOrZeroInt, default => $Pcore::HTTP::DEFAULT->{recurse} );
+has timeout           => ( is => 'ro', isa => PositiveOrZeroInt, default => $Pcore::HTTP::DEFAULT->{timeout} );
+has accept_compressed => ( is => 'ro', isa => Bool,              default => $Pcore::HTTP::DEFAULT->{accept_compressed} );
+has decompress        => ( is => 'ro', isa => Bool,              default => $Pcore::HTTP::DEFAULT->{decompress} );
+has persistent => ( is => 'ro', isa => Enum [ $PERSISTENT_IDENT, $PERSISTENT_ANY, $PERSISTENT_NO_PROXY ], default => $Pcore::HTTP::DEFAULT->{persistent} );
+has session    => ( is => 'ro', isa => Maybe [Str],    default => $Pcore::HTTP::DEFAULT->{session} );
+has cookie_jar => ( is => 'ro', isa => Maybe [Object], default => $Pcore::HTTP::DEFAULT->{cookie_jar} );
 has proxy => ( is => 'ro', writer => 'set_proxy', predicate => 1, clearer => 1 );
 
-has on_header   => ( is => 'ro', isa => CodeRef );
-has on_body     => ( is => 'ro', isa => CodeRef );
-has on_progress => ( is => 'ro', isa => CodeRef );
-has on_finish   => ( is => 'ro', isa => CodeRef );
+has tls_ctx => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::TLS_CTX_LOW, $Pcore::HTTP::TLS_CTX_HIGH ] | HashRef ], default => $Pcore::HTTP::DEFAULT->{tls_ctx} );
+has handle_params => ( is => 'ro', isa => Maybe [HashRef], default => $Pcore::HTTP::DEFAULT->{handle_params} );
+
+has on_progress => ( is => 'ro', isa => Maybe [ Bool | CodeRef ], default => $Pcore::HTTP::DEFAULT->{on_progress} );
+has on_header => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_header} );
+has on_body   => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_body} );
+has on_finish => ( is => 'ro', isa => Maybe [CodeRef], default => $Pcore::HTTP::DEFAULT->{on_finish} );
 
 no Pcore;
 
-sub BUILDARGS ( $self, $args = undef ) {
-    $args //= {};
+sub BUILDARGS ( $self, @ ) {
+    my $args = ref $_[1] ? $_[1] : { splice @_, 1 };
 
-    if ( $args->{on_progress} && ref $args->{on_progress} ne 'CODE' ) {
-        $args->{on_progress} = $self->_get_progress_bar_cb( ref $args->{on_progress} eq 'HASH' ? $args->{on_progress}->%* : () );
-    }
-    else {
-        delete $args->{on_progress};
-    }
-
-    $args->{cookie_jar} = Pcore::HTTP::CookieJar->new if $args->{cookie_jar} && $args->{cookie_jar} == 1;
+    $args->{cookie_jar} = Pcore::HTTP::CookieJar->new if $args->{cookie_jar} && !ref $args->{cookie_jar};
 
     return $args;
 }
 
-sub BUILD ( $self, $args ) {
-    $self->headers->set( $args->{headers} ) if $args->{headers};
-
-    $self->set_body( $args->{body} ) if $args->{body};
-
-    return;
-}
-
-sub run_request ($self) {
-    return P->http->_request( $self->to_http_request->@* );
-}
-
-sub to_http_request ($self) {
-    my @args;
-
-    for my $method ( keys $Pcore::HTTP::DEFAULT->%* ) {
-        push @args, $method, $self->$method;
-    }
-
-    return \@args;
+sub http_request ( $self, @ ) {
+    return P->http->_request(@_);
 }
 
 1;
@@ -76,9 +50,9 @@ sub to_http_request ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 11, 39, 65           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 10                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 59                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 43                   │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
