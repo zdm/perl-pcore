@@ -233,6 +233,10 @@ sub _export_tags ( $self, $caller, $tag ) {
         my $export_all = $export->{ALL};
 
         for my $sym ( keys $symbols->%* ) {
+
+            # skip symbol if it is not exists in symbol table
+            next if !defined *{"$self\::$export_all->{$sym}->[0]"};
+
             my $type = $export_all->{$sym}->[1];
 
             my $alias = $symbols->{$sym} // $export_all->{$sym}->[0];
@@ -266,7 +270,7 @@ sub _export_tags ( $self, $caller, $tag ) {
 ## │    3 │ 56, 66, 157, 205,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## │      │ 208, 232, 235        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 167                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (27)              │
+## │    3 │ 167                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

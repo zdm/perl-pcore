@@ -164,13 +164,6 @@ sub import {
             Pcore::Core::Exporter->import( -caller => $caller, -export => $pragma->{export} );
         }
 
-        # process -autoload pragma
-        if ( $pragma->{autoload} ) {
-            state $init = !!require Pcore::Core::Autoload;
-
-            Pcore::Core::Autoload->import( -caller => $caller );
-        }
-
         # process -inline pragma
         if ( $pragma->{inline} ) {
             state $init = !!require Pcore::Core::Inline;
@@ -217,6 +210,13 @@ sub import {
             # _apply_roles( $caller, qw[Pcore::Core::Autoload::Role] );
         }
 
+        # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
+        if ( $pragma->{autoload} ) {
+            state $init = !!require Pcore::Core::Autoload;
+
+            Pcore::Core::Autoload->import( -caller => $caller );
+        }
+
         # export types
         _import_types($caller) if $pragma->{types};
     }
@@ -234,7 +234,7 @@ sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my $caller = caller;
 
     # cleanup
-    # namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] ) if $caller->can('new');
+    namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] );
 
     # try to unimport Moo keywords
     # _unimport_moo($caller);
