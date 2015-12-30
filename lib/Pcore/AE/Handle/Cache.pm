@@ -9,8 +9,6 @@ has default_timeout => ( is => 'ro', isa => PositiveInt, default => 4 );
 has handle     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has connection => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 sub clear ($self) {
     $self->{handle}->%* = ();
 
@@ -102,7 +100,7 @@ sub fetch ( $self, $key ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 15, 17               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 13, 15               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

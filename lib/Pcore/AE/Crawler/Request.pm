@@ -35,8 +35,6 @@ around process_response => sub ( $orig, $self, $res, $responder ) {
     return;
 };
 
-no Pcore;
-
 sub _build_id ($self) {
     return;
 }

@@ -8,8 +8,6 @@ requires qw[_build_chart_config];
 
 has chart_config => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-no Pcore;
-
 # EXT
 sub ext_class_panel {
     my $self = shift;

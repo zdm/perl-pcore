@@ -12,8 +12,6 @@ has http_timeout => ( is => 'ro', isa => PositiveInt, default   => 10 );
 
 has '+max_threads_source' => ( isa => Enum [ 0, 350 ], default => 350 );
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     $self->bind_ip if $args->{bind_ip};
 

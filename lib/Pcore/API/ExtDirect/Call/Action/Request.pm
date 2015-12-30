@@ -11,8 +11,6 @@ has '+data' => ( isa => HashRef | ArrayRef );
 
 has is_response => ( is => 'lazy', isa => Bool, default => 0, init_arg => undef );
 
-no Pcore;
-
 sub BUILDARGS {
     my $self = shift;
     my $args = shift;

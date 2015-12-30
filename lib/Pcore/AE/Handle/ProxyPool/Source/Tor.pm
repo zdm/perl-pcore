@@ -19,8 +19,6 @@ has '+load_timeout' => ( default => 0, init_arg => undef );
 #     return $proxy;
 # };
 
-no Pcore;
-
 # NOTE it's important to use "persistent" = 0 in AnyEvent::HTTP, otherwise all connections will not use NEWNYM, if NYM changed
 
 sub load ( $self, $cb ) {

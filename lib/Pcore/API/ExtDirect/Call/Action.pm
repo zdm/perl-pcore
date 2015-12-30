@@ -11,8 +11,6 @@ has data => ( is => 'ro', predicate => 1 );
 
 has _real_action => ( is => 'lazy', isa => Str, init_arg => undef );
 
-no Pcore;
-
 sub _build__real_action {
     my $self = shift;
 

@@ -18,8 +18,6 @@ around ext_model_field => sub {
     return $field;
 };
 
-no Pcore;
-
 sub writer {
     my $self = shift;
     my $val  = shift;

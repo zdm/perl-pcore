@@ -4,8 +4,6 @@ use Pcore -class;
 
 extends qw[Pcore::API::Map::Method];
 
-no Pcore;
-
 1;
 __END__
 =pod

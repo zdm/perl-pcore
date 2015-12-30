@@ -23,8 +23,6 @@ has _waiting_callbacks => ( is => 'ro', isa => ArrayRef, default => sub { [] }, 
 
 has is_proxy_pool => ( is => 'ro', default => 1, init_arg => undef );
 
-no Pcore;
-
 sub BUILD ( $self, $args ) {
     if ( $args->{source} ) {
         for my $source_args ( $args->{source}->@* ) {
@@ -228,9 +226,9 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 93, 114          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 29, 91, 112          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 208, 211             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 206, 209             │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

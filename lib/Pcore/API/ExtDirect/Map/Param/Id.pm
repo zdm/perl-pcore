@@ -18,8 +18,6 @@ around generate_api_map => sub {
     return $self->$orig;
 };
 
-no Pcore;
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

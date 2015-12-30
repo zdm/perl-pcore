@@ -11,8 +11,6 @@ has sid              => ( is => 'rwp',  isa => Str, predicate => 1,             
 
 has _has_psgi_app => ( is => 'lazy', isa => Bool, init_arg => undef );
 
-no Pcore;
-
 # API
 sub call {
     my $self = shift;
@@ -153,7 +151,7 @@ sub end_session {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 54                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 52                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

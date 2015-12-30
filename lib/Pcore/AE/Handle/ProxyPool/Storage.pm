@@ -7,8 +7,6 @@ has pool_id => ( is => 'ro', isa => Int, required => 1 );
 has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
 has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 sub _build_dbh ($self) {
     my $id = '__proxy_pool' . $self->pool_id;
 
@@ -192,7 +190,7 @@ SQL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 99, 127              │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 97, 125              │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -24,8 +24,6 @@ has has_readable_upload_fields => ( is => 'lazy', isa => Bool,    init_arg => un
 
 has _can_hook_method => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 sub BUILDARGS {
     my $self = shift;
     my $args = shift;
@@ -199,8 +197,8 @@ sub call_hook {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 59, 87, 104, 146,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 160                  │                                                                                                                │
+## │    3 │ 57, 85, 102, 144,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 158                  │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

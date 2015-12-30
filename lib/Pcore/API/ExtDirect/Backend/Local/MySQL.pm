@@ -5,8 +5,6 @@ use Pcore::Util::Text qw[to_camel_case];
 
 with qw[Pcore::API::Backend::Local];
 
-no Pcore;
-
 sub run_ddl {
     my $self = shift;
 
@@ -286,9 +284,9 @@ sub auth_method {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 13                   │ ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               │
+## │    3 │ 11                   │ ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 147, 155, 165, 170   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 145, 153, 163, 168   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

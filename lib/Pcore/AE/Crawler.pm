@@ -24,8 +24,6 @@ has total_reqs_by_type => ( is => 'ro', isa => HashRef, default => sub { {} }, i
 has running_threads => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 has running_threads_by_type => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 # request exit codes
 const our $REQ_DONE   => 1;
 const our $REQ_REPEAT => 3;
@@ -205,7 +203,7 @@ sub _start_request ( $self, $req ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 130, 168             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 128, 166             │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -17,8 +17,6 @@ has total => ( is => 'rwp', isa => PositiveOrZeroInt, predicate => 1 );
 
 has is_response => ( is => 'lazy', isa => Bool, default => 1, init_arg => undef );
 
-no Pcore;
-
 sub BUILDARGS {
     my $self = shift;
     my $args = shift;

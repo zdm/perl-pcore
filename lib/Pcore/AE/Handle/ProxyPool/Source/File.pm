@@ -7,8 +7,6 @@ with qw[Pcore::AE::Handle::ProxyPool::Source];
 
 has path => ( is => 'ro', isa => Str, required => 1 );
 
-no Pcore;
-
 sub load ( $self, $cb ) {
     my $proxies;
 

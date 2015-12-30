@@ -2,8 +2,6 @@ package Pcore::AE::Handle::Cache::Storage;
 
 use Pcore;
 
-no Pcore;
-
 sub new ($self) {
     return bless {
         el       => {},

@@ -11,8 +11,6 @@ has '+load_timeout' => ( default => 0, init_arg => undef );
 has '+max_threads_source' => ( isa => Enum [ 50, 100, 200 ], default => 50 );
 has '+is_multiproxy' => ( default => 1, init_arg => undef );
 
-no Pcore;
-
 sub load ( $self, $cb ) {
     my $proxies;
 

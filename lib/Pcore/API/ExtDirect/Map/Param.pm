@@ -17,8 +17,6 @@ has value => ( is => 'rwp', init_arg => undef );
 
 has _reader_method => ( is => 'lazy', isa => Str, init_arg => undef );
 
-no Pcore;
-
 sub _build_alias_name {
     my $self = shift;
 

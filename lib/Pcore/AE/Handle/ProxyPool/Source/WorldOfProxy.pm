@@ -10,8 +10,6 @@ has http_timeout => ( is => 'ro', isa => PositiveInt, default  => 10 );
 
 has _urls => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-no Pcore;
-
 sub _build__urls {
     my $self = shift;
 
@@ -61,7 +59,7 @@ sub load ( $self, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 35                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 33                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

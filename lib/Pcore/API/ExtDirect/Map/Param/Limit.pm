@@ -11,8 +11,6 @@ has '+default_value' => ( isa => PositiveInt, default => 25 );
 
 has max_value => ( is => 'ro', isa => PositiveInt, default => 50 );
 
-no Pcore;
-
 sub reader {
     my $self             = shift;
     my $val              = shift;

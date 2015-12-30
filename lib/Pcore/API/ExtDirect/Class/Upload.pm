@@ -8,8 +8,6 @@ requires qw[_build_file_api];
 
 has file_api => ( is => 'lazy', isa => Str, init_arg => undef );
 
-no Pcore;
-
 # EXT PANEL
 sub ext_class_panel {
     my $self = shift;

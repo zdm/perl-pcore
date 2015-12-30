@@ -2,8 +2,6 @@ package Pcore::AE::Handle::ProxyPool::Proxy::Removed;
 
 use Pcore;
 
-no Pcore;
-
 sub removed {
     return 1;
 }

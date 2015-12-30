@@ -22,8 +22,6 @@ has persist_fields  => ( is => 'lazy', isa => ArrayRef, init_arg => undef );    
 
 our $INPUT_FIELDS_TYPE = ArrayRef [HashRef];
 
-no Pcore;
-
 sub BUILD {
     my $self = shift;
 
@@ -299,11 +297,11 @@ sub _validate_action_data {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30, 39               │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 28, 37               │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 63, 65, 102, 178,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 183, 195, 197, 219,  │                                                                                                                │
-## │      │ 264                  │                                                                                                                │
+## │    3 │ 61, 63, 100, 176,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 181, 193, 195, 217,  │                                                                                                                │
+## │      │ 262                  │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

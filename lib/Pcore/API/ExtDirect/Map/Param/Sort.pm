@@ -36,8 +36,6 @@ around generate_api_map => sub {
     return $self->$orig;
 };
 
-no Pcore;
-
 sub reader {
     my $self             = shift;
     my $val              = shift;

@@ -19,8 +19,6 @@ package _Bench::Moo::Accessors {
     has rwp_isa       => ( is => 'rwp', isa => Bool );
     has ro_writer     => ( is => 'ro', writer => 'set_ro_writer' );
     has ro_writer_isa => ( is => 'ro', isa => Bool, writer => 'set_ro_writer_isa' );
-
-    no Pcore;
 }
 
 my $obj = _Bench::Moo::Accessors->new;
@@ -44,9 +42,9 @@ Benchmark::cmpthese( Benchmark::timethese( $COUNT, $tests ) );
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 28                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 30                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 28                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

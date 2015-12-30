@@ -13,8 +13,6 @@ has uploads   => ( is => 'rwp', isa => HashRef, predicate => 1, init_arg => unde
 has orig_fields => ( is => 'rwp', isa => HashRef, predicate => 1, init_arg => undef );
 has out_fields => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-no Pcore;
-
 sub _set_in_record {
     my $self    = shift;
     my $fields  = shift;
@@ -68,7 +66,7 @@ sub set_out_field {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 18                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_set_in_record' declared but not    │
+## │    3 │ 16                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_set_in_record' declared but not    │
 ## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##

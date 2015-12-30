@@ -6,8 +6,6 @@ has _on_status => ( is => 'ro', isa => CodeRef, predicate => 1, init_arg => 'on_
 
 has status => ( is => 'ro', isa => Str, writer => '__set_status', init_arg => undef );
 
-no Pcore;
-
 sub _set_status {
     my $self   = shift;
     my $status = shift;
@@ -52,7 +50,7 @@ sub on_status {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 11                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_set_status' declared but not used  │
+## │    3 │ 9                    │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_set_status' declared but not used  │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

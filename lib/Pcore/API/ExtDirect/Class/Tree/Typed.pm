@@ -52,8 +52,6 @@ around APP_BUILD => sub {
     return;
 };
 
-no Pcore;
-
 # FIELDS METHODS
 sub write_field_node_type_text {
     my $self = shift;

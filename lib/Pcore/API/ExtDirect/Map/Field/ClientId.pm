@@ -24,8 +24,6 @@ around ext_model_field => sub {
     return;
 };
 
-no Pcore;
-
 sub _write_field {
     my $self = shift;
     my $val  = shift;
@@ -52,7 +50,7 @@ sub _write_field {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_write_field' declared but not used │
+## │    3 │ 27                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_write_field' declared but not used │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

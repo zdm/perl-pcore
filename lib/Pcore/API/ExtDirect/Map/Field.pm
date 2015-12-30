@@ -43,8 +43,6 @@ has can_writer_method => ( is => 'lazy', isa => Maybe [Str], init_arg => undef )
 
 has ext => ( is => 'ro', isa => HashRef, predicate => 1 );    # additional ext model field config
 
-no Pcore;
-
 sub BUILDARGS {
     my $self = shift;
     my $args = shift;
@@ -309,11 +307,11 @@ sub ext_model_field {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 172                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 170                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 205                  │ * Private subroutine/method '_read_field' declared but not used                                                │
-## │      │ 263                  │ * Private subroutine/method '_write_field' declared but not used                                               │
+## │      │ 203                  │ * Private subroutine/method '_read_field' declared but not used                                                │
+## │      │ 261                  │ * Private subroutine/method '_write_field' declared but not used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

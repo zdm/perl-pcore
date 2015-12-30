@@ -78,8 +78,6 @@ sub run_ddl {
     return $self->dbh->ddl( { ddl => $sql, id => $self->ext_class_ns, sql_mode => $sql_mode } )->run;
 }
 
-no Pcore;
-
 sub _build_dbh {
     my $self = shift;
 

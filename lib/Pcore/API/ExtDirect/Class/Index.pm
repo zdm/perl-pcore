@@ -63,8 +63,6 @@ around _build_navigation => sub {
     return $navigation;
 };
 
-no Pcore;
-
 # VIEWPORT
 sub ext_class_viewport {
     my $self = shift;

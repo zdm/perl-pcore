@@ -51,8 +51,6 @@ around ext_class_panel => sub {
     return $self->$orig->apply( { title => 'Folders' } );
 };
 
-no Pcore;
-
 # API UPDATE
 # TODO implement move node
 sub on_api_update_read_record {

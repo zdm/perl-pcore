@@ -11,8 +11,6 @@ has '+null' => ( default => 0, init_arg => undef );
 has '+isa_type' => ( init_arg => undef );
 has '+default_value' => ( isa => $FILTER_ISA, init_arg => undef );
 
-no Pcore;
-
 sub reader {
     my $self             = shift;
     my $val              = shift;
@@ -62,7 +60,7 @@ sub reader {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 28                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 26                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

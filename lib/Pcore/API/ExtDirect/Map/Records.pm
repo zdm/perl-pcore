@@ -10,8 +10,6 @@ has id_index => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg 
 
 has _iterator => ( is => 'rwp', isa => Int, default => 0, clearer => 1, init_arg => undef );
 
-no Pcore;
-
 # TODO
 # call readers in dependecy order;
 # implement check critical fields;
@@ -222,11 +220,11 @@ sub write_records {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 22                   │ Subroutines::ProhibitExcessComplexity - Subroutine "add_in_records" with high complexity score (21)            │
+## │    3 │ 20                   │ Subroutines::ProhibitExcessComplexity - Subroutine "add_in_records" with high complexity score (21)            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 32, 38, 91, 145      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 36, 89, 143      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 84, 85               │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 82, 83               │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

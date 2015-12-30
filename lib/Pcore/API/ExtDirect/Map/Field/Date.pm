@@ -19,8 +19,6 @@ around ext_model_field => sub {
     return $field;
 };
 
-no Pcore;
-
 sub reader {
     my $self             = shift;
     my $val              = shift;

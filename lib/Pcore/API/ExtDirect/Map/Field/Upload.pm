@@ -19,8 +19,6 @@ has '+writer_method' => ( default => undef, init_arg => undef );
 has multivalue => ( is => 'ro', isa => Bool, default => 0 );              # field value can be ArrayRef
 has max_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 
-no Pcore;
-
 sub reader {
     my $self             = shift;
     my $val              = shift;

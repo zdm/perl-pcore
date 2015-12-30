@@ -22,8 +22,6 @@ use overload    #
 
 has val => ( is => 'ro', isa => Str, required => 1 );
 
-no Pcore;
-
 1;
 
 package Str2;
@@ -37,8 +35,6 @@ use overload    #
   fallback => undef;
 
 has val => ( is => 'ro', isa => Str, required => 1 );
-
-no Pcore;
 
 1;
 

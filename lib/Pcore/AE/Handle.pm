@@ -14,8 +14,6 @@ use Pcore::HTTP::Message::Headers;
 use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF HEADERS_NONE];
 use Pcore::AE::Handle::Cache;
 
-no Pcore;
-
 const our $PROXY_TYPE_HTTP    => 1;
 const our $PROXY_TYPE_CONNECT => 2;
 const our $PROXY_TYPE_SOCKS4  => 31;
@@ -916,29 +914,29 @@ sub get_connect ($connect) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 76                   │ * Subroutine "new" with high complexity score (37)                                                             │
-## │      │ 684                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 74                   │ * Subroutine "new" with high complexity score (37)                                                             │
+## │      │ 682                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 159, 403             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 157, 401             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 261                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 259                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 61, 448, 485, 488,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 500, 538, 541, 544   │                                                                                                                │
+## │    2 │ 59, 446, 483, 486,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 498, 536, 539, 542   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 631                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 629                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 946                  │ * Link L<AnyEvent::Handle> on line 1004 does not specify text                                                  │
-## │      │ 946                  │ * Link L<AnyEvent::Handle> on line 952 does not specify text                                                   │
-## │      │ 946                  │ * Link L<AnyEvent::Handle> on line 960 does not specify text                                                   │
-## │      │ 946                  │ * Link L<AnyEvent::Handle> on line 988 does not specify text                                                   │
-## │      │ 946                  │ * Link L<AnyEvent::Socket> on line 1004 does not specify text                                                  │
-## │      │ 946                  │ * Link L<Pcore::Proxy> on line 1004 does not specify text                                                      │
-## │      │ 946, 946             │ * Link L<Pcore::Proxy> on line 970 does not specify text                                                       │
+## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 1002 does not specify text                                                  │
+## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 950 does not specify text                                                   │
+## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 958 does not specify text                                                   │
+## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 986 does not specify text                                                   │
+## │      │ 944                  │ * Link L<AnyEvent::Socket> on line 1002 does not specify text                                                  │
+## │      │ 944                  │ * Link L<Pcore::Proxy> on line 1002 does not specify text                                                      │
+## │      │ 944, 944             │ * Link L<Pcore::Proxy> on line 968 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 57, 62, 453, 538,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 541, 544, 550        │                                                                                                                │
+## │    1 │ 55, 60, 451, 536,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 539, 542, 548        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

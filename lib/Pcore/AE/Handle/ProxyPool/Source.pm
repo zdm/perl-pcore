@@ -74,8 +74,6 @@ around load => sub ( $orig, $self ) {
     return;
 };
 
-no Pcore;
-
 # BUILDERS
 sub _build_id ($self) {
     state $id = 0;

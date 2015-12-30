@@ -50,8 +50,6 @@ around ext_class_model => sub {
     return $class;
 };
 
-no Pcore;
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

@@ -15,8 +15,6 @@ has __app_builded => ( is => 'rwp', isa => Bool, default => 0, init_arg => undef
 
 has ext_model_base_class => ( is => 'lazy', isa => Str, init_arg => undef );
 
-no Pcore;
-
 sub BUILD {
     my $self = shift;
 
@@ -122,7 +120,7 @@ sub _ext_get_api_methods {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 95, 111              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 93, 109              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

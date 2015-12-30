@@ -106,8 +106,6 @@ around APP_BUILD => sub {
     return;
 };
 
-no Pcore;
-
 sub _build_thumb_size {
     my $self = shift;
 

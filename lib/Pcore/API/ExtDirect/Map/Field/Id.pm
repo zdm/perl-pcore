@@ -25,8 +25,6 @@ around ext_model_field => sub {
     return;
 };
 
-no Pcore;
-
 1;
 __END__
 =pod

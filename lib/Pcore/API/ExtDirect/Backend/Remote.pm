@@ -10,8 +10,6 @@ has addr => ( is => 'ro', isa => Str, required => 1 );
 has session_cookie_name => ( is => 'lazy', isa => Str, default => 'sid' );
 has _ua => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Request'], init_arg => undef );
 
-no Pcore;
-
 sub _build__ua ($self) {
     my $ua = P->http->ua();
 

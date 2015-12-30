@@ -114,8 +114,6 @@ around APP_BUILD => sub {
     return;
 };
 
-no Pcore;
-
 sub _build_path_table {
     my $self = shift;
 

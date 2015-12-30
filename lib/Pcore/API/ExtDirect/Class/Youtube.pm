@@ -222,8 +222,6 @@ around APP_BUILD => sub {
 #     );
 # };
 
-no Pcore;
-
 sub _build_google_api {
     my $self = shift;
 
@@ -489,7 +487,7 @@ sub _get_form_items {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 36, 37, 41           │ ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 470                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_form_items' declared but not   │
+## │    3 │ 468                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_form_items' declared but not   │
 ## │      │                      │ used                                                                                                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##

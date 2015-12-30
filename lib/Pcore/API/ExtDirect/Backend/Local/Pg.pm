@@ -4,8 +4,6 @@ use Pcore -class;
 
 with qw[Pcore::API::Backend::Local];
 
-no Pcore;
-
 1;
 __END__
 =pod

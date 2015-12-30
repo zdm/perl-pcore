@@ -9,8 +9,6 @@ has '+null' => ( default => 0, init_arg => undef );
 has '+isa_type' => ( default => sub {PositiveOrZeroInt}, init_arg => undef );
 has '+default_value' => ( isa => PositiveOrZeroInt, default => 0 );
 
-no Pcore;
-
 1;
 __END__
 =pod

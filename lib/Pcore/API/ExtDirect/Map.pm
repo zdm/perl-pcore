@@ -15,8 +15,6 @@ has methods => ( is => 'lazy', isa => HashRef [ InstanceOf ['Pcore::API::Map::Me
 
 has writable_fields => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-no Pcore;
-
 # FIELDS
 sub add_reserved_fields_names {
     my $self         = shift;
@@ -151,8 +149,8 @@ sub _build_writable_fields {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 38, 41, 70, 76, 90,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 91, 122, 127, 144    │                                                                                                                │
+## │    3 │ 36, 39, 68, 74, 88,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 89, 120, 125, 142    │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

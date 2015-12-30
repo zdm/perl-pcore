@@ -16,8 +16,6 @@ has _captcha => ( is => 'lazy', isa => InstanceOf ['Pcore::Captcha::Antigate'], 
 
 has _ua => ( is => 'lazy', default => sub { P->http->ua( { useragent => 'Links (2.1; Linux 2.6.18-gentoo-r6 x86_64; 80x24)', cookie_jar => 1 } ) }, init_arg => undef );
 
-no Pcore;
-
 our $_CAPTCHA_LOCKED = 0;
 
 sub _build_type {
@@ -293,7 +291,7 @@ sub _verify_captcha ( $self, $responder, $captcha, $url, $id, $continue ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 259                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 257                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

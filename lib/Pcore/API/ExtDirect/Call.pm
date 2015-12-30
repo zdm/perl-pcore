@@ -11,8 +11,6 @@ has has_uploads => ( is => 'lazy', isa => Bool, clearer => 1, init_arg => undef 
 
 has _tid => ( is => 'rwp', isa => NegativeInt, default => -1, init_arg => undef );
 
-no Pcore;
-
 sub BUILDARGS {
     my $self = shift;
 
@@ -156,7 +154,7 @@ sub TO_DATA {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 125                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 123                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

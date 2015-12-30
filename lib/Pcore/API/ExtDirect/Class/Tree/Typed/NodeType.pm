@@ -41,8 +41,6 @@ around APP_BUILD => sub {
     return;
 };
 
-no Pcore;
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
