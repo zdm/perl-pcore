@@ -14,6 +14,8 @@ requires 'B::Hooks::AtRuntime';
 requires 'B::Hooks::EndOfScope::XS';
 requires 'Const::Fast';
 requires 'Clone';
+requires 'Package::Stash';
+requires 'Package::Stash::XS';
 
 # Pcore::Core::Dump
 requires 'PerlIO::Layers';
