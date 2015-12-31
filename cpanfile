@@ -65,9 +65,6 @@ on develop => sub {
     requires 'HTML::Packer';
 };
 
-# Pcore::Util::Base64
-requires 'MIME::Base64';
-
 # Pcore::Util::Capture
 requires 'Capture::Tiny';
 
@@ -85,6 +82,8 @@ requires 'Crypt::DES';
 requires 'Compress::Zlib';
 requires 'URI::Escape::XS';
 requires 'WWW::Form::UrlEncoded::XS';
+requires 'MIME::Base64';
+requires 'Convert::Ascii85';
 
 # Pcore::Util::Date
 requires 'HTTP::Date';
