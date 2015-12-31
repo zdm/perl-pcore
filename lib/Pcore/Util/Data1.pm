@@ -1,7 +1,8 @@
 package Pcore::Util::Data1;
 
 use Pcore -const, -export,
-  { PERL  => [qw[to_perl from_perl]],
+  { ALL   => [qw[encode_data decode_data]],
+    PERL  => [qw[to_perl from_perl]],
     JSON  => [qw[to_json from_json]],
     CBOR  => [qw[to_cbor from_cbor]],
     YAML  => [qw[to_yaml from_yaml]],
@@ -11,6 +12,7 @@ use Pcore -const, -export,
     B85   => [qw[to_b85 from_b85]],
     URI   => [qw[to_uri from_uri from_uri_query]],
     CONST => [qw[$DATA_ENC_B64 $DATA_ENC_HEX $DATA_ENC_B85 $DATA_COMPRESS_ZLIB $DATA_CIPHER_DES]],
+    TYPE  => [qw[$DATA_TYPE_PERL $DATA_TYPE_JSON $DATA_TYPE_CBOR $DATA_TYPE_YAML $DATA_TYPE_XML $DATA_TYPE_INI]],
   };
 use Pcore::Util::Data::I18N;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
@@ -20,7 +22,6 @@ use Pcore::Util::Scalar qw[blessed];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use WWW::Form::UrlEncoded::XS qw[];
 
-const our $DATA_TYPE_RAW  => 0;
 const our $DATA_TYPE_PERL => 1;
 const our $DATA_TYPE_JSON => 2;
 const our $DATA_TYPE_CBOR => 3;
@@ -46,7 +47,7 @@ our $JSON_CACHE;
 # JSON can't serialize ScalarRefs
 # objects should have TO_JSON method, otherwise object will be serialized as null
 # base64 encoder is used by default, it generates more compressed data
-sub _encode_data ( $type, $data, @ ) {
+sub encode_data ( $type, $data, @ ) {
     my %args = (
         readable           => undef,               # make serialized data readable for humans
         compress           => undef,               # use compression
@@ -56,6 +57,7 @@ sub _encode_data ( $type, $data, @ ) {
         token              => undef,               # attach informational token
         compress_threshold => 100,                 # min data length in bytes to perform compression, only if compress = 1
         cipher             => $DATA_CIPHER_DES,    # cipher to use
+        json               => undef,               # HashRef with additional params for JSON::XS
         splice @_, 2,
     );
 
@@ -120,11 +122,20 @@ sub _encode_data ( $type, $data, @ ) {
         }
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
-        if ( $args{readable} ) {
-            $res = \to_json( $data, cache => 'serializer_readable', ascii => 0, latin1 => 0, utf8 => 1, pretty => 1 );
+        if ( $args{json} ) {
+            my $json = _get_json_obj( $args{json}->%* );
+
+            $res = \$json->encode($data);
+        }
+        elsif ( $args{readable} ) {
+            state $json = _get_json_obj( ascii => 0, latin1 => 0, utf8 => 1, pretty => 1 );
+
+            $res = \$json->encode($data);
         }
         else {
-            $res = \to_json( $data, cache => 'serializer_portable', ascii => 1, latin1 => 0, utf8 => 1, pretty => 0 );
+            state $json = _get_json_obj( ascii => 1, latin1 => 0, utf8 => 1, pretty => 0 );
+
+            $res = \$json->encode($data);
         }
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
@@ -239,7 +250,7 @@ sub _encode_data ( $type, $data, @ ) {
 
 # JSON data should be without UTF8 flag
 # objects isn't deserialized automatically from JSON
-sub _decode_data ( $type, @ ) {
+sub decode_data ( $type, @ ) {
     my $data_ref = ref $_[1] ? $_[1] : \$_[1];
 
     my %args = (
@@ -248,8 +259,8 @@ sub _decode_data ( $type, @ ) {
         secret_index => 0,
         cipher       => $DATA_CIPHER_DES,
         portable     => undef,              # 0, 1 = 'hex', 'hex', 'b64'
-        json_utf8    => 1,                  # only for JSON data
         perl_ns      => undef,              # for PERL only, namespace for data evaluation
+        json         => undef,              # HashRef with additional params for JSON::XS
         splice( @_, 2 ),
         type => $type,
     );
@@ -345,7 +356,18 @@ CODE
         die q[Config must return value] unless $res;
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
-        $res = from_json( $data_ref->$*, cache => 'deserializer_utf8_' . $args{json_utf8}, utf8 => $args{json_utf8} );
+        if ( $args{json} ) {
+            my $json = _get_json_obj( $args{json}->%* );
+
+            $res = $json->decode( $data_ref->$* );
+        }
+        else {
+            state $json = _get_json_obj( utf8 => 1 );
+
+            # $res = $json->decode_prefix( $data_ref->$* );
+
+            $res = $json->decode( $data_ref->$* );
+        }
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
         state $cbor = _get_cbor_obj();
@@ -398,105 +420,66 @@ CODE
 
 # PERL
 sub to_perl {
-    return _encode_data( $DATA_TYPE_PERL, @_ );
+    return encode_data( $DATA_TYPE_PERL, @_ );
 }
 
 sub from_perl {
-    return _decode_data( $DATA_TYPE_PERL, @_ );
+    return decode_data( $DATA_TYPE_PERL, @_ );
 }
 
 # JSON
-sub to_json ( $data, @ ) {
+sub _get_json_obj {
     my %args = (
-        cache => undef,    # cache id, get JSON object from cache
 
+        # COMMON
+        utf8         => 1,
+        allow_nonref => 1,    # allow scalars
+        allow_tags   => 0,    # use FREEZE / THAW, we don't use this, because non-standard JSON will be generated, use CBOR instead to serialize objects
+
+        # shrink                        => 0,
+        # max_depth                     => 512,
+
+        # DECODE
+        relaxed => 1,    # allows commas and # - style comments
+
+        # filter_json_object            => undef,
+        # filter_json_single_key_object => undef,
+        # max_size                      => 0,
+
+        # ENCODE
         ascii  => 1,
         latin1 => 0,
-        utf8   => 1,
-
-        pretty => 0,       # set indent, space_before, space_after
+        pretty => 0,    # set indent, space_before, space_after
 
         # indent       => 0,
         # space_before => 0,    # put a space before the ":" separating key from values
         # space_after  => 0,    # put a space after the ":" separating key from values, and after "," separating key-value pairs
 
         canonical       => 0,    # sort hash keys, slow
-        allow_nonref    => 1,    # allow scalars
-        allow_unknown   => 0,    # trow exception if can't encode item
+        allow_unknown   => 0,    # throw exception if can't encode item
         allow_blessed   => 1,    # allow blessed objects
         convert_blessed => 1,    # use TO_JSON method of blessed objects
-        allow_tags      => 0,    # use FREEZE / THAW, we don't use this, because non-standard JSON will be generated, use CBOR instead to serialize objects
 
-        # shrink          => 0,
-        # max_depth       => 512,
-
-        splice @_, 1,
+        @_,
     );
 
     state $init = !!require JSON::XS;
 
-    # create and configure JSON serializer object
-    my $json;
+    my $json = JSON::XS->new;
 
-    my $cache = delete $args{cache};
-
-    if ( $cache && $JSON_CACHE->{$cache} ) {
-        $json = $JSON_CACHE->{$cache};
-    }
-    else {
-        $json = JSON::XS->new;
-
-        for ( keys %args ) {
-            $json->$_( $args{$_} );
-        }
-
-        $JSON_CACHE->{$cache} = $json if $cache;
+    for ( keys %args ) {
+        $json->$_( $args{$_} );
     }
 
-    my $res = $json->encode($data);
+    return $json;
+}
 
-    return $res;
+sub to_json ( $data, @ ) {
+    return encode_data( $DATA_TYPE_JSON, @_ );
 }
 
 sub from_json ( $data, @ ) {
-    my %args = (
-        cache => undef,    # cache id, get object from cache
-
-        utf8 => 1,
-
-        relaxed      => 1,    # allows commas and # - style comments
-        allow_nonref => 1,
-        allow_tags   => 0,    # use FREEZE / THAW
-
-        # filter_json_object            => undef,
-        # filter_json_single_key_object => undef,
-        # shrink                        => 0,
-        # max_depth                     => 512,
-        # max_size                      => 0,
-        splice @_, 1,
-    );
-
-    state $init = !!require JSON::XS;
-
-    # create and configure JSON deserializer object
-    my $json;
-
-    my $cache = delete $args{cache};
-
-    if ( $cache && $JSON_CACHE->{$cache} ) {
-        $json = $JSON_CACHE->{$cache};
-    }
-    else {
-        $json = JSON::XS->new;
-
-        for ( keys %args ) {
-            $json->$_( $args{$_} );
-        }
-
-        $JSON_CACHE->{$cache} = $json if $cache;
-    }
-
-    return wantarray ? $json->decode_prefix($data) : $json->decode($data);
+    return decode_data( $DATA_TYPE_JSON, @_ );
 }
 
 # CBOR
@@ -518,38 +501,38 @@ sub _get_cbor_obj {
 }
 
 sub to_cbor {
-    return _encode_data( $DATA_TYPE_CBOR, @_ );
+    return encode_data( $DATA_TYPE_CBOR, @_ );
 }
 
 sub from_cbor {
-    return _decode_data( $DATA_TYPE_CBOR, @_ );
+    return decode_data( $DATA_TYPE_CBOR, @_ );
 }
 
 # YAML
 sub to_yaml {
-    return _encode_data( $DATA_TYPE_YAML, @_ );
+    return encode_data( $DATA_TYPE_YAML, @_ );
 }
 
 sub from_yaml {
-    return _decode_data( $DATA_TYPE_YAML, @_ );
+    return decode_data( $DATA_TYPE_YAML, @_ );
 }
 
 # XML
 sub to_xml {
-    return _encode_data( $DATA_TYPE_XML, @_ );
+    return encode_data( $DATA_TYPE_XML, @_ );
 }
 
 sub from_xml {
-    return _decode_data( $DATA_TYPE_XML, @_ );
+    return decode_data( $DATA_TYPE_XML, @_ );
 }
 
 # INI
 sub to_ini {
-    return _encode_data( $DATA_TYPE_INI, @_ );
+    return encode_data( $DATA_TYPE_INI, @_ );
 }
 
 sub from_ini {
-    return _decode_data( $DATA_TYPE_INI, @_ );
+    return decode_data( $DATA_TYPE_INI, @_ );
 }
 
 # BASE64
@@ -713,16 +696,17 @@ sub from_uri_query {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 49                   │ * Subroutine "_encode_data" with high complexity score (34)                                                    │
-## │      │ 242                  │ * Subroutine "_decode_data" with high complexity score (30)                                                    │
+## │      │ 50                   │ * Subroutine "encode_data" with high complexity score (35)                                                     │
+## │      │ 253                  │ * Subroutine "decode_data" with high complexity score (32)                                                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 76, 162, 164, 378    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 78, 126, 173, 175,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 360, 400             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 620, 638, 678, 687   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 603, 621, 661, 670   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 235                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 246                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 730                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 734 does not match the package declaration      │
+## │    1 │ 714                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 718 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
