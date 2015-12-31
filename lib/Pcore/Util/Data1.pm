@@ -243,7 +243,9 @@ sub encode_data ( $type, $data, @ ) {
     }
 
     # add token
-    $res->$* .= sprintf( '#%x', ( $args{compress} // 0 ) . ( defined $args{secret} ? $args{cipher} : 0 ) . ( $args{secret_index} // 0 ) . ( $args{portable} // 0 ) . $type ) . sprintf( '#%x', bytes::length $res->$* ) if $args{token};
+    if ( $args{token} ) {
+        $res->$* .= sprintf( '#%x', ( $args{compress} // 0 ) . ( defined $args{secret} ? $args{cipher} : 0 ) . ( $args{secret_index} // 0 ) . ( $args{portable} // 0 ) . $type ) . sprintf( '#%x', bytes::length $res->$* );
+    }
 
     return $res;
 }
@@ -697,16 +699,16 @@ sub from_uri_query {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 50                   │ * Subroutine "encode_data" with high complexity score (35)                                                     │
-## │      │ 253                  │ * Subroutine "decode_data" with high complexity score (32)                                                     │
+## │      │ 255                  │ * Subroutine "decode_data" with high complexity score (32)                                                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 78, 126, 173, 175,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 360, 400             │                                                                                                                │
+## │      │ 362, 402             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 603, 621, 661, 670   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 605, 623, 663, 672   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 246                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 247                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 714                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 718 does not match the package declaration      │
+## │    1 │ 716                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 720 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
