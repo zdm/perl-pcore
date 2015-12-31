@@ -1,6 +1,7 @@
 package Pcore::Util::Data;
 
 use Pcore -export, [qw[to_b64]];
+use Pcore::Util::Data::I18N;
 use Sort::Naturally qw[nsort];
 use Pcore::Util::Scalar qw[blessed];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
@@ -331,7 +332,7 @@ sub decode {
 package $ns;
 use Pcore -config;
 no warnings qw[redefine];
-local *i18n = sub { return Pcore::Util::Data::_I18N->new( { args => [ \@_ ] } ) };
+local *i18n = sub { return Pcore::Util::Data::I18N->new( { args => [ \@_ ] } ) };
 $data_ref->$*
 CODE
         die $@ if $@;
@@ -760,18 +761,6 @@ sub from_uri_query {
     }
 }
 
-package Pcore::Util::Data::_I18N;
-
-use Pcore -class;
-
-use overload    #
-  q[""] => sub {
-    return i18n( $_[0]->args->@* );
-  },
-  fallback => undef;
-
-has args => ( is => 'ro', isa => ArrayRef, required => 1 );
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -780,13 +769,13 @@ has args => ( is => 'ro', isa => ArrayRef, required => 1 );
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 34                   │ * Subroutine "encode" with high complexity score (35)                                                          │
-## │      │ 240                  │ * Subroutine "decode" with high complexity score (31)                                                          │
+## │      │ 35                   │ * Subroutine "encode" with high complexity score (35)                                                          │
+## │      │ 241                  │ * Subroutine "decode" with high complexity score (31)                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 64, 150, 152, 372,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 399, 401, 403, 405   │                                                                                                                │
+## │    3 │ 65, 151, 153, 373,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 400, 402, 404, 406   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 675, 693, 733, 742   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 676, 694, 734, 743   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
