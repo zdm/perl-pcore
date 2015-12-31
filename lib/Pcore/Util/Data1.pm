@@ -53,7 +53,7 @@ sub encode_data ( $type, $data, @ ) {
         compress           => undef,               # use compression
         secret             => undef,               # crypt data if defined, can be ArrayRef
         secret_index       => 0,                   # index of secret to use in secret array, if secret is ArrayRef
-        portable           => undef,               # 0 - disable, 1 - 'b64', 'b64', 'hex', make data portable
+        encoding           => undef,               # 0 - disable
         token              => undef,               # attach informational token
         compress_threshold => 100,                 # min data length in bytes to perform compression, only if compress = 1
         cipher             => $DATA_CIPHER_DES,    # cipher to use
@@ -64,7 +64,7 @@ sub encode_data ( $type, $data, @ ) {
     if ( $args{readable} && $type != $DATA_TYPE_CBOR ) {
         $args{compress} = undef;
         $args{secret}   = undef;
-        $args{portable} = undef;
+        $args{encoding} = undef;
         $args{token}    = undef;
     }
 
@@ -227,24 +227,24 @@ sub encode_data ( $type, $data, @ ) {
     }
 
     # encode
-    if ( $args{portable} ) {
-        if ( $args{portable} == $DATA_ENC_B64 ) {
+    if ( $args{encoding} ) {
+        if ( $args{encoding} == $DATA_ENC_B64 ) {
             $res = \to_b64_url( $res->$* );
         }
-        elsif ( $args{portable} == $DATA_ENC_HEX ) {
+        elsif ( $args{encoding} == $DATA_ENC_HEX ) {
             $res = \unpack 'H*', $res->$*;
         }
-        elsif ( $args{portable} == $DATA_ENC_B85 ) {
+        elsif ( $args{encoding} == $DATA_ENC_B85 ) {
             $res = \to_b85( $res->$* );
         }
         else {
-            die qq[Unknown encoder "$args{portable}"];
+            die qq[Unknown encoder "$args{encoding}"];
         }
     }
 
     # add token
     if ( $args{token} ) {
-        $res->$* .= sprintf( '#%x', ( $args{compress} // 0 ) . ( defined $args{secret} ? $args{cipher} : 0 ) . ( $args{secret_index} // 0 ) . ( $args{portable} // 0 ) . $type ) . sprintf( '#%x', bytes::length $res->$* );
+        $res->$* .= sprintf( '#%x', ( $args{compress} // 0 ) . ( defined $args{secret} ? $args{cipher} : 0 ) . ( $args{secret_index} // 0 ) . ( $args{encoding} // 0 ) . $type ) . sprintf( '#%x', bytes::length $res->$* );
     }
 
     return $res;
@@ -260,9 +260,10 @@ sub decode_data ( $type, @ ) {
         secret       => undef,              # can be ArrayRef
         secret_index => 0,
         cipher       => $DATA_CIPHER_DES,
-        portable     => undef,              # 0, 1 = 'hex', 'hex', 'b64'
+        encoding     => undef,              # 0, 1 = 'hex', 'hex', 'b64'
         perl_ns      => undef,              # for PERL only, namespace for data evaluation
         json         => undef,              # HashRef with additional params for JSON::XS
+        return_token => 0,                  # return token
         splice( @_, 2 ),
         type => $type,
     );
@@ -276,25 +277,25 @@ sub decode_data ( $type, @ ) {
 
             substr $data_ref->$*, -$token_len, $token_len, q[];
 
-            ( $args{compress}, $args{cipher}, $args{secret_index}, $args{portable}, $type ) = split //sm, sprintf '%05s', hex $1;
+            ( $args{compress}, $args{cipher}, $args{secret_index}, $args{encoding}, $type ) = split //sm, sprintf '%05s', hex $1;
 
             $args{type} = $type;
         }
     }
 
     # decode
-    if ( $args{portable} ) {
-        if ( $args{portable} == $DATA_ENC_B64 ) {
+    if ( $args{encoding} ) {
+        if ( $args{encoding} == $DATA_ENC_B64 ) {
             $data_ref = \from_b64_url( $data_ref->$* );
         }
-        elsif ( $args{portable} == $DATA_ENC_HEX ) {
+        elsif ( $args{encoding} == $DATA_ENC_HEX ) {
             $data_ref = \pack 'H*', $data_ref->$*;
         }
-        elsif ( $args{portable} == $DATA_ENC_B85 ) {
+        elsif ( $args{encoding} == $DATA_ENC_B85 ) {
             $data_ref = \from_b85( $data_ref->$* );
         }
         else {
-            die qq[Unknown encoder "$args{portable}"];
+            die qq[Unknown encoder "$args{encoding}"];
         }
     }
 
@@ -412,7 +413,7 @@ CODE
         die qq[Unknown serializer "$type"];
     }
 
-    if (wantarray) {
+    if ( wantarray && $args{return_token} ) {
         return $res, \%args;
     }
     else {
@@ -699,16 +700,16 @@ sub from_uri_query {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 50                   │ * Subroutine "encode_data" with high complexity score (35)                                                     │
-## │      │ 255                  │ * Subroutine "decode_data" with high complexity score (32)                                                     │
+## │      │ 255                  │ * Subroutine "decode_data" with high complexity score (33)                                                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 78, 126, 173, 175,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 362, 402             │                                                                                                                │
+## │      │ 363, 403             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 605, 623, 663, 672   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 606, 624, 664, 673   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 247                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 716                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 720 does not match the package declaration      │
+## │    1 │ 717                  │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 721 does not match the package declaration      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
