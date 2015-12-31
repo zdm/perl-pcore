@@ -12,9 +12,8 @@ use if $^V ge 'v5.22', re      => 'strict';
 use if $^V ge 'v5.10', mro     => 'c3';
 no multidimensional;
 
-use Package::Stash qw[];
 use Sub::Util qw[];
-use namespace::clean qw[];
+use Package::Stash qw[];
 
 use Const::Fast qw[];
 use Encode qw[];
@@ -111,22 +110,23 @@ sub namespace_clean ($class) {
 
     my $stash = Package::Stash->new($class);
 
-    my @clean;
-
     for my $subname ( $stash->list_all_symbols('CODE') ) {
         my $fullname = Sub::Util::subname( $stash->get_symbol("&$subname") );
 
         if ( "$class\::$subname" ne $fullname && !exists $EXCEPT->{$subname} && substr( $subname, 0, 1 ) ne q[(] ) {
-            push @clean, $subname;
+            my @symbols = map {
+                my $name = $_ . $subname;
+
+                my $def = $stash->get_symbol($name);
+
+                defined($def) ? [ $name, $def ] : ()
+            } '$', '@', '%', qw[];
+
+            $stash->remove_glob($subname);
+
+            $stash->add_symbol( $_->@* ) for @symbols;
         }
-
-        # $stash->remove_symbol("&$subname") if "$class\::$subname" ne $fullname;
     }
-
-    # say $class;
-    # say dump [sort @clean];
-
-    namespace::clean->clean_subroutines( $class, @clean ) if @clean;
 
     return;
 }
@@ -269,9 +269,6 @@ sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
     # find caller
     # my $caller = caller;
-
-    # cleanup
-    # namespace::clean->import( -cleanee => $caller, -except => [qw[import unimport AUTOLOAD]] );
 
     # try to unimport Moo keywords
     # _unimport_moo($caller);
@@ -595,23 +592,29 @@ sub _config_stdout ($h) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 51                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 50                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 117                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 134                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 189                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 317                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 355                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 367                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 473                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 314                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 352                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 364                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 470                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 409, 438, 441, 445,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 494, 511, 573, 576,  │                                                                                                                │
-## │      │ 581, 584             │                                                                                                                │
+## │    3 │ 406, 435, 438, 442,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 491, 508, 570, 573,  │                                                                                                                │
+## │      │ 578, 581             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 413                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    2 │ 123                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 127                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
