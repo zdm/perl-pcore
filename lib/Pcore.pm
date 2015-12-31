@@ -1,6 +1,6 @@
 package Pcore v0.13.4;
 
-use v5.22.0;
+use v5.22.1;
 use utf8;
 use strict;
 use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
@@ -226,9 +226,9 @@ sub import {
                     no strict qw[refs];
 
                     if ( my $ref = $caller->can('TO_DATA') ) {
-                        *{ $caller . '::TO_JSON' } = $ref unless $caller->can('TO_JSON');
+                        *{"$caller\::TO_JSON"} = $ref unless $caller->can('TO_JSON');
 
-                        *{ $caller . '::TO_CBOR' } = $ref unless $caller->can('TO_CBOR');
+                        *{"$caller\::TO_CBOR"} = $ref unless $caller->can('TO_CBOR');
                     }
 
                     return;
