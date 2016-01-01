@@ -44,7 +44,7 @@ sub BUILD ( $self, $args ) {
                 $ENV{COMSPEC},
                 '/D /C hg serve --config ui.interactive=True --cmdserver pipe',
                 1,
-                0,                     # CREATE_NEW_CONSOLE, # CREATE_NO_WINDOW,
+                Win32::Process::CREATE_NO_WINDOW(),
                 q[.]
             ) || die;
         }
