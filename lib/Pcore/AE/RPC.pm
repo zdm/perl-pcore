@@ -2,6 +2,7 @@ package Pcore::AE::RPC;
 
 use Pcore -class;
 use AnyEvent::Util qw[portable_socketpair];
+use Pcore::AE::RPC::Server;
 
 with qw[Pcore::AE::RPC::Base];
 
@@ -11,9 +12,6 @@ has pid => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => unde
 has call_id => ( is => 'ro', default => 0, init_arg => undef );
 has queue => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 has next_pid => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
-
-# TODO
-# run from PAR;
 
 sub BUILD ( $self, $args ) {
     my $cv = AE::cv;
@@ -134,10 +132,14 @@ sub _run_server_mswin ( $self, $in, $out ) {
 
     my $process;
 
+    my $perl = $ENV->is_par ? 'perl.exe' : $^X;
+
+    local $ENV{PERL5LIB} = join q[;], grep { !ref } @INC if $ENV->is_par;
+
     Win32::Process::Create(    #
         $process,
         $ENV{COMSPEC},
-        qq[/D /C $^X -e "$code"],
+        qq[/D /C $perl -e "$code"],
         1,
         0,                     # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
         q[.]
@@ -146,6 +148,7 @@ sub _run_server_mswin ( $self, $in, $out ) {
     return;
 }
 
+# TODO run from PAR
 sub _run_server_linux ( $self, $in, $out ) {
     state $init = !!require Fcntl;
 
@@ -204,9 +207,9 @@ sub call ( $self, $method, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 33, 46               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31, 44               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 91                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 89                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
