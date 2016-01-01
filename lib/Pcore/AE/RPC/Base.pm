@@ -5,11 +5,8 @@ use Pcore::AE::Handle;
 
 has pkg => ( is => 'ro', isa => Str, required => 1 );
 
-has in  => ( is => 'ro', isa => Object, init_arg => undef );
-has out => ( is => 'ro', isa => Object, init_arg => undef );
-
-sub start_listen ( $self, $cb ) {
-    $self->in->on_read(
+sub start_listen ( $self, $h, $cb ) {
+    $h->on_read(
         sub ($h) {
             $h->unshift_read(
                 chunk => 4,
@@ -36,10 +33,10 @@ sub start_listen ( $self, $cb ) {
     return;
 }
 
-sub write_data ( $self, $data ) {
+sub write_data ( $self, $h, $data ) {
     $data = P->data->to_cbor($data);
 
-    $self->out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
+    $h->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
 
     return;
 }

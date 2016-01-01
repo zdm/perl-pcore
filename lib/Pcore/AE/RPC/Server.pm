@@ -5,12 +5,13 @@ use Pcore -class;
 with qw[Pcore::AE::RPC::Base];
 
 has obj => ( is => 'lazy', isa => Object, init_arg => undef );
+has in  => ( is => 'ro',   isa => Object, init_arg => undef );
+has out => ( is => 'ro',   isa => Object, init_arg => undef );
 
 sub BUILD ( $self, $args ) {
     my $cv = AE::cv;
 
     $cv->begin;
-
     Pcore::AE::Handle->new(
         fh         => \*STDIN,
         on_connect => sub ( $h, @ ) {
@@ -23,7 +24,6 @@ sub BUILD ( $self, $args ) {
     );
 
     $cv->begin;
-
     Pcore::AE::Handle->new(
         fh         => \*STDOUT,
         on_connect => sub ( $h, @ ) {
@@ -41,6 +41,7 @@ sub BUILD ( $self, $args ) {
     $self->out->push_write("READY$$\x00");
 
     $self->start_listen(
+        $self->in,
         sub ($req) {
             my $call_id = $req->[0];
 
@@ -48,7 +49,7 @@ sub BUILD ( $self, $args ) {
 
             $self->obj->$method(
                 sub ($res) {
-                    $self->write_data( [ $call_id, $res ] );
+                    $self->write_data( $self->out, [ $call_id, $res ] );
 
                     return;
                 },
