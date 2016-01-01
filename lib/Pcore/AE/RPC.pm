@@ -221,6 +221,32 @@ Pcore::AE::RPC
 
 =head1 SYNOPSIS
 
+    my $rpc = Pcore::AE::RPC->new(
+        {   pkg      => 'Some::Package',
+            on_ready => sub ($self) {
+                return;
+            }
+        }
+    );
+
+    $rpc->call(
+        'method',
+        $data,
+        sub ($data) {
+            return;
+        }
+    );
+
+    ...
+
+    package Some::Package;
+
+    sub method ( $self, $cb, $data ) {
+        $cb->($result);
+
+        return;
+    }
+
 =head1 DESCRIPTION
 
 =head1 ATTRIBUTES
