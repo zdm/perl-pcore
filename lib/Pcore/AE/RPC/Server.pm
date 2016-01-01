@@ -1,6 +1,7 @@
 package Pcore::AE::RPC::Server;
 
 use Pcore -class;
+use AnyEvent::Util qw[fh_nonblocking];
 
 with qw[Pcore::AE::RPC::Base];
 
@@ -9,11 +10,22 @@ has in  => ( is => 'ro',   isa => Object, init_arg => undef );
 has out => ( is => 'ro',   isa => Object, init_arg => undef );
 
 sub BUILD ( $self, $args ) {
+    if ($MSWIN) {
+        require Win32API::File;
+
+        Win32API::File::OsFHandleOpen( *RPC_IN,  $args->{in},  'r' ) or die $!;
+        Win32API::File::OsFHandleOpen( *RPC_OUT, $args->{out}, 'w' ) or die $!;
+    }
+    else {
+        open *RPC_IN,  '<&=', $args->{in}  or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+        open *RPC_OUT, '>&=', $args->{out} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+    }
+
     my $cv = AE::cv;
 
     $cv->begin;
     Pcore::AE::Handle->new(
-        fh         => \*STDIN,
+        fh         => \*RPC_IN,
         on_connect => sub ( $h, @ ) {
             $self->{in} = $h;
 
@@ -25,7 +37,7 @@ sub BUILD ( $self, $args ) {
 
     $cv->begin;
     Pcore::AE::Handle->new(
-        fh         => \*STDOUT,
+        fh         => \*RPC_OUT,
         on_connect => sub ( $h, @ ) {
             $self->{out} = $h;
 
@@ -76,7 +88,7 @@ sub _build_obj ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 41                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 53                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
