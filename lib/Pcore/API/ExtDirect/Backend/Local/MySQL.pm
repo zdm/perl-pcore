@@ -151,7 +151,7 @@ sub sync_api_map {
         delete $old_actions->{ $action_id->$* };
 
         for my $method ( keys $api_map->{$action}->%* ) {
-            my $data = P->data->encode( $api_map->{$action}->{$method} );
+            my $data = P->data->to_json( $api_map->{$action}->{$method} );
 
             $self->h_api->do( 'INSERT INTO `api_method` SET `name` = ?, action = ?, data = ? ON DUPLICATE KEY UPDATE data = ?', bind => [ $method, $action_id->$*, $data->$*, $data->$* ] );
 
@@ -187,7 +187,7 @@ sub _build_api_map {
                 methods => {},
             };
 
-            my $method = P->data->decode( delete $row->{data} );
+            my $method = P->data->from_json( delete $row->{data} );
 
             $method->{id} = $row->{id};
 

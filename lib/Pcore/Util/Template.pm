@@ -84,7 +84,7 @@ OLD VARS AND FILTERS, maybe needed to be reimplemented:
 VARIABLES    => {
     ENV     => \%ENV,
     UUID    => sub { return P->uuid->str },
-    TO_JSON => sub { return P->data->encode(@_) },
+    TO_JSON => sub { return P->data->to_json(@_) },
     TO_XML  => sub {
         my $data = shift;
         my $args = shift;

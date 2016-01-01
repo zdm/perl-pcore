@@ -40,7 +40,7 @@ sub get_index_item_info ( $self, $domains, $cb ) {
         $url,
         on_finish => sub ($res) {
             if ( $res->status == 200 ) {
-                my $json = P->data->decode( $res->body );
+                my $json = P->data->from_json( $res->body );
 
                 $cb->($json);
             }

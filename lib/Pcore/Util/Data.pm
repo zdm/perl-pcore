@@ -1,29 +1,44 @@
 package Pcore::Util::Data;
 
-use Pcore -export, [qw[to_b64]];
+use Pcore -const, -export,
+  { ALL   => [qw[encode_data decode_data]],
+    PERL  => [qw[to_perl from_perl]],
+    JSON  => [qw[to_json from_json]],
+    CBOR  => [qw[to_cbor from_cbor]],
+    YAML  => [qw[to_yaml from_yaml]],
+    XML   => [qw[to_xml from_xml]],
+    INI   => [qw[to_ini from_ini]],
+    B64   => [qw[to_b64 to_b64_url from_b64 from_b64_url]],
+    B85   => [qw[to_b85 from_b85]],
+    URI   => [qw[to_uri from_uri from_uri_query]],
+    CONST => [qw[$DATA_ENC_B64 $DATA_ENC_HEX $DATA_ENC_B85 $DATA_COMPRESS_ZLIB $DATA_CIPHER_DES]],
+    TYPE  => [qw[$DATA_TYPE_PERL $DATA_TYPE_JSON $DATA_TYPE_CBOR $DATA_TYPE_YAML $DATA_TYPE_XML $DATA_TYPE_INI]],
+  };
 use Pcore::Util::Data::I18N;
+use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
+use Pcore::Util::List qw[pairs];
 use Sort::Naturally qw[nsort];
 use Pcore::Util::Scalar qw[blessed];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use WWW::Form::UrlEncoded::XS qw[];
-use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
-use Pcore::Util::List qw[pairs];
 
-our $TOKEN = {
-    serializer => {
-        PERL => 1,
-        JSON => 2,
-        CBOR => 3,
-        YAML => 4,
-        XML  => 5,
-        INI  => 5,
-    },
-    compressor => { 'Compress::Zlib' => 1, },
-    cipher     => { DES              => 1, },
-    portable   => {
-        b64 => 1,
-        hex => 2,
-    },
+const our $DATA_TYPE_PERL => 1;
+const our $DATA_TYPE_JSON => 2;
+const our $DATA_TYPE_CBOR => 3;
+const our $DATA_TYPE_YAML => 4;
+const our $DATA_TYPE_XML  => 5;
+const our $DATA_TYPE_INI  => 6;
+
+const our $DATA_ENC_B64 => 1;
+const our $DATA_ENC_HEX => 2;
+const our $DATA_ENC_B85 => 3;
+
+const our $DATA_COMPRESS_ZLIB => 1;
+
+const our $DATA_CIPHER_DES => 1;
+
+const our $CIPHER_NAME => {    #
+    $DATA_CIPHER_DES => 'DES',
 };
 
 our $JSON_CACHE;
@@ -32,33 +47,31 @@ our $JSON_CACHE;
 # JSON can't serialize ScalarRefs
 # objects should have TO_JSON method, otherwise object will be serialized as null
 # base64 encoder is used by default, it generates more compressed data
-sub encode {
-    my $data = shift;
+sub encode_data ( $type, $data, @ ) {
     my %args = (
-        to                 => 'JSON',              # PERL, JSON, CBOR, YAML, XML, INI
         readable           => undef,               # make serialized data readable for humans
-        compresss          => undef,               # use compression
+        compress           => undef,               # use compression
         secret             => undef,               # crypt data if defined, can be ArrayRef
         secret_index       => 0,                   # index of secret to use in secret array, if secret is ArrayRef
-        portable           => undef,               # 0 - disable, 1 - 'b64', 'b64', 'hex', make data portable
+        encode             => undef,               # 0 - disable
         token              => undef,               # attach informational token
         compress_threshold => 100,                 # min data length in bytes to perform compression, only if compress = 1
-        compressor         => 'Compress::Zlib',    # compressor to use
-        cipher             => 'DES',               # cipher to use
-        @_,
+        cipher             => $DATA_CIPHER_DES,    # cipher to use
+        json               => undef,               # HashRef with additional params for JSON::XS
+        splice @_, 2,
     );
 
-    if ( $args{readable} && $args{to} ne 'CBOR' ) {
+    if ( $args{readable} && $type != $DATA_TYPE_CBOR ) {
         $args{compress} = undef;
         $args{secret}   = undef;
-        $args{portable} = undef;
+        $args{encode}   = undef;
         $args{token}    = undef;
     }
 
     my $res;
 
     # encode
-    if ( $args{to} eq 'PERL' ) {
+    if ( $type == $DATA_TYPE_PERL ) {
         state $init = !!require Data::Dumper;
 
         state $sort_keys = sub {
@@ -108,35 +121,44 @@ sub encode {
             )->run->out_buffer;
         }
     }
-    elsif ( $args{to} eq 'JSON' ) {
-        if ( $args{readable} ) {
-            $res = \to_json( $data, cache => 'serializer_readable', ascii => 0, latin1 => 0, utf8 => 1, pretty => 1 );
+    elsif ( $type == $DATA_TYPE_JSON ) {
+        if ( $args{json} ) {
+            my $json = _get_json_obj( $args{json}->%* );
+
+            $res = \$json->encode($data);
+        }
+        elsif ( $args{readable} ) {
+            state $json = _get_json_obj( ascii => 0, latin1 => 0, utf8 => 1, pretty => 1, canonical => 1 );
+
+            $res = \$json->encode($data);
         }
         else {
-            $res = \to_json( $data, cache => 'serializer_portable', ascii => 1, latin1 => 0, utf8 => 1, pretty => 0 );
+            state $json = _get_json_obj( ascii => 1, latin1 => 0, utf8 => 1, pretty => 0 );
+
+            $res = \$json->encode($data);
         }
     }
-    elsif ( $args{to} eq 'CBOR' ) {
-        $res = \_get_cbor_obj->encode($data);
+    elsif ( $type == $DATA_TYPE_CBOR ) {
+        state $cbor = _get_cbor_obj();
+
+        $res = \$cbor->encode($data);
     }
-    elsif ( $args{to} eq 'YAML' ) {
+    elsif ( $type == $DATA_TYPE_YAML ) {
         state $init = !!require YAML::XS;
 
-        local $YAML::XS::UseCode = 0;
-
+        local $YAML::XS::UseCode  = 0;
         local $YAML::XS::DumpCode = 0;
-
         local $YAML::XS::LoadCode = 0;
 
         $res = \YAML::XS::Dump($data);
     }
-    elsif ( $args{to} eq 'XML' ) {
+    elsif ( $type == $DATA_TYPE_XML ) {
         state $init = !!require XML::Hash::XS;
 
         state $xml_args = {
             root      => 'root',
             version   => '1.0',
-            encoding  => 'UTF-8',
+            encode    => 'UTF-8',
             output    => undef,
             canonical => 0,            # sort hash keys
             use_attr  => 1,
@@ -154,25 +176,25 @@ sub encode {
 
         $res = \$xml_obj->hash2xml( $data->{$root}, root => $root, indent => $args{readable} ? 4 : 0 );
     }
-    elsif ( $args{to} eq 'INI' ) {
+    elsif ( $type == $DATA_TYPE_INI ) {
         state $init = !!require Config::INI::Writer;
 
         $res = \Config::INI::Writer->write_string($data);
     }
     else {
-        die qq[Unknown serializer "$args{to}"];
+        die qq[Unknown serializer "$type"];
     }
 
     # compress
     if ( $args{compress} ) {
-        if ( length $res->$* >= $args{compress_threshold} ) {
-            if ( $args{compressor} eq 'Compress::Zlib' ) {
+        if ( bytes::length $res->$* >= $args{compress_threshold} ) {
+            if ( $args{compress} == $DATA_COMPRESS_ZLIB ) {
                 state $init = !!require Compress::Zlib;
 
                 $res = \Compress::Zlib::compress( $res->$* );
             }
             else {
-                die qq[Unknown compressor "$args{compressor}"];
+                die qq[Unknown compressor type "$args{compress}"];
             }
         }
         else {
@@ -196,41 +218,33 @@ sub encode {
 
             $res = \Crypt::CBC->new(
                 -key    => $secret,
-                -cipher => $args{cipher},
+                -cipher => $CIPHER_NAME->{ $args{cipher} },
             )->encrypt( $res->$* );
+        }
+        else {
+            $args{secret} = undef;
         }
     }
 
     # encode
-    if ( $args{portable} ) {
-        $args{portable} = 'b64' if $args{portable} eq '1';
-
-        if ( $args{portable} eq 'b64' ) {
-            $res = \P->data->to_b64_url( $res->$* );
+    if ( $args{encode} ) {
+        if ( $args{encode} == $DATA_ENC_B64 ) {
+            $res = \to_b64_url( $res->$* );
         }
-        elsif ( $args{portable} eq 'hex' ) {
+        elsif ( $args{encode} == $DATA_ENC_HEX ) {
             $res = \unpack 'H*', $res->$*;
         }
+        elsif ( $args{encode} == $DATA_ENC_B85 ) {
+            $res = \to_b85( $res->$* );
+        }
         else {
-            die qq[Unknown encoder "$args{portable}"];
+            die qq[Unknown encoder "$args{encode}"];
         }
     }
 
-    # create token
+    # add token
     if ( $args{token} ) {
-        my $token = unpack 'H*', pack 'Q>', bytes::length $res->$*;
-
-        $token .= $TOKEN->{serializer}->{ $args{to} };
-
-        $token .= $args{compress} ? $TOKEN->{compressor}->{ $args{compressor} } : 0;
-
-        $token .= $args{secret} ? $TOKEN->{cipher}->{ $args{cipher} } : 0;
-
-        $token .= $args{secret_index} // 0;
-
-        $token .= $args{portable} ? $TOKEN->{portable}->{ $args{portable} } : 0;
-
-        $res = \( $token . $res->$* );
+        $res->$* .= sprintf( '#%x', ( $args{compress} // 0 ) . ( defined $args{secret} ? $args{cipher} : 0 ) . ( $args{secret_index} // 0 ) . ( $args{encode} // 0 ) . $type ) . sprintf( '#%x', bytes::length $res->$* );
     }
 
     return $res;
@@ -238,53 +252,55 @@ sub encode {
 
 # JSON data should be without UTF8 flag
 # objects isn't deserialized automatically from JSON
-sub decode {
-    my $data_ref = ref $_[0] ? shift : \shift;
+sub decode_data ( $type, @ ) {
+    my $data_ref = ref $_[1] ? $_[1] : \$_[1];
 
     my %args = (
-        token        => 0,                  # perform deserialization only if token was found, otherwise return undef
-        from         => 'JSON',             # PERL, JSON, CBOR, YAML, XML, INI
-        compresss    => undef,
-        compressor   => 'Compress::Zlib',
+        compress     => undef,
         secret       => undef,              # can be ArrayRef
         secret_index => 0,
-        cipher       => 'DES',
-        portable     => undef,              # 0, 1 = 'hex', 'hex', 'b64'
-        json_utf8    => 1,                  # only for JSON data
-        ns           => undef,              # for PERL only, namespace for data evaluation
-        @_,
+        cipher       => $DATA_CIPHER_DES,
+        encode       => undef,              # 0, 1 = 'hex', 'hex', 'b64'
+        perl_ns      => undef,              # for PERL only, namespace for data evaluation
+        json         => undef,              # HashRef with additional params for JSON::XS
+        return_token => 0,                  # return token
+        splice( @_, 2 ),
+        type => $type,
     );
 
     # parse token
-    if ( $args{token} ) {
-        if ( my $token = _parse_token($data_ref) ) {
-            P->hash->merge( \%args, $token );
+    if ( $data_ref->$* =~ /#([[:xdigit:]]{1,8})#([[:xdigit:]]{1,16})\z/sm ) {
+        my $token_len = 2 + length($1) + length $2;
 
-            # cut token from data
-            $data_ref = \substr $data_ref->$*, 21;
-        }
-        else {    # token wasn't found
-            return;
+        if ( bytes::length( $data_ref->$* ) - $token_len == hex $2 ) {
+            $args{has_token} = 1;
+
+            substr $data_ref->$*, -$token_len, $token_len, q[];
+
+            ( $args{compress}, $args{cipher}, $args{secret_index}, $args{encode}, $type ) = split //sm, sprintf '%05s', hex $1;
+
+            $args{type} = $type;
         }
     }
 
     # decode
-    if ( $args{portable} ) {
-        $args{portable} = 'b64' if $args{portable} eq '1';
-
-        if ( $args{portable} eq 'b64' ) {
+    if ( $args{encode} ) {
+        if ( $args{encode} == $DATA_ENC_B64 ) {
             $data_ref = \from_b64_url( $data_ref->$* );
         }
-        elsif ( $args{portable} eq 'hex' ) {
+        elsif ( $args{encode} == $DATA_ENC_HEX ) {
             $data_ref = \pack 'H*', $data_ref->$*;
         }
+        elsif ( $args{encode} == $DATA_ENC_B85 ) {
+            $data_ref = \from_b85( $data_ref->$* );
+        }
         else {
-            die qq[Unknown encoder "$args{portable}"];
+            die qq[Unknown encoder "$args{encode}"];
         }
     }
 
     # decrypt
-    if ( defined $args{secret} ) {
+    if ( $args{cipher} && defined $args{secret} ) {
         my $secret;
 
         if ( ref $args{secret} eq 'ARRAY' ) {
@@ -299,7 +315,7 @@ sub decode {
 
             $data_ref = \Crypt::CBC->new(
                 -key    => $secret,
-                -cipher => $args{cipher},
+                -cipher => $CIPHER_NAME->{ $args{cipher} },
             )->decrypt( $data_ref->$* );
 
         }
@@ -307,7 +323,7 @@ sub decode {
 
     # decompress
     if ( $args{compress} ) {
-        if ( $args{compressor} eq 'Compress::Zlib' ) {
+        if ( $args{compress} == $DATA_COMPRESS_ZLIB ) {
             state $init = !!require Compress::Zlib;
 
             $data_ref = \Compress::Zlib::uncompress($data_ref);
@@ -322,41 +338,55 @@ sub decode {
     # decode
     my $res;
 
-    if ( $args{from} eq 'PERL' ) {
-        my $ns = $args{ns} || '_Pcore::CONFIG::SANDBOX';
+    if ( $type == $DATA_TYPE_PERL ) {
+        my $ns = $args{perl_ns} || '_Pcore::CONFIG::SANDBOX';
 
         decode_utf8 $data_ref->$*;
 
         ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
         $res = eval <<"CODE";
 package $ns;
+
 use Pcore -config;
 no warnings qw[redefine];
+
 local *i18n = sub { return Pcore::Util::Data::I18N->new( { args => [ \@_ ] } ) };
+
 $data_ref->$*
 CODE
         die $@ if $@;
 
         die q[Config must return value] unless $res;
     }
-    elsif ( $args{from} eq 'JSON' ) {
-        $res = from_json( $data_ref->$*, cache => 'deserializer_utf8_' . $args{json_utf8}, utf8 => $args{json_utf8} );
+    elsif ( $type == $DATA_TYPE_JSON ) {
+        if ( $args{json} ) {
+            my $json = _get_json_obj( $args{json}->%* );
+
+            $res = $json->decode( $data_ref->$* );
+        }
+        else {
+            state $json = _get_json_obj( utf8 => 1 );
+
+            # $res = $json->decode_prefix( $data_ref->$* );
+
+            $res = $json->decode( $data_ref->$* );
+        }
     }
-    elsif ( $args{from} eq 'CBOR' ) {
-        $res = _get_cbor_obj()->decode( $data_ref->$* );
+    elsif ( $type == $DATA_TYPE_CBOR ) {
+        state $cbor = _get_cbor_obj();
+
+        $res = $cbor->decode( $data_ref->$* );
     }
-    elsif ( $args{from} eq 'YAML' ) {
+    elsif ( $type == $DATA_TYPE_YAML ) {
         state $init = !!require YAML::XS;
 
-        local $YAML::XS::UseCode = 0;
-
+        local $YAML::XS::UseCode  = 0;
         local $YAML::XS::DumpCode = 0;
-
         local $YAML::XS::LoadCode = 0;
 
         $res = YAML::XS::Load( $data_ref->$* );
     }
-    elsif ( $args{from} eq 'XML' ) {
+    elsif ( $type == $DATA_TYPE_XML ) {
         state $init = !!require XML::Hash::XS;
 
         state $xml_args = {
@@ -374,16 +404,16 @@ CODE
 
         $res = $xml_obj->xml2hash($data_ref);
     }
-    elsif ( $args{from} eq 'INI' ) {
+    elsif ( $type == $DATA_TYPE_INI ) {
         state $init = !!require Config::INI::Reader;
 
         $res = Config::INI::Reader->read_string( $data_ref->$* );
     }
     else {
-        die qq[Unknown serializer "$args{from}"];
+        die qq[Unknown serializer "$type"];
     }
 
-    if ( wantarray && $args{token} ) {
+    if ( wantarray && $args{return_token} ) {
         return $res, \%args;
     }
     else {
@@ -391,236 +421,121 @@ CODE
     }
 }
 
-sub _parse_token {
-    my $data_ref = shift;
-
-    state $reversed_token;
-
-    if ( !$reversed_token ) {
-        $reversed_token->{serializer} = { reverse $TOKEN->{serializer}->%* };
-
-        $reversed_token->{compressor} = { reverse $TOKEN->{compressor}->%* };
-
-        $reversed_token->{cipher} = { reverse $TOKEN->{cipher}->%* };
-
-        $reversed_token->{portable} = { reverse $TOKEN->{portable}->%* };
-    }
-
-    my $args;
-
-    my $data_len = bytes::length $data_ref->$*;
-
-    return if $data_len <= 21;
-
-    my $expected_data_len = unpack 'Q>', pack 'H*', substr $data_ref->$*, 0, 16;
-
-    return if $expected_data_len != $data_len - 21;
-
-    if ( ( $args->{from}, $args->{compress}, $args->{cipher}, $args->{secret_index}, $args->{portable} ) = split //sm, substr $data_ref->$*, 16, 5 ) {
-
-        # serializer
-        if ( exists $reversed_token->{serializer}->{ $args->{from} } ) {
-            $args->{from} = $reversed_token->{serializer}->{ $args->{from} };
-        }
-        else {
-            return;
-        }
-
-        # compressor
-        if ( $args->{compress} ) {
-            if ( exists $reversed_token->{compressor}->{ $args->{compress} } ) {
-                $args->{compressor} = $reversed_token->{compressor}->{ $args->{compress} };
-            }
-            else {
-                return;
-            }
-        }
-
-        # cipher
-        if ( $args->{cipher} ) {
-            if ( exists $reversed_token->{cipher}->{ $args->{cipher} } ) {
-                $args->{cipher} = $reversed_token->{cipher}->{ $args->{cipher} };
-            }
-            else {
-                return;
-            }
-        }
-
-        # portable
-        if ( $args->{portable} ) {
-            if ( exists $reversed_token->{portable}->{ $args->{portable} } ) {
-                $args->{portable} = $reversed_token->{portable}->{ $args->{portable} };
-            }
-            else {
-                return;
-            }
-        }
-
-        return $args;
-    }
-    else {
-        return;
-    }
-}
-
 # PERL
 sub to_perl {
-    return encode( @_, to => 'PERL' );
+    return encode_data( $DATA_TYPE_PERL, @_ );
 }
 
 sub from_perl {
-    return decode( @_, from => 'PERL' );
+    return decode_data( $DATA_TYPE_PERL, @_ );
 }
 
 # JSON
-sub to_json {
-    my $data = shift;
+sub _get_json_obj {
     my %args = (
-        cache => undef,    # cache id, get JSON object from cache
 
+        # COMMON
+        utf8         => 1,
+        allow_nonref => 1,    # allow scalars
+        allow_tags   => 0,    # use FREEZE / THAW, we don't use this, because non-standard JSON will be generated, use CBOR instead to serialize objects
+
+        # shrink                        => 0,
+        # max_depth                     => 512,
+
+        # DECODE
+        relaxed => 1,    # allows commas and # - style comments
+
+        # filter_json_object            => undef,
+        # filter_json_single_key_object => undef,
+        # max_size                      => 0,
+
+        # ENCODE
         ascii  => 1,
         latin1 => 0,
-        utf8   => 1,
-
-        pretty => 0,       # set indent, space_before, space_after
+        pretty => 0,    # set indent, space_before, space_after
 
         # indent       => 0,
         # space_before => 0,    # put a space before the ":" separating key from values
         # space_after  => 0,    # put a space after the ":" separating key from values, and after "," separating key-value pairs
 
         canonical       => 0,    # sort hash keys, slow
-        allow_nonref    => 1,    # allow scalars
-        allow_unknown   => 0,    # trow exception if can't encode item
+        allow_unknown   => 0,    # throw exception if can't encode item
         allow_blessed   => 1,    # allow blessed objects
         convert_blessed => 1,    # use TO_JSON method of blessed objects
-        allow_tags      => 0,    # use FREEZE / THAW, we don't use this, because non-standard JSON will be generated, use CBOR instead to serialize objects
-
-        # shrink          => 0,
-        # max_depth       => 512,
 
         @_,
     );
 
     state $init = !!require JSON::XS;
 
-    # create and configure JSON serializer object
-    my $json;
+    my $json = JSON::XS->new;
 
-    my $cache = delete $args{cache};
-
-    if ( $cache && $JSON_CACHE->{$cache} ) {
-        $json = $JSON_CACHE->{$cache};
-    }
-    else {
-        $json = JSON::XS->new;
-
-        for ( keys %args ) {
-            $json->$_( $args{$_} );
-        }
-
-        $JSON_CACHE->{$cache} = $json if $cache;
+    for ( keys %args ) {
+        $json->$_( $args{$_} );
     }
 
-    my $res = $json->encode($data);
-
-    return $res;
+    return $json;
 }
 
-sub from_json {
-    my $data = shift;
-    my %args = (
-        cache => undef,    # cache id, get object from cache
+sub to_json ( $data, @ ) {
+    return encode_data( $DATA_TYPE_JSON, @_ );
+}
 
-        utf8 => 1,
-
-        relaxed      => 1,    # allows commas and # - style comments
-        allow_nonref => 1,
-        allow_tags   => 0,    # use FREEZE / THAW
-
-        # filter_json_object            => undef,
-        # filter_json_single_key_object => undef,
-        # shrink                        => 0,
-        # max_depth                     => 512,
-        # max_size                      => 0,
-        @_,
-    );
-
-    state $init = !!require JSON::XS;
-
-    # create and configure JSON deserializer object
-    my $json;
-    my $cache = delete $args{cache};
-    if ( $cache && $JSON_CACHE->{$cache} ) {
-        $json = $JSON_CACHE->{$cache};
-    }
-    else {
-        $json = JSON::XS->new;
-
-        for ( keys %args ) {
-            $json->$_( $args{$_} );
-        }
-
-        $JSON_CACHE->{$cache} = $json if $cache;
-    }
-
-    return wantarray ? $json->decode_prefix($data) : $json->decode($data);
+sub from_json ( $data, @ ) {
+    return decode_data( $DATA_TYPE_JSON, @_ );
 }
 
 # CBOR
 sub _get_cbor_obj {
-    state $cbor = do {    # create and cache CBOR object
-        require CBOR::XS;
+    state $init = !!require CBOR::XS;
 
-        my $cbor1 = CBOR::XS->new;
+    my $cbor = CBOR::XS->new;
 
-        $cbor1->max_depth(512);
-        $cbor1->max_size(0);    # max. string size is unlimited
-        $cbor1->allow_unknown(0);
-        $cbor1->allow_sharing(1);
-        $cbor1->allow_cycles(1);
-        $cbor1->pack_strings(1);
-        $cbor1->validate_utf8(0);
-        $cbor1->filter(undef);
-
-        $cbor1;
-    };
+    $cbor->max_depth(512);
+    $cbor->max_size(0);    # max. string size is unlimited
+    $cbor->allow_unknown(0);
+    $cbor->allow_sharing(1);
+    $cbor->allow_cycles(1);
+    $cbor->pack_strings(1);
+    $cbor->validate_utf8(0);
+    $cbor->filter(undef);
 
     return $cbor;
 }
 
 sub to_cbor {
-    return encode( @_, to => 'CBOR' );
+    return encode_data( $DATA_TYPE_CBOR, @_ );
 }
 
 sub from_cbor {
-    return decode( @_, from => 'CBOR' );
+    return decode_data( $DATA_TYPE_CBOR, @_ );
 }
 
 # YAML
 sub to_yaml {
-    return encode( @_, to => 'YAML' );
+    return encode_data( $DATA_TYPE_YAML, @_ );
 }
 
 sub from_yaml {
-    return decode( @_, from => 'YAML' );
+    return decode_data( $DATA_TYPE_YAML, @_ );
 }
 
 # XML
 sub to_xml {
-    return encode( @_, to => 'XML' );
+    return encode_data( $DATA_TYPE_XML, @_ );
 }
 
 sub from_xml {
-    return decode( @_, from => 'XML' );
+    return decode_data( $DATA_TYPE_XML, @_ );
 }
 
 # INI
 sub to_ini {
-    return encode( @_, to => 'INI' );
+    return encode_data( $DATA_TYPE_INI, @_ );
 }
 
 sub from_ini {
-    return decode( @_, from => 'INI' );
+    return decode_data( $DATA_TYPE_INI, @_ );
 }
 
 # BASE64
@@ -648,6 +563,21 @@ sub from_b64_url {
     return &MIME::Base64::decode_base64url;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
+# BASE85
+sub to_b85 {
+    state $init = !!require Convert::Ascii85;
+
+    state $args = { compress_zero => 1, compress_space => 1 };
+
+    return Convert::Ascii85::ascii85_encode( $_[0], $args );
+}
+
+sub from_b85 {
+    state $init = !!require Convert::Ascii85;
+
+    return &Convert::Ascii85::ascii85_decode;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+}
+
 # URI
 sub to_uri {
     if ( ref $_[0] ) {
@@ -662,7 +592,7 @@ sub to_uri {
 sub from_uri {
     my %args = (
         encoding => 'UTF-8',
-        splice( @_, 1 ),
+        splice @_, 1,
     );
 
     state $encodings;
@@ -711,7 +641,7 @@ sub from_uri {
 sub from_uri_query {
     my %args = (
         encoding => 'UTF-8',
-        splice( @_, 1 ),
+        splice @_, 1,
     );
 
     state $encoding = {};
@@ -769,13 +699,15 @@ sub from_uri_query {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 35                   │ * Subroutine "encode" with high complexity score (35)                                                          │
-## │      │ 241                  │ * Subroutine "decode" with high complexity score (31)                                                          │
+## │      │ 50                   │ * Subroutine "encode_data" with high complexity score (35)                                                     │
+## │      │ 255                  │ * Subroutine "decode_data" with high complexity score (33)                                                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 65, 151, 153, 373,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 400, 402, 404, 406   │                                                                                                                │
+## │    3 │ 78, 126, 173, 175,   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 363, 403             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 676, 694, 734, 743   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 606, 624, 664, 673   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 247                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

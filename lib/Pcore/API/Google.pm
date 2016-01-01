@@ -79,7 +79,7 @@ sub call {
 
     my $res = $ua->get($url);
 
-    my $json = P->data->decode( $res->content );
+    my $json = P->data->from_json( $res->content );
 
     return $json;
 }

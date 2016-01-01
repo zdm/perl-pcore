@@ -66,7 +66,7 @@ sub js_generate {
     local $Pcore::JS::Generator::CACHE = {};
     local $Pcore::JS::Generator::READABLE = 1 if $args{readable};
 
-    my $js = \P->data->to_json( $data, ascii => 0, latin1 => 0, utf8 => 0, ( $READABLE ? ( pretty => 1, canonical => 1 ) : () ) );
+    my $js = P->data->to_json( $data, readable => $args{readable} );
 
     $js->$* =~ s/[(]"Pcore::JS::Generator::[[:alpha:]]+"[)]\[(\d+)\]/$CACHE->{$1}->as_js/smge;
 

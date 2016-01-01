@@ -69,7 +69,7 @@ sub get_api_map {
     my $api_map = {};
 
     if ( $res->is_success ) {
-        $api_map = P->data->decode( $res->content->$* );
+        $api_map = P->data->from_json( $res->content->$* );
     }
 
     return $api_map;
@@ -100,7 +100,7 @@ sub call_api {
     my $self = shift;
     my $call = shift;
 
-    my $req = [ extActions => { content => P->data->encode($call), content_type => 'application/json' }, ];
+    my $req = [ extActions => { content => P->data->to_json($call), content_type => 'application/json' }, ];
 
     # attach uploads to request array
     if ( $call->has_uploads ) {
@@ -125,7 +125,7 @@ sub call_api {
 
         $content->$* =~ s[\A<textarea>|</textarea>\z][]smg;
 
-        $res_call = Pcore::API::Call->new( P->data->decode( $content->$* ) );
+        $res_call = Pcore::API::Call->new( P->data->from_json( $content->$* ) );
     }
     else {
         $res_call = Pcore::API::Call->new;
@@ -194,7 +194,7 @@ sub do_authentication {
     }
 
     if ( $res->is_success ) {
-        my $json = P->data->decode( $res->content->$* );
+        my $json = P->data->from_json( $res->content->$* );
 
         $auth->{uid} = $json->{uid} if $json->{uid};
     }

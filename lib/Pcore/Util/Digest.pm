@@ -15,7 +15,7 @@ sub md5 {
     for my $item (@data) {
         if ( my $ref = ref $item ) {
             if ( $ref ne 'SCALAR' ) {
-                $item = P->data->encode($item)->$*;
+                $item = P->data->to_json($item)->$*;
             }
             else {
                 $item = $item->$*;

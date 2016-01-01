@@ -86,7 +86,7 @@ my $xml_hash_xs = XML::Hash::XS->new;
 
 my $tests = {
     'Pcore::Data::from_xml' => sub {
-        P->data->decode( \$XML, from => 'XML' );
+        P->data->from_xml( \$XML );
 
         return;
     },

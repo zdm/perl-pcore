@@ -24,11 +24,9 @@ sub FREEZE {
     return $self->id;
 }
 
-sub generate_js {
-    my $self = shift;
-    my $data = shift;
+sub generate_js ( $self, $data ) {
+    my $js = P->data->to_json( $data, readable => $Pcore::JS::Generator::READABLE );
 
-    my $js = \P->data->to_json( $data, ascii => 0, latin1 => 0, utf8 => 0, ( $Pcore::JS::Generator::READABLE ? ( pretty => 1, canonical => 1 ) : () ) );
     $js->$* =~ s/[(]"Pcore::JS::Generator::[[:alpha:]]+"[)]\[(\d+)\]/$Pcore::JS::Generator::CACHE->{$1}->as_js/smge;
 
     return $js;

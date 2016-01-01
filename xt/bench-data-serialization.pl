@@ -93,23 +93,23 @@ for my $test ( sort { $packed->{$a} <=> $packed->{$b} } keys $packed ) {
 Benchmark::cmpthese( Benchmark::timethese( $COUNT, $tests ) );
 
 sub seralizer_json_raw_precached {
-    return P->data->encode($TEST_DATA)->$*;
+    return P->data->to_json($TEST_DATA)->$*;
 }
 
 sub seralizer_json_b64_precached {
-    return P->data->encode( $TEST_DATA, portable => 'b64' )->$*;
+    return P->data->to_json( $TEST_DATA, encode => 1 )->$*;
 }
 
 sub seralizer_json_compressed_precached {
-    return P->data->encode( $TEST_DATA, compress => 1 )->$*;
+    return P->data->to_json( $TEST_DATA, compress => 1 )->$*;
 }
 
 sub serializer_data_dumper_raw {
-    return P->data->encode( $TEST_DATA, to => 'PERL' )->$*;
+    return P->data->to_perl($TEST_DATA)->$*;
 }
 
 sub serializer_data_dumper_compressed {
-    return P->data->encode( $TEST_DATA, to => 'PERL', compress => 1 )->$*;
+    return P->data->to_perl( $TEST_DATA, compress => 1 )->$*;
 }
 
 sub json_raw {

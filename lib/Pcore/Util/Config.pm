@@ -1,29 +1,31 @@
 package Pcore::Util::Config;
 
-use Pcore;
+use Pcore -const;
 use Pcore::Util::Text qw[encode_utf8];
+use Pcore::Util::Data qw[:TYPE encode_data decode_data];
+
+const our $EXT_TYPE_MAP => {
+    perl => $DATA_TYPE_PERL,
+    json => $DATA_TYPE_JSON,
+    cbor => $DATA_TYPE_CBOR,
+    yaml => $DATA_TYPE_YAML,
+    yml  => $DATA_TYPE_YAML,
+    xml  => $DATA_TYPE_XML,
+    ini  => $DATA_TYPE_INI,
+};
 
 sub load ( $cfg, @ ) {
     my %args = (
-        ns   => undef,    # load cfg into specified namespace, only for perl configs
-        from => undef,    # PERL, JSON, CBOR, YAML, XML, INI
+        type => undef,
         splice @_, 1,
     );
 
-    my $from = delete $args{from};
+    my $type = delete $args{type};
 
     if ( !ref $cfg ) {
-        if ( !-f $cfg ) {
-            die qq[Config file "$cfg" wasn't found.];
-        }
+        die qq[Config file "$cfg" wasn't found.] if !-f $cfg;
 
-        if ( !$from ) {
-            if ( my ($ext) = $cfg =~ /[.](json|cbor|yaml|yml|xml|ini)\z/sm ) {
-                $from = $ext;
-
-                $from = 'yaml' if $from eq 'yml';
-            }
-        }
+        $type = $EXT_TYPE_MAP->{$1} if !$type && $cfg =~ /[.]([^.]+)\z/sm;
 
         $cfg = P->file->read_bin($cfg);
     }
@@ -31,35 +33,39 @@ sub load ( $cfg, @ ) {
         encode_utf8 $cfg->$*;
     }
 
-    $from //= 'PERL';
+    $type //= $DATA_TYPE_PERL;
 
-    return P->data->decode( $cfg, %args, from => uc $from );
+    return decode_data( $type, $cfg, %args );
 }
 
 sub store ( $path, $cfg, @ ) {
     my %args = (
-        to => undef,    # PERL, JSON, CBOR, YAML, XML, INI
+        type => undef,
         splice @_, 2,
     );
 
-    my $to = delete $args{to};
+    my $type = delete $args{type};
 
-    if ( !$to ) {
-        if ( my ($ext) = $path =~ /[.](json|cbor|yaml|yml|xml|ini)\z/sm ) {
-            $to = $ext;
+    $type = $EXT_TYPE_MAP->{$1} if !$type && $path =~ /[.]([^.]+)\z/sm;
 
-            $to = 'yaml' if $to eq 'yml';
-        }
-    }
+    $type //= $DATA_TYPE_PERL;
 
-    $to //= 'PERL';
-
-    P->file->write_bin( $path, P->data->encode( $cfg, %args, to => uc $to ) );
+    P->file->write_bin( $path, encode_data( $type, $cfg, %args ) );
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 49                   │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

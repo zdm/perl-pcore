@@ -67,7 +67,7 @@ sub _build_message ( $self, $params ) {
         'extra'       => $params->{'extra'} || {}
     };
 
-    return P->data->encode( $data, compress => 1, portable => 1 );
+    return P->data->to_json( $data, compress => 1, encode => 1 );
 }
 
 1;
