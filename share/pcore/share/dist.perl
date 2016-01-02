@@ -21,9 +21,7 @@
                 crypt    => 1,
                 upx      => 1,
                 clean    => 1,
-                resource => [
-
-                    # eg.: '/data/web2.perl',
+                resource => [                                        # eg.: '/data/web2.perl',
                 ],
             },
         },

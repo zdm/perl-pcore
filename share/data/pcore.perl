@@ -1,9 +1,9 @@
-{   cpan => {    # known CPAN deps, that works, but tests are not passed during build
+{   cpan_notest => {    # following modules will be deployed without testing
         'MSWin32-x86-multi-thread-64int' => [qw[Test::TCP]],
         'MSWin32-x64-multi-thread'       => [qw[Test::TCP]],
     },
     par => {
-        mod => [    #
+        mod => [        #
             'bytes_heavy.pl',
             'HTTP/Date.pm',
             'Pcore/Core/H/Role.pm',

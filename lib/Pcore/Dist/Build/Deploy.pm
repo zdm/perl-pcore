@@ -73,18 +73,17 @@ sub _cpanm ($self) {
         my $cfg = P->cfg->load( $ENV->res->get( '/data/pcore.perl', lib => 'pcore' ) );
 
         # install known platform exceptions without tests
-        if ( exists $cfg->{cpanm}->{ $Config::Config{archname} } && $cfg->{cpanm}->{ $Config::Config{archname} }->@* ) {
-            P->sys->system( 'cpanm', '--notest', $cfg->{cpanm}->{ $Config::Config{archname} }->@* ) or return;
+        if ( exists $cfg->{cpan_notest}->{ $Config::Config{archname} } && $cfg->{cpan_notest}->{ $Config::Config{archname} }->@* ) {
+            P->sys->system( 'cpanm', '--notest', $cfg->{cpan_notest}->{ $Config::Config{archname} }->@* ) or return;
         }
 
         my @args = (    #
             'cpanm',
-            '--with-feature', ( $^O =~ /MSWin/sm ? 'windows' : 'linux' ),
+            '--with-feature', ( $MSWIN ? 'windows' : 'linux' ),
             ( $self->develop    ? '--with-develop'    : () ),
             ( $self->recommends ? '--with-recommends' : () ),
             ( $self->suggests   ? '--with-suggests'   : () ),
             ( $self->verbose    ? '--verbose'         : () ),
-            '--cpanfile',    'cpanfile',
             '--installdeps', q[.],
         );
 
@@ -172,10 +171,10 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 101, 117, 122, 127,  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
-## │      │ 149                  │                                                                                                                │
+## │    3 │ 100, 116, 121, 126,  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │      │ 148                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 132                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 131                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
