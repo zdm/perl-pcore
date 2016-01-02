@@ -4,7 +4,7 @@
         license          => '<: $license :>',
         copyright_holder => '<: $copyright_holder :>',
         cpan             => <: $cpan_distribution :>,                # CPAN distribution
-        cpan_bin         => 0,                                       # upload bin to CPAN
+        cpan_bin         => 0,                                       # upload bin/*.* to CPAN
         meta             => {
             homepage   => undef,
             repository => {
