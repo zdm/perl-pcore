@@ -52,6 +52,8 @@ sub BUILD ( $self, $args ) {
     # handshake, send PID
     $self->out->push_write("READY$$\x00");
 
+    my $deps = {};
+
     $self->start_listen(
         $self->in,
         sub ($req) {
@@ -61,7 +63,19 @@ sub BUILD ( $self, $args ) {
 
             $self->obj->$method(
                 sub ($res) {
-                    $self->write_data( $self->out, [ $call_id, $res ] );
+
+                    # make PAR deps snapshot after each call
+                    my $new_deps;
+
+                    if ( $args->{scan_deps} ) {
+                        for my $pkg ( grep { !exists $deps->{$_} } keys %INC ) {
+                            $new_deps = 1;
+
+                            $deps->{$pkg} = $INC{$pkg};
+                        }
+                    }
+
+                    $self->write_data( $self->out, [ $new_deps ? $deps : undef, $call_id, $res ] );
 
                     return;
                 },

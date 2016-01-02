@@ -3,6 +3,7 @@ package Pcore::AE::RPC;
 use Pcore -class;
 use AnyEvent::Util qw[portable_socketpair];
 use Pcore::AE::RPC::Server;
+use Config;
 
 with qw[Pcore::AE::RPC::Base];
 
@@ -11,7 +12,8 @@ has on_ready => ( is => 'ro', isa => CodeRef );
 has pid => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has call_id => ( is => 'ro', default => 0, init_arg => undef );
 has queue => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
-has next_pid => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
+has next_pid  => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
+has scan_deps => ( is => 'lazy', isa => Bool,     init_arg => undef );
 
 sub BUILD ( $self, $args ) {
     my $cv = AE::cv;
@@ -44,6 +46,10 @@ sub _build_next_pid ($self) {
     return [ keys $self->pid->%* ];
 }
 
+sub _build_scan_deps ($self) {
+    return exists $INC{'Pcore/Devel/ScanDeps.pm'} ? 1 : 0;
+}
+
 sub _run_server ( $self, $ready ) {
     $ready->begin;
 
@@ -62,11 +68,14 @@ sub _run_server ( $self, $ready ) {
     my $cv = AE::cv {
         $self->pid->{$pid} = [ $in, $out ];
 
+        # run listener
         $self->start_listen(
             $in,
             sub ($data) {
-                if ( my $cb = delete $self->queue->{ $data->[0] } ) {
-                    $cb->( $data->[1] );
+                $self->_store_deps( $data->[0] ) if $data->[0] && $self->scan_deps;
+
+                if ( my $cb = delete $self->queue->{ $data->[1] } ) {
+                    $cb->( $data->[2] );
                 }
 
                 return;
@@ -170,13 +179,13 @@ sub _get_code ( $self, $fdin, $fdout ) {
 package main v0.1.0;
 
 BEGIN {
-    \$0 = 'aerpc.pl';
+    \$0 = '$ENV->{SCRIPT_NAME}';
 }
 
 use Pcore;
 use Pcore::AE::RPC::Server;
 
-Pcore::AE::RPC::Server->new( { pkg => '@{[$self->pkg]}', in => $fdin, out => $fdout } );
+Pcore::AE::RPC::Server->new( { pkg => '@{[$self->pkg]}', in => $fdin, out => $fdout, scan_deps => @{[$self->scan_deps]} } );
 
 1;
 PERL
@@ -184,6 +193,26 @@ PERL
     $code =~ s/\n//smg;
 
     return $code;
+}
+
+sub _store_deps ( $self, $deps ) {
+    my $old_deps = -f "$ENV->{DATA_DIR}.pardeps.cbor" ? P->cfg->load("$ENV->{DATA_DIR}.pardeps.cbor") : {};
+
+    my $new_deps;
+
+    for my $pkg ( keys $deps->%* ) {
+        if ( !exists $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$pkg} ) {
+            $new_deps = 1;
+
+            say 'new deps found: ' . $pkg;
+
+            $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$pkg} = $deps->{$pkg};
+        }
+    }
+
+    P->cfg->store( "$ENV->{DATA_DIR}.pardeps.cbor", $old_deps ) if $new_deps;
+
+    return;
 }
 
 sub call ( $self, $method, $data, $cb ) {
@@ -207,9 +236,9 @@ sub call ( $self, $method, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 44               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 33, 46, 203          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 89                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 98                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

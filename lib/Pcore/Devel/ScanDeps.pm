@@ -5,9 +5,9 @@ use Config;
 use CBOR::XS qw[];
 
 # store values, for access them later during global destruction
-our $ARCHNAME    = $Config{archname};
-our $DATA_DIR    = $ENV->{DATA_DIR}->to_string;
+our $FN          = "$ENV->{DATA_DIR}.pardeps.cbor";
 our $SCRIPT_NAME = $ENV->{SCRIPT_NAME};
+our $ARCHNAME    = $Config{archname};
 
 if ( $ENV->dist ) {
     our $GUARD = bless {}, __PACKAGE__;
@@ -37,13 +37,11 @@ sub core_support {
 }
 
 sub DESTROY {
-    my $fn = $DATA_DIR . '.pardeps.cbor';
-
     my $deps;
 
     # read deps file, if already exists
-    if ( -f $fn ) {
-        open my $deps_fh, '<:raw', $fn or die;
+    if ( -f $FN ) {
+        open my $deps_fh, '<:raw', $FN or die;
 
         local $/;
 
@@ -54,13 +52,13 @@ sub DESTROY {
 
     # add new deps
     for my $pkg ( sort keys %INC ) {
-        print 'new deps found: ' . $pkg . qq[\n] if !exists $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg};
+        say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg};
 
         $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = $INC{$pkg};
     }
 
     # store deps
-    open my $deps_fh, '>:raw', $fn or die;
+    open my $deps_fh, '>:raw', $FN or die;
 
     print {$deps_fh} CBOR::XS::encode_cbor($deps);
 
@@ -78,7 +76,7 @@ sub DESTROY {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 20                   │ Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 48                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 46                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
