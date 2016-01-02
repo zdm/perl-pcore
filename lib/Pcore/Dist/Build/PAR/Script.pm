@@ -233,10 +233,29 @@ sub _add_shared_libs ($self) {
 }
 
 sub _add_modules ($self) {
+
+    # add .pl, .pm
     for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->script_deps->%* ) {
         my $found = $self->_add_module($module);
 
-        $self->_error(qq[required deps wasn't found: $module]) if !$found && $self->script_deps->{$module} !~ /\A[(]eval\s/sm;
+        $self->_error(qq[required deps wasn't found: "$module"]) if !$found && $self->script_deps->{$module} !~ /\A[(]eval\s/sm;
+    }
+
+    # add .pc (part of some Win32API modules)
+    for my $module ( grep {/[.](?:pc)\z/sm} keys $self->script_deps->%* ) {
+        my $found;
+
+        for my $inc ( grep { !ref } @INC ) {
+            if ( -f "$inc/$module" ) {
+                $found = 1;
+
+                $self->tree->add_file( "$Config::Config{version}/$Config::Config{archname}/$module", "$inc/$module" );
+
+                last;
+            }
+        }
+
+        $self->_error(qq[required deps wasn't found: "$module"]) if !$found;
     }
 
     return;
@@ -576,19 +595,20 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 200, 236, 258, 512   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 200, 238, 245, 277,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 531                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 213, 409             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 213, 428             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 272                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 291                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 447                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 466                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 482                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 501                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 534, 536             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 553, 555             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 469, 475             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 488, 494             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

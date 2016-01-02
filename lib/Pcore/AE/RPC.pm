@@ -148,7 +148,7 @@ sub _run_server_mswin ( $self, $in, $out ) {
     return;
 }
 
-# TODO run from PAR
+# TODO run from PAR under Linux
 sub _run_server_linux ( $self, $in, $out ) {
     state $init = !!require Fcntl;
 
