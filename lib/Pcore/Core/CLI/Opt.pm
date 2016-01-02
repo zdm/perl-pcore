@@ -10,17 +10,17 @@ has name => ( is => 'ro', isa => Str, required => 1 );
 has short => ( is => 'lazy', isa => Maybe [ StrMatch [qr/\A[[:alpha:]]\z/sm] ] );    # undef - disable short option
 has desc => ( is => 'ro', isa => Str );
 
-has type => ( is => 'lazy', isa => Str );
+has type => ( is => 'lazy', isa => Str );                                                                             # option type desc for usage help
 has isa => ( is => 'ro', isa => CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] );
 
-has default => ( is => 'ro', isa => Str | ArrayRef | HashRef );                      # applied, when option is not exists
-has default_val => ( is => 'ro', isa => Maybe [Str] );                               # applied, when option value is not defined
+has default => ( is => 'ro', isa => Str | ArrayRef | HashRef );                                                       # applied, when option is not exists
+has default_val => ( is => 'ro', isa => Maybe [Str] );                                                                # applied, when option value is not defined
 
-has min => ( is => 'lazy', isa => PositiveOrZeroInt );                               # 0 - option is not required
-has max => ( is => 'lazy', isa => PositiveOrZeroInt );                               # 0 - unlimited repeated
+has min => ( is => 'lazy', isa => PositiveOrZeroInt );                                                                # 0 - option is not required
+has max => ( is => 'lazy', isa => PositiveOrZeroInt );                                                                # 0 - unlimited repeated
 
-has negated => ( is => 'lazy', isa => Bool );
-has hash => ( is => 'ro', isa => Bool, default => 0 );
+has negated => ( is => 'lazy', isa => Bool );                                                                         # trigger can be used with --no prefix
+has hash => ( is => 'ro', isa => Bool, default => 0 );                                                                # option ia a hash, --opt key=val
 
 has getopt_name   => ( is => 'lazy', isa => Str,  init_arg => undef );
 has is_trigger    => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -213,7 +213,7 @@ sub _build_help_spec ($self) {
 sub validate ( $self, $opt ) {
     my $name = $self->name;
 
-    # remap getopt name to name
+    # remap getopt name
     $opt->{$name} = delete $opt->{ $self->getopt_name } if exists $opt->{ $self->getopt_name };
 
     if ( !exists $opt->{$name} ) {
