@@ -9,36 +9,20 @@ use Filter::Crypto::CryptFile;
 use Pcore::Src::File;
 use Term::ANSIColor qw[:constants];
 
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
-has par_deps       => ( is => 'ro', isa => ArrayRef, required => 1 );    # pcore.perl->{par_deps}
-has resources_deps => ( is => 'ro', isa => HashRef,  required => 1 );    # pcore.perl->{resources}
-has arch_deps      => ( is => 'ro', isa => HashRef,  required => 1 );    # pcore.perl->{arch_deps}->{arch}
+has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
-has release     => ( is => 'ro', isa => Bool,    required => 1 );
-has crypt       => ( is => 'ro', isa => Bool,    required => 1 );
-has upx         => ( is => 'ro', isa => Bool,    required => 1 );
-has clean       => ( is => 'ro', isa => Bool,    required => 1 );
-has script_deps => ( is => 'ro', isa => HashRef, required => 1 );        # deps from pardeps.cbor
-has resources => ( is => 'ro', isa => Maybe [ArrayRef] );                # dist.perl->{dist}->{par}->{resources}
+has release => ( is => 'ro', isa => Bool, required => 1 );
+has crypt   => ( is => 'ro', isa => Bool, required => 1 );
+has upx     => ( is => 'ro', isa => Bool, required => 1 );
+has clean   => ( is => 'ro', isa => Bool, required => 1 );
+
+has mod      => ( is => 'ro', isa => ArrayRef, required => 1 );
+has resource => ( is => 'ro', isa => ArrayRef, required => 1 );
+has shlib    => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix   => ( is => 'lazy', isa => Str, init_arg => undef );
 has exe_filename => ( is => 'lazy', isa => Str, init_arg => undef );
-
-our $PAR_DEPS = [                                                        # common deps, will be included in any PAR
-
-    # following deps are needed to generate exception
-    'HTTP/Date.pm',
-    'Pcore/Core/H/Role.pm',
-    'Pcore/Core/H/Role/Wrapper.pm',
-    'Pcore/Handle/File.pm',
-    'Pcore/Util/Date.pm',
-    'Pcore/Util/Sys.pm',
-    'Time/Local.pm',
-    'Time/Moment.pm',
-    'Time/Zone.pm',
-    'bytes_heavy.pl',
-];
 
 sub _build_tree ($self) {
     return Pcore::Util::File::Tree->new;
@@ -68,22 +52,6 @@ sub _build_exe_filename ($self) {
 sub run ($self) {
     say BOLD . GREEN . qq[\nbuild] . ( $self->crypt ? ' crypted' : BOLD . RED . q[ not crypted] . BOLD . GREEN ) . qq[ "@{[$self->exe_filename]}" for $Config::Config{archname}] . RESET;
 
-    # add common par deps packages to the script_deps
-    for my $pkg ( $PAR_DEPS->@*, $self->par_deps->@* ) {
-        $self->script_deps->{$pkg} = 1;
-    }
-
-    # add known arch deps packages to the script_deps
-    for my $pkg ( $self->arch_deps->{pkg}->@* ) {
-        $self->script_deps->{$pkg} = 1;
-    }
-
-    # replace Inline.pm with Pcore/Core/Inline.pm
-    $self->script_deps->{'Pcore/Core/Inline.pm'} = 1 if delete $self->script_deps->{'Inline.pm'};
-
-    # add Filter::Crypto::Decrypt deps if crypt mode is used
-    $self->script_deps->{'Filter/Crypto/Decrypt.pm'} = 1 if $self->crypt;
-
     # add main script
     $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
 
@@ -102,15 +70,16 @@ sub run ($self) {
     # add META.yml
     $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->clean;
 
-    # add shared libs
-    $self->_add_shared_libs;
+    # add shlib
+    $self->_add_shlib;
 
-    # process script deps
-    print 'adding deps ... ';
+    # add resources
+    $self->_add_resources;
+
+    # add modules
+    print 'adding modules ... ';
     $self->_add_modules;
     say 'done';
-
-    $self->_add_resources;
 
     my $temp = $self->tree->write_to_temp;
 
@@ -175,17 +144,41 @@ sub run ($self) {
     return;
 }
 
-sub _add_resources ($self) {
-    my $resources;
+sub _add_shlib ($self) {
+    for my $shlib ( $self->shlib->@* ) {
+        my $found;
 
-    # copy global resources to script resources
-    for my $module ( keys $self->resources_deps->%* ) {
-        $resources->@{ $self->resources_deps->{$module}->@* } = () if exists $self->script_deps->{$module};
+        if ( -f $shlib ) {
+            $found = $shlib;
+        }
+        else {
+            # find in the $ENV{PATH}, @INC
+            for my $path ( split( /;/sm, $ENV{PATH} ), grep { !ref } @INC ) {
+                if ( -f "$path/$shlib" ) {
+                    $found = "$path/$shlib";
+
+                    last;
+                }
+            }
+        }
+
+        if ($found) {
+            my $filename = P->path($shlib)->filename;
+
+            say qq[shared lib added: "$filename"];
+
+            $self->tree->add_file( "shlib/$Config::Config{archname}/$filename", $found );
+        }
+        else {
+            $self->_error(qq[shared object wasn't found: "$shlib"]);
+        }
     }
 
-    $resources->@{ $self->resources->@* } = () if $self->resources;
+    return;
+}
 
-    for my $res ( keys $resources->%* ) {
+sub _add_resources ($self) {
+    for my $res ( $self->resource->@* ) {
         my $path = $ENV->res->get($res);
 
         if ( !$path ) {
@@ -201,55 +194,17 @@ sub _add_resources ($self) {
     return;
 }
 
-sub _add_shared_libs ($self) {
-    my $processed_so;
-
-    for my $pkg ( keys $self->arch_deps->{so}->%* ) {
-        if ( exists $self->script_deps->{$pkg} ) {
-            for my $so ( $self->arch_deps->{so}->{$pkg}->@* ) {
-                next if exists $processed_so->{$so};
-
-                $processed_so->{$so} = 1;
-
-                my $so_filename = P->path($so)->filename;
-
-                my $found;
-
-                # find so in the $ENV{PATH}, @INC
-                for my $path ( split( /;/sm, $ENV{PATH} ), grep { !ref } @INC ) {
-                    if ( -f $path . q[/] . $so ) {
-                        $found = $path . q[/] . $so;
-
-                        last;
-                    }
-                }
-
-                if ($found) {
-                    say qq[shared lib added: "$so_filename"];
-
-                    $self->tree->add_file( 'shlib/' . $Config::Config{archname} . q[/] . $so_filename, $found );
-                }
-                else {
-                    $self->_error(qq[shared object wasn't found: "$so_filename"]);
-                }
-            }
-        }
-    }
-
-    return;
-}
-
 sub _add_modules ($self) {
 
     # add .pl, .pm
-    for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->script_deps->%* ) {
+    for my $module ( grep {/[.](?:pl|pm)\z/sm} $self->mod->@* ) {
         my $found = $self->_add_module($module);
 
-        $self->_error(qq[required deps wasn't found: "$module"]) if !$found && $self->script_deps->{$module} !~ /\A[(]eval\s/sm;
+        $self->_error(qq[required module wasn't found: "$module"]) if !$found;
     }
 
     # add .pc (part of some Win32API modules)
-    for my $module ( grep {/[.](?:pc)\z/sm} keys $self->script_deps->%* ) {
+    for my $module ( grep {/[.](?:pc)\z/sm} $self->mod->@* ) {
         my $found;
 
         for my $inc ( grep { !ref } @INC ) {
@@ -262,7 +217,7 @@ sub _add_modules ($self) {
             }
         }
 
-        $self->_error(qq[required deps wasn't found: "$module"]) if !$found;
+        $self->_error(qq[required module wasn't found: "$module"]) if !$found;
     }
 
     return;
@@ -602,20 +557,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 182, 188, 207, 245,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 252, 284, 538        │                                                                                                                │
+## │    3 │ 239, 493             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 220, 435             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 253                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 298                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 390                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 473                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 428                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 508                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 463                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 560, 562             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 515, 517             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 495, 501             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 450, 456             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

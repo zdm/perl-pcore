@@ -40,26 +40,6 @@ sub run ($self) {
 
     # build scripts
     for my $script ( sort keys $self->dist->cfg->{dist}->{par}->%* ) {
-        my $profile = $self->dist->cfg->{dist}->{par}->{$script};
-
-        $profile->{dist} = $self->dist;
-
-        $profile->{par_deps} = $pcore_cfg->{par_deps} // [];
-
-        $profile->{resources_deps} = $pcore_cfg->{resources};
-
-        $profile->{arch_deps} = $pcore_cfg->{arch_deps}->{ $Config::Config{archname} } // {};
-
-        $profile->{script} = P->path( $self->dist->root . 'bin/' . $script );
-
-        $profile->{release} = $self->release;
-
-        $profile->{crypt} = $self->crypt if defined $self->crypt;
-
-        $profile->{upx} = $self->upx if defined $self->upx;
-
-        $profile->{clean} = $self->clean if defined $self->clean;
-
         if ( !exists $pardeps->{$script}->{ $Config::Config{archname} } ) {
             say BOLD . RED . qq[Deps for $script "$Config::Config{archname}" wasn't scanned.] . RESET;
 
@@ -67,9 +47,55 @@ sub run ($self) {
 
             next;
         }
-        else {
-            $profile->{script_deps} = $pardeps->{$script}->{ $Config::Config{archname} };
+
+        my $profile = $self->dist->cfg->{dist}->{par}->{$script};
+
+        $profile->{dist}    = $self->dist;
+        $profile->{script}  = P->path( $self->dist->root . 'bin/' . $script );
+        $profile->{release} = $self->release;
+        $profile->{crypt}   = $self->crypt if defined $self->crypt;
+        $profile->{upx}     = $self->upx if defined $self->upx;
+        $profile->{clean}   = $self->clean if defined $self->clean;
+
+        # add pardeps.cbor modules, skip eval
+        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->{ $Config::Config{archname} }->%* } = ();
+
+        # add global modules
+        $profile->{mod}->@{ $pcore_cfg->{par}->{mod}->@* } = ();
+
+        # add global arch modules
+        $profile->{mod}->@{ $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod}->@* } = () if exists $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod};
+
+        # replace Inline.pm with Pcore/Core/Inline.pm
+        $profile->{mod}->{'Pcore/Core/Inline.pm'} = undef if delete $profile->{mod}->{'Inline.pm'};
+
+        # add Filter::Crypto::Decrypt deps if crypt mode is used
+        $profile->{mod}->{'Filter/Crypto/Decrypt.pm'} = undef if $profile->{crypt};
+
+        my $resource = {};
+
+        # add script resources
+        $resource->@{ keys $profile->{resource}->%* } = () if $profile->{resource};
+
+        # add modules resources
+        for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{mod_resource}->%* ) {
+            $resource->@{ $pcore_cfg->{par}->{mod_resource}->{$mod}->@* } = ();
         }
+
+        $profile->{resource} = [ keys $resource->%* ];
+
+        # add shlib
+        my $shlib = {};
+
+        if ( exists $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod_shlib} ) {
+            for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod_shlib}->%* ) {
+                $shlib->@{ $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod_shlib}->{$mod}->@* } = ();
+            }
+        }
+
+        $profile->{shlib} = [ keys $shlib->%* ];
+
+        $profile->{mod} = [ keys $profile->{mod}->%* ];
 
         Pcore::Dist::Build::PAR::Script->new($profile)->run;
     }
@@ -84,7 +110,8 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 42, 61, 78, 81, 85,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 91, 96, 98           │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
