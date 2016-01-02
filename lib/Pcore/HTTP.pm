@@ -14,6 +14,13 @@ use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Response;
 use Pcore::HTTP::CookieJar;
 
+# 594 - errors during proxy handshake.
+# 595 - errors during connection establishment.
+# 596 - errors during TLS negotiation, request sending and header processing.
+# 597 - errors during body receiving or processing.
+# 598 - user aborted request via on_header or on_body.
+# 599 - other, usually nonretryable, errors (garbled URL etc.).
+
 const our $TLS_CTX_LOW  => 1;
 const our $TLS_CTX_HIGH => 2;
 const our $TLS_CTX      => {
@@ -425,14 +432,14 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 104, 172, 183, 217,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 218, 242             │                                                                                                                │
+## │    3 │ 111, 179, 190, 224,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 225, 249             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 107                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 168                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
+## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 154                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 161                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
