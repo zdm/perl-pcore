@@ -179,7 +179,7 @@ sub _build_module ($self) {
         $module = P->perl->module( $module_name, $self->root . 'lib/' );
     }
 
-    die qq[Disr main module "$module_name" wasn't found, distribution is corrupted] if !$module;
+    die qq[Distr main module "$module_name" wasn't found, distribution is corrupted] if !$module;
 
     return $module;
 }
