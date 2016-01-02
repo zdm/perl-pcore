@@ -176,15 +176,16 @@ sub run ($self) {
 }
 
 sub _add_resources ($self) {
+    my $resources;
 
     # copy global resources to script resources
     for my $module ( keys $self->resources_deps->%* ) {
-        push $self->resources->@*, $self->resources_deps->{$module}->@* if exists $self->script_deps->{$module};
+        $resources->@{ $self->resources_deps->{$module}->@* } = () if exists $self->script_deps->{$module};
     }
 
-    return if !$self->resources;
+    $resources->@{ $self->resources->@* } = () if $self->resources;
 
-    for my $res ( $self->resources->@* ) {
+    for my $res ( keys $resources->%* ) {
         my $path = $ENV->res->get($res);
 
         if ( !$path ) {
@@ -601,20 +602,20 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 181, 206, 244, 251,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 283, 537             │                                                                                                                │
+## │    3 │ 182, 188, 207, 245,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 252, 284, 538        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 219, 434             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 220, 435             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 297                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 298                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 472                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 473                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 507                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 508                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 559, 561             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 560, 562             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 494, 500             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 495, 501             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
