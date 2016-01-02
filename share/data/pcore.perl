@@ -9,6 +9,7 @@
             pkg => [    # default packages to include, eg: 'Win32/Unicode.pm'
             ],
             so => {
+                'Pcore/AE/RPC.pm'          => ['perl.exe'],
                 'B/Hooks/OP/Check.pm'      => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
                 'Filter/Crypto/Decrypt.pm' => [ 'libeay32_.dll', 'zlib1_.dll' ],
                 'Net/SSLeay.pm'            => [ 'ssleay32_.dll', 'libeay32_.dll', 'zlib1_.dll' ],
@@ -20,6 +21,7 @@
             pkg => [    # default packages to include, eg: 'Win32/Unicode.pm'
             ],
             so => {
+                'Pcore/AE/RPC.pm'          => ['perl.exe'],
                 'B/Hooks/OP/Check.pm'      => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
                 'Filter/Crypto/Decrypt.pm' => [ 'libeay32__.dll', 'zlib1__.dll' ],
                 'Net/SSLeay.pm'            => [ 'ssleay32__.dll', 'libeay32__.dll', 'zlib1__.dll' ],
