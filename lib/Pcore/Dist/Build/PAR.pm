@@ -46,6 +46,8 @@ sub run ($self) {
 
         $profile->{par_deps} = $pcore_cfg->{par_deps} // [];
 
+        $profile->{resources_deps} = $pcore_cfg->{resources};
+
         $profile->{arch_deps} = $pcore_cfg->{arch_deps}->{ $Config::Config{archname} } // {};
 
         $profile->{script} = P->path( $self->dist->root . 'bin/' . $script );

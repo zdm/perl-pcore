@@ -10,24 +10,24 @@ use Pcore::Src::File;
 use Term::ANSIColor qw[:constants];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
-has par_deps  => ( is => 'ro', isa => ArrayRef, required => 1 );
-has arch_deps => ( is => 'ro', isa => HashRef,  required => 1 );
+has par_deps       => ( is => 'ro', isa => ArrayRef, required => 1 );    # pcore.perl->{par_deps}
+has resources_deps => ( is => 'ro', isa => HashRef,  required => 1 );    # pcore.perl->{resources}
+has arch_deps      => ( is => 'ro', isa => HashRef,  required => 1 );    # pcore.perl->{arch_deps}->{arch}
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 has release     => ( is => 'ro', isa => Bool,    required => 1 );
 has crypt       => ( is => 'ro', isa => Bool,    required => 1 );
 has upx         => ( is => 'ro', isa => Bool,    required => 1 );
 has clean       => ( is => 'ro', isa => Bool,    required => 1 );
-has script_deps => ( is => 'ro', isa => HashRef, required => 1 );
-has resources => ( is => 'ro', isa => Maybe [ArrayRef] );
+has script_deps => ( is => 'ro', isa => HashRef, required => 1 );        # deps from pardeps.cbor
+has resources => ( is => 'ro', isa => Maybe [ArrayRef] );                # dist.perl->{dist}->{par}->{resources}
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix   => ( is => 'lazy', isa => Str, init_arg => undef );
 has exe_filename => ( is => 'lazy', isa => Str, init_arg => undef );
 
-our $PAR_DEPS = [    # common deps, will be included in any PAR
+our $PAR_DEPS = [                                                        # common deps, will be included in any PAR
 
     # following deps are needed to generate exception
-    'File/Path.pm',
     'HTTP/Date.pm',
     'Pcore/Core/H/Role.pm',
     'Pcore/Core/H/Role/Wrapper.pm',
@@ -176,6 +176,12 @@ sub run ($self) {
 }
 
 sub _add_resources ($self) {
+
+    # copy global resources to script resources
+    for my $module ( keys $self->resources_deps->%* ) {
+        push $self->resources->@*, $self->resources_deps->{$module}->@* if exists $self->script_deps->{$module};
+    }
+
     return if !$self->resources;
 
     for my $res ( $self->resources->@* ) {
@@ -595,20 +601,20 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 200, 238, 245, 277,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 531                  │                                                                                                                │
+## │    3 │ 181, 206, 244, 251,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 283, 537             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 213, 428             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 219, 434             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 291                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 297                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 466                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 472                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 501                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 507                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 553, 555             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 559, 561             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 488, 494             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 494, 500             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

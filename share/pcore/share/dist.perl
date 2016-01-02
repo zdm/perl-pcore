@@ -21,8 +21,9 @@
                 crypt     => 1,
                 upx       => 1,
                 clean     => 1,
-                resources => [                                       #
-                    '/data/web2.perl',                               # !!!WARN!!! required by Pcore::Util::URI
+                resources => [
+
+                    # eg.: '/data/web2.perl',
                 ],
             },
         },
