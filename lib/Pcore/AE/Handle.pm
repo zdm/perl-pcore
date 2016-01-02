@@ -1,9 +1,7 @@
 package Pcore::AE::Handle;
 
-use Pcore
-  -const,
-  -export => {
-    PROXY_TYPE  => [qw[$PROXY_TYPE_HTTP $PROXY_TYPE_CONNECT $PROXY_TYPE_SOCKS5 $PROXY_TYPE_SOCKS4 $PROXY_TYPE_SOCKS4A]],
+use Pcore -const, -export,
+  { PROXY_TYPE  => [qw[$PROXY_TYPE_HTTP $PROXY_TYPE_CONNECT $PROXY_TYPE_SOCKS5 $PROXY_TYPE_SOCKS4 $PROXY_TYPE_SOCKS4A]],
     PROXY_ERROR => [qw[$PROXY_OK $PROXY_ERROR_CONNECT $PROXY_ERROR_AUTH $PROXY_ERROR_TYPE $PROXY_ERROR_OTHER]],
     PERSISTENT  => [qw[$PERSISTENT_IDENT $PERSISTENT_ANY $PERSISTENT_NO_PROXY]],
   };
@@ -914,29 +912,29 @@ sub get_connect ($connect) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 74                   │ * Subroutine "new" with high complexity score (37)                                                             │
-## │      │ 682                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
+## │      │ 72                   │ * Subroutine "new" with high complexity score (37)                                                             │
+## │      │ 680                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 157, 401             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 155, 399             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 259                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 257                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 59, 446, 483, 486,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 498, 536, 539, 542   │                                                                                                                │
+## │    2 │ 57, 444, 481, 484,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │      │ 496, 534, 537, 540   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 629                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 627                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 1002 does not specify text                                                  │
-## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 950 does not specify text                                                   │
-## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 958 does not specify text                                                   │
-## │      │ 944                  │ * Link L<AnyEvent::Handle> on line 986 does not specify text                                                   │
-## │      │ 944                  │ * Link L<AnyEvent::Socket> on line 1002 does not specify text                                                  │
-## │      │ 944                  │ * Link L<Pcore::Proxy> on line 1002 does not specify text                                                      │
-## │      │ 944, 944             │ * Link L<Pcore::Proxy> on line 968 does not specify text                                                       │
+## │      │ 942                  │ * Link L<AnyEvent::Handle> on line 1000 does not specify text                                                  │
+## │      │ 942                  │ * Link L<AnyEvent::Handle> on line 948 does not specify text                                                   │
+## │      │ 942                  │ * Link L<AnyEvent::Handle> on line 956 does not specify text                                                   │
+## │      │ 942                  │ * Link L<AnyEvent::Handle> on line 984 does not specify text                                                   │
+## │      │ 942                  │ * Link L<AnyEvent::Socket> on line 1000 does not specify text                                                  │
+## │      │ 942                  │ * Link L<Pcore::Proxy> on line 1000 does not specify text                                                      │
+## │      │ 942, 942             │ * Link L<Pcore::Proxy> on line 966 does not specify text                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 55, 60, 451, 536,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 539, 542, 548        │                                                                                                                │
+## │    1 │ 53, 58, 449, 534,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │      │ 537, 540, 546        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
