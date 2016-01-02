@@ -543,7 +543,7 @@ sub help_version ($self) {
 
     say $format_dist_info->( $ENV->pcore ) if !$ENV->dist || $ENV->dist->name ne $ENV->pcore->name;
 
-    say 'Perl ' . version->new($])->normal . " $Config::Config{archname}";
+    say 'Perl ' . $^V->normal . " $Config::Config{archname}";
 
     exit 2;
 }

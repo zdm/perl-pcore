@@ -144,7 +144,7 @@ PERL
 sub _generate_build_pl ( $self, $tree ) {
     my $reqs = $self->prereqs->merged_requirements( [qw[configure build test runtime]], ['requires'] );
 
-    my $perl_version = $reqs->requirements_for_module('perl') || version->new($])->normal;
+    my $perl_version = $reqs->requirements_for_module('perl') || $^V->normal;
 
     my $mbt_version = $self->module_build_tiny_ver;
 
