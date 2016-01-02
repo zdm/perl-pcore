@@ -75,7 +75,7 @@ sub run ($self) {
         my $resource = {};
 
         # add script resources
-        $resource->@{ keys $profile->{resource}->%* } = () if $profile->{resource};
+        $resource->@{ keys $profile->{resource}->@* } = () if $profile->{resource};
 
         # add modules resources
         for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{mod_resource}->%* ) {
@@ -110,8 +110,8 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42, 61, 78, 81, 85,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 91, 96, 98           │                                                                                                                │
+## │    3 │ 42, 61, 81, 85, 91,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 96, 98               │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
