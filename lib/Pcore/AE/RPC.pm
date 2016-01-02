@@ -8,6 +8,7 @@ use Config;
 with qw[Pcore::AE::RPC::Base];
 
 has on_ready => ( is => 'ro', isa => CodeRef );
+has workers => ( is => 'lazy', isa => PositiveInt, default => sub { P->sys->cpus_num } );
 
 has pid => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has call_id => ( is => 'ro', default => 0, init_arg => undef );
@@ -18,7 +19,7 @@ has scan_deps => ( is => 'lazy', isa => Bool,     init_arg => undef );
 sub BUILD ( $self, $args ) {
     my $cv = AE::cv;
 
-    for ( 1 .. P->sys->cpus_num ) {
+    for ( 1 .. $self->workers ) {
         $self->_run_server($cv);
     }
 
@@ -215,10 +216,10 @@ sub _store_deps ( $self, $deps ) {
     return;
 }
 
-sub call ( $self, $method, $data, $cb ) {
+sub call ( $self, $method, $data = undef, $cb = undef ) {
     my $call_id = ++$self->{call_id};
 
-    $self->queue->{$call_id} = $cb;
+    $self->queue->{$call_id} = $cb if $cb;
 
     my $pid = shift $self->next_pid->@*;
 
@@ -236,9 +237,9 @@ sub call ( $self, $method, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 33, 46, 203          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 34, 47, 204          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 98                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 99                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

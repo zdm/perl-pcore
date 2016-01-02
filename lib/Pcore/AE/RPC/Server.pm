@@ -62,7 +62,7 @@ sub BUILD ( $self, $args ) {
             my $method = $req->[1];
 
             $self->obj->$method(
-                sub ($res) {
+                sub ($res = undef) {
 
                     # make PAR deps snapshot after each call
                     my $new_deps;
