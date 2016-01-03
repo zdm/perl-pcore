@@ -115,7 +115,7 @@ sub _install ($self) {
     my $canon_dist_lib_dir = P->path("$canon_dist_root/../")->realpath->canonpath;
 
     if ($MSWIN) {
-        if ( $self->dist->name eq 'Pcore' ) {
+        if ( $self->dist->is_pcore ) {
 
             # set $ENV{PERL5LIB}
             P->sys->system(qq[setx.exe /M PERL5LIB "$canon_dist_root/lib;"]) or return;
@@ -157,7 +157,7 @@ sub _install ($self) {
     else {
         my $data;
 
-        if ( $self->dist->name eq 'Pcore' ) {
+        if ( $self->dist->is_pcore ) {
             $data = <<"SH";
 if ! echo \$PERL5LIB | grep -Eq "(^|$Config{path_sep})$canon_dist_root/lib/?(\$|$Config{path_sep})" ; then export PERL5LIB="$canon_dist_root/lib$Config{path_sep}\$PERL5LIB" ; fi
 export PCORE_DIST_LIB="$canon_dist_lib_dir"

@@ -11,7 +11,8 @@ has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], p
 
 has build_info => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
-has name => ( is => 'lazy', isa => Str, init_arg => undef );      # Dist-Name
+has name     => ( is => 'lazy', isa => Str,  init_arg => undef );    # Dist-Name
+has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 has version    => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
 has revision   => ( is => 'lazy', isa => Str,    clearer => 1, init_arg => undef );
@@ -196,6 +197,10 @@ sub _build_name ($self) {
     return $self->cfg->{dist}->{name};
 }
 
+sub _build_is_pcore ($self) {
+    return $self->name eq 'Pcore';
+}
+
 sub _build_version ($self) {
     if ( $self->is_installed ) {
         return version->new( $self->build_info->{version} );
@@ -277,9 +282,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 106, 156             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 107, 157             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 215                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 220                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
