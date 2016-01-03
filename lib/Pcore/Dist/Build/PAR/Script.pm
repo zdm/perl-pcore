@@ -519,7 +519,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $out_len = $repacked_exe_fh->tell;
 
-    say 'parl repacked: ', BOLD . GREEN . q[-] . format_num( $out_len - $in_len ) . RESET . ' bytes';
+    say 'parl repacked: ', BOLD . GREEN . format_num( $out_len - $in_len ) . RESET . ' bytes';
 
     # need to close fh before copy / patch file
     $repacked_exe_fh->close;
