@@ -83,9 +83,9 @@ sub run_rpc ( $class, @ ) {
         class => $class,
     );
 
-    state $init = !!require Pcore::Util::RPC;
+    state $init = !!require Pcore::Util::PM::RPC;
 
-    return Pcore::Util::RPC->new( \%args );
+    return Pcore::Util::PM::RPC->new( \%args );
 }
 
 sub run_ipc (@) {
