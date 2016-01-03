@@ -57,12 +57,13 @@ requires 'Perl::Tidy';
 on develop => sub {
     requires 'Perl::Stripper';
     requires 'Perl::Strip';
-    suggests 'Perl::Lint';    # Perl::Critic replacement
     requires 'Perl::Critic';
     requires 'PPI::XS';
     requires 'JavaScript::Packer';
     requires 'CSS::Packer';
     requires 'HTML::Packer';
+
+    # suggests 'Perl::Lint';    # Perl::Critic replacement
 };
 
 # Pcore::Util::Capture
