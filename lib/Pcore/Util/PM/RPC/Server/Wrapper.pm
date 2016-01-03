@@ -33,12 +33,14 @@ else {
 
 my $cv = AE::cv;
 
+my ( $in, $out );
+
 $cv->begin;
 
 Pcore::AE::Handle->new(
     fh         => \*IN,
     on_connect => sub ( $h, @ ) {
-        $BOOT_ARGS->{args}->{in} = $h;
+        $in = $h;
 
         $cv->end;
 
@@ -51,7 +53,7 @@ $cv->begin;
 Pcore::AE::Handle->new(
     fh         => \*OUT,
     on_connect => sub ( $h, @ ) {
-        $BOOT_ARGS->{args}->{out} = $h;
+        $out = $h;
 
         $cv->end;
 
@@ -61,16 +63,73 @@ Pcore::AE::Handle->new(
 
 $cv->recv;
 
-$BOOT_ARGS->{args}->{cv} = AE::cv;
-
-$BOOT_ARGS->{args}->{scan_deps} = $BOOT_ARGS->{scan_deps};
+# handles are created
+$cv = AE::cv;
 
 my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{args} );
 
-# handshake, send PID
-$BOOT_ARGS->{args}->{out}->push_write("READY$$\x00");
+my $deps = {};
 
-$BOOT_ARGS->{args}->{cv}->recv;
+# start listener
+my $listener = sub ($req) {
+    my $call_id = $req->[0];
+
+    my $method = $req->[1];
+
+    $obj->$method(
+        sub ($res = undef) {
+
+            # make PAR deps snapshot after each call
+            my $new_deps;
+
+            if ( $BOOT_ARGS->{scan_deps} ) {
+                for my $pkg ( grep { !exists $deps->{$_} } keys %INC ) {
+                    $new_deps = 1;
+
+                    $deps->{$pkg} = $INC{$pkg};
+                }
+            }
+
+            my $data = P->data->to_cbor( [ $new_deps ? $deps : undef, $call_id, $res ] );
+
+            $out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
+
+            return;
+        },
+        $req->[2],
+    );
+
+    return;
+};
+
+$in->on_read(
+    sub ($h) {
+        $h->unshift_read(
+            chunk => 4,
+            sub ( $h, $data ) {
+                my $len = unpack 'L>', $data;
+
+                $h->unshift_read(
+                    chunk => $len,
+                    sub ( $h, $data ) {
+                        $listener->( P->data->from_cbor($data) );
+
+                        return;
+                    }
+                );
+
+                return;
+            }
+        );
+
+        return;
+    }
+);
+
+# handshake, send PID
+$out->push_write("READY$$\x00");
+
+$cv->recv;
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -79,7 +138,7 @@ $BOOT_ARGS->{args}->{cv}->recv;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 71                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 130                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

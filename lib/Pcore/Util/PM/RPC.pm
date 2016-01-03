@@ -78,7 +78,7 @@ sub _build__scan_deps ($self) {
 sub call ( $self, $method, $data = undef, $cb = undef ) {
     my $call_id = ++$self->{call_id};
 
-    $self->queue->{$call_id} = $cb if $cb;
+    $self->_queue->{$call_id} = $cb if $cb;
 
     my $worker = shift $self->_workers->@*;
 
