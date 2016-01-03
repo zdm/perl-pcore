@@ -1,6 +1,6 @@
 package Pcore::Util::PM;
 
-use Pcore -export, [qw[is_superuser create_process]];
+use Pcore -export, [qw[is_superuser proc]];
 use POSIX qw[];
 use Config;
 
@@ -72,6 +72,12 @@ sub is_superuser {
     else {
         return $> == 0 ? 1 : 0;
     }
+}
+
+sub proc {
+    state $init = !!require Pcore::Util::PM::Process;
+
+    return Pcore::Util::PM::Process->new(@_);
 }
 
 sub create_process (@args) {
