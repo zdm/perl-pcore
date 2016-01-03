@@ -139,7 +139,7 @@
             'Subroutines::ProhibitSubroutinePrototypes'     => undef,               # TODO [PCORE-27] - remove this policy, https://github.com/Perl-Critic/Perl-Critic/issues/591
 
             # References
-            'References::ProhibitDoubleSigils' => undef,    # { severity => 4 },    # TODO enable, when bug with ->%* will be fixed
+            'References::ProhibitDoubleSigils' => { severity => 3 },    # TODO update to 4, when bug with ->%* will be fixed, https://github.com/adamkennedy/PPI/issues/88
 
             # Variables
             'Variables::ProhibitUnusedVariables' => { severity => 4 },

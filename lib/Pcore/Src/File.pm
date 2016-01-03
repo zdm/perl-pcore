@@ -241,6 +241,10 @@ sub run ($self) {
 
     # write file, if it was physically read from disk
     if ( $self->_can_write && !$self->dry_run && $self->was_changed ) {
+
+        # remove READ-ONLY attr under windows
+        chmod 0777, $self->path or 1 if $MSWIN;
+
         P->file->write_bin( $self->path, $self->out_buffer );
     }
 
