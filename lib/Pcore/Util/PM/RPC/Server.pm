@@ -1,80 +1,147 @@
 package Pcore::Util::PM::RPC::Server;
 
-use Pcore -role;
+use strict;
+use warnings;
 
-has cv  => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], required => 1 );
-has in  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 1 );
-has out => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 1 );
-has scan_deps => ( is => 'ro', isa => Bool, required => 1 );
+our $BOOT_ARGS;
 
-sub BUILD ( $self, $args ) {
-    my $deps = {};
+BEGIN {
+    require CBOR::XS;
 
-    $self->_start_listen(
-        sub ($req) {
-            my $call_id = $req->[0];
+    $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', shift @ARGV );
 
-            my $method = $req->[1];
+    $0 = $BOOT_ARGS->{script}->{path};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-            $self->$method(
-                sub ($res = undef) {
-
-                    # make PAR deps snapshot after each call
-                    my $new_deps;
-
-                    if ( $self->scan_deps ) {
-                        for my $pkg ( grep { !exists $deps->{$_} } keys %INC ) {
-                            $new_deps = 1;
-
-                            $deps->{$pkg} = $INC{$pkg};
-                        }
-                    }
-
-                    my $data = P->data->to_cbor( [ $new_deps ? $deps : undef, $call_id, $res ] );
-
-                    $self->out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
-
-                    return;
-                },
-                $req->[2],
-            );
-
-            return;
-        }
-    );
-
-    return;
+    $main::VERSION = version->new( $BOOT_ARGS->{script}->{version} );
 }
 
-sub _start_listen ( $self, $cb ) {
-    $self->in->on_read(
-        sub ($h) {
-            $h->unshift_read(
-                chunk => 4,
-                sub ( $h, $data ) {
-                    my $len = unpack 'L>', $data;
+package                                   # hide from CPAN
+  main;
 
-                    $h->unshift_read(
-                        chunk => $len,
-                        sub ( $h, $data ) {
-                            $cb->( P->data->from_cbor($data) );
+use Pcore;
+use Pcore::AE::Handle;
+use if $MSWIN, 'Win32API::File';
 
-                            return;
-                        }
-                    );
+if ($MSWIN) {
+    Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->{ipc}->{in},  'r' ) or die $!;
+    Win32API::File::OsFHandleOpen( *OUT, $BOOT_ARGS->{ipc}->{out}, 'w' ) or die $!;
+}
+else {
+    open *IN,  '<&=', $BOOT_ARGS->{ipc}->{in}  or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+    open *OUT, '>&=', $BOOT_ARGS->{ipc}->{out} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+}
 
-                    return;
+my $cv = AE::cv;
+
+my ( $in, $out );
+
+$cv->begin;
+
+Pcore::AE::Handle->new(
+    fh         => \*IN,
+    on_connect => sub ( $h, @ ) {
+        $in = $h;
+
+        $cv->end;
+
+        return;
+    }
+);
+
+$cv->begin;
+
+Pcore::AE::Handle->new(
+    fh         => \*OUT,
+    on_connect => sub ( $h, @ ) {
+        $out = $h;
+
+        $cv->end;
+
+        return;
+    }
+);
+
+$cv->recv;
+
+# handles are created
+$cv = AE::cv;
+
+my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{args} );
+
+my $deps = {};
+
+# start listener
+my $listener = sub ($req) {
+    my $call_id = $req->[0];
+
+    my $method = $req->[1];
+
+    $obj->$method(
+        sub ($res = undef) {
+
+            # make PAR deps snapshot after each call
+            my $new_deps;
+
+            if ( $BOOT_ARGS->{scan_deps} ) {
+                for my $pkg ( grep { !exists $deps->{$_} } keys %INC ) {
+                    $new_deps = 1;
+
+                    $deps->{$pkg} = $INC{$pkg};
                 }
-            );
+            }
+
+            my $data = P->data->to_cbor( [ $new_deps ? $deps : undef, $call_id, $res ] );
+
+            $out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
 
             return;
-        }
+        },
+        $req->[2],
     );
 
     return;
-}
+};
+
+$in->on_read(
+    sub ($h) {
+        $h->unshift_read(
+            chunk => 4,
+            sub ( $h, $data ) {
+                my $len = unpack 'L>', $data;
+
+                $h->unshift_read(
+                    chunk => $len,
+                    sub ( $h, $data ) {
+                        $listener->( P->data->from_cbor($data) );
+
+                        return;
+                    }
+                );
+
+                return;
+            }
+        );
+
+        return;
+    }
+);
+
+# handshake, send PID
+$out->push_write("READY$$\x00");
+
+$cv->recv;
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    2 │ 130                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

@@ -62,10 +62,10 @@ around _create => sub ( $orig, $self ) {
     my $cmd = [];
 
     if ($MSWIN) {
-        push $cmd->@*, $perl, q[-MPcore::Util::PM::RPC::Server::Wrapper -e "" ] . $boot_args;
+        push $cmd->@*, $perl, q[-MPcore::Util::PM::RPC::Server -e "" ] . $boot_args;
     }
     else {
-        push $cmd->@*, $perl, '-MPcore::Util::PM::RPC::Server::Wrapper', '-e', q[], $boot_args;
+        push $cmd->@*, $perl, '-MPcore::Util::PM::RPC::Server', '-e', q[], $boot_args;
     }
 
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
