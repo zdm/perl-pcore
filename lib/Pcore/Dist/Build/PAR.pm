@@ -1,7 +1,7 @@
 package Pcore::Dist::Build::PAR;
 
 use Pcore -class;
-use Config qw[];
+use Config;
 use Pcore::Dist::Build::PAR::Script;
 use Term::ANSIColor qw[:constants];
 
@@ -40,8 +40,8 @@ sub run ($self) {
 
     # build scripts
     for my $script ( sort keys $self->dist->cfg->{dist}->{par}->%* ) {
-        if ( !exists $pardeps->{$script}->{ $Config::Config{archname} } ) {
-            say BOLD . RED . qq[Deps for $script "$Config::Config{archname}" wasn't scanned.] . RESET;
+        if ( !exists $pardeps->{$script}->{ $Config{archname} } ) {
+            say BOLD . RED . qq[Deps for $script "$Config{archname}" wasn't scanned.] . RESET;
 
             say qq[Run "$script ---scan-deps"];
 
@@ -58,13 +58,13 @@ sub run ($self) {
         $profile->{clean}   = $self->clean if defined $self->clean;
 
         # add pardeps.cbor modules, skip eval
-        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->{ $Config::Config{archname} }->%* } = ();
+        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->{ $Config{archname} }->%* } = ();
 
         # add global modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{mod}->@* } = ();
 
         # add global arch modules
-        $profile->{mod}->@{ $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod}->@* } = () if exists $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod};
+        $profile->{mod}->@{ $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod}->@* } = () if exists $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod};
 
         # replace Inline.pm with Pcore/Core/Inline.pm
         $profile->{mod}->{'Pcore/Core/Inline.pm'} = undef if delete $profile->{mod}->{'Inline.pm'};
@@ -87,9 +87,9 @@ sub run ($self) {
         # add shlib
         my $shlib = {};
 
-        if ( exists $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod_shlib} ) {
-            for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod_shlib}->%* ) {
-                $shlib->@{ $pcore_cfg->{par}->{arch}->{ $Config::Config{archname} }->{mod_shlib}->{$mod}->@* } = ();
+        if ( exists $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod_shlib} ) {
+            for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod_shlib}->%* ) {
+                $shlib->@{ $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod_shlib}->{$mod}->@* } = ();
             }
         }
 

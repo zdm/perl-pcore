@@ -7,6 +7,7 @@ use Archive::Zip qw[];
 use PAR::Filter;
 use Filter::Crypto::CryptFile;
 use Pcore::Src::File;
+use Config;
 use Term::ANSIColor qw[:constants];
 
 has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
@@ -44,13 +45,13 @@ sub _build_exe_filename ($self) {
         push @attrs, 'devel';
     }
 
-    push @attrs, 'x64' if $Config::Config{archname} =~ /x64|x86_64/sm;
+    push @attrs, 'x64' if $Config{archname} =~ /x64|x86_64/sm;
 
     return $filename . q[-] . join( q[-], @attrs ) . $self->par_suffix;
 }
 
 sub run ($self) {
-    say BOLD . GREEN . qq[\nbuild] . ( $self->crypt ? ' crypted' : BOLD . RED . q[ not crypted] . BOLD . GREEN ) . qq[ "@{[$self->exe_filename]}" for $Config::Config{archname}] . RESET;
+    say BOLD . GREEN . qq[\nbuild] . ( $self->crypt ? ' crypted' : BOLD . RED . q[ not crypted] . BOLD . GREEN ) . qq[ "@{[$self->exe_filename]}" for $Config{archname}] . RESET;
 
     # add main script
     $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
@@ -93,7 +94,7 @@ sub run ($self) {
             sub ($path) {
 
                 # compress with upx
-                if ( $path =~ /\Q$Config::Config{so}\E\z/sm ) {
+                if ( $path =~ /\Q$Config{so}\E\z/sm ) {
                     push @compress_upx, $path->realpath;
                 }
 
@@ -153,7 +154,7 @@ sub _add_shlib ($self) {
         }
         else {
             # find in the $ENV{PATH}, @INC
-            for my $path ( split( /;/sm, $ENV{PATH} ), grep { !ref } @INC ) {
+            for my $path ( split( /$Config{path_sep}/sm, $ENV{PATH} ), grep { !ref } @INC ) {
                 if ( -f "$path/$shlib" ) {
                     $found = "$path/$shlib";
 
@@ -167,7 +168,7 @@ sub _add_shlib ($self) {
 
             say qq[shared lib added: "$filename"];
 
-            $self->tree->add_file( "shlib/$Config::Config{archname}/$filename", $found );
+            $self->tree->add_file( "shlib/$Config{archname}/$filename", $found );
         }
         else {
             $self->_error(qq[shared object wasn't found: "$shlib"]);
@@ -211,7 +212,7 @@ sub _add_modules ($self) {
             if ( -f "$inc/$module" ) {
                 $found = 1;
 
-                $self->tree->add_file( "$Config::Config{version}/$Config::Config{archname}/$module", "$inc/$module" );
+                $self->tree->add_file( "$Config{version}/$Config{archname}/$module", "$inc/$module" );
 
                 last;
             }
@@ -234,7 +235,7 @@ sub _add_module ( $self, $module ) {
     if ( my $auto_deps = $module->auto_deps ) {
 
         # module have auto deps
-        $target = $Config::Config{version} . q[/] . $Config::Config{archname} . q[/];
+        $target = $Config{version} . q[/] . $Config{archname} . q[/];
 
         for my $deps ( keys $auto_deps->%* ) {
             $self->tree->add_file( $target . $deps, $auto_deps->{$deps} );
@@ -471,10 +472,10 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
                 }
             )->run->out_buffer->$*;
         }
-        elsif ( $self->upx && $filename =~ /[.]$Config::Config{so}\z/sm ) {
+        elsif ( $self->upx && $filename =~ /[.]$Config{so}\z/sm ) {
 
             # store shared object to the temporary path
-            my $temppath = P->file->temppath( base => $parl_so_temp, suffix => $Config::Config{so} );
+            my $temppath = P->file->temppath( base => $parl_so_temp, suffix => $Config{so} );
 
             P->file->write_bin( $temppath, $content );
 
@@ -557,19 +558,19 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 239, 493             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 240, 494             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 253                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 254                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 390                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 391                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 428                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 429                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 463                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 464                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 515, 517             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 516, 518             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 450, 456             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 451, 457             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

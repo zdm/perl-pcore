@@ -1,7 +1,7 @@
 package Pcore::Core::Env;
 
 use Pcore -class;
-use Config qw[];
+use Config;
 use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules] needed to find system temp dir
 use Pcore::Dist;
 use Pcore::Core::Env::Resources;
@@ -21,7 +21,7 @@ sub BUILD ( $self, $args ) {
     $self->{USER_DIR}       = P->path( $ENV{HOME} || $ENV{USERPROFILE}, is_dir => 1 );
     $self->{PCORE_USER_DIR} = P->path( $self->{USER_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
     $self->{PCORE_SYS_DIR}  = P->path( $self->{SYS_TEMP_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
-    $self->{INLINE_DIR}     = $self->is_par ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config::Config{version}/$Config::Config{archname}/", is_dir => 1, lazy => 1 );
+    $self->{INLINE_DIR}     = $self->is_par ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config{version}/$Config{archname}/", is_dir => 1, lazy => 1 );
 
     # load dist.perl
     if ( my $dist = $self->dist ) {

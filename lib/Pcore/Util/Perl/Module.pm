@@ -1,7 +1,7 @@
 package Pcore::Util::Perl::Module;
 
 use Pcore -class;
-use Config qw[];
+use Config;
 
 has name => ( is => 'lazy', isa => Maybe [Str] );    # Module/Name.pm
 has content => ( is => 'lazy', isa => ScalarRef, clearer => 1 );
@@ -170,7 +170,7 @@ sub _build_auto_deps ($self) {
 
     my $auto_path = 'auto/' . $name->dirname . $name->filename_base . q[/];
 
-    my $so_filename = $name->filename_base . q[.] . $Config::Config{dlext};
+    my $so_filename = $name->filename_base . q[.] . $Config{dlext};
 
     my $deps;
 

@@ -1,7 +1,7 @@
 package Pcore::Dist;
 
 use Pcore -class;
-use Config qw[];
+use Config;
 
 has root => ( is => 'ro', isa => Maybe [Str], required => 1 );    # absolute path to the dist root
 has is_installed => ( is => 'ro', isa => Bool, required => 1 );   # dist is installed as CPAN module, root is undefined

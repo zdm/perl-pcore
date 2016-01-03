@@ -4,6 +4,7 @@ use Pcore -class;
 use Getopt::Long qw[];
 use Pcore::Core::CLI::Opt;
 use Pcore::Core::CLI::Arg;
+use Config;
 
 has class => ( is => 'ro', isa => Str, required => 1 );
 has cmd_path => ( is => 'ro', isa => ArrayRef, default => sub { [] } );
@@ -543,7 +544,7 @@ sub help_version ($self) {
 
     say $format_dist_info->( $ENV->pcore ) if !$ENV->dist || $ENV->dist->name ne $ENV->pcore->name;
 
-    say 'Perl ' . $^V->normal . " $Config::Config{archname}";
+    say 'Perl ' . $^V->normal . " $Config{archname}";
 
     exit 2;
 }
@@ -561,15 +562,15 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 44                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 45                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 87, 90, 155, 236,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 271, 332, 355, 391,  │                                                                                                                │
-## │      │ 453, 458, 462, 471   │                                                                                                                │
+## │    3 │ 88, 91, 156, 237,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 272, 333, 356, 392,  │                                                                                                                │
+## │      │ 454, 459, 463, 472   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 345                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 346                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 491, 519             │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 492, 520             │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

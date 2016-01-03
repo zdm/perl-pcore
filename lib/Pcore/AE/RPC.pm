@@ -4,6 +4,7 @@ use Pcore -class;
 use AnyEvent::Util qw[portable_socketpair];
 use Pcore::AE::RPC::Server;
 use Config;
+use Pcore::Util::PM qw[create_process];
 
 with qw[Pcore::AE::RPC::Base];
 
@@ -133,32 +134,15 @@ sub _run_server ( $self, $ready ) {
 sub _run_server_mswin ( $self, $in, $out ) {
     state $init = do {
         require Win32API::File;
-        require Win32::Process;
 
         1;
     };
 
-    my $code = $self->_get_code( Win32API::File::FdGetOsFHandle( fileno $in ), Win32API::File::FdGetOsFHandle( fileno $out ) );
-
-    my $process;
-
-    my $perl = $ENV->is_par ? 'perl.exe' : $^X;
-
-    local $ENV{PERL5LIB} = join q[;], grep { !ref } @INC if $ENV->is_par;
-
-    Win32::Process::Create(    #
-        $process,
-        $ENV{COMSPEC},
-        qq[/D /C $perl -e "$code"],
-        1,
-        0,                     # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
-        q[.]
-    ) || die $!;
+    create_process( $self->_get_code( Win32API::File::FdGetOsFHandle( fileno $in ), Win32API::File::FdGetOsFHandle( fileno $out ) ) );
 
     return;
 }
 
-# TODO run from PAR under Linux
 sub _run_server_linux ( $self, $in, $out ) {
     state $init = !!require Fcntl;
 
@@ -168,11 +152,9 @@ sub _run_server_linux ( $self, $in, $out ) {
         fcntl $_, Fcntl::F_SETFD, $flags & ~Fcntl::FD_CLOEXEC or die "fcntl F_SETFD: $!";
     }
 
-    my $code = $self->_get_code( fileno $in, fileno $out );
+    create_process( $self->_get_code( fileno $in, fileno $out ) );
 
-    fork && return;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
-
-    exec $^X, '-e', $code or die;
+    return;
 }
 
 sub _get_code ( $self, $fdin, $fdout ) {
@@ -191,11 +173,7 @@ Pcore::AE::RPC::Server->new( { pkg => '@{[$self->pkg]}', in => $fdin, out => $fd
 1;
 PERL
 
-    P->text->cut_all($code);
-
-    $code =~ s/\n//smg;
-
-    return $code;
+    return \$code;
 }
 
 sub _store_deps ( $self, $deps ) {
@@ -239,9 +217,9 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 34, 47, 206          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 35, 48, 184          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 99                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 100                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

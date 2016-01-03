@@ -10,6 +10,7 @@ sub cli_abstract ($self) {
 
 sub cli_opt ($self) {
     return {
+        all        => { desc => 'implies --develop, --recommends and --suggeests', },
         install    => { desc => 'install bin/ to PATH and lib/ to PERL5LIB', },
         develop    => { desc => 'cpanm --with-develop', },
         recommends => { desc => 'cpanm --with-recommends', },
@@ -37,7 +38,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 28                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 29                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,7 +1,8 @@
 package Pcore::Util::PM;
 
-use Pcore;
+use Pcore -export, [qw[is_superuser create_process]];
 use POSIX qw[];
+use Config;
 
 sub rename_process {
     $0 = shift;    ## no critic (Variables::RequireLocalizedPunctuationVars)
@@ -71,6 +72,68 @@ sub is_superuser {
     else {
         return $> == 0 ? 1 : 0;
     }
+}
+
+sub create_process (@args) {
+    state $init = do {
+        if ($MSWIN) {
+            require Win32API::File;
+            require Win32::Process;
+        }
+
+        1;
+    };
+
+    my $pid;
+
+    my $wrap_perl;
+
+    if ( ref $args[0] eq 'SCALAR' ) {
+        $wrap_perl = 1;
+
+        $args[0] = $args[0]->$*;
+
+        P->text->cut_all( $args[0] );
+
+        $args[0] =~ s/\n//smg;
+
+        state $perl = do {
+            if ( $ENV->is_par ) {
+                "$ENV{PAR_TEMP}/perl" . $MSWIN ? '.exe' : q[];
+            }
+            else {
+                $^X;
+            }
+        };
+
+        if ($MSWIN) {
+            @args = ( $ENV{COMSPEC}, qq[/D /C $perl -e "$args[0]"] );
+        }
+        else {
+            @args = ( $perl, '-e', $args[0] );
+        }
+    }
+
+    local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC if $wrap_perl;
+
+    if ($MSWIN) {
+        Win32::Process::Create(    #
+            my $process,
+            @args,
+            1,                     # inherit STD* handles
+            0,                     # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
+            q[.]
+        ) || die $!;
+
+        $pid = $process->GetProcessID;
+    }
+    else {
+        unless ( $pid = fork ) {
+            exec @args or die;
+        }
+    }
+
+    return $pid;
 }
 
 1;
