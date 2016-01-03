@@ -5,14 +5,14 @@ use Pcore;
 if ( $ENV->is_par ) {
     $INC{'Inline.pm'} = $INC{'Pcore/Core/Inline.pm'};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    require DynaLoader;
+    state $init = !!require DynaLoader;
 
     *Inline::import = sub {
         my $caller = caller;
 
         no strict qw[refs];
 
-        push *{ $caller . '::ISA' }->@*, 'DynaLoader';
+        push *{"$caller\::ISA"}->@*, 'DynaLoader';
 
         DynaLoader::bootstrap($caller);
 
@@ -20,7 +20,7 @@ if ( $ENV->is_par ) {
     };
 }
 else {
-    require Inline;
+    state $init = !!require Inline;
 
     Inline->import(
         config => (
