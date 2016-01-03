@@ -4,9 +4,7 @@ use Pcore;
 use POSIX qw[];
 
 sub rename_process {
-    return 0 if *threads::tid{CODE} && threads->tid != 0;    # don't allow rename process from thread
-
-    $0 = shift;                                              ## no critic (Variables::RequireLocalizedPunctuationVars)
+    $0 = shift;    ## no critic (Variables::RequireLocalizedPunctuationVars)
 
     return 1;
 }
@@ -64,31 +62,6 @@ sub daemonize {
     }
 
     return 0;
-}
-
-sub is_process_alive {
-    my $process_name = shift;
-
-    if ($MSWIN) {
-        return;
-    }
-    else {
-        state $init = !!require Proc::ProcessTable;
-
-        my $t = Proc::ProcessTable->new;
-
-        for ( $t->table->@* ) {
-            my $cmndline = $_->cmndline;
-
-            if ( ref $process_name eq 'Regexp' ) {
-                return $_->pid if ( defined $cmndline && $cmndline =~ /$process_name/sm && $_->pid != $$ );
-            }
-            else {
-                return $_->pid if ( defined $cmndline && $cmndline eq $process_name && $_->pid != $$ );
-            }
-        }
-        return 0;
-    }
 }
 
 sub is_superuser {

@@ -2,7 +2,6 @@ package Pcore::Core::H::Cache;
 
 use Pcore -class, -autoload;
 use Pcore::Util::Scalar qw[blessed isweak weaken];
-use Pcore::Util::Sys qw[pid];
 
 has _h_cache => ( is => 'lazy', isa => HashRef [ ConsumerOf ['Pcore::Core::H::Role'] ], init_arg => undef );
 has _h_supported_events => ( is => 'lazy', isa => HashRef, init_arg => undef );
@@ -53,12 +52,10 @@ sub _get ( $self, $id ) {
     }
     else {
         if ( $cache_id->{event} && $cache_id->{event} eq 'PID_CHANGE' ) {
-            my $pid = pid();
-
-            if ( $cache_id->{pid} && $cache_id->{pid} ne $pid ) {
+            if ( $cache_id->{pid} && $cache_id->{pid} ne $$ ) {
                 $cache_id->{h}->h_disconnect;
 
-                $cache_id->{pid} = $pid;
+                $cache_id->{pid} = $$;
             }
         }
 
@@ -102,7 +99,7 @@ sub add ( $self, $id, $class, %args ) {
     $self->_h_cache->{$id} = {
         h     => $h,
         event => $h->h_disconnect_on,
-        pid   => pid(),
+        pid   => $$,
     };
 
     if ( defined wantarray ) {

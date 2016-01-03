@@ -1,6 +1,6 @@
 package Pcore::Util::Sys;
 
-use Pcore -export, [qw[pid]];
+use Pcore;
 
 # in case of error return undef
 sub system {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
@@ -21,11 +21,6 @@ sub cpus_num {
     };
 
     return $cpus_num;
-}
-
-# return PID combined with TID (if threads used)
-sub pid {
-    return *threads::tid{CODE} ? qq[$$-] . threads->tid : qq[$$-0];
 }
 
 sub hostname {

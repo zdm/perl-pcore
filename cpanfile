@@ -114,9 +114,6 @@ requires 'Net::SMTPS';
 requires 'Mail::IMAPClient';
 
 # Pcore::Util::PM
-feature linux => sub {
-    requires 'Proc::ProcessTable';
-};
 feature windows => sub {
     requires 'Win32::Service';
 };

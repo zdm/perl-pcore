@@ -1,7 +1,6 @@
 package Pcore::Util::Random;
 
 use Pcore;
-use Pcore::Util::Sys qw[pid];
 use Math::Random::ISAAC::XS qw[];
 use Bytes::Random::Secure qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
@@ -10,15 +9,13 @@ our $SEED_NONBLOCKING = 1;                                                      
 our $PASSWORD_SYMBOLS = join q[], ( 0 .. 9, 'a' .. 'z', 'A' .. 'Z', qw[! @ $ % ^ & *], q[#] );
 our $PASSWORD_LENGTH  = 16;
 
-my $_PID = pid();
+my $_PID = $$;
 
 my $_RANDOM;
 
 sub _random {
-    my $pid = pid();
-
-    if ( $pid ne $_PID ) {
-        $_PID    = $pid;
+    if ( $$ ne $_PID ) {
+        $_PID    = $$;
         $_RANDOM = undef;
     }
 
@@ -46,7 +43,7 @@ sub password ($length = $PASSWORD_LENGTH) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 17                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_random' declared but not used      │
+## │    3 │ 16                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_random' declared but not used      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

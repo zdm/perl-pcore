@@ -2,7 +2,6 @@ package Pcore::Util::File;
 
 use Pcore;
 use Pcore::Util::Scalar qw[is_glob];
-use Pcore::Util::Sys qw[pid];
 use Fcntl qw[:DEFAULT];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
@@ -591,7 +590,7 @@ sub temppath {
     my %args = (
         base   => $ENV->{TEMP_DIR},
         suffix => q[],
-        tmpl   => 'temp-' . pid() . '-XXXXXXXX',
+        tmpl   => 'temp-' . $$ . '-XXXXXXXX',
         @_,
     );
 
@@ -765,9 +764,9 @@ sub where ($filename) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 50                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
-## │      │ 124                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
-## │      │ 250                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
+## │      │ 49                   │ * Subroutine "calc_umask" with high complexity score (25)                                                      │
+## │      │ 123                  │ * Subroutine "calc_chmod" with high complexity score (25)                                                      │
+## │      │ 249                  │ * Subroutine "read_lines" with high complexity score (27)                                                      │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
