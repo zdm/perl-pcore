@@ -1,40 +1,21 @@
-package Pcore::Util::PM::Process;
+package Pcore::Util::PM::Proc;
 
 use Pcore -class;
-use Config qw[%Config];
-use Fcntl;
-use AnyEvent::Util qw[portable_socketpair];
 use Pcore::AE::Handle;
+use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
-use if $MSWIN, 'Win32API::File';
 
-has rpc => ( is => 'ro', isa => Bool, required => 1 );
-has rpc_class   => ( is => 'ro', isa => Str );
-has args        => ( is => 'ro', isa => ArrayRef | HashRef );
-has capture_std => ( is => 'ro', isa => Bool, default => 0 );
+has cmd         => ( is => 'ro', isa => ArrayRef, required => 1 );
+has capture_std => ( is => 'ro', isa => Bool,     default  => 0 );
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );
 
-has in  => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
-has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
+has pid => ( is => 'ro', isa => PositiveInt, init_arg => undef );
+has exit_code => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 
 has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
-
-has exit_code => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
-has pid => ( is => 'ro', isa => PositiveInt, init_arg => undef );
-
-sub BUILD ( $self, $args ) {
-    if ( $self->rpc ) {
-        $self->_run_rpc;
-    }
-    else {
-        $self->_run_ipc;
-    }
-
-    return;
-}
 
 sub DEMOLISH ( $self, $global ) {
     if ($MSWIN) {
@@ -47,125 +28,33 @@ sub DEMOLISH ( $self, $global ) {
     return;
 }
 
-sub _run_rpc ($self) {
-    state $perl = do {
-        if ( $ENV->is_par ) {
-            "$ENV{PAR_TEMP}/perl" . $MSWIN ? '.exe' : q[];
-        }
-        else {
-            $^X;
-        }
-    };
+sub BUILD ( $self, $args ) {
+    $self->_create;
 
-    my $boot_args = {
-        script => {
-            path    => $ENV->{SCRIPT_PATH},
-            version => $main::VERSION->normal,
-        },
-        class => $self->rpc_class,
-        args  => $self->args // {},
-    };
+    return;
+}
 
-    my ( $in,     $out_svr ) = portable_socketpair();
-    my ( $in_svr, $out )     = portable_socketpair();
-
-    if ($MSWIN) {
-        $boot_args->{ipc} = {
-            in  => Win32API::File::FdGetOsFHandle( fileno $in_svr ),
-            out => Win32API::File::FdGetOsFHandle( fileno $out_svr ),
-        };
-    }
-    else {
-        fcntl $in_svr,  Fcntl::F_SETFD, fcntl( $in_svr,  Fcntl::F_GETFD, 0 ) & ~Fcntl::FD_CLOEXEC or die;
-        fcntl $out_svr, Fcntl::F_SETFD, fcntl( $out_svr, Fcntl::F_GETFD, 0 ) & ~Fcntl::FD_CLOEXEC or die;
-
-        $boot_args->{ipc} = {
-            in  => fileno $in_svr,
-            out => fileno $out_svr,
-        };
-    }
-
-    # serialize CBOR + HEX
-    $boot_args = P->data->to_cbor( $boot_args, encode => 2 )->$*;
-
-    my @args;
-
-    if ($MSWIN) {
-        @args = ( $perl, q[-MPcore::Util::PM::Process::RPC::Server -e "" ] . $boot_args );
-    }
-    else {
-        @args = ( $perl, '-MPcore::Util::PM::Process::RPC::Server', '-e', q[], $boot_args );
-    }
-
-    local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
-
+sub _create ($self) {
     my $cv = AE::cv {
         $self->on_ready->($self) if $self->on_ready;
 
         return;
     };
 
-    # create process
-    $self->_create_process( $cv, @args );
-
-    # handshake
-    $cv->begin;
-
-    Pcore::AE::Handle->new(
-        fh         => $in,
-        on_connect => sub ( $h, @ ) {
-            $self->{in} = $h;
-
-            $self->{in}->push_read(
-                line => "\x00",
-                sub ( $h, $line, $eol ) {
-                    if ( $line =~ /\AREADY(\d+)\z/sm ) {
-                        $self->{pid} = $1;
-
-                        $cv->end;
-                    }
-                    else {
-                        die 'RPC handshake error';
-                    }
-
-                    return;
-                }
-            );
-
-            return;
-        },
-    );
-
-    $cv->begin;
-
-    Pcore::AE::Handle->new(
-        fh         => $out,
-        on_connect => sub ( $h, @ ) {
-            $self->{out} = $h;
-
-            $cv->end;
-
-            return;
-        },
-    );
+    $self->_create_process( $cv, $self->cmd );
 
     return;
 }
 
-sub _run_ipc ($self) {
-    my $cv = AE::cv {
-        $self->on_ready->($self) if $self->on_ready;
+sub _create_proc ( $self, $cv, $args ) {
+    my $cmd;
 
-        return;
-    };
-
-    $self->_create_process( $cv, $self->args->@* );
-
-    return;
-}
-
-sub _create_process ( $self, $cv, @args ) {
-    @args = ( $ENV{COMSPEC}, '/D /C ' . join q[ ], @args ) if $MSWIN;
+    if ($MSWIN) {
+        $cmd = [ $ENV{COMSPEC}, join q[ ], '/D /C', $args->@* ];
+    }
+    else {
+        $cmd = $args->@*;
+    }
 
     my $h;
 
@@ -188,7 +77,7 @@ sub _create_process ( $self, $cv, @args ) {
     if ($MSWIN) {
         Win32::Process::Create(    #
             my $process,
-            @args,
+            $cmd->@*,
             1,                     # inherit STD* handles
             0,                     # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
             q[.]
@@ -198,9 +87,11 @@ sub _create_process ( $self, $cv, @args ) {
     }
     else {
         unless ( $self->{pid} = fork ) {
-            exec @args or die $!;
+            exec $cmd->@* or die $!;
         }
     }
+
+    $cv->begin;
 
     if ( $self->capture_std ) {
 
@@ -209,44 +100,53 @@ sub _create_process ( $self, $cv, @args ) {
         open STDOUT, '>&', $h->{old_out} or die;
         open STDERR, '>&', $h->{old_err} or die;
 
-        $cv->begin;
+        my $cv1 = AE::cv {
+            $cv->end;
+
+            return;
+        };
+
+        $cv1->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{in},
             on_connect => sub ( $h, @ ) {
                 $self->{stdin} = $h;
 
-                $cv->end;
+                $cv1->end;
 
                 return;
             },
         );
 
-        $cv->begin;
+        $cv1->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{out},
             on_connect => sub ( $h, @ ) {
                 $self->{stdout} = $h;
 
-                $cv->end;
+                $cv1->end;
 
                 return;
             },
         );
 
-        $cv->begin;
+        $cv1->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{err},
             on_connect => sub ( $h, @ ) {
                 $self->{stderr} = $h;
 
-                $cv->end;
+                $cv1->end;
 
                 return;
             },
         );
+    }
+    else {
+        $cv->end;
     }
 
     return;
@@ -259,7 +159,7 @@ sub _create_process ( $self, $cv, @args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 120                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    3 │ 49                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_create_proc' declared but not used │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -270,7 +170,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::PM::Process
+Pcore::Util::PM::Proc
 
 =head1 SYNOPSIS
 

@@ -75,18 +75,17 @@ sub is_superuser {
 
 sub run_rpc ( $class, @ ) {
     my %args = (
-        args        => {},
-        capture_std => 0,
-        on_ready    => undef,
-        on_exit     => undef,
+        args     => {},
+        on_ready => undef,
+        on_exit  => undef,
+        workers  => 0,
         splice( @_, 1 ),
-        rpc       => 1,
-        rpc_class => $class,
+        class => $class,
     );
 
-    state $init = !!require Pcore::Util::PM::Process;
+    state $init = !!require Pcore::Util::RPC;
 
-    return Pcore::Util::PM::Process->new( \%args );
+    return Pcore::Util::RPC->new( \%args );
 }
 
 sub run_ipc (@) {

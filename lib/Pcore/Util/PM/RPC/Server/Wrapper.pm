@@ -1,4 +1,4 @@
-package Pcore::Util::PM::Process::RPC::Server;
+package Pcore::Util::PM::RPC::Server::Wrapper;
 
 use strict;
 use warnings;
@@ -88,7 +88,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::PM::Process::RPC::Server
+Pcore::Util::PM::RPC::Server::Wrapper
 
 =head1 SYNOPSIS
 

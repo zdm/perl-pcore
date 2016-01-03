@@ -1,4 +1,4 @@
-package Pcore::Util::PM::Process::RPC;
+package Pcore::Util::PM::RPC::Server;
 
 use Pcore -role;
 
@@ -14,7 +14,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::PM::Process::RPC
+Pcore::Util::PM::RPC::Server
 
 =head1 SYNOPSIS
 
