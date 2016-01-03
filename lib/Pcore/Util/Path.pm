@@ -438,7 +438,7 @@ sub _get_mime_types ($self) {
 
 sub _build_mime_category ($self) {
     if ( $self->mime_type ) {
-        return $self->_mime_types->{category}->{ $self->mime_type } // q[];
+        return $self->_get_mime_types->{category}->{ $self->mime_type } // q[];
     }
     else {
         return q[];
