@@ -10,8 +10,9 @@ extends qw[Pcore::Util::PM::Proc];
 
 has '+cmd' => ( required => 0, init_arg => undef );
 
-has class => ( is => 'ro', isa => Str,     required => 1 );
-has args  => ( is => 'ro', isa => HashRef, required => 1 );
+has class     => ( is => 'ro', isa => Str,     required => 1 );
+has args      => ( is => 'ro', isa => HashRef, required => 1 );
+has scan_deps => ( is => 'ro', isa => Bool,    required => 1 );
 
 has in  => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
 has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
@@ -31,8 +32,9 @@ around _create => sub ( $orig, $self ) {
             path    => $ENV->{SCRIPT_PATH},
             version => $main::VERSION->normal,
         },
-        class => $self->class,
-        args  => $self->args,
+        class     => $self->class,
+        args      => $self->args,
+        scan_deps => $self->scan_deps,
     };
 
     my ( $in,     $out_svr ) = portable_socketpair();
@@ -120,6 +122,34 @@ around _create => sub ( $orig, $self ) {
     return;
 };
 
+sub start_listen ( $self, $cb ) {
+    $self->in->on_read(
+        sub ($h) {
+            $h->unshift_read(
+                chunk => 4,
+                sub ( $h, $data ) {
+                    my $len = unpack 'L>', $data;
+
+                    $h->unshift_read(
+                        chunk => $len,
+                        sub ( $h, $data ) {
+                            $cb->( P->data->from_cbor($data) );
+
+                            return;
+                        }
+                    );
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -127,7 +157,7 @@ around _create => sub ( $orig, $self ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 86                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 88                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

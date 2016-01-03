@@ -63,6 +63,8 @@ $cv->recv;
 
 $BOOT_ARGS->{args}->{cv} = AE::cv;
 
+$BOOT_ARGS->{args}->{scan_deps} = $BOOT_ARGS->{scan_deps};
+
 my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{args} );
 
 # handshake, send PID
@@ -77,7 +79,7 @@ $BOOT_ARGS->{args}->{cv}->recv;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 69                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 71                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
