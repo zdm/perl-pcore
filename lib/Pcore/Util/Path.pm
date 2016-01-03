@@ -416,10 +416,10 @@ sub _get_mime_types ($self) {
         for my $suffix ( keys $MIME_TYPES->{suffix}->%* ) {
             my $type;
 
-            if ( ref $MIME_TYPES->{suffix}->{$suffix} eq 'HASH' ) {
-                $type = $MIME_TYPES->{suffix}->{$suffix}->{type};
+            if ( ref $MIME_TYPES->{suffix}->{$suffix} eq 'ARRAY' ) {
+                $type = $MIME_TYPES->{suffix}->{$suffix}->[0];
 
-                $MIME_TYPES->{category}->{$type} = $MIME_TYPES->{suffix}->{$suffix}->{category} if $MIME_TYPES->{suffix}->{$suffix}->{category};
+                $MIME_TYPES->{category}->{$type} = $MIME_TYPES->{suffix}->{$suffix}->[1] if $MIME_TYPES->{suffix}->{$suffix}->[1];
 
                 $MIME_TYPES->{suffix}->{$suffix} = $type;
             }
