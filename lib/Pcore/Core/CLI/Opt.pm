@@ -13,11 +13,13 @@ has desc => ( is => 'ro', isa => Str );
 has type => ( is => 'lazy', isa => Str );                                                                             # option type desc for usage help
 has isa => ( is => 'ro', isa => CodeRef | RegexpRef | ArrayRef | Enum [ keys $Pcore::Core::CLI::Type::TYPE->%* ] );
 
-has default => ( is => 'ro', isa => Str | ArrayRef | HashRef );                                                       # applied, when option is not exists
+has default => ( is => 'ro', isa => Str | ArrayRef | HashRef );                                                       # applied, when option is not exists, possible only for required options
+
+# NOTE !!!WARNING!!! default_val is not work as it should with Getopt::Long, don't use it now
 has default_val => ( is => 'ro', isa => Maybe [Str] );                                                                # applied, when option value is not defined
 
 has min => ( is => 'lazy', isa => PositiveOrZeroInt );                                                                # 0 - option is not required
-has max => ( is => 'lazy', isa => PositiveOrZeroInt );                                                                # 0 - unlimited repeated
+has max => ( is => 'lazy', isa => PositiveOrZeroInt );                                                                # 0 - unlimited repeats
 
 has negated => ( is => 'lazy', isa => Bool );                                                                         # trigger can be used with --no prefix
 has hash => ( is => 'ro', isa => Bool, default => 0 );                                                                # option ia a hash, --opt key=val
@@ -31,6 +33,9 @@ has help_spec     => ( is => 'lazy', isa => Str,  init_arg => undef );
 
 sub BUILD ( $self, $args ) {
     my $name = $self->name;
+
+    # TODO remove, when this bug will be fixed
+    die qq[Option "$name", don't use default_val until bug with Getopt::Long will be fixed] if defined $self->default_val;
 
     # max
     die qq[Option "$name", "max" must be >= "min" ] if $self->max && $self->max < $self->min;
@@ -245,6 +250,9 @@ sub validate ( $self, $opt ) {
 
         if ( $self->is_trigger ) {
             $count = $opt->{$name};
+
+            # do not check min / max for the repeatable trigger with default = 0
+            goto VALIDATE if $count == 0;
         }
         elsif ( !ref $opt->{$name} ) {
             $count = 1;
@@ -263,6 +271,8 @@ sub validate ( $self, $opt ) {
         return qq[option "$name" can be repeated not more, than @{[$self->max]} time(s)] if $self->max && $count > $self->max;
     }
 
+  VALIDATE:
+
     # validate option value type
     if ( defined $self->isa && ( my $error_msg = $self->_validate_isa( $opt->{$name} ) ) ) {
         return qq[option "$name" $error_msg];
@@ -278,9 +288,9 @@ sub validate ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14, 256              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 14, 264              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 32                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (34)                     │
+## │    3 │ 34                   │ Subroutines::ProhibitExcessComplexity - Subroutine "BUILD" with high complexity score (35)                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
