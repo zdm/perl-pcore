@@ -2,37 +2,36 @@ package Pcore::Util::PM::Process;
 
 use Pcore -class;
 use Config qw[%Config];
+use Fcntl;
+use AnyEvent::Util qw[portable_socketpair];
+use Pcore::AE::Handle;
 use if $MSWIN, 'Win32::Process';
 use if $MSWIN, 'Win32API::File';
 
-# TODO
-# for perl process:
-#     - can create additional in/out pipes for communication;
-#     - can inherit / no-inherit STD;
-# for foreign process:
-#     - can only redirect STD handles;
+has rpc => ( is => 'ro', isa => Bool, required => 1 );
+has rpc_class   => ( is => 'ro', isa => Str );
+has args        => ( is => 'ro', isa => ArrayRef | HashRef );
+has capture_std => ( is => 'ro', isa => Bool, default => 0 );
+has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
+has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );
 
-# has cmd => ( is => 'ro', isa => ArrayRef, required => 1 );
+has in  => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
+has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
 
-has perl => ( is => 'ro', isa => Str );
-
-has blocking => ( is => 'ro', isa => Bool, default => 0 );    # run process via "system" call
-has on_ready => ( is => 'ro', isa => CodeRef );
-has on_exit  => ( is => 'ro', isa => CodeRef );
-
-has in  => ( is => 'lazy', isa => GlobRef );
-has out => ( is => 'lazy', isa => GlobRef );
-has err => ( is => 'lazy', isa => GlobRef );
+has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
+has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
+has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 
 has exit_code => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 has pid => ( is => 'ro', isa => PositiveInt, init_arg => undef );
 
-sub BUILDARGS ( $self, @ ) {
-    return { splice @_, 1 };
-}
-
 sub BUILD ( $self, $args ) {
-    $self->_run_perl if $self->perl;
+    if ( $self->rpc ) {
+        $self->_run_rpc;
+    }
+    else {
+        $self->_run_ipc;
+    }
 
     return;
 }
@@ -48,7 +47,7 @@ sub DEMOLISH ( $self, $global ) {
     return;
 }
 
-sub perl_path ($self) {
+sub _run_rpc ($self) {
     state $perl = do {
         if ( $ENV->is_par ) {
             "$ENV{PAR_TEMP}/perl" . $MSWIN ? '.exe' : q[];
@@ -58,35 +57,138 @@ sub perl_path ($self) {
         }
     };
 
-    return $perl;
-}
-
-sub _run_perl ($self) {
-    my @cmd;
-
-    my $args = P->data->to_cbor(
-        {   script => {
-                path    => $ENV->{SCRIPT_PATH},
-                version => $main::VERSION->normal,
-            },
-            data => 'мама',
+    my $boot_args = {
+        script => {
+            path    => $ENV->{SCRIPT_PATH},
+            version => $main::VERSION->normal,
         },
-        encode => 2,
-    )->$*;
+        class => $self->rpc_class,
+        args  => $self->args // {},
+    };
+
+    my ( $in,     $out_svr ) = portable_socketpair();
+    my ( $in_svr, $out )     = portable_socketpair();
 
     if ($MSWIN) {
-        @cmd = ( $ENV{COMSPEC}, qq[/D /C @{[$self->perl_path]} -MPcore::Util::PM::Process::Wrapper -e "" $args] );
+        $boot_args->{ipc} = {
+            in  => Win32API::File::FdGetOsFHandle( fileno $in_svr ),
+            out => Win32API::File::FdGetOsFHandle( fileno $out_svr ),
+        };
     }
     else {
-        @cmd = ( $self->perl_path, '-MPcore::Util::PM::Process::Wrapper', '-e', q[], $args );
+        fcntl $in_svr,  Fcntl::F_SETFD, fcntl( $in_svr,  Fcntl::F_GETFD, 0 ) & ~Fcntl::FD_CLOEXEC or die;
+        fcntl $out_svr, Fcntl::F_SETFD, fcntl( $out_svr, Fcntl::F_GETFD, 0 ) & ~Fcntl::FD_CLOEXEC or die;
+
+        $boot_args->{ipc} = {
+            in  => fileno $in_svr,
+            out => fileno $out_svr,
+        };
+    }
+
+    # serialize CBOR + HEX
+    $boot_args = P->data->to_cbor( $boot_args, encode => 2 )->$*;
+
+    my @args;
+
+    if ($MSWIN) {
+        @args = ( $perl, q[-MPcore::Util::PM::Process::RPC::Server -e "" ] . $boot_args );
+    }
+    else {
+        @args = ( $perl, '-MPcore::Util::PM::Process::RPC::Server', '-e', q[], $boot_args );
     }
 
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
 
+    my $cv = AE::cv {
+        $self->on_ready->($self) if $self->on_ready;
+
+        return;
+    };
+
+    # create process
+    $self->_create_process( $cv, @args );
+
+    # handshake
+    $cv->begin;
+
+    Pcore::AE::Handle->new(
+        fh         => $in,
+        on_connect => sub ( $h, @ ) {
+            $self->{in} = $h;
+
+            $self->{in}->push_read(
+                line => "\x00",
+                sub ( $h, $line, $eol ) {
+                    if ( $line =~ /\AREADY(\d+)\z/sm ) {
+                        $self->{pid} = $1;
+
+                        $cv->end;
+                    }
+                    else {
+                        die 'RPC handshake error';
+                    }
+
+                    return;
+                }
+            );
+
+            return;
+        },
+    );
+
+    $cv->begin;
+
+    Pcore::AE::Handle->new(
+        fh         => $out,
+        on_connect => sub ( $h, @ ) {
+            $self->{out} = $h;
+
+            $cv->end;
+
+            return;
+        },
+    );
+
+    return;
+}
+
+sub _run_ipc ($self) {
+    my $cv = AE::cv {
+        $self->on_ready->($self) if $self->on_ready;
+
+        return;
+    };
+
+    $self->_create_process( $cv, $self->args->@* );
+
+    return;
+}
+
+sub _create_process ( $self, $cv, @args ) {
+    @args = ( $ENV{COMSPEC}, '/D /C ' . join q[ ], @args ) if $MSWIN;
+
+    my $h;
+
+    if ( $self->capture_std ) {
+        ( $h->{in},     $h->{out_svr} ) = portable_socketpair();
+        ( $h->{in_svr}, $h->{out} )     = portable_socketpair();
+        ( $h->{err},    $h->{err_svr} ) = portable_socketpair();
+
+        # store old STD* handles
+        open $h->{old_in},  '<&', *STDIN  or die;
+        open $h->{old_out}, '>&', *STDOUT or die;
+        open $h->{old_err}, '>&', *STDERR or die;
+
+        # redirect STD* handles
+        open STDIN,  '<&', $h->{in_svr}  or die;
+        open STDOUT, '>&', $h->{out_svr} or die;
+        open STDERR, '>&', $h->{err_svr} or die;
+    }
+
     if ($MSWIN) {
         Win32::Process::Create(    #
             my $process,
-            @cmd,
+            @args,
             1,                     # inherit STD* handles
             0,                     # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
             q[.]
@@ -96,14 +198,71 @@ sub _run_perl ($self) {
     }
     else {
         unless ( $self->{pid} = fork ) {
-            exec @cmd or die;
+            exec @args or die $!;
         }
+    }
+
+    if ( $self->capture_std ) {
+
+        # restore STD* handles
+        open STDIN,  '<&', $h->{old_in}  or die;
+        open STDOUT, '>&', $h->{old_out} or die;
+        open STDERR, '>&', $h->{old_err} or die;
+
+        $cv->begin;
+
+        Pcore::AE::Handle->new(
+            fh         => $h->{in},
+            on_connect => sub ( $h, @ ) {
+                $self->{stdin} = $h;
+
+                $cv->end;
+
+                return;
+            },
+        );
+
+        $cv->begin;
+
+        Pcore::AE::Handle->new(
+            fh         => $h->{out},
+            on_connect => sub ( $h, @ ) {
+                $self->{stdout} = $h;
+
+                $cv->end;
+
+                return;
+            },
+        );
+
+        $cv->begin;
+
+        Pcore::AE::Handle->new(
+            fh         => $h->{err},
+            on_connect => sub ( $h, @ ) {
+                $self->{stderr} = $h;
+
+                $cv->end;
+
+                return;
+            },
+        );
     }
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    2 │ 120                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

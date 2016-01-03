@@ -1,8 +1,7 @@
 package Pcore::Util::PM;
 
-use Pcore -export, [qw[is_superuser proc]];
+use Pcore -export, [qw[is_superuser run_rpc run_ipc]];
 use POSIX qw[];
-use Config;
 
 sub rename_process {
     $0 = shift;    ## no critic (Variables::RequireLocalizedPunctuationVars)
@@ -74,72 +73,35 @@ sub is_superuser {
     }
 }
 
-sub proc {
+sub run_rpc ( $class, @ ) {
+    my %args = (
+        args        => {},
+        capture_std => 0,
+        on_ready    => undef,
+        on_exit     => undef,
+        splice( @_, 1 ),
+        rpc       => 1,
+        rpc_class => $class,
+    );
+
     state $init = !!require Pcore::Util::PM::Process;
 
-    return Pcore::Util::PM::Process->new(@_);
+    return Pcore::Util::PM::Process->new( \%args );
 }
 
-sub create_process (@args) {
-    state $init = do {
-        if ($MSWIN) {
-            require Win32API::File;
-            require Win32::Process;
-        }
+sub run_ipc (@) {
+    my %args = (
+        args     => undef,
+        on_ready => undef,
+        on_exit  => undef,
+        @_,
+        rpc         => 0,
+        capture_std => 1,
+    );
 
-        1;
-    };
+    state $init = !!require Pcore::Util::PM::Process;
 
-    my $pid;
-
-    my $wrap_perl;
-
-    if ( ref $args[0] eq 'SCALAR' ) {
-        $wrap_perl = 1;
-
-        $args[0] = $args[0]->$*;
-
-        P->text->cut_all( $args[0] );
-
-        $args[0] =~ s/\n//smg;
-
-        state $perl = do {
-            if ( $ENV->is_par ) {
-                "$ENV{PAR_TEMP}/perl" . $MSWIN ? '.exe' : q[];
-            }
-            else {
-                $^X;
-            }
-        };
-
-        if ($MSWIN) {
-            @args = ( $ENV{COMSPEC}, qq[/D /C $perl -e "$args[0]"] );
-        }
-        else {
-            @args = ( $perl, '-e', $args[0] );
-        }
-    }
-
-    local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC if $wrap_perl;
-
-    if ($MSWIN) {
-        Win32::Process::Create(    #
-            my $process,
-            @args,
-            1,                     # inherit STD* handles
-            0,                     # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
-            q[.]
-        ) || die $!;
-
-        $pid = $process->GetProcessID;
-    }
-    else {
-        unless ( $pid = fork ) {
-            exec @args or die;
-        }
-    }
-
-    return $pid;
+    return Pcore::Util::PM::Process->new( \%args );
 }
 
 1;
