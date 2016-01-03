@@ -16,7 +16,10 @@
             'Time/Zone.pm',
         ],
         mod_resource => {
-            'Pcore/Util/GeoIP.pm' => [    #
+            'Pcore/Dist/Build/Deploy.pm' => ['/data/pcore.perl'],
+            'Pcore/Dist/Build/PAR'       => ['/data/pcore.perl'],
+            'Pcore/Src/File.pm'          => ['/data/src.perl'],
+            'Pcore/Util/GeoIP.pm'        => [                       #
                 '/data/geoip_country.dat',
                 '/data/geoip_country_v6.dat',
                 '/data/geoip2_country.dat',
