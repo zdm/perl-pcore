@@ -91,17 +91,16 @@ sub run_rpc ( $class, @ ) {
 
 sub run_ipc (@) {
     my %args = (
-        args     => undef,
-        on_ready => undef,
-        on_exit  => undef,
-        @_,
-        rpc         => 0,
+        cmd         => undef,
         capture_std => 1,
+        on_ready    => undef,
+        on_exit     => undef,
+        @_,
     );
 
-    state $init = !!require Pcore::Util::PM::Process;
+    state $init = !!require Pcore::Util::PM::Proc;
 
-    return Pcore::Util::PM::Process->new( \%args );
+    return Pcore::Util::PM::Proc->new( \%args );
 }
 
 1;

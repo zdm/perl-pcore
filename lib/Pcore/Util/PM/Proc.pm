@@ -41,7 +41,7 @@ sub _create ($self) {
         return;
     };
 
-    $self->_create_process( $cv, $self->cmd );
+    $self->_create_proc( $cv, $self->cmd );
 
     return;
 }
@@ -155,16 +155,6 @@ sub _create_proc ( $self, $on_ready, $args ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 49                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_create_proc' declared but not used │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

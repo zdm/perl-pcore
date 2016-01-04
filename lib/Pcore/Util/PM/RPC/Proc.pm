@@ -86,7 +86,7 @@ around _create => sub ( $orig, $self ) {
                         $h->unshift_read(
                             chunk => $len,
                             sub ( $h, $data ) {
-                                $self->on_data->( P->data->from_cbor($data) ) if $self->on_data;
+                                $self->on_data->( P->data->from_cbor($data) );
 
                                 return;
                             }
