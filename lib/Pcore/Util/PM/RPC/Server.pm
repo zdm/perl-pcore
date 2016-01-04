@@ -31,6 +31,7 @@ else {
     open *OUT, '>&=', $BOOT_ARGS->{ipc}->{out} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
 }
 
+# create handles
 my $cv = AE::cv;
 
 my ( $in, $out );
@@ -66,11 +67,12 @@ $cv->recv;
 # handles are created
 $cv = AE::cv;
 
+# create object
 my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{args} );
 
 my $deps = {};
 
-# start listener
+# create listener
 my $listener = sub ($req) {
     my $call_id = $req->[0];
 
@@ -102,6 +104,7 @@ my $listener = sub ($req) {
     return;
 };
 
+# start listen
 $in->on_read(
     sub ($h) {
         $h->unshift_read(
@@ -138,7 +141,7 @@ $cv->recv;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 130                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 133                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

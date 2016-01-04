@@ -26,21 +26,6 @@ sub BUILDARGS ( $self, $args ) {
 
 sub BUILD ( $self, $args ) {
     my $cv = AE::cv {
-        my $listen_cb = sub ($data) {
-            $self->_store_deps( $data->[0] ) if $data->[0] && $self->_scan_deps;
-
-            if ( my $cb = delete $self->_queue->{ $data->[1] } ) {
-                $cb->( $data->[2] );
-            }
-
-            return;
-        };
-
-        # run listeners
-        for ( $self->_workers->@* ) {
-            $_->start_listen($listen_cb);
-        }
-
         $self->on_ready->($self) if $self->on_ready;
 
         return;
@@ -64,7 +49,12 @@ sub _create_worker ( $self, $cv ) {
                 $cv->end;
 
                 return;
-            }
+            },
+            on_data => sub ($data) {
+                $self->_on_data(@_);
+
+                return;
+            },
         }
     );
 
@@ -75,18 +65,12 @@ sub _build__scan_deps ($self) {
     return exists $INC{'Pcore/Devel/ScanDeps.pm'} ? 1 : 0;
 }
 
-sub call ( $self, $method, $data = undef, $cb = undef ) {
-    my $call_id = ++$self->{call_id};
+sub _on_data ( $self, $data ) {
+    $self->_store_deps( $data->[0] ) if $data->[0] && $self->_scan_deps;
 
-    $self->_queue->{$call_id} = $cb if $cb;
-
-    my $worker = shift $self->_workers->@*;
-
-    push $self->_workers->@*, $worker;
-
-    my $cbor = P->data->to_cbor( [ $call_id, $method, $data ] );
-
-    $worker->out->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+    if ( my $cb = delete $self->_queue->{ $data->[1] } ) {
+        $cb->( $data->[2] );
+    }
 
     return;
 }
@@ -111,6 +95,22 @@ sub _store_deps ( $self, $deps ) {
     return;
 }
 
+sub call ( $self, $method, $data = undef, $cb = undef ) {
+    my $call_id = ++$self->{call_id};
+
+    $self->_queue->{$call_id} = $cb if $cb;
+
+    my $worker = shift $self->_workers->@*;
+
+    push $self->_workers->@*, $worker;
+
+    my $cbor = P->data->to_cbor( [ $call_id, $method, $data ] );
+
+    $worker->out->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -118,7 +118,7 @@ sub _store_deps ( $self, $deps ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 99                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
