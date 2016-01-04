@@ -7,7 +7,6 @@ use Pcore::Util::PM::RPC::Proc;
 has class   => ( is => 'ro', isa => Str,         required => 1 );
 has args    => ( is => 'ro', isa => HashRef,     required => 1 );
 has workers => ( is => 'ro', isa => PositiveInt, required => 1 );
-
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );
 
@@ -118,7 +117,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 82                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
