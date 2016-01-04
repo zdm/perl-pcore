@@ -6,17 +6,26 @@ use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
 use if $MSWIN, 'Win32::Process::Info';
 
-has cmd         => ( is => 'ro', isa => ArrayRef, required => 1 );
-has capture_std => ( is => 'ro', isa => Bool,     default  => 0 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
-has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );
+has cmd => ( is => 'ro', isa => ArrayRef, required => 1 );
+
+# TODO rename
+has capture_std => ( is => 'ro', isa => Bool, default => 0 );
+has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 0 );
+has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );    # ($self, $pid), called, when process created, pid captured and handles are ready
+has on_error => ( is => 'ro', isa => Maybe [CodeRef] );    # ($self, $status), called, when exited with !0 status
+has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );    # ($self, $status), called on process exit
+
+has mswin_alive_timout => ( is => 'ro', isa => Num, default => 0.5 );
 
 has pid => ( is => 'ro', isa => PositiveInt, init_arg => undef );
-has exit_code => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
+has status => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], init_arg => undef );    # undef - process still alive
 
 has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
+
+# TODO
+# wantarray
 
 sub DEMOLISH ( $self, $global ) {
     if ($MSWIN) {
@@ -37,7 +46,7 @@ sub BUILD ( $self, $args ) {
 
 sub _create ($self) {
     my $cv = AE::cv {
-        $self->on_ready->($self) if $self->on_ready;
+        $self->_on_ready;
 
         return;
     };
@@ -149,6 +158,69 @@ sub _create_proc ( $self, $on_ready, $args ) {
     else {
         $on_ready->end;
     }
+
+    return;
+}
+
+sub _on_ready ($self) {
+    Win32::Process::Open( my $winproc, $self->pid, 0 ) or die if $MSWIN;
+
+    $self->on_ready->( $self, $self->pid ) if $self->on_ready;
+
+    my ( $cv, $blocking );
+
+    if ( $self->blocking ) {
+        if ( ref $self->blocking ) {
+            $cv = $self->blocking;
+        }
+        else {
+            $cv = AE::cv;
+
+            $blocking = 1;
+        }
+
+        $cv->begin;
+    }
+
+    if ($MSWIN) {
+        $self->{sigchild} = AE::timer 0, $self->mswin_alive_timout, sub {
+            $winproc->GetExitCode( my $status );
+
+            if ( $status != Win32::Process::STILL_ACTIVE() ) {
+                undef $self->{sigchild};
+
+                $cv->end if $cv;
+
+                $self->_on_exit($status);
+            }
+
+            return;
+        };
+    }
+    else {
+        $self->{sigchild} = AE::child $self->pid, sub ( $pid, $status ) {
+            undef $self->{sigchild};
+
+            $cv->end if $cv;
+
+            $self->_on_exit( $status >> 8 );
+
+            return;
+        };
+    }
+
+    $cv->recv if $blocking;
+
+    return;
+}
+
+# TODO $cv->end if blocking
+sub _on_exit ( $self, $status ) {
+    $self->{status} = $status;
+
+    $self->on_error->( $self, $status ) if $status and $self->on_error;
+
+    $self->on_exit->( $self, $status ) if $self->on_exit;
 
     return;
 }
