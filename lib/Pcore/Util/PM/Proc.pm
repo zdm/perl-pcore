@@ -24,20 +24,43 @@ has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 
+has _cv => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
+
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig($args);
 
+    my $blocking;
+
+    if ( $self->blocking ) {
+        if ( ref $self->blocking ) {
+            $self->{_cv} = $self->blocking;
+        }
+        else {
+            $self->{_cv} = AE::cv;
+
+            $blocking = 1;
+        }
+
+        $self->{_cv}->begin;
+    }
+
     $self->_create( defined wantarray );
 
-    if ( defined wantarray ) {
-        return $self;
+    if ($blocking) {
+        $self->{_cv}->recv;
+
+        return;
     }
     else {
-        return;
+        if ( defined wantarray ) {
+            return $self;
+        }
+        else {
+            return;
+        }
     }
 };
 
-# TODO $cv->end on external cv on process destroy
 sub DEMOLISH ( $self, $global ) {
     say 'DESTROY: ' . ( $self->pid // 'undef' );
 
@@ -47,6 +70,8 @@ sub DEMOLISH ( $self, $global ) {
     else {
         kill -9, $self->pid or 1 if $self->pid;
     }
+
+    $self->{_cv}->end if $self->{_cv};
 
     return;
 }
@@ -174,61 +199,38 @@ sub _on_ready ( $self, $wantarray ) {
 
     $self->on_ready->( $self, $self->pid ) if $self->on_ready;
 
-    my ( $cv, $blocking );
-
     P->scalar->weaken($self) if $wantarray;
 
-    if ( $self->blocking ) {
-        if ( ref $self->blocking ) {
-            $cv = $self->blocking;
-        }
-        else {
-            $cv = AE::cv;
+    my $on_exit = sub ($status) {
+        undef $self->{sigchild};
 
-            $blocking = 1;
-        }
+        $self->{_cv}->end if $self->{_cv};
 
-        $cv->begin;
-    }
+        $self->{status} = $status;
+
+        $self->on_error->( $self, $status ) if $status and $self->on_error;
+
+        $self->on_exit->( $self, $status ) if $self->on_exit;
+
+        return;
+    };
 
     if ($MSWIN) {
         $self->{sigchild} = AE::timer 0, $self->mswin_alive_timout, sub {
             $winproc->GetExitCode( my $status );
 
-            if ( $status != Win32::Process::STILL_ACTIVE() ) {
-                undef $self->{sigchild};
-
-                $cv->end if $cv;
-
-                $self->_on_exit($status);
-            }
+            $on_exit->($status) if $status != Win32::Process::STILL_ACTIVE();
 
             return;
         };
     }
     else {
         $self->{sigchild} = AE::child $self->pid, sub ( $pid, $status ) {
-            undef $self->{sigchild};
-
-            $cv->end if $cv;
-
-            $self->_on_exit( $status >> 8 );
+            $on_exit->( $status >> 8 );
 
             return;
         };
     }
-
-    $cv->recv if $blocking;
-
-    return;
-}
-
-sub _on_exit ( $self, $status ) {
-    $self->{status} = $status;
-
-    $self->on_error->( $self, $status ) if $status and $self->on_error;
-
-    $self->on_exit->( $self, $status ) if $self->on_exit;
 
     return;
 }
