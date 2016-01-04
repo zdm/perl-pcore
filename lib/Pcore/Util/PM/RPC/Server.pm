@@ -91,7 +91,7 @@ my $listener = sub ($req) {
             }
         }
 
-        my $data = P->data->to_cbor( [ $new_deps ? $deps : undef, $call_id ], $res );
+        my $data = P->data->to_cbor( [ [ $new_deps ? $deps : undef, $call_id, $$ ], $res ] );
 
         $out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
 

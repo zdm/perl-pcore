@@ -69,10 +69,10 @@ sub _build__scan_deps ($self) {
 }
 
 sub _on_data ( $self, $data ) {
-    $self->_store_deps( $data->[0] ) if $data->[0] && $self->_scan_deps;
+    $self->_store_deps( $data->[0]->[0] ) if $data->[0]->[0] && $self->_scan_deps;
 
-    if ( my $cb = delete $self->_queue->{ $data->[1] } ) {
-        $cb->( $data->[2] );
+    if ( my $cb = delete $self->_queue->{ $data->[0]->[1] } ) {
+        $cb->( $data->[1] );
     }
 
     return;
