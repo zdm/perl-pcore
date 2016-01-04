@@ -24,13 +24,10 @@ has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 
-# TODO
-# wantarray
-
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig($args);
 
-    $self->_create;
+    $self->_create( defined wantarray );
 
     if ( defined wantarray ) {
         return $self;
@@ -40,6 +37,7 @@ around new => sub ( $orig, $self, $args ) {
     }
 };
 
+# TODO $cv->end on external cv on process destroy
 sub DEMOLISH ( $self, $global ) {
     say 'DESTROY: ' . ( $self->pid // 'undef' );
 
@@ -47,15 +45,15 @@ sub DEMOLISH ( $self, $global ) {
         Win32::Process::KillProcess( $self->pid, 0 ) if $self->pid;
     }
     else {
-        kill 9, $self->pid or 1 if $self->pid;
+        kill -9, $self->pid or 1 if $self->pid;
     }
 
     return;
 }
 
-sub _create ($self) {
+sub _create ( $self, $wantarray ) {
     my $cv = AE::cv {
-        $self->_on_ready;
+        $self->_on_ready($wantarray);
 
         return;
     };
@@ -171,12 +169,14 @@ sub _create_proc ( $self, $on_ready, $args ) {
     return;
 }
 
-sub _on_ready ($self) {
+sub _on_ready ( $self, $wantarray ) {
     Win32::Process::Open( my $winproc, $self->pid, 0 ) or die if $MSWIN;
 
     $self->on_ready->( $self, $self->pid ) if $self->on_ready;
 
     my ( $cv, $blocking );
+
+    P->scalar->weaken($self) if $wantarray;
 
     if ( $self->blocking ) {
         if ( ref $self->blocking ) {
@@ -223,13 +223,23 @@ sub _on_ready ($self) {
     return;
 }
 
-# TODO $cv->end if blocking
 sub _on_exit ( $self, $status ) {
     $self->{status} = $status;
 
     $self->on_error->( $self, $status ) if $status and $self->on_error;
 
     $self->on_exit->( $self, $status ) if $self->on_exit;
+
+    return;
+}
+
+sub kill ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    if ($MSWIN) {
+        Win32::Process::KillProcess( $self->pid, 0 ) if $self->pid;
+    }
+    else {
+        kill -9, $self->pid or 1 if $self->pid;
+    }
 
     return;
 }
