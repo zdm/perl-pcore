@@ -40,6 +40,10 @@ sub BUILD ( $self, $args ) {
 sub _create_worker ( $self, $cv ) {
     $cv->begin;
 
+    my $weak_self = $self;
+
+    P->scalar->weaken($weak_self);
+
     push $self->_workers->@*, Pcore::Util::PM::RPC::Proc->new(
         {   class     => $self->class,
             args      => $self->args,
@@ -50,7 +54,7 @@ sub _create_worker ( $self, $cv ) {
                 return;
             },
             on_data => sub ($data) {
-                $self->_on_data(@_);
+                $weak_self->_on_data(@_);
 
                 return;
             },
@@ -117,7 +121,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 82                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 86                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
