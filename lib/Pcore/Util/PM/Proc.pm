@@ -4,6 +4,7 @@ use Pcore -class;
 use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
+use if $MSWIN, 'Win32::Process::Info';
 
 has cmd         => ( is => 'ro', isa => ArrayRef, required => 1 );
 has capture_std => ( is => 'ro', isa => Bool,     default  => 0 );
@@ -83,7 +84,7 @@ sub _create_proc ( $self, $on_ready, $args ) {
             q[.]
         ) || die $!;
 
-        $self->{pid} = $process->GetProcessID;
+        $self->{pid} = Win32::Process::Info->new->Subprocesses( $process->GetProcessID )->{ $process->GetProcessID }->[0];
     }
     else {
         unless ( $self->{pid} = fork ) {
