@@ -8,7 +8,7 @@ use if $MSWIN, 'Win32::Process::Info';
 
 has cmd => ( is => 'ro', isa => ArrayRef, required => 1 );
 
-# TODO rename
+# TODO rename capture_std -> std
 has capture_std => ( is => 'ro', isa => Bool, default => 0 );
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 0 );
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );    # ($self, $pid), called, when process created, pid captured and handles are ready
