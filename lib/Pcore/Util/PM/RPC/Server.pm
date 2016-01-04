@@ -76,7 +76,7 @@ my $deps = {};
 my $listener = sub ($req) {
     my $call_id = $req->[0];
 
-    my $method = $req->[1];
+    my $method = 'rpc_' . $req->[1];
 
     my $responder = sub ( $call_id, $res ) {
 
