@@ -46,14 +46,14 @@ sub _create ($self) {
     return;
 }
 
-sub _create_proc ( $self, $cv, $args ) {
+sub _create_proc ( $self, $on_ready, $args ) {
     my $cmd;
 
     if ($MSWIN) {
         $cmd = [ $ENV{COMSPEC}, join q[ ], '/D /C', $args->@* ];
     }
     else {
-        $cmd = $args->@*;
+        $cmd = $args;
     }
 
     my $h;
@@ -63,7 +63,7 @@ sub _create_proc ( $self, $cv, $args ) {
         ( $h->{in_svr}, $h->{out} )     = portable_socketpair();
         ( $h->{err},    $h->{err_svr} ) = portable_socketpair();
 
-        # store old STD* handles
+        # save STD* handles
         open $h->{old_in},  '<&', *STDIN  or die;
         open $h->{old_out}, '>&', *STDOUT or die;
         open $h->{old_err}, '>&', *STDERR or die;
@@ -91,7 +91,7 @@ sub _create_proc ( $self, $cv, $args ) {
         }
     }
 
-    $cv->begin;
+    $on_ready->begin;
 
     if ( $self->capture_std ) {
 
@@ -102,53 +102,53 @@ sub _create_proc ( $self, $cv, $args ) {
 
         P->scalar->weaken($self);
 
-        my $cv1 = AE::cv {
-            $cv->end;
+        my $cv = AE::cv {
+            $on_ready->end;
 
             return;
         };
 
-        $cv1->begin;
+        $cv->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{in},
             on_connect => sub ( $h, @ ) {
                 $self->{stdin} = $h;
 
-                $cv1->end;
+                $cv->end;
 
                 return;
             },
         );
 
-        $cv1->begin;
+        $cv->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{out},
             on_connect => sub ( $h, @ ) {
                 $self->{stdout} = $h;
 
-                $cv1->end;
+                $cv->end;
 
                 return;
             },
         );
 
-        $cv1->begin;
+        $cv->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{err},
             on_connect => sub ( $h, @ ) {
                 $self->{stderr} = $h;
 
-                $cv1->end;
+                $cv->end;
 
                 return;
             },
         );
     }
     else {
-        $cv->end;
+        $on_ready->end;
     }
 
     return;
