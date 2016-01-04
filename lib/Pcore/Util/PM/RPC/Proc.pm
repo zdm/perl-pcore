@@ -71,6 +71,8 @@ around _create => sub ( $orig, $self ) {
 
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
 
+    P->scalar->weaken($self);
+
     my $cv = AE::cv {
 
         # start listener
@@ -156,7 +158,7 @@ around _create => sub ( $orig, $self ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 115                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 117                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

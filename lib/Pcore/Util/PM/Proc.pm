@@ -100,6 +100,8 @@ sub _create_proc ( $self, $cv, $args ) {
         open STDOUT, '>&', $h->{old_out} or die;
         open STDERR, '>&', $h->{old_err} or die;
 
+        P->scalar->weaken($self);
+
         my $cv1 = AE::cv {
             $cv->end;
 
