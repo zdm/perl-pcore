@@ -27,19 +27,28 @@ has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 # TODO
 # wantarray
 
+around new => sub ( $orig, $self, $args ) {
+    $self = $self->$orig($args);
+
+    $self->_create;
+
+    if ( defined wantarray ) {
+        return $self;
+    }
+    else {
+        return;
+    }
+};
+
 sub DEMOLISH ( $self, $global ) {
+    say 'DESTROY: ' . ( $self->pid // 'undef' );
+
     if ($MSWIN) {
         Win32::Process::KillProcess( $self->pid, 0 ) if $self->pid;
     }
     else {
         kill 9, $self->pid or 1 if $self->pid;
     }
-
-    return;
-}
-
-sub BUILD ( $self, $args ) {
-    $self->_create;
 
     return;
 }
