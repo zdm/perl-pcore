@@ -117,8 +117,6 @@ around _create => sub ( $orig, $self ) {
                 line => "\x00",
                 sub ( $h, $line, $eol ) {
                     if ( $line =~ /\AREADY(\d+)\z/sm ) {
-                        $self->{pid} = $1;
-
                         $cv->end;
                     }
                     else {
