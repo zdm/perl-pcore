@@ -110,6 +110,8 @@ sub _create_proc ( $self, $on_ready, $args ) {
         };
 
         $cv->begin;
+        $cv->begin;
+        $cv->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{in},
@@ -122,8 +124,6 @@ sub _create_proc ( $self, $on_ready, $args ) {
             },
         );
 
-        $cv->begin;
-
         Pcore::AE::Handle->new(
             fh         => $h->{out},
             on_connect => sub ( $h, @ ) {
@@ -134,8 +134,6 @@ sub _create_proc ( $self, $on_ready, $args ) {
                 return;
             },
         );
-
-        $cv->begin;
 
         Pcore::AE::Handle->new(
             fh         => $h->{err},

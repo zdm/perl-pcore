@@ -24,7 +24,7 @@ sub decompress ( $self, % ) {
 
         state $init = !!require Win32::Process;
 
-        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C js-beautify $js_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
+        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/D /C js-beautify $js_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
 
         $process_obj->Wait( Win32::Process::INFINITE() );
 
@@ -113,7 +113,7 @@ sub run_js_hint ($self) {
 
         state $init = !!require Win32::Process;
 
-        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C jshint $js_hint_args "$in_temp"> "$out_temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
+        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/D /C jshint $js_hint_args "$in_temp"> "$out_temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
 
         $process_obj->Wait( Win32::Process::INFINITE() );
 

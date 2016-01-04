@@ -21,7 +21,7 @@ sub decompress ($self) {
 
         state $init = !!require Win32::Process;
 
-        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C html-beautify $html_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
+        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/D /C html-beautify $html_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
 
         $process_obj->Wait( Win32::Process::INFINITE() );
 
