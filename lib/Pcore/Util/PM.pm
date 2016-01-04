@@ -75,10 +75,11 @@ sub is_superuser {
 
 sub run_rpc ( $class, @ ) {
     my %args = (
-        args     => {},
-        on_ready => undef,
-        on_exit  => undef,
-        workers  => 0,
+        args        => {},
+        on_ready    => undef,
+        on_exit     => undef,
+        workers     => 0,
+        capture_std => 0,
         splice( @_, 1 ),
         class => $class,
     );

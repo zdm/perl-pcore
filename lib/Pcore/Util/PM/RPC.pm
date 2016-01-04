@@ -9,6 +9,7 @@ has args    => ( is => 'ro', isa => HashRef,     required => 1 );
 has workers => ( is => 'ro', isa => PositiveInt, required => 1 );
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );
+has capture_std => ( is => 'ro', isa => Bool, default => 0 );
 
 has _workers => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _call_id => ( is => 'ro', default => 0, init_arg => undef );
@@ -43,10 +44,11 @@ sub _create_worker ( $self, $cv ) {
     P->scalar->weaken($self);
 
     push $self->_workers->@*, Pcore::Util::PM::RPC::Proc->new(
-        {   class     => $self->class,
-            args      => $self->args,
-            scan_deps => $self->_scan_deps,
-            on_ready  => sub ($worker) {
+        {   class       => $self->class,
+            args        => $self->args,
+            scan_deps   => $self->_scan_deps,
+            capture_std => $self->capture_std,
+            on_ready    => sub ($worker) {
                 $cv->end;
 
                 return;
@@ -119,7 +121,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 84                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 86                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
