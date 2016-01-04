@@ -235,17 +235,6 @@ sub _on_ready ( $self, $wantarray ) {
     return;
 }
 
-sub kill ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    if ($MSWIN) {
-        Win32::Process::KillProcess( $self->pid, 0 ) if $self->pid;
-    }
-    else {
-        kill -9, $self->pid or 1 if $self->pid;
-    }
-
-    return;
-}
-
 1;
 __END__
 =pod
