@@ -78,28 +78,39 @@ my $listener = sub ($req) {
 
     my $method = $req->[1];
 
-    $obj->$method(
-        sub ($res = undef) {
+    my $responder = sub ( $call_id, $res ) {
 
-            # make PAR deps snapshot after each call
-            my $new_deps;
+        # make PAR deps snapshot after each call
+        my $new_deps;
 
-            if ( $BOOT_ARGS->{scan_deps} ) {
-                for my $pkg ( grep { !exists $deps->{$_} } keys %INC ) {
-                    $new_deps = 1;
+        if ( $BOOT_ARGS->{scan_deps} ) {
+            for my $pkg ( grep { !exists $deps->{$_} } keys %INC ) {
+                $new_deps = 1;
 
-                    $deps->{$pkg} = $INC{$pkg};
-                }
+                $deps->{$pkg} = $INC{$pkg};
             }
+        }
 
-            my $data = P->data->to_cbor( [ $new_deps ? $deps : undef, $call_id, $res ] );
+        my $data = P->data->to_cbor( [ $new_deps ? $deps : undef, $call_id, $res ] );
 
-            $out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
+        $out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
 
-            return;
-        },
-        $req->[2],
-    );
+        return;
+    };
+
+    if ( !$obj->can($method) ) {
+        $responder->( $call_id, undef );
+    }
+    else {
+        $obj->$method(
+            sub ($data = undef) {
+                $responder->( $call_id, $data );
+
+                return;
+            },
+            $req->[2],
+        );
+    }
 
     return;
 };
@@ -141,7 +152,7 @@ $cv->recv;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 133                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 144                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
