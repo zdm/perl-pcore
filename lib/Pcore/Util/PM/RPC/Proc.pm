@@ -21,7 +21,7 @@ has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
 around _create => sub ( $orig, $self ) {
     state $perl = do {
         if ( $ENV->is_par ) {
-            "$ENV{PAR_TEMP}/perl" . $MSWIN ? '.exe' : q[];
+            "$ENV{PAR_TEMP}/perl" . ( $MSWIN ? '.exe' : q[] );
         }
         else {
             $^X;
