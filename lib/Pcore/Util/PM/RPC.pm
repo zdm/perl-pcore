@@ -7,9 +7,9 @@ use Pcore::Util::PM::RPC::Proc;
 has class   => ( is => 'ro', isa => Str,         required => 1 );
 has args    => ( is => 'ro', isa => HashRef,     required => 1 );
 has workers => ( is => 'ro', isa => PositiveInt, required => 1 );
+has std     => ( is => 'ro', isa => Bool,        default  => 0 );
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );
-has capture_std => ( is => 'ro', isa => Bool, default => 0 );
 
 has _workers => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _call_id => ( is => 'ro', default => 0, init_arg => undef );
@@ -25,32 +25,36 @@ sub BUILDARGS ( $self, $args ) {
 }
 
 sub BUILD ( $self, $args ) {
-    my $cv = AE::cv {
+    my $on_ready = AE::cv {
         $self->on_ready->($self) if $self->on_ready;
 
         return;
     };
 
     for ( 1 .. $self->workers ) {
-        $self->_create_worker($cv);
+        $self->_create_worker($on_ready);
     }
 
     return;
 }
 
-sub _create_worker ( $self, $cv ) {
-    $cv->begin;
+sub _create_worker ( $self, $on_ready ) {
+    $on_ready->begin;
 
     P->scalar->weaken($self);
 
     push $self->_workers->@*, Pcore::Util::PM::RPC::Proc->new(
-        {   class       => $self->class,
-            args        => $self->args,
-            scan_deps   => $self->_scan_deps,
-            capture_std => $self->capture_std,
-            on_ready    => sub ($worker) {
-                $cv->end;
+        {   std       => $self->std,
+            blocking  => 0,
+            class     => $self->class,
+            args      => $self->args,
+            scan_deps => $self->_scan_deps,
+            on_ready  => sub ( $worker, $pid ) {
+                $on_ready->end;
 
+                return;
+            },
+            on_exit => sub ( $worker, $status ) {
                 return;
             },
             on_data => sub ($data) {
@@ -121,7 +125,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 86                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 90                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

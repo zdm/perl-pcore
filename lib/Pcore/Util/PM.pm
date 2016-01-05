@@ -91,11 +91,11 @@ sub run (@) {
 
 sub run_rpc ( $class, @ ) {
     my %args = (
-        args        => {},
-        on_ready    => undef,
-        on_exit     => undef,
-        workers     => 0,
-        capture_std => 0,
+        args     => {},
+        workers  => 0,
+        std      => 0,
+        on_ready => undef,
+        on_exit  => undef,
         splice( @_, 1 ),
         class => $class,
     );
