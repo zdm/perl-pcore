@@ -23,7 +23,8 @@ has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 
-has _cv => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
+has _cv      => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
+has _winproc => ( is => 'ro', isa => InstanceOf ['Win32::Process'],    init_arg => undef );    # windows process descriptor
 
 around new => sub ( $orig, $self, $args ) {
     $args->{_wantarray} = defined wantarray ? 1 : 0;
@@ -52,8 +53,6 @@ sub BUILD ( $self, $args ) {
     }
 
     my $on_ready = AE::cv {
-        Win32::Process::Open( my $winproc, $self->pid, 0 ) or die q[Can't get process by PID] if $MSWIN;
-
         $self->on_ready->( $self, $self->pid ) if $self->on_ready;
 
         my $on_exit = sub ($status) {
@@ -72,7 +71,7 @@ sub BUILD ( $self, $args ) {
 
         if ($MSWIN) {
             $self->{sigchild} = AE::timer 0, $self->mswin_alive_timout, sub {
-                $winproc->GetExitCode( my $status );
+                $self->{_winproc}->GetExitCode( my $status );
 
                 $on_exit->($status) if $status != Win32::Process::STILL_ACTIVE();
 
@@ -140,14 +139,22 @@ sub _create ( $self, $on_ready, $args ) {
 
     if ($MSWIN) {
         Win32::Process::Create(    #
-            my $process,
+            my $proc,
             $cmd->@*,
             1,                     # inherit STD* handles
             ( $self->console ? 0 : Win32::Process::CREATE_NO_WINDOW() ),    # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
             q[.]
-        ) || die $!;
+        );
 
-        $self->{pid} = Win32::Process::Info->new->Subprocesses( $process->GetProcessID )->{ $process->GetProcessID }->[0];
+        die q[Can't create process] if !$proc;
+
+        $self->{pid} = Win32::Process::Info->new->Subprocesses( $proc->GetProcessID )->{ $proc->GetProcessID }->[0];
+
+        Win32::Process::Open( my $winproc, $self->{pid}, 0 );
+
+        die q[Can't get subprocess by PID] if !$winproc;
+
+        $self->{_winproc} = $winproc;
     }
     else {
         unless ( $self->{pid} = fork ) {
@@ -209,6 +216,16 @@ sub _create ( $self, $on_ready, $args ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 112                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_create" with high complexity score (21)                   │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
