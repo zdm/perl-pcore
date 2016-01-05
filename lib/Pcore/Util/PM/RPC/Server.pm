@@ -121,10 +121,8 @@ $in->on_read(
         $h->unshift_read(
             chunk => 4,
             sub ( $h, $data ) {
-                my $len = unpack 'L>', $data;
-
                 $h->unshift_read(
-                    chunk => $len,
+                    chunk => unpack( 'L>', $data ),
                     sub ( $h, $data ) {
                         $listener->( P->data->from_cbor($data) );
 
@@ -152,7 +150,7 @@ $cv->recv;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 144                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 142                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

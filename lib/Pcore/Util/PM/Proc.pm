@@ -122,9 +122,9 @@ sub _create ( $self, $on_ready, $args ) {
     my $h;
 
     if ( $self->std ) {
-        ( $h->{in},     $h->{out_svr} ) = portable_socketpair();
-        ( $h->{in_svr}, $h->{out} )     = portable_socketpair();
-        ( $h->{err},    $h->{err_svr} ) = portable_socketpair();
+        ( $h->{in_r},  $h->{in_w} )  = portable_socketpair();
+        ( $h->{out_r}, $h->{out_w} ) = portable_socketpair();
+        ( $h->{err_r}, $h->{err_w} ) = portable_socketpair();
 
         # save STD* handles
         open $h->{old_in},  '<&', *STDIN  or die;
@@ -132,9 +132,9 @@ sub _create ( $self, $on_ready, $args ) {
         open $h->{old_err}, '>&', *STDERR or die;
 
         # redirect STD* handles
-        open STDIN,  '<&', $h->{in_svr}  or die;
-        open STDOUT, '>&', $h->{out_svr} or die;
-        open STDERR, '>&', $h->{err_svr} or die;
+        open STDIN,  '<&', $h->{in_r}  or die;
+        open STDOUT, '>&', $h->{out_w} or die;
+        open STDERR, '>&', $h->{err_w} or die;
     }
 
     if ($MSWIN) {
@@ -148,6 +148,7 @@ sub _create ( $self, $on_ready, $args ) {
 
         die q[Can't create process] if !$proc;
 
+        # TODO failed to get process
         $self->{pid} = Win32::Process::Info->new->Subprocesses( $proc->GetProcessID )->{ $proc->GetProcessID }->[0];
 
         Win32::Process::Open( my $winproc, $self->{pid}, 0 );
@@ -175,19 +176,7 @@ sub _create ( $self, $on_ready, $args ) {
 
         $on_ready->begin;
         Pcore::AE::Handle->new(
-            fh         => $h->{in},
-            on_connect => sub ( $h, @ ) {
-                $self->{stdout} = $h;
-
-                $on_ready->end;
-
-                return;
-            },
-        );
-
-        $on_ready->begin;
-        Pcore::AE::Handle->new(
-            fh         => $h->{out},
+            fh         => $h->{in_w},
             on_connect => sub ( $h, @ ) {
                 $self->{stdin} = $h;
 
@@ -199,7 +188,19 @@ sub _create ( $self, $on_ready, $args ) {
 
         $on_ready->begin;
         Pcore::AE::Handle->new(
-            fh         => $h->{err},
+            fh         => $h->{out_r},
+            on_connect => sub ( $h, @ ) {
+                $self->{stdout} = $h;
+
+                $on_ready->end;
+
+                return;
+            },
+        );
+
+        $on_ready->begin;
+        Pcore::AE::Handle->new(
+            fh         => $h->{err_r},
             on_connect => sub ( $h, @ ) {
                 $self->{stderr} = $h;
 
