@@ -10,7 +10,7 @@ has cmd     => ( is => 'ro', isa => ArrayRef, required => 1 );
 has std     => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
 has console => ( is => 'ro', isa => Bool,     default  => 1 );
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 1 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $pid), called, when process created, pid captured and handles are ready
+has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self), called, when process created, pid captured and handles are ready
 has on_error => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $status), called, when exited with !0 status
 has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $status), called on process exit
 
@@ -19,9 +19,9 @@ has mswin_alive_timout => ( is => 'ro', isa => Num, default => 0.5 );
 has pid => ( is => 'ro', isa => PositiveInt, init_arg => undef );
 has status => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], init_arg => undef );    # undef - process still alive
 
-has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
-has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
-has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
+has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );                # process STDIN, we can write
+has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );                # process STDOUT, we can read
+has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );                # process STDERR, we can read
 
 has _cv      => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
 has _winproc => ( is => 'ro', isa => InstanceOf ['Win32::Process'],    init_arg => undef );    # windows process descriptor
@@ -53,7 +53,7 @@ sub BUILD ( $self, $args ) {
     }
 
     my $on_ready = AE::cv {
-        $self->on_ready->( $self, $self->pid ) if $self->on_ready;
+        $self->on_ready->($self) if $self->on_ready;
 
         my $on_exit = sub ($status) {
             undef $self->{sigchild};
@@ -177,7 +177,7 @@ sub _create ( $self, $on_ready, $args ) {
         Pcore::AE::Handle->new(
             fh         => $h->{in},
             on_connect => sub ( $h, @ ) {
-                $self->{stdin} = $h;
+                $self->{stdout} = $h;
 
                 $on_ready->end;
 
@@ -189,7 +189,7 @@ sub _create ( $self, $on_ready, $args ) {
         Pcore::AE::Handle->new(
             fh         => $h->{out},
             on_connect => sub ( $h, @ ) {
-                $self->{stdout} = $h;
+                $self->{stdin} = $h;
 
                 $on_ready->end;
 

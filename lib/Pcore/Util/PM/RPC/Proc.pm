@@ -15,8 +15,8 @@ has args      => ( is => 'ro', isa => HashRef, required => 1 );
 has scan_deps => ( is => 'ro', isa => Bool,    required => 1 );
 has on_data   => ( is => 'ro', isa => CodeRef, required => 1 );
 
-has in  => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
-has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
+has in  => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );    # process IN channel, we can write
+has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );    # process OUT channel, we can read
 
 around _create => sub ( $orig, $self, $on_ready, @ ) {
     state $perl = do {

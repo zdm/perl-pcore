@@ -43,7 +43,7 @@ sub BUILD ( $self, $args ) {
                 class     => $self->class,
                 args      => $self->args,
                 scan_deps => $self->_scan_deps,
-                on_ready  => sub ( $worker, $pid ) {
+                on_ready  => sub ($worker) {
                     $on_ready->end;
 
                     return;
