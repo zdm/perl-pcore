@@ -21,7 +21,7 @@ sub decompress ($self) {
     P->pm->run(
         cmd      => [ qw[html-beautify], $html_beautify_args, '--replace', qq["$temp"] ],
         std      => 0,
-        console  => 1,
+        console  => 0,
         blocking => 1,
     );
 

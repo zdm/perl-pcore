@@ -17,19 +17,18 @@ sub decompress ( $self, % ) {
 
     my $js_beautify_args = $self->dist_cfg->{JS_BEAUTIFY} || $self->src_cfg->{JS_BEAUTIFY};
 
-    if ($MSWIN) {
-        my $temp = P->file->tempfile;
+    my $temp = P->file->tempfile;
 
-        syswrite $temp, $self->buffer->$* or die;
+    syswrite $temp, $self->buffer->$* or die;
 
-        state $init = !!require Win32::Process;
+    P->pm->run(
+        cmd      => [ 'js-beautify', $js_beautify_args, '--replace', qq["$temp"] ],
+        std      => 0,
+        console  => 0,
+        blocking => 1,
+    );
 
-        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/D /C js-beautify $js_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
-
-        $process_obj->Wait( Win32::Process::INFINITE() );
-
-        $self->buffer->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-    }
+    $self->buffer->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     my $log;
 
@@ -104,23 +103,22 @@ sub run_js_hint ($self) {
 
     my $js_hint_args = $self->dist_cfg->{JS_HINT} || $self->src_cfg->{JS_HINT};
 
-    if ($MSWIN) {
-        my $in_temp = P->file->tempfile;
+    my $in_temp = P->file->tempfile;
 
-        syswrite $in_temp, $self->buffer->$* or die;
+    syswrite $in_temp, $self->buffer->$* or die;
 
-        my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
+    my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
 
-        state $init = !!require Win32::Process;
+    P->pm->run(
+        cmd      => [ 'jshint', $js_hint_args, qq["$in_temp">], qq["$out_temp"] ],
+        std      => 0,
+        console  => 0,
+        blocking => 1,
+    );
 
-        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/D /C jshint $js_hint_args "$in_temp"> "$out_temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
+    $jshint_output = P->file->read_lines($out_temp);
 
-        $process_obj->Wait( Win32::Process::INFINITE() );
-
-        $jshint_output = P->file->read_lines($out_temp);
-
-        unlink $out_temp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
-    }
+    unlink $out_temp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
     my $res = {
         has_errors => 0,
@@ -159,7 +157,7 @@ sub run_js_hint ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 79                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 78                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
