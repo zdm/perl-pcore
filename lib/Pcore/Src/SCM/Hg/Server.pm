@@ -2,89 +2,69 @@ package Pcore::Src::SCM::Hg::Server;
 
 use Pcore -class;
 use Pcore::Util::Text qw[decode_utf8];
-use AnyEvent::Util qw[portable_socketpair];
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
+has _hg => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 has capabilities => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-has _in  => ( is => 'ro', init_arg => undef );    # read from child
-has _out => ( is => 'ro', init_arg => undef );    # write to child
-has _pid => ( is => 'ro', init_arg => undef );
+sub _build__hg ($self) {
+    my $chdir_guard = P->file->chdir( $self->root ) or die;
 
-sub BUILD ( $self, $args ) {
-    ( my $in_r, $self->{_out} ) = portable_socketpair();
+    local $ENV{HGENCODING} = 'UTF-8';
 
-    ( $self->{_in}, my $out_w ) = portable_socketpair();
+    my $cv = AE::cv;
 
-    $in_r->autoflush(1);
-    $self->{_in}->autoflush(1);
-    $self->{_out}->autoflush(1);
-    $out_w->autoflush(1);
+    $self->{_hg} = P->pm->run(
+        cmd      => [qw[hg serve --config ui.interactive=True --cmdserver pipe]],
+        blocking => 0,
+        std      => 1,
+        console  => 1,
+        on_ready => sub ($self) {
+            $cv->send;
 
-    # store old STD* handles
-    open my $old_in,  '<&', *STDIN  or die;    ## no critic qw[InputOutput::RequireBriefOpen]
-    open my $old_out, '>&', *STDOUT or die;    ## no critic qw[InputOutput::RequireBriefOpen]
-
-    # redirect STD* handles
-    open STDIN,  '<&', $in_r  or die;
-    open STDOUT, '>&', $out_w or die;
-
-    # spawn hg command server
-    {
-        my $chdir_guard = P->file->chdir( $self->root ) or die;
-
-        local $ENV{HGENCODING} = 'UTF-8';
-
-        if ($MSWIN) {
-            state $init = !!require Win32::Process;
-
-            Win32::Process::Create(    #
-                $self->{_pid},
-                $ENV{COMSPEC},
-                '/D /C hg serve --config ui.interactive=True --cmdserver pipe',
-                1,
-                0,                     # NOTE !!!WARNING!!! Win32::Process::CREATE_NO_WINDOW()  not works properly
-                q[.]
-            ) || die;
+            return;
         }
-        else {
-            exec 'hg serve --config ui.interactive=True --cmdserver pipe' or die unless fork;
-        }
-    }
+    );
 
-    # close child handles
-    close $in_r  or die;
-    close $out_w or die;
-
-    # restore STD* handles
-    open STDIN,  '<&', $old_in  or die;
-    open STDOUT, '>&', $old_out or die;
+    $cv->recv;
 
     # read capabilities
-    my ( $ch, $data ) = $self->_read_chunk;
+    my ( $ch, $msg ) = $self->_read;
 
-    $self->{capabilities} = $data;
+    $self->{capabilities} = $msg;
 
-    # parse real hg PID from the header
-    ( $self->{_pid} ) = $self->{capabilities} =~ /pid:\s*(\d+)/sm;
-
-    return;
+    return $self->{_hg};
 }
 
-sub DEMOLISH ( $self, $global ) {
-    close $self->_in or die;
+sub _read ($self) {
+    my $cv = AE::cv;
 
-    close $self->_out or die;
+    my ( $channel, $msg );
 
-    if ($MSWIN) {
-        Win32::Process::KillProcess( $self->_pid, 0 ) if $self->_pid;
-    }
-    else {
-        kill 9, $self->_pid or 1 if $self->_pid;
-    }
+    $self->_hg->stdout->push_read(
+        chunk => 5,
+        sub ( $h, $data ) {
+            $channel = substr $data, 0, 1, q[];
 
-    return;
+            $h->push_read(
+                chunk => unpack( 'L>', $data ),
+                sub ( $h, $data ) {
+                    $msg = $data;
+
+                    $cv->send;
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
+
+    $cv->recv;
+
+    return $channel, $msg;
 }
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
@@ -95,12 +75,12 @@ sub cmd ( $self, @cmd ) {
 
     my $cmd = qq[runcommand\x0A] . pack( 'L>', length $buf ) . $buf;
 
-    syswrite $self->_out, $cmd or die;
+    $self->_hg->stdin->push_write($cmd);
 
     my $res = {};
 
   READ_CHUNK:
-    my ( $channel, $data ) = $self->_read_chunk;
+    my ( $channel, $data ) = $self->_read;
 
     if ( $channel ne 'r' ) {
         chomp $data;
@@ -115,18 +95,6 @@ sub cmd ( $self, @cmd ) {
     return $res;
 }
 
-sub _read_chunk ($self) {
-    sysread $self->_in, my $header, 5, 0 or die;
-
-    my $channel = substr $header, 0, 1, q[];
-
-    my $len = unpack 'L>', $header;
-
-    sysread $self->_in, my $data, $len, 0 or die;
-
-    return $channel => $data;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -134,7 +102,7 @@ sub _read_chunk ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 92, 96               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 72, 76               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
