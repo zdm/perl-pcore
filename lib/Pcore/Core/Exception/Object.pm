@@ -112,28 +112,36 @@ sub _build_to_string ($self) {
 }
 
 sub send_log ( $self, @ ) {
-    my %args = (
-        force  => 0,              # force logging if already logged
-        level  => $self->level,
-        ns     => $self->ns,
-        header => undef,
-        tags   => {},
-        splice @_, 1,
-    );
+    eval {
+        local $@;
+        local $SIG{__DIE__}  = sub { };
+        local $SIG{__WARN__} = sub { };
 
-    return 0 if $self->_logged && !$args{force};    # prevent doble logging same exception
+        my %args = (
+            force  => 0,              # force logging if already logged
+            level  => $self->level,
+            ns     => $self->ns,
+            header => undef,
+            tags   => {},
+            splice @_, 1,
+        );
 
-    $self->_logged(1);
+        return 0 if $self->_logged && !$args{force};    # prevent doble logging same exception
 
-    $args{tags} = {
-        package    => $self->caller_frame->package,
-        filename   => $self->caller_frame->filename,
-        line       => $self->caller_frame->line,
-        subroutine => $self->caller_frame->subroutine,
-        $args{tags}->%*,
+        $self->_logged(1);
+
+        $args{tags} = {
+            package    => $self->caller_frame->package,
+            filename   => $self->caller_frame->filename,
+            line       => $self->caller_frame->line,
+            subroutine => $self->caller_frame->subroutine,
+            $args{tags}->%*,
+        };
+
+        Pcore::Core::Log::send_log( [ $self->to_string ], level => $args{level}, ns => $args{ns}, header => $args{header}, tags => $args{tags} );
     };
 
-    return Pcore::Core::Log::send_log( [ $self->to_string ], level => $args{level}, ns => $args{ns}, header => $args{header}, tags => $args{tags} );
+    return;
 }
 
 sub is_propagated ( $self, @propagate ) {
@@ -170,7 +178,11 @@ sub stop_propagate ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 133                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 115                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 116                  │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 138                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

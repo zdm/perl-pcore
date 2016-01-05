@@ -20,9 +20,9 @@ sub CORE_INIT {
 
     $SIG{__WARN__} = \&SIGWARN;  ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    *CORE::GLOBAL::die = \&GLOBAL_DIE;
+    # *CORE::GLOBAL::die = \&GLOBAL_DIE;
 
-    *CORE::GLOBAL::warn = \&GLOBAL_WARN;
+    # *CORE::GLOBAL::warn = \&GLOBAL_WARN;
 
     # we don't need stacktrace from Error::TypeTiny exceptions
     $Error::TypeTiny::StackTrace = 0;
@@ -63,12 +63,24 @@ sub SIGDIE {
     CORE::die $_[0] unless defined $e;    # fallback to standart behavior if exception wasn't created for some reasons
 
     if ( !defined $^S || $^S ) {          # ERROR, catched in eval
-        $e->send_log( level => $ERROR ) unless $IGNORE_ERRORS;
+        eval {
+            local $@;
+            local $SIG{__DIE__}  = sub { };
+            local $SIG{__WARN__} = sub { };
+
+            $e->send_log( level => $ERROR ) unless $IGNORE_ERRORS;
+        };
 
         return CORE::die $e;              # terminate standart die behavior
     }
     else {                                # FATAL
-        $e->send_log( level => $FATAL, force => 1 );
+        eval {
+            local $@;
+            local $SIG{__DIE__}  = sub { };
+            local $SIG{__WARN__} = sub { };
+
+            $e->send_log( level => $FATAL, force => 1 );
+        };
 
         exit $e->exit_code;
     }
@@ -84,7 +96,13 @@ sub SIGWARN {
         return;
     }
 
-    $e->send_log( level => $WARN );
+    eval {
+        local $@;
+        local $SIG{__DIE__}  = sub { };
+        local $SIG{__WARN__} = sub { };
+
+        $e->send_log( level => $WARN );
+    };
 
     return;    # terminate standart warn behavior
 }
@@ -295,7 +313,11 @@ sub catch ($code) : prototype(&) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 288                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    3 │ 66, 77, 99           │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 67, 78, 100          │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 306                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
