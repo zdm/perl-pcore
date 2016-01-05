@@ -25,10 +25,12 @@ has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has _cv => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
 
 around new => sub ( $orig, $self, $args ) {
-    $self = $self->$orig($args);
+    $args->{_wantarray} = defined wantarray;
 
-    my $wantarray = defined wantarray;
+    return $self->$orig($args);
+};
 
+sub BUILD ( $self, $args ) {
     my $blocking;
 
     if ( $self->blocking ) {
@@ -51,7 +53,7 @@ around new => sub ( $orig, $self, $args ) {
 
         $self->on_ready->( $self, $self->pid ) if $self->on_ready;
 
-        P->scalar->weaken($self) if $wantarray;
+        P->scalar->weaken($self) if $args->{_wantarray};
 
         my $on_exit = sub ($status) {
             undef $self->{sigchild};
@@ -91,8 +93,8 @@ around new => sub ( $orig, $self, $args ) {
 
     $self->{_cv}->recv if $blocking;
 
-    return $self;
-};
+    return;
+}
 
 sub DEMOLISH ( $self, $global ) {
     if ($MSWIN) {

@@ -9,7 +9,6 @@ has args    => ( is => 'ro', isa => HashRef,     required => 1 );
 has workers => ( is => 'ro', isa => PositiveInt, required => 1 );
 has std     => ( is => 'ro', isa => Bool,        default  => 0 );
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
-has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _workers => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _call_id => ( is => 'ro', default => 0, init_arg => undef );
@@ -125,7 +124,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 90                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 89                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -95,7 +95,6 @@ sub run_rpc ( $class, @ ) {
         workers  => 0,
         std      => 0,
         on_ready => undef,
-        on_exit  => undef,
         splice( @_, 1 ),
         class => $class,
     );
