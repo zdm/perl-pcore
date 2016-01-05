@@ -73,6 +73,8 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
 
     P->scalar->weaken($self);
 
+    $on_ready->begin;
+
     # handshake
     $on_ready->begin;
     Pcore::AE::Handle->new(
@@ -87,15 +89,13 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
                         my $pid = $1;
 
                         # start listener
-                        $self->in->on_read(
+                        $h->on_read(
                             sub ($h) {
                                 $h->unshift_read(
                                     chunk => 4,
-                                    sub ( $h, $data ) {
-                                        my $len = unpack 'L>', $data;
-
+                                    sub ( $h, $len ) {
                                         $h->unshift_read(
-                                            chunk => $len,
+                                            chunk => unpack( 'L>', $len ),
                                             sub ( $h, $data ) {
                                                 $self->on_data->( P->data->from_cbor($data) );
 
@@ -139,6 +139,8 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
 
     $self->$orig( $on_ready, $cmd );
 
+    $on_ready->end;
+
     return;
 };
 
@@ -149,7 +151,7 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 84                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 86                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

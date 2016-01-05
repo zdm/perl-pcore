@@ -25,12 +25,16 @@ has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has _cv => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
 
 around new => sub ( $orig, $self, $args ) {
-    $args->{_wantarray} = defined wantarray;
+    $args->{_wantarray} = defined wantarray ? 1 : 0;
 
     return $self->$orig($args);
 };
 
 sub BUILD ( $self, $args ) {
+    $args->{_wantarray} //= 1;
+
+    P->scalar->weaken($self) if $args->{_wantarray};
+
     my $blocking;
 
     if ( $self->blocking ) {
@@ -47,13 +51,9 @@ sub BUILD ( $self, $args ) {
     }
 
     my $on_ready = AE::cv {
-        my $self = $self;
-
         Win32::Process::Open( my $winproc, $self->pid, 0 ) or die if $MSWIN;
 
         $self->on_ready->( $self, $self->pid ) if $self->on_ready;
-
-        P->scalar->weaken($self) if $args->{_wantarray};
 
         my $on_exit = sub ($status) {
             undef $self->{sigchild};

@@ -24,6 +24,8 @@ sub BUILDARGS ( $self, $args ) {
 }
 
 sub BUILD ( $self, $args ) {
+    P->scalar->weaken($self);
+
     my $on_ready = AE::cv {
         $self->on_ready->($self) if $self->on_ready;
 
@@ -31,38 +33,30 @@ sub BUILD ( $self, $args ) {
     };
 
     for ( 1 .. $self->workers ) {
-        $self->_create_worker($on_ready);
+        $on_ready->begin;
+
+        push $self->_workers->@*, Pcore::Util::PM::RPC::Proc->new(
+            {   std       => $self->std,
+                blocking  => 0,
+                class     => $self->class,
+                args      => $self->args,
+                scan_deps => $self->_scan_deps,
+                on_ready  => sub ( $worker, $pid ) {
+                    $on_ready->end;
+
+                    return;
+                },
+                on_exit => sub ( $worker, $status ) {
+                    return;
+                },
+                on_data => sub ($data) {
+                    $self->_on_data(@_) if $self;
+
+                    return;
+                },
+            }
+        );
     }
-
-    return;
-}
-
-sub _create_worker ( $self, $on_ready ) {
-    $on_ready->begin;
-
-    P->scalar->weaken($self);
-
-    push $self->_workers->@*, Pcore::Util::PM::RPC::Proc->new(
-        {   std       => $self->std,
-            blocking  => 0,
-            class     => $self->class,
-            args      => $self->args,
-            scan_deps => $self->_scan_deps,
-            on_ready  => sub ( $worker, $pid ) {
-                $on_ready->end;
-
-                return;
-            },
-            on_exit => sub ( $worker, $status ) {
-                return;
-            },
-            on_data => sub ($data) {
-                $self->_on_data(@_) if $self;
-
-                return;
-            },
-        }
-    );
 
     return;
 }
@@ -86,13 +80,13 @@ sub _store_deps ( $self, $deps ) {
 
     my $new_deps;
 
-    for my $pkg ( keys $deps->%* ) {
-        if ( !exists $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$pkg} ) {
+    for my $mod ( keys $deps->%* ) {
+        if ( !exists $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$mod} ) {
             $new_deps = 1;
 
-            say 'new deps found: ' . $pkg;
+            say 'new deps found: ' . $mod;
 
-            $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$pkg} = $deps->{$pkg};
+            $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$mod} = $deps->{$mod};
         }
     }
 
@@ -106,6 +100,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 
     $self->_queue->{$call_id} = $cb if $cb;
 
+    # select worker, round-robin
     my $worker = shift $self->_workers->@*;
 
     push $self->_workers->@*, $worker;
@@ -124,7 +119,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 89                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
