@@ -96,7 +96,14 @@ sub BUILD ( $self, $args ) {
 }
 
 sub DEMOLISH ( $self, $global ) {
-    kill -9, $self->pid if $self->pid or 1;
+    if ( $self->pid ) {
+
+        # kill process group, eg.: windows console subprocess
+        kill -9, $self->pid;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+        # kill process, because -9 is ignoref by process itself
+        kill 9, $self->pid;     ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    }
 
     $self->{_cv}->end if $self->{_cv};
 

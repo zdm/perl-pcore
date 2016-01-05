@@ -39,7 +39,10 @@ my ( $in, $out );                                            # in - read, out - 
 $cv->begin;
 
 Pcore::AE::Handle->new(
-    fh         => \*IN,
+    fh       => \*IN,
+    on_error => sub ( $h, $fatal, $msg ) {
+        exit;
+    },
     on_connect => sub ( $h, @ ) {
         $in = $h;
 
@@ -52,7 +55,10 @@ Pcore::AE::Handle->new(
 $cv->begin;
 
 Pcore::AE::Handle->new(
-    fh         => \*OUT,
+    fh       => \*OUT,
+    on_error => sub ( $h, $fatal, $msg ) {
+        exit;
+    },
     on_connect => sub ( $h, @ ) {
         $out = $h;
 
@@ -150,7 +156,7 @@ $cv->recv;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 142                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 148                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
