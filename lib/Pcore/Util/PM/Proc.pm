@@ -7,13 +7,11 @@ use if $MSWIN, 'Win32::Process';
 use if $MSWIN, 'Win32::Process::Info';
 
 has cmd => ( is => 'ro', isa => ArrayRef, required => 1 );
-
-# TODO rename capture_std -> std
-has capture_std => ( is => 'ro', isa => Bool, default => 0 );
-has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 0 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );    # ($self, $pid), called, when process created, pid captured and handles are ready
-has on_error => ( is => 'ro', isa => Maybe [CodeRef] );    # ($self, $status), called, when exited with !0 status
-has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );    # ($self, $status), called on process exit
+has std => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
+has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 1 );
+has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );       # ($self, $pid), called, when process created, pid captured and handles are ready
+has on_error => ( is => 'ro', isa => Maybe [CodeRef] );       # ($self, $status), called, when exited with !0 status
+has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );       # ($self, $status), called on process exit
 
 has mswin_alive_timout => ( is => 'ro', isa => Num, default => 0.5 );
 
@@ -121,7 +119,7 @@ sub _create ( $self, $on_ready, $args ) {
 
     my $h;
 
-    if ( $self->capture_std ) {
+    if ( $self->std ) {
         ( $h->{in},     $h->{out_svr} ) = portable_socketpair();
         ( $h->{in_svr}, $h->{out} )     = portable_socketpair();
         ( $h->{err},    $h->{err_svr} ) = portable_socketpair();
@@ -156,7 +154,7 @@ sub _create ( $self, $on_ready, $args ) {
 
     $on_ready->begin;
 
-    if ( $self->capture_std ) {
+    if ( $self->std ) {
 
         # restore STD* handles
         open STDIN,  '<&', $h->{old_in}  or die;

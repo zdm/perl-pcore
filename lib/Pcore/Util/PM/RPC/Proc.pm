@@ -13,12 +13,12 @@ has '+cmd' => ( required => 0, init_arg => undef );
 has class     => ( is => 'ro', isa => Str,     required => 1 );
 has args      => ( is => 'ro', isa => HashRef, required => 1 );
 has scan_deps => ( is => 'ro', isa => Bool,    required => 1 );
-has on_data => ( is => 'ro', isa => Maybe [CodeRef], required => 1 );
+has on_data   => ( is => 'ro', isa => CodeRef, required => 1 );
 
 has in  => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
 has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );
 
-around _create => sub ( $orig, $self ) {
+around _create => sub ( $orig, $self, $on_ready, @ ) {
     state $perl = do {
         if ( $ENV->is_par ) {
             "$ENV{PAR_TEMP}/perl" . ( $MSWIN ? '.exe' : q[] );
@@ -73,41 +73,8 @@ around _create => sub ( $orig, $self ) {
 
     P->scalar->weaken($self);
 
-    my $cv = AE::cv {
-
-        # start listener
-        $self->in->on_read(
-            sub ($h) {
-                $h->unshift_read(
-                    chunk => 4,
-                    sub ( $h, $data ) {
-                        my $len = unpack 'L>', $data;
-
-                        $h->unshift_read(
-                            chunk => $len,
-                            sub ( $h, $data ) {
-                                $self->on_data->( P->data->from_cbor($data) );
-
-                                return;
-                            }
-                        );
-
-                        return;
-                    }
-                );
-
-                return;
-            }
-        );
-
-        $self->on_ready->($self) if $self->on_ready;
-
-        return;
-    };
-
     # handshake
-    $cv->begin;
-
+    $on_ready->begin;
     Pcore::AE::Handle->new(
         fh         => $in,
         on_connect => sub ( $h, @ ) {
@@ -117,7 +84,34 @@ around _create => sub ( $orig, $self ) {
                 line => "\x00",
                 sub ( $h, $line, $eol ) {
                     if ( $line =~ /\AREADY(\d+)\z/sm ) {
-                        $cv->end;
+                        my $pid = $1;
+
+                        # start listener
+                        $self->in->on_read(
+                            sub ($h) {
+                                $h->unshift_read(
+                                    chunk => 4,
+                                    sub ( $h, $data ) {
+                                        my $len = unpack 'L>', $data;
+
+                                        $h->unshift_read(
+                                            chunk => $len,
+                                            sub ( $h, $data ) {
+                                                $self->on_data->( P->data->from_cbor($data) );
+
+                                                return;
+                                            }
+                                        );
+
+                                        return;
+                                    }
+                                );
+
+                                return;
+                            }
+                        );
+
+                        $on_ready->end;
                     }
                     else {
                         die 'RPC handshake error';
@@ -131,20 +125,19 @@ around _create => sub ( $orig, $self ) {
         },
     );
 
-    $cv->begin;
-
+    $on_ready->begin;
     Pcore::AE::Handle->new(
         fh         => $out,
         on_connect => sub ( $h, @ ) {
             $self->{out} = $h;
 
-            $cv->end;
+            $on_ready->end;
 
             return;
         },
     );
 
-    $self->_create_proc( $cv, $cmd );
+    $self->$orig( $on_ready, $cmd );
 
     return;
 };
@@ -156,7 +149,7 @@ around _create => sub ( $orig, $self ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 117                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 84                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
