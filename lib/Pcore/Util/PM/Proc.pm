@@ -4,7 +4,6 @@ use Pcore -class;
 use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
-use if $MSWIN, 'Win32::Process::Info';
 
 has cmd     => ( is => 'ro', isa => ArrayRef, required => 1 );
 has std     => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
@@ -97,12 +96,7 @@ sub BUILD ( $self, $args ) {
 }
 
 sub DEMOLISH ( $self, $global ) {
-    if ($MSWIN) {
-        Win32::Process::KillProcess( $self->pid, 0 ) if $self->pid;
-    }
-    else {
-        kill -9, $self->pid or 1 if $self->pid;
-    }
+    kill -9, $self->pid if $self->pid or 1;
 
     $self->{_cv}->end if $self->{_cv};
 
@@ -148,14 +142,9 @@ sub _create ( $self, $on_ready, $args ) {
 
         die q[Can't create process] if !$proc;
 
-        # TODO failed to get process
-        $self->{pid} = Win32::Process::Info->new->Subprocesses( $proc->GetProcessID )->{ $proc->GetProcessID }->[0];
+        $self->{_winproc} = $proc;
 
-        Win32::Process::Open( my $winproc, $self->{pid}, 0 );
-
-        die q[Can't get subprocess by PID] if !$winproc;
-
-        $self->{_winproc} = $winproc;
+        $self->{pid} = $proc->GetProcessID;
     }
     else {
         unless ( $self->{pid} = fork ) {
@@ -217,16 +206,6 @@ sub _create ( $self, $on_ready, $args ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 112                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_create" with high complexity score (21)                   │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

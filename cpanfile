@@ -117,7 +117,6 @@ requires 'Mail::IMAPClient';
 # Pcore::Util::PM
 feature windows => sub {
     requires 'Win32::Process';
-    requires 'Win32::Process::Info';
 };
 
 # Pcore::Util::Random
