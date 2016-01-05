@@ -6,7 +6,7 @@ use Pcore::Util::Text qw[decode_utf8];
 has root => ( is => 'ro', isa => Str, required => 1 );
 
 has _hg => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
-has capabilities => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has capabilities => ( is => 'ro', isa => Str, init_arg => undef );
 
 sub _build__hg ($self) {
     my $chdir_guard = P->file->chdir( $self->root ) or die;
@@ -30,9 +30,7 @@ sub _build__hg ($self) {
     $cv->recv;
 
     # read capabilities
-    my ( $ch, $msg ) = $self->_read;
-
-    $self->{capabilities} = $msg;
+    $self->{capabilities} = $self->_read;
 
     return $self->{_hg};
 }
@@ -102,7 +100,7 @@ sub cmd ( $self, @cmd ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 72, 76               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 70, 74               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
