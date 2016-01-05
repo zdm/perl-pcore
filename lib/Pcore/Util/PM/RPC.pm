@@ -6,7 +6,7 @@ use Pcore::Util::PM::RPC::Proc;
 
 has class   => ( is => 'ro', isa => Str,         required => 1 );
 has args    => ( is => 'ro', isa => HashRef,     required => 1 );
-has workers => ( is => 'ro', isa => PositiveInt, required => 1 );
+has workers => ( is => 'ro', isa => PositiveInt, required => 1 );    # -1 - CPU's num - x
 has std     => ( is => 'ro', isa => Bool,        default  => 0 );
 has console => ( is => 'ro', isa => Bool,        default  => 1 );
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
@@ -19,7 +19,14 @@ has _scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 sub BUILDARGS ( $self, $args ) {
     $args->{args} //= {};
 
-    $args->{workers} ||= P->sys->cpus_num;
+    if ( !$args->{workers} ) {
+        $args->{workers} = P->sys->cpus_num;
+    }
+    elsif ( $args->{workers} < 0 ) {
+        $args->{workers} = P->sys->cpus_num + $args->{workers};
+
+        $args->{workers} = 1 if $args->{workers} <= 0;
+    }
 
     return $args;
 }
@@ -121,7 +128,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 85                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 92                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
