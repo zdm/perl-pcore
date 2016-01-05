@@ -29,6 +29,8 @@ has _cv => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => un
 around new => sub ( $orig, $self, $args ) {
     $self = $self->$orig($args);
 
+    my $wantarray = defined wantarray;
+
     my $blocking;
 
     if ( $self->blocking ) {
@@ -44,26 +46,57 @@ around new => sub ( $orig, $self, $args ) {
         $self->{_cv}->begin;
     }
 
-    $self->_create( defined wantarray );
+    my $on_ready = AE::cv {
+        my $self = $self;
 
-    if ($blocking) {
-        $self->{_cv}->recv;
+        Win32::Process::Open( my $winproc, $self->pid, 0 ) or die if $MSWIN;
 
-        return;
-    }
-    else {
-        if ( defined wantarray ) {
-            return $self;
+        $self->on_ready->( $self, $self->pid ) if $self->on_ready;
+
+        P->scalar->weaken($self) if $wantarray;
+
+        my $on_exit = sub ($status) {
+            undef $self->{sigchild};
+
+            $self->{_cv}->end if $self->{_cv};
+
+            $self->{status} = $status;
+
+            $self->on_error->( $self, $status ) if $status and $self->on_error;
+
+            $self->on_exit->( $self, $status ) if $self->on_exit;
+
+            return;
+        };
+
+        if ($MSWIN) {
+            $self->{sigchild} = AE::timer 0, $self->mswin_alive_timout, sub {
+                $winproc->GetExitCode( my $status );
+
+                $on_exit->($status) if $status != Win32::Process::STILL_ACTIVE();
+
+                return;
+            };
         }
         else {
-            return;
+            $self->{sigchild} = AE::child $self->pid, sub ( $pid, $status ) {
+                $on_exit->( $status >> 8 );
+
+                return;
+            };
         }
-    }
+
+        return;
+    };
+
+    $self->_create( $on_ready, $self->cmd );
+
+    $self->{_cv}->recv if $blocking;
+
+    return $self;
 };
 
 sub DEMOLISH ( $self, $global ) {
-    say 'DESTROY: ' . ( $self->pid // 'undef' );
-
     if ($MSWIN) {
         Win32::Process::KillProcess( $self->pid, 0 ) if $self->pid;
     }
@@ -76,19 +109,7 @@ sub DEMOLISH ( $self, $global ) {
     return;
 }
 
-sub _create ( $self, $wantarray ) {
-    my $cv = AE::cv {
-        $self->_on_ready($wantarray);
-
-        return;
-    };
-
-    $self->_create_proc( $cv, $self->cmd );
-
-    return;
-}
-
-sub _create_proc ( $self, $on_ready, $args ) {
+sub _create ( $self, $on_ready, $args ) {
     my $cmd;
 
     if ($MSWIN) {
@@ -144,93 +165,44 @@ sub _create_proc ( $self, $on_ready, $args ) {
 
         P->scalar->weaken($self);
 
-        my $cv = AE::cv {
-            $on_ready->end;
-
-            return;
-        };
-
-        $cv->begin;
-        $cv->begin;
-        $cv->begin;
-
+        $on_ready->begin;
         Pcore::AE::Handle->new(
             fh         => $h->{in},
             on_connect => sub ( $h, @ ) {
                 $self->{stdin} = $h;
 
-                $cv->end;
+                $on_ready->end;
 
                 return;
             },
         );
 
+        $on_ready->begin;
         Pcore::AE::Handle->new(
             fh         => $h->{out},
             on_connect => sub ( $h, @ ) {
                 $self->{stdout} = $h;
 
-                $cv->end;
+                $on_ready->end;
 
                 return;
             },
         );
 
+        $on_ready->begin;
         Pcore::AE::Handle->new(
             fh         => $h->{err},
             on_connect => sub ( $h, @ ) {
                 $self->{stderr} = $h;
 
-                $cv->end;
+                $on_ready->end;
 
                 return;
             },
         );
     }
-    else {
-        $on_ready->end;
-    }
 
-    return;
-}
-
-sub _on_ready ( $self, $wantarray ) {
-    Win32::Process::Open( my $winproc, $self->pid, 0 ) or die if $MSWIN;
-
-    $self->on_ready->( $self, $self->pid ) if $self->on_ready;
-
-    P->scalar->weaken($self) if $wantarray;
-
-    my $on_exit = sub ($status) {
-        undef $self->{sigchild};
-
-        $self->{_cv}->end if $self->{_cv};
-
-        $self->{status} = $status;
-
-        $self->on_error->( $self, $status ) if $status and $self->on_error;
-
-        $self->on_exit->( $self, $status ) if $self->on_exit;
-
-        return;
-    };
-
-    if ($MSWIN) {
-        $self->{sigchild} = AE::timer 0, $self->mswin_alive_timout, sub {
-            $winproc->GetExitCode( my $status );
-
-            $on_exit->($status) if $status != Win32::Process::STILL_ACTIVE();
-
-            return;
-        };
-    }
-    else {
-        $self->{sigchild} = AE::child $self->pid, sub ( $pid, $status ) {
-            $on_exit->( $status >> 8 );
-
-            return;
-        };
-    }
+    $on_ready->end;
 
     return;
 }
