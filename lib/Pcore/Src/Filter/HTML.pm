@@ -14,19 +14,18 @@ sub decompress ($self) {
 
     my $html_beautify_args = $self->dist_cfg->{HTML_BEAUTIFY} || $self->src_cfg->{HTML_BEAUTIFY};
 
-    if ($MSWIN) {
-        my $temp = P->file->tempfile;
+    my $temp = P->file->tempfile;
 
-        syswrite $temp, $self->buffer->$* or die;
+    syswrite $temp, $self->buffer->$* or die;
 
-        state $init = !!require Win32::Process;
+    P->pm->run(
+        cmd      => [ qw[html-beautify], $html_beautify_args, '--replace', qq["$temp"] ],
+        std      => 0,
+        console  => 1,
+        blocking => 1,
+    );
 
-        Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/D /C html-beautify $html_beautify_args --replace "$temp"], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
-
-        $process_obj->Wait( Win32::Process::INFINITE() );
-
-        $self->buffer->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-    }
+    $self->buffer->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }

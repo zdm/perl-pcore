@@ -6,12 +6,13 @@ use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
 use if $MSWIN, 'Win32::Process::Info';
 
-has cmd => ( is => 'ro', isa => ArrayRef, required => 1 );
-has std => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
+has cmd     => ( is => 'ro', isa => ArrayRef, required => 1 );
+has std     => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
+has console => ( is => 'ro', isa => Bool,     default  => 1 );
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 1 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );       # ($self, $pid), called, when process created, pid captured and handles are ready
-has on_error => ( is => 'ro', isa => Maybe [CodeRef] );       # ($self, $status), called, when exited with !0 status
-has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );       # ($self, $status), called on process exit
+has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $pid), called, when process created, pid captured and handles are ready
+has on_error => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $status), called, when exited with !0 status
+has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $status), called on process exit
 
 has mswin_alive_timout => ( is => 'ro', isa => Num, default => 0.5 );
 
@@ -51,7 +52,7 @@ sub BUILD ( $self, $args ) {
     }
 
     my $on_ready = AE::cv {
-        Win32::Process::Open( my $winproc, $self->pid, 0 ) or die if $MSWIN;
+        Win32::Process::Open( my $winproc, $self->pid, 0 ) or die q[Can't get process by PID] if $MSWIN;
 
         $self->on_ready->( $self, $self->pid ) if $self->on_ready;
 
@@ -142,7 +143,7 @@ sub _create ( $self, $on_ready, $args ) {
             my $process,
             $cmd->@*,
             1,                     # inherit STD* handles
-            0,                     # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
+            ( $self->console ? 0 : Win32::Process::CREATE_NO_WINDOW() ),    # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
             q[.]
         ) || die $!;
 

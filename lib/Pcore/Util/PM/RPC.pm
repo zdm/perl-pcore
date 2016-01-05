@@ -8,6 +8,7 @@ has class   => ( is => 'ro', isa => Str,         required => 1 );
 has args    => ( is => 'ro', isa => HashRef,     required => 1 );
 has workers => ( is => 'ro', isa => PositiveInt, required => 1 );
 has std     => ( is => 'ro', isa => Bool,        default  => 0 );
+has console => ( is => 'ro', isa => Bool,        default  => 1 );
 has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _workers => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
@@ -37,6 +38,7 @@ sub BUILD ( $self, $args ) {
 
         push $self->_workers->@*, Pcore::Util::PM::RPC::Proc->new(
             {   std       => $self->std,
+                console   => $self->console,
                 blocking  => 0,
                 class     => $self->class,
                 args      => $self->args,
@@ -119,7 +121,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 85                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

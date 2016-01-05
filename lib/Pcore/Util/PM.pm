@@ -77,6 +77,7 @@ sub run (@) {
     my %args = (
         cmd      => undef,
         std      => 0,
+        console  => 1,
         blocking => 1,
         on_ready => undef,
         on_error => undef,
@@ -94,6 +95,7 @@ sub run_rpc ( $class, @ ) {
         args     => {},
         workers  => 0,
         std      => 0,
+        console  => 1,
         on_ready => undef,
         splice( @_, 1 ),
         class => $class,
