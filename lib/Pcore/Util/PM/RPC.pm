@@ -109,7 +109,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 
     my $cbor = P->data->to_cbor( [ $call_id, $method, $data ] );
 
-    $worker->out->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+    $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
     return;
 }

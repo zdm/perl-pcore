@@ -34,7 +34,7 @@ else {
 # create handles
 my $cv = AE::cv;
 
-my ( $in, $out );
+my ( $in, $out );                                            # in - read, out - write
 
 $cv->begin;
 
