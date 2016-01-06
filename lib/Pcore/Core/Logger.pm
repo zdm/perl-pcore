@@ -7,6 +7,20 @@ has channel => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg =
 
 our $PIPE = {};    # weak refs, pipes are global
 
+# add default log channels
+# register CORE#DAEMONIZE event - disable console log
+# sub CORE_INIT {
+#
+#     # set default log pipes
+#     for my $pipe ( $ENV->pcore->cfg->{log} ? $ENV->pcore->cfg->{log}->@* : (), $ENV->{CFG}->{log} ? $ENV->{CFG}->{log}->@* : () ) {
+#         __PACKAGE__->set_log( $pipe->%* );
+#     }
+#
+#     P->EV->register( 'CORE#DAEMONIZE' => \&core_daemonize_event, disposable => 1 );
+#
+#     return;
+# }
+
 sub add_channel ( $self, $name, @pipe ) {
     my $ch;
 
@@ -69,7 +83,7 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 56                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

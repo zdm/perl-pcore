@@ -27,6 +27,8 @@ sub add_pipe ( $self, $pipe ) {
 }
 
 sub sendlog ( $self, $logger, $data, @ ) {
+    return if !defined $data;
+
     my @caller = caller 1;
 
     # collect tags
@@ -90,11 +92,11 @@ sub sendlog ( $self, $logger, $data, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 40, 52               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 42, 54               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 71                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 73                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 73                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 75                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 7                    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
