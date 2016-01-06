@@ -141,7 +141,7 @@ sub propagate ($msg) {
     return Pcore::Core::Exception::Object->new( $msg, level => 'ERROR', skip_frames => 1, trace => 1, propagated => 1 )->propagate;
 }
 
-# TRY
+# TRY / CATCH
 sub try ( $try, $catch = undef ) : prototype(&@) {
     my $wantarray = wantarray;
 
