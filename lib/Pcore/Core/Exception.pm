@@ -142,35 +142,17 @@ sub propagate ($msg) {
 }
 
 # TRY
-sub try ( $try, @code_refs ) : prototype(&@) {
+sub try ( $try, $catch = undef ) : prototype(&@) {
     my $wantarray = wantarray;
-
-    my $catch;
-
-    for my $code_ref (@code_refs) {
-        my $ref = ref $code_ref;
-
-        if ( $ref eq 'Pcore::Core::Exception::_Catch' ) {
-            die 'Invalid usage, only one catch block allowed' if $catch;
-
-            $catch = $code_ref->$*;
-        }
-        else {
-            die "Unknown code ref type given '$ref'. Check your usage & try again";
-        }
-    }
-
-    P->class->set_subname( '::try' => $try );
-
-    P->class->set_subname( '::catch' => $catch ) if $catch;
-
-    # eval
-    my $prev_error = $@;
 
     my @res;
 
+    my $prev_error = $@;
+
     my $failed = not eval {
-        local $SIG{__DIE__} = \&SIGDIE;
+
+        # we should create exception object manually, because __DIE__ will not work if try/catch will called from __DIE__ handler
+        local $SIG{__DIE__} = undef;
 
         # make previous $@ accesible inside eval, eval clean $@ before start
         $@ = $prev_error;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -188,10 +170,10 @@ sub try ( $try, @code_refs ) : prototype(&@) {
         return 1;
     };
 
-    my $e = $@;
-
     # error handling
     if ($failed) {
+        my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 2, trace => 1 );
+
         if ($catch) {
             if ($wantarray) {
                 @res = $catch->($e);
@@ -217,7 +199,7 @@ sub try ( $try, @code_refs ) : prototype(&@) {
 }
 
 sub catch ($code) : prototype(&) {
-    return bless( \$code, 'Pcore::Core::Exception::_Catch' );
+    return $code;
 }
 
 1;
@@ -230,8 +212,6 @@ sub catch ($code) : prototype(&) {
 ## │    3 │ 57, 68, 83           │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 59, 70               │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 220                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
