@@ -20,8 +20,8 @@ sub _build__def_tag ($self) {
     };
 }
 
-sub addpipe ( $self, $pipe ) {
-    $self->pipe->{ $pipe->id } = $pipe;
+sub add_pipe ( $self, $pipe ) {
+    $self->pipe->{ $pipe->id } = $pipe if !$self->pipe->{ $pipe->id };
 
     return;
 }
@@ -46,9 +46,10 @@ sub sendlog ( $self, $logger, $data, @ ) {
 
     my $data_cache = {};
 
-    for my $pipe ( sort { $a->priority <=> $b->priority } values $self->{pipe}->%* ) {
-        my $err = $@;
+    # dump ref
+    $data = dump $data if ref $data;
 
+    for my $pipe ( sort { $a->priority <=> $b->priority } values $self->{pipe}->%* ) {
         my $data_type = $pipe->data_type;
 
         if ( !exists $self->{_header_tmpl}->{$data_type} ) {
@@ -65,18 +66,18 @@ sub sendlog ( $self, $logger, $data, @ ) {
         # prepare and cache data
         $data_cache->{$data_type} = $pipe->prepare_data($data) if !exists $data_cache->{$data_type};
 
-        eval {
-            # TODO
+        # TODO
+        {
             local $@;
 
-            local $SIG{__DIE__} = sub { };
+            eval {
+                local $SIG{__DIE__} = sub { };
 
-            local $SIG{__WARN__} = sub { };
+                local $SIG{__WARN__} = sub { };
 
-            $pipe->sendlog( $header_cache->{$data_type}->$*, $data_cache->{$data_type}, $tag );
-        };
-
-        $@ = $err;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+                $pipe->sendlog( $header_cache->{$data_type}->$*, $data_cache->{$data_type}, $tag );
+            };
+        }
     }
 
     return;
@@ -89,11 +90,11 @@ sub sendlog ( $self, $logger, $data, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 40, 49               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 40, 52               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 68                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 71                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 70                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 73                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 7                    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

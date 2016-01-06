@@ -34,7 +34,7 @@ sub add_channel ( $self, $name, @pipe ) {
                 P->scalar->weaken( $PIPE->{ $pipe->id } );
             }
 
-            $ch->addpipe($pipe);
+            $ch->add_pipe($pipe);
         }
     }
 

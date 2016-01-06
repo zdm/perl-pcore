@@ -13,7 +13,7 @@ sub _build_is_text_ansi ($self) {
 }
 
 sub sendlog ( $self, $header, $data, $tag ) {
-    say {$STDERR_UTF8} $header . q[ ] . $data . $LF;
+    say {$STDERR_UTF8} $header . q[ ] . $data;
 
     return;
 }

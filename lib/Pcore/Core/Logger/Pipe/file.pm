@@ -49,7 +49,7 @@ sub sendlog ( $self, $header, $data, $tag ) {
 
     flock $h, LOCK_EX or die;
 
-    say {$h} $header, q[ ], $data, $LF;
+    say {$h} $header, q[ ], $data;
 
     flock $h, LOCK_UN or die;
 
