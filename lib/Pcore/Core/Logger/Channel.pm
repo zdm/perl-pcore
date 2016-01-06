@@ -4,7 +4,7 @@ use Pcore -class;
 use Term::ANSIColor qw[:constants];
 
 has name   => ( is => 'ro', isa => Str, required => 1 );
-has header => ( is => 'ro', isa => Str, default  => BOLD GREEN . '[<: $date.strftime("%H:%M:%S.%6N") :>]' . BOLD CYAN . '[<: $pid :>]' . BOLD YELLOW . '[<: $ns :>]' . BOLD RED . '[<: $channel :>]' . RESET );
+has header => ( is => 'ro', isa => Str, default  => BOLD GREEN . '[<: $date.strftime("%H:%M:%S.%6N") :>]' . BOLD CYAN . '[<: $pid :>]' . BOLD YELLOW . '[<: $package :>]' . BOLD RED . '[<: $channel :>]' . RESET );
 
 has pipe => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
@@ -33,7 +33,6 @@ sub sendlog ( $self, $logger, $data, @ ) {
 
     # collect tags
     my $tag = {
-        ns         => $caller[0],
         package    => $caller[0],
         filename   => $caller[1],
         line       => $caller[2],
@@ -68,18 +67,7 @@ sub sendlog ( $self, $logger, $data, @ ) {
         # prepare and cache data
         $data_cache->{$data_type} = $pipe->prepare_data($data) if !exists $data_cache->{$data_type};
 
-        # TODO
-        {
-            local $@;
-
-            eval {
-                local $SIG{__DIE__} = sub { };
-
-                local $SIG{__WARN__} = sub { };
-
-                $pipe->sendlog( $header_cache->{$data_type}->$*, $data_cache->{$data_type}, $tag );
-            };
-        }
+        $pipe->sendlog( $header_cache->{$data_type}->$*, $data_cache->{$data_type}, $tag );
     }
 
     return;
@@ -92,11 +80,7 @@ sub sendlog ( $self, $logger, $data, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42, 54               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 73                   │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 75                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 41, 53               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 7                    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

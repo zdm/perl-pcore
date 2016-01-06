@@ -23,15 +23,14 @@ has exit_code => ( is => 'lazy', isa => Int );
 has level => ( is => 'ro', isa => Enum [qw[ERROR WARN]], required => 1 );
 has trace      => ( is => 'ro', isa => Bool,     default  => 1 );
 has call_stack => ( is => 'ro', isa => ArrayRef, required => 1 );
+has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame'], required => 1 );
 
 has propagated => ( is => 'ro', isa => Bool, default => 0 );
-has ns => ( is => 'lazy', isa => Str );
 
-has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame'], init_arg => undef );
 has longmess  => ( is => 'lazy', isa => Str, init_arg => undef );
 has to_string => ( is => 'lazy', isa => Str, init_arg => undef );
 
-has _logged         => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has logged          => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 has _stop_propagate => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $msg, %args ) {
@@ -75,6 +74,8 @@ around new => sub ( $orig, $self, $msg, %args ) {
         )->frames
     ];
 
+    $args{caller_frame} = $args{call_stack}->[0];
+
     # stringify $msg
     return $self->$orig( { %args, msg => "$msg" } );         ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 };
@@ -91,14 +92,6 @@ sub _build_exit_code ($self) {
     return 255;    # last resort
 }
 
-sub _build_caller_frame ($self) {
-    return $self->call_stack->[0];
-}
-
-sub _build_ns ($self) {
-    return $self->caller_frame->package;
-}
-
 sub _build_longmess ($self) {
     return $self->msg . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->call_stack->@*;
 }
@@ -108,16 +101,9 @@ sub _build_to_string ($self) {
 }
 
 sub sendlog ( $self, @ ) {
-    local $@;
-
-    # eval {
-    #     local $SIG{__DIE__}  = sub { };
-    #     local $SIG{__WARN__} = sub { };
-
     my %args = (
         force      => 0,                                 # force logging if already logged
         channel    => $self->level,
-        ns         => $self->ns,
         package    => $self->caller_frame->package,
         filename   => $self->caller_frame->filename,
         line       => $self->caller_frame->line,
@@ -125,15 +111,13 @@ sub sendlog ( $self, @ ) {
         splice @_, 1,
     );
 
-    return 0 if $self->{_logged} && !delete $args{force};    # prevent doble logging same exception
+    return 0 if $self->{logged} && !delete $args{force};    # prevent logging same exception twice
 
-    $self->{_logged} = 1;
+    $self->{logged} = 1;
 
     my $channel = lc delete $args{channel};
 
     P->log->$channel( $self->to_string, %args );
-
-    # };
 
     return;
 }
@@ -154,10 +138,14 @@ sub is_propagated ( $self, @propagate ) {
 
 sub propagate ($self) {
     if ( $self->level eq 'ERROR' ) {
-        return die $self;
+        CORE::die $self;
+
+        return;
     }
     else {
-        return warn $self;
+        CORE::warn $self;
+
+        return;
     }
 }
 
@@ -168,16 +156,6 @@ sub stop_propagate ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111                  │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

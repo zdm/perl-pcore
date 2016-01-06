@@ -71,12 +71,18 @@ around new => sub ( $orig, $self, $uri, @ ) {
     };
 
     if ( !exists $scheme_cache->{$scheme} ) {
-        try {
+
+        # local $@; - ???
+
+        eval {                 #
             $scheme_cache->{$scheme} = P->class->load( $scheme, ns => 'Pcore::Util::URI' );
-        }
-        catch {
-            $scheme_cache->{$scheme} = undef;
         };
+
+        # TODO
+        # catch {
+        $scheme_cache->{$scheme} = undef if $@;
+
+        # };
     }
 
     $self = $scheme_cache->{$scheme} if $scheme_cache->{$scheme};
@@ -338,10 +344,12 @@ sub to_psgi ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 108, 111, 118, 128,  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
-## │      │ 139, 144, 147        │                                                                                                                │
+## │    3 │ 77                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 92                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    3 │ 114, 117, 124, 134,  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │      │ 145, 150, 153        │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 98                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

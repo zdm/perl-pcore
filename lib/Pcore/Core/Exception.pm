@@ -20,10 +20,6 @@ sub CORE_INIT {
 
     $SIG{__WARN__} = \&SIGWARN;  ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    # *CORE::GLOBAL::die = \&GLOBAL_DIE;
-
-    # *CORE::GLOBAL::warn = \&GLOBAL_WARN;
-
     # we don't need stacktrace from Error::TypeTiny exceptions
     $Error::TypeTiny::StackTrace = 0;
 
@@ -53,34 +49,28 @@ sub SIGTERM {
 }
 
 # SIGNALS
-# http://perldoc.perl.org/perlvar.html#%25SIG
-# The routine indicated by $SIG{__DIE__} is called when a fatal exception is about to be thrown. The error message is passed as the first argument. When a __DIE__ hook routine returns, the exception processing continues as it would have in the absence of the hook, unless the hook routine itself exits via a goto &sub , a loop exit, or a die(). The __DIE__ handler is explicitly disabled during the call, so that you can die from a __DIE__ handler. Similarly for __WARN__.
-# die in BEGIN generates parsing error, no matter in eval or not;
-# compile-time errors / warnings belongs to namespace, from which compilation was requested;
 sub SIGDIE {
     my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, trace => 1 );
 
-    CORE::die $_[0] unless defined $e;    # fallback to standart behavior if exception wasn't created for some reasons
-
-    if ( !defined $^S || $^S ) {          # ERROR, catched in eval
-        eval {
+    if ( !defined $^S || $^S ) {    # ERROR, !defined $^S - parsing module, eval, or main program, true - executing an eval
+        {
             local $@;
-            local $SIG{__DIE__}  = sub { };
-            local $SIG{__WARN__} = sub { };
 
-            $e->sendlog( channel => 'error' ) unless $IGNORE_ERRORS;
-        };
+            eval {                  #
+                $e->sendlog( channel => 'error' ) unless $IGNORE_ERRORS;
+            };
+        }
 
-        return CORE::die $e;              # terminate standart die behavior
+        return CORE::die $e;        # set $@ = $e
     }
-    else {                                # FATAL
-        eval {
+    else {                          # FATAL
+        {
             local $@;
-            local $SIG{__DIE__}  = sub { };
-            local $SIG{__WARN__} = sub { };
 
-            $e->sendlog( channel => 'fatal', force => 1 );
-        };
+            eval {                  #
+                $e->sendlog( channel => 'fatal', force => 1 );
+            };
+        }
 
         exit $e->exit_code;
     }
@@ -89,79 +79,13 @@ sub SIGDIE {
 sub SIGWARN {
     my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'WARN', skip_frames => 1, trace => 1 );
 
-    # fallback to standart behavior if exception wasn't created for some reasons
-    unless ( defined $e ) {
-        CORE::warn $_[0];
-
-        return;
-    }
-
-    eval {
+    {
         local $@;
-        local $SIG{__DIE__}  = sub { };
-        local $SIG{__WARN__} = sub { };
 
         $e->sendlog( channel => 'warn' );
-    };
-
-    return;    # terminate standart warn behavior
-}
-
-# HOOKS
-sub GLOBAL_DIE {
-    my $msg;
-
-    if (@_) {
-        if ( @_ > 1 ) {
-            $msg = join q[], @_;
-        }
-        else {
-            $msg = $_[0];
-        }
-    }
-    elsif ($@) {
-        $msg = $@ . ' ...propagated';
-    }
-    else {
-        $msg = 'Died';
     }
 
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => 'ERROR', skip_frames => 1, trace => 1 );
-
-    if ( defined $e ) {
-        return CORE::die $e;
-    }
-    else {
-        return CORE::die $msg;
-    }
-}
-
-sub GLOBAL_WARN {
-    my $msg;
-
-    if (@_) {
-        if ( @_ > 1 ) {
-            $msg = join q[], @_;
-        }
-        else {
-            $msg = $_[0];
-        }
-    }
-    elsif ($@) {
-        $msg = $@ . ' ...caught';
-    }
-    else {
-        $msg = q[Warning: something's wrong];
-    }
-
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => 'WARN', skip_frames => 1, trace => 1 );
-
-    if ( defined $e ) {
-        return CORE::warn $e;
-    }
-    else {
-        return CORE::warn $msg;
-    }
+    return;    # skip standard warn behaviour
 }
 
 # die without trace
@@ -185,12 +109,7 @@ sub croak {
 
     my $e = Pcore::Core::Exception::Object->new( $msg, level => 'ERROR', skip_frames => 1, trace => 0 );
 
-    if ( defined $e ) {
-        return CORE::die $e;
-    }
-    else {
-        return CORE::die $msg;
-    }
+    return CORE::die $e;
 }
 
 # warn without trace
@@ -214,12 +133,7 @@ sub cluck {
 
     my $e = Pcore::Core::Exception::Object->new( $msg, level => 'WARN', skip_frames => 1, trace => 0 );
 
-    if ( defined $e ) {
-        return CORE::warn $e;
-    }
-    else {
-        return CORE::warn $msg;
-    }
+    return CORE::warn $e;
 }
 
 # create and throw new propagated exception
@@ -313,11 +227,11 @@ sub catch ($code) : prototype(&) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 66, 77, 99           │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 57, 68, 83           │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 67, 78, 100          │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 59, 70               │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 306                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 220                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
