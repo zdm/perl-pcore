@@ -1,6 +1,6 @@
 package Pcore::Core::Exception::Object;
 
-use Pcore -class, -const, -export => { CONST => [qw[$FATAL $ERROR $WARN]] };
+use Pcore -class;
 use Devel::StackTrace qw[];
 use Pcore::Util::Scalar qw[blessed];
 
@@ -18,13 +18,9 @@ use overload    #
   },
   fallback => undef;
 
-const our $FATAL => 'FATAL';
-const our $ERROR => 'ERROR';
-const our $WARN  => 'WARN';
-
 has msg => ( is => 'ro', isa => Str, required => 1 );
 has exit_code => ( is => 'lazy', isa => Int );
-has level => ( is => 'ro', isa => Enum [ $ERROR, $WARN ], required => 1 );
+has level => ( is => 'ro', isa => Enum [qw[ERROR WARN]], required => 1 );
 has trace      => ( is => 'ro', isa => Bool,     default  => 1 );
 has call_stack => ( is => 'ro', isa => ArrayRef, required => 1 );
 
@@ -35,8 +31,8 @@ has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame
 has longmess  => ( is => 'lazy', isa => Str, init_arg => undef );
 has to_string => ( is => 'lazy', isa => Str, init_arg => undef );
 
-has _logged         => ( is => 'rw', isa => Bool, default => 0, init_arg => undef );
-has _stop_propagate => ( is => 'rw', isa => Bool, default => 0, init_arg => undef );
+has _logged         => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has _stop_propagate => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $msg, %args ) {
     $args{skip_frames} //= 0;
@@ -111,35 +107,33 @@ sub _build_to_string ($self) {
     return $self->trace ? $self->longmess : $self->msg;
 }
 
-sub send_log ( $self, @ ) {
-    eval {
-        local $@;
-        local $SIG{__DIE__}  = sub { };
-        local $SIG{__WARN__} = sub { };
+sub sendlog ( $self, @ ) {
+    local $@;
 
-        my %args = (
-            force  => 0,              # force logging if already logged
-            level  => $self->level,
-            ns     => $self->ns,
-            header => undef,
-            tags   => {},
-            splice @_, 1,
-        );
+    # eval {
+    #     local $SIG{__DIE__}  = sub { };
+    #     local $SIG{__WARN__} = sub { };
 
-        return 0 if $self->_logged && !$args{force};    # prevent doble logging same exception
+    my %args = (
+        force      => 0,                                 # force logging if already logged
+        channel    => $self->level,
+        ns         => $self->ns,
+        package    => $self->caller_frame->package,
+        filename   => $self->caller_frame->filename,
+        line       => $self->caller_frame->line,
+        subroutine => $self->caller_frame->subroutine,
+        splice @_, 1,
+    );
 
-        $self->_logged(1);
+    return 0 if $self->{_logged} && !delete $args{force};    # prevent doble logging same exception
 
-        $args{tags} = {
-            package    => $self->caller_frame->package,
-            filename   => $self->caller_frame->filename,
-            line       => $self->caller_frame->line,
-            subroutine => $self->caller_frame->subroutine,
-            $args{tags}->%*,
-        };
+    $self->{_logged} = 1;
 
-        Pcore::Core::Log::send_log( [ $self->to_string ], level => $args{level}, ns => $args{ns}, header => $args{header}, tags => $args{tags} );
-    };
+    my $channel = lc delete $args{channel};
+
+    P->log->$channel( $self->to_string, %args );
+
+    # };
 
     return;
 }
@@ -159,7 +153,7 @@ sub is_propagated ( $self, @propagate ) {
 }
 
 sub propagate ($self) {
-    if ( $self->level eq $ERROR ) {
+    if ( $self->level eq 'ERROR' ) {
         return die $self;
     }
     else {
@@ -168,7 +162,9 @@ sub propagate ($self) {
 }
 
 sub stop_propagate ($self) {
-    return $self->_stop_propagate(1);
+    $self->{_stop_propagate} = 1;
+
+    return 1;
 }
 
 1;
@@ -178,11 +174,7 @@ sub stop_propagate ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 115                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 116                  │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 138                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 111                  │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

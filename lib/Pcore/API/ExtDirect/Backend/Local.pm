@@ -222,7 +222,7 @@ sub get_api_obj {
         catch {
             my $e = shift;
 
-            $e->send_log;
+            $e->sendlog;
 
             return;
         };

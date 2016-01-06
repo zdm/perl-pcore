@@ -242,7 +242,7 @@ sub run {
         my $e = shift;
 
         if ( !$e->propagated ) {    # unexpected run-time error
-            $e->send_log;
+            $e->sendlog;
 
             my %args;
 

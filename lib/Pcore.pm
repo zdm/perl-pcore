@@ -177,7 +177,6 @@ sub import {
     Pcore::Core::Dump->import( -caller => $caller, $tags->@* );
     Pcore::Core::Exception->import( -caller => $caller, $tags->@* );
     Pcore::Core::H->import( -caller => $caller, $tags->@* );
-    Pcore::Core::Log->import( -caller => $caller, $tags->@* );
     Pcore::Core::I18N->import( -caller => $caller, $tags->@* );
 
     if ( !$pragma->{config} ) {
@@ -381,7 +380,6 @@ use Pcore::Core::Bootstrap qw[];
 use Pcore::Core::Dump qw[:CORE];
 use Pcore::Core::Exception qw[];
 use Pcore::Core::H qw[];
-use Pcore::Core::Log qw[:CORE];
 
 # TODO load I18N on demand
 use Pcore::Core::I18N qw[:CORE];
@@ -460,7 +458,6 @@ sub _CORE_INIT ($proc_cfg) {
     $STDOUT_UTF8->autoflush(1);
     $STDERR_UTF8->autoflush(1);
 
-    Pcore::Core::Log::CORE_INIT();                                  # set default log pipes
     Pcore::Core::Exception::CORE_INIT();                            # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
     Pcore::Core::I18N::CORE_INIT();                                 # configure default I18N locations
 
@@ -561,6 +558,23 @@ sub cv {
     return $cv;
 }
 
+sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    state $log = do {
+        require Pcore::Core::Logger;
+
+        my $obj = Pcore::Core::Logger->new;
+
+        # set default log pipes
+        for my $ch ( $ENV->pcore->cfg->{log} ? $ENV->pcore->cfg->{log}->@* : (), $ENV->{CFG}->{log} ? $ENV->{CFG}->{log}->@* : () ) {
+            $obj->add_channel( $ch->@* );
+        }
+
+        $obj;
+    };
+
+    return $log;
+}
+
 # TODO add PerlIO::removeEsc layer
 sub _config_stdout ($h) {
     if ($MSWIN) {
@@ -598,23 +612,23 @@ sub _config_stdout ($h) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 134                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 189                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 188                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 314                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 352                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 364                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 470                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 313                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 351                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 363                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 467                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 406, 435, 438, 442,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 491, 508, 570, 573,  │                                                                                                                │
-## │      │ 578, 581             │                                                                                                                │
+## │    3 │ 404, 433, 436, 440,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 488, 505, 584, 587,  │                                                                                                                │
+## │      │ 592, 595             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 123                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 127                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 410                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 408                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -127,7 +127,7 @@ sub _start_request ( $self, $req ) {
         if ( $self->status ne 'finished' && $action eq $REQ_DONE ) {
             eval { $self->put_request->( $self, $req ) };
 
-            $@->send_log if $@;
+            $@->sendlog if $@;
         }
 
         # decrement running threads counter
@@ -165,7 +165,7 @@ sub _start_request ( $self, $req ) {
 
                     eval { $req->process_response( $res, $responder ); };
 
-                    $@->send_log if $@;
+                    $@->sendlog if $@;
                 }
 
                 return;
