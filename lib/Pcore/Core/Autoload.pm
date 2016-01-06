@@ -3,14 +3,14 @@ package Pcore::Core::Autoload;
 use Pcore -export, { DEFAULT => ['AUTOLOAD'] };
 
 sub AUTOLOAD ( $self, @ ) {    ## no critic qw[ClassHierarchies::ProhibitAutoloading]
-    die qq["autoload" method is required in "$self" by "-autoload" pragma] unless $self->can('autoload');
+    die qq["_AUTOLOAD" method is required in "$self" by "-autoload" pragma] unless $self->can('_AUTOLOAD');
 
     my $method = our $AUTOLOAD =~ s/\A.*:://smr;
 
     my $class = ref $self || $self;
 
     # request CODEREF
-    my $code = $self->autoload( $method, @_ );
+    my $code = $self->_AUTOLOAD( $method, @_ );
 
     # install returned coderef as method
     no strict qw[refs];

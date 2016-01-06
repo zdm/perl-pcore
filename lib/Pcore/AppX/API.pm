@@ -75,7 +75,7 @@ sub app_reset ($self) {
 # TODO
 # API backend signout
 # return unless defined $self->{_backend};    # _backend can be destroyed first during global destruction
-sub autoload ( $self, $method, @ ) {
+sub _AUTOLOAD ( $self, $method, @ ) {
     return <<"PERL";
         sub {
             my \$self = shift;
@@ -92,8 +92,9 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 51                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_create_local_cfg' declared but not │
-## │      │                      │ used                                                                                                           │
+## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
+## │      │ 51                   │ * Private subroutine/method '_create_local_cfg' declared but not used                                          │
+## │      │ 78                   │ * Private subroutine/method '_AUTOLOAD' declared but not used                                                  │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

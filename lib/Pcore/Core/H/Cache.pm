@@ -63,7 +63,7 @@ sub _get ( $self, $id ) {
     }
 }
 
-sub autoload ( $self, $method, @ ) {
+sub _AUTOLOAD ( $self, $method, @ ) {
     die qq[Handle "$method" not exists in cache] unless $self->_h_cache->{$method};
 
     return <<"PERL";
@@ -119,6 +119,16 @@ sub remove ( $self, $id ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 66                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

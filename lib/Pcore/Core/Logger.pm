@@ -48,7 +48,7 @@ sub add_channel ( $self, $name, @pipe ) {
     return $ch;
 }
 
-sub autoload ( $self, $method, @ ) {
+sub _AUTOLOAD ( $self, $method, @ ) {
     my $sub = <<"PERL";
         sub ( \$self, \$data, @ ) {
             return if !\$self->{channel}->{q[$method]};
@@ -70,6 +70,8 @@ PERL
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 51                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
