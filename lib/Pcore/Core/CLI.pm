@@ -291,7 +291,7 @@ sub _parse_opt ( $self, $argv ) {
     {
         no warnings qw[redefine];
 
-        local *CORE::GLOBAL::warn = sub {
+        local $SIG{__WARN__} = sub {
             push $res->{error}->@*, join q[], @_;
 
             $res->{error}->[-1] =~ s/\n\z//sm;
