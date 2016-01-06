@@ -4,7 +4,7 @@ Pcore - perl applications development environment
 
 # SYNOPSIS
 
-    use Pcore qw[-<pragma> <import>], {config};
+    use Pcore -<pragma> qw[<import>], {config};
 
 # DESCRIPTION
 
