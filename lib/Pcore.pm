@@ -163,10 +163,13 @@ sub import {
     Const::Fast->import::into( $caller, 'const' ) if $pragma->{const};
 
     # export P sub to avoid indirect calls
+    # export i18n
     {
         no strict qw[refs];
 
         *{"$caller\::P"} = $Pcore::P;
+
+        *{"$caller\::i18n"} = \&i18n;
 
         # flush the cache exactly once if we make any direct symbol table changes
         mro::method_changed_in($caller);
@@ -177,7 +180,6 @@ sub import {
     Pcore::Core::Dump->import( -caller => $caller, $tags->@* );
     Pcore::Core::Exception->import( -caller => $caller, $tags->@* );
     Pcore::Core::H->import( -caller => $caller, $tags->@* );
-    Pcore::Core::I18N->import( -caller => $caller, $tags->@* );
 
     if ( !$pragma->{config} ) {
 
@@ -381,9 +383,6 @@ use Pcore::Core::Dump qw[:CORE];
 use Pcore::Core::Exception qw[];
 use Pcore::Core::H qw[];
 
-# TODO load I18N on demand
-use Pcore::Core::I18N qw[:CORE];
-
 sub _CORE_INIT ($proc_cfg) {
 
     # set default fallback mode for all further :encoding I/O layers
@@ -459,7 +458,6 @@ sub _CORE_INIT ($proc_cfg) {
     $STDERR_UTF8->autoflush(1);
 
     Pcore::Core::Exception::CORE_INIT();                            # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
-    Pcore::Core::I18N::CORE_INIT();                                 # configure default I18N locations
 
     return;
 }
@@ -552,12 +550,14 @@ PERL
     goto &{$util};
 }
 
+# AE::cv
 sub cv {
     state $cv = AE::cv;
 
     return $cv;
 }
 
+# LOGGER
 sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     state $log = do {
         require Pcore::Core::Logger;
@@ -575,10 +575,23 @@ sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return $log;
 }
 
+# I18N
+sub i18n {
+    state $init = do {
+        require Pcore::Core::I18N;
+
+        Pcore::Core::I18N::CORE_INIT();    # configure default I18N locations
+
+        1;
+    };
+
+    return &Pcore::Core::I18N::i18n;       ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+}
+
 # TODO add PerlIO::removeEsc layer
 sub _config_stdout ($h) {
     if ($MSWIN) {
-        if ( -t $h ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
+        if ( -t $h ) {                     ## no critic qw[InputOutput::ProhibitInteractiveTest]
             state $init = !!require Pcore::Core::PerlIOviaWinUniCon;
 
             binmode $h, ':raw:via(Pcore::Core::PerlIOviaWinUniCon)' or die;    # terminal
@@ -612,23 +625,23 @@ sub _config_stdout ($h) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 134                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 188                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 190                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 313                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 351                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 363                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 467                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 315                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 353                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 365                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 465                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 404, 433, 436, 440,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 488, 505, 584, 587,  │                                                                                                                │
-## │      │ 592, 595             │                                                                                                                │
+## │    3 │ 403, 432, 435, 439,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 486, 503, 597, 600,  │                                                                                                                │
+## │      │ 605, 608             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 123                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 127                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 408                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
