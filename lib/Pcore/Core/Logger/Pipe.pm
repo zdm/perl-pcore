@@ -12,14 +12,6 @@ has is_text_ansi => ( is => 'lazy', isa => Bool,        init_arg => undef );
 has is_binary    => ( is => 'lazy', isa => Bool,        init_arg => undef );
 has data_type    => ( is => 'lazy', isa => Str,         init_arg => undef );
 
-sub BUILDARGS ( $self, $uri ) {
-    my $args = {    #
-        uri => $uri,
-    };
-
-    return $args;
-}
-
 sub _build_id ($self) {
     return $self->uri->to_string;
 }

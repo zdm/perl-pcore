@@ -21,21 +21,28 @@ sub add_channel ( $self, $name, @pipe ) {
         P->scalar->weaken( $self->channel->{$name} ) if defined wantarray;
     }
 
-    for my $pipe (@pipe) {
-        my $uri = P->uri($pipe);
+    for (@pipe) {
+        my $uri = P->uri($_);
 
-        my $obj = P->class->load( $uri->scheme, ns => 'Pcore::Core::Logger::Pipe' )->new($uri);
+        if ( my $pipe = P->class->load( $uri->scheme, ns => 'Pcore::Core::Logger::Pipe' )->new( { uri => $uri } ) ) {
+            if ( $PIPE->{ $pipe->id } ) {
+                $pipe = $PIPE->{ $pipe->id };
+            }
+            else {
+                $PIPE->{ $pipe->id } = $pipe;
 
-        if ( $PIPE->{ $obj->id } ) {
-            $obj = $PIPE->{ $obj->id };
+                P->scalar->weaken( $PIPE->{ $pipe->id } );
+            }
+
+            $ch->addpipe($pipe);
         }
-        else {
-            $PIPE->{ $obj->id } = $obj;
+    }
 
-            P->scalar->weaken( $PIPE->{ $obj->id } );
-        }
+    # remove channel without pipes
+    if ( !$ch->pipe->%* ) {
+        delete $self->channel->{$name};
 
-        $ch->addpipe($obj);
+        return;
     }
 
     return $ch;
@@ -56,6 +63,16 @@ PERL
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

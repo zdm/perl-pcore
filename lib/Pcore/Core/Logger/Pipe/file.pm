@@ -1,22 +1,57 @@
 package Pcore::Core::Logger::Pipe::file;
 
 use Pcore -class;
+use Fcntl qw[:flock];
 
 extends qw[Pcore::Core::Logger::Pipe];
 
-has path => ( is => 'lazy', isa => Str, init_arg => undef );
+has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 
-# TODO full path name
+has hid => ( is => 'lazy', isa => Str, init_arg => undef );
+
+around new => sub ( $orig, $self, $args ) {
+    if ( $args->{uri}->path->is_abs ) {
+        P->file->mkpath( $args->{uri}->path->dirname );
+
+        $args->{path} = $args->{uri}->path;
+    }
+    elsif ( $ENV->{LOG_DIR} ) {
+        $args->{path} = P->path( $ENV->{LOG_DIR} . $args->{uri}->path );
+    }
+    else {
+        return;
+    }
+
+    return $self->$orig($args);
+};
+
 sub _build_id ($self) {
-    return $self->uri->scheme . q[:///] . $self->path;
+    return 'logger_file_' . $self->path;
 }
 
-sub _build_path ($self) {
-    return $ENV->{SCRIPT_DIR} . $self->uri->path;
+sub _build_hid ($self) {
+    my $hid = $self->id;
+
+    H->add(
+        $hid      => 'File',
+        path      => $self->path->to_string,
+        binmode   => ':encoding(UTF-8)',
+        autoflush => 1
+    );
+
+    return $hid;
 }
 
 sub sendlog ( $self, $header, $data, $tag ) {
-    P->file->append_text( $self->path, $header, q[ ], $data, $LF );
+    my $hid = $self->hid;
+
+    my $h = H->$hid->h;
+
+    flock $h, LOCK_EX or die;
+
+    say {$h} $header, q[ ], $data, $LF;
+
+    flock $h, LOCK_UN or die;
 
     return;
 }
