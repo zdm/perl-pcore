@@ -5,13 +5,14 @@ use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
 
-has cmd     => ( is => 'ro', isa => ArrayRef, required => 1 );
-has std     => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
-has console => ( is => 'ro', isa => Bool,     default  => 1 );
+has cmd        => ( is => 'ro', isa => ArrayRef, required => 1 );
+has std        => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
+has std_merged => ( is => 'ro', isa => Bool,     default  => 0 );    # merge STDOUT and STDERR into STDOUT
+has console    => ( is => 'ro', isa => Bool,     default  => 1 );
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 1 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self), called, when process created, pid captured and handles are ready
-has on_error => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $status), called, when exited with !0 status
-has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );           # ($self, $status), called on process exit
+has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );              # ($self), called, when process created, pid captured and handles are ready
+has on_error => ( is => 'ro', isa => Maybe [CodeRef] );              # ($self, $status), called, when exited with !0 status
+has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );              # ($self, $status), called on process exit
 
 has mswin_alive_timout => ( is => 'ro', isa => Num, default => 0.5 );
 
@@ -125,7 +126,7 @@ sub _create ( $self, $on_ready, $args ) {
     if ( $self->std ) {
         ( $h->{in_r},  $h->{in_w} )  = portable_socketpair();
         ( $h->{out_r}, $h->{out_w} ) = portable_socketpair();
-        ( $h->{err_r}, $h->{err_w} ) = portable_socketpair();
+        ( $h->{err_r}, $h->{err_w} ) = portable_socketpair() if !$self->std_merged;
 
         # save STD* handles
         open $h->{old_in},  '<&', *STDIN  or die;
@@ -135,7 +136,12 @@ sub _create ( $self, $on_ready, $args ) {
         # redirect STD* handles
         open STDIN,  '<&', $h->{in_r}  or die;
         open STDOUT, '>&', $h->{out_w} or die;
-        open STDERR, '>&', $h->{err_w} or die;
+        if ( $self->std_merged ) {
+            open STDERR, '>&', $h->{out_w} or die;
+        }
+        else {
+            open STDERR, '>&', $h->{err_w} or die;
+        }
     }
 
     if ($MSWIN) {
@@ -194,17 +200,19 @@ sub _create ( $self, $on_ready, $args ) {
             },
         );
 
-        $on_ready->begin;
-        Pcore::AE::Handle->new(
-            fh         => $h->{err_r},
-            on_connect => sub ( $h, @ ) {
-                $self->{stderr} = $h;
+        if ( !$self->std_merged ) {
+            $on_ready->begin;
+            Pcore::AE::Handle->new(
+                fh         => $h->{err_r},
+                on_connect => sub ( $h, @ ) {
+                    $self->{stderr} = $h;
 
-                $on_ready->end;
+                    $on_ready->end;
 
-                return;
-            },
-        );
+                    return;
+                },
+            );
+        }
     }
 
     $on_ready->end;
@@ -213,6 +221,16 @@ sub _create ( $self, $on_ready, $args ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 114                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_create" with high complexity score (25)                   │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

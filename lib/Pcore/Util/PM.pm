@@ -93,12 +93,15 @@ sub run (@) {
 sub run_capture (@cmd) {
     my ( $stdout, $stderr );
 
+    my $wantarray = wantarray;
+
     my %args = (
-        cmd      => \@cmd,
-        std      => 1,
-        console  => 1,
-        blocking => 1,
-        on_ready => sub ($self) {
+        cmd        => \@cmd,
+        std        => 1,
+        std_merged => $wantarray ? 0 : 1,
+        console    => 1,
+        blocking   => 1,
+        on_ready   => sub ($self) {
             $self->stdout->on_read( sub { } );
             $self->stdout->on_eof(undef);
             $self->stdout->on_error(
@@ -109,15 +112,17 @@ sub run_capture (@cmd) {
                 }
             );
 
-            $self->stderr->on_read( sub { } );
-            $self->stderr->on_eof(undef);
-            $self->stderr->on_error(
-                sub {
-                    $stderr = delete $_[0]{rbuf};
+            if ($wantarray) {
+                $self->stderr->on_read( sub { } );
+                $self->stderr->on_eof(undef);
+                $self->stderr->on_error(
+                    sub {
+                        $stderr = delete $_[0]{rbuf};
 
-                    return;
-                }
-            );
+                        return;
+                    }
+                );
+            }
 
             return;
         },
@@ -129,7 +134,7 @@ sub run_capture (@cmd) {
 
     my $p = Pcore::Util::PM::Proc->new( \%args );
 
-    return wantarray ? ( $stdout, $stderr, $p->status ) : $stdout;
+    return $wantarray ? ( $stdout, $stderr, $p->status ) : $stdout;
 }
 
 sub run_check (@cmd) {
