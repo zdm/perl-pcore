@@ -7,9 +7,9 @@ use Pcore::HTTP::CookieJar;
 
 extends qw[Pcore::HTTP::Message];
 
-has method => ( is => 'ro', isa => Enum [ keys $Pcore::HTTP::HTTP_METHODS->%* ], required => 1 );
-has url => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'], required => 1 );
-has blocking => ( is => 'ro', isa => Maybe [ Bool | InstanceOf ['AnyEvent::CondVar'] ], default => $Pcore::HTTP::DEFAULT->{blocking} );
+has method   => ( is => 'ro', isa => Enum             [ keys $Pcore::HTTP::HTTP_METHODS->%* ] );
+has url      => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'] );
+has blocking => ( is => 'ro', isa => Maybe            [ Bool | InstanceOf ['AnyEvent::CondVar'] ], default => $Pcore::HTTP::DEFAULT->{blocking} );
 
 has useragent         => ( is => 'ro', isa => Str,               default => $Pcore::HTTP::DEFAULT->{useragent} );
 has recurse           => ( is => 'ro', isa => PositiveOrZeroInt, default => $Pcore::HTTP::DEFAULT->{recurse} );
