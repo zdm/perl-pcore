@@ -1,6 +1,6 @@
 package Pcore::Util::PM;
 
-use Pcore -export, [qw[is_superuser run run_rpc]];
+use Pcore -export, [qw[is_superuser run run_capture run_rpc]];
 use POSIX qw[];
 
 sub rename_process {
@@ -88,6 +88,48 @@ sub run (@) {
     state $init = !!require Pcore::Util::PM::Proc;
 
     return Pcore::Util::PM::Proc->new( \%args );
+}
+
+sub run_capture (@cmd) {
+    my ( $stdout, $stderr );
+
+    my %args = (
+        cmd      => \@cmd,
+        std      => 1,
+        console  => 1,
+        blocking => 1,
+        on_ready => sub ($self) {
+            $self->stdout->on_read( sub { } );
+            $self->stdout->on_eof(undef);
+            $self->stdout->on_error(
+                sub {
+                    $stdout = delete $_[0]{rbuf};
+
+                    return;
+                }
+            );
+
+            $self->stderr->on_read( sub { } );
+            $self->stderr->on_eof(undef);
+            $self->stderr->on_error(
+                sub {
+                    $stderr = delete $_[0]{rbuf};
+
+                    return;
+                }
+            );
+
+            return;
+        },
+        on_error => undef,
+        on_exit  => undef,
+    );
+
+    state $init = !!require Pcore::Util::PM::Proc;
+
+    my $p = Pcore::Util::PM::Proc->new( \%args );
+
+    return $stdout, $stderr, $p->status;
 }
 
 sub run_rpc ( $class, @ ) {
