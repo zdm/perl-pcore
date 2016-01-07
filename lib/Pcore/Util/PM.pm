@@ -1,6 +1,6 @@
 package Pcore::Util::PM;
 
-use Pcore -export, [qw[is_superuser run run_capture run_rpc]];
+use Pcore -export, [qw[is_superuser run run_capture run_check run_rpc]];
 use POSIX qw[];
 
 sub rename_process {
@@ -130,6 +130,32 @@ sub run_capture (@cmd) {
     my $p = Pcore::Util::PM::Proc->new( \%args );
 
     return wantarray ? ( $stdout, $stderr, $p->status ) : $stdout;
+}
+
+sub run_check (@cmd) {
+    my %args = (
+        cmd      => \@cmd,
+        std      => 0,
+        console  => 1,
+        blocking => 1,
+        on_ready => undef,
+        on_error => undef,
+        on_exit  => undef,
+    );
+
+    state $init = !!require Pcore::Util::PM::Proc;
+
+    my $p = Pcore::Util::PM::Proc->new( \%args );
+
+    if ( defined wantarray ) {
+        return $p->status ? undef : 1;
+    }
+    elsif ( $p->status ) {
+        die 'Error exec process, process exit code: ' . $p->status;
+    }
+    else {
+        return 1;
+    }
 }
 
 sub run_rpc ( $class, @ ) {

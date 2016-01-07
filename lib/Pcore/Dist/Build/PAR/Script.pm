@@ -403,7 +403,7 @@ sub _compress_upx ( $self, $path ) {
         if (@files) {
             say q[];
 
-            P->sys->system( $upx, '--best', @files ) or 1;
+            P->pm->run_check( $upx, '--best', @files ) or 1;
 
             for my $file (@files) {
                 P->file->copy( $file, $upx_cache_dir . $file_md5->{$file} );

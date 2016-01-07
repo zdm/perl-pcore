@@ -80,7 +80,7 @@ sub _cpanm ($self) {
 
         # install known platform exceptions without tests
         if ( exists $cfg->{cpan_notest}->{ $Config{archname} } && $cfg->{cpan_notest}->{ $Config{archname} }->@* ) {
-            P->sys->system( 'cpanm', '--notest', $cfg->{cpan_notest}->{ $Config{archname} }->@* ) or return;
+            P->pm->run_check( 'cpanm', '--notest', $cfg->{cpan_notest}->{ $Config{archname} }->@* ) or return;
         }
 
         my @args = (    #
@@ -95,7 +95,7 @@ sub _cpanm ($self) {
 
         say join q[ ], @args;
 
-        P->sys->system(@args) or return;
+        P->pm->run_check(@args) or return;
     }
 
     return 1;
@@ -118,17 +118,17 @@ sub _install ($self) {
         if ( $self->dist->is_pcore ) {
 
             # set $ENV{PERL5LIB}
-            P->sys->system(qq[setx.exe /M PERL5LIB "$canon_dist_root/lib;"]) or return;
+            P->pm->run_check(qq[setx.exe /M PERL5LIB "$canon_dist_root/lib;"]) or return;
 
             say qq[%PERL5LIB% updated];
 
             # set $ENV{PCORE_DIST_LIB}
-            P->sys->system(qq[setx.exe /M PCORE_DIST_LIB "$canon_dist_lib_dir"]) or return;
+            P->pm->run_check(qq[setx.exe /M PCORE_DIST_LIB "$canon_dist_lib_dir"]) or return;
 
             say qq[%PCORE_DIST_LIB% updated];
 
             # set $ENV{PCORE_RES_LIB}
-            P->sys->system(qq[setx.exe /M PCORE_RES_LIB "$canon_dist_lib_dir/resources"]) or return;
+            P->pm->run_check(qq[setx.exe /M PCORE_RES_LIB "$canon_dist_lib_dir/resources"]) or return;
 
             say qq[%PCORE_RES_LIB% updated];
         }
@@ -149,7 +149,7 @@ sub _install ($self) {
 
             $ENV{PATH} = join $Config{path_sep}, @system_path;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-            P->sys->system(qq[setx.exe /M PATH "$ENV{PATH};"]) or return;
+            P->pm->run_check(qq[setx.exe /M PATH "$ENV{PATH};"]) or return;
 
             say qq[%PATH% updated];
         }

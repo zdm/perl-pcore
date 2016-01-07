@@ -102,11 +102,11 @@ sub test ( $self, @ ) {
 
         my $psplit = $MSWIN ? q[\\] : q[/];
 
-        return if !P->sys->system(qw[perl Build.PL]);
+        return if !P->pm->run_check(qw[perl Build.PL]);
 
-        return if !P->sys->system(".${psplit}Build");
+        return if !P->pm->run_check(".${psplit}Build");
 
-        return if !P->sys->system( ".${psplit}Build", 'test', ( $args{verbose} ? '--verbose' : q[] ) );
+        return if !P->pm->run_check( ".${psplit}Build", 'test', ( $args{verbose} ? '--verbose' : q[] ) );
     }
 
     return 1;
