@@ -66,9 +66,6 @@ on develop => sub {
     # suggests 'Perl::Lint';    # Perl::Critic replacement
 };
 
-# Pcore::Util::Capture
-requires 'Capture::Tiny';
-
 # Pcore::Util::Class
 requires 'Sub::Util';
 

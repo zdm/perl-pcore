@@ -129,7 +129,7 @@ sub run_capture (@cmd) {
 
     my $p = Pcore::Util::PM::Proc->new( \%args );
 
-    return $stdout, $stderr, $p->status;
+    return wantarray ? ( $stdout, $stderr, $p->status ) : $stdout;
 }
 
 sub run_rpc ( $class, @ ) {

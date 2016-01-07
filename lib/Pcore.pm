@@ -73,7 +73,6 @@ BEGIN {
     # configure standard library
     $Pcore::UTIL = {
         bit      => 'Pcore::Util::Bit',
-        capture  => 'Pcore::Util::Capture',
         cfg      => 'Pcore::Util::Config',
         class    => 'Pcore::Util::Class',
         data     => 'Pcore::Util::Data',
@@ -621,27 +620,27 @@ sub _config_stdout ($h) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 50                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 117                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 116                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 134                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
+## │    3 │ 133                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 190                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 189                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 315                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 353                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 365                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 465                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 314                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 352                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 364                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 464                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 403, 432, 435, 439,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 486, 503, 597, 600,  │                                                                                                                │
-## │      │ 605, 608             │                                                                                                                │
+## │    3 │ 402, 431, 434, 438,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 485, 502, 596, 599,  │                                                                                                                │
+## │      │ 604, 607             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 123                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 122                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 127                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 126                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
