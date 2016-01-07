@@ -90,6 +90,7 @@ sub run (@) {
     return Pcore::Util::PM::Proc->new( \%args );
 }
 
+# TODO first param can be a ArrayRef, then read options
 sub run_capture (@cmd) {
     my ( $stdout, $stderr );
 

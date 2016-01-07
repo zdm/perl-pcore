@@ -198,13 +198,6 @@ sub import {
             Pcore::Core::Exporter->import( -caller => $caller, -export => $pragma->{export} );
         }
 
-        # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
-        if ( $pragma->{autoload} ) {
-            state $init = !!require Pcore::Core::Autoload;
-
-            Pcore::Core::Autoload->import( -caller => $caller );
-        }
-
         # process -inline pragma
         if ( $pragma->{inline} ) {
             state $init = !!require Pcore::Core::Inline;
@@ -255,6 +248,14 @@ sub import {
 
         # export types
         _import_types($caller) if $pragma->{types};
+    }
+
+    # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
+    # NOTE !!!WARNING!!! AUTOLOAD should be exported after Moo::Role, so Moo::Role can re-export this method
+    if ( $pragma->{autoload} ) {
+        state $init = !!require Pcore::Core::Autoload;
+
+        Pcore::Core::Autoload->import( -caller => $caller );
     }
 
     return;
@@ -627,20 +628,20 @@ sub _config_stdout ($h) {
 ## │    3 │ 189                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 314                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 352                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 364                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 464                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 315                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 353                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 365                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 465                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 402, 431, 434, 438,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 485, 502, 596, 599,  │                                                                                                                │
-## │      │ 604, 607             │                                                                                                                │
+## │    3 │ 403, 432, 435, 439,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 486, 503, 597, 600,  │                                                                                                                │
+## │      │ 605, 608             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 122                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 126                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 406                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

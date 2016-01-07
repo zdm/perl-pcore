@@ -5,23 +5,27 @@ use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
 
-has cmd        => ( is => 'ro', isa => ArrayRef, required => 1 );
-has std        => ( is => 'ro', isa => Bool,     default  => 0 );    # capture process STD* handles
-has std_merged => ( is => 'ro', isa => Bool,     default  => 0 );    # merge STDOUT and STDERR into STDOUT
-has console    => ( is => 'ro', isa => Bool,     default  => 1 );
+has cmd => ( is => 'ro', isa => ArrayRef, required => 1 );
+
+# TODO
+# stderr - 0, 1, 2 - merge with stdout
+has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );    # process STDIN, we can write
+has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );    # process STDOUT, we can read
+has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );    # process STDERR, we can read
+
+has std        => ( is => 'ro', isa => Bool, default => 0 );              # capture process STD* handles
+has std_merged => ( is => 'ro', isa => Bool, default => 0 );              # merge STDOUT and STDERR into STDOUT
+
+has console => ( is => 'ro', isa => Bool, default => 1 );
 has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 1 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );              # ($self), called, when process created, pid captured and handles are ready
-has on_error => ( is => 'ro', isa => Maybe [CodeRef] );              # ($self, $status), called, when exited with !0 status
-has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );              # ($self, $status), called on process exit
+has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );                   # ($self), called, when process created, pid captured and handles are ready
+has on_error => ( is => 'ro', isa => Maybe [CodeRef] );                   # ($self, $status), called, when exited with !0 status
+has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );                   # ($self, $status), called on process exit
 
 has mswin_alive_timout => ( is => 'ro', isa => Num, default => 0.5 );
 
 has pid => ( is => 'ro', isa => PositiveInt, init_arg => undef );
 has status => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], init_arg => undef );    # undef - process still alive
-
-has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );                # process STDIN, we can write
-has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );                # process STDOUT, we can read
-has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );                # process STDERR, we can read
 
 has _cv      => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
 has _winproc => ( is => 'ro', isa => InstanceOf ['Win32::Process'],    init_arg => undef );    # windows process descriptor
@@ -227,7 +231,7 @@ sub _create ( $self, $on_ready, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 114                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_create" with high complexity score (25)                   │
+## │    3 │ 118                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_create" with high complexity score (25)                   │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
