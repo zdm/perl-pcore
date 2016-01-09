@@ -11,7 +11,7 @@ has password => ( is => 'ro', isa => Str, required => 1 );
 has auth => ( is => 'lazy', isa => Str, init_arg => undef );
 
 sub _build_auth ($self) {
-    return 'Basic: ' . P->data->to_b64_url( $self->username . q[:] . $self->password );
+    return 'Basic ' . P->data->to_b64( $self->username . q[:] . $self->password, q[] );
 }
 
 sub issues ( $self, @ ) {
@@ -21,13 +21,14 @@ sub issues ( $self, @ ) {
 
     # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
     my %args = (
-        sort      => 'kind',    # kind, version, component, milestone
-        status    => undef,     # new, open, resolved, closed, "on hold", invalid, duplicate, wontfix
+        sort      => 'priority',    # priority, kind, version, component, milestone
+        status    => undef,
+        version   => undef,
         milestone => undef,
         splice @_, 1, -1,
     );
 
-    P->http->get(               #
+    P->http->get(                   #
         "https://bitbucket.org/api/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/?" . P->data->to_uri( \%args ),
         headers   => { AUTHORIZATION => $self->auth },
         on_finish => sub ($res) {
@@ -41,7 +42,7 @@ sub issues ( $self, @ ) {
 
                     $issue->@{ keys $_->%* } = values $_->%*;
 
-                    $issues->{ $issue->{local_id} } = $issue;
+                    push $issues->@*, $issue;
                 }
             }
 
@@ -61,7 +62,7 @@ sub issues ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 43                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

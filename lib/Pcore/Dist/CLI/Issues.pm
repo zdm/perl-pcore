@@ -10,9 +10,9 @@ sub cli_abstract ($self) {
 
 sub cli_opt ($self) {
     return {    #
-        opened   => { desc => 'status "open"',     default => 0 },
-        resolved => { desc => 'status "resolved"', default => 0 },
-        closed   => { desc => 'status "closed"',   default => 0 },
+        open     => { desc => 'status "new" + "open"', default => 0 },
+        resolved => { desc => 'status "resolved"',     default => 0 },
+        closed   => { desc => 'status "closed"',       default => 0 },
     };
 }
 
@@ -48,8 +48,8 @@ sub run ( $self, $opt ) {
 
     my $status;
 
-    if ( $opt->{opened} ) {
-        $status = 'opened';
+    if ( $opt->{open} ) {
+        $status = [ 'new', 'open' ];
     }
     elsif ( $opt->{resolved} ) {
         $status = 'resolved';
@@ -58,15 +58,15 @@ sub run ( $self, $opt ) {
         $status = 'closed';
     }
     else {
-        $status = 'opened';
+        $status = [ 'new', 'open' ];
     }
 
     my $issues;
 
     $bb->issues(
+        status    => $status,
         version   => undef,
         milestone => undef,
-        status    => $status,
         sub ($res) {
             $issues = $res;
 
@@ -82,12 +82,14 @@ sub run ( $self, $opt ) {
         say 'No issues';
     }
     else {
-        say sprintf '%4s  %-9s  %s', qw[ID STATUS TITLE];
+        say sprintf '%4s  %-8s  %-9s  %-11s  %s', qw[ID PRIORITY STATUS KIND TITLE];
 
-        for my $issue ( sort { $a->{local_id} <=> $b->{local_id} } values $issues->%* ) {
-            say sprintf '%4s  %-9s  %s', $issue->{local_id}, $issue->{status}, $issue->{title};
+        for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
+            say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
         }
     }
+
+    say q[];
 
     return;
 }
@@ -99,9 +101,9 @@ sub run ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 87                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 40                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 87                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
