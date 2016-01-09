@@ -91,7 +91,7 @@ sub run ( $self, $opt, $arg ) {
             my $issue = $issues;
 
             say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
-            say $LF, $issues->{content};
+            say $LF, $issue->{content} || 'No content';
         }
         else {
             for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
