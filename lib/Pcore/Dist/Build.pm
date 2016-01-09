@@ -139,6 +139,7 @@ sub issues ( $self, @ ) {
 
     my %args = (
         id       => undef,
+        all      => undef,
         open     => undef,
         resolved => undef,
         closed   => undef,
@@ -151,7 +152,10 @@ sub issues ( $self, @ ) {
 
     my $status;
 
-    if ( $args{open} ) {
+    if ( $args{all} ) {
+        $status = [ 'new', 'open', 'resolved', 'closed' ];
+    }
+    elsif ( $args{open} ) {
         $status = [ 'new', 'open' ];
     }
     elsif ( $args{resolved} ) {
@@ -249,7 +253,7 @@ sub tgz ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 195                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 199                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

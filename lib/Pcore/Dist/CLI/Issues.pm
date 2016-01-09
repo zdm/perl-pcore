@@ -10,10 +10,11 @@ sub cli_abstract ($self) {
 }
 
 sub cli_opt ($self) {
-    return {    #
-        open     => { desc => 'status "new" + "open"', default => 0 },
-        resolved => { desc => 'status "resolved"',     default => 0 },
-        closed   => { desc => 'status "closed"',       default => 0 },
+    return {
+        all      => { desc => 'status "new" + "open" + "resolved" + "closed"', default => 0 },
+        open     => { desc => 'status "new" + "open"',                         default => 0 },
+        resolved => { desc => 'status "resolved"',                             default => 0 },
+        closed   => { desc => 'status "closed"',                               default => 0 },
     };
 }
 
@@ -70,9 +71,9 @@ sub run ( $self, $opt, $arg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 38                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 55                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 56                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -11,6 +11,7 @@ has major  => ( is => 'ro', isa => Bool, default => 0 );
 has minor  => ( is => 'ro', isa => Bool, default => 0 );
 has bugfix => ( is => 'ro', isa => Bool, default => 0 );
 
+# TODO add info messages
 sub run ($self) {
     if ( $self->dist->cfg->{dist}->{cpan} && !$self->dist->build->user_cfg || ( !$self->dist->build->user_cfg->{PAUSE}->{username} || !$self->dist->build->user_cfg->{PAUSE}->{password} ) ) {
         say 'You need to specify PAUSE credentials';
@@ -256,11 +257,11 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       │
+## │    3 │ 15                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 15, 93, 128, 165     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 16, 94, 129, 166     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
