@@ -93,7 +93,7 @@ sub run ($self) {
     say qq[${LF}Curent version is: $cur_ver];
     say qq[New version will be: $new_ver$LF];
 
-    $self->_create_changes( $new_ver, $closed_issued );
+    $self->_create_changes( $new_ver, $closed_issues );
 
     return if P->term->prompt( qq[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
 
