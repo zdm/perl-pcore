@@ -93,6 +93,8 @@ sub run ($self) {
     say qq[${LF}Curent version is: $cur_ver];
     say qq[New version will be: $new_ver$LF];
 
+    $self->_create_changes( $new_ver, $closed_issued );
+
     return if P->term->prompt( qq[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
 
     say q[];
@@ -272,6 +274,40 @@ sub _upload ( $self, $username, $password, $path ) {
     return $status, $reason;
 }
 
+sub _create_changes ( $self, $ver, $issues ) {
+    state $init = !!require CPAN::Changes;
+
+    my $changes_path = $self->dist->root . 'CHANGES';
+
+    my $changes = -f $changes_path ? CPAN::Changes->load($changes_path) : CPAN::Changes->new;
+
+    my $rel = CPAN::Changes::Release->new(
+        version => $ver,
+        date    => P->date->now_utc->to_w3cdtf,
+    );
+
+    if ($issues) {
+        my $group = {};
+
+        for my $issue ( $issues->@* ) {
+            push $group->{ $issue->{kind} }->@*, $issue->{title};
+        }
+
+        for my $group_name ( keys $group->%* ) {
+            $rel->add_changes( { group => $group_name }, $group->{$group_name}->@* );
+        }
+    }
+    else {
+        $rel->add_changes('No issues are closed since previous release');
+    }
+
+    $changes->add_release($rel);
+
+    say $changes->serialize;
+
+    return $changes->serialize;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -281,12 +317,12 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 296              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 96                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 98                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 15, 44, 47, 82, 87,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 110, 151, 188        │                                                                                                                │
+## │      │ 112, 153, 190        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -35,6 +35,10 @@ sub to_http_date ($self) {
     return $self->at_utc->strftime('%a, %d %b %Y %H:%M:%S GMT');
 }
 
+sub to_w3cdtf ($self) {
+    return $self->at_utc->strftime('%Y-%m-%dT%H:%M:%S%z');
+}
+
 1;
 __END__
 =pod
