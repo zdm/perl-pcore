@@ -93,8 +93,6 @@ sub run ($self) {
     say qq[${LF}Curent version is: $cur_ver];
     say qq[New version will be: $new_ver$LF];
 
-    $self->_create_changes( $new_ver, $closed_issues );
-
     return if P->term->prompt( qq[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
 
     say q[];
@@ -103,6 +101,16 @@ sub run ($self) {
     return if !$self->dist->build->test( author => 1, release => 1 );
 
     # !!!WARNING!!! start release, next changes will be hard to revert
+
+    # update release version in the main module
+    unless ( $self->dist->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
+        say q[Error updating version];
+
+        return;
+    }
+
+    P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
+
     {
         my $cv = AE::cv;
 
@@ -149,17 +157,11 @@ sub run ($self) {
         }
     }
 
-    # update release version in the main module
-    unless ( $self->dist->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
-        say q[Error updating version];
-
-        return;
-    }
-
-    P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
-
     # update working copy
     $self->dist->build->update;
+
+    # update CHANGES file
+    $self->_create_changes( $new_ver, $closed_issues );
 
     # generate wiki
     $self->dist->build->wiki->run if $self->dist->build->wiki;
@@ -289,12 +291,12 @@ sub _create_changes ( $self, $ver, $issues ) {
     if ($issues) {
         my $group = {};
 
-        for my $issue ( $issues->@* ) {
-            push $group->{ $issue->{metadata}->{kind} }->@*, $issue->{title};
+        for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
+            push $group->{ $issue->{metadata}->{kind} }->@*, qq[[$issue->{priority}] $issue->{title} (@{[$issue->url]})];
         }
 
         for my $group_name ( keys $group->%* ) {
-            $rel->add_changes( { group => $group_name }, $group->{$group_name}->@* );
+            $rel->add_changes( { group => uc $group_name }, $group->{$group_name}->@* );
         }
     }
     else {
@@ -303,9 +305,9 @@ sub _create_changes ( $self, $ver, $issues ) {
 
     $changes->add_release($rel);
 
-    say $changes->serialize;
+    P->file->write_text( $changes_path, $changes->serialize );
 
-    return $changes->serialize;
+    return;
 }
 
 1;
@@ -317,12 +319,14 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30, 296              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 298              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 98                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 96                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 15, 44, 47, 82, 87,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 112, 153, 190        │                                                                                                                │
+## │      │ 106, 120, 192        │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 294                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

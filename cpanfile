@@ -48,6 +48,19 @@ requires 'BerkeleyDB';
 requires 'Pod::Markdown';
 requires 'Software::License';
 requires 'Module::CPANfile';
+on develop => sub {
+    requires 'Module::Build::Tiny';
+    requires 'CPAN::Changes';
+
+    # debugging and profiling
+    requires 'Devel::NYTProf';
+    suggests 'Devel::hdb';
+    suggests 'Devel::Cover';
+
+    # PAR
+    requires 'PAR::Packer';
+    requires 'Filter::Crypto';
+};
 
 # Pcore::HTTP
 requires 'HTTP::Parser::XS';
@@ -146,19 +159,6 @@ requires 'Text::Xslate::Bridge::TT2Like';
 
 # Pcore::Util::UUID
 requires 'Data::UUID';
-
-on develop => sub {
-    requires 'Module::Build::Tiny';
-
-    # debugging and profiling
-    requires 'Devel::NYTProf';
-    suggests 'Devel::hdb';
-    suggests 'Devel::Cover';
-
-    # PAR
-    requires 'PAR::Packer';
-    requires 'Filter::Crypto';
-};
 
 on test => sub {
     requires 'Test::More', '0.88';
