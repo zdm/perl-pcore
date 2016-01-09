@@ -164,7 +164,7 @@ sub new ( $self, @ ) {
             my $bind_ip;
 
             if ( $args{bind_ip} ) {
-                $ip_aton_cache->{ $args{bind_ip} } = Socket::sockaddr_in( 0, Socket::inet_aton( $args{bind_ip} ) ) if !exists $ip_aton_cache->{ $args{bind_ip} };
+                $ip_aton_cache->{ $args{bind_ip} } = Socket::pack_sockaddr_in( 0, Socket::inet_aton( $args{bind_ip} ) ) if !exists $ip_aton_cache->{ $args{bind_ip} };
 
                 $bind_ip = $ip_aton_cache->{ $args{bind_ip} };
             }
