@@ -32,7 +32,6 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
     return;
 }
 
-# TODO sort by utc_last_updated, priority
 sub run ( $self, $opt, $arg ) {
     my $issues = $self->dist->build->issues(
         id => $arg->{id},
@@ -53,9 +52,7 @@ sub run ( $self, $opt, $arg ) {
             say $LF, $issue->{content} || 'No content';
         }
         else {
-            # TODO sort utc_created_on, utc_last_updated
-
-            for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
+            for my $issue ( sort { $b->utc_last_updated_ts <=> $a->utc_last_updated_ts or $b->priority_id <=> $a->priority_id } $issues->@* ) {
                 say sprintf '%4s  %s  %-9s  %-11s  %s', $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
             }
         }
@@ -73,9 +70,9 @@ sub run ( $self, $opt, $arg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 38                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 58                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 55                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

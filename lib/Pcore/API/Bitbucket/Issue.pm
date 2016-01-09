@@ -40,7 +40,8 @@ const our $STATUS => {
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Bitbucket'], required => 1 );
 
 has priority_id => ( is => 'lazy', isa => Enum [ values $PRIORITY->%* ], init_arg => undef );
-has priority_color => ( is => 'lazy', isa => Str, init_arg => undef );
+has priority_color      => ( is => 'lazy', isa => Str, init_arg => undef );
+has utc_last_updated_ts => ( is => 'lazy', isa => Int, init_arg => undef );
 
 sub _build_priority_id ($self) {
     return $PRIORITY->{ $self->{priority} };
@@ -48,6 +49,10 @@ sub _build_priority_id ($self) {
 
 sub _build_priority_color ($self) {
     return $PRIORITY_COLOR->{ $self->{priority} } . sprintf( '%-8s', $self->{priority} ) . RESET;
+}
+
+sub _build_utc_last_updated_ts ($self) {
+    return P->date->from_string( $self->{utc_last_updated} =~ s/\s/T/smr )->epoch;
 }
 
 # PUT https://api.bitbucket.org/1.0/repositories/{accountname}/{repo_slug}/issues/{issue_id}  --data "parameter=value&parameter=value"
