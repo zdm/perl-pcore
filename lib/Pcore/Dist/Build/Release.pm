@@ -33,6 +33,13 @@ sub run ($self) {
         return;
     }
 
+    # release is impossible, if we are not on the "default" branch
+    if ( $scm->cmd('branch')->{o}->[0] ne 'default' ) {
+        say 'SCM should be on the "default" branch. Release is impossible.';
+
+        return;
+    }
+
     # run tests
     return if !$self->dist->build->test( author => 1, release => 1 );
 
@@ -203,7 +210,7 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 15, 73, 110          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 15, 80, 117          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
