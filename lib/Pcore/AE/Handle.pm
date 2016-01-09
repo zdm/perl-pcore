@@ -159,14 +159,14 @@ sub new ( $self, @ ) {
         if ( $args{connect_timeout} || $args{bind_ip} ) {
             my $conect_timeout = $args{connect_timeout};
 
-            state $ip_aton_cache = {};
+            state $ip_pack_cache = {};
 
             my $bind_ip;
 
             if ( $args{bind_ip} ) {
-                $ip_aton_cache->{ $args{bind_ip} } = Socket::pack_sockaddr_in( 0, Socket::inet_aton( $args{bind_ip} ) ) if !exists $ip_aton_cache->{ $args{bind_ip} };
+                $ip_pack_cache->{ $args{bind_ip} } = Socket::pack_sockaddr_in( 0, Socket::inet_aton( $args{bind_ip} ) ) if !exists $ip_pack_cache->{ $args{bind_ip} };
 
-                $bind_ip = $ip_aton_cache->{ $args{bind_ip} };
+                $bind_ip = $ip_pack_cache->{ $args{bind_ip} };
             }
 
             my $on_prepare = $args{on_prepare};
