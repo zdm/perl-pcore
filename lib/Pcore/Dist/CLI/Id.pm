@@ -1,4 +1,4 @@
-package Pcore::Dist::CLI::Info;
+package Pcore::Dist::CLI::Id;
 
 use Pcore -class;
 
@@ -43,7 +43,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Info - show different distribution info
+Pcore::Dist::CLI::Id - show different distribution info
 
 =head1 SYNOPSIS
 
