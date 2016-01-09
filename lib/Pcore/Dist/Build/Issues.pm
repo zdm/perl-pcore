@@ -95,7 +95,7 @@ sub print_issues ( $self, $issues ) {
         if ( blessed $issues ) {
             my $issue = $issues;
 
-            $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title} );
+            $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->status_color, $issue->kind_color, $issue->{title} );
 
             say $tbl->render;
 
@@ -103,7 +103,7 @@ sub print_issues ( $self, $issues ) {
         }
         else {
             for my $issue ( sort { $b->utc_last_updated_ts <=> $a->utc_last_updated_ts or $b->priority_id <=> $a->priority_id } $issues->@* ) {
-                $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title} );
+                $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->status_color, $issue->kind_color, $issue->{title} );
             }
 
             say $tbl->render;

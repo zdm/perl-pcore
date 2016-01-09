@@ -13,34 +13,37 @@ const our $PRIORITY => {
 
 const our $PRIORITY_COLOR => {
     trivial  => WHITE,
-    minor    => BOLD . GREEN,
-    major    => BOLD . YELLOW,
-    critical => BOLD . RED,
-    blocker  => BOLD . RED,
+    minor    => BLACK . ON_WHITE,
+    major    => BLACK . ON_YELLOW,
+    critical => WHITE . ON_RED,
+    blocker  => BOLD . WHITE . ON_RED,
 };
 
 const our $KIND => {
-    bug         => 1,
-    enhancement => 2,
-    proposal    => 3,
-    task        => 4,
+    bug         => [ 'bug',  WHITE . ON_RED ],
+    enhancement => [ 'enh',  WHITE ],
+    proposal    => [ 'prop', WHITE ],
+    task        => [ 'task', WHITE ],
 };
 
 const our $STATUS => {
-    new       => 1,
-    open      => 2,
-    resolved  => 3,
-    closed    => 4,
-    'on hold' => 5,
-    invalid   => 6,
-    duplicate => 7,
-    wontfix   => 8,
+    new       => BLACK . ON_WHITE,
+    open      => BLACK . ON_WHITE,
+    resolved  => WHITE . ON_RED,
+    closed    => BLACK . ON_GREEN,
+    'on hold' => WHITE,
+    invalid   => WHITE,
+    duplicate => WHITE,
+    wontfix   => WHITE,
 };
 
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Bitbucket'], required => 1 );
 
 has priority_id => ( is => 'lazy', isa => Enum [ values $PRIORITY->%* ], init_arg => undef );
 has priority_color      => ( is => 'lazy', isa => Str, init_arg => undef );
+has status_color        => ( is => 'lazy', isa => Str, init_arg => undef );
+has kind_color          => ( is => 'lazy', isa => Str, init_arg => undef );
+has kind_abbr           => ( is => 'lazy', isa => Str, init_arg => undef );
 has utc_last_updated_ts => ( is => 'lazy', isa => Int, init_arg => undef );
 has url                 => ( is => 'lazy', isa => Str, init_arg => undef );
 
@@ -49,7 +52,19 @@ sub _build_priority_id ($self) {
 }
 
 sub _build_priority_color ($self) {
-    return $PRIORITY_COLOR->{ $self->{priority} } . sprintf( '%-8s', $self->{priority} ) . RESET;
+    return $PRIORITY_COLOR->{ $self->{priority} } . " $self->{priority} " . RESET;
+}
+
+sub _build_status_color ($self) {
+    return $STATUS->{ $self->{status} } . " $self->{status} " . RESET;
+}
+
+sub _build_kind_color ($self) {
+    return $KIND->{ $self->{metadata}->{kind} }->[1] . " @{[$self->kind_abbr]} " . RESET;
+}
+
+sub _build_kind_abbr ($self) {
+    return $KIND->{ $self->{metadata}->{kind} }->[0];
 }
 
 sub _build_utc_last_updated_ts ($self) {
