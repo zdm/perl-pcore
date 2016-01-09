@@ -134,6 +134,69 @@ sub par ( $self, @ ) {
     return;
 }
 
+sub issues ( $self, @ ) {
+    my $scm = $self->dist->scm;
+
+    return if !$scm || !$scm->upstream;
+
+    state $init = !!require Pcore::API::Bitbucket;
+
+    my $bb = Pcore::API::Bitbucket->new(
+        {   account_name => $scm->upstream->username,
+            repo_slug    => $scm->upstream->reponame,
+            username     => $self->dist->build->user_cfg->{Bitbucket}->{api_username},
+            password     => $self->dist->build->user_cfg->{Bitbucket}->{api_password},
+        }
+    );
+
+    my %args = (
+        id       => undef,
+        open     => undef,
+        resolved => undef,
+        closed   => undef,
+        splice @_, 1,
+    );
+
+    my $id = $args{id};
+
+    my $cv = AE::cv;
+
+    my $status;
+
+    if ( $args{open} ) {
+        $status = [ 'new', 'open' ];
+    }
+    elsif ( $args{resolved} ) {
+        $status = 'resolved';
+    }
+    elsif ( $args{closed} ) {
+        $status = 'closed';
+    }
+    else {
+        $status = [ 'new', 'open' ];
+    }
+
+    my $issues;
+
+    $bb->issues(
+        id        => $id,
+        status    => $status,
+        version   => undef,
+        milestone => undef,
+        sub ($res) {
+            $issues = $res;
+
+            $cv->send;
+
+            return;
+        }
+    );
+
+    $cv->recv;
+
+    return $issues;
+}
+
 sub temp_build ( $self, $keep = 0 ) {
     state $init = !!require Pcore::Dist::Build::Temp;
 
@@ -177,6 +240,16 @@ sub tgz ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    2 │ 145                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

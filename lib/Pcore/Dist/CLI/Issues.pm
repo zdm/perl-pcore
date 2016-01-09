@@ -1,6 +1,7 @@
 package Pcore::Dist::CLI::Issues;
 
 use Pcore -class;
+use Pcore::Util::Scalar qw[blessed];
 
 with qw[Pcore::Dist::CLI];
 
@@ -31,55 +32,12 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
     return;
 }
 
+# TODO sort by utc_last_updated, priority
 sub run ( $self, $opt, $arg ) {
-    state $init = !!require Pcore::API::Bitbucket;
-
-    my $scm = $self->dist->scm;
-
-    my $bb = Pcore::API::Bitbucket->new(
-        {   account_name => $scm->upstream->username,
-            repo_slug    => $scm->upstream->reponame,
-            username     => $self->dist->build->user_cfg->{Bitbucket}->{api_username},
-            password     => $self->dist->build->user_cfg->{Bitbucket}->{api_password},
-        }
+    my $issues = $self->dist->build->issues(
+        id => $arg->{id},
+        $opt->%*,
     );
-
-    my $id = $arg->{id};
-
-    my $cv = AE::cv;
-
-    my $status;
-
-    if ( $opt->{open} ) {
-        $status = [ 'new', 'open' ];
-    }
-    elsif ( $opt->{resolved} ) {
-        $status = 'resolved';
-    }
-    elsif ( $opt->{closed} ) {
-        $status = 'closed';
-    }
-    else {
-        $status = [ 'new', 'open' ];
-    }
-
-    my $issues;
-
-    $bb->issues(
-        id        => $id,
-        status    => $status,
-        version   => undef,
-        milestone => undef,
-        sub ($res) {
-            $issues = $res;
-
-            $cv->send;
-
-            return;
-        }
-    );
-
-    $cv->recv;
 
     if ( !$issues ) {
         say 'No issues';
@@ -87,10 +45,11 @@ sub run ( $self, $opt, $arg ) {
     else {
         say sprintf '%4s  %-8s  %-9s  %-11s  %s', qw[ID PRIORITY STATUS KIND TITLE];
 
-        if ($id) {
+        if ( blessed $issues ) {
             my $issue = $issues;
 
             say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
+
             say $LF, $issue->{content} || 'No content';
         }
         else {
@@ -114,9 +73,9 @@ sub run ( $self, $opt, $arg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 40                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 99                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 58                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
