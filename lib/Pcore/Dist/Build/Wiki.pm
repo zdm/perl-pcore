@@ -91,7 +91,7 @@ MD
     # write POD.md
     P->file->write_text( $wiki_path . 'POD.md', { crlf => 0 }, \$toc_md );
 
-    say keys( $toc->%* ) + 1 . ' wiki pages were generated';
+    say keys( $toc->%* ) + 1 . ' wiki page(s) were generated';
 
     return;
 }

@@ -7,7 +7,8 @@ has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
 
 has user_cfg_path => ( is => 'lazy', isa => Str, init_arg => undef );
 has user_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );
-has wiki => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ], init_arg => undef );
+has wiki   => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ],   init_arg => undef );
+has issues => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Issues'] ], init_arg => undef );
 
 sub _build_user_cfg_path ($self) {
     return $ENV->{PCORE_USER_DIR} . 'pcore.ini';
@@ -18,7 +19,15 @@ sub _build_user_cfg ($self) {
 }
 
 sub _build_wiki ($self) {
-    return P->class->load('Pcore::Dist::Build::Wiki')->new( { dist => $self->dist } );
+    state $init = !!require Pcore::Dist::Build::Wiki;
+
+    return Pcore::Dist::Build::Wiki->new( { dist => $self->dist } );
+}
+
+sub _build_issues ($self) {
+    state $init = !!require Pcore::Dist::Build::Issues;
+
+    return Pcore::Dist::Build::Issues->new( { dist => $self->dist } );
 }
 
 sub create ( $self, @args ) {
@@ -134,76 +143,6 @@ sub par ( $self, @ ) {
     return;
 }
 
-sub issues ( $self, @ ) {
-    my $issues_api = $self->get_issues_api;
-
-    my %args = (
-        id       => undef,
-        all      => undef,
-        open     => undef,
-        resolved => undef,
-        closed   => undef,
-        splice @_, 1,
-    );
-
-    my $id = $args{id};
-
-    my $cv = AE::cv;
-
-    my $status;
-
-    if ( $args{all} ) {
-        $status = [ 'new', 'open', 'resolved', 'closed' ];
-    }
-    elsif ( $args{open} ) {
-        $status = [ 'new', 'open' ];
-    }
-    elsif ( $args{resolved} ) {
-        $status = 'resolved';
-    }
-    elsif ( $args{closed} ) {
-        $status = 'closed';
-    }
-    else {
-        $status = [ 'new', 'open' ];
-    }
-
-    my $issues;
-
-    $issues_api->issues(
-        id      => $id,
-        status  => $status,
-        version => undef,
-        sub ($res) {
-            $issues = $res;
-
-            $cv->send;
-
-            return;
-        }
-    );
-
-    $cv->recv;
-
-    return $issues;
-}
-
-sub get_issues_api ($self) {
-    my $scm = $self->dist->scm;
-
-    return if !$scm || !$scm->upstream;
-
-    state $init = !!require Pcore::API::Bitbucket;
-
-    return Pcore::API::Bitbucket->new(
-        {   account_name => $scm->upstream->username,
-            repo_slug    => $scm->upstream->reponame,
-            username     => $self->dist->build->user_cfg->{Bitbucket}->{api_username},
-            password     => $self->dist->build->user_cfg->{Bitbucket}->{api_password},
-        }
-    );
-}
-
 sub temp_build ( $self, $keep = 0 ) {
     state $init = !!require Pcore::Dist::Build::Temp;
 
@@ -247,16 +186,6 @@ sub tgz ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 199                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

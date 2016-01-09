@@ -1,7 +1,6 @@
 package Pcore::Dist::CLI::Issues;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[blessed];
 
 with qw[Pcore::Dist::CLI];
 
@@ -34,29 +33,16 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ( $self, $opt, $arg ) {
-    my $issues = $self->dist->build->issues(
-        id => $arg->{id},
-        $opt->%*,
-    );
+    if ( $self->dist->build->issues ) {
+        my $issues = $self->dist->build->issues->get(
+            id => $arg->{id},
+            $opt->%*,
+        );
 
-    if ( !$issues ) {
-        say 'No issues';
+        $self->dist->build->issues->print_issues($issues);
     }
     else {
-        say sprintf '%4s  %-8s  %-9s  %-11s  %s', qw[ID PRIORITY STATUS KIND TITLE];
-
-        if ( blessed $issues ) {
-            my $issue = $issues;
-
-            say sprintf '%4s  %s  %-9s  %-11s  %s', $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
-
-            say $LF, $issue->{content} || 'No content';
-        }
-        else {
-            for my $issue ( sort { $b->utc_last_updated_ts <=> $a->utc_last_updated_ts or $b->priority_id <=> $a->priority_id } $issues->@* ) {
-                say sprintf '%4s  %s  %-9s  %-11s  %s', $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
-            }
-        }
+        say 'No issues';
     }
 
     say q[];
@@ -73,7 +59,7 @@ sub run ( $self, $opt, $arg ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 56                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    2 │ 37, 42               │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

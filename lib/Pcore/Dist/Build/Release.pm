@@ -11,16 +11,15 @@ has major  => ( is => 'ro', isa => Bool, default => 0 );
 has minor  => ( is => 'ro', isa => Bool, default => 0 );
 has bugfix => ( is => 'ro', isa => Bool, default => 0 );
 
-# TODO add info messages
 sub run ($self) {
     if ( $self->dist->cfg->{dist}->{cpan} && !$self->dist->build->user_cfg || ( !$self->dist->build->user_cfg->{PAUSE}->{username} || !$self->dist->build->user_cfg->{PAUSE}->{password} ) ) {
-        say 'You need to specify PAUSE credentials';
+        say qq[You need to specify PAUSE credentials$LF];
 
         return;
     }
 
     if ( !$self->dist->scm ) {
-        say 'SCM is required';
+        say qq[SCM is required$LF];
 
         return;
     }
@@ -29,29 +28,30 @@ sub run ($self) {
 
     # check for uncommited changes
     if ( $scm->cmd(qw[status -mardu --subrepos])->%* ) {
-        say 'Working copy or subrepos has uncommited changes or unknown files. Release is impossible.';
+        say qq[Working copy or subrepos has uncommited changes or unknown files. Release is impossible.$LF];
 
         return;
     }
 
     # release is impossible, if we are not on the "default" branch
     if ( $scm->cmd('branch')->{o}->[0] ne 'default' ) {
-        say 'SCM should be on the "default" branch. Release is impossible.';
+        say qq[SCM should be on the "default" branch. Release is impossible.$LF];
 
         return;
     }
 
     # check for resolved issues without version
-    if ( $self->dist->build->issues( resolved => 1 ) ) {
-        say 'There are resolved but not closed issues. Release is impossible.';
+    if ( my $resolved_issues = $self->dist->build->issues->get( resolved => 1 ) ) {
+        say qq[Following issues are resolved and not closed:$LF];
+
+        $self->dist->build->issues->print_issues($resolved_issues);
+
+        say qq[${LF}Close or re-open this issues. Release is impossible.$LF];
 
         return;
     }
 
-    # run tests
-    return if !$self->dist->build->test( author => 1, release => 1 );
-
-    # show cur and new versions, take confirmation
+    # show current and new versions, take confirmation
     my $cur_ver = $self->dist->version;
 
     # increment version
@@ -73,28 +73,44 @@ sub run ($self) {
     my $new_ver = version->parse( 'v' . join q[.], @parts );
 
     if ( $cur_ver eq $new_ver ) {
-        say 'Versions are equal. Release is impossible.';
+        say qq[You forgot to specify release version. Release is impossible.$LF];
 
         return;
     }
 
-    say q[];
-    say 'Curent version is: ' . $cur_ver;
-    say 'New version will be: ' . $new_ver;
-
-    return if P->term->prompt( 'Continue release process?', [qw[yes no]], enter => 1 ) ne 'yes';
-
     # working with issues tracker
-    my $closed_issues;
+    my $closed_issues = $self->dist->build->issues->get( closed => 1 );
 
+    if ($closed_issues) {
+        say qq[\nFollowing issues will be added to the release CHANGES file\n];
+
+        $self->dist->build->issues->print_issues($closed_issues);
+    }
+    else {
+        say qq[\nThere are no new closed issues since last relese];
+    }
+
+    say qq[${LF}Curent version is: $cur_ver];
+    say qq[New version will be: $new_ver$LF];
+
+    return if P->term->prompt( qq[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
+
+    say q[];
+
+    # run tests
+    return if !$self->dist->build->test( author => 1, release => 1 );
+
+    # !!!WARNING!!! start release, next changes will be hard to revert
     {
         my $cv = AE::cv;
 
         # create new version on issues tracker
-        $self->dist->build->get_issues_api->create_version(
+        print q[Create new version on issues tracker ... ];
+
+        $self->dist->build->issues->create_version(
             $new_ver,
             sub ($id) {
-                die q[Error creating new verion on issues tracker] if !$id;
+                die q[Error creating new version on issues tracker] if !$id;
 
                 $cv->send;
 
@@ -104,9 +120,13 @@ sub run ($self) {
 
         $cv->recv;
 
+        say q[done];
+
         # get closed issues, set version for closed issues
-        if ( $closed_issues = $self->dist->build->issues( closed => 1 ) ) {
+        if ($closed_issues) {
             $cv = AE::cv;
+
+            print q[Updating closed issues version ... ];
 
             for my $issue ( $closed_issues->@* ) {
                 $cv->begin;
@@ -122,12 +142,14 @@ sub run ($self) {
             }
 
             $cv->recv;
+
+            say q[done];
         }
     }
 
     # update release version in the main module
     unless ( $self->dist->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
-        say 'Error updating version';
+        say q[Error updating version];
 
         return;
     }
@@ -148,7 +170,7 @@ sub run ($self) {
 
     $scm->cmd( 'tag', '-f', 'stable', $new_ver );
 
-    say 'Pushing to the upstream';
+    say 'Pushing to the upstream repository';
     $scm->cmd('push');
 
     # upload to the CPAN if this is the CPAN distribution, prompt before upload
@@ -257,11 +279,14 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 15                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       │
+## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 31                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 16, 94, 129, 166     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 96                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 15, 44, 47, 82, 87,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 110, 151, 188        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
