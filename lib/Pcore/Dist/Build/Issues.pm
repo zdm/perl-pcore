@@ -86,19 +86,27 @@ sub print_issues ( $self, $issues ) {
         say 'No issues';
     }
     else {
-        say sprintf '%4s  %-8s  %-9s  %-11s  %s', qw[ID PRIORITY STATUS KIND TITLE];
+        my $tbl = P->text->table;
+
+        $tbl->set_cols(qw[ID PRIORITY STATUS KIND TITLE]);
+        $tbl->set_col_width( 'TITLE', 100, 1 );
+        $tbl->align_col( 'ID', 'right' );
 
         if ( blessed $issues ) {
             my $issue = $issues;
 
-            say sprintf '%4s  %s  %-9s  %-11s  %s', $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
+            $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title} );
+
+            say $tbl->render;
 
             say $LF, $issue->{content} || 'No content';
         }
         else {
             for my $issue ( sort { $b->utc_last_updated_ts <=> $a->utc_last_updated_ts or $b->priority_id <=> $a->priority_id } $issues->@* ) {
-                say sprintf '%4s  %s  %-9s  %-11s  %s', $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
+                $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title} );
             }
+
+            say $tbl->render;
         }
     }
 
@@ -118,7 +126,7 @@ sub create_version ( $self, $ver, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 24                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 99                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 105                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
