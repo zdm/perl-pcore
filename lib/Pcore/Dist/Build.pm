@@ -179,10 +179,9 @@ sub issues ( $self, @ ) {
     my $issues;
 
     $bb->issues(
-        id        => $id,
-        status    => $status,
-        version   => undef,
-        milestone => undef,
+        id      => $id,
+        status  => $status,
+        version => undef,
         sub ($res) {
             $issues = $res;
 

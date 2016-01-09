@@ -48,7 +48,7 @@ sub run ( $self, $opt, $arg ) {
         if ( blessed $issues ) {
             my $issue = $issues;
 
-            say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
+            say sprintf '%4s  %s  %-9s  %-11s  %s', $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
 
             say $LF, $issue->{content} || 'No content';
         }
@@ -56,7 +56,7 @@ sub run ( $self, $opt, $arg ) {
             # TODO sort utc_created_on, utc_last_updated
 
             for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
-                say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
+                say sprintf '%4s  %s  %-9s  %-11s  %s', $issue->{local_id}, $issue->priority_color, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
             }
         }
     }

@@ -1,6 +1,7 @@
 package Pcore::API::Bitbucket::Issue;
 
 use Pcore -class, -const;
+use Term::ANSIColor qw[:constants];
 
 const our $PRIORITY => {
     trivial  => 1,
@@ -8,6 +9,14 @@ const our $PRIORITY => {
     major    => 3,
     critical => 4,
     blocker  => 5,
+};
+
+const our $PRIORITY_COLOR => {
+    trivial  => WHITE,
+    minor    => BOLD . GREEN,
+    major    => BOLD . YELLOW,
+    critical => BOLD . RED,
+    blocker  => BOLD . RED,
 };
 
 const our $KIND => {
@@ -31,12 +40,19 @@ const our $STATUS => {
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Bitbucket'], required => 1 );
 
 has priority_id => ( is => 'lazy', isa => Enum [ values $PRIORITY->%* ], init_arg => undef );
+has priority_color => ( is => 'lazy', isa => Str, init_arg => undef );
 
 sub _build_priority_id ($self) {
     return $PRIORITY->{ $self->{priority} };
 }
 
-sub set_milestone ($self) {
+sub _build_priority_color ($self) {
+    return $PRIORITY_COLOR->{ $self->{priority} } . sprintf( '%-8s', $self->{priority} ) . RESET;
+}
+
+# PUT https://api.bitbucket.org/1.0/repositories/{accountname}/{repo_slug}/issues/{issue_id}  --data "parameter=value&parameter=value"
+# return issue object
+sub set_version ( $self, $ver ) {
     return;
 }
 
@@ -47,7 +63,7 @@ sub set_milestone ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 33                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

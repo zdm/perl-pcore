@@ -21,11 +21,10 @@ sub issues ( $self, @ ) {
 
     # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
     my %args = (
-        id        => undef,
-        sort      => 'priority',    # priority, kind, version, component, milestone
-        status    => undef,
-        version   => undef,
-        milestone => undef,
+        id      => undef,
+        sort    => 'priority',    # priority, kind, version, component, milestone
+        status  => undef,
+        version => undef,
         splice @_, 1, -1,
     );
 
@@ -80,6 +79,15 @@ sub issues ( $self, @ ) {
     return;
 }
 
+# POST https://api.bitbucket.org/1.0/repositories/{accountname}/{repo_slug}/issues/versions --data "name=String"
+# {
+#     "name": "2.0",
+#     "id": 9108
+# }
+sub create_version ( $self, $ver ) {
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -87,7 +95,7 @@ sub issues ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 55, 67               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 54, 66               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
