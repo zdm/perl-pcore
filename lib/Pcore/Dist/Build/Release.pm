@@ -290,7 +290,7 @@ sub _create_changes ( $self, $ver, $issues ) {
         my $group = {};
 
         for my $issue ( $issues->@* ) {
-            push $group->{ $issue->{kind} }->@*, $issue->{title};
+            push $group->{ $issue->{metadata}->{kind} }->@*, $issue->{title};
         }
 
         for my $group_name ( keys $group->%* ) {
