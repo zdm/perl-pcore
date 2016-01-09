@@ -55,9 +55,23 @@ sub _build_utc_last_updated_ts ($self) {
     return P->date->from_string( $self->{utc_last_updated} =~ s/\s/T/smr )->epoch;
 }
 
-# PUT https://api.bitbucket.org/1.0/repositories/{accountname}/{repo_slug}/issues/{issue_id}  --data "parameter=value&parameter=value"
-# return issue object
-sub set_version ( $self, $ver ) {
+sub set_version ( $self, $ver, $cb ) {
+    my $url = "https://bitbucket.org/api/1.0/repositories/@{[$self->api->account_name]}/@{[$self->api->repo_slug]}/issues/$self->{local_id}/";
+
+    P->http->put(    #
+        $url,
+        headers => {
+            AUTHORIZATION => $self->api->auth,
+            CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
+        },
+        body      => P->data->to_uri( { version => $ver } ),
+        on_finish => sub ($res) {
+            $cb->( $res->status == 200 ? 1 : 0 );
+
+            return;
+        },
+    );
+
     return;
 }
 

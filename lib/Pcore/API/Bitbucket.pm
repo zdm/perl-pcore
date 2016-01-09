@@ -79,12 +79,29 @@ sub issues ( $self, @ ) {
     return;
 }
 
-# POST https://api.bitbucket.org/1.0/repositories/{accountname}/{repo_slug}/issues/versions --data "name=String"
-# {
-#     "name": "2.0",
-#     "id": 9108
-# }
-sub create_version ( $self, $ver ) {
+sub create_version ( $self, $ver, $cb ) {
+    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/versions";
+
+    $ver = version->parse($ver)->normal;
+
+    P->http->post(    #
+        $url,
+        headers => {
+            AUTHORIZATION => $self->auth,
+            CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
+        },
+        body      => P->data->to_uri( { name => $ver } ),
+        on_finish => sub ($res) {
+            my $id;
+
+            $id = P->data->from_json( $res->body )->{id} if $res->status == 200;
+
+            $cb->($id);
+
+            return;
+        },
+    );
+
     return;
 }
 

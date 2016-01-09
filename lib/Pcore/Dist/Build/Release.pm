@@ -40,6 +40,13 @@ sub run ($self) {
         return;
     }
 
+    # check for resolved issues without version
+    if ( $self->dist->build->issues( resolved => 1 ) ) {
+        say 'There are resolved but not closed issues. Release is impossible.';
+
+        return;
+    }
+
     # run tests
     return if !$self->dist->build->test( author => 1, release => 1 );
 
@@ -75,6 +82,47 @@ sub run ($self) {
     say 'New version will be: ' . $new_ver;
 
     return if P->term->prompt( 'Continue release process?', [qw[yes no]], enter => 1 ) ne 'yes';
+
+    # working with issues tracker
+    my $closed_issues;
+
+    {
+        my $cv = AE::cv;
+
+        # create new version on issues tracker
+        $self->dist->build->get_issues_api->create_version(
+            $new_ver,
+            sub ($id) {
+                die q[Error creating new verion on issues tracker] if !$id;
+
+                $cv->send;
+
+                return;
+            }
+        );
+
+        $cv->recv;
+
+        # get closed issues, set version for closed issues
+        if ( $closed_issues = $self->dist->build->issues( closed => 1 ) ) {
+            $cv = AE::cv;
+
+            for my $issue ( $closed_issues->@* ) {
+                $cv->begin;
+
+                $issue->set_version(
+                    $new_ver,
+                    sub ($success) {
+                        $cv->end;
+
+                        return;
+                    }
+                );
+            }
+
+            $cv->recv;
+        }
+    }
 
     # update release version in the main module
     unless ( $self->dist->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
@@ -208,9 +256,11 @@ sub _upload ( $self, $username, $password, $path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 15, 80, 117          │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 15, 93, 128, 165     │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

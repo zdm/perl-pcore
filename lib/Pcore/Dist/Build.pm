@@ -135,19 +135,7 @@ sub par ( $self, @ ) {
 }
 
 sub issues ( $self, @ ) {
-    my $scm = $self->dist->scm;
-
-    return if !$scm || !$scm->upstream;
-
-    state $init = !!require Pcore::API::Bitbucket;
-
-    my $bb = Pcore::API::Bitbucket->new(
-        {   account_name => $scm->upstream->username,
-            repo_slug    => $scm->upstream->reponame,
-            username     => $self->dist->build->user_cfg->{Bitbucket}->{api_username},
-            password     => $self->dist->build->user_cfg->{Bitbucket}->{api_password},
-        }
-    );
+    my $issues_api = $self->get_issues_api;
 
     my %args = (
         id       => undef,
@@ -178,7 +166,7 @@ sub issues ( $self, @ ) {
 
     my $issues;
 
-    $bb->issues(
+    $issues_api->issues(
         id      => $id,
         status  => $status,
         version => undef,
@@ -194,6 +182,22 @@ sub issues ( $self, @ ) {
     $cv->recv;
 
     return $issues;
+}
+
+sub get_issues_api ($self) {
+    my $scm = $self->dist->scm;
+
+    return if !$scm || !$scm->upstream;
+
+    state $init = !!require Pcore::API::Bitbucket;
+
+    return Pcore::API::Bitbucket->new(
+        {   account_name => $scm->upstream->username,
+            repo_slug    => $scm->upstream->reponame,
+            username     => $self->dist->build->user_cfg->{Bitbucket}->{api_username},
+            password     => $self->dist->build->user_cfg->{Bitbucket}->{api_password},
+        }
+    );
 }
 
 sub temp_build ( $self, $keep = 0 ) {
@@ -245,7 +249,7 @@ sub tgz ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 145                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 195                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
