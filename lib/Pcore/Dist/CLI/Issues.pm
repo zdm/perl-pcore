@@ -94,6 +94,8 @@ sub run ( $self, $opt, $arg ) {
             say $LF, $issue->{content} || 'No content';
         }
         else {
+            # TODO sort utc_created_on, utc_last_updated
+
             for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
                 say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
             }
@@ -114,7 +116,7 @@ sub run ( $self, $opt, $arg ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 40                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 97                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 99                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
