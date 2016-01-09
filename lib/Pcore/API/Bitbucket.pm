@@ -21,6 +21,7 @@ sub issues ( $self, @ ) {
 
     # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
     my %args = (
+        id        => undef,
         sort      => 'priority',    # priority, kind, version, component, milestone
         status    => undef,
         version   => undef,
@@ -28,25 +29,49 @@ sub issues ( $self, @ ) {
         splice @_, 1, -1,
     );
 
-    P->http->get(                   #
-        "https://bitbucket.org/api/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/?" . P->data->to_uri( \%args ),
+    my $id = delete $args{id};
+
+    my $url = do {
+        if ($id) {
+            "https://bitbucket.org/api/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/$id";
+        }
+        else {
+            "https://bitbucket.org/api/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/?" . P->data->to_uri( \%args );
+        }
+    };
+
+    P->http->get(    #
+        $url,
         headers   => { AUTHORIZATION => $self->auth },
         on_finish => sub ($res) {
             my $json = P->data->from_json( $res->body );
 
-            my $issues;
+            if ($id) {
+                my $issue;
 
-            if ( $json->{issues}->@* ) {
-                for ( $json->{issues}->@* ) {
-                    my $issue = Pcore::API::Bitbucket::Issue->new( { api => $self } );
+                if ($json) {
+                    $issue = Pcore::API::Bitbucket::Issue->new( { api => $self } );
 
-                    $issue->@{ keys $_->%* } = values $_->%*;
-
-                    push $issues->@*, $issue;
+                    $issue->@{ keys $json->%* } = values $json->%*;
                 }
-            }
 
-            $cb->($issues);
+                $cb->($issue);
+            }
+            else {
+                my $issues;
+
+                if ( $json->{issues}->@* ) {
+                    for ( $json->{issues}->@* ) {
+                        my $issue = Pcore::API::Bitbucket::Issue->new( { api => $self } );
+
+                        $issue->@{ keys $_->%* } = values $_->%*;
+
+                        push $issues->@*, $issue;
+                    }
+                }
+
+                $cb->($issues);
+            }
 
             return;
         },
@@ -62,7 +87,7 @@ sub issues ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 43                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 55, 67               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

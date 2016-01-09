@@ -26,12 +26,12 @@ sub cli_arg ($self) {
 }
 
 sub cli_run ( $self, $opt, $arg, $rest ) {
-    $self->new->run($opt);
+    $self->new->run( $opt, $arg );
 
     return;
 }
 
-sub run ( $self, $opt ) {
+sub run ( $self, $opt, $arg ) {
     state $init = !!require Pcore::API::Bitbucket;
 
     my $scm = $self->dist->scm;
@@ -43,6 +43,8 @@ sub run ( $self, $opt ) {
             password     => $self->dist->build->user_cfg->{Bitbucket}->{api_password},
         }
     );
+
+    my $id = $arg->{id};
 
     my $cv = AE::cv;
 
@@ -64,6 +66,7 @@ sub run ( $self, $opt ) {
     my $issues;
 
     $bb->issues(
+        id        => $id,
         status    => $status,
         version   => undef,
         milestone => undef,
@@ -84,8 +87,16 @@ sub run ( $self, $opt ) {
     else {
         say sprintf '%4s  %-8s  %-9s  %-11s  %s', qw[ID PRIORITY STATUS KIND TITLE];
 
-        for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
+        if ($id) {
+            my $issue = $issues;
+
             say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
+            say $LF, $issues->{content};
+        }
+        else {
+            for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
+                say sprintf '%4s  %-8s  %-9s  %-11s  %s', $issue->{local_id}, $issue->{priority}, $issue->{status}, $issue->{metadata}->{kind}, $issue->{title};
+            }
         }
     }
 
@@ -103,7 +114,7 @@ sub run ( $self, $opt ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 40                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 87                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 97                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
