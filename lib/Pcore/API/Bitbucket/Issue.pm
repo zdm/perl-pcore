@@ -87,8 +87,8 @@ sub set_version ( $self, $ver, $cb ) {
     return;
 }
 
-sub set_milestone ( $self, $ver, $cb ) {
-    $self->_update( { milestone => $ver }, $cb );
+sub set_milestone ( $self, $milestone, $cb ) {
+    $self->_update( { milestone => $milestone }, $cb );
 
     return;
 }
