@@ -36,7 +36,7 @@ sub to_http_date ($self) {
 }
 
 sub to_w3cdtf ($self) {
-    return $self->at_utc->strftime('%Y-%m-%dT%H:%M:%S%z');
+    return $self->strftime('%Y-%m-%dT%H:%M:%S%Z');
 }
 
 1;
