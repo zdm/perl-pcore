@@ -29,9 +29,8 @@ const our $TLS_CTX      => {
 };
 
 our $DEFAULT = {
-    method   => undef,
-    url      => undef,
-    blocking => undef,
+    method => undef,
+    url    => undef,
 
     useragent         => "Mozilla/5.0 (compatible; U; Pcore-HTTP-UA/$Pcore::VERSION",
     recurse           => 7,                                                             # max. redirects
@@ -173,6 +172,8 @@ sub mirror ( $target, @ ) {
 }
 
 sub request {
+    my $wantarray = wantarray;
+
     my %args;
 
     if ( !blessed $_[0] ) {
@@ -266,15 +267,9 @@ sub request {
     }
 
     # blocking cv
-    my $cv = delete $args{blocking};
+    my $cv = delete $args{cv};
 
-    my $blocking;
-
-    if ( $cv && !ref $cv ) {
-        $cv = AE::cv;
-
-        $blocking = 1;
-    }
+    $cv //= AE::cv if defined $wantarray;
 
     # on_finish wrapper
     my $before_finish = delete $args{before_finish};
@@ -282,6 +277,8 @@ sub request {
     my $on_finish = delete $args{on_finish};
 
     my $res = $args{res};
+
+    my @on_finish_result;
 
     $args{on_finish} = sub {
 
@@ -292,7 +289,20 @@ sub request {
         $before_finish->($res) if $before_finish;
 
         # on_finish callback
-        $on_finish->($res) if $on_finish;
+        if ($on_finish) {
+            if ( !defined $wantarray ) {
+                $on_finish->($res);
+            }
+            elsif ($wantarray) {
+                @on_finish_result = $on_finish->($res);
+            }
+            else {
+                $on_finish_result[0] = $on_finish->($res);
+            }
+        }
+        else {
+            $on_finish_result[0] = $res;
+        }
 
         $cv->end if $cv;
 
@@ -304,9 +314,19 @@ sub request {
     # throw request
     Pcore::HTTP::Util::http_request( \%args );
 
-    $cv->recv if $cv && $blocking;
+    if ( defined $wantarray ) {
+        $cv->recv;
 
-    return;
+        if ($wantarray) {
+            return @on_finish_result;
+        }
+        else {
+            return $on_finish_result[0];
+        }
+    }
+    else {
+        return;
+    }
 }
 
 sub rand_ua {
@@ -432,14 +452,14 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111, 179, 190, 224,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 225, 249             │                                                                                                                │
+## │    3 │ 110, 180, 191, 225,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 226, 250             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 113                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (44)                   │
+## │    3 │ 174                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (49)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 161                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 160                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
