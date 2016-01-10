@@ -1,10 +1,10 @@
 v0.15.0 2016-01-09T23:35:53+0000
  [ENHANCEMENT]
- - #4: [minor] Bitbucket issues integration
+ - [minor] Bitbucket issues integration
    (https://bitbucket.org/softvisio/pcore/issues/4/)
- - #3: [minor] Support for bind_ip for Pcore::AE::Handle
+ - [minor] Support for bind_ip for Pcore::AE::Handle
    (https://bitbucket.org/softvisio/pcore/issues/3/)
- - #12: [trivial] Rename pcore "info" to "id"
+ - [trivial] Rename pcore "info" to "id"
    (https://bitbucket.org/softvisio/pcore/issues/12/)
- - #6: [trivial] Check, that we are on "default" SCM brach on release
+ - [trivial] Check, that we are on "default" SCM brach on release
    (https://bitbucket.org/softvisio/pcore/issues/6/)

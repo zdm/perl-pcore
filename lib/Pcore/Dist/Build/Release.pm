@@ -292,7 +292,7 @@ sub _create_changes ( $self, $ver, $issues ) {
         my $group = {};
 
         for my $issue ( sort { $b->priority_id <=> $a->priority_id } $issues->@* ) {
-            push $group->{ $issue->{metadata}->{kind} }->@*, qq[#$issue->{local_id}: [$issue->{priority}] $issue->{title} (@{[$issue->url]})];
+            push $group->{ $issue->{metadata}->{kind} }->@*, qq[[$issue->{priority}] $issue->{title} (@{[$issue->url]})];
         }
 
         for my $group_name ( keys $group->%* ) {
