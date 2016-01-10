@@ -87,7 +87,7 @@ sub run ($self) {
         $self->dist->build->issues->print_issues($closed_issues);
     }
     else {
-        say qq[\nThere are no new closed issues since the previous release];
+        say qq[\nNo issues were closed since the last release];
     }
 
     say qq[${LF}Curent version is: $cur_ver];
@@ -318,7 +318,7 @@ sub _create_changes ( $self, $ver, $issues ) {
         }
     }
     else {
-        $rel->add_changes('No issues are closed since previous release');
+        $rel->add_changes('No issues were closed since the last release');
     }
 
     $changes->add_release($rel);
