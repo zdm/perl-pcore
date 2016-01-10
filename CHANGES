@@ -1,4 +1,9 @@
-v0.15.2 2016-01-10T11:52:10+0000
+v0.16.0 2016-01-10T16:16:54+0000
+ [ENHANCEMENT]
+ - [minor] Pcore::HTTP method can be setted to blocking mode automatically
+   if want array (https://bitbucket.org/softvisio/pcore/issues/10/)
+
+v0.15.2 2016-01-10T11:52:10Z +0000
  [BUG]
  - [major] Use milestone instead of version for release issues
    (https://bitbucket.org/softvisio/pcore/issues/16/)
