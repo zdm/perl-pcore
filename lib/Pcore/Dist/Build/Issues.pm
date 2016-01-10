@@ -148,6 +148,8 @@ sub print_issues ( $self, $issues, $content = 1 ) {
             }
 
             print $tbl->render;
+
+            say 'max. 50 first issues shown';
         }
     }
 
