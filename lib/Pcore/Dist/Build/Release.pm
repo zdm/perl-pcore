@@ -100,6 +100,8 @@ sub run ($self) {
     # run tests
     return if !$self->dist->build->test( author => 1, release => 1 );
 
+    say q[];
+
     # !!!WARNING!!! start release, next changes will be hard to revert
 
     # update release version in the main module
@@ -115,7 +117,7 @@ sub run ($self) {
         my $cv = AE::cv;
 
         # create new version on issues tracker
-        print q[Create new version on issues tracker ... ];
+        print q[Create new version and milestone on issues tracker ... ];
 
         $cv->begin;
 
@@ -131,8 +133,6 @@ sub run ($self) {
         );
 
         # create new milestone on issues tracker
-        print q[Create new milestone on issues tracker ... ];
-
         $cv->begin;
 
         $self->dist->build->issues->create_milestone(
@@ -154,7 +154,7 @@ sub run ($self) {
         if ($closed_issues) {
             $cv = AE::cv;
 
-            print q[Updating closed issues milestone ... ];
+            print q[Updating milestone for closed issues ... ];
 
             for my $issue ( $closed_issues->@* ) {
                 $cv->begin;
@@ -342,7 +342,7 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## │    3 │ 96                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 15, 44, 47, 82, 87,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 106, 122, 138, 210   │                                                                                                                │
+## │      │ 108, 124, 138, 210   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 312                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
