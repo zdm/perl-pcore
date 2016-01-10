@@ -106,7 +106,7 @@ sub get ( $self, @ ) {
         $self->api->issues(
             id        => $args{id},
             status    => \@status,
-            milestone => undef,
+            milestone => $args{milestone},
             sub ($res) {
                 $issues = $res;
 

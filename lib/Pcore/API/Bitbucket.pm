@@ -20,6 +20,7 @@ sub issues ( $self, @ ) {
 
     # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
     my %args = (
+        limit     => 50,
         id        => undef,
         sort      => 'priority',    # priority, kind, version, component, milestone
         status    => undef,
@@ -145,7 +146,7 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 53, 65               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 54, 66               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

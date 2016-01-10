@@ -76,24 +76,24 @@ sub _build_url ($self) {
 }
 
 sub set_status ( $self, $status, $cb ) {
-    $self->_update( { status => $status }, $cb );
+    $self->update( { status => $status }, $cb );
 
     return;
 }
 
 sub set_version ( $self, $ver, $cb ) {
-    $self->_update( { version => $ver }, $cb );
+    $self->update( { version => $ver }, $cb );
 
     return;
 }
 
 sub set_milestone ( $self, $milestone, $cb ) {
-    $self->_update( { milestone => $milestone }, $cb );
+    $self->update( { milestone => $milestone }, $cb );
 
     return;
 }
 
-sub _update ( $self, $args, $cb ) {
+sub update ( $self, $args, $cb ) {
     my $url = "https://bitbucket.org/api/1.0/repositories/@{[$self->api->account_name]}/@{[$self->api->repo_slug]}/issues/$self->{local_id}/";
 
     P->http->put(    #
