@@ -1,4 +1,7 @@
-v0.16.0 2016-01-10T16:16:54+0000
+v0.16.1 2016-01-10T16:41:48Z
+ - No issues were closed since the last release
+
+v0.16.0 2016-01-10T16:16:54Z +0000
  [ENHANCEMENT]
  - [minor] Pcore::HTTP method can be setted to blocking mode automatically
    if want array (https://bitbucket.org/softvisio/pcore/issues/10/)
