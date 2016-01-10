@@ -1,9 +1,18 @@
-v0.15.1 2016-01-10T00:06:19+0000
+v0.15.2 2016-01-10T11:52:10+0000
+ [BUG]
+ - [major] Use milestone instead of version for release issues
+   (https://bitbucket.org/softvisio/pcore/issues/16/)
+
+ [ENHANCEMENT]
+ - [minor] Change issue status from command line
+   (https://bitbucket.org/softvisio/pcore/issues/15/)
+
+v0.15.1 2016-01-10T00:06:19Z +0000
  [BUG]
  - [trivial] Remove #issue: from CHANGES
    (https://bitbucket.org/softvisio/pcore/issues/14/)
 
-v0.15.0 2016-01-09T23:35:53+0000
+v0.15.0 2016-01-09T23:35:53Z +0000
  [ENHANCEMENT]
  - [minor] Bitbucket issues integration
    (https://bitbucket.org/softvisio/pcore/issues/4/)
