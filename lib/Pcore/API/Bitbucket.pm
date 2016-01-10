@@ -1,6 +1,7 @@
 package Pcore::API::Bitbucket;
 
 use Pcore -class;
+use Pcore::API::Bitbucket::Issue;
 
 has account_name => ( is => 'ro', isa => Str, required => 1 );
 has repo_slug    => ( is => 'ro', isa => Str, required => 1 );
@@ -15,8 +16,6 @@ sub _build_auth ($self) {
 }
 
 sub issues ( $self, @ ) {
-    state $init = !!require Pcore::API::Bitbucket::Issue;
-
     my $cb = $_[-1];
 
     # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
@@ -132,8 +131,6 @@ sub create_milestone ( $self, $ver, $cb ) {
 }
 
 sub set_issue_status ( $self, $id, $status, $cb ) {
-    state $init = !!require Pcore::API::Bitbucket::Issue;
-
     my $issue = Pcore::API::Bitbucket::Issue->new( { api => $self } );
 
     $issue->{local_id} = $id;
@@ -150,7 +147,7 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 54, 66               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 53, 65               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

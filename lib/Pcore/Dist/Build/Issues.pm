@@ -82,10 +82,14 @@ sub get ( $self, @ ) {
         # impossible to set multiple statuses
         croak q[Can't set multiply issue statuses] if @status > 1;
 
+        my $issue;
+
         $self->api->set_issue_status(
             $args{id},
             $status[0],
-            sub ($success) {
+            sub ($res) {
+                $issue = $res;
+
                 $cv->send;
 
                 return;
@@ -94,7 +98,7 @@ sub get ( $self, @ ) {
 
         $cv->recv;
 
-        return;
+        return $issue;
     }
     else {
         my $issues;
@@ -118,7 +122,7 @@ sub get ( $self, @ ) {
     }
 }
 
-sub print_issues ( $self, $issues ) {
+sub print_issues ( $self, $issues, $content = 1 ) {
     if ( !$issues ) {
         say 'No issues';
     }
@@ -134,16 +138,16 @@ sub print_issues ( $self, $issues ) {
 
             $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->status_color, $issue->kind_color, $issue->{title} );
 
-            say $tbl->render;
+            print $tbl->render;
 
-            say $LF, $issue->{content} || 'No content';
+            say $LF, $issue->{content} || 'No content' if $content;
         }
         else {
             for my $issue ( sort { $b->utc_last_updated_ts <=> $a->utc_last_updated_ts or $b->priority_id <=> $a->priority_id } $issues->@* ) {
                 $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->status_color, $issue->kind_color, $issue->{title} );
             }
 
-            say $tbl->render;
+            print $tbl->render;
         }
     }
 
@@ -165,7 +169,7 @@ sub create_version ( $self, $ver, $cb ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 24                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 142                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 146                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

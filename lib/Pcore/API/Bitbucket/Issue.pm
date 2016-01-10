@@ -31,10 +31,10 @@ const our $STATUS => {
     open      => BLACK . ON_WHITE,
     resolved  => WHITE . ON_RED,
     closed    => BLACK . ON_GREEN,
-    'on hold' => WHITE,
-    invalid   => WHITE,
-    duplicate => WHITE,
-    wontfix   => WHITE,
+    'on hold' => WHITE . ON_BLUE,
+    invalid   => WHITE . ON_BLUE,
+    duplicate => WHITE . ON_BLUE,
+    wontfix   => WHITE . ON_BLUE,
 };
 
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Bitbucket'], required => 1 );
@@ -104,7 +104,18 @@ sub _update ( $self, $args, $cb ) {
         },
         body      => P->data->to_uri($args),
         on_finish => sub ($res) {
-            $cb->( $res->status == 200 ? 1 : 0 );
+            if ( $res->status != 200 ) {
+                $cb->();
+            }
+            else {
+                my $json = P->data->from_json( $res->body );
+
+                my $issue = $self->new( { api => $self->api } );
+
+                $issue->@{ keys $json->%* } = values $json->%*;
+
+                $cb->($issue);
+            }
 
             return;
         },
@@ -120,7 +131,7 @@ sub _update ( $self, $args, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 42, 115              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
