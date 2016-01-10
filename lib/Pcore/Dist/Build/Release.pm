@@ -40,7 +40,7 @@ sub run ($self) {
         return;
     }
 
-    # check for resolved issues without version
+    # check for resolved issues without milestone
     if ( my $resolved_issues = $self->dist->build->issues->get( resolved => 1 ) ) {
         say qq[Following issues are resolved and not closed:$LF];
 
@@ -117,12 +117,30 @@ sub run ($self) {
         # create new version on issues tracker
         print q[Create new version on issues tracker ... ];
 
+        $cv->begin;
+
         $self->dist->build->issues->create_version(
             $new_ver,
             sub ($id) {
                 die q[Error creating new version on issues tracker] if !$id;
 
-                $cv->send;
+                $cv->end;
+
+                return;
+            }
+        );
+
+        # create new milestone on issues tracker
+        print q[Create new milestone on issues tracker ... ];
+
+        $cv->begin;
+
+        $self->dist->build->issues->create_milestone(
+            $new_ver,
+            sub ($id) {
+                die q[Error creating new milestone on issues tracker] if !$id;
+
+                $cv->end;
 
                 return;
             }
@@ -132,16 +150,16 @@ sub run ($self) {
 
         say q[done];
 
-        # get closed issues, set version for closed issues
+        # get closed issues, set milestone for closed issues
         if ($closed_issues) {
             $cv = AE::cv;
 
-            print q[Updating closed issues version ... ];
+            print q[Updating closed issues milestone ... ];
 
             for my $issue ( $closed_issues->@* ) {
                 $cv->begin;
 
-                $issue->set_version(
+                $issue->set_milestone(
                     $new_ver,
                     sub ($success) {
                         $cv->end;
@@ -317,16 +335,16 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       │
+## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (24)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30, 298              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 316              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 96                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 15, 44, 47, 82, 87,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 106, 120, 192        │                                                                                                                │
+## │      │ 106, 122, 138, 210   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 294                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 312                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

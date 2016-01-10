@@ -20,10 +20,10 @@ sub issues ( $self, @ ) {
 
     # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
     my %args = (
-        id      => undef,
-        sort    => 'priority',    # priority, kind, version, component, milestone
-        status  => undef,
-        version => undef,
+        id        => undef,
+        sort      => 'priority',    # priority, kind, version, component, milestone
+        status    => undef,
+        milestone => undef,
         splice @_, 1, -1,
     );
 
@@ -104,10 +104,8 @@ sub create_version ( $self, $ver, $cb ) {
     return;
 }
 
-sub create_milestone ( $self, $ver, $cb ) {
+sub create_milestone ( $self, $milestone, $cb ) {
     my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/milestones";
-
-    $ver = version->parse($ver)->normal;
 
     P->http->post(    #
         $url,
@@ -115,7 +113,7 @@ sub create_milestone ( $self, $ver, $cb ) {
             AUTHORIZATION => $self->auth,
             CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
         },
-        body      => P->data->to_uri( { name => $ver } ),
+        body      => P->data->to_uri( { name => $milestone } ),
         on_finish => sub ($res) {
             my $id;
 

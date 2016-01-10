@@ -104,9 +104,9 @@ sub get ( $self, @ ) {
         my $issues;
 
         $self->api->issues(
-            id      => $args{id},
-            status  => \@status,
-            version => undef,
+            id        => $args{id},
+            status    => \@status,
+            milestone => undef,
             sub ($res) {
                 $issues = $res;
 
@@ -156,6 +156,10 @@ sub print_issues ( $self, $issues, $content = 1 ) {
 
 sub create_version ( $self, $ver, $cb ) {
     return $self->api->create_version( $ver, $cb );
+}
+
+sub create_milestone ( $self, $milestone, $cb ) {
+    return $self->api->create_milestone( $milestone, $cb );
 }
 
 1;
