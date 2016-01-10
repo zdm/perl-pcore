@@ -34,7 +34,7 @@ sub load ( $self, $cb ) {
         P->http->get(
             $url,
             timeout   => $self->http_timeout,
-            blocking  => $cv,
+            cv        => $cv,
             on_finish => sub ($res) {
                 if ( $res->status == 200 && $res->has_body ) {
                     decode_eol $res->body->$*;

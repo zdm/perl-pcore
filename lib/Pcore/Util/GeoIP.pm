@@ -47,14 +47,14 @@ sub update_all {
     return;
 }
 
-sub update ( $type, $cv = 1 ) {
+sub update ( $type, $cv = undef ) {
     state $init = !!require IO::Uncompress::Gunzip;
 
     P->http->get(
         $RES->{$type}->[1],
         buf_size    => 1,
         on_progress => 1,
-        blocking    => $cv,
+        cv          => $cv,
         on_finish   => sub ($res) {
             if ( $res->status == 200 ) {
                 my $temp = P->file->tempfile;
@@ -79,31 +79,31 @@ sub country {
     return $H->{$TYPE_COUNTRY};
 }
 
-sub country_v6 ($update = undef) {
+sub country_v6 {
     _get_h($TYPE_COUNTRY_V6) if !exists $H->{$TYPE_COUNTRY_V6};
 
     return $H->{$TYPE_COUNTRY_V6};
 }
 
-sub country2 ($update = undef) {
+sub country2 {
     _get_h($TYPE_COUNTRY2) if !exists $H->{$TYPE_COUNTRY2};
 
     return $H->{$TYPE_COUNTRY2};
 }
 
-sub city ($update = undef) {
+sub city {
     _get_h($TYPE_CITY) if !exists $H->{$TYPE_CITY};
 
     return $H->{$TYPE_CITY};
 }
 
-sub city_v6 ($update = undef) {
+sub city_v6 {
     _get_h($TYPE_CITY_V6) if !exists $H->{$TYPE_CITY_V6};
 
     return $H->{$TYPE_CITY_V6};
 }
 
-sub city2 ($update = undef) {
+sub city2 {
     _get_h($TYPE_CITY2) if !exists $H->{$TYPE_CITY2};
 
     return $H->{$TYPE_CITY2};

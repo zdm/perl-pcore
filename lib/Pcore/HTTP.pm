@@ -269,7 +269,9 @@ sub request {
     # blocking cv
     my $cv = delete $args{cv};
 
-    $cv //= AE::cv if defined $wantarray;
+    my $blocking = delete $args{blocking} // defined $wantarray;
+
+    $cv //= AE::cv if $blocking;
 
     # on_finish wrapper
     my $before_finish = delete $args{before_finish};
@@ -314,18 +316,16 @@ sub request {
     # throw request
     Pcore::HTTP::Util::http_request( \%args );
 
-    if ( defined $wantarray ) {
-        $cv->recv;
+    $cv->recv if $blocking;
 
-        if ($wantarray) {
-            return @on_finish_result;
-        }
-        else {
-            return $on_finish_result[0];
-        }
+    if ( !defined $wantarray ) {
+        return;
+    }
+    elsif ($wantarray) {
+        return @on_finish_result;
     }
     else {
-        return;
+        return $on_finish_result[0];
     }
 }
 
