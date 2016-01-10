@@ -105,6 +105,44 @@ sub create_version ( $self, $ver, $cb ) {
     return;
 }
 
+sub create_milestone ( $self, $ver, $cb ) {
+    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/milestones";
+
+    $ver = version->parse($ver)->normal;
+
+    P->http->post(    #
+        $url,
+        headers => {
+            AUTHORIZATION => $self->auth,
+            CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
+        },
+        body      => P->data->to_uri( { name => $ver } ),
+        on_finish => sub ($res) {
+            my $id;
+
+            $id = P->data->from_json( $res->body )->{id} if $res->status == 200;
+
+            $cb->($id);
+
+            return;
+        },
+    );
+
+    return;
+}
+
+sub set_issue_status ( $self, $id, $status, $cb ) {
+    state $init = !!require Pcore::API::Bitbucket::Issue;
+
+    my $issue = Pcore::API::Bitbucket::Issue->new( { api => $self } );
+
+    $issue->{local_id} = $id;
+
+    $issue->set_status( $status, $cb );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

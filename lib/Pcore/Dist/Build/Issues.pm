@@ -31,54 +31,91 @@ sub _build_api ($self) {
 
 sub get ( $self, @ ) {
     my %args = (
-        id       => undef,
-        all      => undef,
-        open     => undef,
-        resolved => undef,
-        closed   => undef,
+        id        => undef,
+        active    => undef,
+        new       => undef,
+        open      => undef,
+        resolved  => undef,
+        closed    => undef,
+        hold      => undef,
+        invalid   => undef,
+        duplicate => undef,
+        wontfix   => undef,
         splice @_, 1,
     );
 
-    my $id = $args{id};
+    my $status = {};
+
+    $status->@{qw[new open resolved closed]} = () if $args{active};
+
+    if ( $args{new} || $args{open} ) {
+        if ( !$args{id} ) {
+            $status->@{qw[new open]} = ();
+        }
+        else {
+            $status->{new} = undef if $args{new};
+
+            $status->{open} = undef if $args{open};
+        }
+    }
+
+    $status->{resolved} = undef if $args{resolved};
+
+    $status->{closed} = undef if $args{closed};
+
+    $status->{'on hold'} = undef if $args{hold};
+
+    $status->{invalid} = undef if $args{invalid};
+
+    $status->{duplicate} = undef if $args{duplicate};
+
+    $status->{wontfix} = undef if $args{wontfix};
+
+    $status->@{qw[new open]} = () if !$args{id} && !$status->%*;
 
     my $cv = AE::cv;
 
-    my $status;
+    my @status = keys $status->%*;
 
-    if ( $args{all} ) {
-        $status = [ 'new', 'open', 'resolved', 'closed' ];
-    }
-    elsif ( $args{open} ) {
-        $status = [ 'new', 'open' ];
-    }
-    elsif ( $args{resolved} ) {
-        $status = 'resolved';
-    }
-    elsif ( $args{closed} ) {
-        $status = 'closed';
+    if ( $args{id} && @status ) {
+
+        # impossible to set multiple statuses
+        croak q[Can't set multiply issue statuses] if @status > 1;
+
+        $self->api->set_issue_status(
+            $args{id},
+            $status[0],
+            sub ($success) {
+                $cv->send;
+
+                return;
+            }
+        );
+
+        $cv->recv;
+
+        return;
     }
     else {
-        $status = [ 'new', 'open' ];
+        my $issues;
+
+        $self->api->issues(
+            id      => $args{id},
+            status  => \@status,
+            version => undef,
+            sub ($res) {
+                $issues = $res;
+
+                $cv->send;
+
+                return;
+            }
+        );
+
+        $cv->recv;
+
+        return $issues;
     }
-
-    my $issues;
-
-    $self->api->issues(
-        id      => $id,
-        status  => $status,
-        version => undef,
-        sub ($res) {
-            $issues = $res;
-
-            $cv->send;
-
-            return;
-        }
-    );
-
-    $cv->recv;
-
-    return $issues;
 }
 
 sub print_issues ( $self, $issues ) {
@@ -124,9 +161,11 @@ sub create_version ( $self, $ver, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 74, 78               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 24                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 105                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 142                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

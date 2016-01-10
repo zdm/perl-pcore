@@ -10,10 +10,15 @@ sub cli_abstract ($self) {
 
 sub cli_opt ($self) {
     return {
-        all      => { desc => 'status "new" + "open" + "resolved" + "closed"', default => 0 },
-        open     => { desc => 'status "new" + "open"',                         default => 0 },
-        resolved => { desc => 'status "resolved"',                             default => 0 },
-        closed   => { desc => 'status "closed"',                               default => 0 },
+        active    => { desc  => 'new, open, resolved, closed', default => 0 },
+        new       => { desc  => 'status "new" + "open"',       default => 0 },
+        open      => { desc  => 'status "new" + "open"',       default => 0 },
+        resolved  => { desc  => 'status "resolved"',           default => 0 },
+        closed    => { desc  => 'status "closed"',             default => 0 },
+        hold      => { short => 'H',                           desc    => 'status "on hold"', default => 0 },
+        invalid   => { desc  => 'status "invalid"',            default => 0 },
+        duplicate => { desc  => 'status "duplicate"',          default => 0 },
+        wontfix   => { desc  => 'status "wonfix"',             default => 0 },
     };
 }
 
@@ -21,6 +26,7 @@ sub cli_arg ($self) {
     return [
         {   name => 'id',
             desc => 'issue ID',
+            isa  => 'Int',
             min  => 0,
         },
     ];
@@ -57,9 +63,9 @@ sub run ( $self, $opt, $arg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 45                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 37, 42               │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 43, 48               │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

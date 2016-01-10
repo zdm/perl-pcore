@@ -75,7 +75,25 @@ sub _build_url ($self) {
     return "https://bitbucket.org/@{[$self->api->account_name]}/@{[$self->api->repo_slug]}/issues/$self->{local_id}/";
 }
 
+sub set_status ( $self, $status, $cb ) {
+    $self->_update( { status => $status }, $cb );
+
+    return;
+}
+
 sub set_version ( $self, $ver, $cb ) {
+    $self->_update( { version => $ver }, $cb );
+
+    return;
+}
+
+sub set_milestone ( $self, $ver, $cb ) {
+    $self->_update( { milestone => $ver }, $cb );
+
+    return;
+}
+
+sub _update ( $self, $args, $cb ) {
     my $url = "https://bitbucket.org/api/1.0/repositories/@{[$self->api->account_name]}/@{[$self->api->repo_slug]}/issues/$self->{local_id}/";
 
     P->http->put(    #
@@ -84,7 +102,7 @@ sub set_version ( $self, $ver, $cb ) {
             AUTHORIZATION => $self->api->auth,
             CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
         },
-        body      => P->data->to_uri( { version => $ver } ),
+        body      => P->data->to_uri($args),
         on_finish => sub ($res) {
             $cb->( $res->status == 200 ? 1 : 0 );
 
