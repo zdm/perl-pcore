@@ -12,6 +12,23 @@ use if $^V ge 'v5.22', re      => 'strict';
 use if $^V ge 'v5.10', mro     => 'c3';
 no multidimensional;
 
+# initialize Net::SSLeay
+BEGIN {
+    use Net::SSLeay qw[];
+
+    Net::SSLeay::initialize();
+
+    {
+        no warnings qw[redefine];
+
+        # we don't need to call Net::SSLeay::randomize several times
+        *Net::SSLeay::randomize = sub : prototype(;$$$) { };
+    }
+
+    # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
+    Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
+}
+
 use Sub::Util qw[];
 use Package::Stash qw[];
 
@@ -619,29 +636,31 @@ sub _config_stdout ($h) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 50                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 67                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 116                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 133                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 133                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
+## │    3 │ 150                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 189                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 206                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 315                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 353                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 365                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 465                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 332                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 370                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 382                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 482                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 403, 432, 435, 439,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 486, 503, 597, 600,  │                                                                                                                │
-## │      │ 605, 608             │                                                                                                                │
+## │    3 │ 420, 449, 452, 456,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 503, 520, 614, 617,  │                                                                                                                │
+## │      │ 622, 625             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 122                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 139                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 126                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 143                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 407                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 25                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 424                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
