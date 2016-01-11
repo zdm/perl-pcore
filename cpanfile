@@ -130,9 +130,7 @@ feature windows => sub {
 };
 
 # Pcore::Util::Random
-requires 'Bytes::Random::Secure';
-requires 'Math::Random::ISAAC::XS';
-requires 'Crypt::Random::Seed';
+requires 'Net::SSLeay';
 
 # Pcore::Util::Sys
 requires 'Sys::CpuAffinity';

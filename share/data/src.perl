@@ -229,7 +229,6 @@
                         '/Type::Tiny/',
                         '/\ATypes::/',
 
-                        'Bytes::Random::Secure',
                         'Text::ASCIITable',
                     )
                 ),
