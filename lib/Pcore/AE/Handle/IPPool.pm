@@ -21,6 +21,10 @@ sub get ( $self, $tag ) {
     return $self->ip->[ $ip_tag->{$tag} ];
 }
 
+sub size ($self) {
+    return scalar $self->ip->@*;
+}
+
 1;
 __END__
 =pod
