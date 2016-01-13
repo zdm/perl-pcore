@@ -1,5 +1,8 @@
 package header;
 
+# NOTE !!!WARNING!!! don't use indirect with strawberry perl
+# https://rt.cpan.org/Public/Bug/Display.html?id=102321
+
 use utf8;
 use strict;
 use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
@@ -58,7 +61,7 @@ __END__
 
 =head1 NAME
 
-header
+header - re-exporting the set of standard perl pragmas
 
 =head1 SYNOPSIS
 
