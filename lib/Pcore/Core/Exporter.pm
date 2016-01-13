@@ -1,8 +1,6 @@
 package Pcore::Core::Exporter;
 
-use Pcore;
-use if $^V ge 'v5.10', feature  => ':all';
-no  if $^V ge 'v5.18', warnings => 'experimental';
+use header;
 
 our $EXPORT_PRAGMA = {    #
     export => 1,
@@ -261,14 +259,19 @@ sub _export_tags ( $self, $caller, $tag ) {
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
-## PerlCritic profile "pcore-script" policy violations:
+## PerlCritic profile "common" policy violations:
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 54, 64, 155, 203,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 206, 230, 233        │                                                                                                                │
+## │    3 │ 31, 48, 104, 175,    │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 198, 216, 251        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 165                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
+## │    3 │ 52, 62, 153, 201,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 204, 228, 231        │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 163                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 1                    │ Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
