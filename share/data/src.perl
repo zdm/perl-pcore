@@ -102,8 +102,8 @@
             'Documentation::RequirePodSections' => undef,
 
             # TestingAndDebugging
-            'TestingAndDebugging::RequireUseStrict'   => { equivalent_modules              => 'Pcore' },
-            'TestingAndDebugging::RequireUseWarnings' => { equivalent_modules              => 'Pcore' },
+            'TestingAndDebugging::RequireUseStrict'   => { equivalent_modules              => 'header Pcore' },
+            'TestingAndDebugging::RequireUseWarnings' => { equivalent_modules              => 'header Pcore' },
             'TestingAndDebugging::ProhibitNoStrict'   => { allow                           => 'subs refs' },
             'TestingAndDebugging::ProhibitNoWarnings' => { allow_with_category_restriction => 1 },
 

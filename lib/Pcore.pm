@@ -1,16 +1,7 @@
 package Pcore v0.16.1;
 
 use v5.22.1;
-use utf8;
-use strict;
-use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
-no if $^V ge 'v5.18', warnings => 'experimental';
-use if $^V lt 'v5.23', warnings => 'experimental::autoderef', FATAL => 'experimental::autoderef';
-use if $^V ge 'v5.10', feature => ':all';
-no  if $^V ge 'v5.16', feature => 'array_base';
-use if $^V ge 'v5.22', re      => 'strict';
-use if $^V ge 'v5.10', mro     => 'c3';
-no multidimensional;
+use header;
 
 # initialize Net::SSLeay
 BEGIN {
@@ -164,16 +155,7 @@ sub import {
     }
 
     # export perl pragmas
-    utf8->import();
-    strict->import();
-    warnings->import( 'all', FATAL => qw[utf8], NONFATAL => qw[] );
-    warnings->unimport('experimental') if $^V ge 'v5.18';
-    warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef] ) if $^V lt 'v5.23';
-    feature->import(':all')         if $^V ge 'v5.10';
-    feature->unimport('array_base') if $^V ge 'v5.16';
-    re->import('strict')            if $^V ge 'v5.22';
-    mro::set_mro( $caller, 'c3' ) if $^V ge 'v5.10';
-    multidimensional->unimport;
+    header->import( -caller => $caller );
 
     # process -const pragma
     Const::Fast->import::into( $caller, 'const' ) if $pragma->{const};
@@ -255,9 +237,7 @@ sub import {
             }
 
             # reconfigure warnings, after Moo exported
-            warnings->import( 'all', FATAL => qw[utf8], NONFATAL => qw[] );
-            warnings->unimport('experimental');
-            warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef] ) if $^V lt 'v5.23';
+            header->warnings;
 
             # apply default roles
             # _apply_roles( $caller, qw[Pcore::Core::Autoload::Role] );
@@ -636,31 +616,29 @@ sub _config_stdout ($h) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 67                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 58                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 133                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 124                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 150                  │ Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 206                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 188                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 332                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 370                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 382                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 482                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 312                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 350                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 362                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 462                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 420, 449, 452, 456,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 503, 520, 614, 617,  │                                                                                                                │
-## │      │ 622, 625             │                                                                                                                │
+## │    3 │ 400, 429, 432, 436,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 483, 500, 594, 597,  │                                                                                                                │
+## │      │ 602, 605             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 139                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 130                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 143                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 134                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 25                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 16                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 424                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 404                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
