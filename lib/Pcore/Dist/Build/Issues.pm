@@ -123,14 +123,14 @@ sub print_issues ( $self, $issues, $content = 1 ) {
     else {
         my $tbl = P->text->table;
 
-        $tbl->set_cols(qw[ID PRIORITY STATUS KIND TITLE]);
+        $tbl->set_cols(qw[ID STATUS PRIORITY KIND TITLE]);
         $tbl->set_col_width( 'TITLE', 100, 1 );
         $tbl->align_col( 'ID', 'right' );
 
         if ( blessed $issues ) {
             my $issue = $issues;
 
-            $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->status_color, $issue->kind_color, $issue->{title} );
+            $tbl->add_row( $issue->{local_id}, $issue->status_color, $issue->priority_color, $issue->kind_color, $issue->{title} );
 
             print $tbl->render;
 
@@ -138,7 +138,7 @@ sub print_issues ( $self, $issues, $content = 1 ) {
         }
         else {
             for my $issue ( sort { $a->status_id <=> $b->status_id or $b->priority_id <=> $a->priority_id or $b->utc_last_updated_ts <=> $a->utc_last_updated_ts } $issues->@* ) {
-                $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->status_color, $issue->kind_color, $issue->{title} );
+                $tbl->add_row( $issue->{local_id}, $issue->status_color, $issue->priority_color, $issue->kind_color, $issue->{title} );
             }
 
             print $tbl->render;
