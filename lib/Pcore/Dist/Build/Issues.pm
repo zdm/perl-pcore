@@ -46,18 +46,11 @@ sub get ( $self, @ ) {
 
     my $status = {};
 
-    $status->@{qw[new open resolved closed]} = () if $args{active};
+    $status->@{qw[open resolved closed]} = () if $args{active};
 
-    if ( $args{new} || $args{open} ) {
-        if ( !$args{id} ) {
-            $status->@{qw[new open]} = ();
-        }
-        else {
-            $status->{new} = undef if $args{new};
+    $status->{new} = undef if $args{new};
 
-            $status->{open} = undef if $args{open};
-        }
-    }
+    $status->{open} = undef if $args{open};
 
     $status->{resolved} = undef if $args{resolved};
 
@@ -71,7 +64,8 @@ sub get ( $self, @ ) {
 
     $status->{wontfix} = undef if $args{wontfix};
 
-    $status->@{qw[new open]} = () if !$args{id} && !$status->%*;
+    # default
+    $status->@{qw[open resolved closed]} = () if !$args{id} && !$status->%*;
 
     my $cv = AE::cv;
 
@@ -171,11 +165,11 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 74, 78               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 68, 72               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 24                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 146                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 140                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -10,15 +10,15 @@ sub cli_abstract ($self) {
 
 sub cli_opt ($self) {
     return {
-        active    => { desc  => 'new, open, resolved, closed' },
-        new       => { desc  => 'status "new" + "open"' },
-        open      => { desc  => 'status "new" + "open"' },
-        resolved  => { desc  => 'status "resolved"' },
-        closed    => { desc  => 'status "closed"' },
-        hold      => { short => 'H', desc => 'status "on hold"' },
-        invalid   => { desc  => 'status "invalid"' },
-        duplicate => { desc  => 'status "duplicate"' },
-        wontfix   => { desc  => 'status "wonfix"' },
+        active    => { desc  => 'issues with statuses "open", "resolved" or "closed"' },
+        new       => { desc  => 'issues with status "new"' },
+        open      => { desc  => 'issues with status "open"' },
+        resolved  => { desc  => 'issues with status "resolved"' },
+        closed    => { desc  => 'issues with status "closed"' },
+        hold      => { short => 'H', desc => 'issues with status "on hold"' },
+        invalid   => { desc  => 'issues with status "invalid"' },
+        duplicate => { desc  => 'issues with status "duplicate"' },
+        wontfix   => { desc  => 'issues with status "wonfix"' },
     };
 }
 
