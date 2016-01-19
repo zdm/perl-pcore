@@ -137,7 +137,7 @@ sub print_issues ( $self, $issues, $content = 1 ) {
             say $LF, $issue->{content} || 'No content' if $content;
         }
         else {
-            for my $issue ( sort { $b->utc_last_updated_ts <=> $a->utc_last_updated_ts or $b->priority_id <=> $a->priority_id } $issues->@* ) {
+            for my $issue ( sort { $a->status_id <=> $b->status_id or $b->priority_id <=> $a->priority_id or $b->utc_last_updated_ts <=> $a->utc_last_updated_ts } $issues->@* ) {
                 $tbl->add_row( $issue->{local_id}, $issue->priority_color, $issue->status_color, $issue->kind_color, $issue->{title} );
             }
 

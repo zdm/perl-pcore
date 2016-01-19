@@ -26,7 +26,18 @@ const our $KIND => {
     task        => [ 'task', WHITE ],
 };
 
-const our $STATUS => {
+const our $STATUS_ID => {
+    new       => 1,
+    open      => 2,
+    resolved  => 3,
+    closed    => 4,
+    'on hold' => 5,
+    invalid   => 6,
+    duplicate => 7,
+    wontfix   => 8,
+};
+
+const our $STATUS_COLOR => {
     new       => BLACK . ON_WHITE,
     open      => BLACK . ON_WHITE,
     resolved  => WHITE . ON_RED,
@@ -40,7 +51,8 @@ const our $STATUS => {
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Bitbucket'], required => 1 );
 
 has priority_id => ( is => 'lazy', isa => Enum [ values $PRIORITY->%* ], init_arg => undef );
-has priority_color      => ( is => 'lazy', isa => Str, init_arg => undef );
+has priority_color => ( is => 'lazy', isa => Str, init_arg => undef );
+has status_id => ( is => 'lazy', isa => Enum [ values $STATUS_ID->%* ], init_arg => undef );
 has status_color        => ( is => 'lazy', isa => Str, init_arg => undef );
 has kind_color          => ( is => 'lazy', isa => Str, init_arg => undef );
 has kind_abbr           => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -55,8 +67,12 @@ sub _build_priority_color ($self) {
     return $PRIORITY_COLOR->{ $self->{priority} } . " $self->{priority} " . RESET;
 }
 
+sub _build_status_id ($self) {
+    return $STATUS_ID->{ $self->{status} };
+}
+
 sub _build_status_color ($self) {
-    return $STATUS->{ $self->{status} } . " $self->{status} " . RESET;
+    return $STATUS_COLOR->{ $self->{status} } . " $self->{status} " . RESET;
 }
 
 sub _build_kind_color ($self) {
@@ -131,7 +147,7 @@ sub update ( $self, $args, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42, 115              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 53, 55, 131          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
