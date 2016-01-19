@@ -48,6 +48,10 @@ sub add_channel ( $self, $name, @pipe ) {
     return $ch;
 }
 
+sub canlog ( $self, $ch ) {
+    return $self->{channel}->{$ch} ? 1 : 0;
+}
+
 sub _AUTOLOAD ( $self, $method, @ ) {
     my $sub = <<"PERL";
         sub ( \$self, \$data, @ ) {
@@ -71,7 +75,7 @@ PERL
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 51                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    │
+## │    3 │ 55                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -85,6 +89,10 @@ __END__
 Pcore::Core::Logger
 
 =head1 SYNOPSIS
+
+    P->log->add_channel( $channel_name, $pipe_uri, ... );
+
+    P->log->$channel_name( $data, %tags ) if P->log->canlog($channel_name);
 
 =head1 DESCRIPTION
 
