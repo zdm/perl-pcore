@@ -32,14 +32,14 @@ our $DEFAULT = {
     method => undef,
     url    => undef,
 
-    useragent         => "Mozilla/5.0 (compatible; U; Pcore-HTTP-UA/$Pcore::VERSION",
-    recurse           => 7,                                                             # max. redirects
-    timeout           => 300,                                                           # timeout in seconds
-    accept_compressed => 1,                                                             # add ACCEPT_ENCODIING header
-    decompress        => 1,                                                             # automatically decompress
+    useragent         => "Pcore-HTTP/$Pcore::VERSION",
+    recurse           => 7,                              # max. redirects
+    timeout           => 300,                            # timeout in seconds
+    accept_compressed => 1,                              # add ACCEPT_ENCODIING header
+    decompress        => 1,                              # automatically decompress
     persistent        => $PERSISTENT_IDENT,
     session           => undef,
-    cookie_jar        => undef,                                                         # 1 - create cookie jar object automatically
+    cookie_jar        => undef,                          # 1 - create cookie jar object automatically
     proxy             => undef,
 
     # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
