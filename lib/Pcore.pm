@@ -87,7 +87,6 @@ BEGIN {
         date     => 'Pcore::Util::Date',
         digest   => 'Pcore::Util::Digest',
         file     => 'Pcore::Util::File',
-        geoip    => 'Pcore::Util::GeoIP',
         hash     => 'Pcore::Util::Hash',
         host     => 'Pcore::Util::URI::Host',
         http     => 'Pcore::HTTP',
@@ -618,27 +617,27 @@ sub _config_stdout ($h) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 58                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 124                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 123                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 188                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 187                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 312                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 350                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 362                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 462                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 311                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 349                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 361                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 461                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 400, 429, 432, 436,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 483, 500, 594, 597,  │                                                                                                                │
-## │      │ 602, 605             │                                                                                                                │
+## │    3 │ 399, 428, 431, 435,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 482, 499, 593, 596,  │                                                                                                                │
+## │      │ 601, 604             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 130                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 129                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 134                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 133                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 16                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 404                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 403                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
