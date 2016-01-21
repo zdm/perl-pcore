@@ -110,12 +110,6 @@ requires 'String::CRC32';
 # Pcore::Util::File
 requires 'File::Copy::Recursive';
 
-# Pcore::Util::GeoIP
-requires 'Geo::IP::PurePerl';
-feature linux => sub {
-    requires 'Geo::IP';
-};
-
 # Pcore::Util::List
 requires 'List::Util::XS';
 requires 'List::AllUtils';
