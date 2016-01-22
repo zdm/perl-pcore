@@ -4,41 +4,66 @@ package header;
 # https://rt.cpan.org/Public/Bug/Display.html?id=102321
 
 use utf8;
-use strict;
-use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
+use strict qw[subs vars];
+
+no warnings;    ## no critic qw[TestingAndDebugging::ProhibitNoWarnings]
+use warnings (
+    'all',
+    FATAL => qw[
+      closed
+      closure
+      debugging
+      digit
+      glob
+      inplace
+      internal
+      io
+      layer
+      malloc
+      pack
+      pipe
+      portable
+      printf
+      prototype
+      reserved
+      semicolon
+      taint
+      threads
+      unpack
+      utf8
+      ],
+    NONFATAL => qw[
+      exec
+      newline
+      unopened
+      ]
+);
 no if $^V ge 'v5.18', warnings => 'experimental';
 use if $^V lt 'v5.23', warnings => 'experimental::autoderef', FATAL => 'experimental::autoderef';
+
 use if $^V ge 'v5.10', feature => ':all';
 no  if $^V ge 'v5.16', feature => 'array_base';
-use if $^V ge 'v5.22', re      => 'strict';
-use if $^V ge 'v5.10', mro     => 'c3';
+
+use if $^V ge 'v5.10', mro => 'c3';
+use if $^V ge 'v5.22', re  => 'strict';
 no multidimensional;
 
-sub import {
-    my ( $self, %args ) = @_;
+BEGIN {
+    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
+        sub import {
+            local \$^W;
 
-    my $caller = $args{-caller} // caller;
+            \${^WARNING_BITS} = "@{[ join( q[], map "\\x$_", unpack '(H2)*', ${^WARNING_BITS}) ]}";
 
-    utf8->import();
-    strict->import();
-    $self->warnings;
-    feature->import(':all')         if $^V ge 'v5.10';
-    feature->unimport('array_base') if $^V ge 'v5.16';
-    re->import('strict')            if $^V ge 'v5.22';
-    mro::set_mro( $caller, 'c3' ) if $^V ge 'v5.10';
-    multidimensional->unimport;
+            \$^H |= $^H;
 
-    return;
-}
+            @^H{ qw[@{[ join q[ ], keys %^H ]}] } = (@{[ join q[, ], values %^H ]});
 
-sub warnings {
-    my ($self) = @_;
+            return;
+        }
 
-    warnings->import( 'all', FATAL => qw[utf8], NONFATAL => qw[] );
-    warnings->unimport('experimental') if $^V ge 'v5.18';
-    warnings->import( 'experimental::autoderef', FATAL => qw[experimental::autoderef] ) if $^V lt 'v5.23';
-
-    return;
+        1;
+PERL
 }
 
 1;

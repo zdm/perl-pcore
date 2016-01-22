@@ -237,7 +237,7 @@ sub import {
             }
 
             # reconfigure warnings, after Moo exported
-            header->warnings;
+            header->import;
 
             # apply default roles
             # _apply_roles( $caller, qw[Pcore::Core::Autoload::Role] );
