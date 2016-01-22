@@ -4,7 +4,7 @@ package header;
 # https://rt.cpan.org/Public/Bug/Display.html?id=102321
 
 use utf8;
-use strict qw[subs vars];
+use strict qw[refs subs vars];
 
 no warnings;    ## no critic qw[TestingAndDebugging::ProhibitNoWarnings]
 use warnings (
