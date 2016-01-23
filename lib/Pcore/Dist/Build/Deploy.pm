@@ -126,11 +126,6 @@ sub _install ($self) {
             P->pm->run_check(qq[setx.exe /M PCORE_DIST_LIB "$canon_dist_lib_dir"]) or return;
 
             say qq[%PCORE_DIST_LIB% updated];
-
-            # set $ENV{PCORE_RES_LIB}
-            P->pm->run_check(qq[setx.exe /M PCORE_RES_LIB "$canon_dist_lib_dir/resources"]) or return;
-
-            say qq[%PCORE_RES_LIB% updated];
         }
 
         # update $ENV{PATH}
@@ -161,7 +156,6 @@ sub _install ($self) {
             $data = <<"SH";
 if ! echo \$PERL5LIB | grep -Eq "(^|$Config{path_sep})$canon_dist_root/lib/?(\$|$Config{path_sep})" ; then export PERL5LIB="$canon_dist_root/lib$Config{path_sep}\$PERL5LIB" ; fi
 export PCORE_DIST_LIB="$canon_dist_lib_dir"
-export PCORE_RES_LIB="$canon_dist_lib_dir/resources"
 SH
         }
 
@@ -182,10 +176,9 @@ SH
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 106, 123, 128, 133,  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
-## │      │ 154                  │                                                                                                                │
+## │    3 │ 106, 123, 128, 149   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 142                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 137                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

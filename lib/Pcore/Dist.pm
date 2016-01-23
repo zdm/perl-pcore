@@ -11,8 +11,9 @@ has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], p
 
 has build_info => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
-has name     => ( is => 'lazy', isa => Str,  init_arg => undef );    # Dist-Name
+has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                   # Dist-Name
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );    # main process dist
 
 has version    => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
 has revision   => ( is => 'lazy', isa => Str,    clearer => 1, init_arg => undef );
@@ -282,9 +283,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 107, 157             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 108, 158             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 220                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 221                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

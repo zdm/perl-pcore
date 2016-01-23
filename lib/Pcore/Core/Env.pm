@@ -26,6 +26,8 @@ sub BUILD ( $self, $args ) {
 
     # load dist.perl
     if ( my $dist = $self->dist ) {
+
+        # TODO - do not merge with dist cfg, just store as CFG
         $self->{CFG} = $args ? P->hash->merge( $dist->cfg, $args ) : $dist->cfg;
 
         if ( $self->is_par ) {
@@ -52,12 +54,22 @@ sub _build_is_par ($self) {
 }
 
 sub _build_dist ($self) {
+    my $dist;
+
     if ( $self->is_par ) {
-        return Pcore::Dist->new( $ENV{PAR_TEMP} );
+        $dist = Pcore::Dist->new( $ENV{PAR_TEMP} );
     }
     else {
-        return Pcore::Dist->new( $self->{SCRIPT_DIR} );
+        $dist = Pcore::Dist->new( $self->{SCRIPT_DIR} );
     }
+
+    if ($dist) {
+        $dist->{is_main} = 1;
+
+        $self->register_dist($dist);
+    }
+
+    return $dist;
 }
 
 sub _build_pcore ($self) {
@@ -67,6 +79,8 @@ sub _build_pcore ($self) {
         return $self->dist;
     }
     else {
+        $self->register_dist($pcore);
+
         return $pcore;
     }
 }
@@ -75,6 +89,7 @@ sub _build_pcore ($self) {
 sub _build_res ($self) {
     my $res = Pcore::Core::Env::Resources->new;
 
+    # TODO what to do with PAR???
     if ( $self->is_par ) {
 
         # under PAR pcore resources are merged with dist resources
@@ -86,27 +101,23 @@ sub _build_res ($self) {
 
     $res->_add_lib( 'dist', $self->dist->share_dir ) if $self->dist;
 
-    # TODO how to get priority
-    if ( $ENV{PCORE_RES_LIB} && -d $ENV{PCORE_RES_LIB} ) {
-        my $base_path = P->path( $ENV{PCORE_RES_LIB}, is_dir => 1 );
-
-        for my $path ( P->file->read_dir( $base_path, full_path => 0 )->@* ) {
-            my $lib_dir = $base_path . $path;
-
-            $res->add_lib( $path, $lib_dir ) if -d $lib_dir;
-        }
-    }
-
     return $res;
 }
 
 # TODO
-sub register_dist ( $self, $main_module ) {
+sub register_dist ( $self, $dist ) {
 
     # create dist object
-    my $dist = Pcore::Dist->new($main_module);
+    $dist = Pcore::Dist->new($dist) if !ref $dist;
 
-    die qq[Invlaid Pcore -dist pragma usage, "$main_module" is not a Pcore dist main module] if !$dist;
+    # dist was not found
+    die qq[Invlaid Pcore -dist pragma usage, "$dist" is not a Pcore dist main module] if !$dist;
+
+    # dist is already registered
+    return if exists $self->dist_idx->{ lc $dist->name };
+
+    # add dist to the dists index
+    $self->dist_idx->{ lc $dist->name } = $dist;
 
     # register dist utils
     if ( $dist->cfg->{dist}->{util} ) {
@@ -118,8 +129,22 @@ sub register_dist ( $self, $main_module ) {
     }
 
     # register dist resources
-    # TODO priority
-    $self->res->add_lib( lc $dist->name, $dist->share_dir );
+    state $res_level = 10;
+
+    my $dist_res_level;
+
+    if ( $dist->is_pcore ) {
+        $dist_res_level = 0;
+    }
+    elsif ( $dist->is_main ) {
+        $dist_res_level = 9_999;
+
+    }
+    else {
+        $dist_res_level = $res_level++;
+    }
+
+    $self->res->add_lib( lc $dist->name, $dist->share_dir, $dist_res_level );
 
     return;
 }
@@ -131,7 +156,7 @@ sub register_dist ( $self, $main_module ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 113                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 124                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

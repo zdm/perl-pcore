@@ -676,8 +676,6 @@ Documentation will be provided later.
 
 =item * PCORE_DIST_LIB
 
-=item * PCORE_RES_LIB
-
 =back
 
 =cut
