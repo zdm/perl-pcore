@@ -100,30 +100,40 @@ sub _build_res ($self) {
 }
 
 sub register_dist ( $self, $main_module ) {
-    say "REG DIST: $main_module";
 
     # create dist object
     my $dist = Pcore::Dist->new($main_module);
 
-    die if !$dist;
+    die qq[Invlaid Pcore -dist pragma usage, "$main_module" is not a Pcore dist main module] if !$dist;
 
     # register dist utils
+    if ( $dist->cfg->{dist}->{util} ) {
+        for my $util ( keys $dist->cfg->{dist}->{util}->%* ) {
+            die qq[Pcore util "$util" is already registered] if exists $Pcore::UTIL->{$util};
 
-    # register util accessors
-    # TODO
-    # P->hash->merge( $Pcore::Core::Util::UTIL, $ENV->{CFG}->{util} ) if $ENV->{CFG}->{util};
+            $Pcore::UTIL->{$util} = $dist->cfg->{dist}->{util}->{$util};
+        }
+    }
 
     # register dist resources
 
     # TODO
-    # register utils, $Pcore::UTIL->{geoip} = 'Pcore::Util::GeoIP';
     # register resources, $ENV->res->add_lib( 'pcore-geoip', $dist->share_dir );
-    # my $dist = Pcore::Dist->new('Pcore::GeoIP');
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
