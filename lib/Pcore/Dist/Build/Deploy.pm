@@ -112,7 +112,7 @@ sub _install ($self) {
 
     my $canon_bin_dir = "$canon_dist_root/bin";
 
-    my $canon_dist_lib_dir = P->path("$canon_dist_root/../")->realpath->canonpath;
+    my $pcore_lib_dir_canon = P->path("$canon_dist_root/../")->realpath->canonpath;
 
     if ($MSWIN) {
         if ( $self->dist->is_pcore ) {
@@ -122,10 +122,10 @@ sub _install ($self) {
 
             say qq[%PERL5LIB% updated];
 
-            # set $ENV{PCORE_DIST_LIB}
-            P->pm->run_check(qq[setx.exe /M PCORE_DIST_LIB "$canon_dist_lib_dir"]) or return;
+            # set $ENV{PCORE_LIB}
+            P->pm->run_check(qq[setx.exe /M PCORE_LIB "$pcore_lib_dir_canon"]) or return;
 
-            say qq[%PCORE_DIST_LIB% updated];
+            say qq[%PCORE_LIB% updated];
         }
 
         # update $ENV{PATH}
@@ -152,18 +152,20 @@ sub _install ($self) {
     else {
         my $data;
 
+        $data = qq[if ! echo \$PATH | grep -Eq "(^|$Config{path_sep})$canon_bin_dir/?(\$|$Config{path_sep})" ; then export PATH="\$PATH$Config{path_sep}$canon_bin_dir" ; fi\n] if -d $canon_bin_dir;
+
         if ( $self->dist->is_pcore ) {
-            $data = <<"SH";
+            $data .= <<"SH";
 if ! echo \$PERL5LIB | grep -Eq "(^|$Config{path_sep})$canon_dist_root/lib/?(\$|$Config{path_sep})" ; then export PERL5LIB="$canon_dist_root/lib$Config{path_sep}\$PERL5LIB" ; fi
-export PCORE_DIST_LIB="$canon_dist_lib_dir"
+export PCORE_LIB="$pcore_lib_dir_canon"
 SH
         }
 
-        $data .= qq[if ! echo \$PATH | grep -Eq "(^|$Config{path_sep})$canon_bin_dir/?(\$|$Config{path_sep})" ; then export PATH="\$PATH$Config{path_sep}$canon_bin_dir" ; fi\n] if -d $canon_bin_dir;
+        if ($data) {
+            P->file->write_bin( "/etc/profile.d/@{[lc $self->dist->name]}.sh", { mode => q[rw-r--r--] }, \$data );
 
-        P->file->write_bin( "/etc/profile.d/@{[lc $self->dist->name]}.sh", { mode => q[rw-r--r--] }, \$data );
-
-        say "/etc/profile.d/@{[lc $self->dist->name]}.sh installed";
+            say "/etc/profile.d/@{[lc $self->dist->name]}.sh installed";
+        }
     }
 
     return 1;

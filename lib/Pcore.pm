@@ -674,7 +674,7 @@ Documentation will be provided later.
 
 =over
 
-=item * PCORE_DIST_LIB
+=item * PCORE_LIB
 
 =back
 

@@ -6,7 +6,7 @@ USER root
 
 ENV PERL5LIB="/var/local/pcore/lib/" \
     PATH="/var/local/pcore/bin:$PATH" \
-    PCORE_DIST_LIB="/var/local/"
+    PCORE_LIB="/var/local/"
 
 ADD . /var/local/pcore/
 
