@@ -7,9 +7,9 @@ use Pcore::Dist;
 use Pcore::Core::Env::Resources;
 
 has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );
-has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );
-has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );
-has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Resources'], init_arg => undef );
+has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
+has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );                  # pcore dist
+has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Resources'], init_arg => undef );    # resources object
 
 sub BUILD ( $self, $args ) {
     $self->{START_DIR}      = P->file->cwd->to_string;
@@ -97,6 +97,30 @@ sub _build_res ($self) {
     }
 
     return $res;
+}
+
+sub register_dist ( $self, $main_module ) {
+    say "REG DIST: $main_module";
+
+    # create dist object
+    my $dist = Pcore::Dist->new($main_module);
+
+    die if !$dist;
+
+    # register dist utils
+
+    # register util accessors
+    # TODO
+    # P->hash->merge( $Pcore::Core::Util::UTIL, $ENV->{CFG}->{util} ) if $ENV->{CFG}->{util};
+
+    # register dist resources
+
+    # TODO
+    # register utils, $Pcore::UTIL->{geoip} = 'Pcore::Util::GeoIP';
+    # register resources, $ENV->res->add_lib( 'pcore-geoip', $dist->share_dir );
+    # my $dist = Pcore::Dist->new('Pcore::GeoIP');
+
+    return;
 }
 
 1;

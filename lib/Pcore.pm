@@ -202,6 +202,11 @@ sub import {
             state $init = !!require Pcore::Core::Inline;
         }
 
+        # process -dist pragma
+        if ( $pragma->{dist} ) {
+            $ENV->register_dist($caller);
+        }
+
         # store significant pragmas for use in run-time
         $Pcore::EMBEDDED = 1 if $pragma->{embedded};
 
@@ -623,14 +628,14 @@ sub _config_stdout ($h) {
 ## │    3 │ 188                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 312                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 350                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 362                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 462                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 317                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 355                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 367                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 467                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 400, 429, 432, 436,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 483, 500, 594, 597,  │                                                                                                                │
-## │      │ 602, 605             │                                                                                                                │
+## │    3 │ 405, 434, 437, 441,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 488, 505, 599, 602,  │                                                                                                                │
+## │      │ 607, 610             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 130                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -638,7 +643,7 @@ sub _config_stdout ($h) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 16                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 404                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 409                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
