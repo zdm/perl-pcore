@@ -7,8 +7,6 @@ use utf8;
 use strict qw[refs subs vars];
 
 no warnings;    ## no critic qw[TestingAndDebugging::ProhibitNoWarnings]
-
-# use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
 use warnings (
     'all',
     FATAL => qw[
