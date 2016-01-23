@@ -10,6 +10,7 @@ has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );
 has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
 has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );                  # pcore dist
 has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Resources'], init_arg => undef );    # resources object
+has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # registered dists. index
 
 sub BUILD ( $self, $args ) {
     $self->{START_DIR}      = P->file->cwd->to_string;
@@ -99,6 +100,7 @@ sub _build_res ($self) {
     return $res;
 }
 
+# TODO
 sub register_dist ( $self, $main_module ) {
 
     # create dist object
@@ -116,9 +118,8 @@ sub register_dist ( $self, $main_module ) {
     }
 
     # register dist resources
-
-    # TODO
-    # register resources, $ENV->res->add_lib( 'pcore-geoip', $dist->share_dir );
+    # TODO priority
+    $self->res->add_lib( lc $dist->name, $dist->share_dir );
 
     return;
 }
@@ -130,7 +131,7 @@ sub register_dist ( $self, $main_module ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 113                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
