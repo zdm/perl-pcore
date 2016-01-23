@@ -5,8 +5,8 @@ MAINTAINER admin@softvisio.net
 USER root
 
 ENV PATH="/var/local/pcore/bin:$PATH" \
-    PERL5LIB="/var/local/pcore/lib/" \
-    PCORE_LIB="/var/local/"
+    PERL5LIB="/var/local/pcore/lib" \
+    PCORE_LIB="/var/local"
 
 ADD . /var/local/pcore/
 
