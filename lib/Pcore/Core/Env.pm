@@ -46,6 +46,9 @@ sub CORE_INIT ( $self, $proc_cfg = undef ) {
         $self->{LOG_DIR}  = undef;
     }
 
+    # init pcore dist, needed to register pcore resources during bootstrap
+    $self->pcore;
+
     return;
 }
 
@@ -73,12 +76,12 @@ sub _build_dist ($self) {
 }
 
 sub _build_pcore ($self) {
-    my $pcore = Pcore::Dist->new('Pcore.pm');
-
-    if ( $self->dist && $self->dist->module->path eq $pcore->module->path ) {
+    if ( $self->dist && $self->dist->is_pcore ) {
         return $self->dist;
     }
     else {
+        my $pcore = Pcore::Dist->new('Pcore.pm');
+
         $self->register_dist($pcore);
 
         return $pcore;
@@ -89,7 +92,6 @@ sub _build_res ($self) {
     return Pcore::Core::Env::Resources->new;
 }
 
-# TODO - register pcore on startup
 sub register_dist ( $self, $dist ) {
 
     # create dist object
@@ -141,7 +143,7 @@ sub register_dist ( $self, $dist ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 109                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 111                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
