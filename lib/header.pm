@@ -7,6 +7,8 @@ use utf8;
 use strict qw[refs subs vars];
 
 no warnings;    ## no critic qw[TestingAndDebugging::ProhibitNoWarnings]
+
+# use warnings ( qw[all], FATAL => qw[utf8], NONFATAL => qw[] );
 use warnings (
     'all',
     FATAL => qw[
@@ -44,10 +46,10 @@ use if $^V lt 'v5.23', warnings => 'experimental::autoderef', FATAL => 'experime
 use if $^V ge 'v5.10', feature => ':all';
 no  if $^V ge 'v5.16', feature => 'array_base';
 
-use if $^V ge 'v5.10', mro => 'c3';
-use if $^V ge 'v5.22', re  => 'strict';
+use if $^V ge 'v5.22', re => 'strict';
 no multidimensional;
 
+# TODO mro caller
 BEGIN {
     eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval ErrorHandling::RequireCheckingReturnValueOfEval]
         sub import {
@@ -64,6 +66,11 @@ BEGIN {
 
         1;
 PERL
+
+    # TODO re-export mro
+    # my $caller = $args{-caller} // caller;
+    # mro::set_mro( $caller, 'c3' ) if $^V ge 'v5.10';
+    # use if $^V ge 'v5.10', mro => 'c3';
 }
 
 1;
