@@ -12,7 +12,7 @@ has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'], init_arg => unde
 has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Resources'], init_arg => undef );    # resources object
 has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # registered dists. index
 
-sub BUILD ( $self, $args ) {
+sub CORE_INIT ( $self, $proc_cfg = undef ) {
     $self->{START_DIR}      = P->file->cwd->to_string;
     $self->{SCRIPT_NAME}    = $FindBin::RealScript;
     $self->{SCRIPT_DIR}     = P->path( $FindBin::RealBin, is_dir => 1 )->realpath->to_string;
@@ -28,7 +28,7 @@ sub BUILD ( $self, $args ) {
     if ( my $dist = $self->dist ) {
 
         # TODO - do not merge with dist cfg, just store as CFG
-        $self->{CFG} = $args ? P->hash->merge( $dist->cfg, $args ) : $dist->cfg;
+        $self->{CFG} = $proc_cfg ? P->hash->merge( $dist->cfg, $proc_cfg ) : $dist->cfg;
 
         if ( $self->is_par ) {
             $self->{DATA_DIR} = undef;
@@ -40,7 +40,7 @@ sub BUILD ( $self, $args ) {
         }
     }
     else {
-        $self->{CFG} = $args // {};
+        $self->{CFG} = $proc_cfg // {};
 
         $self->{DATA_DIR} = undef;
         $self->{LOG_DIR}  = undef;
@@ -128,16 +128,6 @@ sub register_dist ( $self, $dist ) {
     else {
         $dist_res_level = $res_level++;
     }
-
-    # TODO what to do with PAR???
-    # if ( $self->is_par ) {
-    #
-    #     # under PAR pcore resources are merged with dist resources
-    #     $res->_add_lib( 'pcore', $self->dist->share_dir ) if $self->dist;
-    # }
-    # else {
-    #     # $res->_add_lib( 'pcore', $self->pcore->share_dir );
-    # }
 
     $self->res->add_lib( lc $dist->name, $dist->share_dir, $dist_res_level );
 

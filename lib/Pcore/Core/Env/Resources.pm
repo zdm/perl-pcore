@@ -17,35 +17,51 @@ sub _build__temp ($self) {
 }
 
 sub add_lib ( $self, $name, $path, $level ) {
-    die qq[resource lib "$name" already exists] if exists $self->_lib->{$name};
+    if ( $ENV->is_par ) {
 
-    die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
+        # under the PAR all resources libs are merged under the "dist" alias
+        $self->_lib->{dist} = [ 0, $path ] if !exists $self->_lib->{dist};
+    }
+    else {
+        die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
 
-    # register lib
-    $self->_lib->{$name} = [ $level, $path ];
+        die qq[resource lib "$name" already exists] if exists $self->_lib->{$name};
 
-    # clear cache
-    $self->_clear_storage;
+        # register lib
+        $self->_lib->{$name} = [ $level, $path ];
+
+        # clear cache
+        $self->_clear_storage;
+    }
 
     return;
 }
 
 # return lib path by name
 sub get_lib ( $self, $lib_name ) {
-    if ( $lib_name eq 'dist' ) {
-        return if !$ENV->dist;
+    \my $libs = \$self->_lib;
 
-        return if !exists $self->_lib->{ lc $ENV->dist->name };
+    if ( $ENV->is_par ) {
 
-        return $self->_lib->{ lc $ENV->dist->name }->[1];
+        # under the PAR all resources libs are merged under the "dist" alias
+        return $libs->{dist}->[1];
     }
     elsif ( $lib_name eq 'temp' ) {
         return $self->_temp->path;
     }
     else {
-        return if !exists $self->_lib->{$lib_name};
+        if ( $lib_name eq 'dist' ) {
+            if ( my $dist = $ENV->dist ) {
+                $lib_name = lc $dist->name;
+            }
+            else {
+                return;
+            }
+        }
 
-        return $self->_lib->{$lib_name}->[1];
+        return if !exists $libs->{$lib_name};
+
+        return $libs->{$lib_name}->[1];
     }
 }
 
@@ -187,13 +203,13 @@ sub store ( $self, $file, $path, $lib_name, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 67, 163, 170         │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 83, 179, 186         │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 99                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 137                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 153                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 83                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 99                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

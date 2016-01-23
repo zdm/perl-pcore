@@ -22,7 +22,9 @@ sub CORE_INIT ($proc_cfg) {
     _normalize_inc();
 
     # create $ENV object
-    $ENV = Pcore::Core::Env->new( $proc_cfg // () );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $ENV = Pcore::Core::Env->new;     ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+
+    $ENV->CORE_INIT($proc_cfg);
 
     _configure_inc();
 
@@ -139,7 +141,7 @@ sub _configure_inc {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 8                    │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 105                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 107                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
