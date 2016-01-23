@@ -148,7 +148,7 @@ sub run ($self) {
 
         $cv->recv;
 
-        say q[done];
+        say 'done';
 
         # get closed issues, set milestone for closed issues
         if ($closed_issues) {
@@ -171,7 +171,7 @@ sub run ($self) {
 
             $cv->recv;
 
-            say q[done];
+            say 'done';
         }
     }
 
@@ -192,8 +192,9 @@ sub run ($self) {
 
     $scm->cmd( 'tag', '-f', 'stable', $new_ver );
 
-    say 'Pushing to the upstream repository';
+    print 'Pushing to the upstream repository ... ';
     $scm->cmd('push');
+    say 'done';
 
     # upload to the CPAN if this is the CPAN distribution, prompt before upload
     $self->_upload_to_cpan if $self->dist->cfg->{dist}->{cpan};
@@ -202,9 +203,13 @@ sub run ($self) {
 }
 
 sub _upload_to_cpan ($self) {
+    print 'Creating .tgz ... ';
+
     my $tgz = $self->dist->build->tgz;
 
-    say '.tgz created, now uploaded to CPAN';
+    say 'done';
+
+    say 'Start upload to CPAN';
 
   REDO:
     my ( $status, $reason ) = $self->_upload( $self->dist->build->user_cfg->{PAUSE}->{username}, $self->dist->build->user_cfg->{PAUSE}->{password}, $tgz );
@@ -337,14 +342,14 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (24)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30, 316              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 321              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 96                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 15, 44, 47, 82, 87,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 108, 124, 138, 210   │                                                                                                                │
+## │      │ 108, 124, 138, 215   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 312                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 317                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
