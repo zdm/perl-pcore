@@ -2,82 +2,95 @@ package Pcore::Core::Env::Resources;
 
 use Pcore -class, -const;
 
-has _lib         => ( is => 'ro',   isa => HashRef,  default => sub { {} }, init_arg => undef );
-has _lib_order   => ( is => 'ro',   isa => ArrayRef, default => sub { [] }, init_arg => undef );
-has _storage     => ( is => 'lazy', isa => HashRef,  default => sub { {} }, clearer  => 1, init_arg => undef );
-has _lib_storage => ( is => 'lazy', isa => HashRef,  default => sub { {} }, init_arg => undef );
+has _temp => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::TempDir'], init_arg => undef );
+has _lib         => ( is => 'ro',   isa => HashRef, default => sub { {} }, init_arg => undef );                   # name => [$level, $path]
+has _storage     => ( is => 'lazy', isa => HashRef, default => sub { {} }, clearer  => 1, init_arg => undef );    # storage cache, name => [$path, ...]
+has _lib_storage => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );                   # lib storage cache, {lib}->{storage} = $path
 
 const our $RESERVED_LIB_NAME => {
-    pcore => 1,
-    dist  => 1,
-    temp  => 1,
+    dist => 1,                                                                                                    # alias for main dist
+    temp => 1,                                                                                                    # temporary resources lib
 };
 
-# TODO
-sub add_lib ( $self, $name, $path, $level ) {
-
-    # die qq[resource lib "$name" already exists] if exists $self->_lib->{$name};
-
-    # die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
-
-    $self->_add_lib( $name, $path );
-
-    return;
+sub _build__temp ($self) {
+    return P->file->tempdir;
 }
 
-sub _add_lib ( $self, $name, $path ) {
-    $self->_lib->{$name} = $path;
+sub add_lib ( $self, $name, $path, $level ) {
+    die qq[resource lib "$name" already exists] if exists $self->_lib->{$name};
 
-    unshift $self->_lib_order->@*, $name;
+    die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
 
+    # register lib
+    $self->_lib->{$name} = [ $level, $path ];
+
+    # clear cache
     $self->_clear_storage;
 
     return;
 }
 
-sub get_lib ( $self, $name ) {
-    return $self->_lib->{$name};
+# return lib path by name
+sub get_lib ( $self, $lib_name ) {
+    if ( $lib_name eq 'dist' ) {
+        return if !$ENV->dist;
+
+        return if !exists $self->_lib->{ lc $ENV->dist->name };
+
+        return $self->_lib->{ lc $ENV->dist->name }->[1];
+    }
+    elsif ( $lib_name eq 'temp' ) {
+        return $self->_temp->path;
+    }
+    else {
+        return if !exists $self->_lib->{$lib_name};
+
+        return $self->_lib->{$lib_name}->[1];
+    }
 }
 
-sub get_storage ( $self, $name, $lib = undef ) {
+# return undef if storage is not exists
+# return $storage_path if lib is specified
+# return ArrayRef[$storage_path] if lib is not specified
+sub get_storage ( $self, $storage_name, $lib_name = undef ) {
     \my $libs = \$self->_lib;
 
-    if ($lib) {
-        die qq[resource lib is not exists "$lib"] if !exists $libs->{$lib};
+    if ($lib_name) {
+        my $lib_path = $self->get_lib($lib_name);
+
+        die qq[resource lib is not exists "$lib_name"] if !$lib_path;
 
         \my $lib_storage = \$self->_lib_storage;
 
-        if ( !exists $lib_storage->{$lib}->{$name} ) {
-            if ( -d $libs->{$lib} . $name ) {
-                $lib_storage->{$lib}->{$name} = $libs->{$lib} . $name;
+        # cache lib/storage path, if not cached yet
+        if ( !exists $lib_storage->{$lib_name}->{$storage_name} ) {
+            if ( -d $lib_path . $storage_name ) {
+                $lib_storage->{$lib_name}->{$storage_name} = $lib_path . $storage_name;
             }
             else {
-                $lib_storage->{$lib}->{$name} = undef;
+                $lib_storage->{$lib_name}->{$storage_name} = undef;
             }
         }
 
-        return $lib_storage->{$lib}->{$name};
+        # return cached path
+        return $lib_storage->{$lib_name}->{$storage_name};
     }
     else {
         \my $storage = \$self->_storage;
 
-        if ( !exists $storage->{$name} ) {
-            my $index = {};
+        # build and cache storage paths array
+        if ( !exists $storage->{$storage_name} ) {
+            for my $lib_name ( sort { $libs->{$b}->[0] <=> $libs->{$a}->[0] } keys $libs->%* ) {
+                my $storage_path = $libs->{$lib_name}->[1] . $storage_name;
 
-            for my $lib_name ( $self->_lib_order->@* ) {
-                my $path = $libs->{$lib_name} . $name;
-
-                if ( -d $path && !exists $index->{$path} ) {
-                    $index->{$path} = 1;
-
-                    push $storage->{$name}->@*, $path;
-                }
+                push $storage->{$storage_name}->@*, $storage_path if -d $storage_path;
             }
 
-            $storage->{$name} = undef if !exists $storage->{$name};
+            $storage->{$storage_name} = undef if !exists $storage->{$storage_name};
         }
 
-        return $storage->{$name};
+        # return cached value
+        return $storage->{$storage_name};
     }
 }
 
@@ -87,8 +100,6 @@ sub get ( $self, $path, @ ) {
         lib     => undef,
         splice @_, 2,
     );
-
-    die qq[resource lib is not exists "$args{lib}"] if $args{lib} && !exists $self->_lib->{ $args{lib} };
 
     # get storage name from path
     if ( !$args{storage} ) {
@@ -106,32 +117,32 @@ sub get ( $self, $path, @ ) {
     }
 
     if ( $args{lib} ) {
-        my $res = $self->_lib->{ $args{lib} } . $args{storage} . q[/] . $path;
+        if ( my $storage_path = $self->get_storage( $args{storage}, $args{lib} ) ) {
+            my $res = $storage_path . $path;
 
-        if ( -f $res ) {
-            return $res;
+            return $res if -f $res;
         }
     }
     elsif ( my $storage = $self->get_storage( $args{storage} ) ) {
-        for my $storage_root ( $storage->@* ) {
-            my $res = $storage_root . $path;
+        for my $storage_path ( $storage->@* ) {
+            my $res = $storage_path . $path;
 
-            if ( -f $res ) {
-                return $res;
-            }
+            return $res if -f $res;
         }
     }
 
     return;
 }
 
-sub store ( $self, $file, $path, $lib, @ ) {
+sub store ( $self, $file, $path, $lib_name, @ ) {
     my %args = (
         storage => undef,
         splice @_, 4,
     );
 
-    die qq[resource lib is not exists "$lib"] if !exists $self->_lib->{$lib};
+    my $lib_path = $self->get_lib($lib_name);
+
+    die qq[resource lib is not exists "$lib_name"] if !$lib_path;
 
     # get storage name from path
     if ( !$args{storage} ) {
@@ -149,27 +160,43 @@ sub store ( $self, $file, $path, $lib, @ ) {
     }
 
     # clear storage cache if new storage was created
-    if ( !-e $self->_lib->{$lib} . $args{storage} ) {
+    if ( !-d $lib_path . $args{storage} ) {
         delete $self->_storage->{ $args{storage} };
 
-        delete $self->_lib_storage->{$lib}->{ $args{storage} };
+        delete $self->_lib_storage->{$lib_name}->{ $args{storage} } if exists $self->_lib_storage->{$lib_name};
     }
 
     # create path
-    P->file->mkpath( $self->_lib->{$lib} . $args{storage} . $path->dirname ) if !-d $self->_lib->{$lib} . $args{storage} . $path->dirname;
+    P->file->mkpath( $lib_path . $args{storage} . $path->dirname ) if !-d $lib_path . $args{storage} . $path->dirname;
 
     # create file
     if ( ref $file eq 'SCALAR' ) {
-        P->file->write_bin( $self->_lib->{$lib} . $args{storage} . $path, $file );
+        P->file->write_bin( $lib_path . $args{storage} . $path, $file );
     }
     else {
-        P->file->copy( $file, $self->_lib->{$lib} . $args{storage} . $path );
+        P->file->copy( $file, $lib_path . $args{storage} . $path );
     }
 
-    return $self->_lib->{$lib} . $args{storage} . $path;
+    return $lib_path . $args{storage} . $path;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 67, 163, 170         │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 83                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 137                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 83                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

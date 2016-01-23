@@ -85,26 +85,11 @@ sub _build_pcore ($self) {
     }
 }
 
-# TODO priority
 sub _build_res ($self) {
-    my $res = Pcore::Core::Env::Resources->new;
-
-    # TODO what to do with PAR???
-    if ( $self->is_par ) {
-
-        # under PAR pcore resources are merged with dist resources
-        $res->_add_lib( 'pcore', $self->dist->share_dir ) if $self->dist;
-    }
-    else {
-        $res->_add_lib( 'pcore', $self->pcore->share_dir );
-    }
-
-    $res->_add_lib( 'dist', $self->dist->share_dir ) if $self->dist;
-
-    return $res;
+    return Pcore::Core::Env::Resources->new;
 }
 
-# TODO
+# TODO - register pcore on startup
 sub register_dist ( $self, $dist ) {
 
     # create dist object
@@ -144,6 +129,16 @@ sub register_dist ( $self, $dist ) {
         $dist_res_level = $res_level++;
     }
 
+    # TODO what to do with PAR???
+    # if ( $self->is_par ) {
+    #
+    #     # under PAR pcore resources are merged with dist resources
+    #     $res->_add_lib( 'pcore', $self->dist->share_dir ) if $self->dist;
+    # }
+    # else {
+    #     # $res->_add_lib( 'pcore', $self->pcore->share_dir );
+    # }
+
     $self->res->add_lib( lc $dist->name, $dist->share_dir, $dist_res_level );
 
     return;
@@ -156,7 +151,7 @@ sub register_dist ( $self, $dist ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 124                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 109                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
