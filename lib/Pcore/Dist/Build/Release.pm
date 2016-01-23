@@ -209,18 +209,18 @@ sub _upload_to_cpan ($self) {
 
     say 'done';
 
-    say 'Start upload to CPAN';
-
   REDO:
+    print 'Upload to CPAN ... ';
+
     my ( $status, $reason ) = $self->_upload( $self->dist->build->user_cfg->{PAUSE}->{username}, $self->dist->build->user_cfg->{PAUSE}->{password}, $tgz );
 
     if ( $status == 200 ) {
-        say qq[Upload to CPAN status: $reason];
+        say $reason;
 
         unlink $tgz or 1;
     }
     else {
-        say qq[Upload to CPAN status: $status, Reason: $reason];
+        say qq[$status $reason];
 
         goto REDO if P->term->prompt( 'Retry?', [qw[yes no]], enter => 1 );
 
