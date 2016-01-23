@@ -20,7 +20,9 @@ around new => sub ( $orig, $self, %args ) {
 
     my $path = [$string_tmpl_cache];    # virtual path
 
-    push $path->@*, $ENV->res->get_storage('tmpl')->@*;
+    if ( my $tmpl_storage = $ENV->res->get_storage('tmpl') ) {
+        push $path->@*, $tmpl_storage->@*;
+    }
 
     my $args_def = {
         path        => $path,
@@ -74,7 +76,7 @@ sub render ( $self, $tmpl, $params = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 40                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
