@@ -18,3 +18,5 @@ WORKDIR $PCORE_LIB/$DIST_NAME/
 RUN perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
     && rm -rf ~/.cpanm
+
+VOLUME ["$PCORE_LIB/$DIST_NAME/"]
