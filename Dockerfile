@@ -4,17 +4,17 @@ MAINTAINER admin@softvisio.net
 
 USER root
 
-ENV PATH="/var/local/pcore/bin:$PATH" \
-    PERL5LIB="/var/local/pcore/lib" \
+ENV DIST_NAME="pcore" \
     PCORE_LIB="/var/local"
 
-ADD . /var/local/pcore/
+ENV PATH="$PCORE_LIB/$DIST_NAME/bin:$PATH" \
+    PERL5LIB="$PCORE_LIB/$DIST_NAME/lib"
 
-WORKDIR /var/local/pcore/
+ADD . $PCORE_LIB/$DIST_NAME/
+
+WORKDIR $PCORE_LIB/$DIST_NAME/
 
 # --develop
 RUN perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
     && rm -rf ~/.cpanm
-
-VOLUME ["/var/local/resources/share/"]
