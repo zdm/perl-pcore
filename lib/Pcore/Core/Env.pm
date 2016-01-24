@@ -9,7 +9,7 @@ use Pcore::Core::Env::Share;
 has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );
 has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
 has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init_arg => undef ); # pcore dist
-has res   => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef ); # resources object
+has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef ); # share object
 has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );      # registered dists. index
 
 sub CORE_INIT ( $self, $proc_cfg = undef ) {
@@ -88,7 +88,7 @@ sub _build_pcore ($self) {
     }
 }
 
-sub _build_res ($self) {
+sub _build_share ($self) {
     return Pcore::Core::Env::Share->new;
 }
 
@@ -115,23 +115,23 @@ sub register_dist ( $self, $dist ) {
         }
     }
 
-    # register dist resources
-    state $res_level = 10;
+    # register dist share
+    my $share_lib_level;
 
-    my $dist_res_level;
-
-    if ( $dist->is_pcore ) {
-        $dist_res_level = 0;
+    if ( $dist->is_pcore ) {    # pcore dist is always first
+        $share_lib_level = 0;
     }
-    elsif ( $dist->is_main ) {
-        $dist_res_level = 9_999;
+    elsif ( $dist->is_main ) {    # main dist is always on top
+        $share_lib_level = 9_999;
 
     }
     else {
-        $dist_res_level = $res_level++;
+        state $next_level = 10;
+
+        $share_lib_level = $next_level++;
     }
 
-    $self->res->add_lib( lc $dist->name, $dist->share_dir, $dist_res_level );
+    $self->share->add_lib( lc $dist->name, $dist->share_dir, $share_lib_level );
 
     return;
 }

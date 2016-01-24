@@ -12,7 +12,7 @@ has web2_domain => ( is => 'lazy', isa => Str, init_arg => undef );
 has web2_canon  => ( is => 'lazy', isa => Str, init_arg => undef );
 has web2_url => ( is => 'lazy', init_arg => undef );
 
-our $WEB2_CFG = P->cfg->load( $ENV->res->get('/data/web2.perl') );
+our $WEB2_CFG = P->cfg->load( $ENV->share->get('/data/web2.perl') );
 
 our $WEB2_HOST_RE;
 

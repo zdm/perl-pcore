@@ -63,7 +63,7 @@ sub run ($self) {
     $self->tree->add_file( 'share/build.perl', $self->dist->create_build_info );
 
     # add Pcore dist.perl
-    $self->tree->add_file( 'lib/auto/share/dist/Pcore/dist.perl', $ENV->res->get_lib('pcore') . 'dist.perl' );
+    $self->tree->add_file( 'lib/auto/share/dist/Pcore/dist.perl', $ENV->share->get_lib('pcore') . 'dist.perl' );
 
     # add Pcore build.perl
     $self->tree->add_file( 'lib/auto/share/dist/Pcore/build.perl', $ENV->pcore->create_build_info );
@@ -180,7 +180,7 @@ sub _add_shlib ($self) {
 
 sub _add_resources ($self) {
     for my $res ( $self->resource->@* ) {
-        my $path = $ENV->res->get($res);
+        my $path = $ENV->share->get($res);
 
         if ( !$path ) {
             $self->_error(qq[required resource "$res" wasn't found]);
@@ -372,10 +372,10 @@ sub _compress_upx ( $self, $path ) {
     my $upx_cache_dir = $ENV->{PCORE_USER_DIR} . 'upx-cache/';
 
     if ($MSWIN) {
-        $upx = $ENV->res->get('/bin/upx.exe');
+        $upx = $ENV->share->get('/bin/upx.exe');
     }
     else {
-        $upx = $ENV->res->get('/bin/upx_x64');
+        $upx = $ENV->share->get('/bin/upx_x64');
     }
 
     if ($upx) {
@@ -537,7 +537,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
         my $exe = Win32::Exe->new( $repacked_exe_fh->path );
 
-        $exe->update( icon => $ENV->res->get('/data/par.ico') );
+        $exe->update( icon => $ENV->share->get('/data/par.ico') );
 
         say 'done';
     }

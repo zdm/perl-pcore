@@ -44,7 +44,7 @@ around new => sub ( $orig, $self, $host ) {
 
 sub pub_suffixes ( $self, $force_download = 0 ) {
     state $suffixes = do {
-        my $path = $ENV->res->get('/data/pub_suffix.dat');
+        my $path = $ENV->share->get('/data/pub_suffix.dat');
 
         if ( !$path || $force_download ) {
             P->http->get(
@@ -90,7 +90,7 @@ sub pub_suffixes ( $self, $force_download = 0 ) {
                             }
                         }
 
-                        $path = $ENV->res->store( \join( $LF, sort keys $_suffixes->%* ), '/data/pub_suffix.dat', 'pcore' );
+                        $path = $ENV->share->store( \join( $LF, sort keys $_suffixes->%* ), '/data/pub_suffix.dat', 'pcore' );
                     }
 
                     return;
@@ -106,7 +106,7 @@ sub pub_suffixes ( $self, $force_download = 0 ) {
 
 sub tlds ( $self, $force_download = 0 ) {
     state $tlds = do {
-        my $path = $ENV->res->get('/data/tld.dat');
+        my $path = $ENV->share->get('/data/tld.dat');
 
         if ( !$path || $force_download ) {
             P->http->get(
@@ -116,7 +116,7 @@ sub tlds ( $self, $force_download = 0 ) {
                 blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = $ENV->res->store( \encode_utf8( join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
+                        $path = $ENV->share->store( \encode_utf8( join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'pcore' );
                     }
 
                     return;

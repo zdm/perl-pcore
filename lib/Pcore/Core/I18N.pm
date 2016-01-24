@@ -11,7 +11,7 @@ our $LOCATIONS = [];
 our $CACHE     = {};
 
 sub CORE_INIT {
-    if ( my $i18n_res = $ENV->res->get_storage('i18n') ) {
+    if ( my $i18n_res = $ENV->share->get_storage('i18n') ) {
         for my $path ( $i18n_res->@* ) {
             _add_location($path);
         }

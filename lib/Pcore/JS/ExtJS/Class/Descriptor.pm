@@ -14,9 +14,9 @@ has ext_alias => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );
 
 has _parsed => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-our $EXT = P->cfg->load( $ENV->res->get('/data/extjs.perl') );
+our $EXT = P->cfg->load( $ENV->share->get('/data/extjs.perl') );
 
-__PACKAGE__->register_classes( P->cfg->load( $ENV->res->get('/data/extjs_pcore.perl') ) );
+__PACKAGE__->register_classes( P->cfg->load( $ENV->share->get('/data/extjs_pcore.perl') ) );
 
 sub register_classes {
     my $self = shift;

@@ -41,7 +41,7 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 
 sub _install_service ( $self, $service_name ) {
     if ($MSWIN) {
-        my $wrapper = $ENV->res->get('/bin/nssm_x64.exe');
+        my $wrapper = $ENV->share->get('/bin/nssm_x64.exe');
 
         P->pm->run_capture( $wrapper, 'install', $service_name, $^X, $ENV->{SCRIPT_PATH} );
     }
