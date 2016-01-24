@@ -4,13 +4,13 @@ use Pcore -class;
 use Config;
 use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules] needed to find system temp dir
 use Pcore::Dist;
-use Pcore::Core::Env::Resources;
+use Pcore::Core::Env::Share;
 
 has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );
 has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
-has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );                  # pcore dist
-has res => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Resources'], init_arg => undef );    # resources object
-has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # registered dists. index
+has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init_arg => undef ); # pcore dist
+has res   => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef ); # resources object
+has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );      # registered dists. index
 
 sub CORE_INIT ( $self, $proc_cfg = undef ) {
     $self->{START_DIR}      = P->file->cwd->to_string;
@@ -89,7 +89,7 @@ sub _build_pcore ($self) {
 }
 
 sub _build_res ($self) {
-    return Pcore::Core::Env::Resources->new;
+    return Pcore::Core::Env::Share->new;
 }
 
 sub register_dist ( $self, $dist ) {
