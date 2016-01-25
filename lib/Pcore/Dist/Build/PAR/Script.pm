@@ -158,12 +158,12 @@ sub _add_shlib ($self) {
         if ($found) {
             my $filename = P->path($shlib)->filename;
 
-            say qq[shared lib added: "$filename"];
+            say qq[shlib added: "$filename"];
 
             $self->tree->add_file( "shlib/$Config{archname}/$filename", $found );
         }
         else {
-            $self->_error(qq[shared object wasn't found: "$shlib"]);
+            $self->_error(qq[shlib wasn't found: "$shlib"]);
         }
     }
 
@@ -366,9 +366,6 @@ sub _process_main_modules ($self) {
     # add Pcore dist
     $self->_add_dist( $ENV->pcore );
 
-    # add current dist
-    $self->_add_dist( $self->dist );
-
     for my $main_mod ( keys $self->main_mod->%* ) {
         next if $main_mod eq 'Pcore.pm' or $main_mod eq $self->dist->module->name;
 
@@ -378,6 +375,9 @@ sub _process_main_modules ($self) {
 
         $self->_add_dist($dist);
     }
+
+    # add current dist, should be added last to preserve share libs order
+    $self->_add_dist( $self->dist );
 
     return;
 }
@@ -400,14 +400,19 @@ sub _add_dist ( $self, $dist ) {
         $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/build.perl", $dist->create_build_info );
     }
 
+    # register dist share in order to find them later via $ENV->share->get interface
+    $ENV->register_dist($dist);
+
     # process dist modules shares
     if ( $dist->cfg->{dist}->{mod_share} ) {
+
+        # register shares to add later
         for my $mod ( grep { exists $self->mod->{$_} } keys $dist->cfg->{dist}->{mod_share}->%* ) {
             $self->share->@{ $dist->cfg->{dist}->{mod_share}->{$mod}->@* } = ();
         }
     }
 
-    say 'pcore dist added: ' . $dist->name;
+    say 'dist added: ' . $dist->name;
 
     return;
 }
@@ -607,19 +612,19 @@ sub _error ( $self, $msg ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 174, 193, 200, 232,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 372, 405, 542        │                                                                                                                │
+## │      │ 369, 410, 547        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 246                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 439                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 444                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 477                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 482                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 512                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 517                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 564, 566             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 569, 571             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 499, 505             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 504, 510             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

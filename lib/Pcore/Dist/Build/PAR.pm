@@ -57,7 +57,7 @@ sub run ($self) {
         $profile->{upx}     = $self->upx if defined $self->upx;
         $profile->{clean}   = $self->clean if defined $self->clean;
 
-        # add pardeps.cbor modules, skip eval
+        # add pardeps.cbor modules, skip eval records
         $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->{ $Config{archname} }->%* } = ();
 
         # add global modules
@@ -72,14 +72,14 @@ sub run ($self) {
         # add Filter::Crypto::Decrypt deps if crypt mode is used
         $profile->{mod}->{'Filter/Crypto/Decrypt.pm'} = undef if $profile->{crypt};
 
+        # index and add script shares
         my $share = {};
 
-        # add script shares
         $share->@{ $profile->{share}->@* } = () if $profile->{share};
 
         $profile->{share} = $share;
 
-        # add shlib
+        # index and add shlib
         my $shlib = {};
 
         if ( exists $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod_shlib} ) {
