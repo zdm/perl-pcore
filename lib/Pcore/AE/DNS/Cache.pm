@@ -79,6 +79,8 @@ sub register ( $self, %args ) {
 
     # try to load defailt os config
     if ( !$args{server} ) {
+        local $SIG{__WARN__} = sub { };    # TODO typo in Win32::IPHelper, https://rt.cpan.org/Ticket/Display.html?id=110004
+
         $ENV{PERL_ANYEVENT_RESOLV_CONF} ? $AnyEvent::DNS::RESOLVER->_load_resolv_conf_file( $ENV{PERL_ANYEVENT_RESOLV_CONF} ) : $AnyEvent::DNS::RESOLVER->os_config;
     }
 
@@ -190,7 +192,7 @@ sub request ( $self, $req, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 121, 123, 131, 135   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 123, 125, 133, 137   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
