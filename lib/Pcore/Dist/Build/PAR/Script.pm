@@ -17,9 +17,9 @@ has crypt   => ( is => 'ro', isa => Bool, required => 1 );
 has upx     => ( is => 'ro', isa => Bool, required => 1 );
 has clean   => ( is => 'ro', isa => Bool, required => 1 );
 
-has mod      => ( is => 'ro', isa => ArrayRef, required => 1 );
-has resource => ( is => 'ro', isa => ArrayRef, required => 1 );
-has shlib    => ( is => 'ro', isa => ArrayRef, required => 1 );
+has mod   => ( is => 'ro', isa => ArrayRef, required => 1 );
+has share => ( is => 'ro', isa => ArrayRef, required => 1 );
+has shlib => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix   => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -74,8 +74,8 @@ sub run ($self) {
     # add shlib
     $self->_add_shlib;
 
-    # add resources
-    $self->_add_resources;
+    # add shares
+    $self->_add_share;
 
     # add modules
     print 'adding modules ... ';
@@ -178,15 +178,15 @@ sub _add_shlib ($self) {
     return;
 }
 
-sub _add_resources ($self) {
-    for my $res ( $self->resource->@* ) {
+sub _add_share ($self) {
+    for my $res ( $self->share->@* ) {
         my $path = $ENV->share->get($res);
 
         if ( !$path ) {
-            $self->_error(qq[required resource "$res" wasn't found]);
+            $self->_error(qq[required share "$res" wasn't found]);
         }
         else {
-            say qq[resource added: "$res"];
+            say qq[share added: "$res"];
 
             $self->tree->add_file( 'share/' . $res, $path );
         }

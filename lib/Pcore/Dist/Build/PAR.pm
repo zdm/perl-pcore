@@ -82,7 +82,7 @@ sub run ($self) {
             $share->@{ $pcore_cfg->{par}->{mod_share}->{$mod}->@* } = ();
         }
 
-        $profile->{resource} = [ keys $share->%* ];
+        $profile->{share} = [ keys $share->%* ];
 
         # add shlib
         my $shlib = {};
