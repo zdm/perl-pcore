@@ -77,12 +77,7 @@ sub run ($self) {
         # add script shares
         $share->@{ $profile->{share}->@* } = () if $profile->{share};
 
-        # add shares, required by used modules
-        for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{mod_share}->%* ) {
-            $share->@{ $pcore_cfg->{par}->{mod_share}->{$mod}->@* } = ();
-        }
-
-        $profile->{share} = [ keys $share->%* ];
+        $profile->{share} = $share;
 
         # add shlib
         my $shlib = {};
@@ -94,8 +89,6 @@ sub run ($self) {
         }
 
         $profile->{shlib} = [ keys $shlib->%* ];
-
-        $profile->{mod} = [ keys $profile->{mod}->%* ];
 
         Pcore::Dist::Build::PAR::Script->new($profile)->run;
     }
@@ -110,8 +103,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42, 61, 81, 85, 91,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 96, 98               │                                                                                                                │
+## │    3 │ 42, 61, 86, 91       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

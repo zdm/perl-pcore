@@ -17,13 +17,14 @@ has crypt   => ( is => 'ro', isa => Bool, required => 1 );
 has upx     => ( is => 'ro', isa => Bool, required => 1 );
 has clean   => ( is => 'ro', isa => Bool, required => 1 );
 
-has mod   => ( is => 'ro', isa => ArrayRef, required => 1 );
-has share => ( is => 'ro', isa => ArrayRef, required => 1 );
+has mod   => ( is => 'ro', isa => HashRef,  required => 1 );
+has share => ( is => 'ro', isa => HashRef,  required => 1 );
 has shlib => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
-has par_suffix   => ( is => 'lazy', isa => Str, init_arg => undef );
-has exe_filename => ( is => 'lazy', isa => Str, init_arg => undef );
+has par_suffix   => ( is => 'lazy', isa => Str,     init_arg => undef );
+has exe_filename => ( is => 'lazy', isa => Str,     init_arg => undef );
+has main_mod     => ( is => 'lazy', isa => HashRef, default  => sub { {} }, init_arg => undef );    # main modules, found during deps processing
 
 sub _build_tree ($self) {
     return Pcore::Util::File::Tree->new;
@@ -56,31 +57,22 @@ sub run ($self) {
     # add main script
     $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
 
-    # add dist dist.perl
-    $self->tree->add_file( 'share/dist.perl', $self->dist->share_dir . '/dist.perl' );
-
-    # add dist build.perl
-    $self->tree->add_file( 'share/build.perl', $self->dist->create_build_info );
-
-    # add Pcore dist.perl
-    $self->tree->add_file( 'lib/auto/share/dist/Pcore/dist.perl', $ENV->share->get_lib('pcore') . 'dist.perl' );
-
-    # add Pcore build.perl
-    $self->tree->add_file( 'lib/auto/share/dist/Pcore/build.perl', $ENV->pcore->create_build_info );
-
     # add META.yml
     $self->tree->add_file( 'META.yml', P->data->to_yaml( { par => { clean => 1 } } ) ) if $self->clean;
-
-    # add shlib
-    $self->_add_shlib;
-
-    # add shares
-    $self->_add_share;
 
     # add modules
     print 'adding modules ... ';
     $self->_add_modules;
     say 'done';
+
+    # process found main modules
+    $self->_process_main_modules;
+
+    # add shares
+    $self->_add_share;
+
+    # add shlib
+    $self->_add_shlib;
 
     my $temp = $self->tree->write_to_temp;
 
@@ -179,7 +171,7 @@ sub _add_shlib ($self) {
 }
 
 sub _add_share ($self) {
-    for my $res ( $self->share->@* ) {
+    for my $res ( keys $self->share->%* ) {
         my $path = $ENV->share->get($res);
 
         if ( !$path ) {
@@ -198,14 +190,14 @@ sub _add_share ($self) {
 sub _add_modules ($self) {
 
     # add .pl, .pm
-    for my $module ( grep {/[.](?:pl|pm)\z/sm} $self->mod->@* ) {
+    for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->mod->%* ) {
         my $found = $self->_add_module($module);
 
         $self->_error(qq[required module wasn't found: "$module"]) if !$found;
     }
 
     # add .pc (part of some Win32API modules)
-    for my $module ( grep {/[.](?:pc)\z/sm} $self->mod->@* ) {
+    for my $module ( grep {/[.](?:pc)\z/sm} keys $self->mod->%* ) {
         my $found;
 
         for my $inc ( grep { !ref } @INC ) {
@@ -235,7 +227,7 @@ sub _add_module ( $self, $module ) {
     if ( my $auto_deps = $module->auto_deps ) {
 
         # module have auto deps
-        $target = $Config{version} . q[/] . $Config{archname} . q[/];
+        $target = "$Config{version}/$Config{archname}/";
 
         for my $deps ( keys $auto_deps->%* ) {
             $self->tree->add_file( $target . $deps, $auto_deps->{$deps} );
@@ -256,10 +248,15 @@ sub _add_perl_source ( $self, $source, $target, $is_installed = 0, $module = und
 
     if ($module) {
 
+        # detect pcore dist main module
+        if ( $src->$* =~ /^use Pcore.+-dist.*;/m ) {    ## no critic qw[RegularExpressions::RequireDotMatchAnything]
+            $self->main_mod->{$module} = [ $source, $target ];
+        }
+
         # patch content for PAR compatibility
         $src = PAR::Filter->new('PatchContent')->apply( $src, $module );
 
-        # this is perl core or CPAN module
+        # this is perl core or CPAN module, we don't crypt such modules
         if ($is_installed) {
             if ( $self->release ) {
                 $src = Pcore::Src::File->new(
@@ -360,6 +357,57 @@ sub _add_perl_source ( $self, $source, $target, $is_installed = 0, $module = und
     }
 
     $self->tree->add_file( $target, $src );
+
+    return;
+}
+
+sub _process_main_modules ($self) {
+
+    # add Pcore dist
+    $self->_add_dist( $ENV->pcore );
+
+    # add current dist
+    $self->_add_dist( $self->dist );
+
+    for my $main_mod ( keys $self->main_mod->%* ) {
+        next if $main_mod eq 'Pcore.pm' or $main_mod eq $self->dist->module->name;
+
+        my $dist = Pcore::Dist->new($main_mod);
+
+        $self->_error(qq[corrupted main module: "$main_mod"]) if !$dist;
+
+        $self->_add_dist($dist);
+    }
+
+    return;
+}
+
+sub _add_dist ( $self, $dist ) {
+    if ( $dist->name eq $self->dist->name ) {
+
+        # add main dist dist.perl
+        $self->tree->add_file( 'share/dist.perl', $dist->share_dir . '/dist.perl' );
+
+        # add main dist build.perl
+        $self->tree->add_file( 'share/build.perl', $dist->create_build_info );
+    }
+    else {
+
+        # add dist.perl
+        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist.perl", $dist->share_dir . '/dist.perl' );
+
+        # add build.perl
+        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/build.perl", $dist->create_build_info );
+    }
+
+    # process dist modules shares
+    if ( $dist->cfg->{dist}->{mod_share} ) {
+        for my $mod ( grep { exists $self->mod->{$_} } keys $dist->cfg->{dist}->{mod_share}->%* ) {
+            $self->share->@{ $dist->cfg->{dist}->{mod_share}->{$mod}->@* } = ();
+        }
+    }
+
+    say 'pcore dist added: ' . $dist->name;
 
     return;
 }
@@ -558,19 +606,20 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 240, 494             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 174, 193, 200, 232,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 372, 405, 542        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 254                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 246                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 391                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 439                  │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 429                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 477                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 464                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 512                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 516, 518             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 564, 566             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 451, 457             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 499, 505             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
