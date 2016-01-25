@@ -15,16 +15,16 @@
             'Time/Moment.pm',
             'Time/Zone.pm',
         ],
-        mod_resource => {
+        mod_share => {
             'Pcore/Dist/Build/Deploy.pm' => ['/data/pcore.perl'],
             'Pcore/Dist/Build/PAR'       => ['/data/pcore.perl'],
             'Pcore/Src/File.pm'          => ['/data/src.perl'],
             'Pcore/Util/GeoIP.pm'        => [                       #
                 '/data/geoip_country.dat',
                 '/data/geoip_country_v6.dat',
-                '/data/geoip2_country.dat',
                 '/data/geoip_city.dat',
                 '/data/geoip_city_v6.dat',
+                '/data/geoip2_country.dat',
                 '/data/geoip2_city.dat',
             ],
             'Pcore/Util/Path.pm'     => ['/data/mime.perl'],

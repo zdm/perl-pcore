@@ -72,17 +72,17 @@ sub run ($self) {
         # add Filter::Crypto::Decrypt deps if crypt mode is used
         $profile->{mod}->{'Filter/Crypto/Decrypt.pm'} = undef if $profile->{crypt};
 
-        my $resource = {};
+        my $share = {};
 
-        # add script resources
-        $resource->@{ keys $profile->{resource}->@* } = () if $profile->{resource};
+        # add script shares
+        $share->@{ $profile->{share}->@* } = () if $profile->{share};
 
-        # add modules resources
-        for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{mod_resource}->%* ) {
-            $resource->@{ $pcore_cfg->{par}->{mod_resource}->{$mod}->@* } = ();
+        # add shares, required by used modules
+        for my $mod ( grep { exists $profile->{mod}->{$_} } keys $pcore_cfg->{par}->{mod_share}->%* ) {
+            $share->@{ $pcore_cfg->{par}->{mod_share}->{$mod}->@* } = ();
         }
 
-        $profile->{resource} = [ keys $resource->%* ];
+        $profile->{resource} = [ keys $share->%* ];
 
         # add shlib
         my $shlib = {};
