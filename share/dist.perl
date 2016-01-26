@@ -17,11 +17,4 @@
         'Pcore/Util/URI/Host.pm'     => [ '/data/pub_suffix.dat', '/data/tld.dat' ],
         'Pcore/Util/URI/Web2.pm'     => ['/data/web2.perl'],
     },
-
-    # default log channels
-    log => [    #
-        [ 'fatal', 'stderr:', 'file:fatal.log' ],
-        [ 'error', 'stderr:', 'file:error.log' ],
-        [ 'warn',  'stderr:', 'file:warn.log' ],
-    ],
 }

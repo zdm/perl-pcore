@@ -12,7 +12,6 @@ has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init
 has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef ); # share object
 has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );      # registered dists. index
 
-# TODO remove CFG
 sub CORE_INIT ($self) {
     $self->{START_DIR}      = P->file->cwd->to_string;
     $self->{SCRIPT_NAME}    = $FindBin::RealScript;
@@ -27,10 +26,6 @@ sub CORE_INIT ($self) {
 
     # load dist.perl
     if ( my $dist = $self->dist ) {
-
-        # TODO - do not merge with dist cfg, just store as CFG
-        $self->{CFG} = $dist->cfg;
-
         if ( $self->is_par ) {
             $self->{DATA_DIR} = undef;
             $self->{LOG_DIR} = P->path( $ENV{PAR_TEMP} . '/log/', is_dir => 1, lazy => 1 );
@@ -41,8 +36,6 @@ sub CORE_INIT ($self) {
         }
     }
     else {
-        $self->{CFG} = {};
-
         $self->{DATA_DIR} = undef;
         $self->{LOG_DIR}  = undef;
     }
@@ -137,6 +130,10 @@ sub register_dist ( $self, $dist ) {
     return;
 }
 
+sub get_dist ( $self, $dist ) {
+    return $self->dist_idx->{ lc $dist =~ s/::/-/smgr };
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -144,7 +141,7 @@ sub register_dist ( $self, $dist ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 112                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 105                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

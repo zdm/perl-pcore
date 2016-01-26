@@ -566,10 +566,10 @@ sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
         my $obj = Pcore::Core::Logger->new;
 
-        # set default log pipes
-        for my $ch ( $ENV->pcore->cfg->{log} ? $ENV->pcore->cfg->{log}->@* : (), $ENV->{CFG}->{log} ? $ENV->{CFG}->{log}->@* : () ) {
-            $obj->add_channel( $ch->@* );
-        }
+        # set default log channels
+        $obj->add_channel( 'fatal', 'stderr:', 'file:fatal.log' );
+        $obj->add_channel( 'error', 'stderr:', 'file:error.log' );
+        $obj->add_channel( 'warn',  'stderr:', 'file:warn.log' );
 
         $obj;
     };

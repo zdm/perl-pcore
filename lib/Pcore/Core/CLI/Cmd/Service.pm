@@ -4,8 +4,6 @@ use Pcore -class;
 
 with qw[Pcore::Core::CLI::Cmd];
 
-# TODO this command should be added automatically, if $ENV->{CFG}->{SERVICE_NAME} is defined
-
 sub cli_name ($self) {
     return 'service';
 }
@@ -17,10 +15,10 @@ sub cli_abstract ($self) {
 sub cli_opt ($self) {
     return {
         name => {
-            short   => undef,
-            desc    => 'service name',
-            isa     => 'Str',
-            default => $ENV->{CFG}->{SERVICE_NAME},
+            short => undef,
+            desc  => 'service name',
+            isa   => 'Str',
+            min   => 1,
         }
     };
 }

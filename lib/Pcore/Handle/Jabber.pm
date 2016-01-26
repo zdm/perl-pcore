@@ -7,7 +7,7 @@ with qw[Pcore::Core::H::Role::Wrapper];
 
 has driver => ( is => 'rw', isa => Enum [ 'Jabber::Connection', 'Net::XMPP' ], default => 'Jabber::Connection' );
 
-# PHARAOH_JABBER_SOFTVISIO_NET => {
+# JABBER_SOFTVISIO_NET => {
 #    DRV        => 'jabber',
 #    SERVER     => 'jabber.softvisio.net:5222',
 #    USER       => 'pharaoh',
