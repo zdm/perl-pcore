@@ -107,11 +107,11 @@ sub register_dist ( $self, $dist ) {
     $self->dist_idx->{ lc $dist->name } = $dist;
 
     # register dist utils
-    if ( $dist->cfg->{dist}->{util} ) {
-        for my $util ( keys $dist->cfg->{dist}->{util}->%* ) {
+    if ( $dist->cfg->{util} ) {
+        for my $util ( keys $dist->cfg->{util}->%* ) {
             die qq[Pcore util "$util" is already registered] if exists $Pcore::UTIL->{$util};
 
-            $Pcore::UTIL->{$util} = $dist->cfg->{dist}->{util}->{$util};
+            $Pcore::UTIL->{$util} = $dist->cfg->{util}->{$util};
         }
     }
 

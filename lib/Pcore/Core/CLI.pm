@@ -16,7 +16,7 @@ has arg => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 has is_cmd     => ( is => 'lazy', isa => Bool,    init_arg => undef );
 has _cmd_index => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->cfg->{dist}->{par} && exists $ENV->dist->cfg->{dist}->{par}->{ $ENV->{SCRIPT_NAME} };
+my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->cfg->{par} && exists $ENV->dist->cfg->{par}->{ $ENV->{SCRIPT_NAME} };
 
 sub _build_cmd ($self) {
     my $cmd = [];

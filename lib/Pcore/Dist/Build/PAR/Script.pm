@@ -404,11 +404,11 @@ sub _add_dist ( $self, $dist ) {
     $ENV->register_dist($dist);
 
     # process dist modules shares
-    if ( $dist->cfg->{dist}->{mod_share} ) {
+    if ( $dist->cfg->{par_mod_share} ) {
 
         # register shares to add later
-        for my $mod ( grep { exists $self->mod->{$_} } keys $dist->cfg->{dist}->{mod_share}->%* ) {
-            $self->share->@{ $dist->cfg->{dist}->{mod_share}->{$mod}->@* } = ();
+        for my $mod ( grep { exists $self->mod->{$_} } keys $dist->cfg->{par_mod_share}->%* ) {
+            $self->share->@{ $dist->cfg->{par_mod_share}->{$mod}->@* } = ();
         }
     }
 

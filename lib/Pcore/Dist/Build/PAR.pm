@@ -29,7 +29,7 @@ sub run ($self) {
     }
 
     # check for distribution has configure PAR profiles in dist.perl
-    if ( !$self->dist->cfg->{dist}->{par} && !ref $self->dist->cfg->{dist}->{par} eq 'HASH' ) {
+    if ( !$self->dist->cfg->{par} && !ref $self->dist->cfg->{par} eq 'HASH' ) {
         say q[par profile wasn't found.];
 
         exit 1;
@@ -39,7 +39,7 @@ sub run ($self) {
     my $pcore_cfg = P->cfg->load( $ENV->share->get( '/data/pcore.perl', lib => 'pcore' ) );
 
     # build scripts
-    for my $script ( sort keys $self->dist->cfg->{dist}->{par}->%* ) {
+    for my $script ( sort keys $self->dist->cfg->{par}->%* ) {
         if ( !exists $pardeps->{$script}->{ $Config{archname} } ) {
             say BOLD . RED . qq[Deps for $script "$Config{archname}" wasn't scanned.] . RESET;
 
@@ -48,7 +48,7 @@ sub run ($self) {
             next;
         }
 
-        my $profile = $self->dist->cfg->{dist}->{par}->{$script};
+        my $profile = $self->dist->cfg->{par}->{$script};
 
         $profile->{dist}    = $self->dist;
         $profile->{script}  = P->path( $self->dist->root . 'bin/' . $script );

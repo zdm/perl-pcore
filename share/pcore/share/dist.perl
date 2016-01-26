@@ -16,15 +16,20 @@
                 web => undef,
             }
         },
-        par => {
-            '<: $main_script :>' => {
-                crypt => 1,
-                upx   => 1,
-                clean => 1,
-                share => [                                           # eg.: '/data/web2.perl',
-                ],
-            },
-        },
-        util => {},
     },
+
+    util => {},
+
+    par_mod_share => {},
+
+    par => {
+        '<: $main_script :>' => {
+            crypt => 1,
+            upx   => 1,
+            clean => 1,
+            share => [    # eg.: '/data/web2.perl',
+            ],
+        },
+    },
+
 }
