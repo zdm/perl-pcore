@@ -145,20 +145,20 @@ sub import {
     my $caller = caller;
 
     # parse tags and pragmas
-    my ( $tags, $pragma, $data ) = Pcore::Core::Exporter::parse_import( $self, @_ );
+    my $import = Pcore::Core::Exporter::parse_import( $self, @_ );
 
     # initialize Pcore if called first time from non-core package
     if ( !$Pcore::INITIALISED && $caller eq $Pcore::CALLER ) {
         $Pcore::INITIALISED = 1;
 
-        _CORE_INIT($data);
+        _CORE_INIT();
     }
 
     # export perl pragmas
     header->import( -caller => $caller );
 
     # process -const pragma
-    Const::Fast->import::into( $caller, 'const' ) if $pragma->{const};
+    Const::Fast->import::into( $caller, 'const' ) if $import->{pragma}->{const};
 
     # export P sub to avoid indirect calls
     # export i18n
@@ -174,12 +174,12 @@ sub import {
     }
 
     # re-export core packages
-    Pcore::Core::Const->import( -caller => $caller, $tags->@* );
-    Pcore::Core::Dump->import( -caller => $caller, $tags->@* );
-    Pcore::Core::Exception->import( -caller => $caller, $tags->@* );
-    Pcore::Core::H->import( -caller => $caller, $tags->@* );
+    Pcore::Core::Const->import( -caller => $caller );
+    Pcore::Core::Dump->import( -caller => $caller );
+    Pcore::Core::Exception->import( -caller => $caller );
+    Pcore::Core::H->import( -caller => $caller );
 
-    if ( !$pragma->{config} ) {
+    if ( !$import->{pragma}->{config} ) {
 
         # install run-time hook to caller package
         if ( $caller eq $Pcore::CALLER ) {
@@ -193,27 +193,27 @@ sub import {
         }
 
         # process -export pragma
-        if ( $pragma->{export} ) {
-            Pcore::Core::Exporter->import( -caller => $caller, -export => $pragma->{export} );
+        if ( $import->{pragma}->{export} ) {
+            Pcore::Core::Exporter->import( -caller => $caller, -export => $import->{pragma}->{export} );
         }
 
         # process -inline pragma
-        if ( $pragma->{inline} ) {
+        if ( $import->{pragma}->{inline} ) {
             state $init = !!require Pcore::Core::Inline;
         }
 
         # process -dist pragma
-        if ( $pragma->{dist} ) {
+        if ( $import->{pragma}->{dist} ) {
             $ENV->register_dist($caller);
         }
 
         # store significant pragmas for use in run-time
-        $Pcore::EMBEDDED = 1 if $pragma->{embedded};
+        $Pcore::EMBEDDED = 1 if $import->{pragma}->{embedded};
 
-        $Pcore::NO_ISA_ATTR = 1 if $pragma->{no_isa_attr};
+        $Pcore::NO_ISA_ATTR = 1 if $import->{pragma}->{no_isa_attr};
 
         # re-export Moo
-        if ( $pragma->{class} || $pragma->{role} ) {
+        if ( $import->{pragma}->{class} || $import->{pragma}->{role} ) {
 
             # install universal serializer methods
             B::Hooks::EndOfScope::XS::on_scope_end(
@@ -232,12 +232,12 @@ sub import {
                 }
             );
 
-            $pragma->{types} = 1;
+            $import->{pragma}->{types} = 1;
 
-            if ( $pragma->{class} ) {
+            if ( $import->{pragma}->{class} ) {
                 _import_moo( $caller, 0 );
             }
-            elsif ( $pragma->{role} ) {
+            elsif ( $import->{pragma}->{role} ) {
                 _import_moo( $caller, 1 );
             }
 
@@ -249,12 +249,12 @@ sub import {
         }
 
         # export types
-        _import_types($caller) if $pragma->{types};
+        _import_types($caller) if $import->{pragma}->{types};
     }
 
     # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
     # NOTE !!!WARNING!!! AUTOLOAD should be exported after Moo::Role, so Moo::Role can re-export this method
-    if ( $pragma->{autoload} ) {
+    if ( $import->{pragma}->{autoload} ) {
         state $init = !!require Pcore::Core::Autoload;
 
         Pcore::Core::Autoload->import( -caller => $caller );
@@ -268,7 +268,7 @@ sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     # my $self = shift;
 
     # parse pragmas and tags
-    # my ( $tags, $pragma ) = Pcore::Core::Exporter::parse_import( $self, @_ );
+    # my $import = Pcore::Core::Exporter::parse_import( $self, @_ );
 
     # find caller
     # my $caller = caller;
@@ -385,7 +385,7 @@ use Pcore::Core::Dump qw[:CORE];
 use Pcore::Core::Exception qw[];
 use Pcore::Core::H qw[];
 
-sub _CORE_INIT ($proc_cfg) {
+sub _CORE_INIT {
 
     # set default fallback mode for all further :encoding I/O layers
     $PerlIO::encoding::fallback = Encode::FB_CROAK | Encode::STOP_AT_PARTIAL;
@@ -426,7 +426,7 @@ sub _CORE_INIT ($proc_cfg) {
     }
 
     # configure run-time environment
-    Pcore::Core::Bootstrap::CORE_INIT($proc_cfg);
+    Pcore::Core::Bootstrap::CORE_INIT();
 
     # STDIN
     if ( -t *STDIN ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]

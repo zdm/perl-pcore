@@ -12,14 +12,14 @@ sub import {
     my $self = shift;
 
     # parse tags and pragmas
-    my ( $tag, $pragma, $data ) = parse_import( $self, @_ );
+    my $import = parse_import( $self, @_ );
 
     # find caller
-    my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
+    my $caller = $import->{pragma}->{caller} // caller( $import->{pragma}->{level} // 0 );
 
     # process -export pragma
     if ( !exists $CACHE->{$caller} ) {
-        $pragma->{export} = { ALL => $pragma->{export} } if ref $pragma->{export} eq 'ARRAY';
+        $import->{pragma}->{export} = { ALL => $import->{pragma}->{export} } if ref $import->{pragma}->{export} eq 'ARRAY';
 
         my $tags;    # 0 - processing, 1 - done
 
@@ -32,7 +32,7 @@ sub import {
 
             $tags->{$tag} = 0;
 
-            for ( $pragma->{export}->{$tag}->@* ) {
+            for ( $import->{pragma}->{export}->{$tag}->@* ) {
                 my $sym = $_;
 
                 my $type = $sym =~ s/\A([:&\$@%*])//sm ? $1 : q[];
@@ -59,7 +59,7 @@ sub import {
             return;
         };
 
-        for my $tag ( keys $pragma->{export}->%* ) {
+        for my $tag ( keys $import->{pragma}->{export}->%* ) {
             $process_tag->($tag);
         }
     }
@@ -79,53 +79,49 @@ sub import {
 sub parse_import {
     my $caller = shift;
 
-    my ( $tag, $pragma, $data );
+    my $res;
 
     my $export_pragma = do {
         no strict qw[refs];
 
-        ${ $caller . '::EXPORT_PRAGMA' };
+        ${"$caller\::EXPORT_PRAGMA"};
     };
 
     while ( my $arg = shift ) {
-        if ( ref $arg eq 'HASH' ) {
-            $data = $arg;
-        }
-        elsif ( substr( $arg, 0, 1 ) eq q[-] ) {
+        if ( substr( $arg, 0, 1 ) eq q[-] ) {
             substr $arg, 0, 1, q[];
 
             if ( $arg eq 'level' || $arg eq 'caller' ) {
-                $pragma->{$arg} = shift;
+                $res->{pragma}->{$arg} = shift;
             }
             elsif ( $export_pragma && exists $export_pragma->{$arg} ) {
-                $pragma->{$arg} = $export_pragma->{$arg} ? shift : 1;
+                $res->{pragma}->{$arg} = $export_pragma->{$arg} ? shift : 1;
             }
             else {
                 die qq[Unknown exporter pragma found "-$arg" while importing package "$caller"];
             }
-
         }
         else {
-            push $tag->@*, $arg;
+            $res->{import}->{$arg} = undef;
         }
     }
 
-    return $tag, $pragma, $data;
+    return $res;
 }
 
 sub _import {
     my $self = shift;
 
     # parse tags and pragmas
-    my ( $tag, $pragma, $data ) = parse_import( $self, @_ );
+    my $import = parse_import( $self, @_ );
 
     # find caller
-    my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
+    my $caller = $import->{pragma}->{caller} // caller( $import->{pragma}->{level} // 0 );
 
     # protection from re-exporting to myself
     return if $caller eq $self;
 
-    _export_tags( $self, $caller, $tag );
+    _export_tags( $self, $caller, $import->{import} );
 
     return;
 }
@@ -135,10 +131,10 @@ sub _unimport {
     my $self = shift;
 
     # parse tags and pragmas
-    my ( $tag, $pragma, $data ) = parse_import( $self, @_ );
+    my $import = parse_import( $self, @_ );
 
     # find caller
-    my $caller = $pragma->{caller} // caller( $pragma->{level} // 0 );
+    my $caller = $import->{pragma}->{caller} // caller( $import->{pragma}->{level} // 0 );
 
     # protection from re-exporting to myself
     return if $caller eq $self;
@@ -152,7 +148,7 @@ sub _unimport {
         # NOTE only subroutines can be unimported right now
         for my $sym ( keys $CACHE->{$self}->{DEFAULT}->%* ) {
             if ( $cache->{$sym}->[1] eq q[] ) {
-                delete ${ $caller . q[::] }{ $cache->{$sym}->[0] };
+                delete ${"$caller\::"}{ $cache->{$sym}->[0] };
             }
         }
     }
@@ -160,15 +156,15 @@ sub _unimport {
     return;
 }
 
-sub _export_tags ( $self, $caller, $tag ) {
+sub _export_tags ( $self, $caller, $import ) {
     my $export = $CACHE->{$self};
 
-    if ( !$tag ) {
+    if ( !$import ) {
         if ( !exists $export->{DEFAULT} ) {
             return;
         }
         else {
-            push $tag->@*, ':DEFAULT';
+            $import->{':DEFAULT'} = undef;
         }
     }
     else {
@@ -178,7 +174,7 @@ sub _export_tags ( $self, $caller, $tag ) {
     # gather symbols to export
     my $symbols;
 
-    for my $sym ( $tag->@* ) {
+    for my $sym ( keys $import->%* ) {
         my $no_export;
 
         my $is_tag;
@@ -263,13 +259,13 @@ sub _export_tags ( $self, $caller, $tag ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 48, 104, 175,    │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 198, 216, 251        │                                                                                                                │
+## │    3 │ 31, 48, 101, 171,    │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 194, 212, 247        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 52, 62, 153, 201,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 204, 228, 231        │                                                                                                                │
+## │    3 │ 52, 62, 149, 177,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 197, 200, 224, 227   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 163                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
+## │    3 │ 159                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 1                    │ Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

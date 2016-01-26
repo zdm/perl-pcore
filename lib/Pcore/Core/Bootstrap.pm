@@ -18,13 +18,13 @@ if ($@) {
     $INC{'FindBin.pm'} = 'eval()';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 }
 
-sub CORE_INIT ($proc_cfg) {
+sub CORE_INIT {
     _normalize_inc();
 
     # create $ENV object
     $ENV = Pcore::Core::Env->new;     ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $ENV->CORE_INIT($proc_cfg);
+    $ENV->CORE_INIT;
 
     _configure_inc();
 
