@@ -66,13 +66,15 @@ sub _get ( $self, $id ) {
 sub _AUTOLOAD ( $self, $method, @ ) {
     die qq[Handle "$method" not exists in cache] unless $self->_h_cache->{$method};
 
+    my $quoted = quotemeta $method;
+
     return <<"PERL";
         sub (\$self) {
             if ( my \$h = \$self->_get(q[$method]) ) {
                 return \$h;
             }
             else {
-                die qq[Handle "$method" was removed from cache];
+                die qq[Handle "$quoted" was removed from cache];
             }
         };
 PERL
