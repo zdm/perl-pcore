@@ -10,6 +10,7 @@ use Pcore -class;
 use POSIX qw[:sys_wait_h];
 
 extends qw[Pcore::App];
+
 with qw[Pcore::App::Alien::Role];
 
 has alien_dir      => ( is => 'lazy', isa => Str, init_arg => undef );
