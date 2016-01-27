@@ -88,7 +88,10 @@ sub parse_import {
     };
 
     while ( my $arg = shift ) {
-        if ( substr( $arg, 0, 1 ) eq q[-] ) {
+        if ( ref $arg ) {
+            die q[Invalid value in the import specification. References are not supported.];
+        }
+        elsif ( substr( $arg, 0, 1 ) eq q[-] ) {
             substr $arg, 0, 1, q[];
 
             if ( $arg eq 'level' || $arg eq 'caller' ) {
@@ -259,13 +262,13 @@ sub _export_tags ( $self, $caller, $import ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 48, 101, 171,    │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 194, 212, 247        │                                                                                                                │
+## │    3 │ 31, 48, 92, 104,     │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 174, 197, 215, 250   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 52, 62, 149, 177,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 197, 200, 224, 227   │                                                                                                                │
+## │    3 │ 52, 62, 152, 180,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 200, 203, 227, 230   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 159                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
+## │    3 │ 162                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 1                    │ Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
