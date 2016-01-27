@@ -7,8 +7,7 @@ with qw[Pcore::Dist::CLI];
 sub CLI ($self) {
     return {
         abstract => 'show distribution info',
-        opt      => { pcore => { desc => 'show info about currently used Pcore distribution', }, };
-        ,
+        opt      => { pcore => { desc => 'show info about currently used Pcore distribution', }, },
     };
 }
 
