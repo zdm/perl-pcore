@@ -240,12 +240,6 @@ sub _create_local_cfg ($self) {
         $self->$attr_reader->_create_local_cfg($local_cfg);
     }
 
-    # cluster specified in command line
-    # if ( $ARGV{app_deploy} ) {
-    #     $local_cfg->{CLUSTER}->{USE_CLUSTER} = 1;
-    #     $local_cfg->{CLUSTER}->{host}        = $ARGV{app_deploy};
-    # }
-
     return $local_cfg;
 }
 

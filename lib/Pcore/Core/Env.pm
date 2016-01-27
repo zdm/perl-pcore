@@ -11,6 +11,7 @@ has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_ar
 has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init_arg => undef ); # pcore dist
 has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef ); # share object
 has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );      # registered dists. index
+has cli      => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );      # parsed CLI data
 
 sub CORE_INIT ($self) {
     $self->{START_DIR}      = P->file->cwd->to_string;
@@ -141,7 +142,7 @@ sub get_dist ( $self, $dist ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 105                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 106                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

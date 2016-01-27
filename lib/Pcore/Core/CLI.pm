@@ -351,7 +351,7 @@ sub _parse_opt ( $self, $argv ) {
     }
 
     # store results globally
-    %ARGV = $res->%*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $ENV->cli->%* = $res->%*;
 
     # run
     if ( $class->can('CLI_RUN') ) {
