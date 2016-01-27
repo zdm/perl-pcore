@@ -373,9 +373,9 @@ sub _get_class_spec ( $self, $class = undef ) {
             $spec = { cmd => $spec };
         }
         else {
-            $spec = { cmd => [ $spec->{cmd} ] } if $spec->{cmd} && !ref $spec->{cmd};
+            $spec->{cmd} = [ $spec->{cmd} ] if $spec->{cmd} && !ref $spec->{cmd};
 
-            $spec = { name => [ $spec->{name} ] } if $spec->{name} && !ref $spec->{name};
+            $spec->{name} = [ $spec->{name} ] if $spec->{name} && !ref $spec->{name};
         }
 
         return $spec;
