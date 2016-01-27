@@ -4,11 +4,11 @@ use Pcore -class;
 
 with qw[Pcore::Core::CLI::Cmd];
 
-sub cli_abstract ($self) {
-    return 'setup pcore.ini';
+sub CLI ($self) {
+    return { abstract => 'setup pcore.ini', };
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run;
 
     return;

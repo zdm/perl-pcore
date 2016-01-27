@@ -4,7 +4,7 @@ package main v0.1.0;
 
 use Pcore;
 
-sub cli_class ($self) {
+sub CLI ($self) {
     return 'Pcore::Src';
 }
 

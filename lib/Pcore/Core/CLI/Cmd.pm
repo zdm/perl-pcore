@@ -2,43 +2,16 @@ package Pcore::Core::CLI::Cmd;
 
 use Pcore -role;
 
-# COMMON
-sub cli_class ($self) {
-    return;
-}
-
-sub cli_abstract ($self) {
-    return;
-}
-
-sub cli_help ($self) {
-    return;
-}
-
-# CMD ROUTER
-sub cli_cmd ($self) {
-    return;
-}
-
-# CMD
-sub cli_name ($self) {
-    return;
-}
-
-sub cli_opt ($self) {
-    return;
-}
-
-sub cli_arg ($self) {
+sub CLI ($self) {
     return;
 }
 
 # return error message or undef
-sub cli_validate ( $self, $opt, $arg, $rest ) {
+sub CLI_VALIDATE ( $self, $opt, $arg, $rest ) {
     return;
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     return;
 }
 

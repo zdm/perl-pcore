@@ -2,25 +2,25 @@ package Pcore::Core::CLI::Opt::Perms;
 
 use Pcore -role;
 
-around cli_opt => sub ( $orig, $self ) {
-    my $opt = $self->$orig // {};
+around CLI => sub ( $orig, $self ) {
+    my $cli = $self->$orig // {};
 
     if ( !$MSWIN ) {
-        $opt->{UID} = {
+        $cli->{opt}->{UID} = {
             short => undef,
             desc  => 'specify a user id or user name that the server process should switch to',
         };
 
-        $opt->{GID} = {
+        $cli->{opt}->{GID} = {
             short => undef,
             desc  => 'specify the group id or group name that the server should switch to',
         };
     }
 
-    return $opt;
+    return $cli;
 };
 
-around cli_run => sub ( $orig, $self, $opt, @args ) {
+around CLI_RUN => sub ( $orig, $self, $opt, @args ) {
 
     # store uid and gid
     $ENV->{UID} = $opt->{UID} if $opt->{UID};

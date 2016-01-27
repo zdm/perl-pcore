@@ -2,20 +2,20 @@ package Pcore::Core::CLI::Opt::Daemonize;
 
 use Pcore -role;
 
-around cli_opt => sub ( $orig, $self ) {
-    my $opt = $self->$orig // {};
+around CLI => sub ( $orig, $self ) {
+    my $cli = $self->$orig // {};
 
     if ( !$MSWIN ) {
-        $opt->{daemonize} = {
+        $cli->{opt}->{daemonize} = {
             short => 'D',
             desc  => 'daemonize the process',
         };
     }
 
-    return $opt;
+    return $cli;
 };
 
-around cli_run => sub ( $orig, $self, $opt, @args ) {
+around CLI_RUN => sub ( $orig, $self, $opt, @args ) {
 
     # daemonize
     if ( $opt->{daemonize} ) {

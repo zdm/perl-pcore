@@ -4,22 +4,21 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-sub cli_abstract ($self) {
-    return 'deploy distribution';
-}
-
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        all        => { desc => 'implies --develop, --recommends and --suggeests', },
-        install    => { desc => 'install bin/ to PATH and lib/ to PERL5LIB', },
-        develop    => { desc => 'cpanm --with-develop', },
-        recommends => { desc => 'cpanm --with-recommends', },
-        suggests   => { desc => 'cpanm --with-suggests', },
-        verbose    => { desc => 'cpanm --verbose', },
+        abstract => 'deploy distribution',
+        opt      => {
+            all        => { desc => 'implies --develop, --recommends and --suggeests', },
+            install    => { desc => 'install bin/ to PATH and lib/ to PERL5LIB', },
+            develop    => { desc => 'cpanm --with-develop', },
+            recommends => { desc => 'cpanm --with-recommends', },
+            suggests   => { desc => 'cpanm --with-suggests', },
+            verbose    => { desc => 'cpanm --verbose', },
+        },
     };
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run($opt);
 
     return;
@@ -38,7 +37,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 29                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 28                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -4,19 +4,18 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-sub cli_abstract ($self) {
-    return 'release distribution';
-}
-
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        major  => { short => 'M', desc => 'increment major version' },
-        minor  => { desc  => 'increment minor version', },
-        bugfix => { desc  => 'increment bugfix version', },
+        abstract => 'release distribution',
+        opt      => {
+            major  => { short => 'M', desc => 'increment major version' },
+            minor  => { desc  => 'increment minor version', },
+            bugfix => { desc  => 'increment bugfix version', },
+        },
     };
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run($opt);
 
     return;
@@ -35,7 +34,7 @@ sub run ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 26                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 25                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

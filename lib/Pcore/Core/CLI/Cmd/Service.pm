@@ -4,34 +4,23 @@ use Pcore -class;
 
 with qw[Pcore::Core::CLI::Cmd];
 
-sub cli_name ($self) {
-    return 'service';
-}
-
-sub cli_abstract ($self) {
-    return 'manage service';
-}
-
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        name => {
-            short => undef,
-            desc  => 'service name',
-            isa   => 'Str',
-            min   => 1,
-        }
+        abstract => 'manage service',
+        name     => 'service',
+        opt      => {
+            name => {
+                short => undef,
+                desc  => 'service name',
+                isa   => 'Str',
+                min   => 1,
+            }
+        },
+        arg => [ action => { isa => [qw[install]], } ],
     };
 }
 
-sub cli_arg ($self) {
-    return [
-        {   name => 'action',
-            isa  => [qw[install]],
-        }
-    ];
-}
-
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->_install_service( $opt->{name} ) if $arg->{action} eq 'install';
 
     exit;

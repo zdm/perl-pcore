@@ -4,33 +4,32 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-sub cli_abstract ($self) {
-    return 'smoke your distribution';
-}
-
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        author => {
-            desc    => 'enables the AUTHOR_TESTING env variable (default behavior)',
-            default => 0,
+        abstract => 'smoke your distribution',
+        opt      => {
+            author => {
+                desc    => 'enables the AUTHOR_TESTING env variable (default behavior)',
+                default => 0,
+            },
+            release => {
+                desc    => 'enables the RELEASE_TESTING env variable',
+                default => 0,
+            },
+            all => {    #
+                short => undef,
+                desc  => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables',
+            },
+            jobs => {
+                desc => 'number of parallel test jobs to run',
+                isa  => 'PositiveInt',
+            },
+            verbose => { desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
         },
-        release => {
-            desc    => 'enables the RELEASE_TESTING env variable',
-            default => 0,
-        },
-        all => {    #
-            short => undef,
-            desc  => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables',
-        },
-        jobs => {
-            desc => 'number of parallel test jobs to run',
-            isa  => 'PositiveInt',
-        },
-        verbose => { desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
     };
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run($opt);
 
     return;
@@ -49,7 +48,7 @@ sub run ( $self, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 40                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -4,35 +4,27 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-sub cli_abstract ($self) {
-    return 'view project issues';
-}
-
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        active    => { desc  => 'issues with statuses "open", "resolved" or "closed"' },
-        new       => { desc  => 'issues with status "new"' },
-        open      => { desc  => 'issues with status "open"' },
-        resolved  => { desc  => 'issues with status "resolved"' },
-        closed    => { desc  => 'issues with status "closed"' },
-        hold      => { short => 'H', desc => 'issues with status "on hold"' },
-        invalid   => { desc  => 'issues with status "invalid"' },
-        duplicate => { desc  => 'issues with status "duplicate"' },
-        wontfix   => { desc  => 'issues with status "wonfix"' },
+        abstract => 'view project issues',
+        opt      => {
+            active    => { desc  => 'issues with statuses "open", "resolved" or "closed"' },
+            new       => { desc  => 'issues with status "new"' },
+            open      => { desc  => 'issues with status "open"' },
+            resolved  => { desc  => 'issues with status "resolved"' },
+            closed    => { desc  => 'issues with status "closed"' },
+            hold      => { short => 'H', desc => 'issues with status "on hold"' },
+            invalid   => { desc  => 'issues with status "invalid"' },
+            duplicate => { desc  => 'issues with status "duplicate"' },
+            wontfix   => { desc  => 'issues with status "wonfix"' },
+        },
+        arg => [    #
+            id => { desc => 'issue ID', isa => 'PositiveInt', min => 0 },
+        ],
     };
 }
 
-sub cli_arg ($self) {
-    return [
-        {   name => 'id',
-            desc => 'issue ID',
-            isa  => 'PositiveInt',
-            min  => 0,
-        },
-    ];
-}
-
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run( $opt, $arg );
 
     return;
@@ -73,9 +65,9 @@ sub run ( $self, $opt, $arg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 45, 48               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 37, 40               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 43, 52, 59           │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 35, 44, 51           │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -4,11 +4,11 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-sub cli_abstract ($self) {
-    return 'generate wiki pages';
+sub CLI ($self) {
+    return { abstract => 'generate wiki pages', };
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run;
 
     return;

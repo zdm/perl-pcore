@@ -4,15 +4,15 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-sub cli_abstract ($self) {
-    return 'show different distribution info';
+sub CLI ($self) {
+    return {
+        abstract => 'show distribution info',
+        opt      => { pcore => { desc => 'show info about currently used Pcore distribution', }, };
+        ,
+    };
 }
 
-sub cli_opt ($self) {
-    return { pcore => { desc => 'show info about currently used Pcore distribution', }, };
-}
-
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run( $opt->{pcore} );
 
     return;

@@ -8,16 +8,11 @@ use FindBin;
 use if -f qq[$FindBin::RealBin/../share/dist.perl] && -d qq[$FindBin::RealBin/../lib/], lib => qq[$FindBin::RealBin/../lib/];
 use Pcore;
 
-sub cli_cmd ($self) {
-    return 'Pcore::Dist::CLI::';
-}
-
-sub cli_abstract ($self) {
-    return 'Distribution build tool';
-}
-
-sub cli_help ($self) {
-    return;
+sub CLI ($self) {
+    return {
+        abstract => 'Distribution build tool',
+        cmd      => 'Pcore::Dist::CLI::',
+    };
 }
 
 1;

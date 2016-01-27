@@ -7,25 +7,26 @@ use Pcore::Core::CLI::Arg;
 use Config;
 
 has class => ( is => 'ro', isa => Str, required => 1 );
-has cmd_path => ( is => 'ro', isa => ArrayRef, default => sub { [] } );
+has cmd_path => ( is => 'ro', isa => ArrayRef, default => sub { [] } );    # array of used cli commands
 
-has cmd => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
-has opt => ( is => 'lazy', isa => HashRef,  init_arg => undef );
-has arg => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
+has spec => ( is => 'lazy', isa => HashRef,  init_arg => undef );
+has cmd  => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
+has opt  => ( is => 'lazy', isa => HashRef,  init_arg => undef );
+has arg  => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 
 has is_cmd     => ( is => 'lazy', isa => Bool,    init_arg => undef );
 has _cmd_index => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->cfg->{par} && exists $ENV->dist->cfg->{par}->{ $ENV->{SCRIPT_NAME} };
 
+sub _build_spec ($self) {
+    return $self->_get_class_spec;
+}
+
 sub _build_cmd ($self) {
     my $cmd = [];
 
-    my $class = $self->class;
-
-    if ( $class->can('cli_cmd') && ( my $cli_cmd = $class->cli_cmd ) ) {
-        $cli_cmd = [$cli_cmd] if !ref $cli_cmd;
-
+    if ( my $cli_cmd = $self->spec->{cmd} ) {
         my @classes;
 
         for my $cli_cmd_class ( $cli_cmd->@* ) {
@@ -82,9 +83,7 @@ sub _build_opt ($self) {
         scan_deps => undef,
     };
 
-    my $class = $self->class;
-
-    if ( $class->can('cli_opt') && defined( my $cli_opt = $class->cli_opt ) ) {
+    if ( my $cli_opt = $self->spec->{opt} ) {
         for my $name ( keys $cli_opt->%* ) {
             die qq[Option "$name" is duplicated] if exists $index->{$name};
 
@@ -108,15 +107,15 @@ sub _build_arg ($self) {
 
     my $index = {};
 
-    my $class = $self->class;
-
     my $next_arg = 0;    # 0 - any, 1 - min = 0, 2 - no arg
 
-    if ( $class->can('cli_arg') && defined( my $cli_arg = $class->cli_arg ) ) {
-        for my $cfg ( $cli_arg->@* ) {
+    if ( my $cli_arg = $self->spec->{arg} ) {
+        for ( my $i = 0; $i <= $cli_arg->$#*; $i += 2 ) {
             die q[Can't have other arguments after slurpy argument] if $next_arg == 2;
 
-            my $arg = Pcore::Core::CLI::Arg->new($cfg);
+            $cli_arg->[ $i + 1 ]->{name} = $cli_arg->[$i];
+
+            my $arg = Pcore::Core::CLI::Arg->new( $cli_arg->[ $i + 1 ] );
 
             die q[Can't have required argument after not mandatory argument] if $next_arg == 1 && $arg->min != 0;
 
@@ -157,13 +156,12 @@ sub _build_is_cmd ($self) {
 }
 
 sub run ( $self, $argv ) {
-    my $class = $self->class;
 
-    # redirect, if defined
-    if ( $class->can('cli_class') && ( my $cli_class = $class->cli_class ) ) {
-        require $cli_class =~ s[::][/]smgr . '.pm';
+    # redirect, if class is defined
+    if ( $self->spec->{class} ) {
+        require $self->spec->{class} =~ s[::][/]smgr . '.pm';
 
-        return __PACKAGE__->new( { class => $cli_class } )->run($argv);
+        return __PACKAGE__->new( { class => $self->spec->{class} } )->run($argv);
     }
 
     # make a copy
@@ -348,7 +346,7 @@ sub _parse_opt ( $self, $argv ) {
     # validate cli
     my $class = $self->class;
 
-    if ( $class->can('cli_validate') && defined( my $error_msg = $class->cli_validate( $res->{opt}, $res->{arg}, $res->{rest} ) ) ) {
+    if ( $class->can('CLI_VALIDATE') && defined( my $error_msg = $class->CLI_VALIDATE( $res->{opt}, $res->{arg}, $res->{rest} ) ) ) {
         return $self->help_error($error_msg);
     }
 
@@ -356,30 +354,55 @@ sub _parse_opt ( $self, $argv ) {
     %ARGV = $res->%*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     # run
-    if ( $class->can('cli_run') ) {
-        return $class->cli_run( $res->{opt}, $res->{arg}, $res->{rest} );
+    if ( $class->can('CLI_RUN') ) {
+        return $class->CLI_RUN( $res->{opt}, $res->{arg}, $res->{rest} );
     }
     else {
         return $res;
     }
 }
 
-sub _get_class_cmd ( $self, $class = undef ) {
+sub _get_class_spec ( $self, $class = undef ) {
     $class //= $self->class;
 
-    if ( $class->can('cli_name') && ( my $cmd = $class->cli_name ) ) {
-        return ref $cmd ? $cmd : [$cmd];
+    if ( $class->can('CLI') && ( my $spec = $class->CLI ) ) {
+        if ( !ref $spec ) {
+            $spec = { class => $spec };
+        }
+        elsif ( ref $spec eq 'ARRAY' ) {
+            $spec = { cmd => $spec };
+        }
+        else {
+            $spec = { cmd => [ $spec->{cmd} ] } if $spec->{cmd} && !ref $spec->{cmd};
+
+            $spec = { name => [ $spec->{name} ] } if $spec->{name} && !ref $spec->{name};
+        }
+
+        return $spec;
     }
     else {
+        return {};
+    }
+}
+
+sub _get_class_cmd ( $self, $class = undef ) {
+    my $spec = $class ? $self->_get_class_spec($class) : $self->spec;
+
+    if ( $spec->{name} ) {
+        return $spec->{name};
+    }
+    else {
+        $class //= $self->class;
+
         return [ lc $class =~ s/\A.*:://smr ];
     }
 }
 
 # HELP
 sub _help_class_abstract ( $self, $class = undef ) {
-    $class //= $self->class;
+    my $spec = $class ? $self->_get_class_spec($class) : $self->spec;
 
-    return $class->can('cli_abstract') ? $class->cli_abstract // q[] : q[];
+    return $spec->{abstract} // q[];
 }
 
 sub _help_usage_string ($self) {
@@ -419,21 +442,15 @@ sub _help_alias ($self) {
 }
 
 sub _help ($self) {
-    my $help;
+    my $help = $self->spec->{help} // q[];
 
-    my $class = $self->class;
+    if ($help) {
+        $help =~ s/^/    /smg;
 
-    if ( $class->can('cli_help') ) {
-        $help = $class->cli_help;
-
-        if ($help) {
-            $help =~ s/^/    /smg;
-
-            $help =~ s/\n+\z//sm;
-        }
+        $help =~ s/\n+\z//sm;
     }
 
-    return $help // q[];
+    return $help;
 }
 
 sub _help_usage ($self) {
@@ -562,15 +579,17 @@ sub help_error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 45                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 46                   │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 88, 91, 156, 237,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 272, 333, 356, 392,  │                                                                                                                │
-## │      │ 454, 459, 463, 472   │                                                                                                                │
+## │    3 │ 87, 90, 155, 235,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 270, 331, 354, 415,  │                                                                                                                │
+## │      │ 471, 476, 480, 489   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 346                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 344                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 492, 520             │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## │    3 │ 509, 537             │ NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 113                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -585,11 +604,79 @@ Pcore::Core::CLI
 
 =head1 SYNOPSIS
 
+    # redirect CLI processing
+    sub CLI ($self) {
+        return 'Other::Class';
+    }
+
+    # CLI commands hub
+    sub CLI {
+        return ['Cmd1', 'Cmd2', 'Cmd::Modules::' ];
+    }
+
+    # or
+    sub CLI {
+        return {
+            abstract => 'Abstract description',
+            help     => <<'HELP',
+    Full CLI help
+    HELP
+            cmd      => ['Cmd1', 'Cmd2', 'Cmd::Modules::' ],
+        };
+    }
+
+    # CLI command class
+    with qw[Pcore::Core::CLI::Cmd];
+
+    sub CLI ($self) {
+        return {
+            name     => 'command',
+            abstract => 'abstract desc',
+            help     => undef,
+            opt      => {},
+            arg      => {},
+        };
+    }
+
+    sub CLI_VALIDATE ( $self, $opt, $arg, $rest ) {
+        return;
+    }
+
+    sub CLI_RUN ( $self, $opt, $arg, $rest ) {
+        return;
+    }
+
 =head1 DESCRIPTION
 
-=head1 ATTRIBUTES
+CLI class can be either a CLI "commands hub" or "command". Command hub - only keep other CLI commands together, it doesn't do anything else. CLI command must be a consumer of Pcore::Core::CLI::Cmd role.
 
 =head1 METHODS
+
+=head2 CLI ($self)
+
+Return CLI specification as Str, ArrayRef of HashRef. Str - name of class to redirect CLI processor to. ArrayRef - list of CLI commands classes or namespaces. HashRef - full CLI specification, where supported keys are:
+
+=over
+
+=item * cmd - CLI commands classes names or namespace. Namespace should be specified with '::' at the end, eg.: 'My::CLI::Packages::'. cmd can be Str or ArrayRef[Str];
+
+=item * abstract - short description;
+
+=item * help - full help, can be multiline string;
+
+=item * name - CLI command name, can be a Str or ArrayRef[Str], if command has aliases. If command name is not specified - if will be parsed from the last segment of the class name;
+
+=item * opt - HashRef, options specification;
+
+=item * arg - ArrayRef, arguments specification;
+
+=back
+
+=head2 CLI_VALIDATE ( $self, $opt, $arg, $rest )
+
+Should validate parsed CLI data and return Str in case of error or undef.
+
+=head2 CLI_RUN ( $self, $opt, $arg, $rest )
 
 =head1 SEE ALSO
 

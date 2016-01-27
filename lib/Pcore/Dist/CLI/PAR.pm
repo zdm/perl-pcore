@@ -4,29 +4,28 @@ use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
-sub cli_abstract ($self) {
-    return 'build PAR executable';
-}
-
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        release => { desc => 'build release binary', },
-        crypt   => {
-            desc    => 'crypt non-core perl sources with Filter::Crypto',
-            negated => 1,
-        },
-        upx => {
-            desc    => 'do not compress shared objects with upx',
-            negated => 1,
-        },
-        clean => {
-            desc    => 'clean temp dir on exit',
-            negated => 1,
+        abstract => 'build PAR executable',
+        opt      => {
+            release => { desc => 'build release binary', },
+            crypt   => {
+                desc    => 'crypt non-core perl sources with Filter::Crypto',
+                negated => 1,
+            },
+            upx => {
+                desc    => 'do not compress shared objects with upx',
+                negated => 1,
+            },
+            clean => {
+                desc    => 'clean temp dir on exit',
+                negated => 1,
+            },
         },
     };
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $self->new->run($opt);
 
     return;
@@ -45,7 +44,7 @@ sub run ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 36                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 35                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

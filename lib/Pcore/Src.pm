@@ -25,8 +25,9 @@ has exit_code => ( is => 'rw', isa => Int, default => 0, init_arg => undef );
 has _total_report => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 # CLI
-sub cli_help ($self) {
-    return <<'TXT';
+sub CLI ($self) {
+    return {
+        help => <<'TXT',
 - convert to uft-8;
 - strip BOM header;
 - convert tabs to spaces;
@@ -41,62 +42,57 @@ Exit codes:
     2 - params error;
     3 - source error;
 TXT
-}
-
-sub cli_opt ($self) {
-    return {
-        action => {
-            desc => <<'TXT',
+        opt => {
+            action => {
+                desc => <<'TXT',
 action to perform:
     decompress   unpack sources, DEFAULT;
     compress     pack sources, comments will be deleted;
     obfuscate    applied only for javascript and embedded javascripts, comments will be deleted;
     commit       SCM commit hook
 TXT
-            isa     => [qw[decompress compress obfuscate commit]],
-            default => 'decompress',
+                isa     => [qw[decompress compress obfuscate commit]],
+                default => 'decompress',
+            },
+            type => {
+                desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js',
+                isa  => [qw[perl html css js]],
+            },
+            stdin_files => {
+                short   => undef,
+                desc    => 'read list of filenames from STDIN',
+                default => 0,
+            },
+            filename => {
+                desc => 'mandatory, if read source content from STDIN',
+                type => 'Str',
+            },
+            no_critic => {
+                short   => undef,
+                desc    => 'skip Perl::Critic filter',
+                default => 0,
+            },
+            dry_run => {
+                short   => undef,
+                desc    => q[don't save changes],
+                default => 0,
+            },
+            pause => {
+                short   => undef,
+                desc    => q[don't close console after script finished],
+                default => 0,
+            },
         },
-        type => {
-            desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js',
-            isa  => [qw[perl html css js]],
-        },
-        stdin_files => {
-            short   => undef,
-            desc    => 'read list of filenames from STDIN',
-            default => 0,
-        },
-        filename => {
-            desc => 'mandatory, if read source content from STDIN',
-            type => 'Str',
-        },
-        no_critic => {
-            short   => undef,
-            desc    => 'skip Perl::Critic filter',
-            default => 0,
-        },
-        dry_run => {
-            short   => undef,
-            desc    => q[don't save changes],
-            default => 0,
-        },
-        pause => {
-            short   => undef,
-            desc    => q[don't close console after script finished],
-            default => 0,
-        },
+        arg => [
+            path => {
+                isa => 'Path',
+                min => 0,
+            }
+        ],
     };
 }
 
-sub cli_arg ($self) {
-    return [
-        {   name => 'path',
-            isa  => 'Path',
-            min  => 0,
-        }
-    ];
-}
-
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     P->file->chdir( $ENV->{START_DIR} );
 
     my $exit_code = try {
@@ -371,7 +367,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 324                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 320                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

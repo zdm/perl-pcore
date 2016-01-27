@@ -133,22 +133,24 @@ has_appx api     => ( isa => 'API' );
 our $CFG = { SECRET => undef, };
 
 # CLI
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        app => {
-            short => undef,
-            desc  => 'command (build|deploy|test)',
-            isa   => [qw[build deploy test]],
-        },
-        env => {
-            short => 'E',
-            desc  => 'set run-time environment (development|test|production)',
-            isa   => [qw[development test production]],
+        opt => {
+            app => {
+                short => undef,
+                desc  => 'command (build|deploy|test)',
+                isa   => [qw[build deploy test]],
+            },
+            env => {
+                short => 'E',
+                desc  => 'set run-time environment (development|test|production)',
+                isa   => [qw[development test production]],
+            },
         },
     };
 }
 
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     my $app = $self->new;
 
     # process -E option

@@ -6,32 +6,23 @@ use Pcore::Dist;
 with qw[Pcore::Core::CLI::Cmd];
 
 # CLI
-sub cli_abstract ($self) {
-    return 'create new distribution';
-}
-
-sub cli_name ($self) {
-    return 'new';
-}
-
-sub cli_opt ($self) {
+sub CLI ($self) {
     return {
-        cpan => {
-            desc    => 'create CPAN distribution',
-            default => 0,
+        abstract => 'create new distribution',
+        name     => 'new',
+        opt      => {
+            cpan => {
+                desc    => 'create CPAN distribution',
+                default => 0,
+            },
         },
+        arg => [    #
+            namespace => { type => 'Str', },
+        ],
     };
 }
 
-sub cli_arg ($self) {
-    return [    #
-        {   name => 'namespace',
-            type => 'Str',
-        },
-    ];
-}
-
-sub cli_run ( $self, $opt, $arg, $rest ) {
+sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $opt->{namespace} = $arg->{namespace};
 
     $opt->{path} = $ENV->{START_DIR};
@@ -53,7 +44,7 @@ sub cli_run ( $self, $opt, $arg, $rest ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 39                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
