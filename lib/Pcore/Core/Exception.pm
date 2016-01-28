@@ -8,36 +8,31 @@ use Pcore::Core::Exception::Object;
 
 our $IGNORE_ERRORS = 1;    # do not write errors to error log channel by default
 
-sub CORE_INIT {
+# needed to properly destruct TEMP_DIR
+$SIG->{INT} = AE::signal INT => \&SIGINT;
 
-    # needed to properly destruct TEMP_DIR
-    $SIG->{INT} = AE::signal INT => \&SIGINT;
+# needed to properly destruct TEMP_DIR
+$SIG->{TERM} = AE::signal TERM => \&SIGTERM;
 
-    # needed to properly destruct TEMP_DIR
-    $SIG->{TERM} = AE::signal TERM => \&SIGTERM;
+$SIG{__DIE__} = \&SIGDIE;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $SIG{__DIE__} = \&SIGDIE;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+$SIG{__WARN__} = \&SIGWARN;  ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $SIG{__WARN__} = \&SIGWARN;  ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+# we don't need stacktrace from Error::TypeTiny exceptions
+$Error::TypeTiny::StackTrace = 0;
 
-    # we don't need stacktrace from Error::TypeTiny exceptions
-    $Error::TypeTiny::StackTrace = 0;
+# redefine Carp::longmess, Carp::shotmess, disable stack trace
+{
+    no warnings qw[redefine];
 
-    # redefine Carp::longmess, Carp::shotmess, disable stack trace
-    {
-        no warnings qw[redefine];
-
-        *Carp::longmess = *Carp::shortmess = sub {
-            if ( defined $_[0] ) {
-                return $_[0];
-            }
-            else {
-                return q[];
-            }
-        };
-    }
-
-    return;
+    *Carp::longmess = *Carp::shortmess = sub {
+        if ( defined $_[0] ) {
+            return $_[0];
+        }
+        else {
+            return q[];
+        }
+    };
 }
 
 sub SIGINT {
@@ -209,9 +204,9 @@ sub catch ($code) : prototype(&) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 57, 68, 83           │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
+## │    3 │ 52, 63, 78           │ Variables::RequireInitializationForLocalVars - "local" variable not initialized                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 59, 70               │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 54, 65               │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

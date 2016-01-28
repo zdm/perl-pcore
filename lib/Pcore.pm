@@ -318,16 +318,14 @@ sub _apply_roles ( $caller, @roles ) {
     return;
 }
 
+# TODO Bootstrap -> Env
 sub _CORE_INIT {
     require Pcore::Core::EV;
     Pcore::Core::EV->import(':CORE');
 
-    require Pcore::Core::Bootstrap;
-
     require Pcore::Core::Dump;
     Pcore::Core::Dump->import(':CORE');
 
-    require Pcore::Core::Exception;
     require Pcore::Core::H;
 
     # set default fallback mode for all further :encoding I/O layers
@@ -368,7 +366,9 @@ sub _CORE_INIT {
         $_ = Encode::decode( $WIN_ENC, $_, Encode::FB_CROAK() );
     }
 
+    # TODO
     # configure run-time environment
+    require Pcore::Core::Bootstrap;
     Pcore::Core::Bootstrap::CORE_INIT();
 
     # STDIN
@@ -402,7 +402,7 @@ sub _CORE_INIT {
     $STDOUT_UTF8->autoflush(1);
     $STDERR_UTF8->autoflush(1);
 
-    Pcore::Core::Exception::CORE_INIT();                            # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
+    require Pcore::Core::Exception;                                 # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
 
     return;
 }
@@ -574,7 +574,7 @@ sub i18n {
 ## │      │ 308                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
 ## │      │ 434                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 348, 377, 380, 384,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │    3 │ 346, 377, 380, 384,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
 ## │      │ 416, 419, 424, 427,  │                                                                                                                │
 ## │      │ 455, 472             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -584,7 +584,7 @@ sub i18n {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 192                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 352                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 350                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
