@@ -1,3 +1,26 @@
+v0.17.0 2016-01-28T07:27:55Z
+ [ENHANCEMENT]
+ - [critical] TLS handshake is VERY slow under windows
+   (https://bitbucket.org/softvisio/pcore/issues/5/)
+ - [major] Pcore issues - update --active issues status option
+   (https://bitbucket.org/softvisio/pcore/issues/22/)
+ - [major] Pcore::Util::Random - use Net::SSLeay as random bytes generator
+   (https://bitbucket.org/softvisio/pcore/issues/21/)
+ - [major] header.pm - general perl pragmas exporter
+   (https://bitbucket.org/softvisio/pcore/issues/20/)
+ - [major] Combine all cli settings in one sub, named CLI
+   (https://bitbucket.org/softvisio/pcore/issues/7/)
+ - [major] Register dist. on first use
+   (https://bitbucket.org/softvisio/pcore/issues/27/)
+ - [minor] Change issues list sort order
+   (https://bitbucket.org/softvisio/pcore/issues/23/)
+
+ [TASK]
+ - [major] Move GeoIP to the separate dist
+   (https://bitbucket.org/softvisio/pcore/issues/24/)
+ - [minor] Pcore.pm - arch. refactoring
+   (https://bitbucket.org/softvisio/pcore/issues/26/)
+
 v0.16.1 2016-01-10T16:41:48Z
  - No issues were closed since the last release
 

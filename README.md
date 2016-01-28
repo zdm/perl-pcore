@@ -12,5 +12,4 @@ Documentation will be provided later.
 
 # ENVIRONMENT
 
-- PCORE\_DIST\_LIB
-- PCORE\_RES\_LIB
+- PCORE\_LIB
