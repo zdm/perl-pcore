@@ -298,7 +298,6 @@ sub _apply_roles ( $caller, @roles ) {
     return;
 }
 
-# TODO Bootstrap -> Env
 sub _CORE_INIT {
     require Pcore::Core::EV;
     Pcore::Core::EV->import(':CORE');
@@ -346,9 +345,8 @@ sub _CORE_INIT {
         $_ = Encode::decode( $WIN_ENC, $_, Encode::FB_CROAK() );
     }
 
-    # TODO
     # configure run-time environment
-    require Pcore::Core::Bootstrap;
+    require Pcore::Core::Env;
 
     # STDIN
     if ( -t *STDIN ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
@@ -543,11 +541,11 @@ sub i18n {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
 ## │      │ 288                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 413                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 411                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 326, 356, 359, 363,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 395, 398, 403, 406,  │                                                                                                                │
-## │      │ 434, 451             │                                                                                                                │
+## │    3 │ 325, 354, 357, 361,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 393, 396, 401, 404,  │                                                                                                                │
+## │      │ 432, 449             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 218                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
@@ -555,7 +553,7 @@ sub i18n {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 87                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 330                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 329                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
