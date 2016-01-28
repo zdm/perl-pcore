@@ -105,7 +105,7 @@ sub import {
     };
 
     # export header
-    header->import( -caller => $caller );
+    header->import;
 
     # export P sub to avoid indirect calls, export i18n
     {
