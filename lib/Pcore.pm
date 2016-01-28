@@ -6,133 +6,6 @@ use header;
 use Pcore::Core::Exporter qw[];
 use Pcore::Core::Const qw[:CORE];
 
-sub _INIT1 {
-
-    # define %EXPORT_PRAGMA for exporter
-    $Pcore::EXPORT_PRAGMA = {
-        autoload    => 0,    # export AUTOLOAD
-        class       => 0,    # package is a Moo class
-        config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
-        const       => 0,    # export "const" keyword
-        dist        => 0,    # mark package aas Pcore dist main module
-        embedded    => 0,    # run in embedded mode
-        export      => 1,    # install standart import method
-        inline      => 0,    # package use Inline
-        no_isa_attr => 0,    # do not check isa for class / role attributes
-        role        => 0,    # package is a Moo role
-        types       => 0,    # export types
-    };
-
-    $Pcore::EMBEDDED    = 0;       # Pcore::Core used in embedded mode
-    $Pcore::NO_ISA_ATTR = 0;       # do not check isa for class / role attributes
-    $Pcore::WIN_ENC     = undef;
-    $Pcore::CON_ENC     = undef;
-
-    return;
-}
-
-sub _INIT2 {
-
-    # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
-    if ( $^O =~ /MSWin/sm && !$Pcore::EMBEDDED ) {
-        require Net::SSLeay;
-
-        Net::SSLeay::initialize();
-
-        {
-            no warnings qw[redefine];
-
-            # we don't need to call Net::SSLeay::randomize several times
-            *Net::SSLeay::randomize = sub : prototype(;$$$) { };
-        }
-
-        # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
-        Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
-    }
-
-    require Pcore::Core::Exporter;
-
-    require Sub::Util;
-    require Package::Stash;
-
-    require Const::Fast;
-    require Encode;
-
-    # preload Moo
-    require Import::Into;
-    require Moo;
-    require Moo::Role;
-
-    # preload console related packages
-    require Term::ANSIColor;
-    require PerlIO::encoding;
-
-    require B::Hooks::AtRuntime;
-    require B::Hooks::EndOfScope::XS;
-
-    # preload AnyEvent
-    require EV;
-    require AnyEvent;
-
-    # NOTE workaround for incompatibility with Moo lazy attributes
-    # https://rt.cpan.org/Ticket/Display.html?id=102788
-    eval {
-        local $SIG{__DIE__} = undef;
-
-        require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
-    };
-
-    # define alias for export
-    $Pcore::P = sub : const {'Pcore'};
-
-    # configure standard library
-    $Pcore::UTIL = {
-        bit      => 'Pcore::Util::Bit',
-        cfg      => 'Pcore::Util::Config',
-        class    => 'Pcore::Util::Class',
-        data     => 'Pcore::Util::Data',
-        date     => 'Pcore::Util::Date',
-        digest   => 'Pcore::Util::Digest',
-        file     => 'Pcore::Util::File',
-        hash     => 'Pcore::Util::Hash',
-        host     => 'Pcore::Util::URI::Host',
-        http     => 'Pcore::HTTP',
-        list     => 'Pcore::Util::List',
-        mail     => 'Pcore::Util::Mail',
-        path     => 'Pcore::Util::Path',
-        perl     => 'Pcore::Util::Perl',
-        pm       => 'Pcore::Util::PM',
-        progress => 'Pcore::Util::Term::Progress',
-        random   => 'Pcore::Util::Random',
-        scalar   => 'Pcore::Util::Scalar',
-        sys      => 'Pcore::Util::Sys',
-        term     => 'Pcore::Util::Term',
-        text     => 'Pcore::Util::Text',
-        tmpl     => 'Pcore::Util::Template',
-        uri      => 'Pcore::Util::URI',
-        uuid     => 'Pcore::Util::UUID',
-    };
-
-    return;
-}
-
-sub _INIT3 {
-    require Pcore::Core::EV;
-    Pcore::Core::EV->import(':CORE');
-
-    require Pcore::Core::Bootstrap;
-
-    require Pcore::Core::Dump;
-    Pcore::Core::Dump->import(':CORE');
-
-    require Pcore::Core::Exception;
-    require Pcore::Core::H;
-
-    _CORE_INIT();
-
-    return;
-}
-
 sub import {
     my $self = shift;
 
@@ -157,9 +30,9 @@ sub import {
         1;
     };
 
-    state $INIT3 = _INIT3();
+    state $INIT3 = _CORE_INIT();
 
-    # export perl pragmas
+    # export header
     header->import( -caller => $caller );
 
     # process -const pragma
@@ -242,23 +115,122 @@ sub import {
 
         # export types
         _import_types($caller) if $import->{pragma}->{types};
-    }
 
-    # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
-    # NOTE !!!WARNING!!! AUTOLOAD should be exported after Moo::Role, so Moo::Role can re-export this method
-    if ( $import->{pragma}->{autoload} ) {
-        state $init = !!require Pcore::Core::Autoload;
+        # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
+        # NOTE !!!WARNING!!! AUTOLOAD should be exported after Moo::Role, so Moo::Role can re-export this method
+        if ( $import->{pragma}->{autoload} ) {
+            state $init = !!require Pcore::Core::Autoload;
 
-        Pcore::Core::Autoload->import( -caller => $caller );
+            Pcore::Core::Autoload->import( -caller => $caller );
+        }
     }
 
     return;
 }
 
+sub _INIT1 {
+
+    # define %EXPORT_PRAGMA for exporter
+    our $EXPORT_PRAGMA = {
+        autoload    => 0,    # export AUTOLOAD
+        class       => 0,    # package is a Moo class
+        config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
+        const       => 0,    # export "const" keyword
+        dist        => 0,    # mark package aas Pcore dist main module
+        embedded    => 0,    # run in embedded mode
+        export      => 1,    # install standart import method
+        inline      => 0,    # package use Inline
+        no_isa_attr => 0,    # do not check isa for class / role attributes
+        role        => 0,    # package is a Moo role
+        types       => 0,    # export types
+    };
+
+    our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
+    our $NO_ISA_ATTR = 0;       # do not check isa for class / role attributes
+    our $WIN_ENC     = undef;
+    our $CON_ENC     = undef;
+
+    return;
+}
+
+sub _INIT2 {
+
+    # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
+    if ( $^O =~ /MSWin/sm && !$Pcore::EMBEDDED ) {
+        require Net::SSLeay;
+
+        Net::SSLeay::initialize();
+
+        {
+            no warnings qw[redefine];
+
+            # we don't need to call Net::SSLeay::randomize several times
+            *Net::SSLeay::randomize = sub : prototype(;$$$) { };
+        }
+
+        # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
+        Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
+    }
+
+    # preload Moo
+    require Import::Into;
+    require B::Hooks::AtRuntime;
+    require B::Hooks::EndOfScope::XS;
+
+    # preload AnyEvent
+    require EV;
+    require AnyEvent;
+
+    # NOTE workaround for incompatibility with Moo lazy attributes
+    # https://rt.cpan.org/Ticket/Display.html?id=102788
+    eval {
+        local $SIG{__DIE__} = undef;
+
+        require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
+    };
+
+    # define alias for export
+    our $P = sub : const {'Pcore'};
+
+    # configure standard library
+    our $UTIL = {
+        bit      => 'Pcore::Util::Bit',
+        cfg      => 'Pcore::Util::Config',
+        class    => 'Pcore::Util::Class',
+        data     => 'Pcore::Util::Data',
+        date     => 'Pcore::Util::Date',
+        digest   => 'Pcore::Util::Digest',
+        file     => 'Pcore::Util::File',
+        hash     => 'Pcore::Util::Hash',
+        host     => 'Pcore::Util::URI::Host',
+        http     => 'Pcore::HTTP',
+        list     => 'Pcore::Util::List',
+        mail     => 'Pcore::Util::Mail',
+        path     => 'Pcore::Util::Path',
+        perl     => 'Pcore::Util::Perl',
+        pm       => 'Pcore::Util::PM',
+        progress => 'Pcore::Util::Term::Progress',
+        random   => 'Pcore::Util::Random',
+        scalar   => 'Pcore::Util::Scalar',
+        sys      => 'Pcore::Util::Sys',
+        term     => 'Pcore::Util::Term',
+        text     => 'Pcore::Util::Text',
+        tmpl     => 'Pcore::Util::Template',
+        uri      => 'Pcore::Util::URI',
+        uuid     => 'Pcore::Util::UUID',
+    };
+
+    return;
+}
+
 sub _namespace_clean ($class) {
-    state $EXCEPT = {
-        import   => 1,
-        AUTOLOAD => 1,
+    state $EXCEPT = do {
+        require Sub::Util;
+        require Package::Stash;
+
+        {   import   => 1,
+            AUTOLOAD => 1,
+        };
     };
 
     my $stash = Package::Stash->new($class);
@@ -357,6 +329,16 @@ sub _apply_roles ( $caller, @roles ) {
 }
 
 sub _CORE_INIT {
+    require Pcore::Core::EV;
+    Pcore::Core::EV->import(':CORE');
+
+    require Pcore::Core::Bootstrap;
+
+    require Pcore::Core::Dump;
+    Pcore::Core::Dump->import(':CORE');
+
+    require Pcore::Core::Exception;
+    require Pcore::Core::H;
 
     # set default fallback mode for all further :encoding I/O layers
     $PerlIO::encoding::fallback = Encode::FB_CROAK() | Encode::STOP_AT_PARTIAL();
@@ -592,27 +574,27 @@ sub i18n {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 79                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 28                   │ Variables::ProtectPrivateVars - Private variable used                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 155                  │ Variables::ProtectPrivateVars - Private variable used                                                          │
+## │    3 │ 186                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 270                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 242                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 346                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 462                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 318                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 444                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 376, 405, 408, 412,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 444, 447, 452, 455,  │                                                                                                                │
-## │      │ 483, 500             │                                                                                                                │
+## │    3 │ 358, 387, 390, 394,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 426, 429, 434, 437,  │                                                                                                                │
+## │      │ 465, 482             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 276                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 248                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 280                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 252                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 46                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 168                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 380                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 362                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
