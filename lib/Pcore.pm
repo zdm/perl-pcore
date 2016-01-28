@@ -176,6 +176,7 @@ sub import {
     return;
 }
 
+# TODO do we really need to preload Filter::Crypto???
 sub _INIT {
 
     # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
@@ -195,15 +196,6 @@ sub _INIT {
         Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
     }
 
-    # preload Moo
-    require Import::Into;
-    require B::Hooks::AtRuntime;
-    require B::Hooks::EndOfScope::XS;
-
-    # preload AnyEvent
-    require EV;
-    require AnyEvent;
-
     # NOTE workaround for incompatibility with Moo lazy attributes
     # https://rt.cpan.org/Ticket/Display.html?id=102788
     eval {
@@ -211,6 +203,12 @@ sub _INIT {
 
         require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
     };
+
+    require Import::Into;
+    require B::Hooks::AtRuntime;
+    require B::Hooks::EndOfScope::XS;
+    require EV;
+    require AnyEvent;
 
     return;
 }
@@ -568,25 +566,25 @@ sub i18n {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 76                   │ Variables::ProtectPrivateVars - Private variable used                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 209                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 201                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 234                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 232                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 310                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 436                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 308                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 434                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 350, 379, 382, 386,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 418, 421, 426, 429,  │                                                                                                                │
-## │      │ 457, 474             │                                                                                                                │
+## │    3 │ 348, 377, 380, 384,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 416, 419, 424, 427,  │                                                                                                                │
+## │      │ 455, 472             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 240                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 238                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 244                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 242                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 191                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 192                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 354                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 352                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
