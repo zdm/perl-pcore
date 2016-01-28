@@ -66,28 +66,49 @@ sub import {
     # parse tags and pragmas
     my $import = Pcore::Core::Exporter::parse_import( $self, @_ );
 
-    # store -embedded pragma
-    $EMBEDDED = 1 if $import->{pragma}->{embedded};
+    state $INIT = do {
 
-    state $INIT = _INIT();
+        # store -embedded pragma
+        $EMBEDDED = 1 if $import->{pragma}->{embedded};
 
-    # install run-time hook to caller package
-    state $RUNTIME_HOOK = do {
+        # store -no_isa_attr pragma
+        $NO_ISA_ATTR = 1 if $import->{pragma}->{no_isa_attr};
+
+        # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
+        if ( $^O =~ /MSWin/sm && !$EMBEDDED ) {
+            require Net::SSLeay;
+
+            Net::SSLeay::initialize();
+
+            {
+                no warnings qw[redefine];
+
+                # we don't need to call Net::SSLeay::randomize several times
+                *Net::SSLeay::randomize = sub : prototype(;$$$) { };
+            }
+
+            # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
+            Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
+        }
+
+        require Import::Into;
+        require B::Hooks::AtRuntime;
+        require B::Hooks::EndOfScope::XS;
+        require EV;
+        require AnyEvent;
+
+        # install run-time hook to caller package
         B::Hooks::AtRuntime::at_runtime( \&Pcore::_CORE_RUN );
+
+        _CORE_INIT();
 
         1;
     };
 
-    state $INIT3 = _CORE_INIT();
-
     # export header
     header->import( -caller => $caller );
 
-    # process -const pragma
-    Const::Fast->import::into( $caller, 'const' ) if $import->{pragma}->{const};
-
-    # export P sub to avoid indirect calls
-    # export i18n
+    # export P sub to avoid indirect calls, export i18n
     {
         no strict qw[refs];
 
@@ -108,22 +129,18 @@ sub import {
     if ( !$import->{pragma}->{config} ) {
 
         # process -export pragma
-        if ( $import->{pragma}->{export} ) {
-            Pcore::Core::Exporter->import( -caller => $caller, -export => $import->{pragma}->{export} );
-        }
+        Pcore::Core::Exporter->import( -caller => $caller, -export => $import->{pragma}->{export} ) if $import->{pragma}->{export};
 
         # process -inline pragma
         if ( $import->{pragma}->{inline} ) {
-            state $init = !!require Pcore::Core::Inline;
+            state $INLINE_INIT = !!require Pcore::Core::Inline;
         }
 
         # process -dist pragma
-        if ( $import->{pragma}->{dist} ) {
-            $ENV->register_dist($caller);
-        }
+        $ENV->register_dist($caller) if $import->{pragma}->{dist};
 
-        # store significant pragmas for use in run-time
-        $NO_ISA_ATTR = 1 if $import->{pragma}->{no_isa_attr};
+        # process -const pragma
+        Const::Fast->import::into( $caller, 'const' ) if $import->{pragma}->{const};
 
         # re-export Moo
         if ( $import->{pragma}->{class} || $import->{pragma}->{role} ) {
@@ -172,43 +189,6 @@ sub import {
             Pcore::Core::Autoload->import( -caller => $caller );
         }
     }
-
-    return;
-}
-
-# TODO do we really need to preload Filter::Crypto???
-sub _INIT {
-
-    # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
-    if ( $^O =~ /MSWin/sm && !$EMBEDDED ) {
-        require Net::SSLeay;
-
-        Net::SSLeay::initialize();
-
-        {
-            no warnings qw[redefine];
-
-            # we don't need to call Net::SSLeay::randomize several times
-            *Net::SSLeay::randomize = sub : prototype(;$$$) { };
-        }
-
-        # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
-        Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
-    }
-
-    # NOTE workaround for incompatibility with Moo lazy attributes
-    # https://rt.cpan.org/Ticket/Display.html?id=102788
-    eval {
-        local $SIG{__DIE__} = undef;
-
-        require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
-    };
-
-    require Import::Into;
-    require B::Hooks::AtRuntime;
-    require B::Hooks::EndOfScope::XS;
-    require EV;
-    require AnyEvent;
 
     return;
 }
@@ -557,27 +537,25 @@ sub i18n {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 76                   │ Variables::ProtectPrivateVars - Private variable used                                                          │
+## │    3 │ 101                  │ Variables::ProtectPrivateVars - Private variable used                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 201                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 232                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 212                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 308                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 433                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 288                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 413                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 346, 376, 379, 383,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 415, 418, 423, 426,  │                                                                                                                │
-## │      │ 454, 471             │                                                                                                                │
+## │    3 │ 326, 356, 359, 363,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 395, 398, 403, 406,  │                                                                                                                │
+## │      │ 434, 451             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 238                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 218                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 242                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 222                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 192                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 87                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 350                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 330                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
