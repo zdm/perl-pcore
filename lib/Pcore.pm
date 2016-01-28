@@ -418,7 +418,7 @@ sub _CORE_RUN {
     # process will not daemonized;
 
     if ( !$EMBEDDED ) {
-        state $init_cli = !!require Pcore::Core::CLI;
+        state $INIT_CLI = !!require Pcore::Core::CLI;
 
         Pcore::Core::CLI->new( { class => 'main' } )->run( \@ARGV );
 
