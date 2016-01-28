@@ -3,66 +3,10 @@ package Pcore v0.16.1;
 use v5.22.1;
 use header;
 
-# initialize Net::SSLeay
-BEGIN {
-    use Net::SSLeay qw[];
-
-    Net::SSLeay::initialize();
-
-    {
-        no warnings qw[redefine];
-
-        # we don't need to call Net::SSLeay::randomize several times
-        *Net::SSLeay::randomize = sub : prototype(;$$$) { };
-    }
-
-    # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
-    Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
-}
-
-use Sub::Util qw[];
-use Package::Stash qw[];
-
-use Const::Fast qw[];
-use Encode qw[];
-
-# preload Moo
-use Import::Into;
-use Moo qw[];
-use Moo::Role qw[];
-
-# preload console related packages
-use Term::ANSIColor qw[];
-use PerlIO::encoding qw[];
-
-use B::Hooks::AtRuntime qw[];
-use B::Hooks::EndOfScope::XS qw[];
-
-# preload AnyEvent
-use EV;
-use AnyEvent;
-
 use Pcore::Core::Exporter qw[];
+use Pcore::Core::Const qw[:CORE];
 
-# define global variables
-BEGIN {
-    $Pcore::INITIALISED = 0;         # core initialisation flag
-    $Pcore::CALLER      = caller;    # namespace, from P was required first time
-    $Pcore::EMBEDDED    = 0;         # Pcore::Core used in embedded mode
-    $Pcore::NO_ISA_ATTR = 0;         # do not check isa for class / role attributes
-    $Pcore::WIN_ENC     = undef;
-    $Pcore::CON_ENC     = undef;
-
-    # NOTE workaround for incompatibility with Moo lazy attributes
-    # https://rt.cpan.org/Ticket/Display.html?id=102788
-    eval {
-        local $SIG{__DIE__} = undef;
-
-        require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
-    };
-
-    # define alias for export
-    $Pcore::P = sub : const {'Pcore'};
+sub _INIT1 {
 
     # define %EXPORT_PRAGMA for exporter
     $Pcore::EXPORT_PRAGMA = {
@@ -78,6 +22,68 @@ BEGIN {
         role        => 0,    # package is a Moo role
         types       => 0,    # export types
     };
+
+    $Pcore::EMBEDDED    = 0;       # Pcore::Core used in embedded mode
+    $Pcore::NO_ISA_ATTR = 0;       # do not check isa for class / role attributes
+    $Pcore::WIN_ENC     = undef;
+    $Pcore::CON_ENC     = undef;
+
+    return;
+}
+
+sub _INIT2 {
+
+    # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
+    if ( $^O =~ /MSWin/sm && !$Pcore::EMBEDDED ) {
+        require Net::SSLeay;
+
+        Net::SSLeay::initialize();
+
+        {
+            no warnings qw[redefine];
+
+            # we don't need to call Net::SSLeay::randomize several times
+            *Net::SSLeay::randomize = sub : prototype(;$$$) { };
+        }
+
+        # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
+        Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
+    }
+
+    require Pcore::Core::Exporter;
+
+    require Sub::Util;
+    require Package::Stash;
+
+    require Const::Fast;
+    require Encode;
+
+    # preload Moo
+    require Import::Into;
+    require Moo;
+    require Moo::Role;
+
+    # preload console related packages
+    require Term::ANSIColor;
+    require PerlIO::encoding;
+
+    require B::Hooks::AtRuntime;
+    require B::Hooks::EndOfScope::XS;
+
+    # preload AnyEvent
+    require EV;
+    require AnyEvent;
+
+    # NOTE workaround for incompatibility with Moo lazy attributes
+    # https://rt.cpan.org/Ticket/Display.html?id=102788
+    eval {
+        local $SIG{__DIE__} = undef;
+
+        require Filter::Crypto::Decrypt if $ENV{PAR_TEMP};
+    };
+
+    # define alias for export
+    $Pcore::P = sub : const {'Pcore'};
 
     # configure standard library
     $Pcore::UTIL = {
@@ -106,34 +112,23 @@ BEGIN {
         uri      => 'Pcore::Util::URI',
         uuid     => 'Pcore::Util::UUID',
     };
+
+    return;
 }
 
-sub namespace_clean ($class) {
-    state $EXCEPT = {
-        import   => 1,
-        unimport => 1,
-        AUTOLOAD => 1,
-    };
+sub _INIT3 {
+    require Pcore::Core::EV;
+    Pcore::Core::EV->import(':CORE');
 
-    my $stash = Package::Stash->new($class);
+    require Pcore::Core::Bootstrap;
 
-    for my $subname ( $stash->list_all_symbols('CODE') ) {
-        my $fullname = Sub::Util::subname( $stash->get_symbol("&$subname") );
+    require Pcore::Core::Dump;
+    Pcore::Core::Dump->import(':CORE');
 
-        if ( "$class\::$subname" ne $fullname && !exists $EXCEPT->{$subname} && substr( $subname, 0, 1 ) ne q[(] ) {
-            my @symbols = map {
-                my $name = $_ . $subname;
+    require Pcore::Core::Exception;
+    require Pcore::Core::H;
 
-                my $def = $stash->get_symbol($name);
-
-                defined($def) ? [ $name, $def ] : ()
-            } '$', '@', '%', qw[];
-
-            $stash->remove_glob($subname);
-
-            $stash->add_symbol( $_->@* ) for @symbols;
-        }
-    }
+    _CORE_INIT();
 
     return;
 }
@@ -144,15 +139,25 @@ sub import {
     # find caller
     my $caller = caller;
 
+    # init exporter
+    state $INIT1 = _INIT1();
+
     # parse tags and pragmas
     my $import = Pcore::Core::Exporter::parse_import( $self, @_ );
 
-    # initialize Pcore if called first time from non-core package
-    if ( !$Pcore::INITIALISED && $caller eq $Pcore::CALLER ) {
-        $Pcore::INITIALISED = 1;
+    # store -embedded pragma
+    $Pcore::EMBEDDED = 1 if $import->{pragma}->{embedded};
 
-        _CORE_INIT();
-    }
+    state $INIT2 = _INIT2();
+
+    # install run-time hook to caller package
+    state $RUNTIME_HOOK = do {
+        B::Hooks::AtRuntime::at_runtime( \&Pcore::_CORE_RUN );
+
+        1;
+    };
+
+    state $INIT3 = _INIT3();
 
     # export perl pragmas
     header->import( -caller => $caller );
@@ -181,17 +186,6 @@ sub import {
 
     if ( !$import->{pragma}->{config} ) {
 
-        # install run-time hook to caller package
-        if ( $caller eq $Pcore::CALLER ) {
-            B::Hooks::AtRuntime::at_runtime(
-                sub {
-                    Pcore::_CORE_RUN();
-
-                    return;
-                }
-            );
-        }
-
         # process -export pragma
         if ( $import->{pragma}->{export} ) {
             Pcore::Core::Exporter->import( -caller => $caller, -export => $import->{pragma}->{export} );
@@ -208,8 +202,6 @@ sub import {
         }
 
         # store significant pragmas for use in run-time
-        $Pcore::EMBEDDED = 1 if $import->{pragma}->{embedded};
-
         $Pcore::NO_ISA_ATTR = 1 if $import->{pragma}->{no_isa_attr};
 
         # re-export Moo
@@ -218,7 +210,7 @@ sub import {
             # install universal serializer methods
             B::Hooks::EndOfScope::XS::on_scope_end(
                 sub {
-                    namespace_clean($caller);
+                    _namespace_clean($caller);
 
                     no strict qw[refs];
 
@@ -278,6 +270,36 @@ sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
     # unimport types
     # _unimport_types($caller);
+
+    return;
+}
+
+sub _namespace_clean ($class) {
+    state $EXCEPT = {
+        import   => 1,
+        unimport => 1,
+        AUTOLOAD => 1,
+    };
+
+    my $stash = Package::Stash->new($class);
+
+    for my $subname ( $stash->list_all_symbols('CODE') ) {
+        my $fullname = Sub::Util::subname( $stash->get_symbol("&$subname") );
+
+        if ( "$class\::$subname" ne $fullname && !exists $EXCEPT->{$subname} && substr( $subname, 0, 1 ) ne q[(] ) {
+            my @symbols = map {
+                my $name = $_ . $subname;
+
+                my $def = $stash->get_symbol($name);
+
+                defined($def) ? [ $name, $def ] : ()
+            } '$', '@', '%', qw[];
+
+            $stash->remove_glob($subname);
+
+            $stash->add_symbol( $_->@* ) for @symbols;
+        }
+    }
 
     return;
 }
@@ -377,18 +399,10 @@ sub _apply_roles ( $caller, @roles ) {
     return;
 }
 
-# CORE compilation phase
-use Pcore::Core::Const qw[:CORE];
-use Pcore::Core::EV qw[:CORE];
-use Pcore::Core::Bootstrap qw[];
-use Pcore::Core::Dump qw[:CORE];
-use Pcore::Core::Exception qw[];
-use Pcore::Core::H qw[];
-
 sub _CORE_INIT {
 
     # set default fallback mode for all further :encoding I/O layers
-    $PerlIO::encoding::fallback = Encode::FB_CROAK | Encode::STOP_AT_PARTIAL;
+    $PerlIO::encoding::fallback = Encode::FB_CROAK() | Encode::STOP_AT_PARTIAL();
 
     if ($MSWIN) {
         require Win32;
@@ -422,7 +436,7 @@ sub _CORE_INIT {
 
     # decode @ARGV
     for (@ARGV) {
-        $_ = Encode::decode( $Pcore::WIN_ENC, $_, Encode::FB_CROAK );
+        $_ = Encode::decode( $Pcore::WIN_ENC, $_, Encode::FB_CROAK() );
     }
 
     # configure run-time environment
@@ -460,6 +474,30 @@ sub _CORE_INIT {
     $STDERR_UTF8->autoflush(1);
 
     Pcore::Core::Exception::CORE_INIT();                            # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
+
+    return;
+}
+
+# TODO add PerlIO::removeEsc layer
+sub _config_stdout ($h) {
+    if ($MSWIN) {
+        if ( -t $h ) {                                              ## no critic qw[InputOutput::ProhibitInteractiveTest]
+            state $init = !!require Pcore::Core::PerlIOviaWinUniCon;
+
+            binmode $h, ':raw:via(Pcore::Core::PerlIOviaWinUniCon)' or die;    # terminal
+        }
+        else {
+            binmode $h, ':raw:encoding(UTF-8)' or die;                         # file TODO +RemoveESC
+        }
+    }
+    else {
+        if ( -t $h ) {                                                         ## no critic qw[InputOutput::ProhibitInteractiveTest]
+            binmode $h, ':raw:encoding(UTF-8)' or die;                         # terminal
+        }
+        else {
+            binmode $h, ':raw:encoding(UTF-8)' or die;                         # file TODO +RemoveESC
+        }
+    }
 
     return;
 }
@@ -554,7 +592,7 @@ PERL
 
 # AE::cv
 sub cv {
-    state $cv = AE::cv;
+    state $cv = AE::cv();
 
     return $cv;
 }
@@ -590,30 +628,6 @@ sub i18n {
     return &Pcore::Core::I18N::i18n;       ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
-# TODO add PerlIO::removeEsc layer
-sub _config_stdout ($h) {
-    if ($MSWIN) {
-        if ( -t $h ) {                     ## no critic qw[InputOutput::ProhibitInteractiveTest]
-            state $init = !!require Pcore::Core::PerlIOviaWinUniCon;
-
-            binmode $h, ':raw:via(Pcore::Core::PerlIOviaWinUniCon)' or die;    # terminal
-        }
-        else {
-            binmode $h, ':raw:encoding(UTF-8)' or die;                         # file TODO +RemoveESC
-        }
-    }
-    else {
-        if ( -t $h ) {                                                         ## no critic qw[InputOutput::ProhibitInteractiveTest]
-            binmode $h, ':raw:encoding(UTF-8)' or die;                         # terminal
-        }
-        else {
-            binmode $h, ':raw:encoding(UTF-8)' or die;                         # file TODO +RemoveESC
-        }
-    }
-
-    return;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -621,29 +635,29 @@ sub _config_stdout ($h) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 58                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 79                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 124                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 155                  │ Variables::ProtectPrivateVars - Private variable used                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 188                  │ Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               │
+## │    3 │ 290                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 317                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 355                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 367                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 467                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 339                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
+## │      │ 377                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
+## │      │ 389                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 505                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 405, 434, 437, 441,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 488, 505, 599, 602,  │                                                                                                                │
-## │      │ 607, 610             │                                                                                                                │
+## │    3 │ 419, 448, 451, 455,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 487, 490, 495, 498,  │                                                                                                                │
+## │      │ 526, 543             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 130                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 296                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 134                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 300                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 16                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 46                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 409                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 423                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
