@@ -96,7 +96,7 @@ sub import {
         *{"$caller\::i18n"} = \&i18n;
 
         # flush the cache exactly once if we make any direct symbol table changes
-        mro::method_changed_in($caller);
+        # mro::method_changed_in($caller);
     }
 
     # re-export core packages
