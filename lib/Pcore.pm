@@ -423,7 +423,7 @@ sub _CORE_RUN {
         Pcore::Core::CLI->new( { class => 'main' } )->run( \@ARGV );
 
         # throw CORE#RUN event to perform daemonize, depends on CLI param
-        Pcore->EV->throw('CORE#RUN');
+        EV()->throw('CORE#RUN');
 
         if ( !$MSWIN ) {
 
