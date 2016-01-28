@@ -18,18 +18,14 @@ if ($@) {
     $INC{'FindBin.pm'} = 'eval()';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 }
 
-sub CORE_INIT {
-    _normalize_inc();
+_normalize_inc();
 
-    # create $ENV object
-    $ENV = Pcore::Core::Env->new;     ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+# create $ENV object
+$ENV = Pcore::Core::Env->new;         ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $ENV->CORE_INIT;
+$ENV->CORE_INIT;
 
-    _configure_inc();
-
-    return;
-}
+_configure_inc();
 
 sub _normalize_inc {
     my @inc;
@@ -141,7 +137,7 @@ sub _configure_inc {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 8                    │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 107                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 103                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -10,14 +10,10 @@ our $LOCALE    = 'en_US';
 our $LOCATIONS = [];
 our $CACHE     = {};
 
-sub CORE_INIT {
-    if ( my $i18n_res = $ENV->share->get_storage('i18n') ) {
-        for my $path ( $i18n_res->@* ) {
-            _add_location($path);
-        }
+if ( my $i18n_res = $ENV->share->get_storage('i18n') ) {
+    for my $path ( $i18n_res->@* ) {
+        _add_location($path);
     }
-
-    return;
 }
 
 sub i18n {
@@ -262,17 +258,17 @@ sub _t {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 88                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
+## │    3 │ 84                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_load_catalog" with high complexity score (26)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 181, 195             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 177, 191             │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 106, 109             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
+## │    2 │ 102, 105             │ ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 133                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 129                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 114, 128, 129        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 110, 124, 125        │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 177                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 173                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

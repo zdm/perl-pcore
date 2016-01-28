@@ -369,7 +369,6 @@ sub _CORE_INIT {
     # TODO
     # configure run-time environment
     require Pcore::Core::Bootstrap;
-    Pcore::Core::Bootstrap::CORE_INIT();
 
     # STDIN
     if ( -t *STDIN ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
@@ -546,15 +545,9 @@ sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
 # I18N
 sub i18n {
-    state $init = do {
-        require Pcore::Core::I18N;
+    state $init = !!require Pcore::Core::I18N;
 
-        Pcore::Core::I18N::CORE_INIT();    # configure default I18N locations
-
-        1;
-    };
-
-    return &Pcore::Core::I18N::i18n;       ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return &Pcore::Core::I18N::i18n;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
 1;
@@ -572,11 +565,11 @@ sub i18n {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
 ## │      │ 308                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 434                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 433                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 346, 377, 380, 384,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 416, 419, 424, 427,  │                                                                                                                │
-## │      │ 455, 472             │                                                                                                                │
+## │    3 │ 346, 376, 379, 383,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 415, 418, 423, 426,  │                                                                                                                │
+## │      │ 454, 471             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 238                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
