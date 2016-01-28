@@ -1,4 +1,4 @@
-package header;
+package common::header;
 
 # NOTE !!!WARNING!!! don't use indirect with strawberry perl
 # https://rt.cpan.org/Public/Bug/Display.html?id=102321
@@ -80,7 +80,7 @@ PERL
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 1                    │ Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 1                    │ NamingConventions::Capitalization - Package "header" does not start with a upper case letter                   │
+## │    1 │ 1                    │ NamingConventions::Capitalization - Package "common::header" does not start with a upper case letter           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -91,17 +91,15 @@ __END__
 
 =head1 NAME
 
-header - re-exporting the set of standard perl pragmas
+common::header - re-exporting the set of standard perl pragmas
 
 =head1 SYNOPSIS
 
-    use header;
+    use common::header;
 
     # or re-export
 
-    sub import {
-        header->import( -caller => caller );
-    }
+    common::header->import;
 
 =head1 DESCRIPTION
 
@@ -110,5 +108,7 @@ header - re-exporting the set of standard perl pragmas
 =head1 METHODS
 
 =head1 SEE ALSO
+
+common::sense
 
 =cut

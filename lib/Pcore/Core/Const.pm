@@ -1,6 +1,6 @@
 package Pcore::Core::Const;
 
-use header;
+use common::header;
 use Const::Fast qw[const];
 use Pcore::Core::Exporter -export,
   { ALL     => [qw[$MSWIN $CRLF $LF $TRUE $FALSE $STDOUT_UTF8 $STDERR_UTF8]],

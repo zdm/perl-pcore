@@ -1,7 +1,7 @@
 package Pcore v0.17.0;
 
 use v5.22.1;
-use header;
+use common::header;
 use Pcore::Core::Exporter qw[];
 use Pcore::Core::Const qw[:CORE];
 
@@ -105,7 +105,7 @@ sub import {
     };
 
     # export header
-    header->import;
+    common::header->import;
 
     # export P sub to avoid indirect calls, export i18n
     {
@@ -171,7 +171,7 @@ sub import {
             }
 
             # reconfigure warnings, after Moo exported
-            header->import;
+            common::header->import;
 
             # apply default roles
             # _apply_roles( $caller, qw[Pcore::Core::Autoload::Role] );
@@ -214,7 +214,7 @@ sub _namespace_clean ($class) {
                 my $def = $stash->get_symbol($name);
 
                 defined($def) ? [ $name, $def ] : ()
-            } '$', '@', '%', qw[];
+            } qw[$ @ %], q[];
 
             $stash->remove_glob($subname);
 
@@ -545,8 +545,6 @@ sub i18n {
 ## │    3 │ 324, 353, 356, 360,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
 ## │      │ 392, 395, 400, 403,  │                                                                                                                │
 ## │      │ 431, 448             │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 217                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 221                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
