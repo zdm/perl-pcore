@@ -255,29 +255,9 @@ sub import {
     return;
 }
 
-sub unimport {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-
-    # my $self = shift;
-
-    # parse pragmas and tags
-    # my $import = Pcore::Core::Exporter::parse_import( $self, @_ );
-
-    # find caller
-    # my $caller = caller;
-
-    # try to unimport Moo keywords
-    # _unimport_moo($caller);
-
-    # unimport types
-    # _unimport_types($caller);
-
-    return;
-}
-
 sub _namespace_clean ($class) {
     state $EXCEPT = {
         import   => 1,
-        unimport => 1,
         AUTOLOAD => 1,
     };
 
@@ -336,20 +316,9 @@ sub _import_moo ( $caller, $role ) {
     return;
 }
 
-sub _unimport_moo ($caller) {
-    if ( $Moo::MAKERS{$caller} && $Moo::MAKERS{$caller}->{is_class} ) {    # Moo class
-        Moo->unimport::out_of($caller);
-    }
-    elsif ( Moo::Role->is_role($caller) ) {                                # Moo::Role
-        Moo::Role->unimport::out_of($caller);
-    }
-
-    return;
-}
-
 sub _import_types ($caller) {
     state $init = do {
-        local $ENV{PERL_TYPES_STANDARD_STRICTNUM} = 0;                     # 0 - Num = LaxNum, 1 - Num = StrictNum
+        local $ENV{PERL_TYPES_STANDARD_STRICTNUM} = 0;    # 0 - Num = LaxNum, 1 - Num = StrictNum
 
         require Pcore::Core::Types;
         require Types::TypeTiny;
@@ -370,18 +339,6 @@ sub _import_types ($caller) {
     Types::Common::Numeric->import( { into => $caller }, ':types' );
 
     Pcore::Core::Types->import( { into => $caller }, ':types' );
-
-    return;
-}
-
-sub _unimport_types ($caller) {
-    Pcore::Core::Types->unimport( { into => $caller }, ':types' );
-
-    Types::Common::Numeric->unimport( { into => $caller }, ':types' );
-
-    Types::Standard->unimport( { into => $caller }, ':types' );
-
-    Types::TypeTiny->unimport( { into => $caller }, qw[StringLike HashLike ArrayLike CodeLike TypeTiny] );
 
     return;
 }
@@ -639,25 +596,23 @@ sub i18n {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 155                  │ Variables::ProtectPrivateVars - Private variable used                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 290                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 270                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 339                  │ * Private subroutine/method '_unimport_moo' declared but not used                                              │
-## │      │ 377                  │ * Private subroutine/method '_unimport_types' declared but not used                                            │
-## │      │ 389                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 505                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 346                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 462                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 419, 448, 451, 455,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 487, 490, 495, 498,  │                                                                                                                │
-## │      │ 526, 543             │                                                                                                                │
+## │    3 │ 376, 405, 408, 412,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 444, 447, 452, 455,  │                                                                                                                │
+## │      │ 483, 500             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 296                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 276                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 300                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 280                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 46                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 423                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 380                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

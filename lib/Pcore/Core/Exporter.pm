@@ -64,13 +64,11 @@ sub import {
         }
     }
 
-    # export import, unimport methods
+    # export import method
     {
         no strict qw[refs];
 
         *{"$caller\::import"} = \&_import;
-
-        *{"$caller\::unimport"} = \&_unimport;
     }
 
     return;
@@ -125,36 +123,6 @@ sub _import {
     return if $caller eq $self;
 
     _export_tags( $self, $caller, $import->{import} );
-
-    return;
-}
-
-# TODO process unimport tags
-sub _unimport {
-    my $self = shift;
-
-    # parse tags and pragmas
-    my $import = parse_import( $self, @_ );
-
-    # find caller
-    my $caller = $import->{pragma}->{caller} // caller( $import->{pragma}->{level} // 0 );
-
-    # protection from re-exporting to myself
-    return if $caller eq $self;
-
-    if ( exists $CACHE->{$self} && exists $CACHE->{$self}->{DEFAULT} ) {
-        my $cache = $CACHE->{$self}->{ALL};
-
-        no strict qw[refs];
-
-        # unimport all symbols, declared in :DEFAULT tag
-        # NOTE only subroutines can be unimported right now
-        for my $sym ( keys $CACHE->{$self}->{DEFAULT}->%* ) {
-            if ( $cache->{$sym}->[1] eq q[] ) {
-                delete ${"$caller\::"}{ $cache->{$sym}->[0] };
-            }
-        }
-    }
 
     return;
 }
@@ -262,13 +230,13 @@ sub _export_tags ( $self, $caller, $import ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 31, 48, 92, 104,     │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 174, 197, 215, 250   │                                                                                                                │
+## │    3 │ 31, 48, 90, 102,     │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 142, 165, 183, 218   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 52, 62, 152, 180,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 200, 203, 227, 230   │                                                                                                                │
+## │    3 │ 52, 62, 148, 168,    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 171, 195, 198        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 162                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
+## │    3 │ 130                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_export_tags" with high complexity score (28)              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 1                    │ Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
