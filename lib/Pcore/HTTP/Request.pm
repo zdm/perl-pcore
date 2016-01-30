@@ -18,9 +18,10 @@ has decompress        => ( is => 'ro', isa => Bool,              default => $Pco
 has persistent => ( is => 'ro', isa => Enum [ $PERSISTENT_IDENT, $PERSISTENT_ANY, $PERSISTENT_NO_PROXY ], default => $Pcore::HTTP::DEFAULT->{persistent} );
 has session    => ( is => 'ro', isa => Maybe [Str],    default => $Pcore::HTTP::DEFAULT->{session} );
 has cookie_jar => ( is => 'ro', isa => Maybe [Object], default => $Pcore::HTTP::DEFAULT->{cookie_jar} );
-has proxy => ( is => 'ro', writer => 'set_proxy', predicate => 1, clearer => 1 );
 
 has tls_ctx => ( is => 'ro', isa => Maybe [ Enum [ $Pcore::HTTP::TLS_CTX_LOW, $Pcore::HTTP::TLS_CTX_HIGH ] | HashRef ], default => $Pcore::HTTP::DEFAULT->{tls_ctx} );
+has bind_ip => ( is => 'ro', isa => Maybe [Str], default => $Pcore::HTTP::DEFAULT->{bind_ip} );
+has proxy => ( is => 'ro', writer => 'set_proxy', predicate => 1, clearer => 1 );
 has handle_params => ( is => 'ro', isa => Maybe [HashRef], default => $Pcore::HTTP::DEFAULT->{handle_params} );
 
 has on_progress => ( is => 'ro', isa => Maybe [ Bool | CodeRef ], default => $Pcore::HTTP::DEFAULT->{on_progress} );

@@ -209,6 +209,7 @@ sub _connect ( $args, $runtime, $cb ) {
         persistent             => $args->{persistent},
         session                => $args->{session},
         tls_ctx                => $args->{tls_ctx},
+        bind_ip                => $args->{bind_ip},
         proxy                  => $args->{proxy},
         on_proxy_connect_error => sub ( $h, $message, $proxy_error ) {
             $runtime->{finish}->( 594, $message );
@@ -576,11 +577,11 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 23                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 342                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 343                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 96, 109, 110, 205    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 525                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 526                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

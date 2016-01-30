@@ -7,6 +7,7 @@ has openapp_key          => ( is => 'ro',   isa => Str );
 has openapp_access_token => ( is => 'ro',   isa => Str );
 has failover             => ( is => 'lazy', isa => Bool, default => 0 );
 has datasource           => ( is => 'lazy', isa => Enum [qw[historic fresh]], default => 'fresh' );
+has bind_ip              => ( is => 'ro',   isa => Str );
 
 sub get_index_item_info ( $self, $domains, $cb ) {
     die q[Maximum items number is 100] if $domains->@* > 100;
@@ -38,6 +39,7 @@ sub get_index_item_info ( $self, $domains, $cb ) {
 
     P->http->get(
         $url,
+        bind_ip   => $self->bind_ip,
         on_finish => sub ($res) {
             if ( $res->status == 200 ) {
                 my $json = P->data->from_json( $res->body );

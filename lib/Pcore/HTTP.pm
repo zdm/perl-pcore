@@ -40,12 +40,13 @@ our $DEFAULT = {
     persistent        => $PERSISTENT_IDENT,
     session           => undef,
     cookie_jar        => undef,                          # 1 - create cookie jar object automatically
-    proxy             => undef,
 
     # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
     buf_size => 0,
 
     tls_ctx       => $TLS_CTX_LOW,
+    bind_ip       => undef,
+    proxy         => undef,
     handle_params => undef,
 
     headers => undef,
@@ -452,14 +453,14 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 110, 180, 191, 225,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 226, 250             │                                                                                                                │
+## │    3 │ 111, 181, 192, 226,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 227, 251             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 113                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 174                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (49)                   │
+## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (49)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 160                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 161                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
