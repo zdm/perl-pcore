@@ -7,7 +7,7 @@ has openapp_key          => ( is => 'ro',   isa => Str );
 has openapp_access_token => ( is => 'ro',   isa => Str );
 has failover             => ( is => 'lazy', isa => Bool, default => 0 );
 has datasource           => ( is => 'lazy', isa => Enum [qw[historic fresh]], default => 'fresh' );
-has bind_ip              => ( is => 'ro',   isa => Str );
+has bind_ip => ( is => 'ro', isa => Maybe [Str] );
 
 sub get_index_item_info ( $self, $domains, $cb ) {
     die q[Maximum items number is 100] if $domains->@* > 100;
