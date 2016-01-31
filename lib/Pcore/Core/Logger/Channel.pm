@@ -3,8 +3,8 @@ package Pcore::Core::Logger::Channel;
 use Pcore -class;
 use Term::ANSIColor qw[:constants];
 
-has name   => ( is => 'ro', isa => Str, required => 1 );
-has header => ( is => 'ro', isa => Str, default  => BOLD GREEN . '[<: $date.strftime("%H:%M:%S.%6N") :>]' . BOLD CYAN . '[<: $pid :>]' . BOLD YELLOW . '[<: $package :>]' . BOLD RED . '[<: $channel :>]' . RESET );
+has name => ( is => 'ro', isa => Str, required => 1 );
+has header => ( is => 'ro', isa => Maybe [Str], default => BOLD GREEN . '[<: $date.strftime("%H:%M:%S.%6N") :>]' . BOLD CYAN . '[<: $pid :>]' . BOLD YELLOW . '[<: $package :>]' . BOLD RED . '[<: $channel :>]' . RESET );
 
 has pipe => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 

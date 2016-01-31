@@ -7,14 +7,27 @@ has channel => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg =
 
 our $PIPE = {};    # weak refs, pipes are global
 
-sub add_channel ( $self, $name, @pipe ) {
+sub add_channel ( $self, $name, @ ) {
     my $ch;
+
+    my $args = { name => $name };
+
+    my @pipe;
+
+    if ( ref $_[2] eq 'HASH' ) {
+        $args->@{ keys $_[2]->%* } = values $_[2]->%*;
+
+        @pipe = splice @_, 3;
+    }
+    else {
+        @pipe = splice @_, 2;
+    }
 
     if ( $self->channel->{$name} ) {
         $ch = $self->channel->{$name};
     }
     else {
-        $ch = Pcore::Core::Logger::Channel->new( { name => $name } );
+        $ch = Pcore::Core::Logger::Channel->new($args);
 
         $self->channel->{$name} = $ch;
 
@@ -73,9 +86,9 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 18, 55               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 55                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    │
+## │    3 │ 68                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
