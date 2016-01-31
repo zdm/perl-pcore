@@ -47,6 +47,12 @@ sub sendlog ( $self, $header, $data, $tag ) {
 
     my $h = H->$hid->h;
 
+    if ( !-f $self->path ) {
+        H->$hid->h_disconnect;
+
+        $h = H->$hid->h;
+    }
+
     flock $h, LOCK_EX or die;
 
     say {$h} $header, q[ ], $data;
