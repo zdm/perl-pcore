@@ -55,7 +55,7 @@ sub sendlog ( $self, $header, $data, $tag ) {
 
     flock $h, LOCK_EX or die;
 
-    say {$h} $header, q[ ], $data;
+    say {$h} $header, $data;
 
     flock $h, LOCK_UN or die;
 

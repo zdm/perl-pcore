@@ -53,21 +53,32 @@ sub sendlog ( $self, $logger, $data, @ ) {
     for my $pipe ( sort { $a->priority <=> $b->priority } values $self->{pipe}->%* ) {
         my $data_type = $pipe->data_type;
 
-        if ( !exists $self->{_header_tmpl}->{$data_type} ) {
-            $self->{_header_tmpl}->{$data_type} = P->tmpl;
+        my $header;
 
-            $self->{_header_tmpl}->{$data_type}->cache_string_tmpl( header => \$pipe->prepare_data( $self->header ) );
+        if ( $self->header ) {
+
+            # prepare and cache header template
+            if ( !exists $self->{_header_tmpl}->{$data_type} ) {
+                $self->{_header_tmpl}->{$data_type} = P->tmpl;
+
+                $self->{_header_tmpl}->{$data_type}->cache_string_tmpl( header => \$pipe->prepare_data( $self->header . q[ ] ) );
+            }
+
+            # render and cache header
+            if ( !exists $header_cache->{$data_type} ) {
+                $header_cache->{$data_type} = $self->{_header_tmpl}->{$data_type}->render( 'header', $tag );
+            }
+
+            $header = $header_cache->{$data_type}->$*;
         }
-
-        # prepare and cache header
-        if ( !exists $header_cache->{$data_type} ) {
-            $header_cache->{$data_type} = $self->{_header_tmpl}->{$data_type}->render( 'header', $tag );
+        else {
+            $header = q[];
         }
 
         # prepare and cache data
         $data_cache->{$data_type} = $pipe->prepare_data($data) if !exists $data_cache->{$data_type};
 
-        $pipe->sendlog( $header_cache->{$data_type}->$*, $data_cache->{$data_type}, $tag );
+        $pipe->sendlog( $header, $data_cache->{$data_type}, $tag );
     }
 
     return;
