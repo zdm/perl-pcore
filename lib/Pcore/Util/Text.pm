@@ -259,18 +259,18 @@ sub escape_scalar {
     if ( $args{bin} ) {
         if ( utf8::is_utf8 $_ ) {
             if ( $args{utf8_encode} ) {
-                encode_utf8 $_;
+                encode_utf8($_);
 
-                s/(.)/sprintf q[\x%X], ord $1/smge;
+                s/(.)/sprintf '\x%02X', ord $1/smge;
             }
             else {
-                s/([[:ascii:]])/sprintf q[\x%X], ord $1/smge;
+                s/([[:ascii:]])/sprintf '\x%02X', ord $1/smge;
 
-                s/([[:^ascii:]])/sprintf q[\x{%X}], ord $1/smge;
+                s/([[:^ascii:]])/sprintf '\x{%X}', ord $1/smge;
             }
         }
         else {
-            s/(.)/sprintf q[\x%X], ord $1/smge;
+            s/(.)/sprintf '\x%02X', ord $1/smge;
         }
     }
     else {
@@ -280,7 +280,7 @@ sub escape_scalar {
 
         s/([\a\b\t\n\f\r\e])/${esc_color}$ESC_ANSI_CTRL{$1}${reset_color}/smg;    # escape ANSI
 
-        s/([\x00-\x1A\x1C-\x1F\x7F])/$esc_color . sprintf( q[\x%X], ord $1 ) . $reset_color/smge;    # hex ANSI non-printable chars
+        s/([\x00-\x1A\x1C-\x1F\x7F])/$esc_color . sprintf( '\x%02X', ord $1 ) . $reset_color/smge;    # hex ANSI non-printable chars
     }
 
     if ( defined wantarray ) {
