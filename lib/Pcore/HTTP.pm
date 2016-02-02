@@ -244,18 +244,6 @@ sub request {
         }
     }
 
-    # prepare body
-    if ( defined $args{body} ) {
-        if ( ref $args{body} eq 'CODE' ) {
-            delete $args{headers}->{CONTENT_LENGTH};
-
-            $args{headers}->{TRANSFER_ENCODING} = 'chunked';
-        }
-        else {
-            $args{headers}->{CONTENT_LENGTH} = bytes::length( ref $args{body} eq 'SCALAR' ? $args{body}->$* : $args{body} );
-        }
-    }
-
     # blocking cv
     my $cv = delete $args{cv};
 
@@ -447,7 +435,7 @@ sub _get_on_progress_cb (%args) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
+## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (36)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 161                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

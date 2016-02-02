@@ -251,6 +251,23 @@ sub _write_request ( $args, $runtime ) {
         $runtime->{h}->starttls('connect') if $args->{url}->is_secure && !exists $runtime->{h}->{tls};
     }
 
+    # prepare content related headers
+    if ( defined $args->{body} ) {
+        if ( ref $args->{body} eq 'CODE' ) {
+            delete $args->{headers}->{CONTENT_LENGTH};
+
+            $args->{headers}->{TRANSFER_ENCODING} = 'chunked';
+        }
+        else {
+            $args->{headers}->{CONTENT_LENGTH} = bytes::length( ref $args->{body} eq 'SCALAR' ? $args->{body}->$* : $args->{body} );
+        }
+    }
+    else {
+        delete $args->{headers}->{CONTENT_LENGTH};
+
+        delete $args->{headers}->{TRANSFER_ENCODING};
+    }
+
     # send request headers
     $runtime->{h}->push_write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
 
@@ -258,27 +275,29 @@ sub _write_request ( $args, $runtime ) {
     return if !$runtime;
 
     # send request body
-    if ( ref $args->{body} eq 'CODE' ) {
-        while (1) {
-            if ( my $body_part = $args->{body}->() ) {
+    if ( defined $args->{body} ) {
+        if ( ref $args->{body} eq 'CODE' ) {
+            while (1) {
+                if ( my $body_part = $args->{body}->() ) {
 
-                # push chunk
-                $runtime->{h}->push_write( sprintf( '%X', length $body_part->$* ) . $CRLF . $body_part->$* . $CRLF );
+                    # push chunk
+                    $runtime->{h}->push_write( sprintf( '%X', length $body_part->$* ) . $CRLF . $body_part->$* . $CRLF );
+                }
+                else {
+
+                    # last chunk
+                    $runtime->{h}->push_write( q[0] . $CRLF . $CRLF );
+
+                    last;
+                }
+
+                # return if error occurred during send request body chunk
+                return if !$runtime;
             }
-            else {
-
-                # last chunk
-                $runtime->{h}->push_write( q[0] . $CRLF . $CRLF );
-
-                last;
-            }
-
-            # return if error occurred during send request body chunk
-            return if !$runtime;
         }
-    }
-    elsif ( exists $args->{body} ) {
-        $runtime->{h}->push_write( ref $args->{body} ? $args->{body}->$* : $args->{body} );
+        else {
+            $runtime->{h}->push_write( ref $args->{body} ? $args->{body}->$* : $args->{body} );
+        }
     }
 
     return;
@@ -577,11 +596,12 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 23                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 343                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 241                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
+## │      │ 362                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 96, 109, 110, 205    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 526                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 545                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
