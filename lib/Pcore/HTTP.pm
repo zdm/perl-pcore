@@ -175,46 +175,35 @@ sub mirror ( $target, @ ) {
 sub request {
     my $wantarray = wantarray;
 
-    my %args;
+    my %args = $DEFAULT->%*;
 
-    if ( !blessed $_[0] ) {
-        %args = ( $DEFAULT->%*, @_ );
+    # create empty headers object
+    $args{headers} = Pcore::HTTP::Message::Headers->new;
 
-        $args{headers} = blessed $args{headers} ? $args{headers}->clone : Pcore::HTTP::Message::Headers->new->replace( $args{headers} ) if $args{headers};
-    }
-    else {
-        while (@_) {
-            my $old_headers = delete $args{headers};
+    while (@_) {
+        if ( blessed $_[0] ) {
+            my $obj = shift;
 
-            if ( blessed $_[0] ) {
-                my $obj = shift;
+            for my $arg ( keys $DEFAULT->%* ) {
+                next if $arg eq 'headers';
 
-                for my $arg ( keys $DEFAULT->%* ) {
-                    $args{$arg} = $obj->$arg;
-                }
-
-                $args{headers} = $args{headers} ? $old_headers->replace( $args{headers}->get_hash ) : $old_headers if $old_headers;
+                $args{$arg} = $obj->$arg;
             }
-            else {
-                %args = ( %args, @_ );
 
-                # headers were aadded
-                if ($old_headers) {
-                    $args{headers} = $args{headers} ? $old_headers->replace( blessed $args{headers} ? $args{headers}->get_hash : $args{headers} ) : $old_headers;
-                }
+            $args{headers}->replace( $obj->headers->get_hash );
+        }
+        else {
+            my $headers = delete $args{headers};
 
-                # headers were created
-                elsif ( $args{headers} ) {
-                    $args{headers} = blessed $args{headers} ? $args{headers}->clone : Pcore::HTTP::Message::Headers->new->replace( $args{headers} );
-                }
+            %args = ( %args, @_ );
 
-                last;
-            }
+            $headers->replace( blessed $args{headers} ? $args{headers}->get_hash : $args{headers} ) if $args{headers};
+
+            $args{headers} = $headers;
+
+            last;
         }
     }
-
-    # create empty headers object if no headers were added
-    $args{headers} = Pcore::HTTP::Message::Headers->new if !$args{headers};
 
     $args{res} = Pcore::HTTP::Response->new;
 
@@ -453,12 +442,12 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111, 181, 192, 226,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 227, 251             │                                                                                                                │
+## │    3 │ 111, 178, 187, 215,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 216, 240             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (49)                   │
+## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (40)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 161                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
