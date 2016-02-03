@@ -1,3 +1,14 @@
+v0.18.0 2016-02-03T01:22:42Z
+ [BUG]
+ - [critical] Pcore::HTTP - content headers generation
+   (https://bitbucket.org/softvisio/pcore/issues/33/)
+ - [major] Use $dist->name as share lib name
+   (https://bitbucket.org/softvisio/pcore/issues/29/)
+
+ [ENHANCEMENT]
+ - [major] Reopen log filehandles automatically on unlink
+   (https://bitbucket.org/softvisio/pcore/issues/31/)
+
 v0.17.1 2016-01-28T08:06:58Z
  - No issues were closed since the last release
 
