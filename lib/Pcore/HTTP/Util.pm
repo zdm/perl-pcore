@@ -219,6 +219,8 @@ sub _connect ( $args, $runtime, $cb ) {
             return;
         },
         on_connect => sub ( $h, $host, $port, $retry ) {
+            $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $h->{proxy}->userinfo_b64 if $h->{proxy} && $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP && $h->{proxy}->userinfo;
+
             $cb->($h);
 
             return;
@@ -586,12 +588,12 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 23                   │ * Subroutine "http_request" with high complexity score (29)                                                    │
-## │      │ 231                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 352                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 233                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
+## │      │ 354                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 535                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 537                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
