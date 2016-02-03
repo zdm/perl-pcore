@@ -96,10 +96,11 @@ sub http_request ($args) {
                         $args->{headers}->{HOST} = $args->{url}->host->name;
 
                         # replace COOKIE headers
-                        if ( $args->{cookie_jar} ) {
-                            if ( my $cookies = $args->{cookie_jar}->get_cookies( $args->{url} ) ) {
-                                $runtime->{headers}->{COOKIE} = join q[; ], $cookies->@*;
-                            }
+                        if ( $args->{cookie_jar} && ( my $cookies = $args->{cookie_jar}->get_cookies( $args->{url} ) ) ) {
+                            $args->{headers}->{COOKIE} = join q[; ], $cookies->@*;
+                        }
+                        else {
+                            delete $args->{headers}->{COOKIE};
                         }
 
                         # cleanup and recursive call on redirect
@@ -584,13 +585,13 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 23                   │ * Subroutine "http_request" with high complexity score (28)                                                    │
-## │      │ 230                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 351                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 23                   │ * Subroutine "http_request" with high complexity score (29)                                                    │
+## │      │ 231                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
+## │      │ 352                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 106, 120, 122, 196   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 534                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 535                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

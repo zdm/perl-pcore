@@ -216,19 +216,17 @@ sub request {
     $args{headers}->{HOST} = $args{url}->host->name unless exists $args{headers}->{HOST};
 
     # set REFERER header
-    $args{headers}->{REFERER} = $args->{url}->to_string unless exists $args{headers}->{REFERER};
+    $args{headers}->{REFERER} = $args{url}->to_string unless exists $args{headers}->{REFERER};
 
     # set ACCEPT_ENCODING headers
     $args{headers}->{ACCEPT_ENCODING} = 'gzip' if $args{accept_compressed} && !exists $args{headers}->{ACCEPT_ENCODING};
 
     # set TE header
-    $args->{headers}->{TE} = 'trailers';
+    $args{headers}->{TE} = 'trailers';
 
     # add COOKIE headers
-    if ( $args{cookie_jar} ) {
-        if ( my $cookies = $args{cookie_jar}->get_cookies( $args{url} ) ) {
-            push $args{headers}->{COOKIE}->@*, join q[; ], $cookies->@*;
-        }
+    if ( $args{cookie_jar} && ( my $cookies = $args{cookie_jar}->get_cookies( $args{url} ) ) ) {
+        $args{headers}->add( COOKIE => join q[; ], $cookies->@* );
     }
 
     # merge handle_params
@@ -449,8 +447,8 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111, 178, 187, 237,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 238, 259             │                                                                                                                │
+## │    3 │ 111, 178, 187, 235,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 236, 257             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
