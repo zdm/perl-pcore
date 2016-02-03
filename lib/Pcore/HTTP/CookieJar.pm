@@ -149,10 +149,12 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
 }
 
 sub get_cookies ( $self, $url ) {
-    my @cookies;
+    my $cookies;
 
     # origin cookie
-    push @cookies, $self->_match_domain( $url->host->name, $url )->@*;
+    if ( my $match_cookies = $self->_match_domain( $url->host->name, $url ) ) {
+        push $cookies->@*, $match_cookies->@*;
+    }
 
     # cover cookies
     # http://bayou.io/draft/cookie.domain.html#Coverage_Model
@@ -164,17 +166,19 @@ sub get_cookies ( $self, $url ) {
 
             last if $domain->is_pub_suffix;
 
-            push @cookies, $self->_match_domain( q[.] . $domain->name, $url )->@*;
+            if ( my $match_cookies = $self->_match_domain( q[.] . $domain->name, $url ) ) {
+                push $cookies->@*, $match_cookies->@*;
+            }
 
             shift @labels;
         }
     }
 
-    return \@cookies;
+    return $cookies;
 }
 
 sub _match_domain ( $self, $domain, $url ) {
-    my @cookies;
+    my $cookies;
 
     my $time = time;
 
@@ -188,14 +192,14 @@ sub _match_domain ( $self, $domain, $url ) {
                     else {
                         next if $cookie->{secure} && !$url->is_secure;
 
-                        push @cookies, $cookie->{name} . q[=] . $cookie->{val};
+                        push $cookies->@*, $cookie->{name} . q[=] . $cookie->{val};
                     }
                 }
             }
         }
     }
 
-    return \@cookies;
+    return $cookies;
 }
 
 sub _match_path ( $self, $url_path, $cookie_path ) {
@@ -223,7 +227,7 @@ sub _match_path ( $self, $url_path, $cookie_path ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 13                   │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (31)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 182, 184             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 186, 188             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

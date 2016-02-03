@@ -92,8 +92,19 @@ sub http_request ($args) {
 
                         $args->{url} = $runtime->{res}->headers->{LOCATION};
 
+                        # set HOST header
+                        $args->{headers}->{HOST} = $args->{url}->host->name;
+
+                        # replace COOKIE headers
+                        if ( $args->{cookie_jar} ) {
+                            if ( my $cookies = $args->{cookie_jar}->get_cookies( $args->{url} ) ) {
+                                $runtime->{headers}->{COOKIE} = join q[; ], $cookies->@*;
+                            }
+                        }
+
                         # cleanup and recursive call on redirect
                         $runtime->%* = ();
+
                         undef $runtime;
 
                         http_request($args);
@@ -106,38 +117,18 @@ sub http_request ($args) {
             my $on_finish = $args->{on_finish};
 
             # cleanup data structures manually
-            $args->%*    = ();
+            $args->%* = ();
+
             $runtime->%* = ();
+
             undef $runtime;
 
             $on_finish->();
 
             return;
         },
-        headers         => Pcore::HTTP::Message::Headers->new,
         on_error_status => undef,
     };
-
-    # add REFERER header
-    $runtime->{headers}->{REFERER} = $args->{url}->to_string unless exists $args->{headers}->{REFERER};
-
-    # add HOST header
-    $runtime->{headers}->{HOST} = $args->{url}->host->name unless exists $args->{headers}->{HOST};
-
-    # mark, that UA support trailer headers during chunked transfer
-    $runtime->{headers}->{TE} = 'trailers' unless exists $args->{headers}->{TE};
-
-    # add COOKIE headers
-    if ( $args->{cookie_jar} ) {
-        my $cookies = $args->{cookie_jar}->get_cookies( $args->{url} );
-
-        if ( $cookies->@* ) {
-            $runtime->{headers}->{COOKIE} = join q[; ], $cookies->@*;
-        }
-    }
-
-    # add ACCEPT_ENCODING headers
-    $runtime->{headers}->{ACCEPT_ENCODING} = 'gzip' if $args->{accept_compressed} && !exists $args->{headers}->{ACCEPT_ENCODING};
 
     # start "connect" phase
     $runtime->{on_error_status} = 595;
@@ -227,8 +218,6 @@ sub _connect ( $args, $runtime, $cb ) {
             return;
         },
         on_connect => sub ( $h, $host, $port, $retry ) {
-            $runtime->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $args->{proxy}->userinfo_b64 if $h->{proxy} && $h->{proxy}->userinfo && $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP;
-
             $cb->($h);
 
             return;
@@ -269,7 +258,7 @@ sub _write_request ( $args, $runtime ) {
     }
 
     # send request headers
-    $runtime->{h}->push_write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $runtime->{headers}->to_string . $args->{headers}->to_string . $CRLF );
+    $runtime->{h}->push_write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $args->{headers}->to_string . $CRLF );
 
     # return if error occurred during send request headers
     return if !$runtime;
@@ -595,13 +584,13 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 23                   │ * Subroutine "http_request" with high complexity score (33)                                                    │
-## │      │ 241                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 362                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 23                   │ * Subroutine "http_request" with high complexity score (28)                                                    │
+## │      │ 230                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
+## │      │ 351                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 96, 109, 110, 205    │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 106, 120, 122, 196   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 545                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 534                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

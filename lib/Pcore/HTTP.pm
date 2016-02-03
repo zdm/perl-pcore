@@ -207,7 +207,29 @@ sub request {
 
     $args{res} = Pcore::HTTP::Response->new;
 
+    # resolve cookie_jar shortcut
+    $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};
+
     $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !ref $args{url};
+
+    # set HOST header
+    $args{headers}->{HOST} = $args{url}->host->name unless exists $args{headers}->{HOST};
+
+    # set REFERER header
+    $args{headers}->{REFERER} = $args->{url}->to_string unless exists $args{headers}->{REFERER};
+
+    # set ACCEPT_ENCODING headers
+    $args{headers}->{ACCEPT_ENCODING} = 'gzip' if $args{accept_compressed} && !exists $args{headers}->{ACCEPT_ENCODING};
+
+    # set TE header
+    $args->{headers}->{TE} = 'trailers';
+
+    # add COOKIE headers
+    if ( $args{cookie_jar} ) {
+        if ( my $cookies = $args{cookie_jar}->get_cookies( $args{url} ) ) {
+            push $args{headers}->{COOKIE}->@*, join q[; ], $cookies->@*;
+        }
+    }
 
     # merge handle_params
     if ( my $handle_params = delete $args{handle_params} ) {
@@ -224,9 +246,6 @@ sub request {
     if ( my $useragent = delete $args{useragent} ) {
         $args{headers}->{USER_AGENT} = $useragent if !exists $args{headers}->{USER_AGENT};
     }
-
-    # resolve cookie_jar shortcut
-    $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};
 
     # resolve TLS context shortcut
     $args{tls_ctx} = $TLS_CTX->{ $args{tls_ctx} } if !ref $args{tls_ctx};
@@ -430,12 +449,12 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111, 178, 187, 215,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 216, 240             │                                                                                                                │
+## │    3 │ 111, 178, 187, 237,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 238, 259             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (36)                   │
+## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (42)                   │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 161                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
