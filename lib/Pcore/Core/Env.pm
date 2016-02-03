@@ -8,11 +8,11 @@ use Pcore::Dist;
 use Pcore::Core::Env::Share;
 
 has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );
-has dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
-has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init_arg => undef ); # pcore dist
-has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef ); # share object
-has dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );      # registered dists. index
-has cli      => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );      # parsed CLI data
+has _main_dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
+has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init_arg => undef );       # pcore dist
+has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef );       # share object
+has _dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # registered dists. index
+has cli       => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # parsed CLI data
 
 # may not work, if executed in one-liner script
 eval { require FindBin; };
@@ -176,7 +176,7 @@ sub _build_is_par ($self) {
     return $ENV{PAR_TEMP} ? 1 : 0;
 }
 
-sub _build_dist ($self) {
+sub _build__main_dist ($self) {
     my $dist;
 
     if ( $self->is_par ) {
@@ -221,10 +221,10 @@ sub register_dist ( $self, $dist ) {
     die qq[Invlaid Pcore -dist pragma usage, "$dist" is not a Pcore dist main module] if !$dist;
 
     # dist is already registered
-    return if exists $self->dist_idx->{ $dist->name };
+    return if exists $self->_dist_idx->{ $dist->name };
 
     # add dist to the dists index
-    $self->dist_idx->{ $dist->name } = $dist;
+    $self->_dist_idx->{ $dist->name } = $dist;
 
     # register dist utils
     if ( $dist->cfg->{util} ) {
@@ -256,8 +256,13 @@ sub register_dist ( $self, $dist ) {
     return;
 }
 
-sub get_dist ( $self, $dist ) {
-    return $self->dist_idx->{ $dist =~ s/::/-/smgr };
+sub dist ( $self, $dist_name = undef ) {
+    if ($dist_name) {
+        return $self->_dist_idx->{ $dist_name =~ s/::/-/smgr };
+    }
+    else {
+        return $self->_main_dist;
+    }
 }
 
 1;
