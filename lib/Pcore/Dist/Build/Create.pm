@@ -57,7 +57,7 @@ sub run ($self) {
 
     my $files = Pcore::Util::File::Tree->new;
 
-    $files->add_dir( $ENV->share->get_storage( 'pcore', 'pcore' ) );
+    $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) );
 
     $files->move_file( 'lib/Module.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
 

@@ -28,16 +28,16 @@ if ($@) {
     $INC{'FindBin.pm'} = 'eval()';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 }
 
-_NORMALIZE_INC();
+_normalize_inc();
 
 # create $ENV object
 $ENV = __PACKAGE__->new;              ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
 $ENV->_INIT;
 
-_CONFIGURE_INC();
+_configure_inc();
 
-sub _NORMALIZE_INC {
+sub _normalize_inc {
     my @inc;
 
     my $inc_index;
@@ -71,7 +71,7 @@ sub _NORMALIZE_INC {
     return;
 }
 
-sub _CONFIGURE_INC {
+sub _configure_inc {
     my @inc;
 
     my $inc_index;
@@ -221,10 +221,10 @@ sub register_dist ( $self, $dist ) {
     die qq[Invlaid Pcore -dist pragma usage, "$dist" is not a Pcore dist main module] if !$dist;
 
     # dist is already registered
-    return if exists $self->dist_idx->{ lc $dist->name };
+    return if exists $self->dist_idx->{ $dist->name };
 
     # add dist to the dists index
-    $self->dist_idx->{ lc $dist->name } = $dist;
+    $self->dist_idx->{ $dist->name } = $dist;
 
     # register dist utils
     if ( $dist->cfg->{util} ) {
@@ -251,13 +251,13 @@ sub register_dist ( $self, $dist ) {
         $share_lib_level = $next_level++;
     }
 
-    $self->share->add_lib( lc $dist->name, $dist->share_dir, $share_lib_level );
+    $self->share->add_lib( $dist->name, $dist->share_dir, $share_lib_level );
 
     return;
 }
 
 sub get_dist ( $self, $dist ) {
-    return $self->dist_idx->{ lc $dist =~ s/::/-/smgr };
+    return $self->dist_idx->{ $dist =~ s/::/-/smgr };
 }
 
 1;

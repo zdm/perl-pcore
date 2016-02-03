@@ -36,7 +36,7 @@ sub run ($self) {
     }
 
     # load global pcore.perl config
-    my $pcore_cfg = P->cfg->load( $ENV->share->get( '/data/pcore.perl', lib => 'pcore' ) );
+    my $pcore_cfg = P->cfg->load( $ENV->share->get( '/data/pcore.perl', lib => 'Pcore' ) );
 
     # build scripts
     for my $script ( sort keys $self->dist->cfg->{par}->%* ) {
