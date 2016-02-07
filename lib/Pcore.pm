@@ -80,10 +80,10 @@ sub import {
             Net::SSLeay::initialize();
 
             {
-                no warnings qw[redefine];
+                no warnings qw[redefine prototype];
 
                 # we don't need to call Net::SSLeay::randomize several times
-                *Net::SSLeay::randomize = sub : prototype(;$$$) { };
+                *Net::SSLeay::randomize = sub { };
             }
 
             # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
@@ -547,8 +547,6 @@ sub i18n {
 ## │      │ 431, 448             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 221                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 86                   │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 328                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
