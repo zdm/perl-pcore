@@ -1,3 +1,9 @@
+v0.18.1 2016-02-07T06:43:42Z
+ [BUG]
+ - [major] Possibly useless PROXY_AUTHORIZATION in
+   Pcore::HTTP::Util::_connect
+   (https://bitbucket.org/softvisio/pcore/issues/32/)
+
 v0.18.0 2016-02-03T01:22:42Z
  [BUG]
  - [critical] Pcore::HTTP - content headers generation
