@@ -153,6 +153,11 @@
         host   => undef,
         re     => undef,
     },
+    'hautetfort.com' => {
+        status => 404,
+        host   => undef,
+        re     => undef,
+    },
 
     # path - based web2 subdomains
     'journalhome.com' => {
