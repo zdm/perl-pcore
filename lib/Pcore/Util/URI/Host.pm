@@ -39,7 +39,7 @@ has root_domain_utf8     => ( is => 'lazy', init_arg => undef );
 around new => sub ( $orig, $self, $host ) {
     $host = to_punycode($host) if utf8::is_utf8($host);
 
-    return bless { name => $host }, __PACKAGE__;
+    return bless { name => lc $host }, __PACKAGE__;
 };
 
 sub pub_suffixes ( $self, $force_download = 0 ) {
