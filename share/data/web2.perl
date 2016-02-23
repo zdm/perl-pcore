@@ -21,7 +21,7 @@
     'over-blog.com' => {
         status => undef,
         host   => undef,
-        re     => qr[Erreur\s+404\s+Page\s+non\s+trouvee]smi,
+        re     => qr[Erreur\s+404\s+Page\s+non\s+trouvée]smi,
     },
     'wordpress.org' => {
         status => undef,
