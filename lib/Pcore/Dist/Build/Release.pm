@@ -117,7 +117,7 @@ sub run ($self) {
         my $cv = AE::cv;
 
         # create new version on issues tracker
-        print q[Create new version and milestone on issues tracker ... ];
+        print q[Createing new version and milestone on issues tracker ... ];
 
         $cv->begin;
 
@@ -210,7 +210,7 @@ sub _upload_to_cpan ($self) {
     say 'done';
 
   REDO:
-    print 'Upload to CPAN ... ';
+    print 'Uploading to CPAN ... ';
 
     my ( $status, $reason ) = $self->_upload( $self->dist->build->user_cfg->{PAUSE}->{username}, $self->dist->build->user_cfg->{PAUSE}->{password}, $tgz );
 
