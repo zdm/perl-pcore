@@ -19,7 +19,7 @@ sub decompress ( $self, % ) {
     my $severity = 0;
 
     # format subroutine signatures
-    $self->buffer->$* =~ s/sub\s+(?:([[:alnum:]_]+)\s*)?[(]\s*([^)]*)\s*[)]/_format_sub_signature($1, $2)/smge;
+    # $self->buffer->$* =~ s/sub\s+(?:([[:alnum:]_]+)\s*)?[(]\s*([^)]*)\s*[)]/_format_sub_signature($1, $2)/smge;
 
     # format heredocs
     $self->_format_heredoc;
@@ -365,6 +365,9 @@ sub cut_log ($self) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 111, 114, 118, 125,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## │      │ 241, 277             │                                                                                                                │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 303                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_format_sub_signature' declared but │
+## │      │                      │ not used                                                                                                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 162                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
