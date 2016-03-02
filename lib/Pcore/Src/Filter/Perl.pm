@@ -18,9 +18,6 @@ sub decompress ( $self, % ) {
     my $log      = q[];
     my $severity = 0;
 
-    # format subroutine signatures
-    # $self->buffer->$* =~ s/sub\s+(?:([[:alnum:]_]+)\s*)?[(]\s*([^)]*)\s*[)]/_format_sub_signature($1, $2)/smge;
-
     # format heredocs
     $self->_format_heredoc;
 
@@ -300,52 +297,6 @@ sub _format_heredoc ($self) {
     return;
 }
 
-sub _format_sub_signature ( $sub_name, $sub_sign ) {
-    my $res = q[sub ];
-
-    $res .= $sub_name . q[ ] if $sub_name;
-
-    my @signs = split /,/sm, $sub_sign;
-
-    $res .= q[(];
-
-    $res .= q[ ] if @signs > 1;
-
-    my @formatted_signs = ();
-
-    for my $sign (@signs) {
-        trim $sign;
-
-        next unless $sign;
-
-        if ( ( my $eq_idx = index $sign, q[=] ) != -1 ) {
-            my $val = $sign;
-
-            my $var = substr $val, 0, $eq_idx, q[];
-
-            substr $val, 0, 1, q[];
-
-            trim $var;
-
-            trim $val;
-
-            $sign = qq[$var =];
-
-            $sign .= qq[ $val] if $val ne q[];
-        }
-
-        push @formatted_signs, $sign;
-    }
-
-    $res .= join q[, ], @formatted_signs;
-
-    $res .= q[ ] if @signs > 1;
-
-    $res .= q[)];
-
-    return $res;
-}
-
 sub cut_log ($self) {
     $self->buffer->$* =~ s/^## -----SOURCE FILTER LOG BEGIN-----.*?## -----SOURCE FILTER LOG END-----\n?//sm;    ## no critic qw[RegularExpressions::ProhibitComplexRegexes]
 
@@ -363,15 +314,12 @@ sub cut_log ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 9                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (24)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 111, 114, 118, 125,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 241, 277             │                                                                                                                │
+## │    3 │ 108, 111, 115, 122,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 238, 274             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 303                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_format_sub_signature' declared but │
-## │      │                      │ not used                                                                                                       │
+## │    2 │ 159                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 162                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 111                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 108                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

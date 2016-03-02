@@ -303,7 +303,7 @@ sub _write_request ( $args, $runtime ) {
 sub _read_headers ( $args, $runtime, $cb ) {
     $runtime->{h}->read_http_res_headers(
         headers => 1,
-        sub( $h, $res, $error_reason ) {
+        sub ( $h, $res, $error_reason ) {
             if ($error_reason) {
                 $runtime->{finish}->( 596, $error_reason );
             }
