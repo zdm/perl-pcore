@@ -7,12 +7,15 @@
 !city.yokohama.jp
 !teledata.mz
 !www.ck
+*.api.githubcloud.com
 *.bd
 *.bn
 *.ck
 *.er
+*.ext.githubcloud.com
 *.fj
 *.fk
+*.githubcloudusercontent.com
 *.gu
 *.jm
 *.kawasaki.jp
@@ -40,6 +43,7 @@
 .amazonaws.com
 .amazonaws.com.cn
 .ap-northeast-2.amazonaws.com
+.api.githubcloud.com
 .buskerud.no
 .cdn77-secure.org
 .cdn77.net
@@ -47,7 +51,10 @@
 .cn-north-1.amazonaws.com.cn
 .co.ke
 .eu-central-1.amazonaws.com
+.ext.githubcloud.com
 .fastly.net
+.fbsbx.com
+.githubcloudusercontent.com
 .hedmark.no
 .her.name
 .his.name
@@ -357,6 +364,7 @@ ap.it
 apartments
 app
 apple
+apps.fbsbx.com
 appspot.com
 aq
 aq.it
@@ -1618,7 +1626,6 @@ dontexist.net
 dontexist.org
 doomdns.com
 doomdns.org
-doosan
 doshi.yamanashi.jp
 dot
 dovre.no
@@ -2227,6 +2234,7 @@ fukushima.fukushima.jp
 fukushima.hokkaido.jp
 fukushima.jp
 fukuyama.hiroshima.jp
+fun
 funabashi.chiba.jp
 funagata.yamagata.jp
 funahashi.toyama.jp
@@ -2331,7 +2339,9 @@ ginan.gifu.jp
 ginowan.okinawa.jp
 ginoza.okinawa.jp
 giske.no
+gist.githubcloud.com
 github.io
+githubcloud.com
 githubusercontent.com
 gives
 giving
@@ -2357,6 +2367,7 @@ glogow.pl
 gloppen.no
 gm
 gmail
+gmbh
 gmina.pl
 gmo
 gmx
@@ -6543,6 +6554,7 @@ storfjord.no
 stpetersburg.museum
 strand.no
 stranda.no
+stream
 stryn.no
 student.aero
 studio
