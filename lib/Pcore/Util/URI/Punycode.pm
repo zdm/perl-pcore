@@ -21,7 +21,11 @@ sub to_punycode ($domain) {
 }
 
 sub from_punycode ($domain) {
-    return lc join q[.], map { /\Axn--(.+)\z/smo ? punycode_decode($1) : $_ } split /[.]/sm, $domain, -1;
+    $domain = lc join q[.], map { /\Axn--(.+)\z/smo ? punycode_decode($1) : $_ } split /[.]/sm, $domain, -1;
+
+    utf8::upgrade($domain);
+
+    return $domain;
 }
 
 # direct translation of RFC 3492
@@ -170,11 +174,11 @@ sub _adapt ( $delta, $numpoints, $firsttime ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 112                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 116                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 48                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 52                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 57, 67, 120          │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
+## │    2 │ 61, 71, 124          │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
