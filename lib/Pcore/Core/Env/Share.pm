@@ -189,6 +189,9 @@ sub store ( $self, $file, $path, $lib_name, @ ) {
     if ( ref $file eq 'SCALAR' ) {
         P->file->write_bin( $lib_path . $args{storage} . $path, $file );
     }
+    elsif ( ref $file eq 'HASH' || ref $file eq 'ARRAY' ) {
+        P->cfg->store( $lib_path . $args{storage} . $path, $file, readable => 1 );
+    }
     else {
         P->file->copy( $file, $lib_path . $args{storage} . $path );
     }
