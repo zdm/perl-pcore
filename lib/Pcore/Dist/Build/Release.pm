@@ -90,7 +90,7 @@ sub run ($self) {
         say qq[\nNo issues were closed since the last release];
     }
 
-    say qq[${LF}Curent version is: $cur_ver];
+    say qq[${LF}Current version is: $cur_ver];
     say qq[New version will be: $new_ver$LF];
 
     return if P->term->prompt( qq[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
