@@ -2,7 +2,6 @@ package Pcore::HTTP;
 
 use Pcore -const,
   -export => {
-    ALL        => [qw[http_ua http_request http_mirror]],
     METHODS    => [qw[http_acl http_baseline_control http_bind http_checkin http_checkout http_connect http_copy http_delete http_get http_head http_label http_link http_lock http_merge http_mkactivity http_mkcalendar http_mkcol http_mkredirectref http_mkworkspace http_move http_options http_orderpatch http_patch http_post http_pri http_propfind http_proppatch http_put http_rebind http_report http_search http_trace http_unbind http_uncheckout http_unlink http_unlock http_update http_updateredirectref http_version_control]],
     TLS_CTX    => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]],
     PERSISTENT => [qw[$PERSISTENT_IDENT $PERSISTENT_ANY $PERSISTENT_NO_PROXY]],
@@ -113,7 +112,7 @@ for my $method ( keys $HTTP_METHODS->%* ) {
 
     eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
         *$sub_name = sub {
-            return request( splice( \@_, 1 ), method => '$method', url => \$_[0] );
+            return _request( splice( \@_, 1 ), method => '$method', url => \$_[0] );
         };
 PERL
 
@@ -126,7 +125,7 @@ PERL
     P->class->set_subname( 'Pcore::HTTP::' . $sub_name, \&{$sub_name} );
 }
 
-sub ua {
+sub request {
     state $init = !!require Pcore::HTTP::Request;
 
     return Pcore::HTTP::Request->new(@_);
@@ -169,10 +168,10 @@ sub mirror ( $target, @ ) {
         return;
     };
 
-    return request( %args, method => $method, url => $url );
+    return _request( %args, method => $method, url => $url );
 }
 
-sub request {
+sub _request {
     my $wantarray = wantarray;
 
     my %args = $DEFAULT->%*;
@@ -447,14 +446,14 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 111, 178, 187, 235,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 236, 257             │                                                                                                                │
+## │    3 │ 110, 177, 186, 234,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 235, 256             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 114                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 113                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 175                  │ Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (42)                   │
+## │    3 │ 174                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (42)                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 161                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 160                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

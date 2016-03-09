@@ -11,7 +11,7 @@ has session_cookie_name => ( is => 'lazy', isa => Str, default => 'sid' );
 has _ua => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Request'], init_arg => undef );
 
 sub _build__ua ($self) {
-    my $ua = P->http->ua();
+    my $ua = P->http->request;
 
     # if ( $self->has_ca ) {
     #     $ua->ssl_opts( verify_hostname => 1 );
