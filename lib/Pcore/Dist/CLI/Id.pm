@@ -1,6 +1,7 @@
 package Pcore::Dist::CLI::Id;
 
 use Pcore -class;
+use Term::ANSIColor qw[:constants];
 
 with qw[Pcore::Dist::CLI];
 
@@ -45,9 +46,44 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         }
     }
     else {
+        my $dists;
+
         for my $dir ( P->file->read_dir( $ENV{PCORE_LIB}, full_path => 1 )->@* ) {
             if ( my $dist = Pcore::Dist->new($dir) ) {
-                $self->_show_dist_info1($dist);
+                push $dists->@*, $dist;
+            }
+        }
+
+        if ($dists) {
+            say BOLD . WHITE . sprintf( '%-31s%20s%10s%20s', 'DIST NAME', 'RELEASED VERSION', 'COMMITED', 'UNRELEASED CHANGES' ) . RESET;
+
+            for my $dist ( sort { $a->name cmp $b->name } $dists->@* ) {
+
+                # hg log -r . --template "{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}, {distance}'}"
+                my $changes_since_last_release = $dist->scm->server->cmd( qw[log -r . --template], q[{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{distance}'}] )->{o}->[0] - 1;
+
+                printf ' %-30s', $dist->name;
+
+                if ( $dist->last_release_version eq 'v0.0.0' ) {
+                    print q[ ] x 8 . WHITE . ON_RED . ' unreleased ' . RESET;
+                }
+                else {
+                    printf '%20s', $dist->last_release_version;
+                }
+
+                if ( $dist->has_uncommited_changes ) {
+                    print q[ ] x 6 . WHITE . ON_RED . ' no ' . RESET;
+                }
+                else {
+                    printf '%10s', q[];
+                }
+
+                if ($changes_since_last_release) {
+                    say q[ ] x 15 . WHITE . ON_RED . q[ ] . sprintf( '%3s', $changes_since_last_release ) . q[ ] . RESET;
+                }
+                else {
+                    say sprintf '%20s', q[];
+                }
             }
         }
     }
@@ -78,22 +114,6 @@ TMPL
     return;
 }
 
-sub _show_dist_info1 ( $self, $dist ) {
-
-    # hg log -r . --template "{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}, {distance}'}"
-    my $changes_since_last_release = $dist->scm->server->cmd( qw[log -r . --template], q[{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{distance}'}] )->{o}->[0] - 1;
-
-    state $print_header = do {
-        say sprintf( '%-30s    %10s    %16s    %10s    %10s', 'DIST NAME', 'VERSION', 'RELEASED VERSION', 'UNCOMMITED', 'UNRELEASED' );
-
-        1;
-    };
-
-    say sprintf( '%-30s    %10s    %16s    %10s    %10s', $dist->name, $dist->version, $dist->last_release_version eq 'v0.0.0' ? q[] : $dist->last_release_version, $dist->has_uncommited_changes ? 'yes' : q[], $changes_since_last_release || q[] );
-
-    return;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -101,13 +121,11 @@ sub _show_dist_info1 ( $self, $dist ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 32                   │ RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             │
+## │    2 │ 33                   │ RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 84                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 63                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 12, 84               │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 87, 92               │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 13, 63               │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
