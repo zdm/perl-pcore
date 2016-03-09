@@ -117,7 +117,7 @@ sub run ($self) {
         my $cv = AE::cv;
 
         # create new version on issues tracker
-        print q[Createing new version and milestone on issues tracker ... ];
+        print q[Creating new version and milestone on issues tracker ... ];
 
         $cv->begin;
 
