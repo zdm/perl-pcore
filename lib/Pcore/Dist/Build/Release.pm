@@ -1,9 +1,9 @@
 package Pcore::Dist::Build::Release;
 
 use Pcore -class;
-use Pcore::Util::Text qw[encode_utf8];
 use Pod::Markdown;
 use CPAN::Meta;
+use Pcore::API::PAUSE;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
@@ -214,15 +214,23 @@ sub _upload_to_cpan ($self) {
   REDO:
     print 'Uploading to CPAN ... ';
 
-    my ( $status, $reason ) = $self->_upload( $self->dist->build->user_cfg->{PAUSE}->{username}, $self->dist->build->user_cfg->{PAUSE}->{password}, $tgz );
+    my $pause = Pcore::API::PAUSE->new(
+        {   username => $self->dist->build->user_cfg->{PAUSE}->{username},
+            password => $self->dist->build->user_cfg->{PAUSE}->{password},
+        }
+    );
 
-    if ( $status == 200 ) {
-        say $reason;
+    my $res = $pause->upload($tgz);
+
+    if ( !$res->is_success ) {
+        say $res->reason;
 
         unlink $tgz or 1;
+
+        $pause->clean;
     }
     else {
-        say qq[$status $reason];
+        say join q[ ], $res->status, $res->reason;
 
         goto REDO if P->term->prompt( 'Retry?', [qw[yes no]], enter => 1 );
 
@@ -230,75 +238,6 @@ sub _upload_to_cpan ($self) {
     }
 
     return;
-}
-
-sub _upload ( $self, $username, $password, $path ) {
-    my $body;
-
-    encode_utf8 $username;
-
-    encode_utf8 $password;
-
-    $path = P->path($path);
-
-    my $boundary = P->random->bytes_hex(64);
-
-    state $pack_multipart = sub ( $name, $body_ref, $filename = q[] ) {
-        $body .= q[--] . $boundary . $CRLF;
-
-        $body .= qq[Content-Disposition: form-data; name="$name"];
-
-        $body .= qq[; filename="$filename"] if $filename;
-
-        $body .= $CRLF;
-
-        $body .= $CRLF;
-
-        $body .= $body_ref->$*;
-
-        $body .= $CRLF;
-
-        return;
-    };
-
-    $pack_multipart->( 'HIDDENNAME', \$username );
-
-    $pack_multipart->( 'pause99_add_uri_subdirtext', \q[] );
-
-    $pack_multipart->( 'CAN_MULTIPART', \1 );
-
-    $pack_multipart->( 'pause99_add_uri_upload', \$path->filename );
-
-    $pack_multipart->( 'pause99_add_uri_httpupload', P->file->read_bin($path), $path->filename );
-
-    $pack_multipart->( 'pause99_add_uri_uri', \q[] );
-
-    $pack_multipart->( 'SUBMIT_pause99_add_uri_httpupload', \q[ Upload this file from my disk ] );
-
-    $body .= q[--] . $boundary . q[--] . $CRLF . $CRLF;
-
-    my $status;
-
-    my $reason;
-
-    P->http->post(
-        'https://pause.perl.org/pause/authenquery',
-        headers => {
-            AUTHORIZATION => 'Basic ' . P->data->to_b64_url( $username . q[:] . $password ) . q[==],
-            CONTENT_TYPE  => qq[multipart/form-data; boundary=$boundary],
-        },
-        body      => \$body,
-        blocking  => 1,
-        on_finish => sub ($res) {
-            $status = $res->status;
-
-            $reason = $res->reason;
-
-            return;
-        }
-    );
-
-    return $status, $reason;
 }
 
 sub _create_changes ( $self, $ver, $issues ) {
@@ -346,12 +285,12 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 98                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 323                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 262                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 15, 44, 47, 84, 89,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 110, 126, 140, 217   │                                                                                                                │
+## │      │ 110, 126, 140, 218   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 319                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 258                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
