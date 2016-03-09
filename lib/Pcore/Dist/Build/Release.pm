@@ -54,6 +54,14 @@ sub run ($self) {
     # show current and new versions, take confirmation
     my $cur_ver = $self->dist->version;
 
+    # check if v0.1.0 is already released
+    if ( $cur_ver eq 'v0.1.0' ) {
+        my $tags = { map { $_ => 1 } grep {$_} $scm->cmd(qw[tags -q])->{o}->@* };
+
+        # v0.1.0 is not released yet
+        $cur_ver = version->parse('v0.0.0') if !exists $tags->{'v0.1.0'};
+    }
+
     # increment version
     my @parts = $cur_ver->{version}->@*;
 
@@ -67,7 +75,9 @@ sub run ($self) {
         $parts[2] = 0;
     }
     elsif ( $self->bugfix ) {
-        $parts[2]++;
+
+        # bugfix is impossible for v0.0.0
+        $parts[2]++ if $cur_ver ne 'v0.0.0';
     }
 
     my $new_ver = version->parse( 'v' . join q[.], @parts );
@@ -340,16 +350,16 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (24)                       │
+## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30, 321              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 30, 331              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 96                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 106                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 15, 44, 47, 82, 87,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 108, 124, 138, 215   │                                                                                                                │
+## │    2 │ 15, 44, 47, 92, 97,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 118, 134, 148, 225   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 317                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 327                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
