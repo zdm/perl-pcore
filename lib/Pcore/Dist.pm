@@ -15,9 +15,11 @@ has name     => ( is => 'lazy', isa => Str,  init_arg => undef );               
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );    # main process dist
 
-has version    => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
-has revision   => ( is => 'lazy', isa => Str,    clearer => 1, init_arg => undef );
-has build_date => ( is => 'lazy', isa => Str,    clearer => 1, init_arg => undef );
+has version => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
+has last_release_version => ( is => 'lazy', isa => Maybe [Object], clearer => 1, init_arg => undef );
+has revision   => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
+has build_date => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
+has has_uncommited_changes => ( is => 'lazy', isa => Maybe [Bool], clearer => 1, init_arg => undef );    # undef - unknown
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
@@ -211,6 +213,20 @@ sub _build_version ($self) {
     }
 }
 
+sub _build_last_release_version ($self) {
+    if ( $self->scm ) {
+        if ( my @releases = sort { $b cmp $a } grep {/v\d+[.]\d+[.]\d+/sm} $self->scm->server->cmd(qw[tags -q])->{o}->@* ) {
+            return version->parse( $releases[0] );
+        }
+        else {
+            return version->parse('v0.0.0');
+        }
+    }
+    else {
+        return;
+    }
+}
+
 sub _build_revision ($self) {
     my $revision = 0;
 
@@ -237,6 +253,20 @@ sub _build_build_date ($self) {
     }
     else {
         return P->date->now_utc->to_string;
+    }
+}
+
+sub _build_has_uncommited_changes ($self) {
+    if ( $self->scm ) {
+        if ( $self->scm->server->cmd(qw[status -mardu --subrepos])->%* ) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+    else {
+        return;
     }
 }
 
@@ -283,9 +313,13 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 108, 158             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 110, 160             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 221                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 261                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    2 │ 218, 237, 261        │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 218                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

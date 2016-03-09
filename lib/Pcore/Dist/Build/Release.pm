@@ -27,7 +27,7 @@ sub run ($self) {
     my $scm = $self->dist->scm->server;
 
     # check for uncommited changes
-    if ( $scm->cmd(qw[status -mardu --subrepos])->%* ) {
+    if ( $self->dist->has_uncommited_changes ) {
         say qq[Working copy or subrepos has uncommited changes or unknown files. Release is impossible.$LF];
 
         return;
@@ -52,15 +52,7 @@ sub run ($self) {
     }
 
     # show current and new versions, take confirmation
-    my $cur_ver = $self->dist->version;
-
-    # check if v0.1.0 is already released
-    if ( $cur_ver eq 'v0.1.0' ) {
-        my $tags = { map { $_ => 1 } grep {$_} $scm->cmd(qw[tags -q])->{o}->@* };
-
-        # v0.1.0 is not released yet
-        $cur_ver = version->parse('v0.0.0') if !exists $tags->{'v0.1.0'};
-    }
+    my $cur_ver = $self->dist->last_release_version;
 
     # increment version
     my @parts = $cur_ver->{version}->@*;
@@ -350,16 +342,16 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       │
+## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (25)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 30, 331              │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 98                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 106                  │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 323                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 15, 44, 47, 92, 97,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 118, 134, 148, 225   │                                                                                                                │
+## │    2 │ 15, 44, 47, 84, 89,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 110, 126, 140, 217   │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 327                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 319                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
