@@ -1,6 +1,24 @@
 package Pcore::API::Response;
 
-use Pcore -class;
+use Pcore -role;
+
+has status => ( is => 'ro', isa => PositiveInt, required => 1 );
+has reason => ( is => 'lazy', isa => Str );
+
+has is_success => ( is => 'lazy', isa => Bool, init_arg => undef );
+
+sub _build_reason ($self) {
+    if ( $self->is_success ) {
+        return 'OK';
+    }
+    else {
+        return 'Error';
+    }
+}
+
+sub _build_is_success ($self) {
+    return $self->status == 200 ? 1 : 0;
+}
 
 1;
 __END__
