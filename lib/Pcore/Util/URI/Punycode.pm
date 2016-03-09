@@ -1,6 +1,6 @@
 package Pcore::Util::URI::Punycode;
 
-use Pcore -const, -export => [qw[to_punycode from_punycode]];
+use Pcore -const, -export => [qw[domain_to_ascii domain_to_utf8]];
 
 # punycode directly stolen from the Mojo::Util (c)
 
@@ -12,16 +12,16 @@ const our $PC_DAMP         => 700;
 const our $PC_INITIAL_BIAS => 72;
 const our $PC_INITIAL_N    => 128;
 
-sub to_punycode ($domain) {
-    $domain = lc join q[.], map { /[^\x00-\x7f]/smo ? 'xn--' . punycode_encode($_) : $_ } split /[.]/smo, $domain, -1;
+sub domain_to_ascii ($domain) {
+    $domain = lc join q[.], map { /[^\x00-\x7f]/smo ? 'xn--' . to_punycode($_) : $_ } split /[.]/smo, $domain, -1;
 
     utf8::downgrade($domain);
 
     return $domain;
 }
 
-sub from_punycode ($domain) {
-    $domain = lc join q[.], map { /\Axn--(.+)\z/smo ? punycode_decode($1) : $_ } split /[.]/sm, $domain, -1;
+sub domain_to_utf8 ($domain) {
+    $domain = lc join q[.], map { /\Axn--(.+)\z/smo ? from_punycode($1) : $_ } split /[.]/sm, $domain, -1;
 
     utf8::upgrade($domain);
 
@@ -29,7 +29,7 @@ sub from_punycode ($domain) {
 }
 
 # direct translation of RFC 3492
-sub punycode_encode ($output) {
+sub to_punycode ($output) {
     use integer;
 
     my $n = $PC_INITIAL_N;
@@ -101,7 +101,7 @@ sub punycode_encode ($output) {
 }
 
 # direct translation of RFC 3492
-sub punycode_decode ($input) {
+sub from_punycode ($input) {
     use integer;
 
     my $n = $PC_INITIAL_N;

@@ -37,7 +37,7 @@ has root_domain_utf8     => ( is => 'lazy', init_arg => undef );
 
 # NOTE host should be in UTF-8 or ASCII punycoded, UTF-8 encoded - is invalid value
 around new => sub ( $orig, $self, $host ) {
-    $host = to_punycode($host) if utf8::is_utf8($host);
+    $host = domain_to_ascii($host) if utf8::is_utf8($host);
 
     return bless { name => lc $host }, __PACKAGE__;
 };
@@ -116,7 +116,7 @@ sub tlds ( $self, $force_download = 0 ) {
                 blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = $ENV->share->store( \encode_utf8( join $LF, sort map { from_punycode(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'Pcore' );
+                        $path = $ENV->share->store( \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'Pcore' );
                     }
 
                     return;
@@ -135,7 +135,7 @@ sub to_string ($self) {
 }
 
 sub _build_name_utf8 ($self) {
-    return from_punycode( $self->name );
+    return domain_to_utf8( $self->name );
 }
 
 sub _build_is_ip ($self) {
@@ -209,7 +209,7 @@ sub _build_tld ($self) {
 }
 
 sub _build_tld_utf8 ($self) {
-    return from_punycode( $self->tld );
+    return domain_to_utf8( $self->tld );
 }
 
 sub _build_tld_is_valid ($self) {
@@ -225,7 +225,7 @@ sub _build_canon ($self) {
 }
 
 sub _build_canon_utf8 ($self) {
-    return from_punycode( $self->canon );
+    return domain_to_utf8( $self->canon );
 }
 
 sub _build_is_pub_suffix ($self) {
@@ -284,7 +284,7 @@ sub _build_pub_suffix ($self) {
     }
 
     if ($pub_suffix_utf8) {
-        $pub_suffix_utf8 = to_punycode($pub_suffix_utf8);
+        $pub_suffix_utf8 = domain_to_ascii($pub_suffix_utf8);
 
         return $pub_suffix_utf8;
     }
@@ -294,7 +294,7 @@ sub _build_pub_suffix ($self) {
 }
 
 sub _build_pub_suffix_utf8 ($self) {
-    return from_punycode( $self->pub_suffix );
+    return domain_to_utf8( $self->pub_suffix );
 }
 
 sub _build_is_root_domain ($self) {
@@ -316,7 +316,7 @@ sub _build_root_domain ($self) {
 }
 
 sub _build_root_domain_utf8 ($self) {
-    return from_punycode( $self->root_domain );
+    return domain_to_utf8( $self->root_domain );
 }
 
 1;
