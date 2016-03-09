@@ -20,19 +20,19 @@ sub upload ( $self, $path ) {
 
     my $boundary = P->random->bytes_hex(64);
 
-    $self->pack_multipart->( \$body, $boundary, 'HIDDENNAME', \encode_utf8( $self->username ) );
+    $self->_pack_multipart( \$body, $boundary, 'HIDDENNAME', \encode_utf8( $self->username ) );
 
-    $self->pack_multipart->( \$body, $boundary, 'pause99_add_uri_subdirtext', \q[] );
+    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_subdirtext', \q[] );
 
-    $self->pack_multipart->( \$body, $boundary, 'CAN_MULTIPART', \1 );
+    $self->_pack_multipart( \$body, $boundary, 'CAN_MULTIPART', \1 );
 
-    $self->pack_multipart->( \$body, $boundary, 'pause99_add_uri_upload', \$path->filename );
+    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_upload', \$path->filename );
 
-    $self->pack_multipart->( \$body, $boundary, 'pause99_add_uri_httpupload', P->file->read_bin($path), $path->filename );
+    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_httpupload', P->file->read_bin($path), $path->filename );
 
-    $self->pack_multipart->( \$body, $boundary, 'pause99_add_uri_uri', \q[] );
+    $self->_pack_multipart( \$body, $boundary, 'pause99_add_uri_uri', \q[] );
 
-    $self->pack_multipart->( \$body, $boundary, 'SUBMIT_pause99_add_uri_httpupload', \q[ Upload this file from my disk ] );
+    $self->_pack_multipart( \$body, $boundary, 'SUBMIT_pause99_add_uri_httpupload', \q[ Upload this file from my disk ] );
 
     $body .= q[--] . $boundary . q[--] . $CRLF . $CRLF;
 
@@ -42,15 +42,7 @@ sub upload ( $self, $path ) {
             AUTHORIZATION => $self->_auth_header,
             CONTENT_TYPE  => qq[multipart/form-data; boundary=$boundary],
         },
-        body      => \$body,
-        blocking  => 1,
-        on_finish => sub ($res) {
-            $status = $res->status;
-
-            $reason = $res->reason;
-
-            return;
-        }
+        body => \$body,
     );
 
     return Pcore::API::Response->new( { status => $res->status, reason => $res->reason } );
@@ -122,14 +114,11 @@ sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = unde
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 65                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 57                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 74, 75, 79           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 66, 67, 71           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 102                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 102                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_pack_multipart' declared but not   │
-## │      │                      │ used                                                                                                           │
+## │    3 │ 94                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

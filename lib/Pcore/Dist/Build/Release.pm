@@ -222,7 +222,7 @@ sub _upload_to_cpan ($self) {
 
     my $res = $pause->upload($tgz);
 
-    if ( !$res->is_success ) {
+    if ( $res->is_success ) {
         say $res->reason;
 
         unlink $tgz or 1;
