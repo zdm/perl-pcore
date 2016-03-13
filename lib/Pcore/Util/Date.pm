@@ -2,10 +2,25 @@ package Pcore::Util::Date;
 
 use Pcore;
 use base qw[Time::Moment];
-use HTTP::Date qw[];
-use Time::Zone qw[];
+
+sub from_strptime ( $self, $date, $format ) {
+    state $init = !!require Time::Piece;
+
+    if ( my $tp = Time::Piece->strptime( $date, $format ) ) {
+        return $self->from_object($tp);
+    }
+
+    return;
+}
 
 sub parse ( $self, $date ) {
+    state $init = do {
+        require HTTP::Date;
+        require Time::Zone;
+
+        1;
+    };
+
     if ( my @http_date = HTTP::Date::parse_date($date) ) {
         return $self->new(
             year       => $http_date[0],
