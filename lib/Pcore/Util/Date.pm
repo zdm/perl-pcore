@@ -61,12 +61,10 @@ sub from_strptime ( $self, $date, $format ) {
 
     local $SIG{__WARN__} = sub { };
 
-    if ( index( $format, '%Z' ) != -1 ) {
-        $date =~ s/$zone_re/$zone_offset->{lc $1}->[1]/smio;
+    if ( ( my $idx = index $format, '%Z' ) != -1 && scalar $date =~ s/$zone_re/$zone_offset->{lc $1}->[1]/smio ) {
+        substr $format, $idx, 2, '%z';
 
         my $zone = lc $1;
-
-        $format =~ s/%Z/%z/sm;
 
         return $self->from_epoch( Time::Piece->strptime( $date, $format )->epoch )->with_offset_same_instant( $zone_offset->{$zone}->[0] );
     }
@@ -124,8 +122,6 @@ sub to_w3cdtf ($self) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 57                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 67                   │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 57                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
