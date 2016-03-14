@@ -28,27 +28,51 @@ use base qw[Time::Moment];
 # %y - Year without a century (00..99)
 # %Y - Year with century
 # %Z - Time zone name
+# %z - +/- hhmm
 # %% - Literal '%' character
-#
-# !!!NOTE!!!
-# The time zone field is ambiguous and cannot be parsed. For instance, CST is the abbreviation for China Standard Time, Central Standard Time, and Cuba Standard Time.
-#
-# The module documentation says that the strptime method is from FreeBSD, where the %Z format accepts either the local time zone or GMT and nothing else. This may be true of strptime, but I can confirm only that, where I am located, GMT is acceptable while UTC and AST are not.
-#
-# The solution I would recommend is to preprocess your time strings, replacing the time zone abbreviation with an unambiguous time zone offset. For instance AST (assuming you meant Atlantic Standard Time and not Arabia Standard Time) would be replaced with -0400, since it is four hours behind UTC. Then you can parse it with a %z format specifier and get the correct result.
 
 sub from_strptime ( $self, $date, $format ) {
-    state $init = !!require Time::Piece;
+    state $zone_offset = do {
+        require Time::Piece;
+        require Time::Zone;
 
-    return eval {
-        local $SIG{__DIE__} = undef;
+        my %zone_offset;
 
-        local $SIG{__WARN__} = sub { };
+        @zone_offset{ keys %Time::Zone::dstZone } = values %Time::Zone::dstZone;
+        @zone_offset{ keys %Time::Zone::Zone }    = values %Time::Zone::Zone;
 
-        if ( my $tp = Time::Piece->strptime( $date, $format ) ) {
-            return $self->from_object($tp);
+        for ( keys %zone_offset ) {
+            if ( $zone_offset{$_} < 0 ) {
+                $zone_offset{$_} = [ $zone_offset{$_} / 60, sprintf '-%02s00', abs $zone_offset{$_} / 3600 ];
+            }
+            else {
+                $zone_offset{$_} = [ $zone_offset{$_} / 60, sprintf '+%02s00', $zone_offset{$_} / 3600 ];
+            }
         }
+
+        \%zone_offset;
     };
+
+    state $zone_re = do {
+        my $re = '(' . join( q[|], sort { length $b cmp length $a } keys $zone_offset->%* ) . ')';
+
+        qr/$re/smio;
+    };
+
+    local $SIG{__WARN__} = sub { };
+
+    if ( index( $format, '%Z' ) != -1 ) {
+        $date =~ s/$zone_re/$zone_offset->{lc $1}->[1]/smio;
+
+        my $zone = lc $1;
+
+        $format =~ s/%Z/%z/sm;
+
+        return $self->from_epoch( Time::Piece->strptime( $date, $format )->epoch )->with_offset_same_instant( $zone_offset->{$zone}->[0] );
+    }
+    else {
+        return $self->from_epoch( Time::Piece->strptime( $date, $format )->epoch );
+    }
 }
 
 sub parse ( $self, $date ) {
@@ -99,7 +123,11 @@ sub to_w3cdtf ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 43                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 57                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 67                   │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 57                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
