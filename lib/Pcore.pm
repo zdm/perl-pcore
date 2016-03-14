@@ -502,17 +502,17 @@ sub cv {
     return $cv;
 }
 
-# LOGGER
+# LOG
 sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     state $log = do {
-        require Pcore::Core::Logger;
+        require Pcore::Core::Log;
 
-        my $obj = Pcore::Core::Logger->new;
+        my $obj = Pcore::Core::Log->new;
 
         # set default log channels
-        $obj->add_channel( 'fatal', 'stderr:', 'file:fatal.log' );
-        $obj->add_channel( 'error', 'stderr:', 'file:error.log' );
-        $obj->add_channel( 'warn',  'stderr:', 'file:warn.log' );
+        $obj->add( 'fatal', 'stderr:', 'file:fatal.log' );
+        $obj->add( 'error', 'stderr:', 'file:error.log' );
+        $obj->add( 'warn',  'stderr:', 'file:warn.log' );
 
         $obj;
     };

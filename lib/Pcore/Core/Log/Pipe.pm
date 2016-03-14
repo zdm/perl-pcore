@@ -1,4 +1,4 @@
-package Pcore::Core::Logger::Pipe;
+package Pcore::Core::Log::Pipe;
 
 use Pcore -class;
 use Pcore::Util::Text qw[encode_utf8 remove_ansi_color];
@@ -57,7 +57,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Logger::Pipe
+Pcore::Core::Log::Pipe
 
 =head1 SYNOPSIS
 

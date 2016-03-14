@@ -1,4 +1,4 @@
-package Pcore::Core::Logger::Channel;
+package Pcore::Core::Log::Channel;
 
 use Pcore -class;
 use Term::ANSIColor qw[:constants];
@@ -26,7 +26,7 @@ sub add_pipe ( $self, $pipe ) {
     return;
 }
 
-sub sendlog ( $self, $logger, $data, @ ) {
+sub sendlog ( $self, $data, @ ) {
     return if !defined $data;
 
     my @caller = caller 1;
@@ -37,7 +37,7 @@ sub sendlog ( $self, $logger, $data, @ ) {
         filename   => $caller[1],
         line       => $caller[2],
         subroutine => $caller[3],
-        splice( @_, 3 ),
+        splice( @_, 2 ),
         $self->_def_tag->%*,
         pid  => $$,
         date => P->date->now,
@@ -104,7 +104,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Logger::Channel
+Pcore::Core::Log::Channel
 
 =head1 SYNOPSIS
 

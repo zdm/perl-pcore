@@ -181,25 +181,25 @@ sub get_mail {
     my $search_string = join q[ ], @search_string;
 
   REDO_SEARCH:
-    P->log->debug( 'IMAP search: ' . $search_string );
+    P->log->sendlog( 'IMAP', 'IMAP search: ' . $search_string );
 
     my $messages = [];
 
     for my $folder ( @{ $args{folders} } ) {
-        P->log->debug( 'IMAP search in folder: ' . $folder );
+        P->log->sendlog( 'IMAP', 'IMAP search in folder: ' . $folder );
 
         $imap->select($folder);
 
         if ( my $res = $imap->search($search_string) ) {
             if ( @{$res} ) {
-                P->log->debug( 'IMAP found: ' . $res->@* );
+                P->log->sendlog( 'IMAP', 'IMAP found: ' . $res->@* );
 
                 push $messages->@*, _get_messages( $imap, $folder, $res, $args{found_action} )->@*;
             }
         }
     }
     if ( @{$messages} ) {
-        P->log->debug( 'IMAP total found: ' . $messages->@* );
+        P->log->sendlog( 'IMAP', 'IMAP total found: ' . $messages->@* );
 
         $imap->disconnect;
 
@@ -207,7 +207,7 @@ sub get_mail {
     }
 
     if ( $args{retries} && --$args{retries} ) {
-        P->log->debug( 'IMAP sleep: ' . $args{retries_timeout} );
+        P->log->sendlog( 'IMAP', 'IMAP sleep: ' . $args{retries_timeout} );
 
         sleep $args{retries_timeout};
 
@@ -215,12 +215,12 @@ sub get_mail {
 
         $imap->reconnect;
 
-        P->log->debug( 'IMAP run next search iteration: ' . $args{retries} );
+        P->log->sendlog( 'IMAP', 'IMAP run next search iteration: ' . $args{retries} );
 
         goto REDO_SEARCH;
     }
 
-    P->log->debug('IMAP nothing found');
+    P->log->sendlog( 'IMAP', 'IMAP nothing found' );
 
     $imap->disconnect;
 
@@ -243,13 +243,13 @@ sub _get_messages {
         push $bodies->@*, $body;
     }
     if ($found_action) {
-        P->log->debug( 'IMAP apply found action: ' . $found_action );
+        P->log->sendlog( 'IMAP', 'IMAP apply found action: ' . $found_action );
 
         my $method = $found_action;
 
         my $res = $imap->$method($messages);
 
-        P->log->debug( 'IMAP messages, affected by action: ' . $res );
+        P->log->sendlog( 'IMAP', 'IMAP messages, affected by action: ' . $res );
 
         $imap->expunge($folder);
     }

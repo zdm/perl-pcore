@@ -1,13 +1,13 @@
-package Pcore::Core::Logger;
+package Pcore::Core::Log;
 
-use Pcore -class, -autoload;
-use Pcore::Core::Logger::Channel;
+use Pcore -class;
+use Pcore::Core::Log::Channel;
 
 has channel => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 our $PIPE = {};    # weak refs, pipes are global
 
-sub add_channel ( $self, $name, @ ) {
+sub add ( $self, $name, @ ) {
     my $ch;
 
     my $args = { name => $name };
@@ -27,7 +27,7 @@ sub add_channel ( $self, $name, @ ) {
         $ch = $self->channel->{$name};
     }
     else {
-        $ch = Pcore::Core::Logger::Channel->new($args);
+        $ch = Pcore::Core::Log::Channel->new($args);
 
         $self->channel->{$name} = $ch;
 
@@ -37,7 +37,7 @@ sub add_channel ( $self, $name, @ ) {
     for (@pipe) {
         my $uri = P->uri($_);
 
-        if ( my $pipe = P->class->load( $uri->scheme, ns => 'Pcore::Core::Logger::Pipe' )->new( { uri => $uri } ) ) {
+        if ( my $pipe = P->class->load( $uri->scheme, ns => 'Pcore::Core::Log::Pipe' )->new( { uri => $uri } ) ) {
             if ( $PIPE->{ $pipe->id } ) {
                 $pipe = $PIPE->{ $pipe->id };
             }
@@ -61,22 +61,16 @@ sub add_channel ( $self, $name, @ ) {
     return $ch;
 }
 
-sub canlog ( $self, $ch ) {
-    return $self->{channel}->{$ch} ? 1 : 0;
+sub canlog ( $self, $channel ) {
+    return $self->{channel}->{$channel} ? 1 : 0;
 }
 
-sub _AUTOLOAD ( $self, $method, @ ) {
-    my $sub = <<"PERL";
-        sub ( \$self, \$data, @ ) {
-            return if !\$self->{channel}->{q[$method]};
+sub sendlog ( $self, $channel, @ ) {
+    if ( my $ch = $self->{channel}->{$channel} ) {
+        $ch->sendlog( splice @_, 2 );
+    }
 
-            \$self->{channel}->{q[$method]}->sendlog(\@_);
-
-            return;
-        };
-PERL
-
-    return $sub;
+    return;
 }
 
 1;
@@ -87,8 +81,6 @@ PERL
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 18, 55               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 68                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -99,13 +91,13 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Logger
+Pcore::Core::Log
 
 =head1 SYNOPSIS
 
-    P->log->add_channel( $channel_name, $pipe_uri, ... );
+    P->log->add( $channel_name, $pipe_uri, ... );
 
-    P->log->$channel_name( $data, %tags ) if P->log->canlog($channel_name);
+    P->log->sendlog( $channel_name, $data, %tags ) if P->log->canlog($channel_name);
 
 =head1 DESCRIPTION
 

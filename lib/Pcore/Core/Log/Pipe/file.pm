@@ -1,9 +1,9 @@
-package Pcore::Core::Logger::Pipe::file;
+package Pcore::Core::Log::Pipe::file;
 
 use Pcore -class;
 use Fcntl qw[:flock];
 
-extends qw[Pcore::Core::Logger::Pipe];
+extends qw[Pcore::Core::Log::Pipe];
 
 has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 
@@ -69,7 +69,7 @@ sub sendlog ( $self, $header, $data, $tag ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 1                    │ NamingConventions::Capitalization - Package "Pcore::Core::Logger::Pipe::file" does not start with a upper case │
+## │    1 │ 1                    │ NamingConventions::Capitalization - Package "Pcore::Core::Log::Pipe::file" does not start with a upper case    │
 ## │      │                      │ letter                                                                                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
@@ -81,7 +81,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Logger::Pipe::file
+Pcore::Core::Log::Pipe::file
 
 =head1 SYNOPSIS
 

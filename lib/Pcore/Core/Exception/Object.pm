@@ -117,7 +117,7 @@ sub sendlog ( $self, @ ) {
 
     my $channel = lc delete $args{channel};
 
-    P->log->$channel( $self->to_string, %args );
+    P->log->sendlog( $channel, $self->to_string, %args );
 
     return;
 }

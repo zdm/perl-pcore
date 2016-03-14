@@ -1,8 +1,8 @@
-package Pcore::Core::Logger::Pipe::stderr;
+package Pcore::Core::Log::Pipe::stderr;
 
 use Pcore -class;
 
-extends qw[Pcore::Core::Logger::Pipe];
+extends qw[Pcore::Core::Log::Pipe];
 
 sub _build_id ($self) {
     return $self->uri->scheme;
@@ -25,8 +25,8 @@ sub sendlog ( $self, $header, $data, $tag ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 1                    │ NamingConventions::Capitalization - Package "Pcore::Core::Logger::Pipe::stderr" does not start with a upper    │
-## │      │                      │ case letter                                                                                                    │
+## │    1 │ 1                    │ NamingConventions::Capitalization - Package "Pcore::Core::Log::Pipe::stderr" does not start with a upper case  │
+## │      │                      │ letter                                                                                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -37,7 +37,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Logger::Pipe::stderr
+Pcore::Core::Log::Pipe::stderr
 
 =head1 SYNOPSIS
 
