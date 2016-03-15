@@ -7,15 +7,17 @@ use Cwd qw[];           ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Dist;
 use Pcore::Core::Env::Share;
 
-has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );    # process run from PAR distribution
 has _main_dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
 has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init_arg => undef );       # pcore dist
 has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef );       # share object
 has _dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # registered dists. index
 has cli       => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # parsed CLI data
+has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
+has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                              # $HOME/.pcore/pcore.perl config
 
-# may not work, if executed in one-liner script
-eval { require FindBin; };
+# may not work, if executed from one-liner script
+eval { require FindBin };
 
 if ($@) {
     $FindBin::Bin = $FindBin::RealBin = Cwd::getcwd();
@@ -212,6 +214,41 @@ sub _build_share ($self) {
     return Pcore::Core::Env::Share->new;
 }
 
+sub _build_user_cfg_path ($self) {
+    return "$self->{PCORE_USER_DIR}pcore.perl";
+}
+
+sub _build_user_cfg ($self) {
+    if ( !-f $self->user_cfg_path ) {
+        my $cfg = {
+            'Pcore::Dist' => {
+                author           => q[],
+                email            => q[],
+                license          => 'Perl_5',
+                copyright_holder => q[],
+            },
+            'Pcore::API::PAUSE' => {
+                username => q[],
+                password => q[],
+            },
+            'Pcore::API::Bitbucket' => {
+                username     => q[],
+                api_username => q[],
+                api_password => q[],
+            },
+            'Pcore::API::Dockerhub' => {    #
+                username => q[],
+            },
+        };
+
+        P->cfg->store( $self->user_cfg_path, $cfg, readable => 1 );
+
+        return $cfg;
+    }
+
+    return P->cfg->load("$self->{PCORE_USER_DIR}pcore.perl");
+}
+
 sub register_dist ( $self, $dist ) {
 
     # create dist object
@@ -272,11 +309,11 @@ sub dist ( $self, $dist_name = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 18                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 20                   │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 231                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 268                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 113                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 115                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

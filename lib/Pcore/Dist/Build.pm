@@ -5,18 +5,8 @@ use Pcore::Util::File::Tree;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
 
-has user_cfg_path => ( is => 'lazy', isa => Str, init_arg => undef );
-has user_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );
 has wiki   => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ],   init_arg => undef );
 has issues => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Issues'] ], init_arg => undef );
-
-sub _build_user_cfg_path ($self) {
-    return $ENV->{PCORE_USER_DIR} . 'pcore.ini';
-}
-
-sub _build_user_cfg ($self) {
-    return -f $self->user_cfg_path ? P->cfg->load( $self->user_cfg_path ) : undef;
-}
 
 sub _build_wiki ($self) {
     state $init = !!require Pcore::Dist::Build::Wiki;
@@ -37,26 +27,9 @@ sub create ( $self, @args ) {
 }
 
 sub setup ($self) {
-    my $cfg = [
-        _ => [
-            author           => q[],
-            email            => q[],
-            license          => 'Perl_5',
-            copyright_holder => q[],
-        ],
-        PAUSE => [
-            username  => q[],
-            passwword => q[],
-        ],
-        Bitbucket => [ username => q[], ],
-        DockerHub => [ username => q[], ],
-    ];
+    $ENV->user_cfg;
 
-    return if -f $self->user_cfg_path && P->term->prompt( qq["@{[$self->user_cfg_path]}" already exists. Overwrite?], [qw[yes no]], enter => 1 ) eq 'no';
-
-    P->cfg->store( $self->user_cfg_path, $cfg );
-
-    say qq["@{[$self->user_cfg_path]}" was created, fill it manually with correct values];
+    say qq["@{[$ENV->user_cfg_path]}" was created, fill it manually with correct values];
 
     return;
 }

@@ -27,17 +27,17 @@ sub _build_target_path ($self) {
 
 sub _build_tmpl_params ($self) {
     return {
-        dist_name          => $self->namespace =~ s/::/-/smgr,                                                            # Package-Name
-        dist_path          => lc $self->namespace =~ s/::/-/smgr,                                                         # package-name
-        module_name        => $self->namespace,                                                                           # Package::Name
+        dist_name          => $self->namespace =~ s/::/-/smgr,                                                                    # Package-Name
+        dist_path          => lc $self->namespace =~ s/::/-/smgr,                                                                 # package-name
+        module_name        => $self->namespace,                                                                                   # Package::Name
         main_script        => 'main.pl',
-        author             => $self->build->user_cfg->{_}->{author},
-        author_email       => $self->build->user_cfg->{_}->{email},
+        author             => $ENV->user_cfg->{'Pcore::Dist'}->{author},
+        author_email       => $ENV->user_cfg->{'Pcore::Dist'}->{email},
         copyright_year     => P->date->now->year,
-        copyright_holder   => $self->build->user_cfg->{_}->{copyright_holder} || $self->build->user_cfg->{_}->{author},
-        license            => $self->build->user_cfg->{_}->{license},
-        bitbucket_username => $self->build->user_cfg->{Bitbucket}->{username} // 'username',
-        dockerhub_username => $self->build->user_cfg->{DockerHub}->{username} // 'username',
+        copyright_holder   => $ENV->user_cfg->{'Pcore::Dist'}->{copyright_holder} || $ENV->user_cfg->{'Pcore::Dist'}->{author},
+        license            => $ENV->user_cfg->{'Pcore::Dist'}->{license},
+        bitbucket_username => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{username} // 'username',
+        dockerhub_username => $ENV->user_cfg->{'Pcore::API::Dockerhub'}->{username} // 'username',
         cpan_distribution  => $self->cpan,
     };
 }
@@ -45,12 +45,6 @@ sub _build_tmpl_params ($self) {
 sub run ($self) {
     if ( -e $self->target_path ) {
         $ERROR = 'Target path already exists';
-
-        return;
-    }
-
-    if ( !$self->build->user_cfg ) {
-        $ERROR = qq["@{[$self->build->user_cfg_path]}" was not found, run "pcore setup"];
 
         return;
     }

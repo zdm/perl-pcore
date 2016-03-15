@@ -12,7 +12,7 @@ has minor  => ( is => 'ro', isa => Bool, default => 0 );
 has bugfix => ( is => 'ro', isa => Bool, default => 0 );
 
 sub run ($self) {
-    if ( $self->dist->cfg->{dist}->{cpan} && !$self->dist->build->user_cfg || ( !$self->dist->build->user_cfg->{PAUSE}->{username} || !$self->dist->build->user_cfg->{PAUSE}->{password} ) ) {
+    if ( $self->dist->cfg->{dist}->{cpan} && !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{username} || !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{password} ) {
         say qq[You need to specify PAUSE credentials$LF];
 
         return;
@@ -215,8 +215,8 @@ sub _upload_to_cpan ($self) {
     print 'Uploading to CPAN ... ';
 
     my $pause = Pcore::API::PAUSE->new(
-        {   username => $self->dist->build->user_cfg->{PAUSE}->{username},
-            password => $self->dist->build->user_cfg->{PAUSE}->{password},
+        {   username => $ENV->user_cfg->{'Pcore::API::PAUSE'}->{username},
+            password => $ENV->user_cfg->{'Pcore::API::PAUSE'}->{password},
         }
     );
 
@@ -281,14 +281,14 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (25)                       │
+## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (24)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 98                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 262                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 15, 44, 47, 84, 89,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## │      │ 110, 126, 140, 218   │                                                                                                                │
+## │    2 │ 44, 47, 84, 89, 110, │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │      │ 126, 140             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 258                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

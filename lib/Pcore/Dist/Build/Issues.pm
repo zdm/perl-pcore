@@ -23,8 +23,8 @@ sub _build_api ($self) {
     return Pcore::API::Bitbucket->new(
         {   account_name => $scm_upstream->username,
             repo_slug    => $scm_upstream->reponame,
-            username     => $self->dist->build->user_cfg->{Bitbucket}->{api_username},
-            password     => $self->dist->build->user_cfg->{Bitbucket}->{api_password},
+            username     => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_username},
+            password     => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_password},
         }
     );
 }
@@ -166,8 +166,6 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 68, 72               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 24                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 140                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
