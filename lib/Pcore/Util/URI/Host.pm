@@ -90,7 +90,7 @@ sub pub_suffixes ( $self, $force_download = 0 ) {
                             }
                         }
 
-                        $path = $ENV->share->store( \join( $LF, sort keys $_suffixes->%* ), '/data/pub_suffix.dat', 'Pcore' );
+                        $path = $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort keys $_suffixes->%* ), 'Pcore' );
                     }
 
                     return;
@@ -116,7 +116,7 @@ sub tlds ( $self, $force_download = 0 ) {
                 blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
-                        $path = $ENV->share->store( \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), '/data/tld.dat', 'Pcore' );
+                        $path = $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), 'Pcore' );
                     }
 
                     return;

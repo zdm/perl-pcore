@@ -150,7 +150,7 @@ sub get ( $self, $path, @ ) {
     return;
 }
 
-sub store ( $self, $file, $path, $lib_name, @ ) {
+sub store ( $self, $path, $file, $lib_name, @ ) {
     my %args = (
         storage => undef,
         splice @_, 4,
