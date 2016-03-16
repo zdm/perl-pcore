@@ -42,11 +42,25 @@ sub from_strptime ( $self, $date, $format ) {
         @zone_offset{ keys %Time::Zone::Zone }    = values %Time::Zone::Zone;
 
         for ( keys %zone_offset ) {
-            if ( $zone_offset{$_} < 0 ) {
-                $zone_offset{$_} = [ $zone_offset{$_} / 60, sprintf '-%02s00', abs $zone_offset{$_} / 3600 ];
+            my $zone = uc;
+
+            $zone_offset{$zone} = delete $zone_offset{$_};
+
+            my $sec = abs $zone_offset{$zone};
+
+            my $min = $sec % 3600;
+
+            $sec -= $min;
+
+            my $hour = $sec / 3600;
+
+            $min = $min / 60;
+
+            if ( $zone_offset{$zone} < 0 ) {
+                $zone_offset{$zone} = [ $zone_offset{$zone} / 60, sprintf '-%02s%02s', $hour, $min ];
             }
             else {
-                $zone_offset{$_} = [ $zone_offset{$_} / 60, sprintf '+%02s00', $zone_offset{$_} / 3600 ];
+                $zone_offset{$zone} = [ $zone_offset{$zone} / 60, sprintf '+%02s%02s', $hour, $min ];
             }
         }
 
@@ -61,10 +75,10 @@ sub from_strptime ( $self, $date, $format ) {
 
     local $SIG{__WARN__} = sub { };
 
-    if ( ( my $idx = index $format, '%Z' ) != -1 && scalar $date =~ s/$zone_re/$zone_offset->{lc $1}->[1]/smio ) {
+    if ( ( my $idx = index $format, '%Z' ) != -1 && scalar $date =~ s/$zone_re/$zone_offset->{uc $1}->[1]/smio ) {
         substr $format, $idx, 2, '%z';
 
-        my $zone = lc $1;
+        my $zone = uc $1;
 
         return $self->from_epoch( Time::Piece->strptime( $date, $format )->epoch )->with_offset_same_instant( $zone_offset->{$zone}->[0] );
     }
@@ -122,9 +136,9 @@ sub to_w3cdtf ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 57                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 71                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 57                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 71                   │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
