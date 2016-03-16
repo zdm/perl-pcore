@@ -55,7 +55,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         }
 
         if ($dists) {
-            say BOLD . WHITE . sprintf( '%-31s%20s%10s%20s', 'DIST NAME', 'RELEASED VERSION', 'COMMITED', 'UNRELEASED CHANGES' ) . RESET;
+            say BOLD . WHITE . sprintf( '%-31s%20s%20s%10s', 'DIST NAME', 'RELEASED VERSION', 'UNRELEASED CHANGES', 'COMMITED' ) . RESET;
 
             for my $dist ( sort { $a->name cmp $b->name } $dists->@* ) {
 
@@ -71,18 +71,18 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                     printf '%20s', $dist->last_release_version;
                 }
 
-                if ( $dist->has_uncommited_changes ) {
-                    print q[ ] x 6 . WHITE . ON_RED . ' no ' . RESET;
+                if ($changes_since_last_release) {
+                    print q[ ] x 15 . WHITE . ON_RED . q[ ] . sprintf( '%3s', $changes_since_last_release ) . q[ ] . RESET;
                 }
                 else {
-                    printf '%10s', q[];
+                    printf '%20s', q[];
                 }
 
-                if ($changes_since_last_release) {
-                    say q[ ] x 15 . WHITE . ON_RED . q[ ] . sprintf( '%3s', $changes_since_last_release ) . q[ ] . RESET;
+                if ( $dist->has_uncommited_changes ) {
+                    say q[ ] x 6 . WHITE . ON_RED . ' no ' . RESET;
                 }
                 else {
-                    say sprintf '%20s', q[];
+                    say sprintf '%10s', q[];
                 }
             }
         }
