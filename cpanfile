@@ -100,7 +100,8 @@ requires 'Convert::Ascii85';
 requires 'HTTP::Date';
 requires 'Time::Zone';
 requires 'Time::Moment';
-requires 'Time::Riece';
+requires 'Time::Piece';
+requires 'DateTime::TimeZone';
 
 # Pcore::Util::Digest
 requires 'Digest';

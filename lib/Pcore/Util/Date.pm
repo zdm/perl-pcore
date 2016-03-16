@@ -98,18 +98,19 @@ sub parse ( $self, $date ) {
     }
 }
 
+# %a, %d %b %Y %H:%M:%S %z
 sub to_rfc_1123 ($self) {
     return $self->strftime('%a, %d %b %Y %H:%M:%S %z');
 }
 
+*to_http_date = \&to_rfc_2616;
+
+# %a, %d %b %Y %H:%M:%S GMT
 sub to_rfc_2616 ($self) {
     return $self->at_utc->strftime('%a, %d %b %Y %H:%M:%S GMT');
 }
 
-sub to_http_date ($self) {
-    return $self->at_utc->strftime('%a, %d %b %Y %H:%M:%S GMT');
-}
-
+# %Y-%m-%dT%H:%M:%S%Z
 sub to_w3cdtf ($self) {
     return $self->strftime('%Y-%m-%dT%H:%M:%S%Z');
 }
