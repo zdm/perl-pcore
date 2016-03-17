@@ -31,10 +31,11 @@ sub load ( $self, $cb ) {
     };
 
     for my $url ( values $self->_urls->%* ) {
+        $cv->begin;
+
         P->http->get(
             $url,
             timeout   => $self->http_timeout,
-            cv        => $cv,
             on_finish => sub ($res) {
                 if ( $res->status == 200 && $res->has_body ) {
                     decode_eol $res->body->$*;
@@ -43,6 +44,8 @@ sub load ( $self, $cb ) {
                         push $proxies, $addr;
                     }
                 }
+
+                $cv->end;
 
                 return;
             }

@@ -44,10 +44,11 @@ sub load ( $self, $cb ) {
     return;
 }
 
+# TODO not a safe call, password send va http
 sub bind_ip ($self) {
     die if !$self->has_username || !$self->has_password;
 
-    P->http->get( 'http://awmproxy.com/setmyip.php?Login=' . $self->username . '&Password=' . $self->password, blocking => 1 );
+    my $res = P->http->get( 'http://awmproxy.com/setmyip.php?Login=' . $self->username . '&Password=' . $self->password );
 
     return;
 }

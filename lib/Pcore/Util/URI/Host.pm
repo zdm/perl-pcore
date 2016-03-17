@@ -47,11 +47,10 @@ sub pub_suffixes ( $self, $force_download = 0 ) {
         my $path = $ENV->share->get('/data/pub_suffix.dat');
 
         if ( !$path || $force_download ) {
-            P->http->get(
+            my $res = P->http->get(
                 'https://publicsuffix.org/list/effective_tld_names.dat',
                 buf_size    => 0,
                 on_progress => 0,
-                blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
                         my $_suffixes = {};
@@ -109,11 +108,10 @@ sub tlds ( $self, $force_download = 0 ) {
         my $path = $ENV->share->get('/data/tld.dat');
 
         if ( !$path || $force_download ) {
-            P->http->get(
+            my $res = P->http->get(
                 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt',
                 buf_size    => 0,
                 on_progress => 0,
-                blocking    => 1,
                 on_finish   => sub ($res) {
                     if ( $res->status == 200 ) {
                         $path = $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), 'Pcore' );
@@ -326,9 +324,9 @@ sub _build_root_domain_utf8 ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 72, 79, 93           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 71, 78, 92           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 269, 272             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 267, 270             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
