@@ -172,8 +172,6 @@ sub mirror ( $target, @ ) {
 }
 
 sub _request {
-    my $wantarray = wantarray;
-
     my %args = $DEFAULT->%*;
 
     # create empty headers object
@@ -261,11 +259,7 @@ sub _request {
     }
 
     # blocking cv
-    my $cv = delete $args{cv};
-
-    my $blocking = delete $args{blocking} // defined $wantarray;
-
-    $cv //= AE::cv if $blocking;
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     # on_finish wrapper
     my $before_finish = delete $args{before_finish};
@@ -273,8 +267,6 @@ sub _request {
     my $on_finish = delete $args{on_finish};
 
     my $res = $args{res};
-
-    my @on_finish_result;
 
     $args{on_finish} = sub {
 
@@ -285,42 +277,17 @@ sub _request {
         $before_finish->($res) if $before_finish;
 
         # on_finish callback
-        if ($on_finish) {
-            if ( !defined $wantarray ) {
-                $on_finish->($res);
-            }
-            elsif ($wantarray) {
-                @on_finish_result = $on_finish->($res);
-            }
-            else {
-                $on_finish_result[0] = $on_finish->($res);
-            }
-        }
-        else {
-            $on_finish_result[0] = $res;
-        }
+        $on_finish->($res) if $on_finish;
 
-        $cv->end if $cv;
+        $blocking_cv->send($res) if $blocking_cv;
 
         return;
     };
 
-    $cv->begin if $cv;
-
     # throw request
     Pcore::HTTP::Util::http_request( \%args );
 
-    $cv->recv if $blocking;
-
-    if ( !defined $wantarray ) {
-        return;
-    }
-    elsif ($wantarray) {
-        return @on_finish_result;
-    }
-    else {
-        return $on_finish_result[0];
-    }
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 sub rand_ua {
@@ -446,12 +413,12 @@ sub _get_on_progress_cb (%args) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 110, 177, 186, 234,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 235, 256             │                                                                                                                │
+## │    3 │ 110, 175, 184, 232,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 233, 254             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 113                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 174                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (42)                  │
+## │    3 │ 174                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (34)                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 160                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
