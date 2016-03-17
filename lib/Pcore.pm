@@ -495,17 +495,6 @@ PERL
     goto &{$util};
 }
 
-# AE::cv
-sub cv {
-    state $cv = AE::cv();
-
-    return $cv;
-}
-
-sub is_waiting {
-    return $AnyEvent::CondVar::Base::WAITING // 0;
-}
-
 # LOG
 sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     state $log = do {

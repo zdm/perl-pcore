@@ -8,6 +8,8 @@ use AnyEvent::Socket qw[];
 
 my $guard = AnyEvent::Socket::tcp_server( 0, 8080, \&accept_req );
 
+my $cv = AE::cv;
+
 sub accept_req ( $fh, $host, $port ) {
     my $h = AnyEvent::Handle->new( fh => $fh );
 
@@ -22,7 +24,7 @@ sub accept_req ( $fh, $host, $port ) {
     return;
 }
 
-P->cv->recv;
+$cv->recv;
 
 1;
 __END__

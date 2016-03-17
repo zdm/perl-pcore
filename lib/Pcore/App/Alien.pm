@@ -67,6 +67,8 @@ around app_run => sub ( $orig, $self ) {
             return;
         };
 
+        my $cv = AE::cv;
+
         # set default SIG handlers, they can be redefined later in master callback
         $SIG->{HUP}  = AE::signal HUP  => $term;
         $SIG->{INT}  = AE::signal INT  => $term;
@@ -76,7 +78,7 @@ around app_run => sub ( $orig, $self ) {
             if ( $self->term_state ) {
                 $EXIT_CODE = $exit_code;
 
-                P->cv->send;
+                $cv->send;
             }
             else {
                 # kill process group
@@ -93,7 +95,7 @@ around app_run => sub ( $orig, $self ) {
         # run master process callback if specified
         $self->master_proc;
 
-        P->cv->recv;
+        $cv->recv;
 
         exit $EXIT_CODE;
     }
