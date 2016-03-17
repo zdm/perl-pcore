@@ -502,6 +502,10 @@ sub cv {
     return $cv;
 }
 
+sub is_waiting {
+    return $AnyEvent::CondVar::Base::WAITING // 0;
+}
+
 # LOG
 sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     state $log = do {
