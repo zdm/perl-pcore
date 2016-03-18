@@ -63,28 +63,37 @@ sub clean ( $self ) {
             SUBMIT_pause99_delete_files_delete => 'Delete',
         ];
 
+        my $do_request;
+
         for my $release ( keys $releases->%* ) {
             my $last_version = [ sort keys $releases->{$release}->%* ]->[-1];
 
             delete $releases->{$release}->{$last_version};
 
             for my $version ( keys $releases->{$release}->%* ) {
+                $do_request = 1;
+
                 push $params->@*, pause99_delete_files_FILE => "$release-v$version.tar.gz";
                 push $params->@*, pause99_delete_files_FILE => "$release-v$version.meta";
                 push $params->@*, pause99_delete_files_FILE => "$release-v$version.readme";
             }
         }
 
-        my $res1 = P->http->post(
-            'https://pause.perl.org/pause/authenquery',
-            headers => {
-                AUTHORIZATION => $self->_auth_header,
-                CONTENT_TYPE  => 'application/x-www-form-urlencoded',
-            },
-            body => P->data->to_uri($params),
-        );
+        if ($do_request) {
+            my $res1 = P->http->post(
+                'https://pause.perl.org/pause/authenquery',
+                headers => {
+                    AUTHORIZATION => $self->_auth_header,
+                    CONTENT_TYPE  => 'application/x-www-form-urlencoded',
+                },
+                body => P->data->to_uri($params),
+            );
 
-        return Pcore::API::Response->new( { status => $res1->status, reason => $res1->reason } );
+            return Pcore::API::Response->new( { status => $res1->status, reason => $res1->reason } );
+        }
+        else {
+            return Pcore::API::Response->new( { status => 200, reason => 'Nothing to do' } );
+        }
     }
     else {
         return Pcore::API::Response->new( { status => $res->status, reason => $res->reason } );
@@ -116,9 +125,9 @@ sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = unde
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 57                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 66, 67, 71           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 68, 69, 73           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 94                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 103                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
