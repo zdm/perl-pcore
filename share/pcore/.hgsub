@@ -1,1 +1,1 @@
-wiki = https://bitbucket.org/<: $bitbucket_username :>/<: $dist_path :>/wiki
+wiki = https://bitbucket.org/<: $scm_repo_owner :>/<: $scm_repo_name :>/wiki

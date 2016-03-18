@@ -1,18 +1,18 @@
 package Pcore::API::Bitbucket;
 
 use Pcore -class;
+use Pcore::API::Response;
 use Pcore::API::Bitbucket::Issue;
 
-has account_name => ( is => 'ro', isa => Str, required => 1 );
-has repo_slug    => ( is => 'ro', isa => Str, required => 1 );
-
-has username => ( is => 'ro', isa => Str, required => 1 );
-has password => ( is => 'ro', isa => Str, required => 1 );
+has repo_owner   => ( is => 'ro', isa => Str, required => 1 );
+has repo_name    => ( is => 'ro', isa => Str, required => 1 );
+has api_username => ( is => 'ro', isa => Str, required => 1 );
+has api_password => ( is => 'ro', isa => Str, required => 1 );
 
 has auth => ( is => 'lazy', isa => Str, init_arg => undef );
 
 sub _build_auth ($self) {
-    return 'Basic ' . P->data->to_b64( $self->username . q[:] . $self->password, q[] );
+    return 'Basic ' . P->data->to_b64( $self->api_username . q[:] . $self->api_password, q[] );
 }
 
 sub issues ( $self, @ ) {
@@ -32,10 +32,10 @@ sub issues ( $self, @ ) {
 
     my $url = do {
         if ($id) {
-            "https://bitbucket.org/api/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/$id";
+            "https://bitbucket.org/api/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/$id";
         }
         else {
-            "https://bitbucket.org/api/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/?" . P->data->to_uri( \%args );
+            "https://bitbucket.org/api/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/?" . P->data->to_uri( \%args );
         }
     };
 
@@ -80,7 +80,7 @@ sub issues ( $self, @ ) {
 }
 
 sub create_version ( $self, $ver, $cb ) {
-    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/versions";
+    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/versions";
 
     $ver = version->parse($ver)->normal;
 
@@ -106,7 +106,7 @@ sub create_version ( $self, $ver, $cb ) {
 }
 
 sub create_milestone ( $self, $milestone, $cb ) {
-    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->account_name]}/@{[$self->repo_slug]}/issues/milestones";
+    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/milestones";
 
     P->http->post(    #
         $url,
@@ -139,6 +139,62 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
     return;
 }
 
+sub create_repository ( $self, @ ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my %args = (
+        cb          => undef,
+        scm         => 'hg',             # hg, git
+        is_private  => 0,
+        description => undef,
+        fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
+        language    => 'perl',
+        has_issues  => 1,
+        has_wiki    => 1,
+        splice @_, 1
+    );
+
+    my $cb = delete $args{cb};
+
+    my $url = "https://api.bitbucket.org/2.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}";
+
+    P->http->post(                       #
+        $url,
+        headers => {
+            AUTHORIZATION => $self->auth,
+            CONTENT_TYPE  => 'application/json',
+        },
+        body      => P->data->to_json( \%args ),
+        on_finish => sub ($res) {
+            my $api_res;
+
+            if ( $res->status != 200 ) {
+                $api_res = Pcore::API::Response->new( { status => $res->status, reason => $res->reason } );
+            }
+            else {
+                my $json = P->data->from_json( $res->body );
+
+                if ( $json->{error} ) {
+                    $api_res = Pcore::API::Response->new( { status => 999, reason => $json->{error}->{message} } );
+                }
+                else {
+                    say dump $json;
+
+                    $api_res = Pcore::API::Response->new( { status => 200 } );
+                }
+            }
+
+            $cb->($api_res) if $cb;
+
+            $blocking_cv->send($api_res) if $blocking_cv;
+
+            return;
+        },
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -147,6 +203,8 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 54, 66               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 145                  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

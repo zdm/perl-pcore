@@ -18,7 +18,7 @@ sub run ($self) {
 
     my $upstream = P->class->load('Pcore::Src::SCM')->new($wiki_path)->upstream;
 
-    my $base_url = q[/] . $upstream->username . q[/] . $upstream->reponame . q[/wiki/];
+    my $base_url = q[/] . $upstream->repo_owner . q[/] . $upstream->repo_name . q[/wiki/];
 
     P->file->rmtree( $wiki_path . 'POD/' );
 

@@ -232,7 +232,7 @@ sub _build_user_cfg ($self) {
                 password => q[],
             },
             'Pcore::API::Bitbucket' => {
-                username     => q[],
+                repo_owner   => q[],
                 api_username => q[],
                 api_password => q[],
             },

@@ -36,7 +36,8 @@ sub _build_tmpl_params ($self) {
         copyright_year     => P->date->now->year,
         copyright_holder   => $ENV->user_cfg->{'Pcore::Dist'}->{copyright_holder} || $ENV->user_cfg->{'Pcore::Dist'}->{author},
         license            => $ENV->user_cfg->{'Pcore::Dist'}->{license},
-        bitbucket_username => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{username} // 'username',
+        scm_repo_owner     => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{repo_owner} // 'username',
+        scm_repo_name      => lc $self->namespace =~ s/::/-/smgr,
         dockerhub_username => $ENV->user_cfg->{'Pcore::API::Dockerhub'}->{username} // 'username',
         cpan_distribution  => $self->cpan,
     };

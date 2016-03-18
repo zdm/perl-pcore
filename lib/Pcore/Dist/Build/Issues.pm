@@ -21,10 +21,10 @@ sub _build_api ($self) {
     my $scm_upstream = $self->dist->scm->upstream;
 
     return Pcore::API::Bitbucket->new(
-        {   account_name => $scm_upstream->username,
-            repo_slug    => $scm_upstream->reponame,
-            username     => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_username},
-            password     => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_password},
+        {   repo_owner   => $scm_upstream->repo_owner,
+            repo_name    => $scm_upstream->repo_name,
+            api_username => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_username},
+            api_password => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_password},
         }
     );
 }
