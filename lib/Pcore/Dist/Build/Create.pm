@@ -2,6 +2,8 @@ package Pcore::Dist::Build::Create;
 
 use Pcore -class;
 use Pcore::Dist;
+use Pcore::API::Bitbucket;
+use Pcore::Src::SCM::Hg::Server;
 use Pcore::Util::File::Tree;
 
 has build => ( is => 'ro', isa => InstanceOf ['Pcore::Dist::Build'], required => 1 );
@@ -9,6 +11,7 @@ has build => ( is => 'ro', isa => InstanceOf ['Pcore::Dist::Build'], required =>
 has path      => ( is => 'ro', isa => Str,  required => 1 );
 has namespace => ( is => 'ro', isa => Str,  required => 1 );    # Dist::Name
 has cpan      => ( is => 'ro', isa => Bool, default  => 0 );
+has repo      => ( is => 'ro', isa => Bool, default  => 0 );    # create upstream repository
 
 has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
@@ -50,6 +53,45 @@ sub run ($self) {
         return;
     }
 
+    # create upstream repo
+    if ( $self->repo ) {
+        my $bitbucket_api = Pcore::API::Bitbucket->new(
+            {
+
+                repo_owner   => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'repo_owner'},
+                repo_name    => lc $self->namespace =~ s[::][-]smgr,
+                api_username => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_username'},
+                api_password => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_password'},
+            }
+        );
+
+        print 'Creating upstream repository ... ';
+
+        my $res = $bitbucket_api->create_repository;
+
+        if ( !$res->is_success ) {
+            $ERROR = 'Error creating Bitbucket repository';
+
+            say 'error';
+
+            return;
+        }
+
+        say 'done';
+
+        # clone upstream repo
+        P->file->mkpath( $self->target_path );
+
+        print 'Cloniing upstream repository ... ';
+
+        my $scm = Pcore::Src::SCM::Hg::Server->new( { root => $self->target_path } );
+
+        my $scm_res = $scm->cmd( 'clone', "ssh://hg\@bitbucket.org/@{[$bitbucket_api->repo_owner]}/@{[$bitbucket_api->repo_name]}", q[.] );
+
+        say 'done';
+    }
+
+    # copy files
     my $files = Pcore::Util::File::Tree->new;
 
     $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) );

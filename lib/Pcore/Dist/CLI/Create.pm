@@ -15,6 +15,10 @@ sub CLI ($self) {
                 desc    => 'create CPAN distribution',
                 default => 0,
             },
+            repo => {
+                desc    => 'create upstream repository',
+                default => 0,
+            },
         },
         arg => [    #
             namespace => { type => 'Str', },
@@ -44,7 +48,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 30                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 34                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

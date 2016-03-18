@@ -178,8 +178,6 @@ sub create_repository ( $self, @ ) {
                     $api_res = Pcore::API::Response->new( { status => 999, reason => $json->{error}->{message} } );
                 }
                 else {
-                    say dump $json;
-
                     $api_res = Pcore::API::Response->new( { status => 200 } );
                 }
             }
