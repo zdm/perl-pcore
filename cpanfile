@@ -128,6 +128,9 @@ feature windows => sub {
 # Pcore::Util::Random
 requires 'Net::SSLeay';
 
+# Pcore::Util::Scalar
+requires 'Devel::Refcount';
+
 # Pcore::Util::Sys
 requires 'Sys::CpuAffinity';
 feature windows => sub {
