@@ -21,12 +21,7 @@ sub decompress ( $self, % ) {
 
     syswrite $temp, $self->buffer->$* or die;
 
-    P->pm->run(
-        cmd      => [ 'js-beautify', $js_beautify_args, '--replace', qq["$temp"] ],
-        std      => 0,
-        console  => 0,
-        blocking => 1,
-    );
+    my $res = P->pm->run_proc( [ 'js-beautify', $js_beautify_args, '--replace', qq["$temp"] ] );
 
     $self->buffer->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
@@ -109,12 +104,7 @@ sub run_js_hint ($self) {
 
     my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
 
-    P->pm->run(
-        cmd      => [ 'jshint', $js_hint_args, qq["$in_temp">], qq["$out_temp"] ],
-        std      => 0,
-        console  => 0,
-        blocking => 1,
-    );
+    P->pm->run_proc( [ 'jshint', $js_hint_args, qq["$in_temp">], qq["$out_temp"] ] );
 
     $jshint_output = P->file->read_lines($out_temp);
 
@@ -157,7 +147,7 @@ sub run_js_hint ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 78                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
+## │    3 │ 73                   │ RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

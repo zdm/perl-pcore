@@ -460,7 +460,7 @@ sub _compress_upx ( $self, $path ) {
 
             for my $file (@files) {
                 if ( length qq[$cmd "$file"] > 8191 ) {
-                    P->pm->run_check($cmd) or 1;
+                    P->pm->run_proc($cmd) or 1;
 
                     $cmd = qq[$upx --best "$file"];
                 }
@@ -471,7 +471,7 @@ sub _compress_upx ( $self, $path ) {
                 }
             }
 
-            P->pm->run_check($cmd) or 1 if $cmd;
+            P->pm->run_proc($cmd) or 1 if $cmd;
 
             for my $file (@files) {
                 P->file->copy( $file, $upx_cache_dir . $file_md5->{$file} );

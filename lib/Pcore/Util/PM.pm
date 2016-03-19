@@ -1,6 +1,6 @@
 package Pcore::Util::PM;
 
-use Pcore -export, [qw[is_superuser run run_capture run_check run_rpc]];
+use Pcore -export, [qw[is_superuser run_proc run_rpc]];
 use POSIX qw[];
 
 sub rename_process {
@@ -73,95 +73,10 @@ sub is_superuser {
     }
 }
 
-sub run (@) {
-    my %args = (
-        cmd      => undef,
-        std      => 0,
-        console  => 1,
-        blocking => 1,
-        on_ready => undef,
-        on_error => undef,
-        on_exit  => undef,
-        @_,
-    );
-
+sub run_proc (@) {
     state $init = !!require Pcore::Util::PM::Proc;
 
-    return Pcore::Util::PM::Proc->new( \%args );
-}
-
-# TODO first param can be a ArrayRef, then read options
-sub run_capture (@cmd) {
-    my ( $stdout, $stderr );
-
-    my $wantarray = wantarray;
-
-    my %args = (
-        cmd        => \@cmd,
-        std        => 1,
-        std_merged => $wantarray ? 0 : 1,
-        console    => 1,
-        blocking   => 1,
-        on_ready   => sub ($self) {
-            $self->stdout->on_read( sub { } );
-            $self->stdout->on_eof(undef);
-            $self->stdout->on_error(
-                sub {
-                    $stdout = delete $_[0]{rbuf};
-
-                    return;
-                }
-            );
-
-            if ($wantarray) {
-                $self->stderr->on_read( sub { } );
-                $self->stderr->on_eof(undef);
-                $self->stderr->on_error(
-                    sub {
-                        $stderr = delete $_[0]{rbuf};
-
-                        return;
-                    }
-                );
-            }
-
-            return;
-        },
-        on_error => undef,
-        on_exit  => undef,
-    );
-
-    state $init = !!require Pcore::Util::PM::Proc;
-
-    my $p = Pcore::Util::PM::Proc->new( \%args );
-
-    return $wantarray ? ( $stdout, $stderr, $p->status ) : $stdout;
-}
-
-sub run_check (@cmd) {
-    my %args = (
-        cmd      => \@cmd,
-        std      => 0,
-        console  => 1,
-        blocking => 1,
-        on_ready => undef,
-        on_error => undef,
-        on_exit  => undef,
-    );
-
-    state $init = !!require Pcore::Util::PM::Proc;
-
-    my $p = Pcore::Util::PM::Proc->new( \%args );
-
-    if ( defined wantarray ) {
-        return $p->status ? undef : 1;
-    }
-    elsif ( $p->status ) {
-        die 'Error exec process, process exit code: ' . $p->status;
-    }
-    else {
-        return 1;
-    }
+    return Pcore::Util::PM::Proc->new(@_);
 }
 
 sub run_rpc ( $class, @ ) {

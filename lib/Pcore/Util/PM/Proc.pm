@@ -2,239 +2,310 @@ package Pcore::Util::PM::Proc;
 
 use Pcore -class;
 use Pcore::AE::Handle;
+use Pcore::Util::Scalar qw[refcount weaken blessed];
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32::Process';
-
-has cmd => ( is => 'ro', isa => ArrayRef, required => 1 );
-
-# TODO
-# stderr - 0, 1, 2 - merge with stdout
-has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );    # process STDIN, we can write
-has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );    # process STDOUT, we can read
-has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );    # process STDERR, we can read
-
-has std        => ( is => 'ro', isa => Bool, default => 0 );              # capture process STD* handles
-has std_merged => ( is => 'ro', isa => Bool, default => 0 );              # merge STDOUT and STDERR into STDOUT
-
-has console => ( is => 'ro', isa => Bool, default => 1 );
-has blocking => ( is => 'ro', isa => Bool | InstanceOf ['AnyEvent::CondVar'], default => 1 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );                   # ($self), called, when process created, pid captured and handles are ready
-has on_error => ( is => 'ro', isa => Maybe [CodeRef] );                   # ($self, $status), called, when exited with !0 status
-has on_exit  => ( is => 'ro', isa => Maybe [CodeRef] );                   # ($self, $status), called on process exit
-
-has mswin_alive_timout => ( is => 'ro', isa => Num, default => 0.5 );
+use overload    #
+  q[bool] => sub {
+    return $_[0]->is_success;
+  },
+  q[0+] => sub {
+    return $_[0]->status;
+  },
+  q[<=>] => sub {
+    return !$_[2] ? $_[0]->status <=> $_[1] : $_[1] <=> $_[0]->status;
+  },
+  fallback => undef;
 
 has pid => ( is => 'ro', isa => PositiveInt, init_arg => undef );
-has status => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], init_arg => undef );    # undef - process still alive
+has status => ( is => 'ro', isa => Maybe [Int], init_arg => undef );    # undef - process is still alive
+has reason => ( is => 'ro', isa => Str, init_arg => undef );
 
-has _cv      => ( is => 'ro', isa => InstanceOf ['AnyEvent::CondVar'], init_arg => undef );
-has _winproc => ( is => 'ro', isa => InstanceOf ['Win32::Process'],    init_arg => undef );    # windows process descriptor
+has stdin  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );    # process STDIN, we can write
+has stdout => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );    # process STDOUT, we can read
+has stderr => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );    # process STDERR, we can read
 
-around new => sub ( $orig, $self, $args ) {
-    $args->{_wantarray} = defined wantarray ? 1 : 0;
+has _on_finish => ( is => 'ro', isa => Maybe [CodeRef], init_arg => undef );                 # on_finish callback
+has _win32_proc => ( is => 'ro', isa => InstanceOf ['Win32::Process'], init_arg => undef );  # MSWIN process descriptor
+has _sigchild    => ( is => 'ro', isa => Object, init_arg => undef );
+has _blocking_cv => ( is => 'ro', isa => Object, init_arg => undef );
 
-    return $self->$orig($args);
-};
+our $CACHE = {};
 
-sub BUILD ( $self, $args ) {
-    $args->{_wantarray} //= 1;
+around new => sub ( $orig, $self, $cmd, @ ) {
+    $cmd = [$cmd] if !ref $cmd;
 
-    P->scalar->weaken($self) if $args->{_wantarray};
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    my $blocking;
+    my %args = (
+        stdin               => 0,
+        stdout              => 0,
+        stderr              => 0,        # NOTE 2 - merge STDERR with STDOUT
+        on_ready            => undef,    # CodeRef
+        on_finish           => undef,    # CodeRef
+        win32_cflags        => 0,        # NOTE not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
+        win32_alive_timeout => 0.5,
+        splice @_, 3,
+    );
 
-    if ( $self->blocking ) {
-        if ( ref $self->blocking ) {
-            $self->{_cv} = $self->blocking;
+    my $hdl = $self->_redirect_std( \%args );
+
+    # create process
+    my $proc = $self->_create_process( $args{win32_cflags}, $cmd->@* );
+
+    # restore old STD* handles
+    open STDIN,  '<&', $hdl->{old_in}  or die if $hdl->{old_in};
+    open STDOUT, '>&', $hdl->{old_out} or die if $hdl->{old_out};
+    open STDERR, '>&', $hdl->{old_err} or die if $hdl->{old_err};
+
+    # handle error creating process
+    if ( !$proc->pid ) {
+        $proc->{status} = -1;
+
+        $proc->{reason} = 'Error creating process';
+
+        $args{on_finish}->($proc) if $args{on_finish};
+
+        if ($blocking_cv) {
+            return $proc;
         }
         else {
-            $self->{_cv} = AE::cv;
-
-            $blocking = 1;
+            die $proc->{reason};
         }
-
-        $self->{_cv}->begin;
     }
 
-    my $on_ready = AE::cv {
-        $self->on_ready->($self) if $self->on_ready;
+    # store proc attributes
+    $proc->{_on_finish}   = $args{on_finish};
+    $proc->{_blocking_cv} = $blocking_cv;
 
-        my $on_exit = sub ($status) {
-            undef $self->{sigchild};
+    # create and store AE handles
+    $proc->_create_handles($hdl);
 
-            $self->{_cv}->end if $self->{_cv};
+    # create and start SIGCHILD listener
+    $proc->_create_sigchild( $args{win32_alive_timeout} );
 
-            $self->{status} = $status;
+    # call on_ready callback if present
+    $args{on_ready}->($proc) if $args{on_ready};
 
-            $self->on_error->( $self, $status ) if $status and $self->on_error;
+    $CACHE->{ $proc->{pid} } = $proc if !$blocking_cv && refcount($proc) == 1;
 
-            $self->on_exit->( $self, $status ) if $self->on_exit;
+    return $blocking_cv ? $blocking_cv->recv : ();
+};
+
+sub _redirect_std ( $self, $args ) {
+    my $hdl;
+
+    # create STDIN
+    if ( $args->{stdin} ) {
+        ( $hdl->{in_r}, $hdl->{in_w} ) = portable_socketpair();
+
+        # backup current STDIN handle
+        open $hdl->{old_in}, '<&', *STDIN or die;
+    }
+
+    # create STDOUT
+    if ( $args->{stdout} ) {
+        ( $hdl->{out_r}, $hdl->{out_w} ) = portable_socketpair();
+
+        # backup current STDOUT handle
+        open $hdl->{old_out}, '>&', *STDOUT or die;
+    }
+
+    # create STDERR
+    if ( $args->{stderr} ) {
+        if ( $args->{stderr} == 2 ) {
+            ( $hdl->{out_r}, $hdl->{out_w} ) = portable_socketpair() if !$args->{stdout};
+        }
+        else {
+            ( $hdl->{err_r}, $hdl->{err_w} ) = portable_socketpair();
+        }
+
+        # backup current STDERR handle
+        open $hdl->{old_err}, '>&', *STDERR or die;
+    }
+
+    # redirect STD* handles
+    open STDIN,  '<&', $hdl->{in_r}  or die if $args->{stdin};
+    open STDOUT, '>&', $hdl->{out_w} or die if $args->{stdout};
+    open STDERR, '>&', $args->{stderr} == 2 ? $hdl->{out_w} : $hdl->{err_w} or die if $args->{stderr};
+
+    return $hdl;
+}
+
+sub _create_process ( $self, $win32_cflags, @cmd ) {
+    my $proc = bless {}, $self;
+
+    # run process
+    if ($MSWIN) {
+        Win32::Process::Create(    #
+            my $win32_proc,
+            $ENV{COMSPEC},
+            join( q[ ], '/D /C', @cmd ),
+            1,                     # inherit STD* handles
+            $win32_cflags,
+            q[.]
+        );
+
+        if ($win32_proc) {
+            $proc->{_win32_proc} = $win32_proc;
+
+            $proc->{pid} = $proc->{_win32_proc}->GetProcessID;
+        }
+    }
+    else {
+        unless ( $proc->{pid} = fork ) {
+            exec @cmd or die $!;
+        }
+    }
+
+    return $proc;
+}
+
+sub _create_handles ( $self, $hdl ) {
+    weaken $self;
+
+    # create STDIN handle
+    if ( $hdl->{in_w} ) {
+        Pcore::AE::Handle->new(
+            fh         => $hdl->{in_w},
+            on_connect => sub ( $h, @ ) {
+                $self->{stdin} = $h;
+
+                return;
+            },
+        );
+    }
+
+    # create STDOUT handle
+    if ( $hdl->{out_r} ) {
+        Pcore::AE::Handle->new(
+            fh         => $hdl->{out_r},
+            on_connect => sub ( $h, @ ) {
+                $self->{stdout} = $h;
+
+                return;
+            },
+            on_error => sub ( $h, $fatal, $msg ) {
+                $self->{stdout} = delete $h->{rbuf};
+
+                return;
+            },
+            on_read => sub { },
+        );
+    }
+
+    # create STDERR handle
+    if ( $hdl->{err_r} ) {
+        Pcore::AE::Handle->new(
+            fh         => $hdl->{err_r},
+            on_connect => sub ( $h, @ ) {
+                $self->{stderr} = $h;
+
+                return;
+            },
+            on_error => sub ( $h, $fatal, $msg ) {
+                $self->{stderr} = delete $h->{rbuf};
+
+                return;
+            },
+            on_read => sub { },
+        );
+    }
+
+    return;
+}
+
+sub _create_sigchild ( $self, $win32_alive_timeout ) {
+    weaken $self;
+
+    if ($MSWIN) {
+        $self->{_sigchild} = AE::timer 0, $win32_alive_timeout, sub {
+            $self->{_win32_proc}->GetExitCode( my $status );
+
+            if ( $status != Win32::Process::STILL_ACTIVE() ) {
+                undef $self->{_sigchild};    # remove timer
+
+                $self->_on_exit($status);
+            }
 
             return;
         };
+    }
+    else {
+        $self->{_sigchild} = AE::child $self->pid, sub ( $pid, $status ) {
+            undef $self->{_sigchild};        # remove timer
 
-        if ($MSWIN) {
-            $self->{sigchild} = AE::timer 0, $self->mswin_alive_timout, sub {
-                $self->{_winproc}->GetExitCode( my $status );
+            $self->_on_exit( $status >> 8 );
 
-                $on_exit->($status) if $status != Win32::Process::STILL_ACTIVE();
-
-                return;
-            };
-        }
-        else {
-            $self->{sigchild} = AE::child $self->pid, sub ( $pid, $status ) {
-                $on_exit->( $status >> 8 );
-
-                return;
-            };
-        }
-
-        return;
-    };
-
-    $self->_create( $on_ready, $self->cmd );
-
-    $self->{_cv}->recv if $blocking;
+            return;
+        };
+    }
 
     return;
 }
 
 sub DEMOLISH ( $self, $global ) {
-    if ( $self->pid ) {
+    if ( $self->{pid} ) {
 
         # kill process group, eg.: windows console subprocess
-        kill -9, $self->pid;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        kill -9, $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
         # kill process, because -9 is ignoref by process itself
-        kill 9, $self->pid;     ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        kill 9, $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
     }
 
-    $self->{_cv}->end if $self->{_cv};
+    $self->_on_exit( 128 + 9 ) if !$global;
 
     return;
 }
 
-sub _create ( $self, $on_ready, $args ) {
-    my $cmd;
+sub is_success ($self) {
+    return if !$self->pid;
 
-    if ($MSWIN) {
-        $cmd = [ $ENV{COMSPEC}, join q[ ], '/D /C', $args->@* ];
-    }
-    else {
-        $cmd = $args;
-    }
+    return !$self->status;
+}
 
-    my $h;
+sub _on_exit ( $self, $status ) {
+    return if defined $self->{status};
 
-    if ( $self->std ) {
-        ( $h->{in_r},  $h->{in_w} )  = portable_socketpair();
-        ( $h->{out_r}, $h->{out_w} ) = portable_socketpair();
-        ( $h->{err_r}, $h->{err_w} ) = portable_socketpair() if !$self->std_merged;
+    # set status
+    $self->{status} = $status;
 
-        # save STD* handles
-        open $h->{old_in},  '<&', *STDIN  or die;
-        open $h->{old_out}, '>&', *STDOUT or die;
-        open $h->{old_err}, '>&', *STDERR or die;
-
-        # redirect STD* handles
-        open STDIN,  '<&', $h->{in_r}  or die;
-        open STDOUT, '>&', $h->{out_w} or die;
-        if ( $self->std_merged ) {
-            open STDERR, '>&', $h->{out_w} or die;
+    # set reason
+    $self->{reason} //= do {
+        if ( $self->{status} == 0 ) {
+            'OK';
         }
         else {
-            open STDERR, '>&', $h->{err_w} or die;
+            'Process terminated with exit code: ' . $self->{status};
         }
+    };
+
+    # cleanup
+    delete $self->@{qw[stdin _win32_proc _sigchild]};
+
+    delete $CACHE->{ $self->{pid} };
+
+    if ( $self->{stdout} && blessed $self->{stdout} ) {
+        $self->{stdout} = delete $self->{stdout}->{rbuf};
     }
 
-    if ($MSWIN) {
-        Win32::Process::Create(    #
-            my $proc,
-            $cmd->@*,
-            1,                     # inherit STD* handles
-            ( $self->console ? 0 : Win32::Process::CREATE_NO_WINDOW() ),    # WARNING: not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
-            q[.]
-        );
-
-        die q[Can't create process] if !$proc;
-
-        $self->{_winproc} = $proc;
-
-        $self->{pid} = $proc->GetProcessID;
-    }
-    else {
-        unless ( $self->{pid} = fork ) {
-            exec $cmd->@* or die $!;
-        }
+    if ( $self->{stderr} && blessed $self->{stderr} ) {
+        $self->{stderr} = delete $self->{stderr}->{rbuf};
     }
 
-    $on_ready->begin;
-
-    if ( $self->std ) {
-
-        # restore STD* handles
-        open STDIN,  '<&', $h->{old_in}  or die;
-        open STDOUT, '>&', $h->{old_out} or die;
-        open STDERR, '>&', $h->{old_err} or die;
-
-        P->scalar->weaken($self);
-
-        $on_ready->begin;
-        Pcore::AE::Handle->new(
-            fh         => $h->{in_w},
-            on_connect => sub ( $h, @ ) {
-                $self->{stdin} = $h;
-
-                $on_ready->end;
-
-                return;
-            },
-        );
-
-        $on_ready->begin;
-        Pcore::AE::Handle->new(
-            fh         => $h->{out_r},
-            on_connect => sub ( $h, @ ) {
-                $self->{stdout} = $h;
-
-                $on_ready->end;
-
-                return;
-            },
-        );
-
-        if ( !$self->std_merged ) {
-            $on_ready->begin;
-            Pcore::AE::Handle->new(
-                fh         => $h->{err_r},
-                on_connect => sub ( $h, @ ) {
-                    $self->{stderr} = $h;
-
-                    $on_ready->end;
-
-                    return;
-                },
-            );
-        }
+    if ( my $on_finish = delete $self->{_on_finish} ) {
+        $on_finish->($self);
     }
 
-    $on_ready->end;
+    if ( my $blocking_cv = delete $self->{_blocking_cv} ) {
+        $blocking_cv->send($self);
+    }
 
     return;
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 118                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_create" with high complexity score (25)                   │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

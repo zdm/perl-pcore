@@ -15,12 +15,14 @@ sub _build__hg ($self) {
 
     my $cv = AE::cv;
 
-    $self->{_hg} = P->pm->run(
-        cmd      => [qw[hg serve --config ui.interactive=True --cmdserver pipe]],
-        blocking => 0,
-        std      => 1,
-        console  => 1,
-        on_ready => sub ($self) {
+    P->pm->run_proc(
+        [qw[hg serve --config ui.interactive=True --cmdserver pipe]],
+        stdin    => 1,
+        stdout   => 1,
+        stderr   => 1,
+        on_ready => sub ($proc) {
+            $self->{_hg} = $proc;
+
             $cv->send;
 
             return;
@@ -100,7 +102,7 @@ sub cmd ( $self, @cmd ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 70, 74               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 72, 76               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

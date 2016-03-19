@@ -30,7 +30,7 @@ sub _install_service ( $self, $service_name ) {
     if ($MSWIN) {
         my $wrapper = $ENV->share->get('/bin/nssm_x64.exe');
 
-        P->pm->run_capture( $wrapper, 'install', $service_name, $^X, $ENV->{SCRIPT_PATH} );
+        P->pm->run_proc( [ $wrapper, 'install', $service_name, $^X, $ENV->{SCRIPT_PATH} ] ) or die;
     }
     else {
         my $TMPL = <<"TXT";
