@@ -1,11 +1,11 @@
-package Pcore::AE::Handle::ProxyPool::Source;
+package Pcore::API::ProxyPool::Source;
 
 use Pcore -role;
-use Pcore::AE::Handle::ProxyPool::Proxy;
+use Pcore::API::ProxyPool::Proxy;
 
 requires qw[load];
 
-has pool => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool'], required => 1, weak_ref => 1 );
+has pool => ( is => 'ro', isa => InstanceOf ['Pcore::API::ProxyPool'], required => 1, weak_ref => 1 );
 has id => ( is => 'lazy', isa => Int, init_arg => undef );
 
 has load_timeout          => ( is => 'lazy', isa => PositiveOrZeroInt );
@@ -41,7 +41,7 @@ around load => sub ( $orig, $self ) {
             my $has_new_proxies;
 
             for my $uri ( $uris->@* ) {
-                my $proxy = Pcore::AE::Handle::ProxyPool::Proxy->new( $uri, $self );
+                my $proxy = Pcore::API::ProxyPool::Proxy->new( $uri, $self );
 
                 # proxy object wasn't created, generally due to uri parsing errors
                 next if !$proxy;
@@ -144,7 +144,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Source
+Pcore::API::ProxyPool::Source
 
 =head1 SYNOPSIS
 

@@ -1,8 +1,8 @@
-package Pcore::AE::Handle::ProxyPool::Source::Tor;
+package Pcore::API::ProxyPool::Source::Tor;
 
 use Pcore -class;
 
-with qw[Pcore::AE::Handle::ProxyPool::Source];
+with qw[Pcore::API::ProxyPool::Source];
 
 has proxy           => ( is => 'ro', isa => Str,         default   => '127.0.0.1:9050' );
 has control_port    => ( is => 'ro', isa => PositiveInt, default   => 9051 );
@@ -93,7 +93,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Source::Tor
+Pcore::API::ProxyPool::Source::Tor
 
 =head1 SYNOPSIS
 

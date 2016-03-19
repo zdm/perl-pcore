@@ -1,9 +1,9 @@
-package Pcore::AE::Handle::ProxyPool::Source::AwmProxy;
+package Pcore::API::ProxyPool::Source::AwmProxy;
 
 use Pcore -class;
 use Pcore::Util::Text qw[decode_eol];
 
-with qw[Pcore::AE::Handle::ProxyPool::Source];
+with qw[Pcore::API::ProxyPool::Source];
 
 has api_key      => ( is => 'ro', isa => Str,         required  => 1 );
 has username     => ( is => 'ro', isa => Str,         predicate => 1 );
@@ -61,7 +61,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Source::AwmProxy
+Pcore::API::ProxyPool::Source::AwmProxy
 
 =head1 SYNOPSIS
 

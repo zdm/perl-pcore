@@ -1,8 +1,8 @@
-package Pcore::AE::Handle::ProxyPool::Source::ProxyRack;
+package Pcore::API::ProxyPool::Source::ProxyRack;
 
 use Pcore -class;
 
-with qw[Pcore::AE::Handle::ProxyPool::Source];
+with qw[Pcore::API::ProxyPool::Source];
 
 has uri => ( is => 'ro', isa => Str, predicate => 1 );
 has type => ( is => 'ro', isa => Enum [qw[ANY FASTEST TOP10]], default => 'FASTEST' );    # TOP10 - top 10% of all proxies
@@ -42,7 +42,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Source::ProxyRack
+Pcore::API::ProxyPool::Source::ProxyRack
 
 =head1 SYNOPSIS
 

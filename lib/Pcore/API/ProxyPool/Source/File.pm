@@ -1,9 +1,9 @@
-package Pcore::AE::Handle::ProxyPool::Source::File;
+package Pcore::API::ProxyPool::Source::File;
 
 use Pcore -class;
 use Pcore::Util::Text qw[trim];
 
-with qw[Pcore::AE::Handle::ProxyPool::Source];
+with qw[Pcore::API::ProxyPool::Source];
 
 has path => ( is => 'ro', isa => Str, required => 1 );
 
@@ -31,7 +31,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Source::File
+Pcore::API::ProxyPool::Source::File
 
 =head1 SYNOPSIS
 

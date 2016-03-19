@@ -1,7 +1,7 @@
-package Pcore::AE::Handle::ProxyPool;
+package Pcore::API::ProxyPool;
 
 use Pcore -class;
-use Pcore::AE::Handle::ProxyPool::Storage;
+use Pcore::API::ProxyPool::Storage;
 
 has id => ( is => 'lazy', isa => Int, init_arg => undef );
 
@@ -13,11 +13,11 @@ has max_threads_proxy     => ( is => 'ro', isa => PositiveOrZeroInt, default => 
 has max_threads_source    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 has maintanance_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
 
-has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
+has _source => ( is => 'ro', isa => ArrayRef [ ConsumerOf ['Pcore::API::ProxyPool::Source'] ], default => sub { [] }, init_arg => undef );
 has _timer => ( is => 'ro', init_arg => undef );
 
 has list => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has storage => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle::ProxyPool::Storage'], init_arg => undef );
+has storage => ( is => 'lazy', isa => InstanceOf ['Pcore::API::ProxyPool::Storage'], init_arg => undef );
 
 has _waiting_callbacks => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 
@@ -30,7 +30,7 @@ sub BUILD ( $self, $args ) {
 
             $args{pool} = $self;
 
-            my $source = P->class->load( delete $args{class}, ns => 'Pcore::AE::Handle::ProxyPool::Source' )->new( \%args );
+            my $source = P->class->load( delete $args{class}, ns => 'Pcore::API::ProxyPool::Source' )->new( \%args );
 
             # add source to the pool
             push $self->_source->@*, $source;
@@ -56,7 +56,7 @@ sub _build_id ($self) {
 }
 
 sub _build_storage ($self) {
-    return Pcore::AE::Handle::ProxyPool::Storage->new( { pool_id => $self->id } );
+    return Pcore::API::ProxyPool::Storage->new( { pool_id => $self->id } );
 }
 
 sub _maintenance ($self) {
@@ -239,7 +239,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool
+Pcore::API::ProxyPool
 
 =head1 SYNOPSIS
 

@@ -1,9 +1,9 @@
-package Pcore::AE::Handle::ProxyPool::Source::WorldOfProxy;
+package Pcore::API::ProxyPool::Source::WorldOfProxy;
 
 use Pcore -class;
 use Pcore::Util::Text qw[decode_eol];
 
-with qw[Pcore::AE::Handle::ProxyPool::Source];
+with qw[Pcore::API::ProxyPool::Source];
 
 has api_key      => ( is => 'ro', isa => Str,         required => 1 );
 has http_timeout => ( is => 'ro', isa => PositiveInt, default  => 10 );
@@ -73,7 +73,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Source::WorldOfProxy
+Pcore::API::ProxyPool::Source::WorldOfProxy
 
 =head1 SYNOPSIS
 

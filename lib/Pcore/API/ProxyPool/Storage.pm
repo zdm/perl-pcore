@@ -1,4 +1,4 @@
-package Pcore::AE::Handle::ProxyPool::Storage;
+package Pcore::API::ProxyPool::Storage;
 
 use Pcore -class;
 
@@ -201,7 +201,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Storage
+Pcore::API::ProxyPool::Storage
 
 =head1 SYNOPSIS
 

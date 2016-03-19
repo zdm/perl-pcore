@@ -1,13 +1,13 @@
-package Pcore::AE::Handle::ProxyPool::Proxy;
+package Pcore::API::ProxyPool::Proxy;
 
 use Pcore -class;
-use Pcore::AE::Handle::ProxyPool::Proxy::Removed;
+use Pcore::API::ProxyPool::Proxy::Removed;
 use Pcore::AE::Handle qw[:ALL];
 
 extends qw[Pcore::Util::URI];
 
-has source => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool::Source'], required => 1, weak_ref => 1 );
-has pool   => ( is => 'ro', isa => ConsumerOf ['Pcore::AE::Handle::ProxyPool'],         required => 1, weak_ref => 1 );
+has source => ( is => 'ro', isa => ConsumerOf ['Pcore::API::ProxyPool::Source'], required => 1, weak_ref => 1 );
+has pool   => ( is => 'ro', isa => ConsumerOf ['Pcore::API::ProxyPool'],         required => 1, weak_ref => 1 );
 
 has id => ( is => 'lazy', isa => Str, init_arg => undef );
 
@@ -99,7 +99,7 @@ sub remove ($self) {
         connect_error => 1,
     );
 
-    bless $self, 'Pcore::AE::Handle::ProxyPool::Proxy::Removed';
+    bless $self, 'Pcore::API::ProxyPool::Proxy::Removed';
 
     return;
 }
@@ -620,7 +620,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Proxy - Proxy lists management subsystem
+Pcore::API::ProxyPool::Proxy - Proxy lists management subsystem
 
 =head1 SYNOPSIS
 

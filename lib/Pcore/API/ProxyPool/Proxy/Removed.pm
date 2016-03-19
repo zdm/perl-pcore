@@ -1,4 +1,4 @@
-package Pcore::AE::Handle::ProxyPool::Proxy::Removed;
+package Pcore::API::ProxyPool::Proxy::Removed;
 
 use Pcore;
 
@@ -22,7 +22,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Proxy::Removed
+Pcore::API::ProxyPool::Proxy::Removed
 
 =head1 SYNOPSIS
 

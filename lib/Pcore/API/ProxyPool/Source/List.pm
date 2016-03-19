@@ -1,8 +1,8 @@
-package Pcore::AE::Handle::ProxyPool::Source::List;
+package Pcore::API::ProxyPool::Source::List;
 
 use Pcore -class;
 
-with qw[Pcore::AE::Handle::ProxyPool::Source];
+with qw[Pcore::API::ProxyPool::Source];
 
 has proxy => ( is => 'ro', isa => ArrayRef [Str], required => 1 );
 
@@ -22,7 +22,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::ProxyPool::Source::List
+Pcore::API::ProxyPool::Source::List
 
 =head1 SYNOPSIS
 
