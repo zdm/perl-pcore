@@ -38,15 +38,18 @@ around new => sub ( $orig, $self, $cmd, @ ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
-        stdin               => 0,
-        stdout              => 0,
-        stderr              => 0,        # NOTE 2 - merge STDERR with STDOUT
-        on_ready            => undef,    # CodeRef
-        on_finish           => undef,    # CodeRef
-        win32_cflags        => 0,        # NOTE not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
-        win32_alive_timeout => 0.5,
+        stdin                  => 0,
+        stdout                 => 0,
+        stderr                 => 0,        # NOTE 2 - merge STDERR with STDOUT
+        on_ready               => undef,    # CodeRef
+        on_finish              => undef,    # CodeRef
+        win32_cflags           => 0,        # NOTE not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
+        win32_create_no_window => 0,        # NOTE preventing to redirect handles
+        win32_alive_timeout    => 0.5,
         splice @_, 3,
     );
+
+    $args{win32_cflags} = Win32::Process::CREATE_NO_WINDOW() if delete $args{win32_create_no_window};
 
     my $hdl = $self->_redirect_std( \%args );
 
