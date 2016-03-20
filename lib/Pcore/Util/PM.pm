@@ -80,19 +80,9 @@ sub run_proc (@) {
 }
 
 sub run_rpc ( $class, @ ) {
-    my %args = (
-        args     => {},
-        workers  => 0,
-        std      => 0,
-        console  => 1,
-        on_ready => undef,
-        splice( @_, 1 ),
-        class => $class,
-    );
-
     state $init = !!require Pcore::Util::PM::RPC;
 
-    return Pcore::Util::PM::RPC->new( \%args );
+    return Pcore::Util::PM::RPC->new(@_);
 }
 
 1;

@@ -3,22 +3,31 @@ package Pcore::Util::PM::RPC::Proc;
 use Pcore -class;
 use Fcntl;
 use Config;
+use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
+use Pcore::Util::Scalar qw[weaken];
 use if $MSWIN, 'Win32API::File';
 
-extends qw[Pcore::Util::PM::Proc];
+has proc => ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
+has in  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );    # process IN channel, we can write
+has out => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );    # process OUT channel, we can read
 
-has '+cmd' => ( required => 0, init_arg => undef );
+around new => sub ( $orig, $self, @ ) {
+    my %args = (
+        class      => undef,
+        class_args => undef,                                                              # class constructor arguments
+        scan_deps  => 0,
+        on_ready   => undef,
+        splice @_, 2,
+    );
 
-has class     => ( is => 'ro', isa => Str,     required => 1 );
-has args      => ( is => 'ro', isa => HashRef, required => 1 );
-has scan_deps => ( is => 'ro', isa => Bool,    required => 1 );
-has on_data   => ( is => 'ro', isa => CodeRef, required => 1 );
+    # create self instance
+    $self = $self->$orig;
 
-has in  => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );    # process IN channel, we can write
-has out => ( is => 'lazy', isa => InstanceOf ['Pcore::AE::Handle'] );    # process OUT channel, we can read
+    # create handles
+    my ( $in_r,  $in_w )  = portable_socketpair();
+    my ( $out_r, $out_w ) = portable_socketpair();
 
-around _create => sub ( $orig, $self, $on_ready, @ ) {
     state $perl = do {
         if ( $ENV->is_par ) {
             "$ENV{PAR_TEMP}/perl" . ( $MSWIN ? '.exe' : q[] );
@@ -33,13 +42,10 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
             path    => $ENV->{SCRIPT_PATH},
             version => $main::VERSION->normal,
         },
-        class     => $self->class,
-        args      => $self->args,
-        scan_deps => $self->scan_deps,
+        class     => $args{class},
+        args      => $args{class_args},
+        scan_deps => $args{scan_deps},
     };
-
-    my ( $in_r,  $in_w )  = portable_socketpair();
-    my ( $out_r, $out_w ) = portable_socketpair();
 
     if ($MSWIN) {
         $boot_args->{ipc} = {
@@ -69,65 +75,22 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
         push $cmd->@*, $perl, '-MPcore::Util::PM::RPC::Server', '-e', q[], $boot_args;
     }
 
+    # needed for PAR, pass current @INC libs to child process via $ENV{PERL5LIB}
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
 
-    P->scalar->weaken($self);
+    $self->{in}  = $in_w;
+    $self->{out} = $out_r;
 
-    $on_ready->begin;
+    # create proc
+    P->pm->run_proc(
+        $cmd,
+        on_ready => sub ($proc) {
+            $self->{proc} = $proc;
 
-    # handshake
-    $on_ready->begin;
-    Pcore::AE::Handle->new(
-        fh         => $in_w,
-        on_connect => sub ( $h, @ ) {
-            $self->{in} = $h;
-
-            $on_ready->end;
-
-            return;
-        },
-    );
-
-    $on_ready->begin;
-    Pcore::AE::Handle->new(
-        fh         => $out_r,
-        on_connect => sub ( $h, @ ) {
-            $self->{out} = $h;
-
-            $self->{out}->push_read(
-                line => "\x00",
-                sub ( $h, $line, $eol ) {
-                    if ( $line =~ /\AREADY(\d+)\z/sm ) {
-                        my $pid = $1;
-
-                        # start listener
-                        $h->on_read(
-                            sub ($h) {
-                                $h->unshift_read(
-                                    chunk => 4,
-                                    sub ( $h, $len ) {
-                                        $h->unshift_read(
-                                            chunk => unpack( 'L>', $len ),
-                                            sub ( $h, $data ) {
-                                                $self->on_data->( P->data->from_cbor($data) );
-
-                                                return;
-                                            }
-                                        );
-
-                                        return;
-                                    }
-                                );
-
-                                return;
-                            }
-                        );
-
-                        $on_ready->end;
-                    }
-                    else {
-                        die 'RPC handshake error';
-                    }
+            # wrap AE handles and perform handshale
+            $self->_handshake(
+                sub {
+                    $args{on_ready}->($self);
 
                     return;
                 }
@@ -137,12 +100,51 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
         },
     );
 
-    $self->$orig( $on_ready, $cmd );
-
-    $on_ready->end;
-
     return;
 };
+
+sub _handshake ( $self, $cb ) {
+    weaken $self;
+
+    # wrap IN
+    Pcore::AE::Handle->new(
+        fh         => $self->{in},
+        on_connect => sub ( $h, @ ) {
+            $self->{in} = $h;
+
+            return;
+        },
+    );
+
+    # wrap OUT
+    Pcore::AE::Handle->new(
+        fh         => $self->{out},
+        on_connect => sub ( $h, @ ) {
+            $self->{out} = $h;
+
+            return;
+        },
+    );
+
+    # handshake
+    $self->{out}->push_read(
+        line => "\x00",
+        sub ( $h, $line, $eol ) {
+            if ( $line =~ /\AREADY(\d+)\z/sm ) {
+                my $pid = $1;
+
+                $cb->();
+            }
+            else {
+                die 'RPC handshake error';
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -151,7 +153,7 @@ around _create => sub ( $orig, $self, $on_ready, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 98                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 131                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

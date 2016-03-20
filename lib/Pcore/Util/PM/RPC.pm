@@ -1,71 +1,110 @@
 package Pcore::Util::PM::RPC;
 
 use Pcore -class;
-use Config;
 use Pcore::Util::PM::RPC::Proc;
+use Config;
+use Pcore::Util::Scalar qw[weaken];
 
-has class   => ( is => 'ro', isa => Str,         required => 1 );
-has args    => ( is => 'ro', isa => HashRef,     required => 1 );
-has workers => ( is => 'ro', isa => PositiveInt, required => 1 );    # -1 - CPU's num - x
-has std     => ( is => 'ro', isa => Bool,        default  => 0 );
-has console => ( is => 'ro', isa => Bool,        default  => 1 );
-has on_ready => ( is => 'ro', isa => Maybe [CodeRef] );
+has class => ( is => 'ro', isa => Str, required => 1 );
+has class_args => ( is => 'ro', isa => Maybe [HashRef], init_arg => undef );
 
-has _workers => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+has _workers => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _call_id => ( is => 'ro', default => 0, init_arg => undef );
-has _queue => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _queue => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 
-sub BUILDARGS ( $self, $args ) {
-    $args->{args} //= {};
+around new => sub ( $orig, $self, $class, @args ) {
+    my %args = (
+        class_args => undef,
+        workers    => undef,
+        splice @_, 3,
+    );
 
-    if ( !$args->{workers} ) {
-        $args->{workers} = P->sys->cpus_num;
+    # create RPC object
+    my $rpc = $self->$orig(
+        {   class      => $class,
+            class_args => $args{class_args},
+        }
+    );
+
+    # defined number of the workers
+    if ( !$args{workers} ) {
+        $args{workers} = P->sys->cpus_num;
     }
-    elsif ( $args->{workers} < 0 ) {
-        $args->{workers} = P->sys->cpus_num + $args->{workers};
+    elsif ( $args{workers} < 0 ) {
+        $args{workers} = P->sys->cpus_num + $args{workers};
 
-        $args->{workers} = 1 if $args->{workers} <= 0;
+        $args{workers} = 1 if $args{workers} <= 0;
     }
 
-    return $args;
+    my $blocking_cv = AE::cv;
+
+    $blocking_cv->begin;
+
+    # create workers
+    for ( 1 .. $args{workers} ) {
+        $rpc->_create_worker($blocking_cv);
+    }
+
+    $blocking_cv->end;
+
+    $blocking_cv->recv;
+
+    return $rpc;
+};
+
+sub _create_worker ( $self, $cv ) {
+    weaken $self;
+
+    $cv->begin;
+
+    Pcore::Util::PM::RPC::Proc->new(
+        class      => $self->class,
+        class_args => $self->class_args,
+        scan_deps  => $self->_scan_deps,
+
+        # on_data   => sub ($data) {
+        #     $self->_on_data(@_) if $self;
+        #
+        #     return;
+        # },
+        on_ready => sub ($rpc_proc) {
+            push $self->{_workers}->@*, $rpc_proc;
+
+            # install listener
+            $rpc_proc->out->on_read(
+                sub ($h) {
+                    $self->_on_read($h);
+
+                    return;
+                }
+            );
+
+            $cv->end;
+
+            return;
+        },
+    );
+
+    return;
 }
 
-sub BUILD ( $self, $args ) {
-    P->scalar->weaken($self);
-
-    my $on_ready = AE::cv {
-        $self->on_ready->($self) if $self->on_ready;
-
-        return;
-    };
-
-    for ( 1 .. $self->workers ) {
-        $on_ready->begin;
-
-        push $self->_workers->@*, Pcore::Util::PM::RPC::Proc->new(
-            {   std       => $self->std,
-                console   => $self->console,
-                blocking  => 0,
-                class     => $self->class,
-                args      => $self->args,
-                scan_deps => $self->_scan_deps,
-                on_ready  => sub ($worker) {
-                    $on_ready->end;
+sub _on_read ( $self, $h ) {
+    $h->unshift_read(
+        chunk => 4,
+        sub ( $h, $len ) {
+            $h->unshift_read(
+                chunk => unpack( 'L>', $len ),
+                sub ( $h, $data ) {
+                    $self->_on_data( P->data->from_cbor($data) );
 
                     return;
-                },
-                on_exit => sub ( $worker, $status ) {
-                    return;
-                },
-                on_data => sub ($data) {
-                    $self->_on_data(@_) if $self;
+                }
+            );
 
-                    return;
-                },
-            }
-        );
-    }
+            return;
+        }
+    );
 
     return;
 }
@@ -128,7 +167,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 92                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 131                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

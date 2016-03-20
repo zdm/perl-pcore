@@ -74,7 +74,7 @@ $cv->recv;
 $cv = AE::cv;
 
 # create object
-my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{args} );
+my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{args} // () );
 
 my $deps = {};
 
