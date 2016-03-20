@@ -31,50 +31,40 @@ else {
     open *OUT, '>&=', $BOOT_ARGS->{ipc}->{out} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
 }
 
-# create handles
-my $cv = AE::cv;
+my $IN;                                                      # read from
+my $OUT;                                                     # write to
 
-my ( $in, $out );                                            # in - read, out - write
-
-$cv->begin;
-
+# wrap IN
 Pcore::AE::Handle->new(
     fh       => \*IN,
     on_error => sub ( $h, $fatal, $msg ) {
         exit;
     },
     on_connect => sub ( $h, @ ) {
-        $in = $h;
-
-        $cv->end;
+        $IN = $h;
 
         return;
     }
 );
 
-$cv->begin;
-
+# wrap OUT
 Pcore::AE::Handle->new(
     fh       => \*OUT,
     on_error => sub ( $h, $fatal, $msg ) {
         exit;
     },
     on_connect => sub ( $h, @ ) {
-        $out = $h;
-
-        $cv->end;
+        $OUT = $h;
 
         return;
     }
 );
 
-$cv->recv;
+# create object
+my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{new_args} // () );
 
 # handles are created
-$cv = AE::cv;
-
-# create object
-my $obj = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{args} // () );
+our $CV = AE::cv;
 
 my $deps = {};
 
@@ -99,7 +89,7 @@ my $listener = sub ($req) {
 
         my $data = P->data->to_cbor( [ [ $new_deps ? $deps : undef, $call_id, $$ ], $res ] );
 
-        $out->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
+        $OUT->push_write( pack( 'L>', bytes::length $data->$* ) . $data->$* );
 
         return;
     };
@@ -122,7 +112,7 @@ my $listener = sub ($req) {
 };
 
 # start listen
-$in->on_read(
+$IN->on_read(
     sub ($h) {
         $h->unshift_read(
             chunk => 4,
@@ -145,9 +135,9 @@ $in->on_read(
 );
 
 # handshake, send PID
-$out->push_write("READY$$\x00");
+$OUT->push_write("READY$$\x00");
 
-$cv->recv;
+$CV->recv;
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -156,7 +146,7 @@ $cv->recv;
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 148                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 138                  │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

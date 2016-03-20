@@ -14,10 +14,10 @@ has out => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => un
 
 around new => sub ( $orig, $self, @ ) {
     my %args = (
-        class      => undef,
-        class_args => undef,                                                              # class constructor arguments
-        scan_deps  => 0,
-        on_ready   => undef,
+        class     => undef,
+        new_args  => undef,                                                               # class constructor arguments
+        scan_deps => 0,
+        on_ready  => undef,
         splice @_, 2,
     );
 
@@ -43,7 +43,7 @@ around new => sub ( $orig, $self, @ ) {
             version => $main::VERSION->normal,
         },
         class     => $args{class},
-        args      => $args{class_args},
+        new_args  => $args{new_args},
         scan_deps => $args{scan_deps},
     };
 

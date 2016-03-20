@@ -6,7 +6,7 @@ use Config;
 use Pcore::Util::Scalar qw[weaken];
 
 has class => ( is => 'ro', isa => Str, required => 1 );
-has class_args => ( is => 'ro', isa => Maybe [HashRef], init_arg => undef );
+has new_args => ( is => 'ro', isa => Maybe [HashRef], init_arg => undef );
 
 has _workers => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _call_id => ( is => 'ro', default => 0, init_arg => undef );
@@ -15,15 +15,15 @@ has _scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 around new => sub ( $orig, $self, $class, @args ) {
     my %args = (
-        class_args => undef,
-        workers    => undef,
+        new_args => undef,
+        workers  => undef,
         splice @_, 3,
     );
 
     # create RPC object
     my $rpc = $self->$orig(
-        {   class      => $class,
-            class_args => $args{class_args},
+        {   class    => $class,
+            new_args => $args{new_args},
         }
     );
 
@@ -59,9 +59,9 @@ sub _create_worker ( $self, $cv ) {
     $cv->begin;
 
     Pcore::Util::PM::RPC::Proc->new(
-        class      => $self->class,
-        class_args => $self->class_args,
-        scan_deps  => $self->_scan_deps,
+        class     => $self->class,
+        new_args  => $self->new_args,
+        scan_deps => $self->_scan_deps,
 
         # on_data   => sub ($data) {
         #     $self->_on_data(@_) if $self;
