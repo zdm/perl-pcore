@@ -61,7 +61,7 @@ Pcore::AE::Handle->new(
 );
 
 # create object
-my $OBJ = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
+my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
 
 my $DEPS    = {};
 my $QUEUE   = {};
@@ -113,11 +113,11 @@ sub _on_data ($data) {
 sub _on_call_responder ( $call_id, $data ) {
 
     # make PAR deps snapshot after each call
-    my $new_deps;
+    my $new_deps_found;
 
     if ( $BOOT_ARGS->{scan_deps} ) {
         for my $pkg ( grep { !exists $DEPS->{$_} } keys %INC ) {
-            $new_deps = 1;
+            $new_deps_found = 1;
 
             $DEPS->{$pkg} = $INC{$pkg};
         }
@@ -126,7 +126,7 @@ sub _on_call_responder ( $call_id, $data ) {
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
                 call_id => $call_id,
-                deps    => $new_deps ? $DEPS : undef,
+                deps    => $new_deps_found ? $DEPS : undef,
             },
             $data
         ]
@@ -138,23 +138,23 @@ sub _on_call_responder ( $call_id, $data ) {
 }
 
 sub _on_call ( $call_id, $method, $data ) {
-    if ( !$OBJ->can($method) ) {
+    if ( !$RPC->can($method) ) {
         die qq[Unknown RPC method "$method"];
     }
     else {
-        my $responder = !defined $call_id ? undef : sub ($data = undef) {
+        my $cb = !defined $call_id ? undef : sub ($data = undef) {
             _on_call_responder( $call_id, $data );
 
             return;
         };
 
-        $OBJ->$method( $responder, $data );
+        $RPC->$method( $cb, $data );
     }
 
     return;
 }
 
-sub call ( $self, $method, $data = undef, $cb = undef ) {
+sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     my $call_id;
 
     if ($cb) {

@@ -7,7 +7,7 @@ use Pcore::Util::Scalar qw[weaken];
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has buildargs => ( is => 'ro', isa => Maybe [HashRef] );   # RPC object constructor arguments
-has on_call   => ( is => 'ro', isa => Maybe [CodeRef] );   # CodeRef($cb, $method, $data)
+has on_call   => ( is => 'ro', isa => Maybe [CodeRef] );   # CodeRef($cb, $method, $data), $cb can be undef, if is not required on remote side
 
 has _workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _workers_idx => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
@@ -149,7 +149,7 @@ sub _on_call ( $self, $worker_pid, $call_id, $method, $data ) {
         die qq[RPC worker trying to call method "$method"];
     }
     else {
-        my $responder = !defined $call_id ? undef : sub ($data = undef) {
+        my $cb = !defined $call_id ? undef : sub ($data = undef) {
             my $cbor = P->data->to_cbor( [ { call_id => $call_id, }, $data ] );
 
             my $worker = $self->{_workers_idx}->{$worker_pid};
@@ -159,13 +159,13 @@ sub _on_call ( $self, $worker_pid, $call_id, $method, $data ) {
             return;
         };
 
-        $self->on_call->( $responder, $method, $data );
+        $self->on_call->( $cb, $method, $data );
     }
 
     return;
 }
 
-sub call ( $self, $method, $data = undef, $cb = undef ) {
+sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     my $call_id;
 
     if ($cb) {
