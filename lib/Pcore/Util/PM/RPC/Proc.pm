@@ -9,7 +9,7 @@ use Pcore::Util::Scalar qw[weaken];
 use if $MSWIN, 'Win32API::File';
 
 has proc => ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
-has pid => ( is => 'ro', isa => Int, init_arg => undef );
+has pid => ( is => 'ro', isa => Int, init_arg => undef );    # real RPC process PID, reported in handshake
 has in  => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );    # process IN channel, we can write
 has out => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );    # process OUT channel, we can read
 
