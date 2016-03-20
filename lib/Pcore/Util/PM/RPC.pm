@@ -5,9 +5,9 @@ use Pcore::Util::PM::RPC::Proc;
 use Config;
 use Pcore::Util::Scalar qw[weaken];
 
-has class => ( is => 'ro', isa => Str, required => 1 );
-has new_args => ( is => 'ro', isa => Maybe [HashRef] );
-has on_call  => ( is => 'ro', isa => Maybe [CodeRef] );
+has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
+has buildargs => ( is => 'ro', isa => Maybe [HashRef] );   # RPC object constructor arguments
+has on_call   => ( is => 'ro', isa => Maybe [CodeRef] );   # CodeRef($cb, $method, $data)
 
 has _workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _workers_idx => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
@@ -17,9 +17,9 @@ has _scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 around new => sub ( $orig, $self, $class, @args ) {
     my %args = (
-        new_args => undef,
-        on_call  => undef,
-        workers  => undef,
+        buildargs => undef,                                # Maybe[HashRef], RPC object constructor arguments
+        on_call   => undef,                                # CodeRef($cb, $method, $data)
+        workers   => undef,                                # FALSE - max. CPUs, -n - CPUs - n || 1
         splice( @_, 3 ),
         class => $class,
     );
@@ -60,7 +60,7 @@ sub _create_worker ( $self, $cv ) {
 
     Pcore::Util::PM::RPC::Proc->new(
         class     => $self->class,
-        new_args  => $self->new_args,
+        buildargs => $self->buildargs,
         scan_deps => $self->_scan_deps,
         on_ready  => sub ($rpc_proc) {
             push $self->{_workers}->@*, $rpc_proc;

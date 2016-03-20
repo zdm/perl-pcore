@@ -61,14 +61,13 @@ Pcore::AE::Handle->new(
 );
 
 # create object
-my $OBJ = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{new_args} // () );
-
-# handles are created
-our $CV = AE::cv;
+my $OBJ = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
 
 my $DEPS    = {};
 my $QUEUE   = {};
 my $CALL_ID = 0;
+
+our $CV = AE::cv;
 
 # start listen
 $IN->on_read(
@@ -179,7 +178,7 @@ sub call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 97                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 96                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
