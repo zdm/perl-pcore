@@ -1,3 +1,12 @@
+v0.19.0 2016-03-20T22:15:05Z
+ [BUG]
+ - [minor] Add possibility to release v0.1.0
+   (https://bitbucket.org/softvisio/pcore/issues/25/)
+
+ [ENHANCEMENT]
+ - [minor] Pcore::Util::PM::Proc API improvements
+   (https://bitbucket.org/softvisio/pcore/issues/18/)
+
 v0.18.2 2016-02-20T04:26:48Z
  - No issues were closed since the last release
 
