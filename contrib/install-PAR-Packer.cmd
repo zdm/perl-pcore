@@ -24,12 +24,14 @@ copy "%~dp0\PAR-Packer.patch" "%TEMP%\PAR-Packer-%PAR_PACKER_VER%"
 d:\devel\msys2\usr\bin\patch.exe -p1 -i PAR-Packer.patch
 if errorlevel 1 goto ERROR
 
-call cpanm32 -v .
+call cpanm32 .
 if errorlevel 1 goto ERROR
 
+echo.
 dmake clean
 
-call cpanm64 -v .
+echo.
+call cpanm64 .
 if errorlevel 1 goto ERROR
 
 goto EXIT
