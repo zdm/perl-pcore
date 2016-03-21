@@ -2,8 +2,6 @@
 
 setlocal
 
-set TEMP=d:\tmp
-
 pushd "%TEMP%"
 
 set PAR_PACKER_VER=1.029
@@ -28,7 +26,7 @@ call cpanm32 .
 if errorlevel 1 goto ERROR
 
 echo.
-dmake clean
+dmake clean >nul 2>&1
 
 echo.
 call cpanm64 .
