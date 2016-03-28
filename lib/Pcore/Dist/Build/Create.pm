@@ -82,7 +82,7 @@ sub run ($self) {
         # clone upstream repo
         P->file->mkpath( $self->target_path );
 
-        print 'Cloniing upstream repository ... ';
+        print 'Cloning upstream repository ... ';
 
         my $scm = Pcore::Src::SCM::Hg::Server->new( { root => $self->target_path } );
 

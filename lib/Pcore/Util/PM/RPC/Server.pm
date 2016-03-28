@@ -60,14 +60,17 @@ Pcore::AE::Handle->new(
     }
 );
 
-# create object
-my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
+# handshake, send PID
+$OUT->push_write("READY$$\x00");
 
 my $DEPS    = {};
 my $QUEUE   = {};
 my $CALL_ID = 0;
 
 our $CV = AE::cv;
+
+# create object
+my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
 
 # start listen
 $IN->on_read(
@@ -91,9 +94,6 @@ $IN->on_read(
         return;
     }
 );
-
-# handshake, send PID
-$OUT->push_write("READY$$\x00");
 
 $CV->recv;
 
@@ -178,7 +178,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 96                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 64                   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
