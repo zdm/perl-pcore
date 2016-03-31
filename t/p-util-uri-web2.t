@@ -6,26 +6,24 @@ use Pcore;
 use Test::More;
 
 our $TESTS = [    #
-    [ 'tumblr.com',                  'web2_id', q[] ],
-    [ 'aaa.tumblr.com',              'web2_id', q[tumblr.com] ],
-    [ 'bbb.aaa.tumblr.com',          'web2_id', q[] ],
-    [ 'www.aaa.tumblr.com',          'web2_id', q[tumblr.com] ],
-    [ 'blogspot.com/path',           'web2_id', q[] ],
-    [ 'www.blogspot.com/path',       'web2_id', q[] ],
-    [ 'aaa.blogspot.com/path',       'web2_id', q[blogspot] ],
-    [ 'blogspot.co.uk/path',         'web2_id', q[] ],
-    [ 'www.blogspot.co.uk/path',     'web2_id', q[] ],
-    [ 'aaa.blogspot.co.uk/path',     'web2_id', q[blogspot] ],
-    [ 'www.blogspot.co.uk.tld/path', 'web2_id', q[] ],
-    [ 'aaa.blogspot.co.uk.tld/path', 'web2_id', q[] ],
-    [ 'twitter.com/path',            'web2_id', q[twitter.com] ],
-    [ 'www.twitter.com/path',        'web2_id', q[twitter.com] ],
-    [ 'aaa.twitter.com/path',        'web2_id', q[] ],
-    [ 'twitter.com/path/subpath',    'web2_id', q[twitter.com] ],
-
-    #
-    [ 'aaa.twitter.com/path', 'is_web2',       1 ],
-    [ 'aaa.twitter.com/path', 'is_web2_valid', 0 ],
+    [ 'tumblr.com',                     is_web2 => 0 ],
+    [ 'aaa.tumblr.com',                 is_web2 => 1 ],
+    [ 'faketumblr.com',                 is_web2 => 0 ],
+    [ 'bbb.aaa.tumblr.com',             is_web2 => 0 ],
+    [ 'www.aaa.tumblr.com',             is_web2 => 1 ],
+    [ 'blogspot.com/path',              is_web2 => 0 ],
+    [ 'www.blogspot.com/path',          is_web2 => 0 ],
+    [ 'aaa.blogspot.com/path',          is_web2 => 1 ],
+    [ 'blogspot.co.uk/path',            is_web2 => 0 ],
+    [ 'www.blogspot.co.uk/path',        is_web2 => 0 ],
+    [ 'aaa.blogspot.co.uk/path',        is_web2 => 1 ],
+    [ 'www.blogspot.co.uk.tld/path',    is_web2 => 0 ],
+    [ 'aaa.blogspot.co.uk.tld/path',    is_web2 => 0 ],
+    [ 'twitter.com/path',               is_web2 => 1 ],
+    [ 'www.twitter.com/path/asd/asd/s', is_web2 => 1 ],
+    [ 'aaa.twitter.com/path/11/',       is_web2 => 0 ],
+    [ 'twitter.com/path/subpath',       is_web2 => 1 ],
+    [ 'faketwitter.com/path/subpath',   is_web2 => 0 ],
 ];
 
 plan tests => scalar $TESTS->@*;
@@ -33,11 +31,13 @@ plan tests => scalar $TESTS->@*;
 my $i;
 
 for my $test ( $TESTS->@* ) {
-    my $method = $test->[1];
-
     my $uri = P->uri( $test->[0], base => 'http://', authority => 1 );
 
-    say dump $uri->_web2_parsed if !ok( $uri->$method eq $test->[2], $i++ . q[_] . $test->[0] );
+    my %methods = splice $test->@*, 1;
+
+    for my $method ( sort keys %methods ) {
+        say dump $uri->_web2_data if !ok( $uri->$method eq $methods{$method}, $i++ . "_$test->[0]_$method" );
+    }
 }
 
 done_testing scalar $TESTS->@*;
