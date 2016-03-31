@@ -373,11 +373,30 @@ sub _read_body ( $args, $runtime, $cb ) {
         return;
     }
 
-    # no body expected for the following conditions
-    if ( $runtime->{res}->status < 200 || $runtime->{res}->status == 204 || $runtime->{res}->status == 205 || $runtime->{res}->status == 304 || $args->{method} eq 'HEAD' || ( !$chunked && $runtime->{content_length} == 0 ) ) {
-        $cb->();
+    # check, if content body is expected
+    if ( !$chunked && $runtime->{content_length} == 0 ) {
 
-        return;
+        # if Transfer-Encoding is not chunked and Content-Length is not specified:
+        # - if connection is persistent - no content body is expected;
+        # - if connection is NOT persistent - read content body unless EOF;
+        #
+        # HTTP/1.0 if connection is persistent - "Connection: keep-alive" header must be exists;
+        # HTTP/1.1 if connection is NOT persistent - "Connection: close" header must be exists;
+        # "Transfer-Encoding: chunked" is supported only by HTTP/1.1;
+
+        # HTTP/1.0 and "Connection: keep-alive" is present - connection is persistent - no content body is expected
+        if ( $runtime->{res}->{version} eq '1.0' && $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bkeep-alive\b/smi ) {
+            $cb->();
+
+            return;
+        }
+
+        # HTTP/1.1 and no "Connection: close" is present - connection is persistent - no content body is expected
+        elsif ( $runtime->{res}->{version} eq '1.1' && !$runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bclose\b/smi ) {
+            $cb->();
+
+            return;
+        }
     }
 
     my $decode;
@@ -594,11 +613,11 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 23                   │ * Subroutine "http_request" with high complexity score (29)                                                    │
 ## │      │ 238                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 359                  │ * Subroutine "_read_body" with high complexity score (65)                                                      │
+## │      │ 359                  │ * Subroutine "_read_body" with high complexity score (66)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 542                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 561                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
