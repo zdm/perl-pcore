@@ -6,6 +6,7 @@ has _web2_data  => ( is => 'lazy', isa => Maybe [ArrayRef], init_arg => undef );
 has web2_domain => ( is => 'lazy', isa => Maybe [Str],      init_arg => undef );
 has web2_id     => ( is => 'lazy', isa => Maybe [Str],      init_arg => undef );
 has is_web2 => ( is => 'lazy', isa => Bool, init_arg => undef );
+has web2_canon => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );    # subdomain.domain.tld, domain.tld/path/, without scheme
 
 our $WEB2_CFG = P->cfg->load( $ENV->share->get('/data/web2.perl') );
 
@@ -43,10 +44,12 @@ sub _build__web2_data ($self) {
         if ( $WEB2_CFG->{$web2_id}->{path} ) {
 
             # path-based web2 url must not contain subdomain and must have nont empty path
-            $res = [ $web2_id, $web2_domain ] if $self->host->canon =~ /\A\Q$web2_domain\E\z/sm && $self->path =~ m[\A(/[^/]+)/?]smo;
+            if ( $self->host->canon eq $web2_domain && $self->path =~ m[\A(/[^/]+)/?]smo ) {
+                $res = [ $web2_id, $web2_domain, $web2_domain . $1 . q[/] ];
+            }
         }
-        elsif ( $self->host->canon =~ /\A[^.]+[.]\Q$web2_domain\E\z/sm ) {
-            $res = [ $web2_id, $web2_domain ];
+        elsif ( $self->host->canon =~ /([^.]+[.]\Q$web2_domain\E)\z/sm ) {
+            $res = [ $web2_id, $web2_domain, $1 ];
         }
     }
 
@@ -80,6 +83,15 @@ sub _build_is_web2 ($self) {
     }
 }
 
+sub _build_web2_canon ($self) {
+    if ( my $web2_data = $self->_web2_data ) {
+        return $web2_data->[2];
+    }
+    else {
+        return;
+    }
+}
+
 sub web2_load_cfg ( $self, $cfg, $merge = 1 ) {
     if ($merge) {
         P->hash->merge( $WEB2_CFG, $cfg );
@@ -94,7 +106,7 @@ sub web2_load_cfg ( $self, $cfg, $merge = 1 ) {
 }
 
 # NOTE http request must be performed with recursion enabled
-sub is_web2_available ( $self, $http_res ) {
+sub web2_check_available ( $self, $http_res ) {
     return if !$self->is_web2;
 
     my $cfg = $WEB2_CFG->{ $self->web2_id };
@@ -113,7 +125,7 @@ sub is_web2_available ( $self, $http_res ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 17                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 18                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
