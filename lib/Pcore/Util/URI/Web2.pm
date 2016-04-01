@@ -107,7 +107,9 @@ sub web2_load_cfg ( $self, $cfg, $merge = 1 ) {
 
 # NOTE http request must be performed with recursion enabled
 sub web2_check_available ( $self, $http_res ) {
-    return if !$self->is_web2;
+    return undef if !$self->is_web2;    ## no critic qw[Subroutines::ProhibitExplicitReturnUndef]
+
+    return undef if !$http_res->body;   ## no critic qw[Subroutines::ProhibitExplicitReturnUndef]
 
     my $cfg = $WEB2_CFG->{ $self->web2_id };
 
