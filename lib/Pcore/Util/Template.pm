@@ -29,9 +29,9 @@ around new => sub ( $orig, $self, %args ) {
         cache       => 1,
         cache_dir   => $ENV->{TEMP_DIR} . '.xslate',
         input_layer => q[:encoding(UTF-8)],
-        type        => 'html',                              # html, text}
-        syntax      => 'Kolon',                             # Kolon, TTerse
-        module      => ['Text::Xslate::Bridge::TT2Like'],
+        type        => 'html',                                                              # html, text}
+        syntax      => 'Kolon',                                                             # Kolon, TTerse
+        module      => [ 'Text::Xslate::Bridge::TT2Like', 'Text::Xslate::Bridge::Star' ],
         function    => {
             i18n => sub {
                 return i18n( \@_ );

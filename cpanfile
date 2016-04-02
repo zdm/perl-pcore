@@ -153,6 +153,7 @@ requires 'Text::ASCIITable';
 # Pcore::Util::Template
 requires 'Text::Xslate';
 requires 'Text::Xslate::Bridge::TT2Like';
+requires 'Text::Xslate::Bridge::Star';
 
 # Pcore::Util::UUID
 requires 'Data::UUID';
