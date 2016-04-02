@@ -337,9 +337,9 @@ sub _read_headers ( $args, $runtime, $cb ) {
 
                 # clean and set content length
                 if ( my $cl = delete $res->{headers}->{CONTENT_LENGTH} ) {
-                    $cl = $cl->[0] =~ s/\s//smgr;
+                    $cl->[0] =~ s/\s//smg;
 
-                    $runtime->{res}->_set_content_length($cl) if $cl;
+                    eval { $runtime->{res}->_set_content_length( $cl->[0] ) } if $cl->[0];
                 }
 
                 # fill response object with HTTP response headers data
@@ -630,6 +630,8 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │      │ 364                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 342                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 575                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
