@@ -335,7 +335,12 @@ sub _read_headers ( $args, $runtime, $cb ) {
                     }
                 }
 
-                $runtime->{res}->_set_content_length( delete( $res->{headers}->{CONTENT_LENGTH} )->[0] ) if exists $res->{headers}->{CONTENT_LENGTH};
+                # clean and set content length
+                if ( my $cl = delete $res->{headers}->{CONTENT_LENGTH} ) {
+                    $cl = $cl->[0] =~ s/\s//smgr;
+
+                    $runtime->{res}->_set_content_length($cl) if $cl;
+                }
 
                 # fill response object with HTTP response headers data
                 $runtime->{res}->{headers} = $res->{headers};
@@ -622,11 +627,11 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 23                   │ * Subroutine "http_request" with high complexity score (29)                                                    │
 ## │      │ 238                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 359                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
+## │      │ 364                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 570                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 575                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
