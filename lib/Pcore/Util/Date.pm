@@ -96,7 +96,7 @@ sub parse ( $self, $date ) {
     };
 
     if ( my @http_date = HTTP::Date::parse_date($date) ) {
-        return $self->new(
+        my %args = (    #
             year       => $http_date[0],
             month      => $http_date[1],
             day        => $http_date[2],
@@ -104,8 +104,18 @@ sub parse ( $self, $date ) {
             minute     => $http_date[4],
             second     => $http_date[5],
             nanosecond => 0,
-            offset     => Time::Zone::tz_offset( $http_date[6] ) / 60,
         );
+
+        if ( defined $http_date[6] ) {
+            my $offset = Time::Zone::tz_offset( $http_date[6] );
+
+            # invalid offset
+            die qq[Invalid date offset "$http_date[6]"] if !defined $offset;
+
+            $args{offset} = $offset / 60;
+        }
+
+        return $self->new(%args);
     }
     else {
         return;

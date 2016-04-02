@@ -129,7 +129,7 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
             }
             elsif ( $k eq 'expires' ) {
                 if ( !$cookie->{expires} ) {    # do not process expires attribute, if expires is already set by expires or max-age
-                    if ( my $expires = P->date->parse($v) ) {
+                    if ( my $expires = eval { P->date->parse($v) } ) {
                         $cookie->{expires} = $expires->epoch;
                     }
                     else {
