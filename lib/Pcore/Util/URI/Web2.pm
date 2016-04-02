@@ -117,7 +117,7 @@ sub web2_check_available ( $self, $http_res ) {
     if ( $cfg->{status} && $http_res->status == $cfg->{status} ) { return 1 }
 
     if ( $cfg->{re} ) {
-        eval { decode_utf8 $res->body->$* };
+        eval { decode_utf8 $http_res->body->$* };
 
         return 1 if $http_res->body->$* =~ $cfg->{re};
     }
