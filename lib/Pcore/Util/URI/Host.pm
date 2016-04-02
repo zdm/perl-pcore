@@ -188,7 +188,8 @@ sub _build_is_valid ($self) {
         return 1;
     }
 
-    return 1;
+    # host considered invalid if host is empty
+    return 0;
 }
 
 sub _build_is_tld ($self) {
@@ -326,7 +327,7 @@ sub _build_root_domain_utf8 ($self) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 71, 78, 92           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 267, 270             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 268, 271             │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
