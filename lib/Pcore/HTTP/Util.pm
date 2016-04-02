@@ -62,11 +62,11 @@ sub http_request ($args) {
                 $persistent = 0 if $runtime->{h}->{proxy} && $args->{persistent} == $PERSISTENT_NO_PROXY;
 
                 if ($persistent) {
-                    if ( $runtime->{res}->version < 1.1 ) {    # 1.0
-                        $persistent = 0 if !exists $runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bkeep-?alive\b/smi;
+                    if ( $runtime->{res}->{version} == 1.1 ) {    # HTTP/1.1
+                        $persistent = 0 if $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bclose\b/smi;
                     }
-                    else {                                     # 1.1
-                        $persistent = 0 if exists $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bclose\b/smi;
+                    elsif ( $runtime->{res}->{version} == 1.0 ) {    # HTTP/1.0
+                        $persistent = 0 if !$runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bkeep-?alive\b/smi;
                     }
                 }
 
@@ -384,15 +384,24 @@ sub _read_body ( $args, $runtime, $cb ) {
         # HTTP/1.1 if connection is NOT persistent - "Connection: close" header must be exists;
         # "Transfer-Encoding: chunked" is supported only by HTTP/1.1;
 
-        # HTTP/1.0 and "Connection: keep-alive" is present - connection is persistent - no content body is expected
-        if ( $runtime->{res}->{version} eq '1.0' && $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bkeep-alive\b/smi ) {
-            $cb->();
-
-            return;
-        }
+        my $persistent = 1;
 
         # HTTP/1.1 and no "Connection: close" is present - connection is persistent - no content body is expected
-        elsif ( $runtime->{res}->{version} eq '1.1' && !$runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bclose\b/smi ) {
+        if ( $runtime->{res}->{version} == 1.1 ) {
+            $persistent = 0 if $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bclose\b/smi;
+        }
+
+        # HTTP/1.0 and "Connection: keep-alive" is present - connection is persistent - no content body is expected
+        elsif ( $runtime->{res}->{version} == 1.0 ) {
+
+            # in HTTP/1.0 connection is not persistent by default
+            $persistent = 0;
+
+            $persistent = 1 if $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bkeep-?alive\b/smi;
+        }
+
+        # return and do not read body if connection is persistent
+        if ($persistent) {
             $cb->();
 
             return;
@@ -613,11 +622,11 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 23                   │ * Subroutine "http_request" with high complexity score (29)                                                    │
 ## │      │ 238                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 359                  │ * Subroutine "_read_body" with high complexity score (66)                                                      │
+## │      │ 359                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 561                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 570                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
