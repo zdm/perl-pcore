@@ -1,6 +1,7 @@
 package Pcore::Util::URI::Web2;
 
 use Pcore -role;
+use Pcore::Util::Text qw[decode_utf8];
 
 has _web2_data  => ( is => 'lazy', isa => Maybe [ArrayRef], init_arg => undef );
 has web2_domain => ( is => 'lazy', isa => Maybe [Str],      init_arg => undef );
@@ -115,7 +116,11 @@ sub web2_check_available ( $self, $http_res ) {
 
     if ( $cfg->{status} && $http_res->status == $cfg->{status} ) { return 1 }
 
-    if ( $cfg->{re} && $http_res->body->$* =~ $cfg->{re} ) { return 1 }
+    if ( $cfg->{re} ) {
+        eval { decode_utf8 $res->body->$* };
+
+        return 1 if $http_res->body->$* =~ $cfg->{re};
+    }
 
     return 0;
 }
@@ -127,7 +132,9 @@ sub web2_check_available ( $self, $http_res ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 18                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 19                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 120                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
