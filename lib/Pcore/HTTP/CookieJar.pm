@@ -10,8 +10,32 @@ sub clear ($self) {
     return;
 }
 
+# COOKIES LIMITATIONS:
+# http://browsercookielimits.squawky.net/
+#
+# RFC 2965 - http://www.ietf.org/rfc/rfc2965.txt;
+# To get a good understanding of cookies read this - http://www.quirksmode.org/js/cookies.html;
+# Cookies are stored as a single string containing name, value, expiry etc.;
+# Size limits apply to the entire cookie, not just its value;
+# If you use characters only in the ASCII range, each character takes 1 byte, so you can typically store 4096 characters;
+# In UTF-8 some characters are more than 1 byte, hence you can not store as many characters in the same amount of bytes;
+# The ';' character is reserved as a separator. Do not use it in the key or value;
+# jQuery Cookie plugin stores the cookie using encodeURIComponent. Hence ÿ is stored as %C3%BF, 6 characters. This works well, as other you would lose the ';' character;
+# You cannot delete cookies with a key that hits the size limit and has a small value. The method to delete a cookie is to set its expiry value, but when the key is large there is not enough room left to do this. Hence I have not tested limitations around key size;
+# It appears that some browsers limit by bytes, while others limit the number of characters;
+
 sub parse_cookies ( $self, $url, $set_cookie_header ) {
   COOKIE: for ( $set_cookie_header->@* ) {
+        my ( $kvp, @attrs ) = split /;/sm;
+
+        next if !defined $kvp;
+
+        # trim
+        $kvp =~ s/\A\s+//smo;
+        $kvp =~ s/\s+\z//smo;
+
+        next if $kvp eq q[];
+
         my $cookie = {
             domain   => $url->host->name,
             path     => $url->path->to_string,
@@ -19,14 +43,6 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
             httponly => 0,
             secure   => 0,
         };
-
-        my ( $kvp, @attrs ) = split /;/sm;
-
-        # trim
-        $kvp =~ s/\A\s+//smo;
-        $kvp =~ s/\s+\z//smo;
-
-        next if $kvp eq q[];
 
         if ( ( my $idx = index $kvp, q[=] ) != -1 ) {
             $cookie->{name} = substr $kvp, 0, $idx;
@@ -225,9 +241,9 @@ sub _match_path ( $self, $url_path, $cookie_path ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 13                   │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (31)             │
+## │    3 │ 27                   │ Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (32)             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 186, 188             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 202, 204             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
