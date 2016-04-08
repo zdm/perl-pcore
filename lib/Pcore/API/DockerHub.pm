@@ -13,7 +13,12 @@ has login_token => ( is => 'ro', isa => Str, init_arg => undef );
 const our $API_VERSION => 2;
 const our $URL         => "https://hub.docker.com/v$API_VERSION";
 
-sub login ( $self, $cb = undef ) {
+sub login ( $self, % ) {
+    my %args = (
+        cb => undef,
+        splice @_, 1
+    );
+
     return $self->_request(
         'post',
         '/users/login/',
@@ -28,27 +33,30 @@ sub login ( $self, $cb = undef ) {
                 $self->{login_token} = delete $res->{result}->{token};
             }
 
-            $cb->($res) if $cb;
+            $args{cb}->($res) if $args{cb};
 
             return;
         }
     );
 }
 
-sub user ( $self, $username = undef, $cb = undef ) {
-    $username //= $self->username;
+sub get_user ( $self, % ) {
+    my %args = (
+        username => $self->username,
+        cb       => undef,
+        splice @_, 2
+    );
 
-    return $self->_request( 'get', '/users/' . lc $username . q[/], undef, undef, $cb );
+    return $self->_request( 'get', "/users/$args{username}/", undef, undef, $args{cb} );
 }
 
-sub create_repo ( $self, $repo_name, @ ) {
-    my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-
+sub create_repo ( $self, $repo_name, % ) {
     my %args = (
         repo_owner => $self->username,
         private    => 0,
         desc       => '',
         full_desc  => '',
+        cb         => undef,
         splice @_, 2
     );
 
@@ -69,18 +77,55 @@ sub create_repo ( $self, $repo_name, @ ) {
                 $res->{reason} = $res->{result}->{__all__}->[0] if $res->{result}->{__all__}->[0];
             }
 
-            $cb->($res) if $cb;
+            $args{cb}->($res) if $args{cb};
 
             return;
         }
     );
 }
 
-sub delete_repo ( $self, $repo_name, @ ) {
-    my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+sub create_automated_build ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner    => $self->username,
+        private       => 0,
+        active        => 1,
+        provider      => undef,             # bitbucket, github
+        vcs_repo_name => undef,             # source repository repo_owner/repo_name
+        desc          => q[],
+        build_tags    => [
+            {   'name'                => '{sourceref}',    # docker build tag name
+                'source_type'         => 'Tag',            # Branch, Tag
+                'source_name'         => '/.*/',           # barnch / tag name in the source repository
+                'dockerfile_location' => '/',
+            },
+        ],
+        cb => undef,
+        splice @_,
+        2
+    );
 
+    return $self->_request(
+        'post',
+        "/repositories/$args{repo_owner}/$repo_name/autobuild/",
+        1,
+        {   name                => $repo_name,
+            namespace           => $args{repo_owner},
+            is_private          => $args{private},
+            active              => $args{active} ? $TRUE : $FALSE,
+            dockerhub_repo_name => "$args{repo_owner}/$repo_name",
+            provider            => $args{provider},
+            vcs_repo_name       => $args{vcs_repo_name},
+            description         => $args{desc},
+            build_tags          => $args{build_tags},
+        },
+        $args{cb}
+    );
+}
+
+sub delete_repo ( $self, $repo_name, % ) {
     my %args = (
         repo_owner => $self->username,
+        cb         => undef,
         splice @_, 2
     );
 
@@ -91,7 +136,7 @@ sub delete_repo ( $self, $repo_name, @ ) {
         sub ($res) {
             $res->{status} = 200 if $res->{status} == 202;
 
-            $cb->($res) if $cb;
+            $args{cb}->($res) if $args{cb};
 
             return;
         }
@@ -99,20 +144,108 @@ sub delete_repo ( $self, $repo_name, @ ) {
 }
 
 # special repo owner "library" can be used to get official repositories
-sub repo ( $self, $repo_name = undef, $repo_owner = undef, @ ) {
-    my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+sub get_repo ( $self, $repo_name = undef, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
 
     $repo_name //= q[];
 
-    $repo_owner //= $self->username;
-
-    return $self->_request( 'get', '/repositories/' . lc $repo_owner . "/$repo_name/", 1, undef, $cb );
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/", 1, undef, $args{cb} );
 }
 
-sub repos ( $self, $username = undef, $cb = undef ) {
-    $username //= $self->username;
+sub get_repos ( $self, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 1
+    );
 
-    return $self->_request( 'get', '/users/' . lc $username . '/repositories/', 1, undef, $cb );
+    return $self->_request( 'get', "/users/$args{repo_owner}/repositories/", 1, undef, $args{cb} );
+}
+
+sub get_build_details ( $self, $repo_name, $build_id, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/buildhistory/$build_id/", 1, undef, $args{cb} );
+}
+
+sub get_build_history ( $self, $repo_name, % ) {
+    my %args = (
+        page       => 1,
+        page_size  => 100,
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/buildhistory/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
+}
+
+sub get_build_settings ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/autobuild/", 1, undef, $args{cb} );
+}
+
+sub delete_build_tag ( $self, $repo_name, $build_tag_id, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 3
+    );
+
+    return $self->_request( 'delete', "/repositories/$args{repo_owner}/$repo_name/autobuild/tags/$build_tag_id/", 1, undef, $args{cb} );
+}
+
+sub get_build_links ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/links/", 1, undef, $args{cb} );
+}
+
+sub get_build_trigger ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/buildtrigger/", 1, undef, $args{cb} );
+}
+
+sub get_build_trigger_history ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/buildtrigger/history", 1, undef, $args{cb} );
+}
+
+sub delete_build_link ( $self, $repo_name, $build_link_id, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 3
+    );
+
+    return $self->_request( 'delete', "/repositories/$args{repo_owner}/$repo_name/links/$build_link_id/", 1, undef, $args{cb} );
 }
 
 sub _request ( $self, $type, $path, $auth, $data, $cb ) {
@@ -148,7 +281,7 @@ sub _request ( $self, $type, $path, $auth, $data, $cb ) {
     }
     else {
         $self->login(
-            sub ($res) {
+            cb => sub ($res) {
                 if ( $res->is_success ) {
                     $request->();
                 }
@@ -173,11 +306,16 @@ sub _request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 102, 118             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 169, 201, 241, 251   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 50, 51               │ ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  │
+## │    2 │ 57, 58               │ ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 47, 82               │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    2 │ 99                   │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 17, 44, 54, 88, 126, │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │      │ 148, 160, 170, 180,  │                                                                                                                │
+## │      │ 192, 202, 212, 222,  │                                                                                                                │
+## │      │ 232, 242             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
