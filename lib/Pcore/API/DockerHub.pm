@@ -50,6 +50,17 @@ sub get_user ( $self, % ) {
     return $self->_request( 'get', "/users/$args{username}/", undef, undef, $args{cb} );
 }
 
+sub get_registry_settings ( $self, % ) {
+    my %args = (
+        cb => undef,
+        splice @_, 1
+    );
+
+    my $username = $self->username;
+
+    return $self->_request( 'get', "/users/$username/registry-settings/", 1, undef, $args{cb} );
+}
+
 # COLLABORATORS
 sub create_collaborator ( $self, $repo_name, $collaborator_name, % ) {
     my %args = (
@@ -196,6 +207,71 @@ sub get_repos ( $self, % ) {
     );
 
     return $self->_request( 'get', "/users/$args{repo_owner}/repositories/", 1, undef, $args{cb} );
+}
+
+sub set_repo_desc ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        desc       => undef,
+        desc_full  => undef,
+        splice @_, 2
+    );
+
+    return $self->_request(
+        'patch',
+        "/repositories/$args{repo_owner}/$repo_name/",
+        1,
+        {   description      => $args{desc},
+            description_full => $args{desc_full},
+        },
+        $args{cb}
+    );
+}
+
+sub get_repo_comments ( $self, $repo_name, % ) {
+    my %args = (
+        page       => 1,
+        page_size  => 100,
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/comments/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
+}
+
+# STAR
+sub get_starred_repos ( $self, % ) {
+    my %args = (
+        page      => 1,
+        page_size => 100,
+        username  => $self->username,
+        cb        => undef,
+        splice @_, 1
+    );
+
+    return $self->_request( 'get', "/users/$args{username}/repositories/starred/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
+}
+
+sub star_repo ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'post', "/repositories/$args{repo_owner}/$repo_name/stars/", 1, {}, $args{cb} );
+}
+
+sub unstar_repo ( $self, $repo_name, % ) {
+    my %args = (
+        repo_owner => $self->username,
+        cb         => undef,
+        splice @_, 2
+    );
+
+    return $self->_request( 'delete', "/repositories/$args{repo_owner}/$repo_name/stars/", 1, undef, $args{cb} );
 }
 
 # REPO TAG
@@ -490,22 +566,24 @@ sub _request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 54, 74, 214, 225,    │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
-## │      │ 245, 302, 327, 359,  │                                                                                                                │
-## │      │ 381, 392, 402, 424,  │                                                                                                                │
-## │      │ 435                  │                                                                                                                │
+## │    3 │ 65, 85, 290, 301,    │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │      │ 321, 378, 403, 435,  │                                                                                                                │
+## │      │ 457, 468, 478, 500,  │                                                                                                                │
+## │      │ 511                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 89, 90               │ ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  │
+## │    2 │ 100, 101             │ ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 131, 229, 285, 309   │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 142, 305, 361, 385   │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 17, 44, 55, 65, 75,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
-## │      │ 86, 120, 158, 180,   │                                                                                                                │
-## │      │ 192, 203, 215, 226,  │                                                                                                                │
-## │      │ 246, 256, 268, 279,  │                                                                                                                │
-## │      │ 303, 328, 339, 349,  │                                                                                                                │
-## │      │ 360, 372, 382, 393,  │                                                                                                                │
-## │      │ 403, 413, 425        │                                                                                                                │
+## │    1 │ 17, 44, 54, 66, 76,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │      │ 86, 97, 131, 169,    │                                                                                                                │
+## │      │ 191, 203, 213, 233,  │                                                                                                                │
+## │      │ 246, 258, 268, 279,  │                                                                                                                │
+## │      │ 291, 302, 322, 332,  │                                                                                                                │
+## │      │ 344, 355, 379, 404,  │                                                                                                                │
+## │      │ 415, 425, 436, 448,  │                                                                                                                │
+## │      │ 458, 469, 479, 489,  │                                                                                                                │
+## │      │ 501                  │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
