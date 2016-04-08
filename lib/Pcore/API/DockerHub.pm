@@ -125,10 +125,10 @@ sub create_automated_build ( $self, $repo_name, % ) {
         vcs_repo_name => undef,             # source repository repo_owner/repo_name
         desc          => q[],
         build_tags    => [
-            {   'name'                => '{sourceref}',    # docker build tag name
-                'source_type'         => 'Tag',            # Branch, Tag
-                'source_name'         => '/.*/',           # barnch / tag name in the source repository
-                'dockerfile_location' => '/',
+            {   name                => '{sourceref}',    # docker build tag name
+                source_type         => 'Tag',            # Branch, Tag
+                source_name         => '/.*/',           # barnch / tag name in the source repository
+                dockerfile_location => '/',
             },
         ],
         cb => undef,
@@ -222,6 +222,26 @@ sub delete_tag ( $self, $repo_name, $tag_id, % ) {
 }
 
 # BUILD
+sub trigger_build ( $self, $repo_name, $source_type = 'Tag', $source_name = 'latest', % ) {
+    my %args = (
+        repo_owner          => $self->username,
+        cb                  => undef,
+        dockerfile_location => '/',
+        splice @_, 4
+    );
+
+    return $self->_request(
+        'post',
+        "/repositories/$args{repo_owner}/$repo_name/autobuild/trigger-build/",
+        1,
+        {   source_type         => $source_type,
+            source_name         => $source_name,
+            dockerfile_location => $args{dockerfile_location},
+        },
+        $args{cb}
+    );
+}
+
 sub get_build_details ( $self, $repo_name, $build_id, % ) {
     my %args = (
         repo_owner => $self->username,
@@ -257,12 +277,12 @@ sub get_build_settings ( $self, $repo_name, % ) {
 # BUILD TAG
 sub create_build_tag ( $self, $repo_name, % ) {
     my %args = (
-        repo_owner            => $self->username,
-        cb                    => undef,
-        'name'                => '{sourceref}',     # docker build tag name
-        'source_type'         => 'Tag',             # Branch, Tag
-        'source_name'         => '/.*/',            # barnch / tag name in the source repository
-        'dockerfile_location' => '/',
+        repo_owner          => $self->username,
+        cb                  => undef,
+        name                => '{sourceref}',     # docker build tag name
+        source_type         => 'Tag',             # Branch, Tag
+        source_name         => '/.*/',            # barnch / tag name in the source repository
+        dockerfile_location => '/',
         splice @_, 2
     );
 
@@ -281,12 +301,12 @@ sub create_build_tag ( $self, $repo_name, % ) {
 
 sub update_build_tag ( $self, $repo_name, $build_tag_id, % ) {
     my %args = (
-        repo_owner            => $self->username,
-        cb                    => undef,
-        'name'                => '{sourceref}',     # docker build tag name
-        'source_type'         => 'Tag',             # Branch, Tag
-        'source_name'         => '/.*/',            # barnch / tag name in the source repository
-        'dockerfile_location' => '/',
+        repo_owner          => $self->username,
+        cb                  => undef,
+        name                => '{sourceref}',     # docker build tag name
+        source_type         => 'Tag',             # Branch, Tag
+        source_name         => '/.*/',            # barnch / tag name in the source repository
+        dockerfile_location => '/',
         splice @_, 3
     );
 
@@ -379,7 +399,7 @@ sub create_webhook ( $self, $repo_name, $webhook_name, % ) {
     return $self->_request( 'post', "/repositories/$args{repo_owner}/$repo_name/webhooks/", 1, { name => $webhook_name }, $args{cb} );
 }
 
-sub create_webhook_hook ( $self, $repo_name, $webhook_id, $url % ) {
+sub create_webhook_hook ( $self, $repo_name, $webhook_id, $url, % ) {
     my %args = (
         repo_owner => $self->username,
         cb         => undef,
@@ -471,20 +491,21 @@ sub _request ( $self, $type, $path, $auth, $data, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 54, 74, 214, 225,    │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
-## │      │ 282, 307, 339, 361,  │                                                                                                                │
-## │      │ 372, 382, 404, 415   │                                                                                                                │
+## │      │ 245, 302, 327, 359,  │                                                                                                                │
+## │      │ 381, 392, 402, 424,  │                                                                                                                │
+## │      │ 435                  │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 89, 90               │ ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 131, 265, 289        │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 131, 229, 285, 309   │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 17, 44, 55, 65, 75,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## │      │ 86, 120, 158, 180,   │                                                                                                                │
 ## │      │ 192, 203, 215, 226,  │                                                                                                                │
-## │      │ 236, 248, 259, 283,  │                                                                                                                │
-## │      │ 308, 319, 329, 340,  │                                                                                                                │
-## │      │ 352, 362, 373, 383,  │                                                                                                                │
-## │      │ 393, 405             │                                                                                                                │
+## │      │ 246, 256, 268, 279,  │                                                                                                                │
+## │      │ 303, 328, 339, 349,  │                                                                                                                │
+## │      │ 360, 372, 382, 393,  │                                                                                                                │
+## │      │ 403, 413, 425        │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
