@@ -7,20 +7,20 @@ extends qw[Pcore::API::Response];
 
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub'], required => 1 );
 
-has name  => ( is => 'lazy', isa => Str, init_arg => undef );
-has owner => ( is => 'lazy', isa => Str, init_arg => undef );
-has path  => ( is => 'lazy', isa => Str, init_arg => undef );
+has name      => ( is => 'lazy', isa => Str, init_arg => undef );
+has namespace => ( is => 'lazy', isa => Str, init_arg => undef );
+has id        => ( is => 'lazy', isa => Str, init_arg => undef );
 
 sub _build_name ($self) {
     return $self->{name};
 }
 
-sub _build_owner ($self) {
+sub _build_namespace ($self) {
     return $self->{namespace};
 }
 
-sub _build_path ($self) {
-    return $self->owner . q[/] . $self->name;
+sub _build_id ($self) {
+    return $self->namespace . q[/] . $self->name;
 }
 
 sub remove ( $self, % ) {
