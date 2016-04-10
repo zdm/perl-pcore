@@ -192,8 +192,8 @@ sub get_starred_repos ( $self, % ) {
 
 sub get_repo ( $self, $repo_name = undef, % ) {
     my %args = (
-        repo_owner => $self->username,
-        cb         => undef,
+        namespace => $self->username,
+        cb        => undef,
         splice @_, 2
     );
 
@@ -201,7 +201,7 @@ sub get_repo ( $self, $repo_name = undef, % ) {
 
     return $self->request(
         'get',
-        "/repositories/$args{repo_owner}/$repo_name/",
+        "/repositories/$args{namespace}/$repo_name/",
         1, undef,
         sub($res) {
             if ( $res->is_success ) {

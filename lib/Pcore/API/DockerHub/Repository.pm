@@ -139,6 +139,7 @@ sub create_webhook ( $self, $webhook_name, % ) {
 }
 
 # BUILD LINK
+# TODO
 sub links ( $self, % ) {
     my %args = (
         cb => undef,
@@ -148,6 +149,7 @@ sub links ( $self, % ) {
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/links/", 1, undef, $args{cb} );
 }
 
+# TODO
 sub create_link ( $self, $to_repo, % ) {
     my %args = (
         cb => undef,
@@ -160,7 +162,7 @@ sub create_link ( $self, $to_repo, % ) {
 }
 
 # BUILD TRIGGER
-sub trigger ( $self, % ) {
+sub build_trigger ( $self, % ) {
     my %args = (
         cb => undef,
         splice @_, 1
@@ -169,7 +171,7 @@ sub trigger ( $self, % ) {
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/buildtrigger/", 1, undef, $args{cb} );
 }
 
-sub trigger_history ( $self, % ) {
+sub build_trigger_history ( $self, % ) {
     my %args = (
         cb => undef,
         splice @_, 1
@@ -179,6 +181,7 @@ sub trigger_history ( $self, % ) {
 }
 
 # BUILD
+# TODO
 sub trigger_build ( $self, $source_type = 'Tag', $source_name = 'latest', % ) {
     my %args = (
         cb                  => undef,
@@ -198,7 +201,7 @@ sub trigger_build ( $self, $source_type = 'Tag', $source_name = 'latest', % ) {
     );
 }
 
-sub get_build_history ( $self, % ) {
+sub build_history ( $self, % ) {
     my %args = (
         page      => 1,
         page_size => 100,
@@ -209,16 +212,40 @@ sub get_build_history ( $self, % ) {
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/buildhistory/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
 }
 
-sub get_build_settings ( $self, % ) {
+# only for automated builds
+sub build_settings ( $self, % ) {
     my %args = (
         cb => undef,
         splice @_, 1
     );
 
-    return $self->api->request( 'get', "/repositories/@{[$self->id]}/autobuild/", 1, undef, $args{cb} );
+    return $self->api->request(
+        'get',
+        "/repositories/@{[$self->id]}/autobuild/",
+        1, undef,
+        sub ($res) {
+            if ( $res->is_success ) {
+                my $build_tags = {};
+
+                for my $build_tag ( $res->{result}->{build_tags}->@* ) {
+                    my $tag = bless $build_tag, 'Pcore::API::DockerHub::Repository::Build::Tag';
+
+                    $tag->{repo} = $self;
+
+                    $build_tags->{ $tag->id } = $tag;
+                }
+
+                $res->{result}->{build_tags} = $build_tags;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
+    );
 }
 
-# BUILD TAG
+# only for automated builds
 sub create_build_tag ( $self, % ) {
     my %args = (
         cb                  => undef,
@@ -231,38 +258,120 @@ sub create_build_tag ( $self, % ) {
 
     return $self->api->request(
         'post',
-        "/repositories/@{[$self->id]}/autobuilds/tags/",
+        "/repositories/@{[$self->id]}/autobuild/tags/",
         1,
         {   name                => $args{name},
             source_type         => $args{source_type},
             source_name         => $args{source_name},
             dockerfile_location => $args{dockerfile_location},
         },
-        $args{cb}
+        sub ($res) {
+            $res->{status} = 200 if $res->{status} == 201;
+
+            if ( $res->is_success ) {
+                my $tag = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Build::Tag';
+
+                $tag->{status} = $res->status;
+
+                $tag->{reason} = $res->reason;
+
+                $tag->{repo} = $self;
+
+                $_[0] = $tag;
+
+                $res = $tag;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
     );
 }
 
 # REPO TAG
-sub get_tags ( $self, $repo_name, % ) {
+sub tags ( $self, % ) {
     my %args = (
-        page       => 1,
-        page_size  => 100,
-        repo_owner => $self->username,
-        cb         => undef,
-        splice @_, 2
+        page      => 1,
+        page_size => 100,
+        cb        => undef,
+        splice @_, 1
     );
 
-    return $self->_request( 'get', "/repositories/$args{repo_owner}/$repo_name/tags/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
+    return $self->api->request(
+        'get',
+        "/repositories/@{[$self->id]}/tags/?page_size=$args{page_size}&page=$args{page}",
+        1, undef,
+        sub($res) {
+            if ( $res->is_success ) {
+                $res->{count} = delete $res->{result}->{count};
+
+                $res->{next} = delete $res->{result}->{next};
+
+                $res->{previous} = delete $res->{result}->{previous};
+
+                my $result = {};
+
+                for my $repo ( $res->{result}->{results}->@* ) {
+                    $repo = bless $repo, 'Pcore::API::DockerHub::Repository::Tag';
+
+                    $repo->{status} = $res->status;
+
+                    $repo->{repo} = $self;
+
+                    $result->{ $repo->id } = $repo;
+                }
+
+                $res->{result} = $result;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
+    );
 }
 
 # COLLABORATORS
+# only for user repositories
 sub collaborators ( $self, % ) {
     my %args = (
         cb => undef,
         splice @_, 1
     );
 
-    return $self->api->request( 'get', "/repositories/@{[$self->id]}/collaborators/", 1, undef, $args{cb} );
+    return $self->api->request(
+        'get',
+        "/repositories/@{[$self->id]}/collaborators/",
+        1, undef,
+        sub($res) {
+            if ( $res->is_success ) {
+                $res->{count} = delete $res->{result}->{count};
+
+                $res->{next} = delete $res->{result}->{next};
+
+                $res->{previous} = delete $res->{result}->{previous};
+
+                my $result = {};
+
+                for my $collaborator ( $res->{result}->{results}->@* ) {
+                    $collaborator = bless $collaborator, 'Pcore::API::DockerHub::Repository::Collaborator';
+
+                    $collaborator->{status} = $res->status;
+
+                    $collaborator->{repo} = $self;
+
+                    $result->{ $collaborator->id } = $collaborator;
+                }
+
+                $res->{result} = $result;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
+    );
 }
 
 sub create_collaborator ( $self, $collaborator_name, % ) {
@@ -271,7 +380,44 @@ sub create_collaborator ( $self, $collaborator_name, % ) {
         splice @_, 2
     );
 
-    return $self->api->request( 'post', "/repositories/@{[$self->id]}/collaborators/", 1, { user => $collaborator_name }, $args{cb} );
+    return $self->api->request(
+        'post',
+        "/repositories/@{[$self->id]}/collaborators/",
+        1,
+        { user => $collaborator_name },
+        sub ($res) {
+            $res->{status} = 200 if $res->{status} == 201;
+
+            if ( $res->is_success ) {
+                my $collaborator = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Collaborator';
+
+                $collaborator->{status} = $res->status;
+
+                $collaborator->{reason} = $res->reason;
+
+                $collaborator->{repo} = $self;
+
+                $_[0] = $collaborator;
+
+                $res = $collaborator;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
+    );
+}
+
+# GROUPS
+# only for organization repository
+sub groups ( $self, % ) {
+    my %args = (
+        cb => undef,
+        splice @_, 1
+    );
+
+    return $self->api->request( 'get', "/repositories/@{[$self->id]}/groups/", 1, undef, $args{cb} );
 }
 
 1;
@@ -281,15 +427,15 @@ sub create_collaborator ( $self, $collaborator_name, % ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 182                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 185                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 185, 228             │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 188, 255             │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 32, 52, 72, 84, 93,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
-## │      │ 104, 133, 143, 152,  │                                                                                                                │
-## │      │ 164, 173, 183, 202,  │                                                                                                                │
-## │      │ 213, 223, 247, 260,  │                                                                                                                │
-## │      │ 269                  │                                                                                                                │
+## │      │ 104, 133, 144, 154,  │                                                                                                                │
+## │      │ 166, 175, 186, 205,  │                                                                                                                │
+## │      │ 217, 250, 294, 338,  │                                                                                                                │
+## │      │ 378, 415             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

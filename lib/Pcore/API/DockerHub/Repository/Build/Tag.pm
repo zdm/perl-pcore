@@ -2,6 +2,8 @@ package Pcore::API::DockerHub::Repository::Build::Tag;
 
 use Pcore -class;
 
+extends qw[Pcore::API::Response];
+
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
 has id => ( is => 'ro', isa => Int, required => 1 );
 

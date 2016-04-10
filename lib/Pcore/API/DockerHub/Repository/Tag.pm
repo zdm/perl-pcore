@@ -2,6 +2,8 @@ package Pcore::API::DockerHub::Repository::Tag;
 
 use Pcore -class;
 
+extends qw[Pcore::API::Response];
+
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
 has id => ( is => 'ro', isa => Int, required => 1 );
 
@@ -21,7 +23,7 @@ sub remove ( $self, % ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 9                    │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 11                   │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
