@@ -32,7 +32,7 @@ sub _build_id ($self) {
 sub remove ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -54,7 +54,7 @@ sub set_desc ( $self, % ) {
         cb        => undef,
         desc      => undef,
         desc_full => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -74,7 +74,7 @@ sub comments ( $self, % ) {
         page      => 1,
         page_size => 100,
         cb        => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/comments/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
@@ -84,7 +84,7 @@ sub comments ( $self, % ) {
 sub star_repo ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request( 'post', "/repositories/@{[$self->id]}/stars/", 1, {}, $args{cb} );
@@ -93,7 +93,7 @@ sub star_repo ( $self, % ) {
 sub unstar_repo ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request( 'delete', "/repositories/@{[$self->id]}/stars/", 1, undef, $args{cb} );
@@ -105,7 +105,7 @@ sub webhooks ( $self, % ) {
         page      => 1,
         page_size => 100,
         cb        => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -129,7 +129,7 @@ sub webhooks ( $self, % ) {
 
                     $webhook->{repo} = $self;
 
-                    $result->{ $webhook->id } = $webhook;
+                    $result->{ $webhook->{name} } = $webhook;
                 }
 
                 $res->{result} = $result;
@@ -142,21 +142,126 @@ sub webhooks ( $self, % ) {
     );
 }
 
-# TODO
 sub create_webhook ( $self, $webhook_name, $url, % ) {
     my %args = (
         cb => undef,
-        splice @_, 2
+        splice @_, 3,
     );
 
-    return $self->api->request( 'post', "/repositories/@{[$self->id]}/webhooks/", 1, { name => $webhook_name }, $args{cb} );
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->api->request(
+        'post',
+        "/repositories/@{[$self->id]}/webhooks/",
+        1,
+        { name => $webhook_name },
+        sub ($res) {
+            $res->{status} = 200 if $res->{status} == 201;
+
+            if ( !$res->is_success ) {
+                $args{cb}->($res) if $args{cb};
+
+                $blocking_cv->send($res) if $blocking_cv;
+            }
+            else {
+                # create webhook object
+                my $webhook = bless $res->{result}, 'Pcore::API::DockerHub::Repository::WebHook';
+
+                $webhook->{status} = $res->status;
+
+                $webhook->{repo} = $self;
+
+                # create webhook hook
+                $self->api->request(
+                    'post',
+                    "/repositories/@{[$self->id]}/webhooks/@{[$res->{result}->{id}]}/hooks/",
+                    1,
+                    { hook_url => $url },
+                    sub ($hook_res) {
+                        $hook_res->{status} = 200 if $hook_res->{status} == 201;
+
+                        # roll back transaction if request is not successfull
+                        if ( !$hook_res->is_success ) {
+                            $webhook->remove(
+                                cb => sub ($res) {
+                                    $args{cb}->($hook_res) if $args{cb};
+
+                                    $blocking_cv->send($hook_res) if $blocking_cv;
+
+                                    return;
+                                }
+                            );
+                        }
+                        else {
+                            push $webhook->{hooks}->@*, $hook_res->{result};
+
+                            $args{cb}->($webhook) if $args{cb};
+
+                            $blocking_cv->send($webhook) if $blocking_cv;
+                        }
+
+                        return;
+                    }
+                );
+            }
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub remove_empty_webhooks ( $self, % ) {
+    my %args = (
+        cb => undef,
+        splice @_, 1,
+    );
+
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->webhooks(
+        cb => sub ($res) {
+            my $cv = AE::cv sub {
+                $args{cb}->($res) if $args{cb};
+
+                $blocking_cv->send($res) if $blocking_cv;
+
+                return;
+            };
+
+            $cv->begin;
+
+            if ( $res->{result}->%* ) {
+                for my $webhook ( values $res->{result}->%* ) {
+                    if ( !$webhook->{hooks}->@* ) {
+                        $cv->begin;
+
+                        $webhook->remove(
+                            cb => sub ($res) {
+                                $cv->end;
+
+                                return;
+                            }
+                        );
+                    }
+                }
+            }
+
+            $cv->end;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 # BUILD LINKS
 sub links ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -196,7 +301,7 @@ sub links ( $self, % ) {
 sub create_link ( $self, $to_repo, % ) {
     my %args = (
         cb => undef,
-        splice @_, 2
+        splice @_, 2,
     );
 
     $to_repo = "library/$to_repo" if $to_repo !~ m[/]sm;
@@ -234,7 +339,7 @@ sub create_link ( $self, $to_repo, % ) {
 sub build_trigger ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/buildtrigger/", 1, undef, $args{cb} );
@@ -243,19 +348,19 @@ sub build_trigger ( $self, % ) {
 sub build_trigger_history ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/buildtrigger/history", 1, undef, $args{cb} );
 }
 
 # BUILD
-# TODO
+# TODO create build object
 sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 'latest', % ) {
     my %args = (
         cb                  => undef,
-        dockerfile_location => '/',
-        splice @_, 3
+        dockerfile_location => q[/],
+        splice @_, 3,
     );
 
     return $self->api->request(
@@ -275,7 +380,7 @@ sub build_history ( $self, % ) {
         page      => 1,
         page_size => 100,
         cb        => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/buildhistory/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
@@ -285,7 +390,7 @@ sub build_history ( $self, % ) {
 sub build_settings ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -321,8 +426,8 @@ sub create_build_tag ( $self, % ) {
         name                => '{sourceref}',            # docker build tag name
         source_type         => $DOCKERHUB_SOURCE_TAG,    # Branch, Tag
         source_name         => '/.*/',                   # barnch / tag name in the source repository
-        dockerfile_location => '/',
-        splice @_, 1
+        dockerfile_location => q[/],
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -364,7 +469,7 @@ sub tags ( $self, % ) {
         page      => 1,
         page_size => 100,
         cb        => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -406,7 +511,7 @@ sub tags ( $self, % ) {
 sub collaborators ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request(
@@ -446,7 +551,7 @@ sub collaborators ( $self, % ) {
 sub create_collaborator ( $self, $collaborator_name, % ) {
     my %args = (
         cb => undef,
-        splice @_, 2
+        splice @_, 2,
     );
 
     return $self->api->request(
@@ -483,7 +588,7 @@ sub create_collaborator ( $self, $collaborator_name, % ) {
 sub groups ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->api->request( 'get', "/repositories/@{[$self->id]}/groups/", 1, undef, $args{cb} );
@@ -496,15 +601,9 @@ sub groups ( $self, % ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 254                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 235, 236             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 257, 324             │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 33, 53, 73, 85, 94,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
-## │      │ 104, 147, 157, 197,  │                                                                                                                │
-## │      │ 235, 244, 255, 274,  │                                                                                                                │
-## │      │ 286, 319, 363, 407,  │                                                                                                                │
-## │      │ 447, 484             │                                                                                                                │
+## │    3 │ 359                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
