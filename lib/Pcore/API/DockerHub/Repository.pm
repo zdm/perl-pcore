@@ -1,6 +1,7 @@
 package Pcore::API::DockerHub::Repository;
 
 use Pcore -class;
+use Pcore::API::DockerHub qw[:CONST];
 use Pcore::API::DockerHub::Repository::WebHook;
 use Pcore::API::DockerHub::Repository::Link;
 use Pcore::API::DockerHub::Repository::Build;
@@ -250,7 +251,7 @@ sub build_trigger_history ( $self, % ) {
 
 # BUILD
 # TODO
-sub trigger_build ( $self, $source_type = 'Tag', $source_name = 'latest', % ) {
+sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 'latest', % ) {
     my %args = (
         cb                  => undef,
         dockerfile_location => '/',
@@ -261,7 +262,7 @@ sub trigger_build ( $self, $source_type = 'Tag', $source_name = 'latest', % ) {
         'post',
         "/repositories/@{[$self->id]}/autobuild/trigger-build/",
         1,
-        {   source_type         => $source_type,
+        {   source_type         => $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TAG->{$source_type},
             source_name         => $source_name,
             dockerfile_location => $args{dockerfile_location},
         },
@@ -317,9 +318,9 @@ sub build_settings ( $self, % ) {
 sub create_build_tag ( $self, % ) {
     my %args = (
         cb                  => undef,
-        name                => '{sourceref}',    # docker build tag name
-        source_type         => 'Tag',            # Branch, Tag
-        source_name         => '/.*/',           # barnch / tag name in the source repository
+        name                => '{sourceref}',            # docker build tag name
+        source_type         => $DOCKERHUB_SOURCE_TAG,    # Branch, Tag
+        source_name         => '/.*/',                   # barnch / tag name in the source repository
         dockerfile_location => '/',
         splice @_, 1
     );
@@ -329,7 +330,7 @@ sub create_build_tag ( $self, % ) {
         "/repositories/@{[$self->id]}/autobuild/tags/",
         1,
         {   name                => $args{name},
-            source_type         => $args{source_type},
+            source_type         => $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TAG->{ $args{source_type} },
             source_name         => $args{source_name},
             dockerfile_location => $args{dockerfile_location},
         },
@@ -495,15 +496,15 @@ sub groups ( $self, % ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 253                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 254                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 256, 323             │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 257, 324             │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 32, 52, 72, 84, 93,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
-## │      │ 103, 146, 156, 196,  │                                                                                                                │
-## │      │ 234, 243, 254, 273,  │                                                                                                                │
-## │      │ 285, 318, 362, 406,  │                                                                                                                │
-## │      │ 446, 483             │                                                                                                                │
+## │    1 │ 33, 53, 73, 85, 94,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │      │ 104, 147, 157, 197,  │                                                                                                                │
+## │      │ 235, 244, 255, 274,  │                                                                                                                │
+## │      │ 286, 319, 363, 407,  │                                                                                                                │
+## │      │ 447, 484             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

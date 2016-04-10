@@ -1,8 +1,8 @@
 package Pcore::API::DockerHub;
 
-use Pcore -const, -class, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB]] };
+use Pcore -const, -class, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TAG $DOCKERHUB_SOURCE_BRANCH]] };
 use Pcore::API::Response;
-use Pcore::API::DockerHub::Repository;
+require Pcore::API::DockerHub::Repository;
 
 # https://github.com/RyanTheAllmighty/Docker-Hub-API.git
 
@@ -17,15 +17,23 @@ const our $URL         => "https://hub.docker.com/v$API_VERSION";
 const our $DOCKERHUB_PROVIDER_BITBUCKET => 1;
 const our $DOCKERHUB_PROVIDER_GITHUB    => 2;
 
+const our $DOCKERHUB_SOURCE_TAG    => 1;
+const our $DOCKERHUB_SOURCE_BRANCH => 2;
+
 const our $DOCKERHUB_PROVIDER_NAME => {
     $DOCKERHUB_PROVIDER_BITBUCKET => 'bitbucket',
     $DOCKERHUB_PROVIDER_GITHUB    => 'github',
 };
 
+const our $DOCKERHUB_SOURCE_NAME => {
+    $DOCKERHUB_SOURCE_TAG    => 'Tag',
+    $DOCKERHUB_SOURCE_BRANCH => 'Branch',
+};
+
 sub login ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->request(
@@ -53,7 +61,7 @@ sub get_user ( $self, % ) {
     my %args = (
         username => $self->username,
         cb       => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->request( 'get', "/users/$args{username}/", undef, undef, $args{cb} );
@@ -62,7 +70,7 @@ sub get_user ( $self, % ) {
 sub get_registry_settings ( $self, % ) {
     my %args = (
         cb => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->request( 'get', "/users/@{[$self->username]}/registry-settings/", 1, undef, $args{cb} );
@@ -73,7 +81,7 @@ sub get_all_repos ( $self, % ) {
     my %args = (
         namespace => $self->username,
         cb        => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->request(
@@ -110,7 +118,7 @@ sub get_repos ( $self, % ) {
         page_size => 100,
         namespace => $self->username,
         cb        => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->request(
@@ -153,7 +161,7 @@ sub get_starred_repos ( $self, % ) {
         page_size => 100,
         namespace => $self->username,
         cb        => undef,
-        splice @_, 1
+        splice @_, 1,
     );
 
     return $self->request(
@@ -190,14 +198,12 @@ sub get_starred_repos ( $self, % ) {
     );
 }
 
-sub get_repo ( $self, $repo_name = undef, % ) {
+sub get_repo ( $self, $repo_name, % ) {
     my %args = (
         namespace => $self->username,
         cb        => undef,
-        splice @_, 2
+        splice @_, 2,
     );
-
-    $repo_name //= q[];
 
     return $self->request(
         'get',
@@ -230,10 +236,10 @@ sub create_repo ( $self, $repo_name, % ) {
     my %args = (
         namespace => $self->username,
         private   => 0,
-        desc      => '',
-        full_desc => '',
+        desc      => q[],
+        full_desc => q[],
         cb        => undef,
-        splice @_, 2
+        splice @_, 2,
     );
 
     return $self->request(
@@ -277,23 +283,35 @@ sub create_repo ( $self, $repo_name, % ) {
 
 sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc, % ) {
     my %args = (
-        namespace => $self->username,
-        private   => 0,
-        active    => 1,
-
-        # provider      => undef,             # MANDATORY, bitbucket, github
-        # vcs_repo_name => undef,             # MANDATORY, source repository repo_owner/repo_name
-        # desc       => q[],    # MANDATORY
-        build_tags => [
-            {   name                => '{sourceref}',    # docker build tag name
-                source_type         => 'Tag',            # Branch, Tag
-                source_name         => '/.*/',           # barnch / tag name in the source repository
-                dockerfile_location => '/',
-            },
-        ],
-        cb => undef,
+        namespace  => $self->username,
+        private    => 0,
+        active     => 1,
+        build_tags => undef,
+        cb         => undef,
         splice( @_, 5 ),
     );
+
+    my $build_tags;
+
+    # prepare build tags
+    if ( !$args{build_tags} ) {
+        $build_tags = [
+            {   name                => '{sourceref}',                                      # docker build tag name
+                source_type         => $DOCKERHUB_SOURCE_NAME->{$DOCKERHUB_SOURCE_TAG},    # Branch, Tag
+                source_name         => '/.*/',                                             # barnch / tag name in the source repository
+                dockerfile_location => q[/],
+            },
+        ];
+    }
+    else {
+        for ( $args{build_tags}->@* ) {
+            my %build_tags = $_->%*;
+
+            $build_tags{source_type} = $DOCKERHUB_SOURCE_NAME->{ $build_tags{source_type} };
+
+            push $build_tags->@*, \%build_tags;
+        }
+    }
 
     return $self->request(
         'post',
@@ -307,7 +325,7 @@ sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc
             provider            => $DOCKERHUB_PROVIDER_NAME->{$provider},
             vcs_repo_name       => $vcs_repo_name,
             description         => $desc,
-            build_tags          => $args{build_tags},
+            build_tags          => $build_tags,
         },
         sub ($res) {
             $res->{status} = 200 if $res->{status} == 201;
@@ -397,14 +415,9 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 278, 342             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 284, 360             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 233, 234             │ ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 291                  │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 26, 53, 63, 73, 108, │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
-## │      │ 151, 194, 230        │                                                                                                                │
+## │    3 │ 308                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
