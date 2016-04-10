@@ -1,6 +1,17 @@
 package Pcore::API::Response;
 
 use Pcore -class;
+use overload    #
+  q[bool] => sub {
+    return $_[0]->is_success;
+  },
+  q[0+] => sub {
+    return $_[0]->status;
+  },
+  q[<=>] => sub {
+    return !$_[2] ? $_[0]->status <=> $_[1] : $_[1] <=> $_[0]->status;
+  },
+  fallback => undef;
 
 has status => ( is => 'ro', isa => PositiveInt, required => 1 );
 has reason => ( is => 'lazy', isa => Str );

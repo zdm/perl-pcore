@@ -2,57 +2,71 @@ package Pcore::Src::SCM::Hg::Server;
 
 use Pcore -class;
 use Pcore::Util::Text qw[decode_utf8];
+use Pcore::API::Response;
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
-has _hg => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
+has _hg_proc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 has capabilities => ( is => 'ro', isa => Str, init_arg => undef );
 
-sub _build__hg ($self) {
-    my $chdir_guard = P->file->chdir( $self->root ) or die;
+sub _hg ( $self, $cb = undef ) {
+    if ( exists $self->{_hg_proc} ) {
+        $cb->( $self->{_hg_proc} ) if $cb;
 
-    local $ENV{HGENCODING} = 'UTF-8';
+        return defined wantarray ? $self->{_hg} : ();
+    }
+    else {
+        my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    my $cv = AE::cv;
+        my $chdir_guard = P->file->chdir( $self->root ) or die;
 
-    P->pm->run_proc(
-        [qw[hg serve --config ui.interactive=True --cmdserver pipe]],
-        stdin    => 1,
-        stdout   => 1,
-        stderr   => 1,
-        on_ready => sub ($proc) {
-            $self->{_hg} = $proc;
+        local $ENV{HGENCODING} = 'UTF-8';
 
-            $cv->send;
+        P->pm->run_proc(
+            [qw[hg serve --config ui.interactive=True --cmdserver pipe]],
+            stdin    => 1,
+            stdout   => 1,
+            stderr   => 1,
+            on_ready => sub ($proc) {
+                $self->{_hg_proc} = $proc;
 
-            return;
-        }
-    );
+                # read capabilities
+                $self->{capabilities} = $self->_read(
+                    sub ( $channel, $data ) {
+                        $self->{capabilities} = $data;
 
-    $cv->recv;
+                        $cb->( $self->{_hg_proc} ) if $cb;
 
-    # read capabilities
-    $self->{capabilities} = $self->_read;
+                        $blocking_cv->send( $self->{_hg_proc} ) if $blocking_cv;
 
-    return $self->{_hg};
+                        return;
+                    }
+                );
+
+                return;
+            }
+        );
+
+        return $blocking_cv ? $blocking_cv->recv : ();
+    }
 }
 
-sub _read ($self) {
-    my $cv = AE::cv;
-
-    my ( $channel, $msg );
-
-    $self->_hg->stdout->push_read(
-        chunk => 5,
-        sub ( $h, $data ) {
-            $channel = substr $data, 0, 1, q[];
-
-            $h->push_read(
-                chunk => unpack( 'L>', $data ),
+sub _read ( $self, $cb ) {
+    $self->_hg(
+        sub($hg) {
+            $hg->stdout->push_read(
+                chunk => 5,
                 sub ( $h, $data ) {
-                    $msg = $data;
+                    my $channel = substr $data, 0, 1, q[];
 
-                    $cv->send;
+                    $h->push_read(
+                        chunk => unpack( 'L>', $data ),
+                        sub ( $h, $data ) {
+                            $cb->( $channel, $data );
+
+                            return;
+                        }
+                    );
 
                     return;
                 }
@@ -62,37 +76,64 @@ sub _read ($self) {
         }
     );
 
-    $cv->recv;
-
-    return $channel, $msg;
+    return;
 }
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub cmd ( $self, @cmd ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my $cb = ref $cmd[-1] eq 'CODE' ? pop @cmd : undef;
+
     my $buf = join qq[\x00], @cmd;
 
     $buf = Encode::encode( $Pcore::WIN_ENC, $buf, Encode::FB_CROAK );
 
     my $cmd = qq[runcommand\x0A] . pack( 'L>', length $buf ) . $buf;
 
-    $self->_hg->stdin->push_write($cmd);
+    $self->_hg(
+        sub ($hg) {
+            $hg->stdin->push_write($cmd);
 
-    my $res = {};
+            my $res = {};
 
-  READ_CHUNK:
-    my ( $channel, $data ) = $self->_read;
+            my $read = sub ( $channel, $data ) {
+                if ( $channel ne 'r' ) {
+                    chomp $data;
 
-    if ( $channel ne 'r' ) {
-        chomp $data;
+                    decode_utf8( $data, encoding => $Pcore::WIN_ENC );
 
-        decode_utf8( $data, encoding => $Pcore::WIN_ENC );
+                    push $res->{$channel}->@*, $data;
 
-        push $res->{$channel}->@*, $data;
+                    $self->_read(__SUB__);
+                }
+                else {
+                    my $api_res = Pcore::API::Response->new( { status => 200 } );
 
-        goto READ_CHUNK;
-    }
+                    if ( exists $res->{e} ) {
+                        $api_res->{status} = 500;
 
-    return $res;
+                        $api_res->{reason} = join q[ ], $res->{e}->@*;
+                    }
+                    else {
+                        $api_res->{result} = $res->{o};
+                    }
+
+                    $cb->($api_res) if $cb;
+
+                    $blocking_cv->($api_res) if $blocking_cv;
+                }
+
+                return;
+            };
+
+            $self->_read($read);
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 1;
@@ -102,7 +143,7 @@ sub cmd ( $self, @cmd ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 72, 76               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 88, 92               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
