@@ -3,7 +3,6 @@ package Pcore::API::DockerHub::Repository::Build;
 use Pcore -class;
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
-has id => ( is => 'ro', isa => Int, required => 1 );
 
 sub details ( $self, % ) {
     my %args = (
@@ -11,7 +10,7 @@ sub details ( $self, % ) {
         splice @_, 1,
     );
 
-    return $self->repo->api->request( 'get', "/repositories/@{[$self->repo->id]}/buildhistory/@{[$self->id]}/", 1, undef, $args{cb} );
+    return $self->repo->api->request( 'get', "/repositories/@{[$self->repo->id]}/buildhistory/@{[$self->{build_code}]}/", 1, undef, $args{cb} );
 }
 
 1;

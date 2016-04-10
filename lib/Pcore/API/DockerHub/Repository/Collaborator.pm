@@ -5,11 +5,6 @@ use Pcore -class;
 extends qw[Pcore::API::Response];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
-has id => ( is => 'lazy', isa => Str, init_arg => undef );
-
-sub _build_id($self) {
-    return $self->{user};
-}
 
 sub remove ( $self, % ) {
     my %args = (
@@ -19,7 +14,7 @@ sub remove ( $self, % ) {
 
     return $self->repo->api->request(
         'delete',
-        "/repositories/@{[$self->repo->id]}/collaborators/@{[$self->id]}/",
+        "/repositories/@{[$self->repo->id]}/collaborators/$self->{user}/",
         1, undef,
         sub ($res) {
             $res->{status} = 200 if $res->{status} == 204;

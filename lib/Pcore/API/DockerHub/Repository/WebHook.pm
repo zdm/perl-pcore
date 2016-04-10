@@ -13,7 +13,7 @@ sub remove ( $self, % ) {
         splice @_, 1,
     );
 
-    return $self->repo->api->request( 'delete', "/repositories/@{[$self->repo->id]}/webhooks/@{[$self->id]}/", 1, undef, $args{cb} );
+    return $self->repo->api->request( 'delete', "/repositories/@{[$self->repo->id]}/webhooks/$self->{id}/", 1, undef, $args{cb} );
 }
 
 1;

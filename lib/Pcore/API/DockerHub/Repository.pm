@@ -355,7 +355,7 @@ sub build_trigger_history ( $self, % ) {
 }
 
 # BUILD
-# TODO create build object
+# NOTE build tag MUST be created before buid will be triggered
 sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 'latest', % ) {
     my %args = (
         cb                  => undef,
@@ -367,11 +367,38 @@ sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 
         'post',
         "/repositories/@{[$self->id]}/autobuild/trigger-build/",
         1,
-        {   source_type         => $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TAG->{$source_type},
+        {   source_type         => $Pcore::API::DockerHub::DOCKERHUB_SOURCE_NAME->{$source_type},
             source_name         => $source_name,
             dockerfile_location => $args{dockerfile_location},
         },
-        $args{cb}
+        sub ($res) {
+            $res->{status} = 200 if $res->{status} == 202;
+
+            if ( $res->{status} == 200 && !$res->{result}->@* ) {
+                $res->{status} = 404;
+
+                $res->{reason} = 'Invalid build source name';
+            }
+            else {
+                my $result = {};
+
+                for my $build ( $res->{result}->@* ) {
+                    $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
+
+                    $build->{status} = $res->status;
+
+                    $build->{repo} = $self;
+
+                    $result->{ $build->{build_code} } = $build;
+                }
+
+                $res->{result} = $result;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
     );
 }
 
@@ -383,7 +410,38 @@ sub build_history ( $self, % ) {
         splice @_, 1,
     );
 
-    return $self->api->request( 'get', "/repositories/@{[$self->id]}/buildhistory/?page_size=$args{page_size}&page=$args{page}", 1, undef, $args{cb} );
+    return $self->api->request(
+        'get',
+        "/repositories/@{[$self->id]}/buildhistory/?page_size=$args{page_size}&page=$args{page}",
+        1, undef,
+        sub ($res) {
+            if ( $res->is_success ) {
+                $res->{count} = delete $res->{result}->{count};
+
+                $res->{next} = delete $res->{result}->{next};
+
+                $res->{previous} = delete $res->{result}->{previous};
+
+                my $result = [];
+
+                for my $build ( $res->{result}->{results}->@* ) {
+                    $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
+
+                    $build->{status} = $res->status;
+
+                    $build->{repo} = $self;
+
+                    push $result->@*, $build;
+                }
+
+                $res->{result} = $result;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
+    );
 }
 
 # only for automated builds
@@ -435,7 +493,7 @@ sub create_build_tag ( $self, % ) {
         "/repositories/@{[$self->id]}/autobuild/tags/",
         1,
         {   name                => $args{name},
-            source_type         => $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TAG->{ $args{source_type} },
+            source_type         => $Pcore::API::DockerHub::DOCKERHUB_SOURCE_NAME->{ $args{source_type} },
             source_name         => $args{source_name},
             dockerfile_location => $args{dockerfile_location},
         },
@@ -535,7 +593,7 @@ sub collaborators ( $self, % ) {
 
                     $collaborator->{repo} = $self;
 
-                    $result->{ $collaborator->id } = $collaborator;
+                    $result->{ $collaborator->{user} } = $collaborator;
                 }
 
                 $res->{result} = $result;

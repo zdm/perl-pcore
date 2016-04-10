@@ -1,11 +1,11 @@
 package Pcore::API::DockerHub::Repository::Build::Tag;
 
 use Pcore -class;
+use Pcore::API::DockerHub qw[:CONST];
 
 extends qw[Pcore::API::Response];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
-has id => ( is => 'ro', isa => Int, required => 1 );
 
 sub remove ( $self, % ) {
     my %args = (
@@ -13,26 +13,26 @@ sub remove ( $self, % ) {
         splice @_, 1,
     );
 
-    return $self->repo->api->request( 'delete', "/repositories/@{[$self->repo->id]}/autobuild/tags/@{[$self->id]}/", 1, undef, $args{cb} );
+    return $self->repo->api->request( 'delete', "/repositories/@{[$self->repo->id]}/autobuild/tags/$self->{id}/", 1, undef, $args{cb} );
 }
 
 sub update ( $self, % ) {
     my %args = (
         cb                  => undef,
-        name                => '{sourceref}',    # docker build tag name
-        source_type         => 'Tag',            # Branch, Tag
-        source_name         => '/.*/',           # barnch / tag name in the source repository
+        name                => '{sourceref}',            # docker build tag name
+        source_type         => $DOCKERHUB_SOURCE_TAG,    # Branch, Tag
+        source_name         => '/.*/',                   # barnch / tag name in the source repository
         dockerfile_location => q[/],
         splice @_, 1,
     );
 
     return $self->repo->api->request(
         'put',
-        "/repositories/@{[$self->repo->id]}/autobuilds/tags/@{[$self->id]}/",
+        "/repositories/@{[$self->repo->id]}/autobuilds/tags/$self->{id}/",
         1,
-        {   id                  => $self->id,
+        {   id                  => $self->{id},
             name                => $args{name},
-            source_type         => $args{source_type},
+            source_type         => $Pcore::API::DockerHub::DOCKERHUB_SOURCE_NAME->{ $args{source_type} },
             source_name         => $args{source_name},
             dockerfile_location => $args{dockerfile_location},
         },
