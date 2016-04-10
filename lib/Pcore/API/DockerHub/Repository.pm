@@ -99,7 +99,6 @@ sub unstar_repo ( $self, % ) {
 }
 
 # WEBHOOK
-# TODO
 sub webhooks ( $self, % ) {
     my %args = (
         page      => 1,
@@ -112,13 +111,27 @@ sub webhooks ( $self, % ) {
         'get',
         "/repositories/@{[$self->id]}/webhooks/?page_size=$args{page_size}&page=$args{page}",
         1, undef,
-        sub ($res) {
+        sub($res) {
             if ( $res->is_success ) {
-                for my $webhook ( $res->{result}->{results}->@* ) {
-                    my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository::WebHook';
+                $res->{count} = delete $res->{result}->{count};
 
-                    $repo->{api} = $self;
+                $res->{next} = delete $res->{result}->{next};
+
+                $res->{previous} = delete $res->{result}->{previous};
+
+                my $result = {};
+
+                for my $webhook ( $res->{result}->{results}->@* ) {
+                    $webhook = bless $webhook, 'Pcore::API::DockerHub::Repository::WebHook';
+
+                    $webhook->{status} = $res->status;
+
+                    $webhook->{repo} = $self;
+
+                    $result->{ $webhook->id } = $webhook;
                 }
+
+                $res->{result} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -129,7 +142,7 @@ sub webhooks ( $self, % ) {
 }
 
 # TODO
-sub create_webhook ( $self, $webhook_name, % ) {
+sub create_webhook ( $self, $webhook_name, $url, % ) {
     my %args = (
         cb => undef,
         splice @_, 2
@@ -138,18 +151,47 @@ sub create_webhook ( $self, $webhook_name, % ) {
     return $self->api->request( 'post', "/repositories/@{[$self->id]}/webhooks/", 1, { name => $webhook_name }, $args{cb} );
 }
 
-# BUILD LINK
-# TODO
+# BUILD LINKS
 sub links ( $self, % ) {
     my %args = (
         cb => undef,
         splice @_, 1
     );
 
-    return $self->api->request( 'get', "/repositories/@{[$self->id]}/links/", 1, undef, $args{cb} );
+    return $self->api->request(
+        'get',
+        "/repositories/@{[$self->id]}/links/",
+        1, undef,
+        sub($res) {
+            if ( $res->is_success ) {
+                $res->{count} = delete $res->{result}->{count};
+
+                $res->{next} = delete $res->{result}->{next};
+
+                $res->{previous} = delete $res->{result}->{previous};
+
+                my $result = {};
+
+                for my $link ( $res->{result}->{results}->@* ) {
+                    $link = bless $link, 'Pcore::API::DockerHub::Repository::Link';
+
+                    $link->{status} = $res->status;
+
+                    $link->{repo} = $self;
+
+                    $result->{ $link->id } = $link;
+                }
+
+                $res->{result} = $result;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
+    );
 }
 
-# TODO
 sub create_link ( $self, $to_repo, % ) {
     my %args = (
         cb => undef,
@@ -158,7 +200,33 @@ sub create_link ( $self, $to_repo, % ) {
 
     $to_repo = "library/$to_repo" if $to_repo !~ m[/]sm;
 
-    return $self->api->request( 'post', "/repositories/@{[$self->id]}/links/", 1, { to_repo => $to_repo }, $args{cb} );
+    return $self->api->request(
+        'post',
+        "/repositories/@{[$self->id]}/links/",
+        1,
+        { to_repo => $to_repo },
+        sub ($res) {
+            $res->{status} = 200 if $res->{status} == 201;
+
+            if ( $res->is_success ) {
+                my $link = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Link';
+
+                $link->{status} = $res->status;
+
+                $link->{reason} = $res->reason;
+
+                $link->{repo} = $self;
+
+                $_[0] = $link;
+
+                $res = $link;
+            }
+
+            $args{cb}->($res) if $args{cb};
+
+            return;
+        }
+    );
 }
 
 # BUILD TRIGGER
@@ -289,7 +357,7 @@ sub create_build_tag ( $self, % ) {
     );
 }
 
-# REPO TAG
+# REPO TAGS
 sub tags ( $self, % ) {
     my %args = (
         page      => 1,
@@ -427,15 +495,15 @@ sub groups ( $self, % ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 185                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 253                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 188, 255             │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
+## │    2 │ 256, 323             │ ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 32, 52, 72, 84, 93,  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
-## │      │ 104, 133, 144, 154,  │                                                                                                                │
-## │      │ 166, 175, 186, 205,  │                                                                                                                │
-## │      │ 217, 250, 294, 338,  │                                                                                                                │
-## │      │ 378, 415             │                                                                                                                │
+## │      │ 103, 146, 156, 196,  │                                                                                                                │
+## │      │ 234, 243, 254, 273,  │                                                                                                                │
+## │      │ 285, 318, 362, 406,  │                                                                                                                │
+## │      │ 446, 483             │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

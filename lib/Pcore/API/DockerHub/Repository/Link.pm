@@ -2,8 +2,11 @@ package Pcore::API::DockerHub::Repository::Link;
 
 use Pcore -class;
 
+extends qw[Pcore::API::Response];
+
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
-has id => ( is => 'ro', isa => Int, required => 1 );
+has id      => ( is => 'ro', isa => Int, required => 1 );
+has to_repo => ( is => 'ro', isa => Str, required => 1 );
 
 sub remove ( $self, % ) {
     my %args = (
