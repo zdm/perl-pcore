@@ -14,7 +14,8 @@ use overload    #
   },
   fallback => undef;
 
-requires qw[status reason];
+has status => ( is => 'ro', isa => PositiveInt, writer => 'set_status', default => 200 );
+has reason => ( is => 'lazy', isa => Str, clearer => 1 );
 
 # stolen from HTTP::Status
 const our $STATUS => {
@@ -79,7 +80,26 @@ const our $STATUS => {
     511 => 'Network Authentication Required',
 };
 
-# STATUS BUILDER
+# COMMON REASON BUILDER
+sub _build_reason ($self) {
+    if    ( exists $STATUS->{ $self->status } ) { return $STATUS->{ $self->status } }
+    elsif ( $self->is_info )                    { return 'INFO' }
+    elsif ( $self->is_success )                 { return 'OK' }
+    elsif ( $self->is_redirect )                { return 'REDIRECT' }
+    elsif ( $self->is_client_error )            { return 'CLIENT ERROR' }
+    elsif ( $self->is_server_error )            { return 'SERVER ERROR' }
+    else                                        { return 'UNKNOWN' }
+}
+
+around set_status => sub ( $orig, $self, $status ) {
+    $self->$orig($status);
+
+    $self->clear_reason;
+
+    return;
+};
+
+# STATUS
 sub is_info ($self) {
     return $self->status >= 100 && $self->status < 200;
 }
@@ -102,17 +122,6 @@ sub is_client_error ($self) {
 
 sub is_server_error ($self) {
     return $self->status >= 500 && $self->status < 600;
-}
-
-# COMMON REASON BUILDER
-sub _build_reason ($self) {
-    if    ( exists $STATUS->{ $self->status } ) { return $STATUS->{ $self->status } }
-    elsif ( $self->is_info )                    { return 'INFO' }
-    elsif ( $self->is_success )                 { return 'OK' }
-    elsif ( $self->is_redirect )                { return 'REDIRECT' }
-    elsif ( $self->is_client_error )            { return 'CLIENT ERROR' }
-    elsif ( $self->is_server_error )            { return 'SERVER ERROR' }
-    else                                        { return 'UNKNOWN' }
 }
 
 1;

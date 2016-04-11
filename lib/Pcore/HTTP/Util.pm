@@ -40,12 +40,12 @@ sub http_request ($args) {
             my $set_error = sub ( $error_status, $error_reason ) {
                 $args->{res}->set_status($error_status);
 
-                $args->{res}->set_reason($error_reason) if defined $error_reason;
+                $args->{res}->{reason} = $error_reason if defined $error_reason;
 
                 if ( refaddr( $args->{res} ) != refaddr( $runtime->{res} ) ) {
                     $runtime->{res}->set_status($error_status);
 
-                    $runtime->{res}->set_reason($error_reason) if defined $error_reason;
+                    $runtime->{res}->{reason} = $error_reason if defined $error_reason;
                 }
 
                 return;
@@ -347,7 +347,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
 
                 $runtime->{res}->set_status( $res->{status} );
 
-                $runtime->{res}->set_reason( $res->{reason} );
+                $runtime->{res}->{reason} = $res->{reason};
             }
 
             $cb->();

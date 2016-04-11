@@ -3,7 +3,6 @@ package Pcore::HTTP::Message;
 use Pcore -class;
 use Pcore::HTTP::Message::Headers;
 
-has status => ( is => 'ro', isa => PositiveInt, writer => 'set_status', default => 200 );
 has headers => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Message::Headers'], init_arg => undef );
 has body => ( is => 'ro', isa => Ref, writer => 'set_body', predicate => 1, init_arg => undef );
 has path => ( is => 'ro', isa => Str, writer => 'set_path', predicate => 1, init_arg => undef );
@@ -22,21 +21,6 @@ sub BUILD ( $self, $args ) {
 
 sub _build_headers ($self) {
     return Pcore::HTTP::Message::Headers->new;
-}
-
-# TO_PSGI
-sub to_psgi ($self) {
-    if ( $self->has_body && ref $self->body eq 'CODE' ) {
-        return $self->body;
-    }
-    else {
-        return [ $self->status, $self->headers->to_psgi, $self->_body_to_psgi ];
-    }
-}
-
-# TODO
-sub _body_to_psgi ($self) {
-    return [];
 }
 
 # TODO

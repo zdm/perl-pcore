@@ -2,9 +2,6 @@ package Pcore::API::Response;
 
 use Pcore -class;
 
-has status => ( is => 'ro', isa => PositiveInt, required => 1 );
-has reason => ( is => 'lazy', isa => Str );
-
 with qw[Pcore::HTTP::Status];
 
 1;
