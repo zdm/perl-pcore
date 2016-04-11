@@ -112,9 +112,7 @@ sub cmd ( $self, @cmd ) {
                     my $api_res = Pcore::API::Response->new( { status => 200 } );
 
                     if ( exists $res->{e} ) {
-                        $api_res->{status} = 500;
-
-                        $api_res->{reason} = join q[ ], $res->{e}->@*;
+                        $api_res->set_status( 500, join q[ ], $res->{e}->@* );
                     }
                     else {
                         $api_res->{result} = $res->{o};

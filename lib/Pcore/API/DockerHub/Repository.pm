@@ -123,7 +123,7 @@ sub webhooks ( $self, % ) {
                 for my $webhook ( $res->{result}->{results}->@* ) {
                     $webhook = bless $webhook, 'Pcore::API::DockerHub::Repository::WebHook';
 
-                    $webhook->{status} = $res->status;
+                    $webhook->set_status( $res->status );
 
                     $webhook->{repo} = $self;
 
@@ -163,7 +163,7 @@ sub create_webhook ( $self, $webhook_name, $url, % ) {
                 # create webhook object
                 my $webhook = bless $res->{result}, 'Pcore::API::DockerHub::Repository::WebHook';
 
-                $webhook->{status} = $res->status;
+                $webhook->set_status( $res->status );
 
                 $webhook->{repo} = $self;
 
@@ -276,7 +276,7 @@ sub links ( $self, % ) {
                 for my $link ( $res->{result}->{results}->@* ) {
                     $link = bless $link, 'Pcore::API::DockerHub::Repository::Link';
 
-                    $link->{status} = $res->status;
+                    $link->set_status( $res->status );
 
                     $link->{repo} = $self;
 
@@ -310,9 +310,7 @@ sub create_link ( $self, $to_repo, % ) {
             if ( $res->is_success ) {
                 my $link = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Link';
 
-                $link->{status} = $res->status;
-
-                $link->{reason} = $res->reason;
+                $link->set_status( $res->status, $res->reason );
 
                 $link->{repo} = $self;
 
@@ -366,9 +364,7 @@ sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 
         },
         sub ($res) {
             if ( $res->is_success && !$res->{result}->@* ) {
-                $res->{status} = 404;
-
-                $res->{reason} = 'Invalid build source name';
+                $res->set_status( 404, 'Invalid build source name' );
             }
             else {
                 my $result = {};
@@ -376,7 +372,7 @@ sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 
                 for my $build ( $res->{result}->@* ) {
                     $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
 
-                    $build->{status} = $res->status;
+                    $build->set_status( $res->status );
 
                     $build->{repo} = $self;
 
@@ -418,7 +414,7 @@ sub build_history ( $self, % ) {
                 for my $build ( $res->{result}->{results}->@* ) {
                     $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
 
-                    $build->{status} = $res->status;
+                    $build->set_status( $res->status );
 
                     $build->{repo} = $self;
 
@@ -492,9 +488,7 @@ sub create_build_tag ( $self, % ) {
             if ( $res->is_success ) {
                 my $tag = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Build::Tag';
 
-                $tag->{status} = $res->status;
-
-                $tag->{reason} = $res->reason;
+                $tag->set_status( $res->status, $res->reason );
 
                 $tag->{repo} = $self;
 
@@ -536,7 +530,7 @@ sub tags ( $self, % ) {
                 for my $repo ( $res->{result}->{results}->@* ) {
                     $repo = bless $repo, 'Pcore::API::DockerHub::Repository::Tag';
 
-                    $repo->{status} = $res->status;
+                    $repo->set_status( $res->status );
 
                     $repo->{repo} = $self;
 
@@ -578,7 +572,7 @@ sub collaborators ( $self, % ) {
                 for my $collaborator ( $res->{result}->{results}->@* ) {
                     $collaborator = bless $collaborator, 'Pcore::API::DockerHub::Repository::Collaborator';
 
-                    $collaborator->{status} = $res->status;
+                    $collaborator->set_status( $res->status );
 
                     $collaborator->{repo} = $self;
 
@@ -610,9 +604,7 @@ sub create_collaborator ( $self, $collaborator_name, % ) {
             if ( $res->is_success ) {
                 my $collaborator = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Collaborator';
 
-                $collaborator->{status} = $res->status;
-
-                $collaborator->{reason} = $res->reason;
+                $collaborator->( $res->status, $res->reason );
 
                 $collaborator->{repo} = $self;
 
@@ -648,7 +640,7 @@ sub groups ( $self, % ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 230, 231             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 352                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 350                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

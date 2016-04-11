@@ -15,9 +15,10 @@ use overload    #
   fallback => undef;
 
 has status => ( is => 'ro', isa => PositiveInt, writer => 'set_status', default => 200 );
+has reason => ( is => 'ro', isa => Str );
 
 # stolen from HTTP::Status
-const our $STATUS => {
+const our $STATUS_REASON => {
 
     # 100
     100 => 'Continue',
@@ -90,33 +91,30 @@ const our $STATUS => {
 };
 
 # COMMON REASON BUILDER
-sub reason ($self) {
+around reason => sub ( $orig, $self ) {
     my $status = $self->status;
 
-    if    ( exists $self->{reason} )    { return $self->{reason} }
-    elsif ( exists $STATUS->{$status} ) { return $STATUS->{$status} }
+    if    ( exists $self->{reason} )           { return $self->{reason} }
+    elsif ( exists $STATUS_REASON->{$status} ) { return $STATUS_REASON->{$status} }
     elsif ( $status >= 100 && $status < 200 ) { return 'INFO' }
     elsif ( $status >= 200 && $status < 300 ) { return 'OK' }
     elsif ( $status >= 300 && $status < 400 ) { return 'REDIRECT' }
     elsif ( $status >= 400 && $status < 500 ) { return 'CLIENT ERROR' }
     elsif ( $status >= 500 && $status < 600 ) { return 'SERVER ERROR' }
     else                                      { return 'UNKNOWN' }
-}
+};
 
-# STATUS
+# STATUS WRITER
 around set_status => sub ( $orig, $self, $status, $reason = undef ) {
     $self->$orig($status);
 
-    if ( defined $reason ) {
-        $self->{reason} = $reason;
-    }
-    else {
-        delete $self->{reason};
-    }
+    if ( defined $reason ) { $self->{reason} = $reason }
+    else                   { delete $self->{reason} }
 
     return;
 };
 
+# STATUS METHODS
 sub is_info ($self) {
     return $self->status >= 100 && $self->status < 200;
 }
@@ -148,7 +146,7 @@ sub is_server_error ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 96                   │ ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          │
+## │    3 │ 97                   │ ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

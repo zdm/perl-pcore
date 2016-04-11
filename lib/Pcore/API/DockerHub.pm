@@ -95,7 +95,7 @@ sub get_all_repos ( $self, % ) {
                 for my $repo ( $res->{result}->@* ) {
                     $repo = bless $repo, 'Pcore::API::DockerHub::Repository';
 
-                    $repo->{status} = $res->status;
+                    $repo->set_status( $res->status );
 
                     $repo->{api} = $self;
 
@@ -138,7 +138,7 @@ sub get_repos ( $self, % ) {
                 for my $repo ( $res->{result}->{results}->@* ) {
                     $repo = bless $repo, 'Pcore::API::DockerHub::Repository';
 
-                    $repo->{status} = $res->status;
+                    $repo->set_status( $res->status );
 
                     $repo->{api} = $self;
 
@@ -181,7 +181,7 @@ sub get_starred_repos ( $self, % ) {
                 for my $repo ( $res->{result}->{results}->@* ) {
                     $repo = bless $repo, 'Pcore::API::DockerHub::Repository';
 
-                    $repo->{status} = $res->status;
+                    $repo->set_status( $res->status );
 
                     $repo->{api} = $self;
 
@@ -213,9 +213,7 @@ sub get_repo ( $self, $repo_name, % ) {
             if ( $res->is_success ) {
                 my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
 
-                $repo->{status} = $res->status;
-
-                $repo->{reason} = $res->reason;
+                $repo->set_status( $res->status, $res->reason );
 
                 $repo->{api} = $self;
 
@@ -256,9 +254,7 @@ sub create_repo ( $self, $repo_name, % ) {
             if ( $res->is_success ) {
                 my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
 
-                $repo->{status} = $res->status;
-
-                $repo->{reason} = $res->reason;
+                $repo->set_status( $res->status, $res->reason );
 
                 $repo->{api} = $self;
 
@@ -329,9 +325,7 @@ sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc
             if ( $res->is_success ) {
                 my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
 
-                $repo->{status} = $res->status;
-
-                $repo->{reason} = $res->reason;
+                $repo->set_status( $res->status, $res->reason );
 
                 $repo->{api} = $self;
 
@@ -411,9 +405,9 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 282, 356             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 278, 350             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 306                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 302                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
