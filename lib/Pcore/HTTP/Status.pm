@@ -15,13 +15,16 @@ use overload    #
   fallback => undef;
 
 has status => ( is => 'ro', isa => PositiveInt, writer => 'set_status', default => 200 );
-has reason => ( is => 'lazy', isa => Str, clearer => 1 );
 
 # stolen from HTTP::Status
 const our $STATUS => {
+
+    # 100
     100 => 'Continue',
     101 => 'Switching Protocols',
-    102 => 'Processing',                        # RFC 2518 (WebDAV)
+    102 => 'Processing',            # RFC 2518 (WebDAV)
+
+    # 200
     200 => 'OK',
     201 => 'Created',
     202 => 'Accepted',
@@ -29,8 +32,10 @@ const our $STATUS => {
     204 => 'No Content',
     205 => 'Reset Content',
     206 => 'Partial Content',
-    207 => 'Multi-Status',                      # RFC 2518 (WebDAV)
-    208 => 'Already Reported',                  # RFC 5842
+    207 => 'Multi-Status',                    # RFC 2518 (WebDAV)
+    208 => 'Already Reported',                # RFC 5842
+
+    # 300
     300 => 'Multiple Choices',
     301 => 'Moved Permanently',
     302 => 'Found',
@@ -38,7 +43,9 @@ const our $STATUS => {
     304 => 'Not Modified',
     305 => 'Use Proxy',
     307 => 'Temporary Redirect',
-    308 => 'Permanent Redirect',                # RFC 7238
+    308 => 'Permanent Redirect',              # RFC 7238
+
+    # 400
     400 => 'Bad Request',
     401 => 'Unauthorized',
     402 => 'Payment Required',
@@ -67,6 +74,8 @@ const our $STATUS => {
     429 => 'Too Many Requests',
     431 => 'Request Header Fields Too Large',
     449 => 'Retry with',                        # unofficial Microsoft
+
+    # 500
     500 => 'Internal Server Error',
     501 => 'Not Implemented',
     502 => 'Bad Gateway',
@@ -81,8 +90,9 @@ const our $STATUS => {
 };
 
 # COMMON REASON BUILDER
-sub _build_reason ($self) {
-    if    ( exists $STATUS->{ $self->status } ) { return $STATUS->{ $self->status } }
+sub reason ($self) {
+    if    ( exists $self->{reason} )            { return $self->{reason} }
+    elsif ( exists $STATUS->{ $self->status } ) { return $STATUS->{ $self->status } }
     elsif ( $self->is_info )                    { return 'INFO' }
     elsif ( $self->is_success )                 { return 'OK' }
     elsif ( $self->is_redirect )                { return 'REDIRECT' }
@@ -90,14 +100,6 @@ sub _build_reason ($self) {
     elsif ( $self->is_server_error )            { return 'SERVER ERROR' }
     else                                        { return 'UNKNOWN' }
 }
-
-around set_status => sub ( $orig, $self, $status ) {
-    $self->$orig($status);
-
-    $self->clear_reason;
-
-    return;
-};
 
 # STATUS
 sub is_info ($self) {
@@ -125,6 +127,16 @@ sub is_server_error ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 94                   │ ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
