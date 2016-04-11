@@ -329,8 +329,6 @@ sub _read_headers ( $args, $runtime, $cb ) {
                         # create new response object and set it as default response for current request
                         $runtime->{res} = Pcore::HTTP::Response->new;
 
-                        $runtime->{res}->set_is_http_redirect(1);
-
                         push $args->{res}->redirect->@*, $runtime->{res};
                     }
                 }
@@ -627,13 +625,13 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
 ## │      │ 23                   │ * Subroutine "http_request" with high complexity score (29)                                                    │
 ## │      │ 238                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 364                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
+## │      │ 362                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 342                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 340                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 575                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 573                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

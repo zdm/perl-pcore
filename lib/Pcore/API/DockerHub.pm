@@ -253,8 +253,6 @@ sub create_repo ( $self, $repo_name, % ) {
             full_description => $args{full_desc},
         },
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 201;
-
             if ( $res->is_success ) {
                 my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
 
@@ -328,8 +326,6 @@ sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc
             build_tags          => $build_tags,
         },
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 201;
-
             if ( $res->is_success ) {
                 my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
 
@@ -415,9 +411,9 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 284, 360             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 282, 356             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 308                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 306                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

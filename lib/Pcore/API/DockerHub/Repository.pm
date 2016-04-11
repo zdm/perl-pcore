@@ -40,8 +40,6 @@ sub remove ( $self, % ) {
         "/repositories/@{[$self->id]}/",
         1, undef,
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 202;
-
             $args{cb}->($res) if $args{cb};
 
             return;
@@ -156,8 +154,6 @@ sub create_webhook ( $self, $webhook_name, $url, % ) {
         1,
         { name => $webhook_name },
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 201;
-
             if ( !$res->is_success ) {
                 $args{cb}->($res) if $args{cb};
 
@@ -178,7 +174,6 @@ sub create_webhook ( $self, $webhook_name, $url, % ) {
                     1,
                     { hook_url => $url },
                     sub ($hook_res) {
-                        $hook_res->{status} = 200 if $hook_res->{status} == 201;
 
                         # roll back transaction if request is not successfull
                         if ( !$hook_res->is_success ) {
@@ -312,8 +307,6 @@ sub create_link ( $self, $to_repo, % ) {
         1,
         { to_repo => $to_repo },
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 201;
-
             if ( $res->is_success ) {
                 my $link = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Link';
 
@@ -372,9 +365,7 @@ sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 
             dockerfile_location => $args{dockerfile_location},
         },
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 202;
-
-            if ( $res->{status} == 200 && !$res->{result}->@* ) {
+            if ( $res->is_success && !$res->{result}->@* ) {
                 $res->{status} = 404;
 
                 $res->{reason} = 'Invalid build source name';
@@ -498,8 +489,6 @@ sub create_build_tag ( $self, % ) {
             dockerfile_location => $args{dockerfile_location},
         },
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 201;
-
             if ( $res->is_success ) {
                 my $tag = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Build::Tag';
 
@@ -618,8 +607,6 @@ sub create_collaborator ( $self, $collaborator_name, % ) {
         1,
         { user => $collaborator_name },
         sub ($res) {
-            $res->{status} = 200 if $res->{status} == 201;
-
             if ( $res->is_success ) {
                 my $collaborator = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Collaborator';
 
@@ -659,9 +646,9 @@ sub groups ( $self, % ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 235, 236             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 230, 231             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 359                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 352                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

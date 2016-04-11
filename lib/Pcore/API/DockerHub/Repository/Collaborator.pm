@@ -12,18 +12,7 @@ sub remove ( $self, % ) {
         splice @_, 1,
     );
 
-    return $self->repo->api->request(
-        'delete',
-        "/repositories/@{[$self->repo->id]}/collaborators/$self->{user}/",
-        1, undef,
-        sub ($res) {
-            $res->{status} = 200 if $res->{status} == 204;
-
-            $args{cb}->($res) if $args{cb};
-
-            return;
-        }
-    );
+    return $self->repo->api->request( 'delete', "/repositories/@{[$self->repo->id]}/collaborators/$self->{user}/", 1, undef, $args{cb} );
 }
 
 1;

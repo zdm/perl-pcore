@@ -6,8 +6,9 @@ use Pcore::API::Response;
 
 has root => ( is => 'ro', isa => Str, required => 1 );
 
-has _hg_proc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 has capabilities => ( is => 'ro', isa => Str, init_arg => undef );
+
+has _hg_proc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 
 sub _hg ( $self, $cb = undef ) {
     if ( exists $self->{_hg_proc} ) {
@@ -143,7 +144,7 @@ sub cmd ( $self, @cmd ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 88, 92               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 89, 93               │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
