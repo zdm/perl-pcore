@@ -91,17 +91,32 @@ const our $STATUS => {
 
 # COMMON REASON BUILDER
 sub reason ($self) {
-    if    ( exists $self->{reason} )            { return $self->{reason} }
-    elsif ( exists $STATUS->{ $self->status } ) { return $STATUS->{ $self->status } }
-    elsif ( $self->is_info )                    { return 'INFO' }
-    elsif ( $self->is_success )                 { return 'OK' }
-    elsif ( $self->is_redirect )                { return 'REDIRECT' }
-    elsif ( $self->is_client_error )            { return 'CLIENT ERROR' }
-    elsif ( $self->is_server_error )            { return 'SERVER ERROR' }
-    else                                        { return 'UNKNOWN' }
+    my $status = $self->status;
+
+    if    ( exists $self->{reason} )    { return $self->{reason} }
+    elsif ( exists $STATUS->{$status} ) { return $STATUS->{$status} }
+    elsif ( $status >= 100 && $status < 200 ) { return 'INFO' }
+    elsif ( $status >= 200 && $status < 300 ) { return 'OK' }
+    elsif ( $status >= 300 && $status < 400 ) { return 'REDIRECT' }
+    elsif ( $status >= 400 && $status < 500 ) { return 'CLIENT ERROR' }
+    elsif ( $status >= 500 && $status < 600 ) { return 'SERVER ERROR' }
+    else                                      { return 'UNKNOWN' }
 }
 
 # STATUS
+around set_status => sub ( $orig, $self, $status, $reason = undef ) {
+    $self->$orig($status);
+
+    if ( defined $reason ) {
+        $self->{reason} = $reason;
+    }
+    else {
+        delete $self->{reason};
+    }
+
+    return;
+};
+
 sub is_info ($self) {
     return $self->status >= 100 && $self->status < 200;
 }
@@ -133,7 +148,7 @@ sub is_server_error ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 94                   │ ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          │
+## │    3 │ 96                   │ ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -38,14 +38,10 @@ sub http_request ($args) {
             $finished = 1;
 
             my $set_error = sub ( $error_status, $error_reason ) {
-                $args->{res}->set_status($error_status);
-
-                $args->{res}->{reason} = $error_reason if defined $error_reason;
+                $args->{res}->set_status( $error_status, $error_reason );
 
                 if ( refaddr( $args->{res} ) != refaddr( $runtime->{res} ) ) {
-                    $runtime->{res}->set_status($error_status);
-
-                    $runtime->{res}->{reason} = $error_reason if defined $error_reason;
+                    $runtime->{res}->set_status( $error_status, $error_reason );
                 }
 
                 return;
@@ -345,9 +341,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
 
                 $runtime->{res}->set_version( q[1.] . $res->{minor_version} );
 
-                $runtime->{res}->set_status( $res->{status} );
-
-                $runtime->{res}->{reason} = $res->{reason};
+                $runtime->{res}->set_status( $res->{status}, $res->{reason} );
             }
 
             $cb->();
@@ -623,15 +617,15 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 23                   │ * Subroutine "http_request" with high complexity score (29)                                                    │
-## │      │ 238                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
-## │      │ 362                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
+## │      │ 23                   │ * Subroutine "http_request" with high complexity score (27)                                                    │
+## │      │ 234                  │ * Subroutine "_write_request" with high complexity score (21)                                                  │
+## │      │ 356                  │ * Subroutine "_read_body" with high complexity score (67)                                                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 107, 121, 123, 197   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 103, 117, 119, 193   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 340                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
+## │    3 │ 336                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 573                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
+## │    3 │ 567                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
