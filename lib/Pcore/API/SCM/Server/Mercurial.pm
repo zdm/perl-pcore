@@ -137,6 +137,30 @@ sub scm_cmd ( $self, $root, $cb, $cmd ) {
     return;
 }
 
+sub scm_id ( $self, $root, $cb, $args ) {
+    $self->scm_cmd(
+        $root,
+        sub ($res) {
+            if ( $res->is_success ) {
+                my ( $node, $branch, @tags ) = split / /sm, $res->{result}->[0];
+
+                $res->{result} = {
+                    node   => $node,
+                    branch => $branch,
+                    tags   => { map { $_ => undef } @tags },
+                };
+            }
+
+            $cb->($res);
+
+            return;
+        },
+        [qw[id -itbB]]
+    );
+
+    return;
+}
+
 sub scm_init ( $self, $root, $cb, $args ) {
     $self->scm_cmd( $root, $cb, [qw[init]] );
 
@@ -272,7 +296,7 @@ sub scm_branch ( $self, $root, $cb, $args ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 93, 95, 101          │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 190                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 214                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

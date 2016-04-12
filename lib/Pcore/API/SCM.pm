@@ -33,6 +33,10 @@ sub scm_cmd ( $self, @cmd ) {
     return $self->_request( 'scm_cmd', [@cmd] );
 }
 
+sub scm_id ( $self, $cb = undef ) {
+    return $self->_request( 'scm_id', [$cb] );
+}
+
 sub scm_init ( $self, $cb = undef ) {
     return $self->_request( 'scm_init', [$cb] );
 }
