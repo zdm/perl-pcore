@@ -41,9 +41,26 @@ sub scm_init ( $self, $cb = undef ) {
     return $self->_request( 'scm_init', [$cb] );
 }
 
-# TODO clone to temp dir, move
-sub scm_clone ( $self, $url, @ ) {
-    return $self->_request( 'scm_clone', [ splice @_, 1 ] );
+sub scm_clone ( $self, $url, @args ) {
+    my $cb = ref $args[-1] eq 'CODE' ? pop @args : undef;
+
+    my $temp = P->file->tempdir;
+
+    return $self->_request(
+        'scm_clone',
+        [   $temp->path,
+            $url, @args,
+            sub ($res) {
+                if ( $res->is_success ) {
+                    P->file->move( $temp->path, $self->path );
+                }
+
+                $cb->($res) if $cb;
+
+                return;
+            }
+        ]
+    );
 }
 
 sub scm_releases ( $self, $cb = undef ) {

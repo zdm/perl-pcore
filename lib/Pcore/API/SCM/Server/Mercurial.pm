@@ -145,7 +145,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
                 my ( $node, $branch, @tags ) = split / /sm, $res->{result}->[0];
 
                 $res->{result} = {
-                    node   => $node,
+                    id     => $node,
                     branch => $branch,
                     tags   => { map { $_ => undef } @tags },
                 };
@@ -168,13 +168,13 @@ sub scm_init ( $self, $root, $cb, $args ) {
 }
 
 sub scm_clone ( $self, $root, $cb, $args ) {
-    my ( $url, %args ) = $args->@*;
+    my ( $path, $url, %args ) = $args->@*;
 
     my @cmd = qw[clone];
 
     push @cmd, '--updaterev', $args{tag} if $args{tag};
 
-    push @cmd, $url, $root;
+    push @cmd, $url, $path;
 
     $self->scm_cmd( undef, $cb, \@cmd );
 
