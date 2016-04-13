@@ -218,7 +218,7 @@ sub scm_latest_release ( $self, $root, $cb, $args ) {
                 my ( $tag, $distance ) = split /\x00/sm, $res->{result}->[0];
 
                 $res->{result} = {
-                    release  => $tag,
+                    release => $tag eq 'null' ? undef : $tag,
                     distance => $distance,
                 };
             }
