@@ -258,7 +258,7 @@ sub _build_build_date ($self) {
 
 sub _build_has_uncommited_changes ($self) {
     if ( $self->scm ) {
-        return $self->scm->scm_is_commited->{result};
+        return !$self->scm->scm_is_commited->{result};
     }
     else {
         return;
