@@ -2,6 +2,7 @@ package Pcore::API::SCM::Server::Mercurial;
 
 use Pcore -class;
 use Pcore::Util::Text qw[decode_utf8];
+use Pcore::API::SCM::Upstream;
 use Pcore::API::Response;
 use Pcore::Util::Scalar qw[weaken];
 
@@ -88,6 +89,16 @@ sub _read ( $self, $cb ) {
     return;
 }
 
+sub scm_upstream ( $self, $root ) {
+    if ( -f "$root/.hg/hgrc" ) {
+        my $hgrc = P->file->read_text("$root/.hg/hgrc");
+
+        return Pcore::API::SCM::Upstream->new( { uri => $1, clone_is_hg => 1 } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
+    }
+
+    return;
+}
+
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub scm_cmd ( $self, $root, $cb, $cmd ) {
     my $buf = join qq[\x00], $cmd->@*;
@@ -161,20 +172,20 @@ sub scm_id ( $self, $root, $cb, $args ) {
     return;
 }
 
-sub scm_init ( $self, $root, $cb, $args ) {
-    $self->scm_cmd( $root, $cb, [qw[init]] );
+sub scm_init ( $self, $root, $cb, $args = undef ) {
+    $self->scm_cmd( undef, $cb, [ qw[init], $root ] );
 
     return;
 }
 
 sub scm_clone ( $self, $root, $cb, $args ) {
-    my ( $path, $url, %args ) = $args->@*;
+    my ( $path, $uri, %args ) = $args->@*;
 
     my @cmd = qw[clone];
 
     push @cmd, '--updaterev', $args{tag} if $args{tag};
 
-    push @cmd, $url, $path;
+    push @cmd, $uri, $path;
 
     $self->scm_cmd( undef, $cb, \@cmd );
 
@@ -199,12 +210,17 @@ sub scm_releases ( $self, $root, $cb, $args ) {
     return;
 }
 
-sub scm_latest_tag ( $self, $root, $cb, $args ) {
+sub scm_latest_release ( $self, $root, $cb, $args ) {
     $self->scm_cmd(
         $root,
         sub ($res) {
             if ( $res->is_success ) {
-                $res->{result} = { map { split /\x00/sm } $res->{result}->@* };
+                my ( $tag, $distance ) = split /\x00/sm, $res->{result}->[0];
+
+                $res->{result} = {
+                    release  => $tag,
+                    distance => $distance,
+                };
             }
 
             $cb->($res);
@@ -276,9 +292,9 @@ sub scm_set_tag ( $self, $root, $cb, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 93, 95, 101          │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 104, 106, 112        │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 214                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 230                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
