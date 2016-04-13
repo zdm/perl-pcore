@@ -2,6 +2,7 @@ package Pcore::Dist::Build::Wiki;
 
 use Pcore -class;
 use Pod::Markdown;
+use Pcore::API::SCM;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
@@ -16,7 +17,7 @@ sub run ($self) {
 
     my $wiki_path = P->path('wiki/')->realpath;
 
-    my $upstream = P->class->load('Pcore::Src::SCM')->new($wiki_path)->upstream;
+    my $upstream = Pcore::API::SCM->new($wiki_path)->upstream;
 
     my $base_url = q[/] . $upstream->repo_owner . q[/] . $upstream->repo_name . q[/wiki/];
 
@@ -103,11 +104,9 @@ MD
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 80, 94               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 81, 95               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 94                   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 19                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    3 │ 95                   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,8 +2,8 @@ package Pcore::Dist::Build::Create;
 
 use Pcore -class;
 use Pcore::Dist;
+use Pcore::API::SCM;
 use Pcore::API::Bitbucket;
-use Pcore::Src::SCM::Hg::Server;
 use Pcore::Util::File::Tree;
 
 has build => ( is => 'ro', isa => InstanceOf ['Pcore::Dist::Build'], required => 1 );
@@ -84,9 +84,7 @@ sub run ($self) {
 
         print 'Cloning upstream repository ... ';
 
-        my $scm = Pcore::Src::SCM::Hg::Server->new( { root => $self->target_path } );
-
-        my $scm_res = $scm->cmd( 'clone', "ssh://hg\@bitbucket.org/@{[$bitbucket_api->repo_owner]}/@{[$bitbucket_api->repo_name]}", q[.] );
+        my $scm = Pcore::API::SCM->scm_clone( $self->target_path, "ssh://hg\@bitbucket.org/@{[$bitbucket_api->repo_owner]}/@{[$bitbucket_api->repo_name]}" );
 
         say 'done';
     }

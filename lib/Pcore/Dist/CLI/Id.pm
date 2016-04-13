@@ -58,9 +58,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             say BOLD . WHITE . sprintf( '%-31s%20s%20s%10s', 'DIST NAME', 'RELEASED VERSION', 'UNRELEASED CHANGES', 'COMMITED' ) . RESET;
 
             for my $dist ( sort { $a->name cmp $b->name } $dists->@* ) {
-
-                # hg log -r . --template "{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}, {distance}'}"
-                my $changes_since_last_release = $dist->scm->server->cmd( qw[log -r . --template], q[{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{distance}'}] )->{o}->[0] - 1;
+                my $changes_since_last_release = $dist->scm->scm_latest_release->{result}->{distance};
 
                 printf ' %-30s', $dist->name;
 
@@ -123,9 +121,7 @@ TMPL
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 33                   │ RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 63                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 13, 63               │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 13                   │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
