@@ -20,7 +20,7 @@ has last_release_version => ( is => 'lazy', isa => Maybe [Object], clearer => 1,
 has revision   => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
 has build_date => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
 has has_uncommited_changes => ( is => 'lazy', isa => Maybe [Bool], clearer => 1, init_arg => undef );    # undef - unknown
-has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Src::SCM'] ], init_arg => undef );
+has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM'] ], init_arg => undef );
 
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
 
@@ -215,8 +215,8 @@ sub _build_version ($self) {
 
 sub _build_last_release_version ($self) {
     if ( $self->scm ) {
-        if ( my @releases = sort { $b cmp $a } grep {/v\d+[.]\d+[.]\d+/sm} $self->scm->server->cmd(qw[tags -q])->{o}->@* ) {
-            return version->parse( $releases[0] );
+        if ( my $release = $self->scm->scm_latest_release->{result}->{release} ) {
+            return version->parse($release);
         }
         else {
             return version->parse('v0.0.0');
@@ -234,7 +234,7 @@ sub _build_revision ($self) {
         $revision = $self->build_info->{revision};
     }
     elsif ( $self->scm ) {
-        $revision = $self->scm->server->cmd(qw[id -i])->{o}->[0];
+        $revision = $self->scm->scm_id->{result}->{id};
     }
     elsif ( $self->root && -f $self->root . '.hg_archival.txt' ) {
         my $info = P->file->read_bin( $self->root . '.hg_archival.txt' );
@@ -258,12 +258,7 @@ sub _build_build_date ($self) {
 
 sub _build_has_uncommited_changes ($self) {
     if ( $self->scm ) {
-        if ( $self->scm->server->cmd(qw[status -mardu --subrepos])->%* ) {
-            return 1;
-        }
-        else {
-            return 0;
-        }
+        return $self->scm->scm_is_commited->{result};
     }
     else {
         return;
@@ -273,7 +268,7 @@ sub _build_has_uncommited_changes ($self) {
 sub _build_scm ($self) {
     return if $self->is_installed;
 
-    return P->class->load('Pcore::Src::SCM')->new( $self->root );
+    return P->class->load('Pcore::API::SCM')->new( $self->root );
 }
 
 sub _build_build ($self) {
@@ -314,12 +309,6 @@ sub clear ($self) {
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 110, 160             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 261                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 218, 237, 261        │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 218                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
