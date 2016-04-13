@@ -16,9 +16,34 @@ sub scm_upstream ( $self, $root ) {
     return;
 }
 
-# NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub scm_cmd ( $self, $root, $cb, $cmd ) {
-    ...;    ## no critic qw[ControlStructures::ProhibitYadaOperator]
+    my $chdir_guard = P->file->chdir($root);
+
+    my @cmd = ( 'git', $cmd->@*, qw[--porcelain -z] );
+
+    P->pm->run_proc(
+        \@cmd,
+        stdout    => 1,
+        stderr    => 1,
+        on_finish => sub ($proc) {
+            my $api_res;
+
+            if ( $proc->is_success ) {
+                $api_res = Pcore::API::Response->new( { status => 200 } );
+
+                $api_res->{result} = [ split /\x00/sm, $proc->stdout ] if $proc->stdout;
+            }
+            else {
+                $api_res = Pcore::API::Response->new( { status => 500, $proc->stderr ? ( reason => ( $proc->stderr =~ /\A(.+?)\n/sm )[0] ) : () } );
+            }
+
+            $cb->($api_res);
+
+            return;
+        }
+    );
+
+    return;
 }
 
 sub scm_id ( $self, $root, $cb, $args ) {
