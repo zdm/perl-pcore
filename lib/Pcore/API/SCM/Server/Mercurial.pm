@@ -269,24 +269,6 @@ sub scm_set_tag ( $self, $root, $cb, $args ) {
     return;
 }
 
-sub scm_branch ( $self, $root, $cb, $args ) {
-    $self->scm_cmd(
-        $root,
-        sub ($res) {
-            if ( $res->is_success ) {
-                $res->{result} = $res->{result}->[0];
-            }
-
-            $cb->($res);
-
-            return;
-        },
-        [qw[branch]]
-    );
-
-    return;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

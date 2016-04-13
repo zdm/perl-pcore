@@ -91,10 +91,6 @@ sub scm_set_tag ( $self, $tag, @ ) {
     return $self->_request( 'scm_set_tag', [ splice @_, 1 ] );
 }
 
-sub scm_branch ( $self, $cb = undef ) {
-    return $self->_request( 'scm_branch', [$cb] );
-}
-
 sub _request ( $self, $method, $args ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 

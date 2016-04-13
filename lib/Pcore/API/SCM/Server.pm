@@ -2,7 +2,7 @@ package Pcore::API::SCM::Server;
 
 use Pcore -role;
 
-requires qw[scm_cmd scm_id scm_init scm_clone scm_releases scm_latest_tag scm_is_commited scm_addremove scm_commit scm_push scm_set_tag scm_branch];
+requires qw[scm_cmd scm_id scm_init scm_clone scm_releases scm_latest_tag scm_is_commited scm_addremove scm_commit scm_push scm_set_tag];
 
 1;
 __END__
