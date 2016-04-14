@@ -9,20 +9,24 @@ has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute pat
 
 has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], predicate => 1 );
 
-has build_info => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
-has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
-has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                   # Dist-Name
+# TODO do we need to clear cfg???
+has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );    # dist.perl
+has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                # Dist-Name
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
-has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );    # main process dist
+has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef ); # main process dist
+has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM'] ], init_arg => undef );
+has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
+has id      => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
+has version => ( is => 'lazy', isa => Object,  clearer => 1, init_arg => undef );
+has is_commited => ( is => 'lazy', isa => Maybe [Bool],     init_arg => undef );
+has releases    => ( is => 'lazy', isa => Maybe [ArrayRef], init_arg => undef );
 
-has version => ( is => 'lazy', isa => Object, clearer => 1, init_arg => undef );
-has last_release_version => ( is => 'lazy', isa => Maybe [Object], clearer => 1, init_arg => undef );
+# TODO REMOVE -----------------
+has build_info           => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
+has last_release_version => ( is => 'lazy', isa => Maybe [Object],  clearer => 1, init_arg => undef );
 has revision   => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
 has build_date => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
 has has_uncommited_changes => ( is => 'lazy', isa => Maybe [Bool], clearer => 1, init_arg => undef );    # undef - unknown
-has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM'] ], init_arg => undef );
-
-has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
 
 around new => sub ( $orig, $self, $dist ) {
 
@@ -188,10 +192,6 @@ sub _build_module ($self) {
     return $module;
 }
 
-sub _build_build_info ($self) {
-    return -f $self->share_dir . 'build.perl' ? P->cfg->load( $self->share_dir . 'build.perl' ) : undef;
-}
-
 sub _build_cfg ($self) {
     return P->cfg->load( $self->share_dir . 'dist.perl' );
 }
@@ -204,13 +204,83 @@ sub _build_is_pcore ($self) {
     return $self->name eq 'Pcore';
 }
 
+sub _build_scm ($self) {
+    return if $self->is_installed;
+
+    return P->class->load('Pcore::API::SCM')->new( $self->root );
+}
+
+sub _build_build ($self) {
+    return P->class->load('Pcore::Dist::Build')->new( { dist => $self } );
+}
+
+# P->data->to_perl( $data, readable => 1 );
+sub _build_id ($self) {
+    my $id = {
+        node                     => undef,
+        tags                     => undef,
+        bookmark                 => undef,
+        branch                   => undef,
+        desc                     => undef,
+        date                     => undef,
+        current_release          => undef,
+        current_release_distance => undef,
+    };
+
+    if ( !$self->is_installed && $self->scm ) {
+        if ( my $scm_id = $self->scm->scm_id ) {
+            $id->@{ keys $scm_id->{result}->%* } = values $scm_id->{result}->%*;
+        }
+
+        if ( defined $id->{current_release_distance} ) {
+            if ( $id->{current_release_distance} == 1 && $id->{desc} =~ /added tag.+$id->{current_release}/smi ) {
+                $id->{current_release_distance} = 0;
+            }
+        }
+    }
+    elsif ( -f $self->share_dir . 'build.perl' ) {
+        $id = P->cfg->load( $self->share_dir . 'build.perl' );
+    }
+
+    $id->{date} = P->date->from_string( $id->{date} )->at_utc if defined $id->{date};
+
+    return $id;
+}
+
+# TODO clear version - $self->module->clear if $self->has_module;
 sub _build_version ($self) {
-    if ( $self->is_installed ) {
-        return version->new( $self->build_info->{version} );
+    return $self->module->version;
+}
+
+sub _build_is_commited ($self) {
+    if ( !$self->is_installed && $self->scm && ( my $scm_is_commited = $self->scm->scm_is_commited ) ) {
+        return $scm_is_commited->{result};
     }
-    else {
-        return $self->module->version;
+
+    return;
+}
+
+sub _build_releases ($self) {
+    if ( !$self->is_installed && $self->scm && ( my $scm_releases = $self->scm->scm_releases ) ) {
+        return $scm_releases->{result};
     }
+
+    return;
+}
+
+# TODO REMOVE ------------------------
+sub create_build_info ($self) {
+    my $data = {
+        version    => $self->version->normal,
+        revision   => $self->revision,
+        build_date => $self->build_date,
+    };
+
+    return P->data->to_perl( $data, readable => 1 );
+}
+
+sub _build_build_info ($self) {
+    return -f $self->share_dir . 'build.perl' ? P->cfg->load( $self->share_dir . 'build.perl' ) : undef;
 }
 
 sub _build_last_release_version ($self) {
@@ -265,26 +335,6 @@ sub _build_has_uncommited_changes ($self) {
     }
 }
 
-sub _build_scm ($self) {
-    return if $self->is_installed;
-
-    return P->class->load('Pcore::API::SCM')->new( $self->root );
-}
-
-sub _build_build ($self) {
-    return P->class->load('Pcore::Dist::Build')->new( { dist => $self } );
-}
-
-sub create_build_info ($self) {
-    my $data = {
-        version    => $self->version->normal,
-        revision   => $self->revision,
-        build_date => $self->build_date,
-    };
-
-    return P->data->to_perl( $data, readable => 1 );
-}
-
 sub clear ($self) {
     $self->module->clear if $self->has_module;
 
@@ -308,7 +358,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 110, 160             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 114, 164             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 232                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

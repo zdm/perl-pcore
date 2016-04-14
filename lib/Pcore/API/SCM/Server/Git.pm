@@ -64,10 +64,6 @@ sub scm_releases ( $self, $root, $cb, $args ) {
     ...;    ## no critic qw[ControlStructures::ProhibitYadaOperator]
 }
 
-sub scm_latest_release ( $self, $root, $cb, $args ) {
-    ...;    ## no critic qw[ControlStructures::ProhibitYadaOperator]
-}
-
 sub scm_is_commited ( $self, $root, $cb, $args ) {
     ...;    ## no critic qw[ControlStructures::ProhibitYadaOperator]
 }

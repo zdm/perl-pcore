@@ -153,20 +153,35 @@ sub scm_id ( $self, $root, $cb, $args ) {
         $root,
         sub ($res) {
             if ( $res->is_success ) {
-                my ( $node, $branch, @tags ) = split / /sm, $res->{result}->[0];
+                my %res = (
+                    node                     => undef,
+                    tags                     => undef,
+                    bookmark                 => undef,
+                    branch                   => undef,
+                    desc                     => undef,
+                    date                     => undef,
+                    current_release          => undef,
+                    current_release_distance => undef,
+                );
 
-                $res->{result} = {
-                    id     => $node,
-                    branch => $branch,
-                    tags   => { map { $_ => undef } @tags },
-                };
+                ( $res{node}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{current_release} ) = split /\n/sm, $res->{result}->[0];
+
+                $res{tags} = [ split /\x00/sm, $res{tags} ] if $res{tags};
+
+                if ( $res{current_release} ) {
+                    ( $res{current_release}, $res{current_release_distance} ) = split /\x00/sm, $res{current_release};
+
+                    $res{current_release} = undef if $res{current_release} eq 'null';
+                }
+
+                $res->{result} = \%res;
             }
 
             $cb->($res);
 
             return;
         },
-        [qw[id -itbB]]
+        [ qw[log -r . --template], q[{node}\n{join(tags,'\x00')}\n{currentbookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ]
     );
 
     return;
@@ -197,7 +212,7 @@ sub scm_releases ( $self, $root, $cb, $args ) {
         $root,
         sub ($res) {
             if ( $res->is_success ) {
-                $res->{result} = { map { $_ => undef } grep {/\Av\d+[.]\d+[.]\d+\z/sm} $res->{result}->@* };
+                $res->{result} = [ sort grep {/\Av\d+[.]\d+[.]\d+\z/sm} $res->{result}->@* ];
             }
 
             $cb->($res);
@@ -205,29 +220,6 @@ sub scm_releases ( $self, $root, $cb, $args ) {
             return;
         },
         [qw[tags --template {tag}]]
-    );
-
-    return;
-}
-
-sub scm_latest_release ( $self, $root, $cb, $args ) {
-    $self->scm_cmd(
-        $root,
-        sub ($res) {
-            if ( $res->is_success ) {
-                my ( $tag, $distance ) = split /\x00/sm, $res->{result}->[0];
-
-                $res->{result} = {
-                    release => $tag eq 'null' ? undef : $tag,
-                    distance => $distance,
-                };
-            }
-
-            $cb->($res);
-
-            return;
-        },
-        [ qw[log -r . --template], q[{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ]
     );
 
     return;
@@ -294,7 +286,7 @@ sub scm_set_tag ( $self, $root, $cb, $args ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    2 │ 104, 106, 112        │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 230                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 184                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

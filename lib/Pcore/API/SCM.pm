@@ -14,26 +14,26 @@ has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM::Ups
 has server => ( is => 'lazy', isa => ConsumerOf ['Pcore::API::SCM::Server'], init_arg => undef );
 
 around new => sub ( $orig, $self, $path ) {
-    $path = P->path( $path, is_dir => 1 ) if !ref $path;
+    $path = P->path( $path, is_dir => 1 )->realpath;
 
     my $type;
 
-    if ( -d $path . '/.hg/' ) {
+    if ( -d "$path/.hg/" ) {
         $type = $SCM_TYPE_MERCURIAL;
     }
-    elsif ( -d $path . '/.git/' ) {
+    elsif ( -d "$path/.git/" ) {
         $type = $SCM_TYPE_GIT;
     }
     else {
         $path = $path->parent;
 
         while ($path) {
-            if ( -d $path . '/.hg/' ) {
+            if ( -d "$path/.hg/" ) {
                 $type = $SCM_TYPE_MERCURIAL;
 
                 last;
             }
-            elsif ( -d $path . '/.git/' ) {
+            elsif ( -d "$path/.git/" ) {
                 $type = $SCM_TYPE_GIT;
 
                 last;
@@ -44,7 +44,7 @@ around new => sub ( $orig, $self, $path ) {
     }
 
     if ($type) {
-        return $self->$orig( { type => $type, root => $path->realpath->to_string } );
+        return $self->$orig( { type => $type, root => $path->to_string } );
     }
 
     return;
@@ -162,10 +162,6 @@ sub scm_releases ( $self, $cb = undef ) {
     return $self->_request( 'scm_releases', [$cb] );
 }
 
-sub scm_latest_release ( $self, $cb = undef ) {
-    return $self->_request( 'scm_latest_release', [$cb] );
-}
-
 sub scm_is_commited ( $self, $cb = undef ) {
     return $self->_request( 'scm_is_commited', [$cb] );
 }
@@ -213,8 +209,6 @@ sub _request ( $self, $method, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 21, 24, 31, 36       │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 54                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##

@@ -55,28 +55,26 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         }
 
         if ($dists) {
-            say BOLD . WHITE . sprintf( '%-31s%20s%20s%10s', 'DIST NAME', 'RELEASED VERSION', 'UNRELEASED CHANGES', 'COMMITED' ) . RESET;
+            say BOLD . WHITE . sprintf( '%-31s%20s%20s%10s', 'DIST NAME', 'CURRENT RELEASE', 'UNRELEASED CHANGES', 'COMMITED' ) . RESET;
 
             for my $dist ( sort { $a->name cmp $b->name } $dists->@* ) {
-                my $changes_since_last_release = $dist->scm->scm_latest_release->{result}->{distance};
-
                 printf ' %-30s', $dist->name;
 
-                if ( $dist->last_release_version eq 'v0.0.0' ) {
+                if ( !defined $dist->id->{current_release} ) {
                     print q[ ] x 8 . WHITE . ON_RED . ' unreleased ' . RESET;
                 }
                 else {
-                    printf '%20s', $dist->last_release_version;
+                    printf '%20s', $dist->id->{current_release};
                 }
 
-                if ($changes_since_last_release) {
-                    print q[ ] x 15 . WHITE . ON_RED . q[ ] . sprintf( '%3s', $changes_since_last_release ) . q[ ] . RESET;
+                if ( $dist->id->{current_release_distance} ) {
+                    print q[ ] x 15 . WHITE . ON_RED . q[ ] . sprintf( '%3s', $dist->id->{current_release_distance} ) . q[ ] . RESET;
                 }
                 else {
                     printf '%20s', q[];
                 }
 
-                if ( $dist->has_uncommited_changes ) {
+                if ( !$dist->is_commited ) {
                     say q[ ] x 6 . WHITE . ON_RED . ' no ' . RESET;
                 }
                 else {
@@ -99,7 +97,7 @@ sub _show_dist_info ( $self, $dist ) {
     my $tmpl = <<'TMPL';
 name: <: $dist.name :>
 version: <: $dist.version :>
-revision: <: $dist.revision :>
+revision: <: $dist.id.node :>
 installed: <: $dist.is_installed :>
 module_name: <: $dist.module.name :>
 root: <: $dist.root :>
