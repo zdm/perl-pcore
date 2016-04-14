@@ -8,13 +8,17 @@ use Pcore::Util::File::Tree;
 
 has build => ( is => 'ro', isa => InstanceOf ['Pcore::Dist::Build'], required => 1 );
 
-has path      => ( is => 'ro', isa => Str,  required => 1 );
+has base_path => ( is => 'ro', isa => Str,  required => 1 );
 has namespace => ( is => 'ro', isa => Str,  required => 1 );    # Dist::Name
 has cpan      => ( is => 'ro', isa => Bool, default  => 0 );
-has repo      => ( is => 'ro', isa => Bool, default  => 0 );    # create upstream repository
+has upstream => ( is => 'ro', isa => Enum [qw[bitbucket github]], default => 'bitbucket' );    # create upstream repository
+has upstream_namespace => ( is => 'ro', isa => Str );                                          # upstream repository namespace
+has private            => ( is => 'ro', isa => Bool, default => 0 );
+has scm                => ( is => 'ro', isa => Enum [qw[hg git]], default => 'hg' );           # SCM for upstream repository
 
-has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
-has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has upstream_repo_id => ( is => 'ro',   isa => Str,     init_arg => undef );
+has target_path      => ( is => 'lazy', isa => Str,     init_arg => undef );
+has tmpl_params      => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 our $ERROR;
 
@@ -25,9 +29,12 @@ sub BUILDARGS ( $self, $args ) {
 }
 
 sub _build_target_path ($self) {
-    return P->path( $self->path, is_dir => 1 )->realpath->to_string . lc( $self->namespace =~ s[::][-]smgr );
+    return P->path( $self->base_path, is_dir => 1 )->realpath->to_string . lc( $self->namespace =~ s[::][-]smgr );
 }
 
+# TODO
+# - if repo is private all subrepos must have ssh:// urls, otherwise docker couldn't download it;
+# - if repo is public - all subrepos must have https:// url, so users can download it without ssh;
 sub _build_tmpl_params ($self) {
     return {
         dist_name          => $self->namespace =~ s/::/-/smgr,                                                                    # Package-Name
@@ -53,40 +60,25 @@ sub run ($self) {
         return;
     }
 
+    if ( $self->upstream eq 'github' ) {
+
+        # GitHub support only git SCM
+        $self->{scm} = 'git';
+
+        $ERROR = 'GitHub currently is not supported';
+
+        return;
+    }
+
+    if ( $self->scm eq 'git' ) {
+        $ERROR = 'Git SCM currently is not supported';
+
+        return;
+    }
+
     # create upstream repo
-    if ( $self->repo ) {
-        my $bitbucket_api = Pcore::API::Bitbucket->new(
-            {
-
-                repo_owner   => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'repo_owner'},
-                repo_name    => lc $self->namespace =~ s[::][-]smgr,
-                api_username => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_username'},
-                api_password => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_password'},
-            }
-        );
-
-        print 'Creating upstream repository ... ';
-
-        my $res = $bitbucket_api->create_repository;
-
-        if ( !$res->is_success ) {
-            $ERROR = 'Error creating Bitbucket repository';
-
-            say 'error';
-
-            return;
-        }
-
-        say 'done';
-
-        # clone upstream repo
-        P->file->mkpath( $self->target_path );
-
-        print 'Cloning upstream repository ... ';
-
-        my $scm = Pcore::API::SCM->scm_clone( $self->target_path, "ssh://hg\@bitbucket.org/@{[$bitbucket_api->repo_owner]}/@{[$bitbucket_api->repo_name]}" );
-
-        say 'done';
+    if ( $self->upstream ) {
+        return if !$self->_create_upstream;
     }
 
     # copy files
@@ -106,6 +98,74 @@ sub run ($self) {
     $dist->build->update;
 
     return $dist;
+}
+
+sub _create_upstream ($self) {
+    my $upstream_api;
+
+    my $upstream_namespace = $self->upstream_namespace;
+
+    my $repo_name = lc $self->namespace =~ s[::][-]smgr;
+
+    if ( $self->upstream eq 'bitbucket' ) {
+        $upstream_namespace ||= $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'repo_owner'};
+
+        $self->{upstream_repo_id} = "$upstream_namespace/$repo_name";
+
+        $upstream_api = Pcore::API::Bitbucket->new(
+            {   repo_owner   => $upstream_namespace,
+                repo_name    => $repo_name,
+                api_username => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_username'},
+                api_password => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_password'},
+            }
+        );
+    }
+
+    my $confirm = P->term->prompt( qq[Create upstream repository "$self->{upstream_repo_id}" on @{[$self->upstream]}?], [qw[yes no skip]], enter => 1 );
+
+    if ( $confirm eq 'skip' ) {
+        return 1;
+    }
+    elsif ( $confirm eq 'no' ) {
+        $ERROR = 'Error creating upstream repository';
+
+        return;
+    }
+
+    print 'Creating upstream repository ... ';
+
+    my $res = $upstream_api->create_repository( is_private => $self->private, scm => $self->scm );
+
+    if ( !$res->is_success ) {
+        $ERROR = 'Error creating upstream repository';
+
+        say 'error';
+
+        return;
+    }
+
+    say 'done';
+
+    return if !$self->_clone_upstream;
+
+    return 1;
+}
+
+sub _clone_upstream ($self) {
+    print 'Cloning upstream repository ... ';
+
+    if ( Pcore::API::SCM->scm_clone( $self->target_path, "ssh://hg\@bitbucket.org/$self->{upstream_repo_id}" ) ) {
+        say 'done';
+
+        return 1;
+    }
+    else {
+        $ERROR = 'Error cloning upstream repository';
+
+        say 'error';
+
+        return;
+    }
 }
 
 1;

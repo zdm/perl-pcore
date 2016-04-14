@@ -15,9 +15,24 @@ sub CLI ($self) {
                 desc    => 'create CPAN distribution',
                 default => 0,
             },
-            repo => {
+            upstream => {
                 desc    => 'create upstream repository',
+                isa     => [qw[bitbucket github]],
+                default => 'bitbucket',
+            },
+            upstream_namespace => {
+                short => 'N',
+                desc  => 'upstream repository namespace',
+                isa   => 'Str',
+            },
+            private => {
+                desc    => 'upstream repository is private',
                 default => 0,
+            },
+            scm => {
+                desc    => 'SCM type for upstream',
+                isa     => [qw[hg git]],
+                default => 'hg',
             },
         },
         arg => [    #
@@ -29,13 +44,13 @@ sub CLI ($self) {
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     $opt->{namespace} = $arg->{namespace};
 
-    $opt->{path} = $ENV->{START_DIR};
+    $opt->{base_path} = $ENV->{START_DIR};
 
     if ( my $dist = Pcore::Dist->create( $opt->%* ) ) {
         return;
     }
     else {
-        say $Pcore::Dist::Build::Create::ERROR . $LF;
+        say $Pcore::Dist::Build::Create::ERROR;
 
         exit 3;
     }
@@ -48,7 +63,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 34                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 49                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
