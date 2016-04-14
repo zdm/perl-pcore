@@ -549,7 +549,7 @@ sub help_usage ( $self, $invalid_options = undef ) {
 
 sub help_version ($self) {
     my $format_dist_info = sub ($dist) {
-        return "@{[$dist->name]} @{[$dist->version]} @{[$dist->revision]} @{[$dist->build_date]}";
+        return "@{[$dist->name]} @{[$dist->version]} @{[$dist->id->{node}]} @{[$dist->id->{date}]}";
     };
 
     if ( $ENV->dist ) {

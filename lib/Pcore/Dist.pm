@@ -9,7 +9,6 @@ has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute pat
 
 has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], predicate => 1 );
 
-# TODO do we need to clear cfg???
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );    # dist.perl
 has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                # Dist-Name
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -20,13 +19,6 @@ has id      => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef )
 has version => ( is => 'lazy', isa => Object,  clearer => 1, init_arg => undef );
 has is_commited => ( is => 'lazy', isa => Maybe [Bool],     init_arg => undef );
 has releases    => ( is => 'lazy', isa => Maybe [ArrayRef], init_arg => undef );
-
-# TODO REMOVE -----------------
-has build_info           => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );
-has last_release_version => ( is => 'lazy', isa => Maybe [Object],  clearer => 1, init_arg => undef );
-has revision   => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
-has build_date => ( is => 'lazy', isa => Str, clearer => 1, init_arg => undef );
-has has_uncommited_changes => ( is => 'lazy', isa => Maybe [Bool], clearer => 1, init_arg => undef );    # undef - unknown
 
 around new => sub ( $orig, $self, $dist ) {
 
@@ -214,7 +206,6 @@ sub _build_build ($self) {
     return P->class->load('Pcore::Dist::Build')->new( { dist => $self } );
 }
 
-# P->data->to_perl( $data, readable => 1 );
 sub _build_id ($self) {
     my $id = {
         node                     => undef,
@@ -238,8 +229,8 @@ sub _build_id ($self) {
             }
         }
     }
-    elsif ( -f $self->share_dir . 'build.perl' ) {
-        $id = P->cfg->load( $self->share_dir . 'build.perl' );
+    elsif ( -f $self->share_dir . 'dist_id.perl' ) {
+        $id = P->cfg->load( $self->share_dir . 'dist_id.perl' );
     }
 
     $id->{date} = P->date->from_string( $id->{date} )->at_utc if defined $id->{date};
@@ -247,7 +238,6 @@ sub _build_id ($self) {
     return $id;
 }
 
-# TODO clear version - $self->module->clear if $self->has_module;
 sub _build_version ($self) {
     return $self->module->version;
 }
@@ -268,85 +258,14 @@ sub _build_releases ($self) {
     return;
 }
 
-# TODO REMOVE ------------------------
-sub create_build_info ($self) {
-    my $data = {
-        version    => $self->version->normal,
-        revision   => $self->revision,
-        build_date => $self->build_date,
-    };
-
-    return P->data->to_perl( $data, readable => 1 );
-}
-
-sub _build_build_info ($self) {
-    return -f $self->share_dir . 'build.perl' ? P->cfg->load( $self->share_dir . 'build.perl' ) : undef;
-}
-
-sub _build_last_release_version ($self) {
-    if ( $self->scm ) {
-        if ( my $release = $self->scm->scm_latest_release->{result}->{release} ) {
-            return version->parse($release);
-        }
-        else {
-            return version->parse('v0.0.0');
-        }
-    }
-    else {
-        return;
-    }
-}
-
-sub _build_revision ($self) {
-    my $revision = 0;
-
-    if ( $self->is_installed ) {
-        $revision = $self->build_info->{revision};
-    }
-    elsif ( $self->scm ) {
-        $revision = $self->scm->scm_id->{result}->{id};
-    }
-    elsif ( $self->root && -f $self->root . '.hg_archival.txt' ) {
-        my $info = P->file->read_bin( $self->root . '.hg_archival.txt' );
-
-        if ( $info->$* =~ /^node:\s+([[:xdigit:]]+)$/sm ) {
-            $revision = $1;
-        }
-    }
-
-    return $revision;
-}
-
-sub _build_build_date ($self) {
-    if ( $self->is_installed ) {
-        return $self->build_info->{build_date};
-    }
-    else {
-        return P->date->now_utc->to_string;
-    }
-}
-
-sub _build_has_uncommited_changes ($self) {
-    if ( $self->scm ) {
-        return !$self->scm->scm_is_commited->{result};
-    }
-    else {
-        return;
-    }
-}
-
 sub clear ($self) {
+
+    # clear version
     $self->module->clear if $self->has_module;
 
-    $self->clear_build_info;
+    $self->clear_id;
 
     $self->clear_cfg;
-
-    $self->clear_version;
-
-    $self->clear_revision;
-
-    $self->clear_build_date;
 
     return;
 }
@@ -358,9 +277,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 114, 164             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 106, 156             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 232                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 223                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -67,8 +67,8 @@ sub _gather_files ($self) {
         $tree->add_file( $_, $self->dist->root . $_ );
     }
 
-    # add build.perl
-    $tree->add_file( 'share/build.perl', $self->dist->create_build_info );
+    # add dist_id.perl
+    $tree->add_file( 'share/dist_id.perl', P->data->to_perl( $self->dist->id, readable => 1 ) );
 
     # add t/author-pod-syntax.t
     my $t = <<'PERL';
