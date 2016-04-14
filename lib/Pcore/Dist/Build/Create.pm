@@ -14,7 +14,7 @@ has cpan      => ( is => 'ro', isa => Bool, default  => 0 );
 has upstream => ( is => 'ro', isa => Enum [qw[bitbucket github]], default => 'bitbucket' );    # create upstream repository
 has upstream_namespace => ( is => 'ro', isa => Str );                                          # upstream repository namespace
 has private            => ( is => 'ro', isa => Bool, default => 0 );
-has scm                => ( is => 'ro', isa => Enum [qw[hg git]], default => 'hg' );           # SCM for upstream repository
+has scm                => ( is => 'ro', isa => Enum [qw[hg git hg-git]], default => 'hg' );    # SCM for upstream repository
 
 has upstream_repo_id => ( is => 'ro',   isa => Str,     init_arg => undef );
 has target_path      => ( is => 'lazy', isa => Str,     init_arg => undef );
@@ -79,7 +79,16 @@ sub run ($self) {
     # copy files
     my $files = Pcore::Util::File::Tree->new;
 
-    $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) );
+    $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/dist/' );
+
+    if ( $self->upstream ) {
+        if ( $self->scm eq 'hg' ) {
+            $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/hg/' );
+        }
+        elsif ( $self->scm eq 'git' || $self->scm eq 'hg-git' ) {
+            $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/git/' );
+        }
+    }
 
     $files->move_file( 'lib/Module.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
 

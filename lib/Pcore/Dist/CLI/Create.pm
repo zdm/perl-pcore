@@ -31,7 +31,7 @@ sub CLI ($self) {
             },
             scm => {
                 desc    => 'SCM type for upstream',
-                isa     => [qw[hg git]],
+                isa     => [qw[hg git hg-git]],
                 default => 'hg',
             },
         },
