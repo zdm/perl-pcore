@@ -32,9 +32,6 @@ sub _build_target_path ($self) {
     return P->path( $self->base_path, is_dir => 1 )->realpath->to_string . lc( $self->namespace =~ s[::][-]smgr );
 }
 
-# TODO
-# - if repo is private all subrepos must have ssh:// urls, otherwise docker couldn't download it;
-# - if repo is public - all subrepos must have https:// url, so users can download it without ssh;
 sub _build_tmpl_params ($self) {
     return {
         dist_name          => $self->namespace =~ s/::/-/smgr,                                                                    # Package-Name
@@ -46,8 +43,6 @@ sub _build_tmpl_params ($self) {
         copyright_year     => P->date->now->year,
         copyright_holder   => $ENV->user_cfg->{'Pcore::Dist'}->{copyright_holder} || $ENV->user_cfg->{'Pcore::Dist'}->{author},
         license            => $ENV->user_cfg->{'Pcore::Dist'}->{license},
-        scm_repo_owner     => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{repo_owner} // 'username',
-        scm_repo_name      => lc $self->namespace =~ s/::/-/smgr,
         dockerhub_username => $ENV->user_cfg->{'Pcore::API::Dockerhub'}->{username} // 'username',
         cpan_distribution  => $self->cpan,
     };
@@ -148,6 +143,12 @@ sub _create_upstream ($self) {
 
     return if !$self->_clone_upstream;
 
+    if ( !$self->_clone_upstream_wiki ) {
+        P->file->rmtree( $self->target_path );
+
+        return;
+    }
+
     return 1;
 }
 
@@ -161,6 +162,23 @@ sub _clone_upstream ($self) {
     }
     else {
         $ERROR = 'Error cloning upstream repository';
+
+        say 'error';
+
+        return;
+    }
+}
+
+sub _clone_upstream_wiki ($self) {
+    print 'Cloning upstream wiki ... ';
+
+    if ( Pcore::API::SCM->scm_clone( $self->target_path . '/wiki/', "ssh://hg\@bitbucket.org/$self->{upstream_repo_id}/wiki" ) ) {
+        say 'done';
+
+        return 1;
+    }
+    else {
+        $ERROR = 'Error cloning upstream wiki';
 
         say 'error';
 
