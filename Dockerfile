@@ -15,7 +15,8 @@ ADD . $PCORE_LIB/$DIST_NAME/
 WORKDIR $PCORE_LIB/$DIST_NAME/
 
 # --develop
-RUN perl bin/pcore deploy --recommends --suggests \
+RUN cpanm --with-feature linux --with-recommends --with-suggests --installdeps . \
+    && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
     && rm -rf ~/.cpanm
 

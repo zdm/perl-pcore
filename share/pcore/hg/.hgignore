@@ -1,3 +1,4 @@
 # pcore
 re:^data/
 re:^log/
+re:^wiki/
