@@ -1,14 +1,14 @@
 package Pcore::API::SCM;
 
-use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_MERCURIAL $SCM_TYPE_GIT $SCM_TYPE_HGGIT]] };
+use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_HG $SCM_TYPE_GIT $SCM_TYPE_HGGIT]] };
 use Pcore::API::Response;
 use Pcore::API::SCM::Upstream;
 
-const our $SCM_TYPE_MERCURIAL => 1;
-const our $SCM_TYPE_GIT       => 2;
-const our $SCM_TYPE_HGGIT     => 3;
+const our $SCM_TYPE_HG    => 1;
+const our $SCM_TYPE_GIT   => 2;
+const our $SCM_TYPE_HGGIT => 3;
 
-has type => ( is => 'ro', isa => Enum [ $SCM_TYPE_MERCURIAL, $SCM_TYPE_GIT ], required => 1 );
+has type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], required => 1 );
 has root => ( is => 'ro', isa => Str, required => 1 );
 
 has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM::Upstream'] ], init_arg => undef );
@@ -20,7 +20,7 @@ around new => sub ( $orig, $self, $path ) {
     my $type;
 
     if ( -d "$path/.hg/" ) {
-        $type = $SCM_TYPE_MERCURIAL;
+        $type = $SCM_TYPE_HG;
     }
     elsif ( -d "$path/.git/" ) {
         $type = $SCM_TYPE_GIT;
@@ -30,7 +30,7 @@ around new => sub ( $orig, $self, $path ) {
 
         while ($path) {
             if ( -d "$path/.hg/" ) {
-                $type = $SCM_TYPE_MERCURIAL;
+                $type = $SCM_TYPE_HG;
 
                 last;
             }
@@ -52,7 +52,7 @@ around new => sub ( $orig, $self, $path ) {
 };
 
 # SCM INIT
-sub scm_init ( $self, $root, $type = $SCM_TYPE_MERCURIAL, $cb = undef ) {
+sub scm_init ( $self, $root, $type = $SCM_TYPE_HG, $cb = undef ) {
     my $server = $self->_get_server($type);
 
     if ( !$server ) {
@@ -96,7 +96,7 @@ sub scm_clone ( $self, $root, $uri, @args ) {
 
     my $upstream = Pcore::API::SCM::Upstream->new( { uri => $uri } );
 
-    my $type = $upstream->is_hg ? $SCM_TYPE_MERCURIAL : $SCM_TYPE_GIT;
+    my $type = $upstream->is_hg ? $SCM_TYPE_HG : $SCM_TYPE_GIT;
 
     my $temp = P->file->tempdir;
 
@@ -129,7 +129,7 @@ sub scm_clone ( $self, $root, $uri, @args ) {
 }
 
 sub _get_server ( $self, $type ) {
-    if ( $type == $SCM_TYPE_MERCURIAL ) {
+    if ( $type == $SCM_TYPE_HG ) {
         require Pcore::API::SCM::Server::Hg;
 
         return Pcore::API::SCM::Server::Hg->new;
