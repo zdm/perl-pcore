@@ -6,15 +6,21 @@ use Pcore::API::SCM;
 use Pcore::Util::File::Tree;
 use Pcore::API::SCM qw[:CONST];
 
+const our $SCM_NAME_TYPE => {
+    hg    => $SCM_TYPE_HG,
+    git   => $SCM_TYPE_GIT,
+    hggit => $SCM_TYPE_GIT,
+};
+
 has build => ( is => 'ro', isa => InstanceOf ['Pcore::Dist::Build'], required => 1 );
 
 has base_path => ( is => 'ro', isa => Str,  required => 1 );
 has namespace => ( is => 'ro', isa => Str,  required => 1 );    # Dist::Name
 has cpan      => ( is => 'ro', isa => Bool, default  => 0 );
 has upstream => ( is => 'ro', isa => Enum [qw[bitbucket github]], default => 'bitbucket' );    # create upstream repository
-has upstream_namespace => ( is => 'ro', isa => Str );                                          # upstream repository namespace
+has upstream_namespace => ( is => 'ro', isa => Str );                                                  # upstream repository namespace
 has private            => ( is => 'ro', isa => Bool, default => 0 );
-has scm                => ( is => 'ro', isa => Enum [qw[hg git hggit]], default => 'hg' );     # SCM for upstream repository
+has scm                => ( is => 'ro', isa => Enum [ keys $SCM_NAME_TYPE->%* ], default => 'hg' );    # SCM for upstream repository
 
 has scm_type => ( is => 'lazy', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], init_arg => undef );
 has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
@@ -23,12 +29,6 @@ has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has upstream_api => ( is => 'ro', isa => Object, init_arg => undef );
 
 our $ERROR;
-
-const our $SCM_NAME_TYPE => {
-    hg    => $SCM_TYPE_HG,
-    git   => $SCM_TYPE_GIT,
-    hggit => $SCM_TYPE_GIT,
-};
 
 sub BUILDARGS ( $self, $args ) {
     $args->{namespace} =~ s/-/::/smg if $args->{namespace};
@@ -180,6 +180,16 @@ sub _clone_upstream_repo ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    3 │ 23                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
