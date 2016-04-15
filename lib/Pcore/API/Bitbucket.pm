@@ -14,14 +14,14 @@ has scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], defau
 has id   => ( is => 'lazy', isa => Str, init_arg => undef );
 has auth => ( is => 'lazy', isa => Str, init_arg => undef );
 
-has clone_url_https            => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_https_hggit      => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_ssh              => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_ssh_hggit        => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_https       => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_https            => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_https_hggit      => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_ssh              => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_ssh_hggit        => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_https       => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
 
 has cpan_meta => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
@@ -48,7 +48,7 @@ sub _build_auth ($self) {
 }
 
 # CLONE URL BUILDERS
-sub _build_clone_url_https ($self) {
+sub _build_clone_uri_https ($self) {
     my $url = "https://bitbucket.org/@{[$self->id]}";
 
     $url .= '.git' if $self->scm_type == $SCM_TYPE_GIT;
@@ -56,56 +56,56 @@ sub _build_clone_url_https ($self) {
     return $url;
 }
 
-sub _build_clone_url_https_hggit ($self) {
+sub _build_clone_uri_https_hggit ($self) {
     if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_url_https;
+        return $self->clone_uri_https;
     }
     else {
-        return 'git+' . $self->clone_url_https;
+        return 'git+' . $self->clone_uri_https;
     }
 }
 
-sub _build_clone_url_ssh ($self) {
+sub _build_clone_uri_ssh ($self) {
     if ( $self->scm_type == $SCM_TYPE_HG ) {
         return "ssh://hg\@bitbucket.org/@{[$self->id]}";
     }
     else {
-        return "git\@bitbucket.org:@{[$self->id]}.git";
+        return "ssh://git\@bitbucket.org/@{[$self->id]}.git";
     }
 }
 
-sub _build_clone_url_ssh_hggit ($self) {
+sub _build_clone_uri_ssh_hggit ($self) {
     if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_url_ssh;
+        return $self->clone_uri_ssh;
     }
     else {
-        return 'git+ssh://' . $self->clone_url_ssh;
+        return 'git+' . $self->clone_uri_ssh;
     }
 }
 
-sub _build_clone_url_wiki_https ($self) {
-    return $self->clone_url_https . '/wiki';
+sub _build_clone_uri_wiki_https ($self) {
+    return $self->clone_uri_https . '/wiki';
 }
 
-sub _build_clone_url_wiki_https_hggit ($self) {
+sub _build_clone_uri_wiki_https_hggit ($self) {
     if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_url_wiki_https;
+        return $self->clone_uri_wiki_https;
     }
     else {
-        return 'git+' . $self->clone_url_wiki_https;
+        return 'git+' . $self->clone_uri_wiki_https;
     }
 }
 
-sub _build_clone_url_wiki_ssh ($self) {
-    return $self->clone_url_ssh . '/wiki';
+sub _build_clone_uri_wiki_ssh ($self) {
+    return $self->clone_uri_ssh . '/wiki';
 }
 
-sub _build_clone_url_wiki_ssh_hggit ($self) {
+sub _build_clone_uri_wiki_ssh_hggit ($self) {
     if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_url_wiki_ssh;
+        return $self->clone_uri_wiki_ssh;
     }
     else {
-        return 'git+ssh://' . $self->clone_url_wiki_ssh;
+        return 'git+' . $self->clone_uri_wiki_ssh;
     }
 }
 
@@ -254,17 +254,21 @@ sub create_repo ( $self, @ ) {
 
     my %args = (
         cb          => undef,
-        scm         => $SCM_TYPE_HG,     # hg, git
+        scm_type    => $self->scm_type,
         is_private  => 0,
         description => undef,
-        fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
+        fork_police => 'allow_forks',     # allow_forks, no_public_forks, no_forks
         language    => 'perl',
         has_issues  => 1,
         has_wiki    => 1,
         splice @_, 1
     );
 
-    $args{scm} = $args{scm} == $SCM_TYPE_HG ? 'hg' : $args{scm} == $SCM_TYPE_GIT ? 'git' : die 'Invalid SCM type';
+    given ( delete $args{scm_type} ) {
+        when ($SCM_TYPE_HG)  { $args{scm} = 'hg' }
+        when ($SCM_TYPE_GIT) { $args{scm} = 'git' }
+        default              { die 'Invalid SCM type' }
+    }
 
     my $cb = delete $args{cb};
 
@@ -280,14 +284,16 @@ sub create_repo ( $self, @ ) {
         on_finish => sub ($res) {
             my $api_res;
 
+            my $json = $res->body ? P->data->from_json( $res->body ) : undef;
+
             if ( $res->status != 200 ) {
-                $api_res = Pcore::API::Response->new( { status => $res->status, reason => $res->reason } );
+                my $reason = $json && $json->{error}->{message} ? $json->{error}->{message} : $res->reason;
+
+                $api_res = Pcore::API::Response->new( { status => $res->status, reason => $reason } );
             }
             else {
-                my $json = P->data->from_json( $res->body );
-
                 if ( $json->{error} ) {
-                    $api_res = Pcore::API::Response->new( { status => 999, reason => $json->{error}->{message} } );
+                    $api_res = Pcore::API::Response->new( { status => 569, reason => $json->{error}->{message} } );
                 }
                 else {
                     $api_res = Pcore::API::Response->new( { status => 200 } );

@@ -100,12 +100,12 @@ MD
 sub _clone_upstream_wiki ($self) {
     print 'Cloning upstream wiki ... ';
 
-    my $clone_url;
+    my $clone_uri;
 
-    if   ( $self->scm eq 'hggit' ) { $clone_url = $self->upstream_api->clone_url_wiki_ssh_hggit }
-    else                           { $clone_url = $self->upstream_api->clone_url_wiki_ssh }
+    if   ( $self->scm eq 'hggit' ) { $clone_uri = $self->upstream_api->clone_uri_wiki_ssh_hggit }
+    else                           { $clone_uri = $self->upstream_api->clone_uri_wiki_ssh }
 
-    if ( Pcore::API::SCM->scm_clone( $self->target_path . '/wiki/', $clone_url ) ) {
+    if ( Pcore::API::SCM->scm_clone( $self->target_path . '/wiki/', $clone_uri ) ) {
         say 'done';
 
         return 1;

@@ -105,12 +105,7 @@ sub _build_clone_uri_https ($self) {
 }
 
 sub _build_clone_uri_ssh ($self) {
-    if ( $self->local_scm_type == $SCM_TYPE_HG ) {    # hg@bitbucket
-        return 'ssh://' . $self->uri->username . q[@] . $self->host . q[/] . $self->path;
-    }
-    else {
-        return $self->uri->username . q[@] . $self->host . q[:] . $self->namespace . q[/] . $self->path;
-    }
+    return 'ssh://' . $self->uri->username . q[@] . $self->host . q[/] . $self->path;
 }
 
 sub _build_clone_uri_https_hggit ($self) {
@@ -127,7 +122,7 @@ sub _build_clone_uri_ssh_hggit ($self) {
         return $self->clone_uri_ssh;
     }
     else {
-        return 'git+ssh://' . $self->clone_uri_ssh;
+        return 'git+' . $self->clone_uri_ssh;
     }
 }
 

@@ -75,7 +75,7 @@ sub run ($self) {
 
     # create upstream repo
     if ( $self->upstream ) {
-        return if !$self->_create_upstream;
+        return if !$self->_create_upstream_repo;
     }
 
     # copy files
@@ -106,7 +106,7 @@ sub run ($self) {
     return $dist;
 }
 
-sub _create_upstream ($self) {
+sub _create_upstream_repo ($self) {
     if ( $self->upstream eq 'bitbucket' ) {
         require Pcore::API::Bitbucket;
 
@@ -140,10 +140,10 @@ sub _create_upstream ($self) {
 
     print 'Creating upstream repository ... ';
 
-    my $res = $self->{upstream_api}->create_repo( is_private => $self->private, scm => $self->scm_type );
+    my $res = $self->{upstream_api}->create_repo( is_private => $self->private );
 
     if ( !$res->is_success ) {
-        $ERROR = 'Error creating upstream repository';
+        $ERROR = $res->reason;
 
         say 'error';
 
@@ -152,26 +152,26 @@ sub _create_upstream ($self) {
 
     say 'done';
 
-    return if !$self->_clone_upstream;
+    return if !$self->_clone_upstream_repo;
 
     return 1;
 }
 
-sub _clone_upstream ($self) {
-    print 'Cloning upstream repository ... ';
+sub _clone_upstream_repo ($self) {
+    my $clone_uri;
 
-    my $clone_url;
+    if   ( $self->scm eq 'hggit' ) { $clone_uri = $self->upstream_api->clone_uri_ssh_hggit }
+    else                           { $clone_uri = $self->upstream_api->clone_uri_ssh }
 
-    if   ( $self->scm eq 'hggit' ) { $clone_url = $self->upstream_api->clone_url_ssh_hggit }
-    else                           { $clone_url = $self->upstream_api->clone_url_ssh }
+    print qq[Cloning upstream repository "$clone_uri" ... ];
 
-    if ( Pcore::API::SCM->scm_clone( $self->target_path, $clone_url ) ) {
+    if ( my $res = Pcore::API::SCM->scm_clone( $self->target_path, $clone_uri ) ) {
         say 'done';
 
         return 1;
     }
     else {
-        $ERROR = 'Error cloning upstream repository';
+        $ERROR = $res->reason;
 
         say 'error';
 

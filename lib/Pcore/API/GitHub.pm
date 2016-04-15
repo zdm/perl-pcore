@@ -10,14 +10,14 @@ has namespace => ( is => 'lazy', isa => Str );
 
 has id => ( is => 'lazy', isa => Str, init_arg => undef );
 
-has clone_url_https            => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_https_hggit      => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_ssh              => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_ssh_hggit        => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_https       => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_url_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_https            => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_https_hggit      => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_ssh              => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_ssh_hggit        => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_https       => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_uri_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
 
 has cpan_meta => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
@@ -40,36 +40,36 @@ sub _build_id ($self) {
 }
 
 # CLONE URL BUILDERS
-sub _build_clone_url_https ($self) {
+sub _build_clone_uri_https ($self) {
     return "https://github.com/@{[$self->id]}.git";
 }
 
-sub _build_clone_url_https_hggit ($self) {
-    return 'git+' . $self->clone_url_https;
+sub _build_clone_uri_https_hggit ($self) {
+    return 'git+' . $self->clone_uri_https;
 }
 
-sub _build_clone_url_ssh ($self) {
-    return "git\@github.com:@{[$self->id]}.git";
+sub _build_clone_uri_ssh ($self) {
+    return "ssh://git\@github.com/@{[$self->id]}.git";
 }
 
-sub _build_clone_url_ssh_hggit ($self) {
-    return 'git+ssh://' . $self->clone_url_ssh;
+sub _build_clone_uri_ssh_hggit ($self) {
+    return 'git+' . $self->clone_uri_ssh;
 }
 
-sub _build_clone_url_wiki_https ($self) {
+sub _build_clone_uri_wiki_https ($self) {
     return "https://github.com/@{[$self->id]}.wiki.git";
 }
 
-sub _build_clone_url_wiki_https_hggit ($self) {
-    return 'git+' . $self->clone_url_wiki_https;
+sub _build_clone_uri_wiki_https_hggit ($self) {
+    return 'git+' . $self->clone_uri_wiki_https;
 }
 
-sub _build_clone_url_wiki_ssh ($self) {
-    return "git\@github.com:@{[$self->id]}.wiki.git";
+sub _build_clone_uri_wiki_ssh ($self) {
+    return "ssh://git\@github.com/@{[$self->id]}.wiki.git";
 }
 
-sub _build_clone_url_wiki_ssh_hggit ($self) {
-    return 'git+ssh://' . $self->clone_url_wiki_ssh;
+sub _build_clone_uri_wiki_ssh_hggit ($self) {
+    return 'git+' . $self->clone_uri_wiki_ssh;
 }
 
 # CPAN META
