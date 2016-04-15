@@ -21,10 +21,8 @@ sub _build_api ($self) {
     my $scm_upstream = $self->dist->scm->upstream;
 
     return Pcore::API::Bitbucket->new(
-        {   repo_owner   => $scm_upstream->repo_owner,
-            repo_name    => $scm_upstream->repo_name,
-            api_username => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_username},
-            api_password => $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{api_password},
+        {   namespace => $scm_upstream->namespace,
+            repo_name => $scm_upstream->repo_name,
         }
     );
 }
@@ -165,9 +163,9 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 68, 72               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 66, 70               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 140                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 138                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
