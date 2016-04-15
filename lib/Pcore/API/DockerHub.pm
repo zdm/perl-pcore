@@ -31,6 +31,16 @@ const our $DOCKERHUB_SOURCE_NAME => {
     $DOCKERHUB_SOURCE_BRANCH => 'Branch',
 };
 
+sub BUILDARGS ( $self, $args = undef ) {
+    $args->{api_username} ||= $ENV->user_cfg->{'Pcore::API::DockerHub'}->{'api_username'} if $ENV->user_cfg->{'Pcore::API::DockerHub'}->{'api_username'};
+
+    $args->{api_password} ||= $ENV->user_cfg->{'Pcore::API::DockerHub'}->{'api_password'} if $ENV->user_cfg->{'Pcore::API::DockerHub'}->{'api_password'};
+
+    $args->{namespace} ||= $ENV->user_cfg->{'Pcore::API::DockerHub'}->{'namespace'} if $ENV->user_cfg->{'Pcore::API::DockerHub'}->{'namespace'};
+
+    return $args;
+}
+
 sub _build_namespace ($self) {
     return $self->api_username;
 }
@@ -410,9 +420,9 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 283, 355             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 293, 365             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 307                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 317                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
