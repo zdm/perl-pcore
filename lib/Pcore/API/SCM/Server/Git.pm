@@ -65,6 +65,11 @@ sub scm_clone ( $self, $root, $cb, $args ) {
 
     push @cmd, $uri, $path;
 
+    # NOTE msys2 git under windows create garbage folder in current working dir when paths with "/" delilimer are in use:
+    # https://github.com/Alexpux/MSYS2-packages/issues/554
+    # so, we chdir to %TEMP% to remove such garbage folders automatically
+    my $chdir_guard = P->file->chdir( $ENV->{TEMP_DIR} );
+
     $self->scm_cmd( undef, $cb, \@cmd );
 
     return;
