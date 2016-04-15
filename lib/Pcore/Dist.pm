@@ -10,9 +10,10 @@ has share_dir    => ( is => 'ro', isa => Str,  required => 1 );   # absolute pat
 has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], predicate => 1 );
 
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );    # dist.perl
-has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                # Dist-Name
+has docker_cfg => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );    # docker.json
+has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                               # Dist-Name
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
-has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef ); # main process dist
+has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );                # main process dist
 has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM'] ], init_arg => undef );
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
 has id      => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
@@ -188,6 +189,14 @@ sub _build_cfg ($self) {
     return P->cfg->load( $self->share_dir . 'dist.perl' );
 }
 
+sub _build_docker_cfg ($self) {
+    if ( -f $self->share_dir . 'docker.json' ) {
+        return P->cfg->load( $self->share_dir . 'docker.json' );
+    }
+
+    return;
+}
+
 sub _build_name ($self) {
     return $self->cfg->{dist}->{name};
 }
@@ -267,6 +276,8 @@ sub clear ($self) {
 
     $self->clear_cfg;
 
+    $self->clear_docker_cfg;
+
     return;
 }
 
@@ -277,9 +288,9 @@ sub clear ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 106, 156             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 107, 157             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 223                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 232                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

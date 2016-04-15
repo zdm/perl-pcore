@@ -15,7 +15,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ( $self, $args ) {
-    if ( !-f $self->dist->share_dir . 'docker.json' ) {
+    if ( !$self->dist->docker_cfg ) {
         my $namespace = $ENV->user_cfg->{'Pcore::API::DockerHub'}->{namespace} || $ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_username};
 
         if ( !$namespace ) {
@@ -64,7 +64,7 @@ sub run ( $self, $args ) {
             $files->add_file( 'share/docker.json', P->data->to_json( { namespace => $namespace }, readable => 1 ) );
 
             $files->render_tmpl(
-                {   pcore_dockerhub_namespace => $namespace,                   # TODO get from pcore dist
+                {   pcore_dockerhub_namespace => $ENV->pcore->docker_cfg->{namespace},
                     author_email              => $self->dist->cfg->{author},
                     dist_path                 => lc $self->dist->name,
                 }

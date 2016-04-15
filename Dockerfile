@@ -1,4 +1,4 @@
-FROM softvisio/perl:latest
+FROM softvisio/perl:v5.22.1
 
 MAINTAINER admin@softvisio.net
 
