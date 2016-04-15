@@ -1,28 +1,44 @@
 package Pcore::API::SCM::Upstream;
 
-use Pcore -class;
+use Pcore -const, -class;
+use Pcore::API::SCM qw[:CONST];
 
 has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], required => 1 );
-has clone_is_git => ( is => 'ro', isa => Bool, default => 0 );    # local repo clone is git
-has clone_is_hg  => ( is => 'ro', isa => Bool, default => 0 );    # local repo clone is hg, hg clone can have git upstream scm
+has local_scm_type => ( is => 'lazy', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ] );
 
 has is_bitbucket => ( is => 'lazy', isa => Bool, init_arg => undef );    # upstream is hosted on bitbucket
 has is_github    => ( is => 'lazy', isa => Bool, init_arg => undef );    # upstream is hosted on github
-has repo_owner   => ( is => 'lazy', isa => Str,  init_arg => undef );
-has _repo_name   => ( is => 'lazy', isa => Str,  init_arg => undef );    # repo_name with possible .git suffix
-has repo_name    => ( is => 'lazy', isa => Str,  init_arg => undef );
-has is_git       => ( is => 'lazy', isa => Bool, init_arg => undef );    # upstream scm is git
-has is_hg        => ( is => 'lazy', isa => Bool, init_arg => undef );    # upstream scm is mercurial
-has host         => ( is => 'lazy', isa => Str,  init_arg => undef );    # upstream host name, bitbucket.org, github.com, etc...
+
+has remote_scm_type => ( is => 'lazy', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], init_arg => undef );
+
+has repo_owner => ( is => 'lazy', isa => Str,  init_arg => undef );      # TODO namespace
+has _repo_name => ( is => 'lazy', isa => Str,  init_arg => undef );      # repo_name with possible .git suffix
+has repo_name  => ( is => 'lazy', isa => Str,  init_arg => undef );
+has is_git     => ( is => 'lazy', isa => Bool, init_arg => undef );      # upstream scm is git
+has is_hg      => ( is => 'lazy', isa => Bool, init_arg => undef );      # upstream scm is mercurial
+has host       => ( is => 'lazy', isa => Str,  init_arg => undef );      # upstream host name, bitbucket.org, github.com, etc...
 
 has clone_uri_https       => ( is => 'lazy', isa => Str, init_arg => undef );
 has clone_uri_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
 has clone_uri_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
 has clone_uri_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
 
-has meta_resources => ( is => 'lazy', isa => HashRef, init_arg => undef );
-
 # NOTE https://bitbucket.org/repo_owner/repo_name - upstream SCM type can't be recognized correctly, use ".git" suffix fot git repositories
+
+const our $SCM_HOSTING_BITBUCKET => 1;
+const our $SCM_HOSTING_GITHUB    => 2;
+
+const our $SCM_HOSTING_CLASS => {
+    $SCM_HOSTING_BITBUCKET => 'Pcore::API::Bitbucket',
+    $SCM_HOSTING_GITHUB    => 'Pcore::API::GitHub',
+};
+
+# git@bitbucket.org:softvisio/test-git.git/wiki
+# https://softvisio@bitbucket.org/softvisio/test-git.git/wiki
+# ssh://hg@bitbucket.org/softvisio/test-hg
+# ssh://softvisio@bitbucket.org/softvisio/test-hg/wiki
+# git@github.com:zdm/test-github.wiki.git
+# https://github.com/zdm/test-github.wiki.git
 
 sub BUILDARGS ( $self, $args ) {
     $args->{uri} = P->uri( $args->{uri}, authority => 1 ) if !ref $args->{uri};
@@ -71,7 +87,7 @@ sub _build_repo_name ($self) {
 }
 
 sub _build_is_git ($self) {
-    return 1 if $self->clone_is_git;
+    return 1 if $self->local_scm_type == $SCM_TYPE_GIT;
 
     return 1 if $self->is_github;
 
@@ -111,20 +127,6 @@ sub _build_clone_uri_https_hggit ($self) {
 
 sub _build_clone_uri_ssh_hggit ($self) {
     return ( $self->is_git ? 'git+ssh://' : q[] ) . $self->clone_uri_ssh;
-}
-
-sub _build_meta_resources ($self) {
-    return {
-        homepage => 'https://' . $self->host . q[/] . $self->repo_owner . q[/] . $self->repo_name . ( $self->is_bitbucket ? '/overview' : q[] ),
-        bugtracker => {    #
-            web => 'https://' . $self->host . q[/] . $self->repo_owner . q[/] . $self->repo_name . '/issues' . ( $self->is_bitbucket ? '?status=new&status=open' : '?q=is%3Aopen+is%3Aissue' ),
-        },
-        repository => {
-            type => $self->is_git ? 'git' : 'hg',
-            url => $self->clone_uri_https,
-            web => 'https://' . $self->host . q[/] . $self->repo_owner . q[/] . $self->repo_name . ( $self->is_bitbucket ? '/overview' : q[] ),
-        },
-    };
 }
 
 1;

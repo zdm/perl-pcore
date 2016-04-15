@@ -3,18 +3,128 @@ package Pcore::API::Bitbucket;
 use Pcore -class;
 use Pcore::API::Response;
 use Pcore::API::Bitbucket::Issue;
+use Pcore::API::SCM qw[:CONST];
 
-has repo_owner   => ( is => 'ro', isa => Str, required => 1 );
-has repo_name    => ( is => 'ro', isa => Str, required => 1 );
 has api_username => ( is => 'ro', isa => Str, required => 1 );
 has api_password => ( is => 'ro', isa => Str, required => 1 );
+has repo_name    => ( is => 'ro', isa => Str, required => 1 );
+has namespace => ( is => 'lazy', isa => Str );
+has scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
 
+has id   => ( is => 'lazy', isa => Str, init_arg => undef );
 has auth => ( is => 'lazy', isa => Str, init_arg => undef );
+
+has clone_url_https            => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_url_https_hggit      => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_url_ssh              => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_url_ssh_hggit        => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_url_wiki_https       => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_url_wiki_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_url_wiki_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
+has clone_url_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
+
+has cpan_meta => ( is => 'lazy', isa => HashRef, init_arg => undef );
+
+sub BUILDARGS ( $self, $args = undef ) {
+    $args->{api_username} ||= $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_username'} if $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_username'};
+
+    $args->{api_password} ||= $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_password'} if $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'api_password'};
+
+    $args->{namespace} ||= $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'namespace'} if $ENV->user_cfg->{'Pcore::API::Bitbucket'}->{'namespace'};
+
+    return $args;
+}
+
+sub _build_namespace ($self) {
+    return $self->api_username;
+}
+
+sub _build_id ($self) {
+    return $self->namespace . q[/] . $self->repo_name;
+}
 
 sub _build_auth ($self) {
     return 'Basic ' . P->data->to_b64( $self->api_username . q[:] . $self->api_password, q[] );
 }
 
+# CLONE URL BUILDERS
+sub _build_clone_url_https ($self) {
+    my $url = "https://bitbucket.org/@{[$self->id]}";
+
+    $url .= '.git' if $self->scm_type == $SCM_TYPE_GIT;
+
+    return $url;
+}
+
+sub _build_clone_url_https_hggit ($self) {
+    if ( $self->scm_type == $SCM_TYPE_HG ) {
+        return $self->clone_url_https;
+    }
+    else {
+        return 'git+' . $self->clone_url_https;
+    }
+}
+
+sub _build_clone_url_ssh ($self) {
+    if ( $self->scm_type == $SCM_TYPE_HG ) {
+        return "ssh://hg\@bitbucket.org/@{[$self->id]}";
+    }
+    else {
+        return "git\@bitbucket.org:@{[$self->id]}.git";
+    }
+}
+
+sub _build_clone_url_ssh_hggit ($self) {
+    if ( $self->scm_type == $SCM_TYPE_HG ) {
+        return $self->clone_url_ssh;
+    }
+    else {
+        return 'git+ssh://' . $self->clone_url_ssh;
+    }
+}
+
+sub _build_clone_url_wiki_https ($self) {
+    return $self->clone_url_https . '/wiki';
+}
+
+sub _build_clone_url_wiki_https_hggit ($self) {
+    if ( $self->scm_type == $SCM_TYPE_HG ) {
+        return $self->clone_url_wiki_https;
+    }
+    else {
+        return 'git+' . $self->clone_url_wiki_https;
+    }
+}
+
+sub _build_clone_url_wiki_ssh ($self) {
+    return $self->clone_url_ssh . '/wiki';
+}
+
+sub _build_clone_url_wiki_ssh_hggit ($self) {
+    if ( $self->scm_type == $SCM_TYPE_HG ) {
+        return $self->clone_url_wiki_ssh;
+    }
+    else {
+        return 'git+ssh://' . $self->clone_url_wiki_ssh;
+    }
+}
+
+# CPAN META
+sub _build_cpan_meta ($self) {
+    return {
+        homepage   => "https://bitbucket.org/@{[$self->id]}/overview",
+        bugtracker => {                                                  #
+            web => "https://bitbucket.org/@{[$self->id]}/issues?status=new&status=open",
+        },
+        repository => {
+            type => $self->scm_type == $SCM_TYPE_HG ? 'hg' : 'git',
+            url  => $self->clone_uri_https,
+            web  => "https://bitbucket.org/@{[$self->id]}/overview",
+        },
+    };
+}
+
+# ISSUES
 sub issues ( $self, @ ) {
     my $cb = $_[-1];
 
@@ -32,10 +142,10 @@ sub issues ( $self, @ ) {
 
     my $url = do {
         if ($id) {
-            "https://bitbucket.org/api/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/$id";
+            "https://bitbucket.org/api/1.0/repositories/@{[$self->id]}/issues/$id";
         }
         else {
-            "https://bitbucket.org/api/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/?" . P->data->to_uri( \%args );
+            "https://bitbucket.org/api/1.0/repositories/@{[$self->id]}/issues/?" . P->data->to_uri( \%args );
         }
     };
 
@@ -80,7 +190,7 @@ sub issues ( $self, @ ) {
 }
 
 sub create_version ( $self, $ver, $cb ) {
-    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/versions";
+    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->id]}/issues/versions";
 
     $ver = version->parse($ver)->normal;
 
@@ -106,7 +216,7 @@ sub create_version ( $self, $ver, $cb ) {
 }
 
 sub create_milestone ( $self, $milestone, $cb ) {
-    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}/issues/milestones";
+    my $url = "https://api.bitbucket.org/1.0/repositories/@{[$self->id]}/issues/milestones";
 
     P->http->post(    #
         $url,
@@ -139,12 +249,12 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
     return;
 }
 
-sub create_repository ( $self, @ ) {
+sub create_repo ( $self, @ ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
         cb          => undef,
-        scm         => 'hg',             # hg, git
+        scm         => $SCM_TYPE_HG,     # hg, git
         is_private  => 0,
         description => undef,
         fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
@@ -154,11 +264,13 @@ sub create_repository ( $self, @ ) {
         splice @_, 1
     );
 
+    $args{scm} = $args{scm} == $SCM_TYPE_HG ? 'hg' : $args{scm} == $SCM_TYPE_GIT ? 'git' : die 'Invalid SCM type';
+
     my $cb = delete $args{cb};
 
-    my $url = "https://api.bitbucket.org/2.0/repositories/@{[$self->repo_owner]}/@{[$self->repo_name]}";
+    my $url = "https://api.bitbucket.org/2.0/repositories/@{[$self->id]}";
 
-    P->http->post(                       #
+    P->http->post(    #
         $url,
         headers => {
             AUTHORIZATION => $self->auth,
@@ -200,9 +312,9 @@ sub create_repository ( $self, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 54, 66               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 164, 176             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 145                  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
+## │    1 │ 255                  │ CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

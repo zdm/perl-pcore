@@ -6,8 +6,9 @@ require Pcore::API::DockerHub::Repository;
 
 # https://github.com/RyanTheAllmighty/Docker-Hub-API.git
 
-has username => ( is => 'ro', isa => Str, required => 1 );
-has password => ( is => 'ro', isa => Str, required => 1 );
+has api_username => ( is => 'ro', isa => Str, required => 1 );
+has api_password => ( is => 'ro', isa => Str, required => 1 );
+has namespace => ( is => 'lazy', isa => Str );
 
 has login_token => ( is => 'ro', isa => Str, init_arg => undef );
 
@@ -30,6 +31,10 @@ const our $DOCKERHUB_SOURCE_NAME => {
     $DOCKERHUB_SOURCE_BRANCH => 'Branch',
 };
 
+sub _build_namespace ($self) {
+    return $self->api_username;
+}
+
 sub login ( $self, % ) {
     my %args = (
         cb => undef,
@@ -40,7 +45,7 @@ sub login ( $self, % ) {
         'post',
         '/users/login/',
         undef,
-        { username => $self->username, password => $self->password },
+        { username => $self->api_username, password => $self->api_password },
         sub ($res) {
             if ( $res->{result}->{detail} ) {
                 $res->{reason} = delete $res->{result}->{detail};
@@ -59,7 +64,7 @@ sub login ( $self, % ) {
 
 sub get_user ( $self, % ) {
     my %args = (
-        username => $self->username,
+        username => $self->api_username,
         cb       => undef,
         splice @_, 1,
     );
@@ -73,13 +78,13 @@ sub get_registry_settings ( $self, % ) {
         splice @_, 1,
     );
 
-    return $self->request( 'get', "/users/@{[$self->username]}/registry-settings/", 1, undef, $args{cb} );
+    return $self->request( 'get', "/users/@{[$self->api_username]}/registry-settings/", 1, undef, $args{cb} );
 }
 
 # GET REPOS
 sub get_all_repos ( $self, % ) {
     my %args = (
-        namespace => $self->username,
+        namespace => $self->namespace,
         cb        => undef,
         splice @_, 1,
     );
@@ -116,7 +121,7 @@ sub get_repos ( $self, % ) {
     my %args = (
         page      => 1,
         page_size => 100,
-        namespace => $self->username,
+        namespace => $self->namespace,
         cb        => undef,
         splice @_, 1,
     );
@@ -159,7 +164,7 @@ sub get_starred_repos ( $self, % ) {
     my %args = (
         page      => 1,
         page_size => 100,
-        namespace => $self->username,
+        namespace => $self->namespace,
         cb        => undef,
         splice @_, 1,
     );
@@ -200,7 +205,7 @@ sub get_starred_repos ( $self, % ) {
 
 sub get_repo ( $self, $repo_name, % ) {
     my %args = (
-        namespace => $self->username,
+        namespace => $self->namespace,
         cb        => undef,
         splice @_, 2,
     );
@@ -232,7 +237,7 @@ sub get_repo ( $self, $repo_name, % ) {
 # CREATE REPO / AUTOMATED BUILD
 sub create_repo ( $self, $repo_name, % ) {
     my %args = (
-        namespace => $self->username,
+        namespace => $self->namespace,
         private   => 0,
         desc      => q[],
         full_desc => q[],
@@ -277,7 +282,7 @@ sub create_repo ( $self, $repo_name, % ) {
 
 sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc, % ) {
     my %args = (
-        namespace  => $self->username,
+        namespace  => $self->namespace,
         private    => 0,
         active     => 1,
         build_tags => undef,
@@ -405,9 +410,9 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 278, 350             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 283, 355             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 302                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 307                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

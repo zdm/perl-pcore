@@ -1,6 +1,7 @@
 package Pcore::API::SCM::Server::Hg;
 
 use Pcore -class;
+use Pcore::API::SCM qw[:CONST];
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::API::SCM::Upstream;
 use Pcore::API::Response;
@@ -93,7 +94,7 @@ sub scm_upstream ( $self, $root ) {
     if ( -f "$root/.hg/hgrc" ) {
         my $hgrc = P->file->read_text("$root/.hg/hgrc");
 
-        return Pcore::API::SCM::Upstream->new( { uri => $1, clone_is_hg => 1 } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
+        return Pcore::API::SCM::Upstream->new( { uri => $1, local_scm_type => $SCM_TYPE_HG } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
     }
 
     return;
@@ -198,7 +199,12 @@ sub scm_clone ( $self, $root, $cb, $args ) {
 
     my @cmd = qw[clone];
 
-    push @cmd, '--updaterev', $args{tag} if $args{tag};
+    if ( $args{update} ) {
+        push @cmd, '--updaterev', $args{update} if $args{update} ne '1';
+    }
+    else {
+        push @cmd, '--noupdate';
+    }
 
     push @cmd, $uri, $path;
 
@@ -284,9 +290,9 @@ sub scm_set_tag ( $self, $root, $cb, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 104, 106, 112        │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 105, 107, 113        │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 184                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 185                  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

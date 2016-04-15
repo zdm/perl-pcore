@@ -1,6 +1,7 @@
 package Pcore::API::SCM::Server::Git;
 
 use Pcore -class;
+use Pcore::API::SCM qw[:CONST];
 use Pcore::API::SCM::Upstream;
 use Pcore::API::Response;
 
@@ -10,7 +11,7 @@ sub scm_upstream ( $self, $root ) {
     if ( -f "$root/.git/config" ) {
         my $config = P->file->read_text("$root/.git/config");
 
-        return Pcore::API::SCM::Upstream->new( { uri => $1, clone_is_git => 1 } ) if $config->$* =~ /\s*url\s*=\s*(.+?)$/sm;
+        return Pcore::API::SCM::Upstream->new( { uri => $1, local_scm_type => $SCM_TYPE_GIT } ) if $config->$* =~ /\s*url\s*=\s*(.+?)$/sm;
     }
 
     return;

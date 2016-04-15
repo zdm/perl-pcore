@@ -1,17 +1,17 @@
 package Pcore::API::SCM;
 
-use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_HG $SCM_TYPE_GIT $SCM_TYPE_HGGIT]] };
+use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_HG $SCM_TYPE_GIT]] };
 use Pcore::API::Response;
-use Pcore::API::SCM::Upstream;
 
-const our $SCM_TYPE_HG    => 1;
-const our $SCM_TYPE_GIT   => 2;
-const our $SCM_TYPE_HGGIT => 3;
+const our $SCM_TYPE_HG  => 1;
+const our $SCM_TYPE_GIT => 2;
+
+require Pcore::API::SCM::Upstream;
 
 has type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], required => 1 );
 has root => ( is => 'ro', isa => Str, required => 1 );
 
-has upstream => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM::Upstream'] ], init_arg => undef );
+has upstream => ( is => 'lazy', isa => Maybe [Object], init_arg => undef );
 has server => ( is => 'lazy', isa => ConsumerOf ['Pcore::API::SCM::Server'], init_arg => undef );
 
 around new => sub ( $orig, $self, $path ) {
@@ -96,11 +96,9 @@ sub scm_clone ( $self, $root, $uri, @args ) {
 
     my $upstream = Pcore::API::SCM::Upstream->new( { uri => $uri } );
 
-    my $type = $upstream->is_hg ? $SCM_TYPE_HG : $SCM_TYPE_GIT;
+    my $server = $self->_get_server( $upstream->local_scm_type );
 
     my $temp = P->file->tempdir;
-
-    my $server = $self->_get_server($type);
 
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 

@@ -88,7 +88,7 @@ sub _build_utc_last_updated_ts ($self) {
 }
 
 sub _build_url ($self) {
-    return "https://bitbucket.org/@{[$self->api->repo_owner]}/@{[$self->api->repo_name]}/issues/$self->{local_id}/";
+    return "https://bitbucket.org/@{[$self->api->id]}/issues/$self->{local_id}/";
 }
 
 sub set_status ( $self, $status, $cb ) {
@@ -110,7 +110,7 @@ sub set_milestone ( $self, $milestone, $cb ) {
 }
 
 sub update ( $self, $args, $cb ) {
-    my $url = "https://bitbucket.org/api/1.0/repositories/@{[$self->api->repo_owner]}/@{[$self->api->repo_name]}/issues/$self->{local_id}/";
+    my $url = "https://bitbucket.org/api/1.0/repositories/@{[$self->api->id]}/issues/$self->{local_id}/";
 
     P->http->put(    #
         $url,
