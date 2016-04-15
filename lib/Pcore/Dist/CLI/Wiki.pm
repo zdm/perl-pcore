@@ -5,7 +5,15 @@ use Pcore -class;
 with qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
-    return { abstract => 'generate wiki pages', };
+    return {
+        abstract => 'generate wiki pages',
+        opt      => {
+            clone => {
+                desc    => 'clone wiki repository from upstream',
+                default => 0,
+            },
+        },
+    };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
@@ -33,7 +41,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 24                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 32                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

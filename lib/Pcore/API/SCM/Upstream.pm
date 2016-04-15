@@ -83,9 +83,7 @@ sub _build_remote_scm_type ($self) {
         return $SCM_TYPE_GIT;
     }
     else {
-        my $repo_path = ( $self->path =~ m[/.+?/(.+?)/]sm )[0];
-
-        return $SCM_TYPE_GIT if $repo_path =~ /[.]git\z/sm;
+        return $SCM_TYPE_GIT if $self->path =~ /[.]git\z/sm;
     }
 
     return $SCM_TYPE_HG;
