@@ -15,7 +15,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ( $self, $args ) {
-    if ( !$self->dist->cfg->{docker_namespace} ) {
+    if ( !-f $self->dist->share_dir . 'docker.json' ) {
         my $namespace = $ENV->user_cfg->{'Pcore::API::DockerHub'}->{namespace} || $ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_username};
 
         if ( !$namespace ) {
@@ -54,7 +54,23 @@ sub run ( $self, $args ) {
             exit 3;
         }
         else {
+            require Pcore::Util::File::Tree;
 
+            # copy files
+            my $files = Pcore::Util::File::Tree->new;
+
+            $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/docker/' );
+
+            $files->add_file( 'share/docker.json', P->data->to_json( { namespace => $namespace }, readable => 1 ) );
+
+            $files->render_tmpl(
+                {   pcore_dockerhub_namespace => $namespace,                   # TODO get from pcore dist
+                    author_email              => $self->dist->cfg->{author},
+                    dist_path                 => lc $self->dist->name,
+                }
+            );
+
+            $files->write_to( $self->dist->root );
         }
     }
 

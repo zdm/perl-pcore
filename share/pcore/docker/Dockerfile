@@ -1,4 +1,4 @@
-FROM <: $dockerhub_username :>/pcore:latest
+FROM <: $pcore_dockerhub_namespace :>/pcore:latest
 
 MAINTAINER <: $author_email :>
 

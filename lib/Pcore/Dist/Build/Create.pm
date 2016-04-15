@@ -46,17 +46,16 @@ sub _build_target_path ($self) {
 
 sub _build_tmpl_params ($self) {
     return {
-        dist_name          => $self->namespace =~ s/::/-/smgr,                                                                    # Package-Name
-        dist_path          => lc $self->namespace =~ s/::/-/smgr,                                                                 # package-name
-        module_name        => $self->namespace,                                                                                   # Package::Name
-        main_script        => 'main.pl',
-        author             => $ENV->user_cfg->{'Pcore::Dist'}->{author},
-        author_email       => $ENV->user_cfg->{'Pcore::Dist'}->{email},
-        copyright_year     => P->date->now->year,
-        copyright_holder   => $ENV->user_cfg->{'Pcore::Dist'}->{copyright_holder} || $ENV->user_cfg->{'Pcore::Dist'}->{author},
-        license            => $ENV->user_cfg->{'Pcore::Dist'}->{license},
-        dockerhub_username => $ENV->user_cfg->{'Pcore::API::Dockerhub'}->{username} // 'username',
-        cpan_distribution  => $self->cpan,
+        dist_name         => $self->namespace =~ s/::/-/smgr,                                                                    # Package-Name
+        dist_path         => lc $self->namespace =~ s/::/-/smgr,                                                                 # package-name
+        module_name       => $self->namespace,                                                                                   # Package::Name
+        main_script       => 'main.pl',
+        author            => $ENV->user_cfg->{'Pcore::Dist'}->{author},
+        author_email      => $ENV->user_cfg->{'Pcore::Dist'}->{email},
+        copyright_year    => P->date->now->year,
+        copyright_holder  => $ENV->user_cfg->{'Pcore::Dist'}->{copyright_holder} || $ENV->user_cfg->{'Pcore::Dist'}->{author},
+        license           => $ENV->user_cfg->{'Pcore::Dist'}->{license},
+        cpan_distribution => $self->cpan,
     };
 }
 
