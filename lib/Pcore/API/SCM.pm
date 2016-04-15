@@ -1,11 +1,12 @@
 package Pcore::API::SCM;
 
-use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_MERCURIAL $SCM_TYPE_GIT]] };
+use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_MERCURIAL $SCM_TYPE_GIT $SCM_TYPE_HGGIT]] };
 use Pcore::API::Response;
 use Pcore::API::SCM::Upstream;
 
 const our $SCM_TYPE_MERCURIAL => 1;
 const our $SCM_TYPE_GIT       => 2;
+const our $SCM_TYPE_HGGIT     => 3;
 
 has type => ( is => 'ro', isa => Enum [ $SCM_TYPE_MERCURIAL, $SCM_TYPE_GIT ], required => 1 );
 has root => ( is => 'ro', isa => Str, required => 1 );
@@ -129,9 +130,9 @@ sub scm_clone ( $self, $root, $uri, @args ) {
 
 sub _get_server ( $self, $type ) {
     if ( $type == $SCM_TYPE_MERCURIAL ) {
-        require Pcore::API::SCM::Server::Mercurial;
+        require Pcore::API::SCM::Server::Hg;
 
-        return Pcore::API::SCM::Server::Mercurial->new;
+        return Pcore::API::SCM::Server::Hg->new;
     }
     elsif ( $type == $SCM_TYPE_GIT ) {
         require Pcore::API::SCM::Server::Git;
@@ -209,7 +210,7 @@ sub _request ( $self, $method, $args ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 54                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 55                   │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

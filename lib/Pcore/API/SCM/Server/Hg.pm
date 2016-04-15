@@ -1,4 +1,4 @@
-package Pcore::API::SCM::Server::Mercurial;
+package Pcore::API::SCM::Server::Hg;
 
 use Pcore -class;
 use Pcore::Util::Text qw[decode_utf8];
@@ -297,7 +297,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::SCM::Server::Mercurial
+Pcore::API::SCM::Server::Hg
 
 =head1 SYNOPSIS
 
