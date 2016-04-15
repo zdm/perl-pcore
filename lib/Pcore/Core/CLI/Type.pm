@@ -53,7 +53,17 @@ sub _validate_isa ( $self, @ ) {
             my $possible_val = [];
 
             for ( $self->isa->@* ) {
-                push $possible_val->@*, $_ if index( $_, $val_ref->$*, 0 ) == 0;
+                if ( index( $_, $val_ref->$*, 0 ) == 0 ) {
+                    if ( length == length $val_ref->$* ) {
+
+                        # select current value if matched completely
+                        $possible_val = [$_];
+
+                        last;
+                    }
+
+                    push $possible_val->@*, $_;
+                }
             }
 
             if ( !$possible_val->@* ) {
