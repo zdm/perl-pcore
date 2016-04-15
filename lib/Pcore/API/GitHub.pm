@@ -22,11 +22,11 @@ has clone_uri_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef 
 has cpan_meta => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 sub BUILDARGS ( $self, $args = undef ) {
-    $args->{api_username} ||= $ENV->user_cfg->{'Pcore::API::GitHub'}->{'api_username'} if $ENV->user_cfg->{'Pcore::API::GitHub'}->{'api_username'};
+    $args->{api_username} ||= $ENV->user_cfg->{'Pcore::API::GitHub'}->{api_username} if $ENV->user_cfg->{'Pcore::API::GitHub'}->{api_username};
 
-    $args->{api_token} ||= $ENV->user_cfg->{'Pcore::API::GitHub'}->{'api_token'} if $ENV->user_cfg->{'Pcore::API::GitHub'}->{'api_token'};
+    $args->{api_token} ||= $ENV->user_cfg->{'Pcore::API::GitHub'}->{api_token} if $ENV->user_cfg->{'Pcore::API::GitHub'}->{api_token};
 
-    $args->{namespace} ||= $ENV->user_cfg->{'Pcore::API::GitHub'}->{'namespace'} if $ENV->user_cfg->{'Pcore::API::GitHub'}->{'namespace'};
+    $args->{namespace} ||= $ENV->user_cfg->{'Pcore::API::GitHub'}->{namespace} if $ENV->user_cfg->{'Pcore::API::GitHub'}->{namespace};
 
     return $args;
 }

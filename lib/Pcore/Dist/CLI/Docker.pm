@@ -5,21 +5,7 @@ use Pcore -class;
 with qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
-    return {
-        abstract => 'manage docker repository',
-        opt      => {
-            author  => { desc => 'enables the AUTHOR_TESTING env variable (default behavior)', default => 1 },
-            release => { desc => 'enables the RELEASE_TESTING env variable', },
-            smoke   => { desc => 'enables the AUTOMATED_TESTING env variable', },
-            all     => { desc => 'enables the RELEASE_TESTING, AUTOMATED_TESTING and AUTHOR_TESTING env variables', },
-            jobs    => { desc => 'number of parallel test jobs to run',                        isa     => 'PositiveInt' },
-            verbose => { desc => 'enables verbose testing (TEST_VERBOSE env variable on Makefile.PL, --verbose on Build.PL' },
-            keep    => {
-                desc    => 'keep temp build dir',
-                default => 0,
-            },
-        },
-    };
+    return { abstract => 'manage docker repository', };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
@@ -29,22 +15,53 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ( $self, $args ) {
-    exit 3 if !$self->dist->build->test( $args->%* );
+    if ( !$self->dist->cfg->{docker_namespace} ) {
+        my $namespace = $ENV->user_cfg->{'Pcore::API::DockerHub'}->{namespace} || $ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_username};
+
+        if ( !$namespace ) {
+            say 'DockerHub namespace is not defined';
+
+            exit 3;
+        }
+
+        my $repo_name = lc $self->dist->name;
+
+        my $confirm = P->term->prompt( qq[Create DockerHub repository "$namespace/$repo_name"?], [qw[yes no]], enter => 1 );
+
+        if ( $confirm eq 'no' ) {
+            exit 3;
+        }
+
+        require Pcore::API::DockerHub;
+
+        my $api = Pcore::API::DockerHub->new( { namespace => $namespace } );
+
+        my $upstream = $self->dist->scm->upstream;
+
+        print q[Creating DockerHub repository ... ];
+
+        my $res = $api->create_automated_build(    #
+            $repo_name, $upstream->hosting == $Pcore::API::SCM::Upstream::SCM_HOSTING_BITBUCKET ? $Pcore::API::DockerHub::DOCKERHUB_PROVIDER_BITBUCKET : $Pcore::API::DockerHub::DOCKERHUB_PROVIDER_GITHUB,
+            "@{[$upstream->namespace]}/@{[$upstream->repo_name]}",
+            $self->dist->module->abstract || $self->dist->name,
+            private => 0,
+            active  => 1
+        );
+
+        say $res->reason;
+
+        if ( !$res->is_success ) {
+            exit 3;
+        }
+        else {
+
+        }
+    }
 
     return;
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 32                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
