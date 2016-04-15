@@ -97,6 +97,28 @@ MD
     return;
 }
 
+sub _clone_upstream_wiki ($self) {
+    print 'Cloning upstream wiki ... ';
+
+    my $clone_url;
+
+    if   ( $self->scm eq 'hggit' ) { $clone_url = $self->upstream_api->clone_url_wiki_ssh_hggit }
+    else                           { $clone_url = $self->upstream_api->clone_url_wiki_ssh }
+
+    if ( Pcore::API::SCM->scm_clone( $self->target_path . '/wiki/', $clone_url ) ) {
+        say 'done';
+
+        return 1;
+    }
+    else {
+        $ERROR = 'Error cloning upstream wiki';
+
+        say 'error';
+
+        return;
+    }
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -107,6 +129,9 @@ MD
 ## │    3 │ 81, 95               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 95                   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 100                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_clone_upstream_wiki' declared but  │
+## │      │                      │ not used                                                                                                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

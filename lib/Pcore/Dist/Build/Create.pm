@@ -117,7 +117,7 @@ sub _create_upstream ($self) {
             }
         );
     }
-    elsif ( $self->upstream eq 'bitbucket' ) {
+    elsif ( $self->upstream eq 'github' ) {
         require Pcore::API::GitHub;
 
         $self->{upstream_api} = Pcore::API::GitHub->new(
@@ -140,7 +140,7 @@ sub _create_upstream ($self) {
 
     print 'Creating upstream repository ... ';
 
-    my $res = $upstream_api->create_repo( is_private => $self->private, scm => $self->scm_type );
+    my $res = $self->{upstream_api}->create_repo( is_private => $self->private, scm => $self->scm_type );
 
     if ( !$res->is_success ) {
         $ERROR = 'Error creating upstream repository';
@@ -153,12 +153,6 @@ sub _create_upstream ($self) {
     say 'done';
 
     return if !$self->_clone_upstream;
-
-    if ( !$self->_clone_upstream_wiki ) {
-        P->file->rmtree( $self->target_path );
-
-        return;
-    }
 
     return 1;
 }
@@ -178,28 +172,6 @@ sub _clone_upstream ($self) {
     }
     else {
         $ERROR = 'Error cloning upstream repository';
-
-        say 'error';
-
-        return;
-    }
-}
-
-sub _clone_upstream_wiki ($self) {
-    print 'Cloning upstream wiki ... ';
-
-    my $clone_url;
-
-    if   ( $self->scm eq 'hggit' ) { $clone_url = $self->upstream_api->clone_url_wiki_ssh_hggit }
-    else                           { $clone_url = $self->upstream_api->clone_url_wiki_ssh }
-
-    if ( Pcore::API::SCM->scm_clone( $self->target_path . '/wiki/', $clone_url ) ) {
-        say 'done';
-
-        return 1;
-    }
-    else {
-        $ERROR = 'Error cloning upstream wiki';
 
         say 'error';
 

@@ -18,9 +18,12 @@ sub scm_upstream ( $self, $root ) {
 }
 
 sub scm_cmd ( $self, $root, $cb, $cmd ) {
-    my $chdir_guard = P->file->chdir($root);
+    my $chdir_guard = $root ? P->file->chdir($root) : undef;
 
-    my @cmd = ( 'git', $cmd->@*, qw[--porcelain -z] );
+    my @cmd = ( 'git', $cmd->@* );
+
+    # git clone does not support --porcelain -z options
+    push @cmd, qw[--porcelain -z] if $cmd->[0] ne 'clone';
 
     P->pm->run_proc(
         \@cmd,
@@ -58,7 +61,13 @@ sub scm_init ( $self, $root, $cb, $args = undef ) {
 sub scm_clone ( $self, $root, $cb, $args ) {
     my ( $path, $uri, %args ) = $args->@*;
 
-    ...;    ## no critic qw[ControlStructures::ProhibitYadaOperator]
+    my @cmd = qw[clone];
+
+    push @cmd, $uri, $path;
+
+    $self->scm_cmd( undef, $cb, \@cmd );
+
+    return;
 }
 
 sub scm_releases ( $self, $root, $cb, $args ) {
