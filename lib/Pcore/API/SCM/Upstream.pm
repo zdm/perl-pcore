@@ -124,6 +124,12 @@ sub _build_clone_uri_ssh_hggit ($self) {
     }
 }
 
+sub hosting_api ($self) {
+    return if !$self->hosting_api_class;
+
+    return P->class->load( $self->hosting_api_class )->new( { namespace => $self->namespace, repo_name => $self->repo_name, scm_type => $self->remote_scm_type } );
+}
+
 1;
 __END__
 =pod

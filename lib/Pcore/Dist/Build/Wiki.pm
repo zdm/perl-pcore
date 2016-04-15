@@ -7,7 +7,7 @@ use Pcore::API::SCM;
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
 around new => sub ( $orig, $self, $args ) {
-    return if !-d $args->{dist}->root . 'wiki/.hg/';
+    return if !-d $args->{dist}->root . 'wiki/';
 
     return $self->$orig($args);
 };
@@ -19,7 +19,7 @@ sub run ($self) {
 
     my $upstream = Pcore::API::SCM->new($wiki_path)->upstream;
 
-    my $base_url = q[/] . $upstream->repo_owner . q[/] . $upstream->repo_name . q[/wiki/];
+    my $base_url = q[/] . $upstream->namespace . q[/] . $upstream->repo_name . q[/wiki/];
 
     P->file->rmtree( $wiki_path . 'POD/' );
 
@@ -97,28 +97,6 @@ MD
     return;
 }
 
-sub _clone_upstream_wiki ($self) {
-    print 'Cloning upstream wiki ... ';
-
-    my $clone_uri;
-
-    if   ( $self->scm eq 'hggit' ) { $clone_uri = $self->upstream_api->clone_uri_wiki_ssh_hggit }
-    else                           { $clone_uri = $self->upstream_api->clone_uri_wiki_ssh }
-
-    if ( Pcore::API::SCM->scm_clone( $self->target_path . '/wiki/', $clone_uri ) ) {
-        say 'done';
-
-        return 1;
-    }
-    else {
-        $ERROR = 'Error cloning upstream wiki';
-
-        say 'error';
-
-        return;
-    }
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -129,9 +107,6 @@ sub _clone_upstream_wiki ($self) {
 ## │    3 │ 81, 95               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 95                   │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 100                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_clone_upstream_wiki' declared but  │
-## │      │                      │ not used                                                                                                       │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
