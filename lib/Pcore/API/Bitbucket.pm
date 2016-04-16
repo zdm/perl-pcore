@@ -169,7 +169,7 @@ sub issues ( $self, @ ) {
             else {
                 my $issues;
 
-                if ( $json->{issues}->@* ) {
+                if ( $json->{issues} && $json->{issues}->@* ) {
                     for ( $json->{issues}->@* ) {
                         my $issue = Pcore::API::Bitbucket::Issue->new( { api => $self } );
 

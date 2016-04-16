@@ -232,10 +232,8 @@ sub _build_id ($self) {
             $id->@{ keys $scm_id->{result}->%* } = values $scm_id->{result}->%*;
         }
 
-        if ( defined $id->{current_release_distance} ) {
-            if ( $id->{current_release_distance} == 1 && $id->{desc} =~ /added tag.+$id->{current_release}/smi ) {
-                $id->{current_release_distance} = 0;
-            }
+        if ( $id->{current_release} && defined $id->{current_release_distance} && $id->{current_release_distance} == 1 ) {
+            $id->{current_release_distance} = 0 if $id->{desc} =~ /added tag.+$id->{current_release}/smi;
         }
     }
     elsif ( -f $self->share_dir . 'dist_id.perl' ) {
