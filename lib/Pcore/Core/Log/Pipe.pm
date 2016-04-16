@@ -1,7 +1,7 @@
 package Pcore::Core::Log::Pipe;
 
 use Pcore -class;
-use Pcore::Util::Text qw[encode_utf8 remove_ansi_color];
+use Pcore::Util::Text qw[encode_utf8 remove_ansi];
 
 has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], required => 1 );
 
@@ -44,7 +44,7 @@ sub sendlog ( $self, $header, $data, $tag ) {
 sub prepare_data ( $self, $data ) {
     encode_utf8($data) if $self->is_binary;
 
-    remove_ansi_color($data) if !$self->is_text_ansi;
+    remove_ansi($data) if !$self->is_text_ansi;
 
     return $data;
 }

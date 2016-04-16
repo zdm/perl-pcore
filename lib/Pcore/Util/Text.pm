@@ -23,7 +23,7 @@ use Pcore -export, [
       mark_raw
       rcut
       rcut_all
-      remove_ansi_color
+      remove_ansi
       remove_bom
       rtrim
       rtrim_multi
@@ -211,7 +211,7 @@ sub table {
     return Pcore::Util::Text::Table->new(@_);
 }
 
-sub remove_ansi_color {
+sub remove_ansi {
     if ( defined wantarray ) {
         return join q[], map {s/\e.+?m//smgr} @_;
     }

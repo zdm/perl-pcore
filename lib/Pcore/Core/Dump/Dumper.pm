@@ -2,7 +2,7 @@ package Pcore::Core::Dump::Dumper;
 
 use Pcore -class;
 use Pcore::Util::Scalar qw[refaddr isweak reftype blessed looks_like_number tainted];
-use Pcore::Util::Text qw[escape_scalar remove_ansi_color format_num];
+use Pcore::Util::Text qw[escape_scalar remove_ansi format_num];
 use re qw[];
 use Sort::Naturally qw[nsort];
 use Term::ANSIColor qw[colored];
@@ -401,7 +401,7 @@ sub HASH {
 
             $indexed_key->{escaped_key_nc} = $indexed_key->{escaped_key}->$*;
 
-            remove_ansi_color $indexed_key->{escaped_key_nc};
+            remove_ansi $indexed_key->{escaped_key_nc};
 
             $indexed_key->{escaped_key_nc_len} = length $indexed_key->{escaped_key_nc};
 
