@@ -150,7 +150,7 @@ sub run ($self) {
     $self->dist->scm->scm_addremove or die;
 
     # commit
-    $self->dist->scm->scm_commit(qq[-m"release $new_ver"]) or die;
+    $self->dist->scm->scm_commit(qq[release $new_ver]) or die;
 
     $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or die;
 
@@ -161,6 +161,8 @@ sub run ($self) {
     say 'done';
 
     if ( $self->dist->docker_cfg ) {
+        require Pcore::API::DockerHub;
+
         my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker_cfg->{namespace} } );
 
         my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
@@ -168,7 +170,7 @@ sub run ($self) {
         # create dockerhub tag
         print qq[Creating DockerHub tag "$new_ver" ... ];
 
-        $dockerhub_repo->create_build_tag( name => $new_ver, source_name => $new_var ) or die;
+        $dockerhub_repo->create_build_tag( name => $new_ver, source_name => $new_ver ) or die;
 
         say 'done';
 
@@ -367,12 +369,12 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 53                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 344                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 346                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 27, 30, 38, 43, 65,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## │      │ 82, 96, 144          │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 340                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 342                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

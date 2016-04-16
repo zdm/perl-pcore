@@ -186,7 +186,14 @@ sub _generate_meta_json ( $self, $tree ) {
     $meta->{abstract} = $self->dist->module->abstract if $self->dist->module->abstract;
 
     # resources
-    my $upstream_meta = $self->dist->scm && $self->dist->scm->upstream ? $self->dist->scm->upstream->meta_resources : {};
+    my $upstream_meta;
+
+    if ( $self->dist->scm && $self->dist->scm->upstream && $self->dist->scm->upstream->hosting_api_class ) {
+        $upstream_meta = $self->dist->scm->upstream->hosting_api->cpan_meta;
+    }
+    else {
+        $upstream_meta = {};
+    }
 
     if ( my $val = $self->dist->cfg->{dist}->{meta}->{homepage} || $upstream_meta->{homepage} ) {
         $meta->{resources}->{homepage} = $val;
@@ -263,7 +270,9 @@ PERL
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    2 │ 189                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │                      │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          │
+## │      │ 191                  │ * Found method-call chain of length 4                                                                          │
+## │      │ 192                  │ * Found method-call chain of length 5                                                                          │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -170,7 +170,7 @@ sub scm_addremove ( $self, $cb = undef ) {
 }
 
 sub scm_commit ( $self, $message, $cb = undef ) {
-    return $self->_request( 'scm_commit', [$cb] );
+    return $self->_request( 'scm_commit', [ $message, $cb ] );
 }
 
 sub scm_push ( $self, $cb = undef ) {
