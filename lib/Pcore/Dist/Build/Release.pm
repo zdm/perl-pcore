@@ -160,7 +160,7 @@ sub run ($self) {
 
     say 'done';
 
-    if ( $self->dist->docker_cfg ) {
+    if ( $self->dist->build->docker ) {
         require Pcore::API::DockerHub;
 
         my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker_cfg->{namespace} } );

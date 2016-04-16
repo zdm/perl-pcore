@@ -527,14 +527,14 @@ sub tags ( $self, % ) {
 
                 my $result = {};
 
-                for my $repo ( $res->{result}->{results}->@* ) {
-                    $repo = bless $repo, 'Pcore::API::DockerHub::Repository::Tag';
+                for my $tag ( $res->{result}->{results}->@* ) {
+                    $tag = bless $tag, 'Pcore::API::DockerHub::Repository::Tag';
 
-                    $repo->set_status( $res->status );
+                    $tag->set_status( $res->status );
 
-                    $repo->{repo} = $self;
+                    $tag->{repo} = $self;
 
-                    $result->{ $repo->id } = $repo;
+                    $result->{ $tag->{name} } = $tag;
                 }
 
                 $res->{result} = $result;

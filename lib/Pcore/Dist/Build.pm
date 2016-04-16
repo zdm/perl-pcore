@@ -7,6 +7,7 @@ has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
 
 has wiki   => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Wiki'] ],   init_arg => undef );
 has issues => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Issues'] ], init_arg => undef );
+has docker => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist::Build::Docker'] ], init_arg => undef );
 
 sub _build_wiki ($self) {
     state $init = !!require Pcore::Dist::Build::Wiki;
@@ -18,6 +19,12 @@ sub _build_issues ($self) {
     state $init = !!require Pcore::Dist::Build::Issues;
 
     return Pcore::Dist::Build::Issues->new( { dist => $self->dist } );
+}
+
+sub _build_docker ($self) {
+    state $init = !!require Pcore::Dist::Build::Docker;
+
+    return Pcore::Dist::Build::Docker->new( { dist => $self->dist } );
 }
 
 sub create ( $self, @args ) {

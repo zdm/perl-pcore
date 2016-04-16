@@ -5,7 +5,10 @@ use Pcore -class;
 with qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
-    return { abstract => 'manage docker repository', };
+    return {
+        abstract => 'manage docker repository',
+        opt      => { tags => { desc => 'show tags info' }, },
+    };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
@@ -15,7 +18,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ( $self, $args ) {
-    if ( !$self->dist->docker_cfg ) {
+    if ( !$self->dist->build->docker ) {
         my $namespace = $ENV->user_cfg->{'Pcore::API::DockerHub'}->{namespace} || $ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_username};
 
         if ( !$namespace ) {
@@ -73,11 +76,24 @@ sub run ( $self, $args ) {
             $files->write_to( $self->dist->root );
         }
     }
+    else {
+        $self->dist->build->docker->run($args);
+    }
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+## │ Sev. │ Lines                │ Policy                                                                                                         │
+## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
+## │    2 │ 80                   │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

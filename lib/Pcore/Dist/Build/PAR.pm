@@ -13,6 +13,16 @@ has upx   => ( is => 'ro', isa => Maybe [Bool] );
 has clean => ( is => 'ro', isa => Maybe [Bool] );
 
 sub run ($self) {
+    if ( !$self->dist->scm ) {
+        say q[SCM is required];
+
+        exit 1;
+    }
+    elsif ( !$self->dist->is_commited ) {
+        say q[Working copy has uncommited changes];
+
+        exit 1;
+    }
 
     # load .pardeps.cbor
     my $pardeps;
@@ -103,7 +113,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 42, 61, 86, 91       │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 52, 71, 96, 101      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
