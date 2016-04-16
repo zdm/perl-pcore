@@ -65,7 +65,7 @@ sub run ( $self, $args ) {
 
             $files->render_tmpl(
                 {   pcore_dockerhub_namespace => $ENV->pcore->docker_cfg->{namespace},
-                    author_email              => $self->dist->cfg->{author},
+                    author                    => $self->dist->cfg->{dist}->{author},
                     dist_path                 => lc $self->dist->name,
                 }
             );

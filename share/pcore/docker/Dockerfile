@@ -1,6 +1,6 @@
 FROM <: $pcore_dockerhub_namespace :>/pcore:latest
 
-MAINTAINER <: $author_email :>
+MAINTAINER <: $author :>
 
 USER root
 
