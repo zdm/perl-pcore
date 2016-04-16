@@ -349,7 +349,10 @@ sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc
                 $res = $repo;
             }
             else {
-                if ( $res->{result}->{__all__} ) {
+                if ( $res->{result}->{detail} ) {
+                    $res->{reason} = $res->{result}->{detail};
+                }
+                elsif ( $res->{result}->{__all__} ) {
                     $res->{reason} = $res->{result}->{__all__}->[0] if $res->{result}->{__all__}->[0];
                 }
             }
@@ -420,7 +423,7 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 293, 365             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 293, 368             │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 317                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
