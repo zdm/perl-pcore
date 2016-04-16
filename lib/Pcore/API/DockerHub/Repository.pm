@@ -367,7 +367,7 @@ sub trigger_build ( $self, $source_name = 'latest', $source_type = $DOCKERHUB_SO
                 $res->set_status( 404, 'Invalid build source name' );
             }
             else {
-                my $result = {};
+                my $result = [];
 
                 for my $build ( $res->{result}->@* ) {
                     $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
@@ -376,7 +376,7 @@ sub trigger_build ( $self, $source_name = 'latest', $source_type = $DOCKERHUB_SO
 
                     $build->{repo} = $self;
 
-                    $result->{ $build->{build_code} } = $build;
+                    push $result->@*, $build;
                 }
 
                 $res->{result} = $result;

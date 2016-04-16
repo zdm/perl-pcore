@@ -174,10 +174,15 @@ sub run ($self) {
 
         say 'done';
 
-        # trigger build
-        print qq[Trigger DockerHub build for tags: "$new_ver", "latest" ... ];
+        # trigger build for new version tag
+        print qq[Trigger DockerHub build for tag "$new_ver" ... ];
 
         $dockerhub_repo->trigger_build($new_ver) or die;
+
+        say 'done';
+
+        # trigger build for latest tag
+        print qq[Trigger DockerHub build for tag: "latest" ... ];
 
         $dockerhub_repo->trigger_build('latest') or die;
 
@@ -367,14 +372,14 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 14                   │ Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 53                   │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
+## │    3 │ 53, 185              │ ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 346                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 351                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    2 │ 27, 30, 38, 43, 65,  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## │      │ 82, 96, 144          │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 342                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 347                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
