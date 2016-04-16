@@ -347,7 +347,7 @@ sub build_trigger_history ( $self, % ) {
 
 # BUILD
 # NOTE build tag MUST be created before buid will be triggered
-sub trigger_build ( $self, $source_type = $DOCKERHUB_SOURCE_TAG, $source_name = 'latest', % ) {
+sub trigger_build ( $self, $source_name = 'latest', $source_type = $DOCKERHUB_SOURCE_TAG, % ) {
     my %args = (
         cb                  => undef,
         dockerfile_location => q[/],
