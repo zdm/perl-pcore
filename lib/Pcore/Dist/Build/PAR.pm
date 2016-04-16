@@ -7,10 +7,20 @@ use Term::ANSIColor qw[:constants];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
-has release => ( is => 'ro', isa => Bool, default => 0 );
 has crypt => ( is => 'ro', isa => Maybe [Bool] );
 has upx   => ( is => 'ro', isa => Maybe [Bool] );
 has clean => ( is => 'ro', isa => Maybe [Bool] );
+
+has release => ( is => 'lazy', isa => Bool, init_arg => undef );
+
+sub _build_release ($self) {
+    if ( $self->dist->is->{current_release} && !$self->dist->is->{current_release_distance} ) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
 
 sub run ($self) {
     if ( !$self->dist->scm ) {
@@ -113,7 +123,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 52, 71, 96, 101      │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 62, 81, 106, 111     │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

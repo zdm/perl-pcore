@@ -8,8 +8,7 @@ sub CLI ($self) {
     return {
         abstract => 'build PAR executable',
         opt      => {
-            release => { desc => 'build release binary', },
-            crypt   => {
+            crypt => {
                 desc    => 'crypt non-core perl sources with Filter::Crypto',
                 negated => 1,
             },
@@ -44,7 +43,7 @@ sub run ( $self, $opt ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 35                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 34                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
