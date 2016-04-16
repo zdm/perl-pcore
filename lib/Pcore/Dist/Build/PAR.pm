@@ -14,7 +14,7 @@ has clean => ( is => 'ro', isa => Maybe [Bool] );
 has release => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 sub _build_release ($self) {
-    if ( $self->dist->is->{current_release} && !$self->dist->is->{current_release_distance} ) {
+    if ( $self->dist->id->{current_release} && !$self->dist->id->{current_release_distance} ) {
         return 1;
     }
     else {
