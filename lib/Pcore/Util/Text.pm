@@ -211,6 +211,12 @@ sub table {
     return Pcore::Util::Text::Table->new(@_);
 }
 
+sub table1 {
+    state $init = !!require Pcore::Util::Text::Table1;
+
+    return Pcore::Util::Text::Table1->new(@_);
+}
+
 sub remove_ansi {
     if ( defined wantarray ) {
         return join q[], map {s/\e.+?m//smgr} @_;
@@ -577,11 +583,11 @@ sub to_camel_case {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 204                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 294                  │ Subroutines::ProhibitExcessComplexity - Subroutine "wrap" with high complexity score (28)                      │
+## │    3 │ 300                  │ Subroutines::ProhibitExcessComplexity - Subroutine "wrap" with high complexity score (28)                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ NamingConventions::ProhibitAmbiguousNames                                                                      │
-## │      │ 400, 401             │ * Ambiguously named variable "left"                                                                            │
-## │      │ 401                  │ * Ambiguously named variable "right"                                                                           │
+## │      │ 406, 407             │ * Ambiguously named variable "left"                                                                            │
+## │      │ 407                  │ * Ambiguously named variable "right"                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 46, 47, 48, 49, 50,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## │      │ 51, 52               │                                                                                                                │
