@@ -127,27 +127,16 @@ sub print_issues ( $self, $issues, $content = 1 ) {
                 width  => 120,
                 cols   => [
                     id => {
-                        title => BOLD . WHITE . 'ID' . RESET,
                         width => 4,
                         align => 1,
                     },
-                    status => {
-                        title => BOLD . WHITE . 'STATUS' . RESET,
-                        width => 10,
-                    },
-                    priority => {
-                        title => BOLD . WHITE . 'PRIORITY' . RESET,
-                        width => 15,
-                    },
-                    kind => {
-                        title => BOLD . WHITE . 'KIND' . RESET,
+                    status   => { width => 10, },
+                    priority => { width => 15, },
+                    kind     => {
                         width => 10,
                         align => 0,
                     },
-                    title => {
-                        title       => BOLD . WHITE . 'TITLE' . RESET,
-                        title_align => -1,
-                    },
+                    title => { title_align => -1, },
                 ],
             }
         );
@@ -220,7 +209,7 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 66, 70               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 167, 193             │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 156, 182             │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -26,16 +26,6 @@ const our $GRID => {
 
 const our $STYLE => {
     pcore => {
-        grid         => 'utf8',
-        header       => 1,
-        top_line     => 1,
-        header_line  => 1,
-        row_line     => 1,
-        bottom_line  => 1,
-        left_border  => 1,
-        right_border => 1,
-    },
-    mysql => {
         grid         => 'ascii',
         header       => 1,
         top_line     => 1,
@@ -48,10 +38,10 @@ const our $STYLE => {
     compact => {
         grid         => 'ascii',
         header       => 1,
-        top_line     => 0,
+        top_line     => 1,
         header_line  => 1,
         row_line     => 0,
-        bottom_line  => 0,
+        bottom_line  => 1,
         left_border  => 0,
         right_border => 0,
     },
@@ -159,7 +149,7 @@ sub render_header ($self) {
     $buf .= $self->_render_line(0) if $self->grid && $self->top_line;
 
     # header row
-    $buf .= $self->_render_row( [ map { $_->title } $self->cols->@* ], 1 ) if $self->header;
+    $buf .= $self->_render_row( [ map { $_->{title} // uc $_->{id} } $self->cols->@* ], 1 ) if $self->header;
 
     # header separator line
     $buf .= $self->_render_line(2) if $self->grid && $self->header && $self->header_line;
@@ -226,6 +216,10 @@ sub _render_row ( $self, $row, $header_row = 0 ) {
 
         # format cell and create cell attributes
         if ($header_row) {
+            if ( $self->{color} && defined $col->{title_color} ) {
+                $val = $col->{title_color} . $val . "\e[0m";
+            }
+
             $cell_attrs = {
                 align  => $col->title_align,
                 valign => $col->title_valign,
@@ -315,11 +309,11 @@ sub _render_line ( $self, $idx ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 60, 62, 85           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 50, 52, 75           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 181                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (28)               │
+## │    3 │ 171                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (30)               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 286                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 280                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
