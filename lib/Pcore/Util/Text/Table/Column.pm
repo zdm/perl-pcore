@@ -33,16 +33,6 @@ sub format_val ( $self, $val, $row ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    1 │ 37                   │ Documentation::RequirePackageMatchesPodName - Pod NAME on line 41 does not match the package declaration       │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
@@ -50,7 +40,7 @@ __END__
 
 =head1 NAME
 
-Table::Column
+Pcore::Util::Text::Table::Column
 
 =head1 SYNOPSIS
 
