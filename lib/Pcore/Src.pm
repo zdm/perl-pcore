@@ -293,64 +293,119 @@ sub _process_file ( $self, $max_path_len, %args ) {
 }
 
 sub _report_file ( $self, $res, $max_path_len ) {
+    if ( !$self->{tbl} ) {
+        $self->{tbl} = P->text->table1(
+            {   style => 'compact',
+                cols  => [
+                    path => {
+                        width => $max_path_len + 2,
+                        align => -1,
+                    },
+                    severity => {
+                        width => 25,
+                        align => 1,
+                    },
+                    size => {
+                        width => 10,
+                        align => 1,
+                    },
+                    size_delta => {
+                        title => 'SIZE DELTA',
+                        width => 18,
+                        align => 1,
+                    },
+                    modified => {
+                        width => 12,
+                        align => 0,
+                    },
+                ],
+            }
+        );
+
+        print $self->{tbl}->render_header;
+    }
+
     $self->_total_report->{changed_files}++ if $res->was_changed;
 
-    my $hl;
+    my @row;
+
+    # path
+    push @row, q[ ] . decode_utf8( $res->path->to_string, encoding => $Pcore::WIN_ENC ) . q[ ];
+
+    # severity
+    my $severity;
+
+    state $reversed_severity = { reverse Pcore::Src::File->cfg->{SEVERITY}->%* };
+
     if ( $res->severity_range_is('ERROR') ) {
         $self->_total_report->{severity_range}->{error}++;
-        $hl = BOLD RED;
+
+        $severity = BOLD RED;
     }
     elsif ( $res->severity_range_is('WARNING') ) {
         $self->_total_report->{severity_range}->{warning}++;
-        $hl = YELLOW;
+
+        $severity = YELLOW;
     }
     else {
         $self->_total_report->{severity_range}->{valid}++;
-        $hl = BOLD GREEN;
+
+        $severity = BOLD GREEN;
     }
 
-    # print report
-    print $hl;
-    printf q[%-*s], $max_path_len, decode_utf8( $res->path->to_string, encoding => $Pcore::WIN_ENC );
-    print q[ ] x 2;
-    print RESET;
+    $severity .= $res->severity_range . q[: ] . $res->severity . q[ - ] . $reversed_severity->{ $res->severity } . RESET;
 
-    # severity
-    state $reversed_severity = { reverse Pcore::Src::File->cfg->{SEVERITY}->%* };
+    push @row, $severity;
 
-    print $hl;
-    printf q[%10s], $res->severity_range . q[: ];
-    print $res->severity . q[(], sprintf q[%-10s], $reversed_severity->{ $res->severity } . q[)];
-    print RESET;
+    # size
+    push @row, $res->_out_size;
 
-    # bytes changed
+    # size delta
     my $dif = $res->_out_size - $res->_in_size;
-    $dif = qq[+$dif] if $dif > 0;
-    print q[ ] x 2;
-    printf q[%10s], $res->_in_size;
-    printf q[%10s], $res->_out_size;
-    print BOLD . ( $dif > 0 ? RED : GREEN );
-    print sprintf q[%10s], $dif;
-    print RESET, q[ bytes];
+
+    if ( $dif > 0 ) {
+        push @row, BOLD RED . "+$dif bytes" . RESET;
+    }
+    else {
+        push @row, BOLD GREEN . "$dif bytes" . RESET;
+    }
 
     # modified
-    say q[ ] x 2, ( $res->was_changed ? BOLD RED . q[modified] : BOLD GREEN . q[not modified] ), RESET;
+    push @row, ( $res->was_changed ? BOLD WHITE ON_RED . ' modified ' . RESET : q[] );
+
+    print $self->{tbl}->render_row( \@row );
 
     return;
 }
 
 sub _report_total ($self) {
-    my $t = P->text->table;
+    print $self->{tbl}->finish;
 
-    $t->set_cols( 'Type', 'Num' );
-    $t->align_col( 'Num', 'right' );
+    undef $self->{tbl};
 
-    $t->add_row( $self->_wrap_color( 'VALID',   BOLD GREEN ), $self->_wrap_color( $self->_total_report->{severity_range}->{valid}   // 0, BOLD GREEN ) );
-    $t->add_row( $self->_wrap_color( 'WARNING', YELLOW ),     $self->_wrap_color( $self->_total_report->{severity_range}->{warning} // 0, YELLOW ) );
-    $t->add_row( $self->_wrap_color( 'ERROR',   BOLD RED ),   $self->_wrap_color( $self->_total_report->{severity_range}->{error}   // 0, BOLD RED ) );
-    $t->add_row( 'Modified', $self->_total_report->{changed_files} // 0 );
+    my $tbl = P->text->table1(
+        {   style => 'compact',
+            cols  => [
+                type => {
+                    width => 10,
+                    align => -1,
+                },
+                count => {
+                    width => 10,
+                    align => 1,
+                },
+            ],
+        }
+    );
 
-    say $t->render;
+    print $tbl->render_header;
+
+    print $tbl->render_row( [ BOLD . GREEN . 'VALID' . RESET, BOLD . GREEN . ( $self->_total_report->{severity_range}->{valid} // 0 ) . RESET ] );
+    print $tbl->render_row( [ YELLOW . 'WARNING' . RESET, YELLOW . ( $self->_total_report->{severity_range}->{warning} // 0 ) . RESET ] );
+    print $tbl->render_row( [ BOLD . RED . 'ERROR' . RESET, BOLD . RED . ( $self->_total_report->{severity_range}->{error} // 0 ) . RESET ] );
+    print $tbl->render_row( [ 'Modified', $self->_total_report->{changed_files} // 0 ] );
+
+    print $tbl->finish;
 
     return;
 }
@@ -366,7 +421,9 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 319                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 338                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │ 413                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
