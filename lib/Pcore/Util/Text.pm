@@ -208,7 +208,7 @@ PERL
 sub table {
     state $init = !!require Pcore::Util::Text::Table;
 
-    return Pcore::Util::Text::Table->new(@_);
+    return Pcore::Util::Text::Table->new( {@_} );
 }
 
 sub remove_ansi {

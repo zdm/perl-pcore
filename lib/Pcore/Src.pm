@@ -299,32 +299,30 @@ sub _process_file ( $self, $max_path_len, %args ) {
 sub _report_file ( $self, $res, $max_path_len ) {
     if ( !$self->{tbl} ) {
         $self->{tbl} = P->text->table(
-            {   style   => 'compact',
-                padding => 1,
-                cols    => [
-                    path => {
-                        width => $max_path_len + 2,
-                        align => -1,
-                    },
-                    severity => {
-                        width => 25,
-                        align => 1,
-                    },
-                    size => {
-                        width => 10,
-                        align => 1,
-                    },
-                    size_delta => {
-                        title => 'SIZE DELTA',
-                        width => 18,
-                        align => 1,
-                    },
-                    modified => {
-                        width => 12,
-                        align => 0,
-                    },
-                ],
-            }
+            style => 'compact',
+            cols  => [
+                path => {
+                    width => $max_path_len + 2,
+                    align => -1,
+                },
+                severity => {
+                    width => 25,
+                    align => 1,
+                },
+                size => {
+                    width => 10,
+                    align => 1,
+                },
+                size_delta => {
+                    title => 'SIZE DELTA',
+                    width => 18,
+                    align => 1,
+                },
+                modified => {
+                    width => 12,
+                    align => 0,
+                },
+            ],
         );
 
         print $self->{tbl}->render_header;
@@ -389,18 +387,17 @@ sub _report_total ($self) {
     undef $self->{tbl};
 
     my $tbl = P->text->table(
-        {   style => 'pcore',
-            cols  => [
-                type => {
-                    width => 10,
-                    align => -1,
-                },
-                count => {
-                    width => 10,
-                    align => 1,
-                },
-            ],
-        }
+        style => 'pcore',
+        cols  => [
+            type => {
+                width => 10,
+                align => -1,
+            },
+            count => {
+                width => 10,
+                align => 1,
+            },
+        ],
     );
 
     print $tbl->render_header;
@@ -426,9 +423,9 @@ sub _wrap_color ( $self, $str, $color ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 343                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 341                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 418                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
+## |    3 | 415                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

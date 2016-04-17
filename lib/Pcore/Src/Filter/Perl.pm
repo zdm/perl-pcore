@@ -98,32 +98,30 @@ sub decompress ( $self, % ) {
 
             # create table
             my $tbl = P->text->table(
-                {   style   => 'compact',
-                    color   => 0,
-                    padding => 1,
-                    cols    => [
-                        severity => {
-                            title  => 'Sev.',
-                            width  => 6,
-                            align  => 1,
-                            valign => -1,
-                        },
-                        lines => {
-                            title       => 'Lines',
-                            width       => 22,
-                            title_align => -1,
-                            align       => -1,
-                            valign      => -1,
-                        },
-                        policy => {
-                            title       => 'Policy',
-                            width       => 112,
-                            title_align => -1,
-                            align       => -1,
-                            valign      => -1,
-                        },
-                    ],
-                }
+                style => 'compact',
+                color => 0,
+                cols  => [
+                    severity => {
+                        title  => 'Sev.',
+                        width  => 6,
+                        align  => 1,
+                        valign => -1,
+                    },
+                    lines => {
+                        title       => 'Lines',
+                        width       => 22,
+                        title_align => -1,
+                        align       => -1,
+                        valign      => -1,
+                    },
+                    policy => {
+                        title       => 'Policy',
+                        width       => 112,
+                        title_align => -1,
+                        align       => -1,
+                        valign      => -1,
+                    },
+                ],
             );
 
             my $report = $tbl->render_header;
@@ -345,12 +343,12 @@ sub cut_log ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (26)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 131, 134, 137, 141,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 148, 269, 305        |                                                                                                                |
+## |    3 | 129, 132, 135, 139,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 146, 267, 303        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 190                  | Miscellanea::ProhibitTies - Tied variable used                                                                 |
+## |    2 | 188                  | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 134                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 132                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

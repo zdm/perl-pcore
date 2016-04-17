@@ -45,39 +45,41 @@ sub run ( $self, $args ) {
     $cv->recv;
 
     my $tbl = P->text->table(
-        {   cols => [
-                name      => { width => 20, },
-                full_size => {
-                    title  => 'SIZE',
-                    width  => 15,
-                    align  => 1,
-                    format => sub ( $val, $id, $row ) {
-                        return P->text->format_num($val);
-                    }
-                },
-                last_updated => {
-                    title  => 'LAST UPDATED',
-                    width  => 35,
-                    format => sub ( $val, $id, $row ) {
-                        return P->date->from_string($val)->to_http_date;
-                    }
-                },
-                latest_build => {
-                    title  => 'LATEST BUILD STATUS',
-                    width  => 15,
-                    format => sub ( $val, $id, $row ) {
-                        return $val->build_status_name || 'unknown' if $val;
-                    }
-                },
-                latest_build_update => {
-                    title  => 'LATEST BUILD UPDATED',
-                    width  => 35,
-                    format => sub ( $val, $id, $row ) {
-                        return P->date->from_string( $row->{latest_build}->{last_updated} )->to_http_date;
-                    }
-                },
-            ],
-        }
+        cols => [
+            name => {
+                title => 'TAG NAME',
+                width => 20,
+            },
+            full_size => {
+                title  => 'SIZE',
+                width  => 15,
+                align  => 1,
+                format => sub ( $val, $id, $row ) {
+                    return P->text->format_num($val);
+                }
+            },
+            last_updated => {
+                title  => 'LAST UPDATED',
+                width  => 35,
+                format => sub ( $val, $id, $row ) {
+                    return P->date->from_string($val)->to_http_date;
+                }
+            },
+            latest_build => {
+                title  => 'LATEST BUILD STATUS',
+                width  => 15,
+                format => sub ( $val, $id, $row ) {
+                    return $val->build_status_name || 'unknown' if $val;
+                }
+            },
+            latest_build_update => {
+                title  => 'LATEST BUILD UPDATED',
+                width  => 35,
+                format => sub ( $val, $id, $row ) {
+                    return P->date->from_string( $row->{latest_build}->{last_updated} )->to_http_date;
+                }
+            },
+        ],
     );
 
     print $tbl->render_header;
@@ -108,7 +110,7 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 85                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 87                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

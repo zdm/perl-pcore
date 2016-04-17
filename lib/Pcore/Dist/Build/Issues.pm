@@ -120,23 +120,21 @@ sub print_issues ( $self, $issues, $content = 1 ) {
     }
     else {
         my $tbl = P->text->table(
-            {   style   => 'pcore',
-                width   => 120,
-                padding => 1,
-                cols    => [
-                    id => {
-                        width => 6,
-                        align => 1,
-                    },
-                    status   => { width => 10, },
-                    priority => { width => 15, },
-                    kind     => {
-                        width => 10,
-                        align => 0,
-                    },
-                    title => { title_align => -1, },
-                ],
-            }
+            style => 'pcore',
+            width => 120,
+            cols  => [
+                id => {
+                    width => 6,
+                    align => 1,
+                },
+                status   => { width => 10, },
+                priority => { width => 15, },
+                kind     => {
+                    width => 10,
+                    align => 0,
+                },
+                title => { title_align => -1, },
+            ],
         );
 
         print $tbl->render_header;
@@ -181,7 +179,7 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 66, 70               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 154                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 152                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

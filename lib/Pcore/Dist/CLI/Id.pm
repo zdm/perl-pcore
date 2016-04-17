@@ -55,31 +55,29 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
         if ($dists) {
             my $tbl = P->text->table(
-                {   style   => 'compact',
-                    padding => 1,
-                    width   => 120,
-                    cols    => [
-                        name => {
-                            title => 'DIST NAME',
-                            width => 35,
-                            align => -1,
-                        },
-                        release => {
-                            title => "CURRENT\nRELEASE",
-                            width => 14,
-                            align => 1,
-                        },
-                        unreleased => {
-                            title => "UNRELEASED\nCHANGES",
-                            width => 14,
-                            align => 1,
-                        },
-                        commited => {
-                            width => 10,
-                            align => 0,
-                        },
-                    ],
-                }
+                style => 'compact',
+                width => 120,
+                cols  => [
+                    name => {
+                        title => 'DIST NAME',
+                        width => 35,
+                        align => -1,
+                    },
+                    release => {
+                        title => "CURRENT\nRELEASE",
+                        width => 14,
+                        align => 1,
+                    },
+                    unreleased => {
+                        title => "UNRELEASED\nCHANGES",
+                        width => 14,
+                        align => 1,
+                    },
+                    commited => {
+                        width => 10,
+                        align => 0,
+                    },
+                ],
             );
 
             print $tbl->render_header;
