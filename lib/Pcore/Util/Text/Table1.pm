@@ -42,8 +42,8 @@ const our $STYLE => {
         header_line  => 1,
         row_line     => 0,
         bottom_line  => 1,
-        left_border  => 0,
-        right_border => 0,
+        left_border  => 1,
+        right_border => 1,
     },
 };
 
@@ -236,6 +236,8 @@ sub _render_row ( $self, $row, $header_row = 0 ) {
 
         $val = wrap $val, $col->{width}, ansi => $self->color, align => $cell_attrs->{align};
 
+        $val = [ q[ ] x $col->{width} ] if !$val->@*;
+
         push @cells, $val;
 
         $row_height = scalar $val->@* if $val->@* > $row_height;
@@ -311,9 +313,9 @@ sub _render_line ( $self, $idx ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 50, 52, 75           │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 171                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (30)               │
+## │    3 │ 171                  │ Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (31)               │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 280                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 282                  │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

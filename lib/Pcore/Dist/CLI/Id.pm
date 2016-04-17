@@ -54,32 +54,65 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
         }
 
         if ($dists) {
-            say BOLD . WHITE . sprintf( '%-31s%20s%20s%10s', 'DIST NAME', 'CURRENT RELEASE', 'UNRELEASED CHANGES', 'COMMITED' ) . RESET;
+            my $tbl = P->text->table1(
+                {   style => 'compact',
+                    width => 120,
+                    cols  => [
+                        name => {
+                            title => 'DIST NAME',
+                            width => 35,
+                            align => -1,
+                        },
+                        release => {
+                            title => "CURRENT\nRELEASE",
+                            width => 12,
+                            align => 1,
+                        },
+                        unreleased => {
+                            title => "UNRELEASED\nCHANGES",
+                            width => 12,
+                            align => 1,
+                        },
+                        commited => {
+                            width => 10,
+                            align => 0,
+                        },
+                    ],
+                }
+            );
+
+            print $tbl->render_header;
 
             for my $dist ( sort { $a->name cmp $b->name } $dists->@* ) {
-                printf ' %-30s', $dist->name;
+                my @row;
+
+                push @row, $dist->name;
 
                 if ( !defined $dist->id->{current_release} ) {
-                    print q[ ] x 8 . WHITE . ON_RED . ' unreleased ' . RESET;
+                    push @row, WHITE . ON_RED . ' unreleased ' . RESET;
                 }
                 else {
-                    printf '%20s', $dist->id->{current_release};
+                    push @row, $dist->id->{current_release};
                 }
 
                 if ( $dist->id->{current_release_distance} ) {
-                    print q[ ] x 15 . WHITE . ON_RED . q[ ] . sprintf( '%3s', $dist->id->{current_release_distance} ) . q[ ] . RESET;
+                    push @row, WHITE . ON_RED . sprintf( ' %3s ', $dist->id->{current_release_distance} ) . RESET;
                 }
                 else {
-                    printf '%20s', q[];
+                    push @row, q[];
                 }
 
                 if ( !$dist->is_commited ) {
-                    say q[ ] x 6 . WHITE . ON_RED . ' no ' . RESET;
+                    push @row, WHITE . ON_RED . ' no ' . RESET;
                 }
                 else {
-                    say sprintf '%10s', q[];
+                    push @row, q[];
                 }
+
+                print $tbl->render_row( \@row );
             }
+
+            print $tbl->finish;
         }
     }
 
