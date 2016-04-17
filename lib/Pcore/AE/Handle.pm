@@ -929,34 +929,34 @@ sub get_connect ($connect) {
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
 ## PerlCritic profile "pcore-script" policy violations:
-## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-## │ Sev. │ Lines                │ Policy                                                                                                         │
-## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │                      │ Subroutines::ProhibitExcessComplexity                                                                          │
-## │      │ 72                   │ * Subroutine "new" with high complexity score (44)                                                             │
-## │      │ 701                  │ * Subroutine "read_http_body" with high complexity score (29)                                                  │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 156, 420             │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 278                  │ ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 57, 465, 502, 505,   │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
-## │      │ 517, 555, 558, 561   │                                                                                                                │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 648                  │ ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │                      │ Documentation::RequirePodLinksIncludeText                                                                      │
-## │      │ 963                  │ * Link L<AnyEvent::Handle> on line 1005 does not specify text                                                  │
-## │      │ 963                  │ * Link L<AnyEvent::Handle> on line 1021 does not specify text                                                  │
-## │      │ 963                  │ * Link L<AnyEvent::Handle> on line 969 does not specify text                                                   │
-## │      │ 963                  │ * Link L<AnyEvent::Handle> on line 977 does not specify text                                                   │
-## │      │ 963                  │ * Link L<AnyEvent::Socket> on line 1021 does not specify text                                                  │
-## │      │ 963                  │ * Link L<Pcore::Proxy> on line 1021 does not specify text                                                      │
-## │      │ 963, 963             │ * Link L<Pcore::Proxy> on line 987 does not specify text                                                       │
-## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 53, 58, 470, 555,    │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
-## │      │ 558, 561, 567        │                                                                                                                │
-## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 72                   | * Subroutine "new" with high complexity score (44)                                                             |
+## |      | 701                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 156, 420             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 278                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 57, 465, 502, 505,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 517, 555, 558, 561   |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 648                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
+## |      | 963                  | * Link L<AnyEvent::Handle> on line 1005 does not specify text                                                  |
+## |      | 963                  | * Link L<AnyEvent::Handle> on line 1021 does not specify text                                                  |
+## |      | 963                  | * Link L<AnyEvent::Handle> on line 969 does not specify text                                                   |
+## |      | 963                  | * Link L<AnyEvent::Handle> on line 977 does not specify text                                                   |
+## |      | 963                  | * Link L<AnyEvent::Socket> on line 1021 does not specify text                                                  |
+## |      | 963                  | * Link L<Pcore::Proxy> on line 1021 does not specify text                                                      |
+## |      | 963, 963             | * Link L<Pcore::Proxy> on line 987 does not specify text                                                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 53, 58, 470, 555,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 558, 561, 567        |                                                                                                                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
 __END__
