@@ -294,7 +294,7 @@ sub escape_scalar {
 sub wrap ( $text, $width, % ) {
     my %args = (
         ansi  => 1,
-        align => -1,
+        align => undef,
         splice @_, 2,
     );
 
@@ -376,13 +376,18 @@ sub wrap ( $text, $width, % ) {
     }
 
     # align
-    if ( $args{align} != -1 ) {
+    if ( defined $args{align} != -1 ) {
         for my $line (@lines) {
             my $len = length( $args{ansi} ? $line =~ s/\e.+?m//smgr : $line );
 
             next if $len == $width;
 
-            if ( $args{align} == 1 ) {
+            if ( $args{align} == -1 ) {
+
+                # right
+                $line .= ( q[ ] x ( $width - $len ) );
+            }
+            elsif ( $args{align} == 1 ) {
 
                 # left
                 $line = q[ ] x ( $width - $len ) . $line;
@@ -391,14 +396,9 @@ sub wrap ( $text, $width, % ) {
 
                 # center
                 my $left = int( ( $width - $len ) / 2 );
-                my $right = $width - $left;
+                my $right = $width - $len - $left;
 
                 $line = ( q[ ] x $left ) . $line . ( q[ ] x $right );
-            }
-            elsif ( $args{align} == -1 ) {
-
-                # right
-                $line .= ( q[ ] x ( $width - $len ) );
             }
             else {
                 die q[Invalid align value];
@@ -578,8 +578,8 @@ sub to_camel_case {
 ## │    3 │ 294                  │ Subroutines::ProhibitExcessComplexity - Subroutine "wrap" with high complexity score (28)                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ NamingConventions::ProhibitAmbiguousNames                                                                      │
-## │      │ 393, 394             │ * Ambiguously named variable "left"                                                                            │
-## │      │ 394                  │ * Ambiguously named variable "right"                                                                           │
+## │      │ 398, 399             │ * Ambiguously named variable "left"                                                                            │
+## │      │ 399                  │ * Ambiguously named variable "right"                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 46, 47, 48, 49, 50,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## │      │ 51, 52               │                                                                                                                │
