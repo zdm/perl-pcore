@@ -147,9 +147,6 @@ feature windows => sub {
 # Pcore::Util::Text
 requires 'HTML::Entities';
 
-# Pcore::Util::Text::Table
-requires 'Text::ASCIITable';
-
 # Pcore::Util::Template
 requires 'Text::Xslate';
 requires 'Text::Xslate::Bridge::TT2Like';
