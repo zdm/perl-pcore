@@ -75,8 +75,13 @@ sub run ( $self, $args ) {
             latest_build_update => {
                 title  => 'LATEST BUILD UPDATED',
                 width  => 35,
+                align  => 1,
                 format => sub ( $val, $id, $row ) {
-                    return P->date->from_string( $row->{latest_build}->{last_updated} )->to_http_date;
+                    my $now = P->date->now_utc;
+
+                    my $date = P->date->from_string( $row->{latest_build}->{last_updated} );
+
+                    return "@{[$date->delta_days($now)]} days @{[$date->delta_hours($now)]} hours @{[$date->delta_minutes($now)]} minutes";
                 }
             },
         ],
@@ -110,7 +115,7 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 87                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 92                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
