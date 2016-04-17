@@ -71,7 +71,7 @@ sub run ($self) {
     P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
 
     # clear cached data, important for version
-    P->dist->clear;
+    $self->dist->clear;
 
     # working with the issue tracker
     {
