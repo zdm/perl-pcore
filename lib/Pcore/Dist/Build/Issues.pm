@@ -118,14 +118,11 @@ sub print_issues ( $self, $issues, $content = 1 ) {
     if ( !$issues ) {
         say 'No issues';
     }
-    elsif (1) {
+    else {
         my $tbl = P->text->table1(
-            {   style  => 'compact',
-                grid   => 'ascii',
-                header => 1,
-                color  => 1,
-                width  => 120,
-                cols   => [
+            {   style => 'pcore',
+                width => 120,
+                cols  => [
                     id => {
                         width => 4,
                         align => 1,
@@ -162,32 +159,6 @@ sub print_issues ( $self, $issues, $content = 1 ) {
             say 'max. 50 first issues shown';
         }
     }
-    else {
-        my $tbl = P->text->table;
-
-        $tbl->set_cols(qw[ID STATUS PRIORITY KIND TITLE]);
-        $tbl->set_col_width( 'TITLE', 100, 1 );
-        $tbl->align_col( 'ID', 'right' );
-
-        if ( blessed $issues ) {
-            my $issue = $issues;
-
-            $tbl->add_row( $issue->{local_id}, $issue->status_color, $issue->priority_color, $issue->kind_color, $issue->{title} );
-
-            print $tbl->render;
-
-            say $LF, $issue->{content} || 'No content' if $content;
-        }
-        else {
-            for my $issue ( sort { $a->status_id <=> $b->status_id or $b->priority_id <=> $a->priority_id or $b->utc_last_updated_ts <=> $a->utc_last_updated_ts } $issues->@* ) {
-                $tbl->add_row( $issue->{local_id}, $issue->status_color, $issue->priority_color, $issue->kind_color, $issue->{title} );
-            }
-
-            print $tbl->render;
-
-            say 'max. 50 first issues shown';
-        }
-    }
 
     return;
 }
@@ -209,7 +180,7 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 66, 70               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 156, 182             │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 153                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
