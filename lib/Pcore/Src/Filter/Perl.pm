@@ -59,13 +59,6 @@ sub decompress ( $self, % ) {
     elsif ( my $perl_critic_profile_name = $self->_get_perlcritic_profile_name( $args{perl_critic} ) ) {    # run perlcritic ONLY if no perltidy errors detected
         state $init1 = !!require Perl::Critic;
 
-        # create table object
-        my $t = P->text->table( { row_line => 0 } );
-        $t->set_cols( 'Sev.', 'Lines', 'Policy' );
-        $t->set_col_width( 'Lines', 20, 1 );
-        $t->align_col( 'Lines', 'left' );
-        $t->set_col_width( 'Policy', 110, 1 );
-
         # index violations
         if ( my @violations = $self->_get_perlcritic_object($perl_critic_profile_name)->critique( $self->buffer ) ) {
             my $violations;
@@ -104,34 +97,73 @@ sub decompress ( $self, % ) {
             }
 
             # create table
+            my $tbl = P->text->table(
+                {   style   => 'compact',
+                    grid    => 'utf8',
+                    color   => 0,
+                    padding => 1,
+                    cols    => [
+                        severity => {
+                            title  => 'Sev.',
+                            width  => 6,
+                            align  => 1,
+                            valign => -1,
+                        },
+                        lines => {
+                            title       => 'Lines',
+                            width       => 22,
+                            title_align => -1,
+                            align       => -1,
+                            valign      => -1,
+                        },
+                        policy => {
+                            title       => 'Policy',
+                            width       => 112,
+                            title_align => -1,
+                            align       => -1,
+                            valign      => -1,
+                        },
+                    ],
+                }
+            );
+
+            my $report = $tbl->render_header;
+
+            my $total_violations = scalar keys $violations->%*;
+
             # sorting violations by descending severity, ascending first line then by policy text
             for my $v ( sort { $violations->{$a}->{severity} != $violations->{$b}->{severity} ? $violations->{$b}->{severity} <=> $violations->{$a}->{severity} : $violations->{$a}->{first_line} != $violations->{$b}->{first_line} ? $violations->{$a}->{first_line} <=> $violations->{$b}->{first_line} : $a cmp $b } keys $violations->%* ) {
                 my $policy = $v;
 
                 if ( keys $violations->{$v}->{desc}->%* > 1 ) {    # multiple violations with different descriptions
-                    $t->add_row( $violations->{$v}->{severity}, q[], $policy );
+                    $report .= $tbl->render_row( [ $violations->{$v}->{severity}, q[], $policy ] );
 
                     # sorting descriptions by ascending first line number, then by description text
                     for my $desc ( sort { $violations->{$v}->{desc}->{$a}->{line}->[0] != $violations->{$v}->{desc}->{$b}->{line}->[0] ? $violations->{$v}->{desc}->{$a}->{line}->[0] <=> $violations->{$v}->{desc}->{$b}->{line}->[0] : $violations->{$v}->{desc}->{$a}->{text} cmp $violations->{$v}->{desc}->{$b}->{text} } keys $violations->{$v}->{desc}->%* ) {
-                        $t->add_row( q[], join( q[, ], sort { $a <=> $b } $violations->{$v}->{desc}->{$desc}->{line}->@* ), qq[* $violations->{$v}->{desc}->{$desc}->{text}] );
+                        $report .= $tbl->render_row( [ q[], join( q[, ], sort { $a <=> $b } $violations->{$v}->{desc}->{$desc}->{line}->@* ), qq[* $violations->{$v}->{desc}->{$desc}->{text}] ] );
                     }
                 }
                 else {                                             # single violation
                     $policy .= qq[ - $violations->{$v}->{desc}->{[keys $violations->{$v}->{desc}->%*]->[0]}->{text}];
 
-                    $t->add_row( $violations->{$v}->{severity}, join( q[, ], sort { $a <=> $b } keys $violations->{$v}->{line}->%* ), $policy );
+                    $report .= $tbl->render_row( [ $violations->{$v}->{severity}, join( q[, ], sort { $a <=> $b } keys $violations->{$v}->{line}->%* ), $policy ] );
                 }
 
                 # add diagnostic
-                $t->add_row( q[], q[], qq[\nDiagnostics:\n] . $t->protect_spaces( $violations->{$v}->{diag} ) ) if $args{perl_verbose} && $violations->{$v}->{severity} >= $self->src_cfg->{SEVERITY_RANGE}->{ERROR};
+                $report .= $tbl->render_row( [ q[], q[], qq[\nDiagnostics:\n] . $violations->{$v}->{diag} ] ) if $args{perl_verbose} && $violations->{$v}->{severity} >= $self->src_cfg->{SEVERITY_RANGE}->{ERROR};
 
                 # add table row line
-                $t->add_row_line;
+                if ( --$total_violations ) {
+                    $report .= $tbl->render_row_line;
+                }
+                else {
+                    $report .= $tbl->finish;
+                }
             }
 
             $error_log = qq[PerlCritic profile "$perl_critic_profile_name" policy violations:\n];
 
-            $error_log .= $t->render;
+            $error_log .= $report;
         }
     }
 
@@ -312,14 +344,14 @@ sub cut_log ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 9                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (24)                │
+## │    3 │ 9                    │ Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (26)                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 108, 111, 115, 122,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 238, 274             │                                                                                                                │
+## │    3 │ 132, 135, 138, 142,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 149, 270, 306        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 159                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
+## │    2 │ 191                  │ Miscellanea::ProhibitTies - Tied variable used                                                                 │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 108                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 135                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

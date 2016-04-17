@@ -119,12 +119,13 @@ sub print_issues ( $self, $issues, $content = 1 ) {
         say 'No issues';
     }
     else {
-        my $tbl = P->text->table1(
-            {   style => 'pcore',
-                width => 120,
-                cols  => [
+        my $tbl = P->text->table(
+            {   style   => 'pcore',
+                width   => 120,
+                padding => 1,
+                cols    => [
                     id => {
-                        width => 4,
+                        width => 6,
                         align => 1,
                     },
                     status   => { width => 10, },
@@ -180,7 +181,7 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 66, 70               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 153                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 154                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

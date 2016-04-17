@@ -267,6 +267,10 @@ sub _source_file ($self) {
         dry_run     => $self->dry_run,
     );
 
+    print $self->{tbl}->finish if $self->interactive;
+
+    undef $self->{tbl};
+
     return;
 }
 
@@ -294,9 +298,10 @@ sub _process_file ( $self, $max_path_len, %args ) {
 
 sub _report_file ( $self, $res, $max_path_len ) {
     if ( !$self->{tbl} ) {
-        $self->{tbl} = P->text->table1(
-            {   style => 'compact',
-                cols  => [
+        $self->{tbl} = P->text->table(
+            {   style   => 'compact',
+                padding => 1,
+                cols    => [
                     path => {
                         width => $max_path_len + 2,
                         align => -1,
@@ -330,7 +335,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
     my @row;
 
     # path
-    push @row, q[ ] . decode_utf8( $res->path->to_string, encoding => $Pcore::WIN_ENC ) . q[ ];
+    push @row, decode_utf8( $res->path->to_string, encoding => $Pcore::WIN_ENC );
 
     # severity
     my $severity;
@@ -383,8 +388,8 @@ sub _report_total ($self) {
 
     undef $self->{tbl};
 
-    my $tbl = P->text->table1(
-        {   style => 'compact',
+    my $tbl = P->text->table(
+        {   style => 'pcore',
             cols  => [
                 type => {
                     width => 10,
@@ -421,9 +426,9 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 338                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 343                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 413                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  │
+## │    3 │ 418                  │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
