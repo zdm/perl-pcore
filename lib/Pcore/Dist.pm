@@ -270,6 +270,8 @@ sub clear ($self) {
     # clear version
     $self->module->clear if $self->has_module;
 
+    $self->clear_version;
+
     $self->clear_id;
 
     $self->clear_cfg;
