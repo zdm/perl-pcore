@@ -382,9 +382,11 @@ sub _report_file ( $self, $res, $max_path_len ) {
 }
 
 sub _report_total ($self) {
-    print $self->{tbl}->finish;
+    if ( $self->{tbl} ) {
+        print $self->{tbl}->finish;
 
-    undef $self->{tbl};
+        undef $self->{tbl};
+    }
 
     my $tbl = P->text->table(
         style => 'pcore',
@@ -425,7 +427,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 341                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 415                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
+## |    3 | 417                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
