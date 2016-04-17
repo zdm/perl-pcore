@@ -33,6 +33,7 @@ use Pcore -export, [
       trim
       trim_multi
       unmark_raw
+      wrap
       ]
 ];
 use Encode qw[];    ## no critic qw[Modules::ProhibitEvilModules]
@@ -171,7 +172,6 @@ PERL
 
         utf8::encode $_ if utf8::is_utf8 $_;
 PERL
-
 };
 
 # create accessors
@@ -289,6 +289,124 @@ sub escape_scalar {
     else {
         return;
     }
+}
+
+sub wrap ( $text, $width, % ) {
+    my %args = (
+        ansi  => 1,
+        align => -1,
+        splice @_, 2,
+    );
+
+    # remove ANSI
+    $text =~ s/\e.+?m//smg if !$args{ansi};
+
+    # expand tabs
+    $text =~ s/\t/    /smg;
+
+    state $wrap = sub ( $width, $ansi ) {
+        my @lines;
+
+        my $wrap_re = do {
+            if   ($ansi) {qr/(\e.+?m|\s)/sm}
+            else         {qr/(\s)/sm}
+        };
+
+        my $buf = q[];
+
+        my $buf_len = 0;
+
+        for my $word ( grep { $_ ne q[] } split $wrap_re ) {
+            if ( $ansi && $word =~ /\e.+?m/sm ) {
+                $buf .= $word;
+            }
+            elsif ( $buf_len + length $word > $width ) {
+
+                # wrap by any character
+                # $buf .= substr $word, 0, $width - $buf_len, q[];
+
+                # drop current buf to @lines
+                push @lines, $buf if $buf ne q[];
+
+                while ( length $word > $width ) {
+                    push @lines, substr $word, 0, $width, q[];
+                }
+
+                # init next buf
+                $buf     = $word;
+                $buf_len = length $word;
+            }
+            else {
+                $buf .= $word;
+                $buf_len += length $word;
+            }
+        }
+
+        push @lines, $buf if $buf ne q[];
+
+        return @lines;
+    };
+
+    my @lines;
+
+    # wrap lines
+    for ( split /\n/sm, $text ) {
+        push @lines, $wrap->( $width, $args{ansi} );
+    }
+
+    # process ansi seq.
+    if ( $args{ansi} ) {
+        my $ansi_prefix = q[];
+
+        for my $line (@lines) {
+            $line = $ansi_prefix . $line if $ansi_prefix;
+
+            if ( my @ansi = $line =~ /(\e.+?m)/smg ) {
+                if ( $ansi[-1] ne "\e[0m" ) {
+                    $line .= "\e[0m";
+
+                    $ansi_prefix .= join q[], @ansi;
+                }
+                else {
+                    $ansi_prefix = q[];
+                }
+            }
+            elsif ($ansi_prefix) { $line .= "\e[0m" }
+        }
+    }
+
+    # align
+    if ( $args{align} != -1 ) {
+        for my $line (@lines) {
+            my $len = length( $args{ansi} ? $line =~ s/\e.+?m//smgr : $line );
+
+            next if $len == $width;
+
+            if ( $args{align} == 1 ) {
+
+                # left
+                $line = q[ ] x ( $width - $len ) . $line;
+            }
+            elsif ( $args{align} == 0 ) {
+
+                # center
+                my $left = int( ( $width - $len ) / 2 );
+                my $right = $width - $left;
+
+                $line = ( q[ ] x $left ) . $line . ( q[ ] x $right );
+            }
+            elsif ( $args{align} == -1 ) {
+
+                # right
+                $line .= ( q[ ] x ( $width - $len ) );
+            }
+            else {
+                die q[Invalid align value];
+            }
+        }
+    }
+
+    return \@lines;
 }
 
 # HTML ENTITIES
@@ -457,8 +575,14 @@ sub to_camel_case {
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │ 204                  │ ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 45, 46, 47, 48, 49,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
-## │      │ 50, 51               │                                                                                                                │
+## │    3 │ 294                  │ Subroutines::ProhibitExcessComplexity - Subroutine "wrap" with high complexity score (28)                      │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    3 │                      │ NamingConventions::ProhibitAmbiguousNames                                                                      │
+## │      │ 393, 394             │ * Ambiguously named variable "left"                                                                            │
+## │      │ 394                  │ * Ambiguously named variable "right"                                                                           │
+## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+## │    1 │ 46, 47, 48, 49, 50,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │      │ 51, 52               │                                                                                                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
