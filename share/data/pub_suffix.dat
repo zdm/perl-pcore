@@ -37,7 +37,6 @@
 *.sendai.jp
 *.ye
 *.yokohama.jp
-*.zm
 *.zw
 .0emm.com
 .akershus.no
@@ -158,6 +157,7 @@ ac.ug
 ac.uk
 ac.vn
 ac.za
+ac.zm
 aca.pro
 academy
 academy.museum
@@ -710,6 +710,7 @@ biz.tr
 biz.tt
 biz.ua
 biz.vn
+biz.zm
 bizen.okayama.jp
 bj
 bj.cn
@@ -1268,6 +1269,7 @@ co.uz
 co.ve
 co.vi
 co.za
+co.zm
 coach
 coal.museum
 coastaldefence.museum
@@ -1414,6 +1416,7 @@ com.vi
 com.vn
 com.vu
 com.ws
+com.zm
 comcast
 commbank
 communication.museum
@@ -1839,6 +1842,7 @@ edu.vn
 edu.vu
 edu.ws
 edu.za
+edu.zm
 education
 education.museum
 educational.museum
@@ -2414,6 +2418,7 @@ gob.ve
 gobo.wakayama.jp
 godaddy
 godo.gifu.jp
+goip.de
 gojome.akita.jp
 gok.pk
 gokase.miyazaki.jp
@@ -2574,6 +2579,7 @@ gov.ve
 gov.vn
 gov.ws
 gov.za
+gov.zm
 government.aero
 govt.nz
 gp
@@ -3118,6 +3124,7 @@ info.tt
 info.tz
 info.ve
 info.vn
+info.zm
 ing
 ing.pa
 ingatlan.hu
@@ -4398,6 +4405,7 @@ mil.uy
 mil.vc
 mil.ve
 mil.za
+mil.zm
 milan.it
 milano.it
 military.museum
@@ -4949,6 +4957,7 @@ net.vn
 net.vu
 net.ws
 net.za
+net.zm
 netbank
 netflix
 network
@@ -5456,6 +5465,7 @@ org.vn
 org.vu
 org.ws
 org.za
+org.zm
 organic
 orientexpress
 origins
@@ -6152,6 +6162,7 @@ sch.ly
 sch.ng
 sch.qa
 sch.sa
+sch.zm
 schaeffler
 schlesisches.museum
 schmidt

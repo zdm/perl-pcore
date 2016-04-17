@@ -70,6 +70,9 @@ sub run ($self) {
 
     P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
 
+    # clear cached data, important for version
+    P->dist->clear;
+
     # working with the issue tracker
     {
         my $cv = AE::cv;
@@ -321,7 +324,7 @@ sub _upload_to_cpan ($self) {
     else {
         say join q[ ], $res->status, $res->reason;
 
-        goto REDO if P->term->prompt( 'Retry?', [qw[yes no]], enter => 1 );
+        goto REDO if P->term->prompt( 'Retry?', [qw[yes no]], enter => 1 ) eq 'yes';
 
         say qq[Upload to CPAN failed. You should upload manually: "$tgz"];
     }
@@ -372,14 +375,14 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53, 185              | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 53, 188              | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 351                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 354                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 65,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 82, 96, 144          |                                                                                                                |
+## |      | 85, 99, 147          |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 347                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 350                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
