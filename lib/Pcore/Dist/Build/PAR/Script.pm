@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::PAR::Script;
 
-use Pcore -class;
+use Pcore -class, -ansi;
 use Pcore::Util::Text qw[format_num];
 use Pcore::Util::File::Tree;
 use Archive::Zip qw[];
@@ -8,7 +8,6 @@ use PAR::Filter;
 use Filter::Crypto::CryptFile;
 use Pcore::Src::File;
 use Config;
-use Term::ANSIColor qw[:constants];
 
 has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
@@ -631,20 +630,20 @@ sub _error ( $self, $msg ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 179, 198, 205, 237,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
-## │      │ 374, 415, 567        │                                                                                                                │
+## │    3 │ 178, 197, 204, 236,  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │      │ 373, 414, 566        │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 251                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
+## │    3 │ 250                  │ Subroutines::ProhibitManyArgs - Too many arguments                                                             │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 449, 467             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
+## │    3 │ 448, 466             │ ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 502                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
+## │    3 │ 501                  │ RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 537                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
+## │    2 │ 536                  │ ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 589, 591             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
+## │    2 │ 588, 590             │ ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 524, 530             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
+## │    1 │ 523, 529             │ CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

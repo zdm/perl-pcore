@@ -1,7 +1,6 @@
 package Pcore::Util::Term::Progress::Indicator::Bar;
 
-use Pcore -class;
-use Term::ANSIColor qw[:constants];
+use Pcore -class, -ansi;
 
 with qw[Pcore::Util::Term::Progress::Indicator];
 
@@ -151,9 +150,9 @@ sub _draw ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 12                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_draw" with high complexity score (25)                     │
+## │    3 │ 11                   │ Subroutines::ProhibitExcessComplexity - Subroutine "_draw" with high complexity score (25)                     │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 12                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_draw' declared but not used        │
+## │    3 │ 11                   │ Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_draw' declared but not used        │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

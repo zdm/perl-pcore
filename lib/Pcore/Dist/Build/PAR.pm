@@ -1,9 +1,8 @@
 package Pcore::Dist::Build::PAR;
 
-use Pcore -class;
+use Pcore -class, -ansi;
 use Config;
 use Pcore::Dist::Build::PAR::Script;
-use Term::ANSIColor qw[:constants];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
@@ -123,7 +122,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 62, 81, 106, 111     │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 61, 80, 105, 110     │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

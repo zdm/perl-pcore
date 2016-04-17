@@ -7,6 +7,7 @@ use Pcore::Core::Const qw[:CORE];
 
 # define %EXPORT_PRAGMA for exporter
 our $EXPORT_PRAGMA = {
+    ansi        => 0,    # re-export Term::ANSIColor qw[:constants]
     autoload    => 0,    # export AUTOLOAD
     class       => 0,    # package is a Moo class
     config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
@@ -140,6 +141,13 @@ sub import {
 
         # process -const pragma
         Const::Fast->import::into( $caller, 'const' ) if $import->{pragma}->{const};
+
+        # process -ansi pragma
+        if ( $import->{pragma}->{ansi} ) {
+            state $ANSI_INIT = !!require Term::ANSIColor;
+
+            Term::ANSIColor->export_to_level( 1, undef, ':constants' );
+        }
 
         # re-export Moo
         if ( $import->{pragma}->{class} || $import->{pragma}->{role} ) {
@@ -527,21 +535,21 @@ sub i18n {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 100                  │ Variables::ProtectPrivateVars - Private variable used                                                          │
+## │    3 │ 101                  │ Variables::ProtectPrivateVars - Private variable used                                                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 211                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
+## │    3 │ 219                  │ BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 287                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
-## │      │ 410                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
+## │      │ 295                  │ * Private subroutine/method '_apply_roles' declared but not used                                               │
+## │      │ 418                  │ * Private subroutine/method '_CORE_RUN' declared but not used                                                  │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    3 │ 324, 353, 356, 360,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
-## │      │ 392, 395, 400, 403,  │                                                                                                                │
-## │      │ 431, 448             │                                                                                                                │
+## │    3 │ 332, 361, 364, 368,  │ ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  │
+## │      │ 400, 403, 408, 411,  │                                                                                                                │
+## │      │ 439, 456             │                                                                                                                │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    2 │ 221                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
+## │    2 │ 229                  │ ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 328                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
+## │    1 │ 336                  │ InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

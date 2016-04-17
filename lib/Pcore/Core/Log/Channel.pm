@@ -1,7 +1,6 @@
 package Pcore::Core::Log::Channel;
 
-use Pcore -class;
-use Term::ANSIColor qw[:constants];
+use Pcore -class, -ansi;
 
 has name => ( is => 'ro', isa => Str, required => 1 );
 has header => ( is => 'ro', isa => Maybe [Str], default => BOLD GREEN . '[<: $date.strftime("%H:%M:%S.%6N") :>]' . BOLD CYAN . '[<: $pid :>]' . BOLD YELLOW . '[<: $package :>]' . BOLD RED . '[<: $channel :>]' . RESET );
@@ -91,9 +90,9 @@ sub sendlog ( $self, $data, @ ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 41, 53               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 40, 52               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 7                    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
+## │    1 │ 6                    │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

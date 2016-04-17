@@ -1,7 +1,6 @@
 package Pcore::API::Bitbucket::Issue;
 
-use Pcore -class, -const;
-use Term::ANSIColor qw[:constants];
+use Pcore -class, -const, -ansi;
 
 const our $PRIORITY => {
     trivial  => 1,
@@ -147,7 +146,7 @@ sub update ( $self, $args, $cb ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 53, 55, 131          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 52, 54, 130          │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

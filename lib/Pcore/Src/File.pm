@@ -1,8 +1,7 @@
 package Pcore::Src::File;
 
-use Pcore -class;
+use Pcore -class, -ansi;
 use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi remove_bom];
-use Term::ANSIColor qw[:constants];
 
 has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate]], required => 1 );
 has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
@@ -258,7 +257,7 @@ sub run ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 19, 203, 226         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 18, 202, 225         │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

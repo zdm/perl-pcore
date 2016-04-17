@@ -4,8 +4,7 @@ use Pcore -role;
 
 package Pcore::AppX::Role;
 
-use Pcore -role;
-use Term::ANSIColor qw[:constants];
+use Pcore -role, -ansi;
 
 has _appx_enum     => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 has _appx_builded  => ( is => 'rw',   isa => Bool,     default  => 0 );
@@ -305,11 +304,11 @@ sub app_reset ($self) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 17                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 16                   │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ Subroutines::ProhibitUnusedPrivateSubroutines                                                                  │
-## │      │ 25                   │ * Private subroutine/method '_appx_report_fatal' declared but not used                                         │
-## │      │ 31                   │ * Private subroutine/method '_appx_report_warn' declared but not used                                          │
+## │      │ 24                   │ * Private subroutine/method '_appx_report_fatal' declared but not used                                         │
+## │      │ 30                   │ * Private subroutine/method '_appx_report_warn' declared but not used                                          │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

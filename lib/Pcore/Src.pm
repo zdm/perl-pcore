@@ -1,9 +1,8 @@
 package Pcore::Src;
 
-use Pcore -class;
+use Pcore -class, -ansi;
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::Src::File;
-use Term::ANSIColor qw[:constants];
 
 has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate commit]], required => 1 );
 has path => ( is => 'ro', isa => Maybe [Str] );
@@ -367,7 +366,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## ┌──────┬──────────────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 ## │ Sev. │ Lines                │ Policy                                                                                                         │
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
-## │    3 │ 320                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
+## │    3 │ 319                  │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----

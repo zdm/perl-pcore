@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Issues;
 
-use Pcore -class;
+use Pcore -ansi, -class;
 use Pcore::Util::Scalar qw[blessed];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
@@ -118,6 +118,61 @@ sub print_issues ( $self, $issues, $content = 1 ) {
     if ( !$issues ) {
         say 'No issues';
     }
+    elsif (1) {
+        my $tbl = P->text->table1(
+            {   style  => 'compact',
+                grid   => 'ascii',
+                header => 1,
+                color  => 1,
+                width  => 120,
+                cols   => [
+                    id => {
+                        title => BOLD . WHITE . 'ID' . RESET,
+                        width => 4,
+                        align => 1,
+                    },
+                    status => {
+                        title => BOLD . WHITE . 'STATUS' . RESET,
+                        width => 10,
+                    },
+                    priority => {
+                        title => BOLD . WHITE . 'PRIORITY' . RESET,
+                        width => 15,
+                    },
+                    kind => {
+                        title => BOLD . WHITE . 'KIND' . RESET,
+                        width => 10,
+                        align => 0,
+                    },
+                    title => {
+                        title       => BOLD . WHITE . 'TITLE' . RESET,
+                        title_align => -1,
+                    },
+                ],
+            }
+        );
+
+        print $tbl->render_header;
+
+        if ( blessed $issues ) {
+            my $issue = $issues;
+
+            print $tbl->render_row( [ $issue->{local_id}, $issue->status_color, $issue->priority_color, $issue->kind_color, $issue->{title} ] );
+
+            print $tbl->finish;
+
+            say $LF, $issue->{content} || 'No content' if $content;
+        }
+        else {
+            for my $issue ( sort { $a->status_id <=> $b->status_id or $b->priority_id <=> $a->priority_id or $b->utc_last_updated_ts <=> $a->utc_last_updated_ts } $issues->@* ) {
+                print $tbl->render_row( [ $issue->{local_id}, $issue->status_color, $issue->priority_color, $issue->kind_color, $issue->{title} ] );
+            }
+
+            print $tbl->finish;
+
+            say 'max. 50 first issues shown';
+        }
+    }
     else {
         my $tbl = P->text->table;
 
@@ -165,7 +220,7 @@ sub create_milestone ( $self, $milestone, $cb ) {
 ## ╞══════╪══════════════════════╪════════════════════════════════════════════════════════════════════════════════════════════════════════════════╡
 ## │    3 │ 66, 70               │ References::ProhibitDoubleSigils - Double-sigil dereference                                                    │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-## │    1 │ 138                  │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
+## │    1 │ 167, 193             │ BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                │
 ## └──────┴──────────────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ##
 ## -----SOURCE FILTER LOG END-----
