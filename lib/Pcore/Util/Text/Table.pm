@@ -6,14 +6,6 @@ use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[wrap];
 
 const our $GRID => {
-    utf8 => [
-        [ q[┌], q[┐], q[─], q[┬] ],    # top line
-        [ q[│], q[│], q[│] ],          # header row
-        [ q[╞], q[╡], q[═], q[╪] ],    # header row separator line
-        [ q[│], q[│], q[│] ],          # data row
-        [ q[├], q[┤], q[─], q[┼] ],    # data rows separator line
-        [ q[└], q[┘], q[─], q[┴] ],    # bottom line line\d
-    ],
     ascii => [
         [ q[+], q[+], q[-], q[+] ],    # top line
         [ q[|], q[|], q[|] ],          # header row
@@ -21,6 +13,14 @@ const our $GRID => {
         [ q[|], q[|], q[|] ],          # data row
         [ q[|], q[|], q[-], q[+] ],    # data rows separator line
         [ q[+], q[+], q[-], q[+] ],    # bottom line
+    ],
+    utf8 => [
+        [ q[┌], q[┐], q[─], q[┬] ],    # top line
+        [ q[│], q[│], q[│] ],          # header row
+        [ q[╞], q[╡], q[═], q[╪] ],    # header row separator line
+        [ q[│], q[│], q[│] ],          # data row
+        [ q[├], q[┤], q[─], q[┼] ],    # data rows separator line
+        [ q[└], q[┘], q[─], q[┴] ],    # bottom line line\d
     ],
 };
 
@@ -49,7 +49,7 @@ const our $STYLE => {
 
 has style => ( is => 'ro', isa => Maybe [ Enum [ keys $STYLE->%* ] ] );
 
-has grid => ( is => 'ro', isa => Maybe [ Enum [ keys $GRID->%* ] ] );
+has grid => ( is => 'ro', isa => Maybe [ Enum [ keys $GRID->%* ] ], default => 'ascii' );
 has header => ( is => 'ro', isa => Bool, default => 1 );    # render header
 
 has top_line     => ( is => 'ro', isa => Bool, default => 1 );
@@ -92,7 +92,7 @@ sub BUILD ( $self, $args ) {
     # calculate width for columns with variable width
     for my $col ( $self->cols->@* ) {
         if ( !$col->width ) {
-            die q[Table with must be defined if table has variable width columns] if !$table_width;
+            die q[Table width must be defined if table has variable width columns] if !$table_width;
 
             push $var_width_cols->@*, $col;
         }
@@ -288,7 +288,7 @@ sub _render_row ( $self, $row, $header_row = 0 ) {
     for my $line_idx ( 0 .. $row_height - 1 ) {
         $buf .= $grid->[0] if $grid && $self->left_border;
 
-        $buf .= join( ( $grid ? $grid->[1] : q[ ] ), map { $padding . $_->[$line_idx] . $padding } @cells );
+        $buf .= join $grid ? $grid->[1] : q[ ], map { $padding . $_->[$line_idx] . $padding } @cells;
 
         $buf .= $grid->[2] if $grid && $self->right_border;
 
@@ -323,8 +323,6 @@ sub _render_line ( $self, $idx ) {
 ## |    3 | 50, 52, 76           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 178                  | Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (32)               |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 291                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -414,6 +414,8 @@ sub build_history ( $self, % ) {
                 for my $build ( $res->{result}->{results}->@* ) {
                     $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
 
+                    $build->{build_status} = $build->{status};
+
                     $build->set_status( $res->status );
 
                     $build->{repo} = $self;
