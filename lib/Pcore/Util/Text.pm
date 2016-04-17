@@ -359,7 +359,7 @@ sub wrap ( $text, $width, % ) {
         my $ansi_prefix = q[];
 
         for my $line (@lines) {
-            $line = $ansi_prefix . $line if $ansi_prefix;
+            my $cur_ansi_prefix = $ansi_prefix;
 
             if ( my @ansi = $line =~ /(\e.+?m)/smg ) {
                 if ( $ansi[-1] ne "\e[0m" ) {
@@ -371,7 +371,9 @@ sub wrap ( $text, $width, % ) {
                     $ansi_prefix = q[];
                 }
             }
-            elsif ($ansi_prefix) { $line .= "\e[0m" }
+            elsif ($cur_ansi_prefix) { $line .= "\e[0m" }
+
+            $line = $cur_ansi_prefix . $line if $cur_ansi_prefix;
         }
     }
 
@@ -578,8 +580,8 @@ sub to_camel_case {
 ## │    3 │ 294                  │ Subroutines::ProhibitExcessComplexity - Subroutine "wrap" with high complexity score (28)                      │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    3 │                      │ NamingConventions::ProhibitAmbiguousNames                                                                      │
-## │      │ 398, 399             │ * Ambiguously named variable "left"                                                                            │
-## │      │ 399                  │ * Ambiguously named variable "right"                                                                           │
+## │      │ 400, 401             │ * Ambiguously named variable "left"                                                                            │
+## │      │ 401                  │ * Ambiguously named variable "right"                                                                           │
 ## ├──────┼──────────────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 ## │    1 │ 46, 47, 48, 49, 50,  │ ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     │
 ## │      │ 51, 52               │                                                                                                                │
