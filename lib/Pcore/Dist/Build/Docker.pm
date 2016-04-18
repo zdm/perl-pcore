@@ -85,11 +85,11 @@ sub run ( $self, $args ) {
 
                     my $minutes = $delta_minutes % 60;
 
-                    my $delta_hours = int( $minutes / 60 );
+                    my $delta_hours = int( $delta_minutes / 60 );
 
                     my $hours = $delta_hours % 24;
 
-                    my $days = int( $hours / 24 );
+                    my $days = int( $delta_hours / 24 );
 
                     return "$days days $hours hours $minutes minutes";
                 }
