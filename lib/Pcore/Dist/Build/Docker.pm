@@ -81,7 +81,17 @@ sub run ( $self, $args ) {
 
                     my $date = P->date->from_string( $row->{latest_build}->{last_updated} );
 
-                    return "@{[$date->delta_days($now)]} days @{[$date->delta_hours($now)]} hours @{[$date->delta_minutes($now)]} minutes";
+                    my $delta_minutes = $date->delta_minutes($now);
+
+                    my $minutes = $delta_minutes % 60;
+
+                    my $delta_hours = int( $minutes / 60 );
+
+                    my $hours = $delta_hours % 24;
+
+                    my $days = int( $hours / 24 );
+
+                    return "$days days $hours hours $minutes minutes";
                 }
             },
         ],
@@ -115,7 +125,7 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 92                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 102                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
