@@ -98,8 +98,6 @@ $IN->on_read(
 $CV->recv;
 
 sub _get_new_deps {
-    return if !$BOOT_ARGS->{scan_deps};
-
     my $new_deps;
 
     if ( $BOOT_ARGS->{scan_deps} ) {
@@ -130,7 +128,7 @@ sub _on_call_responder ( $call_id, $data ) {
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
                 call_id => $call_id,
-                deps    => _get_new_deps(),
+                deps    => $BOOT_ARGS->{scan_deps} ? _get_new_deps() : undef,
             },
             $data
         ]
@@ -171,8 +169,8 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
                 call_id => $call_id,
-                deps    => _get_new_deps(),
-                method  => $method
+                deps    => $BOOT_ARGS->{scan_deps} ? _get_new_deps() : undef,
+                method  => $method,
             },
             $data
         ]
