@@ -91,7 +91,13 @@ sub run ( $self, $args ) {
 
                     my $days = int( $delta_hours / 24 );
 
-                    return "$days days $hours hours $minutes minutes";
+                    my $res = q[];
+
+                    $res .= "$days days " if $days;
+
+                    $res .= "$hours hours " if $hours;
+
+                    return "${res}$minutes minutes ago";
                 }
             },
         ],
@@ -125,9 +131,9 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 102                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 108                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 102                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 108                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
