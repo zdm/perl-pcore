@@ -97,6 +97,22 @@ $IN->on_read(
 
 $CV->recv;
 
+sub _get_new_deps {
+    return if !$BOOT_ARGS->{scan_deps};
+
+    my $new_deps;
+
+    if ( $BOOT_ARGS->{scan_deps} ) {
+        for my $pkg ( grep { !exists $DEPS->{$_} } keys %INC ) {
+            $new_deps->{$pkg} = $INC{$pkg};
+
+            $DEPS->{$pkg} = $INC{$pkg};
+        }
+    }
+
+    return $new_deps;
+}
+
 sub _on_data ($data) {
     if ( $data->[0]->{method} ) {
         _on_call( $data->[0]->{call_id}, $data->[0]->{method}, $data->[1] );
@@ -111,22 +127,10 @@ sub _on_data ($data) {
 }
 
 sub _on_call_responder ( $call_id, $data ) {
-
-    # make PAR deps snapshot after each call
-    my $new_deps_found;
-
-    if ( $BOOT_ARGS->{scan_deps} ) {
-        for my $pkg ( grep { !exists $DEPS->{$_} } keys %INC ) {
-            $new_deps_found = 1;
-
-            $DEPS->{$pkg} = $INC{$pkg};
-        }
-    }
-
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
                 call_id => $call_id,
-                deps    => $new_deps_found ? $DEPS : undef,
+                deps    => _get_new_deps(),
             },
             $data
         ]
@@ -164,7 +168,15 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     }
 
     # prepare CBOR data
-    my $cbor = P->data->to_cbor( [ { pid => $$, call_id => $call_id, method => $method }, $data ] );
+    my $cbor = P->data->to_cbor(
+        [   {   pid     => $$,
+                call_id => $call_id,
+                deps    => _get_new_deps(),
+                method  => $method
+            },
+            $data
+        ]
+    );
 
     $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 

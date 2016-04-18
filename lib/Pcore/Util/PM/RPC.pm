@@ -109,28 +109,8 @@ sub _build__scan_deps ($self) {
     return exists $INC{'Pcore/Devel/ScanDeps.pm'} ? 1 : 0;
 }
 
-sub _store_deps ( $self, $deps ) {
-    my $old_deps = -f "$ENV->{DATA_DIR}.pardeps.cbor" ? P->cfg->load("$ENV->{DATA_DIR}.pardeps.cbor") : {};
-
-    my $new_deps;
-
-    for my $mod ( keys $deps->%* ) {
-        if ( !exists $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$mod} ) {
-            $new_deps = 1;
-
-            say 'new deps found: ' . $mod;
-
-            $old_deps->{ $ENV->{SCRIPT_NAME} }->{ $Config{archname} }->{$mod} = $deps->{$mod};
-        }
-    }
-
-    P->cfg->store( "$ENV->{DATA_DIR}.pardeps.cbor", $old_deps ) if $new_deps;
-
-    return;
-}
-
 sub _on_data ( $self, $data ) {
-    $self->_store_deps( $data->[0]->{deps} ) if $data->[0]->{deps} && $self->_scan_deps;
+    Pcore::Devel::ScanDeps->add_deps( $data->[0]->{deps} ) if $data->[0]->{deps} && $self->_scan_deps;
 
     if ( $data->[0]->{method} ) {
         $self->_on_call( $data->[0]->{pid}, $data->[0]->{call_id}, $data->[0]->{method}, $data->[1] );
@@ -194,9 +174,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 117                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 127                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

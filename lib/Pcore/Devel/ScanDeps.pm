@@ -8,6 +8,7 @@ use CBOR::XS qw[];
 our $FN          = "$ENV->{DATA_DIR}.pardeps.cbor";
 our $SCRIPT_NAME = $ENV->{SCRIPT_NAME};
 our $ARCHNAME    = $Config{archname};
+our $DEPS        = {};
 
 if ( $ENV->dist ) {
     our $GUARD = bless {}, __PACKAGE__;
@@ -36,6 +37,12 @@ sub core_support {
     return;
 }
 
+sub add_deps ( $self, $deps ) {
+    $DEPS->@{ keys $deps->%* } = values $deps->%*;
+
+    return;
+}
+
 sub DESTROY {
     my $deps;
 
@@ -57,6 +64,12 @@ sub DESTROY {
         $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = $INC{$pkg};
     }
 
+    for my $pkg ( sort keys $DEPS->%* ) {
+        say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg};
+
+        $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = $DEPS->{$pkg};
+    }
+
     # store deps
     open my $deps_fh, '>:raw', $FN or die;
 
@@ -74,9 +87,11 @@ sub DESTROY {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
+## |    3 | 21                   | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 46                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 41, 67               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 53                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
