@@ -178,7 +178,7 @@ PERL
 for my $name ( keys $CODE->%* ) {
     my $sub = <<'PERL';
 sub <: $name :> {
-    my $_;
+    local $_;
 
     if ( defined wantarray ) {
         $_ = $_[0];
@@ -225,7 +225,7 @@ sub remove_ansi {
 }
 
 sub escape_scalar {
-    my $_;
+    local $_;
 
     if ( defined wantarray ) {
         $_ = $_[0];
@@ -259,7 +259,7 @@ sub escape_scalar {
     if ( $args{bin} ) {
         if ( utf8::is_utf8 $_ ) {
             if ( $args{utf8_encode} ) {
-                encode_utf8($_);
+                encode_utf8 $_;
 
                 s/(.)/sprintf '\x%02X', ord $1/smge;
             }
@@ -413,7 +413,7 @@ sub wrap ( $text, $width, % ) {
 
 # HTML ENTITIES
 sub decode_html_entities {
-    my $_;
+    local $_;
 
     if ( defined wantarray ) {
         $_ = $_[0];
@@ -429,7 +429,7 @@ sub decode_html_entities {
 
     state $init = !!require HTML::Entities;
 
-    decode $_;
+    decode_utf8 $_;
 
     HTML::Entities::decode_entities $_;
 
@@ -576,6 +576,8 @@ sub to_camel_case {
 ## |    3 | 178                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 204                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 228, 416             | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 294                  | Subroutines::ProhibitExcessComplexity - Subroutine "wrap" with high complexity score (28)                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
