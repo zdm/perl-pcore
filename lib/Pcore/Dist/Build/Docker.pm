@@ -99,7 +99,7 @@ sub run ( $self, $args ) {
 
     print $tbl->render_header;
 
-    for my $tag ( values $tags->{result}->%* ) {
+    for my $tag ( sort { $b->{name} cmp $a->{name} } values $tags->{result}->%* ) {
 
         # find latest build for this tag
         for my $build ( $build_history->{result}->@* ) {
@@ -126,6 +126,8 @@ sub run ( $self, $args ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 102                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 102                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
