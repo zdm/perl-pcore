@@ -6,14 +6,16 @@ USER root
 
 ENV DIST_NAME="<: $dist_path :>"
 
-ADD . $PCORE_LIB/$DIST_NAME/
+ENV DIST_PATH="$PCORE_LIB/$DIST_NAME"
 
-WORKDIR $PCORE_LIB/$DIST_NAME/
+ADD . $DIST_PATH
+
+WORKDIR $DIST_PATH
 
 RUN pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
     && rm -rf ~/.cpanm
 
-VOLUME ["$PCORE_LIB/$DIST_NAME/"]
+VOLUME ["$DIST_PATH/data/", "$DIST_PATH/log/"]
 
 ENTRYPOINT ["bin/main.pl"]

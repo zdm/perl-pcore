@@ -7,12 +7,14 @@ USER root
 ENV DIST_NAME="pcore" \
     PCORE_LIB="/var/local"
 
-ENV PATH="$PCORE_LIB/$DIST_NAME/bin:$PATH" \
-    PERL5LIB="$PCORE_LIB/$DIST_NAME/lib"
+ENV DIST_PATH="$PCORE_LIB/$DIST_NAME"
 
-ADD . $PCORE_LIB/$DIST_NAME/
+ENV PATH="$DIST_PATH/bin:$PATH" \
+    PERL5LIB="$DIST_PATH/lib"
 
-WORKDIR $PCORE_LIB/$DIST_NAME/
+ADD . $DIST_PATH
+
+WORKDIR $DIST_PATH
 
 # --develop
 RUN cpanm --with-feature linux --with-recommends --with-suggests --installdeps . \
@@ -20,4 +22,4 @@ RUN cpanm --with-feature linux --with-recommends --with-suggests --installdeps .
     && pcore test -j $(nproc) \
     && rm -rf ~/.cpanm
 
-VOLUME ["$PCORE_LIB/$DIST_NAME/"]
+VOLUME ["$DIST_PATH/data/", "$DIST_PATH/log/"]
