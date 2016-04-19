@@ -239,6 +239,8 @@ sub _import_moo ( $caller, $role ) {
     }
     else {
         Moo->import::into($caller);
+
+        MooX::TypeTiny->import::into($caller);
     }
 
     # install "has" hook
@@ -540,16 +542,16 @@ sub i18n {
 ## |    3 | 219                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 295                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 418                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 297                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 420                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 332, 361, 364, 368,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 400, 403, 408, 411,  |                                                                                                                |
-## |      | 439, 456             |                                                                                                                |
+## |    3 | 334, 363, 366, 370,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 402, 405, 410, 413,  |                                                                                                                |
+## |      | 441, 458             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 229                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 336                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 338                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

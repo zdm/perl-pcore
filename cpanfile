@@ -23,6 +23,7 @@ requires 'Sort::Naturally';
 
 # OOP
 requires 'Moo';
+requires 'MooX::TypeTiny';
 requires 'Class::XSAccessor';    # optional
 requires 'Type::Tiny';
 requires 'Type::Tiny::XS';
