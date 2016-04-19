@@ -16,9 +16,10 @@ has crypt   => ( is => 'ro', isa => Bool, required => 1 );
 has upx     => ( is => 'ro', isa => Bool, required => 1 );
 has clean   => ( is => 'ro', isa => Bool, required => 1 );
 
-has mod   => ( is => 'ro', isa => HashRef,  required => 1 );
-has share => ( is => 'ro', isa => HashRef,  required => 1 );
-has shlib => ( is => 'ro', isa => ArrayRef, required => 1 );
+has mod        => ( is => 'ro', isa => HashRef,  required => 1 );
+has mod_ignore => ( is => 'ro', isa => HashRef,  required => 1 );
+has share      => ( is => 'ro', isa => HashRef,  required => 1 );
+has shlib      => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix   => ( is => 'lazy', isa => Str,     init_arg => undef );
@@ -195,6 +196,10 @@ sub _add_modules ($self) {
 
     # add .pl, .pm
     for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->mod->%* ) {
+
+        # skip ignored module
+        next if exists $self->mod_ignore->{$module};
+
         my $found = $self->_add_module($module);
 
         $self->_error(qq[required module wasn't found: "$module"]) if !$found;
@@ -630,20 +635,20 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 178, 197, 204, 236,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 373, 414, 566        |                                                                                                                |
+## |    3 | 179, 198, 209, 241,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 378, 419, 571        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 250                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 255                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 448, 466             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 453, 471             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 501                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 506                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 536                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 541                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 588, 590             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 593, 595             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 523, 529             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 528, 534             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -15,6 +15,10 @@
             'Time/Moment.pm',
             'Time/Zone.pm',
         ],
+        mod_ignore => [    # modules to ignore
+            'Method/Generate/Accessor__WITH__Method/Generate/Accessor/Role/TypeTiny.pm',
+            'Method/Generate/Accessor__WITH__Method/Generate/Accessor/Role/TypeTiny__WITH__Method/Generate/Accessor/Role/TypeTiny.pm',
+        ],
         arch => {
             'MSWin32-x86-multi-thread-64int' => {
                 mod       => [],

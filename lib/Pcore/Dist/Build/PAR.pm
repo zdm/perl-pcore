@@ -82,6 +82,9 @@ sub run ($self) {
         # add global modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{mod}->@* } = ();
 
+        # add global ignored modules
+        $profile->{mod_ignore}->@{ $pcore_cfg->{par}->{mod_ignore}->@* } = ();
+
         # add global arch modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod}->@* } = () if exists $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod};
 
@@ -122,7 +125,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 61, 80, 105, 110     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 61, 80, 108, 113     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
