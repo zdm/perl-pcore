@@ -127,7 +127,7 @@ sub print_issues ( $self, $issues, $content = 1 ) {
                     width => 6,
                     align => 1,
                 },
-                status   => { width => 10, },
+                status   => { width => 15, },
                 priority => { width => 15, },
                 kind     => {
                     width => 10,
