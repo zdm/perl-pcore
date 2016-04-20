@@ -14,6 +14,7 @@ has last_updated   => ( is => 'ro', isa => Str, required => 1 );
 has build_status_name => ( is => 'lazy', isa => Str, init_arg => undef );
 
 const our $BUILD_STATUS_NAME => {
+    -2 => 'Error',
     -1 => 'Error',
     0  => 'Queued',
     3  => 'Building',
