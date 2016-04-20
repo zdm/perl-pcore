@@ -6,6 +6,9 @@ use warnings;
 our $BOOT_ARGS;
 
 BEGIN {
+
+    # preload Filter::Crypto::Decrypt to avoid "Can't run with Perl compiler backend" fatal error under crypted PAR
+    require Filter::Crypto::Decrypt;
     require CBOR::XS;
 
     $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', shift @ARGV );
@@ -188,7 +191,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 64                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 67                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
