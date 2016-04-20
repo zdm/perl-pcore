@@ -253,7 +253,7 @@ sub _build_version ($self) {
     return $ver if defined $ver;
 
     # for crypted PAR distrs try to get version from id
-    return $self->id->{current_release};
+    return version->parse( $self->id->{current_release} // 'v0.0.0' );
 }
 
 sub _build_is_commited ($self) {
