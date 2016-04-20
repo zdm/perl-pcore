@@ -21,8 +21,8 @@ use overload    #
 has msg => ( is => 'ro', isa => Str, required => 1 );
 has exit_code => ( is => 'lazy', isa => Int );
 has level => ( is => 'ro', isa => Enum [qw[ERROR WARN]], required => 1 );
-has trace      => ( is => 'ro', isa => Bool,     default  => 1 );
-has call_stack => ( is => 'ro', isa => ArrayRef, required => 1 );
+has trace => ( is => 'ro', isa => Bool, default => 1 );
+has call_stack => ( is => 'ro', isa => Maybe [ArrayRef], required => 1 );
 has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame'], required => 1 );
 
 has propagated => ( is => 'ro', isa => Bool, default => 0 );
@@ -45,8 +45,8 @@ around new => sub ( $orig, $self, $msg, %args ) {
         elsif ( $ref eq 'Error::TypeTiny::Assertion' ) {    # catch TypeTiny exceptions
             $msg = $msg->message;
 
-            # skip frames: Error::TypeTiny::throw, Type::Tiny::_failed_check, eval {...}
-            $args{skip_frames} += 3;
+            # skip frames: Error::TypeTiny::throw
+            $args{skip_frames} += 1;
         }
         elsif ( $ref =~ /\AMoose::Exception/sm ) {          # catch Moose exceptions
             $msg = $msg->message;
@@ -70,11 +70,11 @@ around new => sub ( $orig, $self, $msg, %args ) {
             no_args            => 1,
             max_arg_length     => 32,
             indent             => 0,
-            skip_frames        => $args{skip_frames} + 3,    # skip useless frames: Devel::StackTrace::new, around new, new
+            skip_frames        => $args{skip_frames} + 3,    # skip frames: Devel::StackTrace::new, __ANON__ (around new), new
         )->frames
     ];
 
-    $args{caller_frame} = $args{call_stack}->[0];
+    $args{caller_frame} = shift $args{call_stack}->@*;
 
     # stringify $msg
     return $self->$orig( { %args, msg => "$msg" } );         ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
@@ -93,7 +93,12 @@ sub _build_exit_code ($self) {
 }
 
 sub _build_longmess ($self) {
-    return $self->msg . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->call_stack->@*;
+    if ( $self->call_stack->@* ) {
+        return $self->msg . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->call_stack->@*;
+    }
+    else {
+        return $self->msg;
+    }
 }
 
 sub _build_to_string ($self) {
