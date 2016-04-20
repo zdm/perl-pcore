@@ -128,12 +128,12 @@ sub _show_dist_info ( $self, $dist ) {
     my $tmpl = <<'TMPL';
 name: <: $dist.name :>
 version: <: $dist.version :>
-revision: <: $dist.id.node :>
+node: <: $dist.id.node :>
 is CPAN dist: <: $dist.is_cpan_dist :>
-module_name: <: $dist.module.name :>
+module name: <: $dist.module.name :>
 root: <: $dist.root :>
-share_dir: <: $dist.share_dir :>
-lib_dir: <: $dist.module.lib :>
+share dir: <: $dist.share_dir :>
+lib dir: <: $dist.module.lib :>
 TMPL
 
     say P->tmpl->render( \$tmpl, { dist => $dist } )->$*;

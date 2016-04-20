@@ -8,10 +8,12 @@
 !teledata.mz
 !www.ck
 *.0emm.com
+*.alces.network
 *.api.githubcloud.com
 *.bd
 *.bn
 *.ck
+*.compute.estate
 *.er
 *.ext.githubcloud.com
 *.fj
@@ -40,6 +42,7 @@
 *.zw
 .0emm.com
 .akershus.no
+.alces.network
 .amazonaws.cn
 .amazonaws.com
 .amazonaws.com.cn
@@ -51,6 +54,7 @@
 .cdn77.org
 .cn-north-1.amazonaws.com.cn
 .co.ke
+.compute.estate
 .eu-central-1.amazonaws.com
 .ext.githubcloud.com
 .fastly.net
@@ -804,6 +808,7 @@ blogspot.tw
 blogspot.ug
 blogspot.vn
 bloomberg
+bloxcms.com
 blue
 bm
 bmd.br
@@ -4824,6 +4829,7 @@ nebraska.museum
 nec
 nedre-eiker.no
 nemuro.hokkaido.jp
+nerdpol.ovh
 nerima.tokyo.jp
 nes.akershus.no
 nes.buskerud.no
@@ -5275,6 +5281,7 @@ omotego.fukushima.jp
 omsk.ru
 omura.nagasaki.jp
 omuta.fukuoka.jp
+on-aptible.com
 on-the-web.tv
 on.ca
 onagawa.miyagi.jp
@@ -5533,6 +5540,7 @@ ovh
 ovre-eiker.no
 owani.aomori.jp
 owariasahi.aichi.jp
+ownprovider.com
 oxford.museum
 oy.lc
 oyabe.toyama.jp
@@ -5961,6 +5969,7 @@ room
 roros.no
 rost.no
 rotorcraft.aero
+router.management
 rovigo.it
 rovno.ua
 royken.no
@@ -6953,6 +6962,7 @@ tours
 towada.aomori.jp
 town
 town.museum
+townnews-staging.com
 toya.hokkaido.jp
 toyako.hokkaido.jp
 toyama.jp
