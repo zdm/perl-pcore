@@ -171,9 +171,9 @@ sub decompress ( $self, % ) {
 
 sub compress ( $self, % ) {
     my %args = (
-        perl_compress             => 0,    # 0 - Perl::Stripper, 1 - Perl::Strip
+        perl_compress             => 0,    # 0 - Perl::Stripper, 1 - Perl::Strip ()
         perl_compress_end_section => 0,    # preserve __END__ section
-        perl_strip_maintain_linum => 1,
+        perl_compress_keep_ln     => 1,
         perl_strip_ws             => 1,
         perl_strip_comment        => 1,
         perl_strip_pod            => 1,
@@ -202,35 +202,41 @@ sub compress ( $self, % ) {
     my $key;
 
     if ( $args{perl_compress} ) {
-        $key = 'compress_' . $md5;
+
+        # NOTE keep_nl is not supported
+        $args{perl_compress_keep_ln} = 0;
+
+        my $optimise_size = 1;
+
+        $key = 'compress_' . $args{perl_compress_keep_ln} . $optimise_size . $md5;
 
         if ( !exists $cache->{$key} ) {
             state $init = !!require Perl::Strip;
 
-            my $transform = Perl::Strip->new( optimise_size => 1, keep_nl => 0 );
+            my $transform = Perl::Strip->new( optimise_size => $optimise_size, keep_nl => $args{perl_compress_keep_ln} );
 
             $cache->{$key} = rcut_all $transform->strip( $self->buffer->$* );
         }
     }
     else {
-        $key = 'strip_' . $args{perl_strip_maintain_linum} . $args{perl_strip_ws} . $args{perl_strip_comment} . $args{perl_strip_pod} . $md5;
+        $key = 'strip_' . $args{perl_compress_keep_ln} . $args{perl_strip_ws} . $args{perl_strip_comment} . $args{perl_strip_pod} . $md5;
 
         if ( !exists $cache->{$key} ) {
             state $init = !!require Perl::Stripper;
 
             my $transform = Perl::Stripper->new(
-                maintain_linum => $args{perl_strip_maintain_linum},    # keep line numbers unchanged
-                strip_ws       => $args{perl_strip_ws},                # strip extra whitespace
+                maintain_linum => $args{perl_compress_keep_ln},    # keep line numbers unchanged
+                strip_ws       => $args{perl_strip_ws},            # strip extra whitespace
                 strip_comment  => $args{perl_strip_comment},
                 strip_pod      => $args{perl_strip_pod},
-                strip_log      => 0,                                   # strip Log::Any log statements
+                strip_log      => 0,                               # strip Log::Any log statements
             );
 
             $cache->{$key} = rcut_all $transform->strip( $self->buffer->$* );
         }
     }
 
-    $self->buffer->$* = $cache->{$key} . $data_section;                ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $self->buffer->$* = $cache->{$key} . $data_section;            ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     return 0;
 }
@@ -344,7 +350,7 @@ sub cut_log ($self) {
 ## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "decompress" with high complexity score (26)                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 129, 132, 135, 139,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 146, 267, 303        |                                                                                                                |
+## |      | 146, 273, 309        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 188                  | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

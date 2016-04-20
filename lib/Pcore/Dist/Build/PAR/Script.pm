@@ -264,94 +264,23 @@ sub _add_perl_source ( $self, $source, $target, $is_installed = 0, $module = und
 
         # patch content for PAR compatibility
         $src = PAR::Filter->new('PatchContent')->apply( $src, $module );
-
-        # this is perl core or CPAN module, we don't crypt such modules
-        if ($is_installed) {
-            if ( $self->release ) {
-                $src = Pcore::Src::File->new(
-                    {   action      => 'compress',
-                        path        => $target,
-                        is_realpath => 0,
-                        in_buffer   => $src,
-                        filter_args => {             #
-                            perl_compress => 1,
-                        },
-                    }
-                )->run->out_buffer;
-            }
-            else {
-                $src = Pcore::Src::File->new(
-                    {   action      => 'compress',
-                        path        => $target,
-                        is_realpath => 0,
-                        in_buffer   => $src,
-                        filter_args => {
-                            perl_strip_maintain_linum => 1,
-                            perl_strip_comment        => 1,
-                            perl_strip_pod            => 1,
-                        },
-                    }
-                )->run->out_buffer;
-            }
-
-            $self->tree->add_file( $target, $src );
-
-            return;
-        }
     }
 
-    my $crypt = $self->crypt && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' );
-
-    # we don't compress sources for devel build, preserving line numbers
-    if ( !$self->release ) {
-        $src = Pcore::Src::File->new(
-            {   action      => 'compress',
-                path        => $target,
-                is_realpath => 0,
-                in_buffer   => $src,
-                filter_args => {
-                    perl_strip_maintain_linum => 1,
-                    perl_strip_comment        => 1,
-                    perl_strip_pod            => 1,
-                },
-            }
-        )->run->out_buffer;
-    }
-    else {
-        if ($crypt) {
-
-            # for crypted release - only strip sources without preserving line numbers, Filter::Crypto::Decrypt isn't work with compressed sources
-            $src = Pcore::Src::File->new(
-                {   action      => 'compress',
-                    path        => $target,
-                    is_realpath => 0,
-                    in_buffer   => $src,
-                    filter_args => {
-                        perl_strip_maintain_linum => 0,
-                        perl_strip_comment        => 1,
-                        perl_strip_pod            => 1,
-                    },
-                }
-            )->run->out_buffer;
+    $src = Pcore::Src::File->new(
+        {   action      => 'compress',
+            path        => $target,
+            is_realpath => 0,
+            in_buffer   => $src,
+            filter_args => {
+                perl_compress_keep_ln => 1,
+                perl_strip_comment    => 1,
+                perl_strip_pod        => 1,
+            },
         }
-        else {
+    )->run->out_buffer;
 
-            # for not crypted release - compress all sources
-            $src = Pcore::Src::File->new(
-                {   action      => 'compress',
-                    path        => $target,
-                    is_realpath => 0,
-                    in_buffer   => $src,
-                    filter_args => {             #
-                        perl_compress => 1,
-                    },
-                }
-            )->run->out_buffer;
-        }
-    }
-
-    # crypt sources, if nedeed
-    if ($crypt) {
+    # crypt sources, do not crypt CPAN modules
+    if ( !$is_installed && $self->crypt && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
         open my $crypt_in_fh, '<', $src or die;
 
         open my $crypt_out_fh, '+>', \my $crypted_src or die;
@@ -636,19 +565,19 @@ sub _error ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 179, 198, 209, 241,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 378, 419, 571        |                                                                                                                |
+## |      | 307, 348, 500        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 255                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 453, 471             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 382, 400             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 506                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 435                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 541                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 470                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 593, 595             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 522, 524             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 528, 534             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 457, 463             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
