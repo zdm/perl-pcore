@@ -246,7 +246,14 @@ sub _build_id ($self) {
 }
 
 sub _build_version ($self) {
-    return $self->module->version;
+
+    # first, try to get version from the main module
+    my $ver = $self->module->version;
+
+    return $ver if defined $ver;
+
+    # for crypted PAR distrs try to get version from id
+    return $self->id->{current_release};
 }
 
 sub _build_is_commited ($self) {

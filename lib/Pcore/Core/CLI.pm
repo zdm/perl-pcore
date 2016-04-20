@@ -549,7 +549,11 @@ sub help_usage ( $self, $invalid_options = undef ) {
 
 sub help_version ($self) {
     my $format_dist_info = sub ($dist) {
-        return "@{[$dist->name]} @{[$dist->version]} @{[$dist->id->{node}]} @{[$dist->id->{date}]}";
+        my $id = join q[ ], grep {$_} $dist->id->{branch}, $dist->id->{bookmark}, $dist->id->{tags}->@*;
+
+        my $release_distance_sign = $dist->id->{current_release_distance} ? q[+] : q[];
+
+        return "@{[$dist->name]} @{[$dist->version]}$release_distance_sign $id @{[$dist->id->{node}]} @{[$dist->id->{date}]}";
     };
 
     if ( $ENV->dist ) {
