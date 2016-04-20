@@ -9,7 +9,7 @@ has content => ( is => 'lazy', isa => ScalarRef, clearer => 1 );
 has path => ( is => 'lazy', isa => Maybe [Str] );    # /absolute/path/to/lib/Module/Name.pm
 has lib  => ( is => 'lazy', isa => Maybe [Str] );    # /absolute/path/to/lib/
 
-has is_installed => ( is => 'lazy', isa => Bool, init_arg => undef );                # module has lib and lib is a part of pcore dist
+has is_cpan_module => ( is => 'lazy', isa => Bool, init_arg => undef );              # module has lib and lib is a part of pcore dist
 has is_crypted => ( is => 'lazy', isa => Bool, clearer => 1, init_arg => undef );    # module is crypted with Filter::Crypto
 has abstract => ( is => 'lazy', isa => Maybe [Str], clearer => 1, init_arg => undef );    # abstract from POD
 has version => ( is => 'lazy', isa => Maybe [ InstanceOf ['version'] ], clearer => 1, init_arg => undef );    # parsed version
@@ -123,7 +123,7 @@ sub _build_content ($self) {
     return;
 }
 
-sub _build_is_installed ($self) {
+sub _build_is_cpan_module ($self) {
     return 0 if !$self->lib;
 
     return $self->lib_is_dist( $self->lib ) ? 0 : 1;

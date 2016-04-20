@@ -247,12 +247,12 @@ sub _add_module ( $self, $module ) {
     }
 
     # add .pm to the files tree
-    $self->_add_perl_source( $module->path, $target . $module->name, $module->is_installed, $module->name );
+    $self->_add_perl_source( $module->path, $target . $module->name, $module->is_cpan_module, $module->name );
 
     return 1;
 }
 
-sub _add_perl_source ( $self, $source, $target, $is_installed = 0, $module = undef ) {
+sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = undef ) {
     my $src = P->file->read_bin($source);
 
     if ($module) {
@@ -280,7 +280,7 @@ sub _add_perl_source ( $self, $source, $target, $is_installed = 0, $module = und
     )->run->out_buffer;
 
     # crypt sources, do not crypt CPAN modules
-    if ( !$is_installed && $self->crypt && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
+    if ( !$is_cpan_module && $self->crypt && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
         open my $crypt_in_fh, '<', $src or die;
 
         open my $crypt_out_fh, '+>', \my $crypted_src or die;

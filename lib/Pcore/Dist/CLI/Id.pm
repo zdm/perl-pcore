@@ -129,7 +129,7 @@ sub _show_dist_info ( $self, $dist ) {
 name: <: $dist.name :>
 version: <: $dist.version :>
 revision: <: $dist.id.node :>
-installed: <: $dist.is_installed :>
+is CPAN dist: <: $dist.is_cpan_dist :>
 module_name: <: $dist.module.name :>
 root: <: $dist.root :>
 share_dir: <: $dist.share_dir :>

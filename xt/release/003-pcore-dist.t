@@ -229,7 +229,7 @@ sub test_dist ( $type, $dist, $t ) {
 
         ok( $dist->share_dir eq $t->{cpan_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( $dist->is_installed, $t->{test_id} . '_dist_is_installed' );
+        ok( $dist->is_cpan_dist, $t->{test_id} . '_dist_is_cpan_dist' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
@@ -237,14 +237,14 @@ sub test_dist ( $type, $dist, $t ) {
 
         ok( $dist->module->lib eq $t->{cpan_lib}, $t->{test_id} . '_dist_module_lib' );
 
-        ok( $dist->module->is_installed, $t->{test_id} . '_dist_module_is_installed' );
+        ok( $dist->module->is_cpan_module, $t->{test_id} . '_dist_module_is_cpan_module' );
     }
     elsif ( $type eq 'dist' ) {
         ok( $dist->root eq $t->{dist_root}, $t->{test_id} . '_dist_root' );
 
         ok( $dist->share_dir eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( !$dist->is_installed, $t->{test_id} . '_dist_is_installed' );
+        ok( !$dist->is_cpan_dist, $t->{test_id} . '_dist_is_cpan_dist' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
@@ -252,14 +252,14 @@ sub test_dist ( $type, $dist, $t ) {
 
         ok( $dist->module->lib eq $t->{dist_lib}, $t->{test_id} . '_dist_module_lib' );
 
-        ok( !$dist->module->is_installed, $t->{test_id} . '_dist_module_is_installed' );
+        ok( !$dist->module->is_cpan_module, $t->{test_id} . '_dist_module_is_cpan_module' );
     }
     elsif ( $type eq 'par' ) {
         ok( !$dist->root, $t->{test_id} . '_dist_root' );
 
         ok( $dist->share_dir eq $t->{dist_share_dir}, $t->{test_id} . '_dist_share_dir' );
 
-        ok( $dist->is_installed, $t->{test_id} . '_dist_is_installed' );
+        ok( $dist->is_cpan_dist, $t->{test_id} . '_dist_is_cpan_dist' );
 
         ok( $dist->module->name eq $t->{module_name}, $t->{test_id} . '_dist_module_name' );
 
@@ -267,8 +267,8 @@ sub test_dist ( $type, $dist, $t ) {
 
         ok( $dist->module->lib eq $t->{dist_lib}, $t->{test_id} . '_dist_module_lib' );
 
-        # NOTE not correct, under PAR module->is_installed always should be 1, but this not work under tests because we do not generate lib/auto/ dir
-        # ok( $dist->module->is_installed, $t->{test_id} . '_dist_module_is_installed' );
+        # NOTE not correct, under PAR module->is_cpan_module always should be 1, but this not work under tests because we do not generate lib/auto/ dir
+        # ok( $dist->module->is_cpan_module, $t->{test_id} . '_dist_module_is_cpan_module' );
     }
     else {
         die 'unknown dist test type';
