@@ -57,7 +57,7 @@ sub _build_exe_filename ($self) {
 }
 
 sub run ($self) {
-    say BOLD . GREEN . qq[\nbuild] . ( $self->crypt ? ' crypted' : BOLD . RED . q[ not crypted] . BOLD . GREEN ) . qq[ "@{[$self->exe_filename]}" for $Config{archname}] . RESET;
+    say qq[\nBuilding ] . ( $self->crypt ? BLACK ON_GREEN . ' crypted ' : BOLD WHITE ON_RED . q[ not crypted ] ) . RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
 
     # add main script
     $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
@@ -137,7 +137,7 @@ sub run ($self) {
 
     P->file->chmod( 'r-x------', $target_exe );
 
-    say 'final binary size: ' . BOLD . GREEN . format_num( -s $target_exe ) . RESET . ' bytes';
+    say 'final binary size: ' . BLACK ON_GREEN . q[ ] . format_num( -s $target_exe ) . q[ ] . RESET . ' bytes';
 
     return;
 }
@@ -534,7 +534,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $out_len = $repacked_exe_fh->tell;
 
-    say 'parl repacked: ', BOLD . GREEN . format_num( $out_len - $in_len ) . RESET . ' bytes';
+    say 'parl repacked: ', BLACK ON_GREEN . q[ ] . format_num( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
 
     # need to close fh before copy / patch file
     $repacked_exe_fh->close;
