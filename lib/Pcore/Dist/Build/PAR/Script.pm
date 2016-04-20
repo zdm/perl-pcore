@@ -281,17 +281,26 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
 
     # crypt sources, do not crypt CPAN modules
     if ( !$is_cpan_module && $self->crypt && ( !$module || $module ne 'Filter/Crypto/Decrypt.pm' ) ) {
-        open my $crypt_in_fh, '<', $src or die;
+        my $crypt = 1;
 
-        open my $crypt_out_fh, '+>', \my $crypted_src or die;
+        # do not crypt modules, that belongs to the CPAN distribution
+        if ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path($source)->dirname ) ) ) {
+            $crypt = 0 if $dist->cfg->{dist}->{cpan};
+        }
 
-        Filter::Crypto::CryptFile::crypt_file( $crypt_in_fh, $crypt_out_fh, Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() );
+        if ($crypt) {
+            open my $crypt_in_fh, '<', $src or die;
 
-        close $crypt_in_fh or die;
+            open my $crypt_out_fh, '+>', \my $crypted_src or die;
 
-        close $crypt_out_fh or die;
+            Filter::Crypto::CryptFile::crypt_file( $crypt_in_fh, $crypt_out_fh, Filter::Crypto::CryptFile::CRYPT_MODE_ENCRYPTED() );
 
-        $src = \$crypted_src;
+            close $crypt_in_fh or die;
+
+            close $crypt_out_fh or die;
+
+            $src = \$crypted_src;
+        }
     }
 
     $self->tree->add_file( $target, $src );
@@ -565,19 +574,19 @@ sub _error ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 179, 198, 209, 241,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 307, 348, 500        |                                                                                                                |
+## |      | 316, 357, 509        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 255                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 382, 400             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 391, 409             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 435                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 444                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 470                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 479                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 522, 524             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 531, 533             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 457, 463             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 466, 472             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
