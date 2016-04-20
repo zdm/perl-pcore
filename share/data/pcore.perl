@@ -3,17 +3,11 @@
         'MSWin32-x64-multi-thread'       => [qw[Test::TCP]],
     },
     par => {
-        mod => [        # default modules, will be added to each PAR
-            'bytes_heavy.pl',
-            'HTTP/Date.pm',
-            'Pcore/Core/H/Role.pm',
-            'Pcore/Core/H/Role/Wrapper.pm',
-            'Pcore/Handle/File.pm',
-            'Pcore/Util/Date.pm',
-            'Pcore/Util/Sys.pm',
-            'Time/Local.pm',
-            'Time/Moment.pm',
-            'Time/Zone.pm',
+        mod => [        # default modules, that will be added to each PAR
+
+            # example:
+            # 'bytes_heavy.pl',
+            # 'HTTP/Date.pm',
         ],
         mod_ignore => [    # modules to ignore
             'Method/Generate/Accessor__WITH__Method/Generate/Accessor/Role/TypeTiny.pm',

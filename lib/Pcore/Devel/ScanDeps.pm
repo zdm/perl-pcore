@@ -18,21 +18,25 @@ if ( $ENV->dist ) {
 
 # stolen from Perl::LibExtractor
 sub core_support {
+
+    # scan core log deps
+    cluck 'scan deps';
+
     ## no critic
 
-    my $v;
-    open my $fh, "<", \$v;
-    close $fh;
-
-    my $x = chr 1234;
-
-    my $cc = "\u$x\U$x\l$x\L$x";
-
-    $x =~ /$_$x?/i for qw[\d \w \s \b \R \h \v];
-
-    my @dd = split " ", $x;    # usually covered by the regex above
-
-    $x =~ /\x{1234}(?<a>)\g{a}/;
+    # my $v;
+    # open my $fh, "<", \$v;
+    # close $fh;
+    #
+    # my $x = chr 1234;
+    #
+    # my $cc = "\u$x\U$x\l$x\L$x";
+    #
+    # $x =~ /$_$x?/i for qw[\d \w \s \b \R \h \v];
+    #
+    # my @dd = split " ", $x;    # usually covered by the regex above
+    #
+    # $x =~ /\x{1234}(?<a>)\g{a}/;
 
     return;
 }
@@ -87,11 +91,11 @@ sub DESTROY {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 21                   | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
+## |    3 | 25                   | Miscellanea::ProhibitUnrestrictedNoCritic - Unrestricted '## no critic' annotation                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 41, 67               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 45, 71               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 57                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
