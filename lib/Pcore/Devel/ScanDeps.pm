@@ -1,6 +1,6 @@
 package Pcore::Devel::ScanDeps;
 
-use Pcore;
+use Pcore -types;
 use Config;
 use CBOR::XS qw[];
 
@@ -14,6 +14,9 @@ if ( $ENV->dist ) {
     our $GUARD = bless {}, __PACKAGE__;
 
     cluck 'Scanning the PAR dependencies ...';
+
+    # eval TypeTiny Error
+    eval { Int->('error') };
 }
 
 sub add_deps ( $self, $deps ) {
@@ -66,9 +69,11 @@ sub DESTROY {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20, 46               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 19                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 32                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 23, 49               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 35                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
