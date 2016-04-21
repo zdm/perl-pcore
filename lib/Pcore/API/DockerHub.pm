@@ -4,7 +4,7 @@ use Pcore -const, -class, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKE
 use Pcore::API::Response;
 require Pcore::API::DockerHub::Repository;
 
-# https://github.com/RyanTheAllmighty/Docker-Hub-API.git
+# https://github.com/RyanTheAllmighty/Docker-Hub-API
 
 has api_username => ( is => 'ro', isa => Str, required => 1 );
 has api_password => ( is => 'ro', isa => Str, required => 1 );
