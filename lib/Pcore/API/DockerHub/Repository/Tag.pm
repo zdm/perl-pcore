@@ -5,9 +5,10 @@ use Pcore -class;
 extends qw[Pcore::API::Response];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
-has id => ( is => 'ro', isa => Int, required => 1 );
-
-has name => ( is => 'ro', isa => Str, required => 1 );
+has id           => ( is => 'ro', isa => Int, required => 1 );
+has name         => ( is => 'ro', isa => Str, required => 1 );
+has full_size    => ( is => 'ro', isa => Int, required => 1 );
+has last_updated => ( is => 'ro', isa => Str, required => 1 );
 
 sub remove ( $self, % ) {
     my %args = (
@@ -15,7 +16,7 @@ sub remove ( $self, % ) {
         splice @_, 1,
     );
 
-    return $self->repo->api->request( 'delete', "/repositories/@{[$self->id]}/tags/$self->{id}/", 1, undef, $args{cb} );
+    return $self->repo->api->request( 'delete', "/repositories/@{[$self->repo->id]}/tags/$self->{name}/", 1, undef, $args{cb} );
 }
 
 1;

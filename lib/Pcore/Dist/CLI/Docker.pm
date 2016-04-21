@@ -7,7 +7,18 @@ with qw[Pcore::Dist::CLI];
 sub CLI ($self) {
     return {
         abstract => 'manage docker repository',
-        opt      => { tags => { desc => 'show tags info' }, },
+        opt      => {
+            trigger => {
+                desc => 'trigger tag build',
+                type => 'TAG',
+                isa  => 'Str',
+            },
+            remove => {
+                desc => 'remove tag',
+                type => 'TAG',
+                isa  => 'Str',
+            },
+        },
     };
 }
 
@@ -90,7 +101,7 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 80                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 91                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

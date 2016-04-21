@@ -16,6 +16,59 @@ sub run ( $self, $args ) {
 
     my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
 
+    if ( $args->{trigger} ) {
+        print qq[Triggering build for tag "$args->{trigger}" ... ];
+
+        my $res = $dockerhub_repo->trigger_build( $args->{trigger} );
+
+        say $res->status ? 'OK' : $res->reason;
+    }
+
+    # remove tag
+    if ( $args->{remove} ) {
+        print qq[Removing tag "$args->{remove}" ... ];
+
+        my $tags = $dockerhub_repo->tags;
+
+        if ( !$tags->{result}->{ $args->{remove} } ) {
+            say 'Tag does not exists';
+        }
+        else {
+            my $res = $tags->{result}->{ $args->{remove} }->remove;
+
+            say $res->status ? 'OK' : $res->reason;
+        }
+
+        # remove build tag
+        print qq[Removing build tag "$args->{remove}" ... ];
+
+        my $build_settings = $dockerhub_repo->build_settings;
+
+        if ( !$build_settings ) {
+            say $build_settings->reason;
+        }
+        else {
+            my $build_tag;
+
+            for ( values $build_settings->{result}->{build_tags}->%* ) {
+                if ( $_->name eq $args->{remove} ) {
+                    $build_tag = $_;
+
+                    last;
+                }
+            }
+
+            if ( !$build_tag ) {
+                say 'Tag does not exists';
+            }
+            else {
+                my $res1 = $build_tag->remove;
+
+                say $res1->status ? 'OK' : $res1->reason;
+            }
+        }
+    }
+
     my $cv = AE::cv;
 
     my ( $tags, $build_history );
@@ -46,40 +99,42 @@ sub run ( $self, $args ) {
 
     my $tbl = P->text->table(
         cols => [
-            name => {
+            tag => {
                 title => 'TAG NAME',
                 width => 20,
             },
-            full_size => {
-                title  => 'SIZE',
+            size => {
                 width  => 15,
                 align  => 1,
                 format => sub ( $val, $id, $row ) {
-                    return P->text->format_num($val);
+                    return $val ? P->text->format_num($val) : q[-];
                 }
             },
             last_updated => {
                 title  => 'LAST UPDATED',
                 width  => 35,
+                align  => 1,
                 format => sub ( $val, $id, $row ) {
-                    return P->date->from_string($val)->to_http_date;
+                    return $val ? P->date->from_string($val)->to_http_date : q[-];
                 }
             },
-            latest_build => {
+            build_status => {
                 title  => 'LATEST BUILD STATUS',
                 width  => 15,
                 format => sub ( $val, $id, $row ) {
-                    return $val->build_status_name || 'unknown' if $val;
+                    return $val || q[-];
                 }
             },
-            latest_build_update => {
-                title  => 'LATEST BUILD UPDATED',
+            build_status_updated => {
+                title  => 'BUILD STATUS UPDATED',
                 width  => 35,
                 align  => 1,
                 format => sub ( $val, $id, $row ) {
+                    return q[-] if !$val;
+
                     my $now = P->date->now_utc;
 
-                    my $date = P->date->from_string( $row->{latest_build}->{last_updated} );
+                    my $date = P->date->from_string($val);
 
                     my $delta_minutes = $date->delta_minutes($now);
 
@@ -103,23 +158,37 @@ sub run ( $self, $args ) {
         ],
     );
 
-    print $tbl->render_header;
+    my $report;
 
-    for my $tag ( sort { $b->{name} cmp $a->{name} } values $tags->{result}->%* ) {
-
-        # find latest build for this tag
-        for my $build ( $build_history->{result}->@* ) {
-            if ( $build->dockertag_name eq $tag->name ) {
-                $tag->{latest_build} = $build;
-
-                last;
-            }
-        }
-
-        print $tbl->render_row($tag);
+    # index tags
+    for my $tag ( values $tags->{result}->%* ) {
+        $report->{ $tag->name } = {
+            size         => $tag->full_size,
+            last_updated => $tag->last_updated,
+        };
     }
 
-    print $tbl->finish;
+    # index builds
+    for my $build ( $build_history->{result}->@* ) {
+        if ( !exists $report->{ $build->dockertag_name }->{build_status} ) {
+            $report->{ $build->dockertag_name }->{build_status} = $build->build_status_name;
+
+            $report->{ $build->dockertag_name }->{build_status_updated} = $build->last_updated;
+        }
+    }
+
+    my $version_tags = [];
+
+    my $named_tags = [];
+
+    for ( keys $report->%* ) {
+        $report->{$_}->{tag} = $_;
+
+        if    (/\Av\d+[.]\d+[.]\d+\z/sm) { push $version_tags->@*, $_ }
+        elsif ( $_ ne 'latest' )         { push $named_tags->@*,   $_ }
+    }
+
+    print $tbl->render_all( [ map { $report->{$_} } ( sort $version_tags->@* ), $report->{latest} ? 'latest' : (), ( sort $named_tags->@* ) ] );
 
     return;
 }
@@ -131,9 +200,9 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 108                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 108                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    3 | 53, 164, 184         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
