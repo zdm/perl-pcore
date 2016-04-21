@@ -73,9 +73,9 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                         width => 14,
                         align => 1,
                     },
-                    commited => {
-                        width => 10,
-                        align => 0,
+                    uncommited => {
+                        width => 15,
+                        align => 1,
                     },
                 ],
             );
@@ -98,14 +98,14 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                     push @row, WHITE . ON_RED . sprintf( ' %3s ', $dist->id->{release_distance} ) . RESET;
                 }
                 else {
-                    push @row, q[];
+                    push @row, q[ - ];
                 }
 
                 if ( !$dist->is_commited ) {
-                    push @row, WHITE . ON_RED . ' no ' . RESET;
+                    push @row, WHITE . ON_RED . ' uncommited ' . RESET;
                 }
                 else {
-                    push @row, q[];
+                    push @row, q[ - ];
                 }
 
                 print $tbl->render_row( \@row );
