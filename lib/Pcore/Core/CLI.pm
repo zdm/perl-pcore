@@ -548,20 +548,14 @@ sub help_usage ( $self, $invalid_options = undef ) {
 }
 
 sub help_version ($self) {
-    my $format_dist_info = sub ($dist) {
-        my $branch_tag = join q[ ], grep {$_} $dist->id->{branch}, $dist->id->{bookmark}, sort $dist->id->{tags}->@*;
-
-        return "@{[$dist->name]} @{[$dist->id->{release_id}]} $branch_tag @{[$dist->id->{node}]} @{[$dist->id->{date}]}";
-    };
-
     if ( $ENV->dist ) {
-        say $format_dist_info->( $ENV->dist );
+        say $ENV->dist->version_string;
     }
     else {
         say join q[ ], $ENV->{SCRIPT_NAME}, ( $main::VERSION ? version->new($main::VERSION)->normal : () );
     }
 
-    say $format_dist_info->( $ENV->pcore ) if !$ENV->dist || $ENV->dist->name ne $ENV->pcore->name;
+    say $ENV->pcore->version_string if !$ENV->dist || $ENV->dist->name ne $ENV->pcore->name;
 
     say 'Perl ' . $^V->normal . " $Config{archname}";
 

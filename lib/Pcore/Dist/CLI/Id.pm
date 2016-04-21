@@ -125,20 +125,30 @@ sub run ( $self ) {
 }
 
 sub _show_dist_info ( $self, $dist ) {
-    my $tmpl = <<'TMPL';
-name: <: $dist.name :>
-version: <: $dist.version :>
-node: <: $dist.id.node :>
-branch: <: $dist.id.branch :>
-current release: <: $dist.id.release_id :>
-is CPAN dist: <: $dist.is_cpan_dist :>
-module name: <: $dist.module.name :>
-root: <: $dist.root :>
-share dir: <: $dist.share_dir :>
-lib dir: <: $dist.module.lib :>
-TMPL
+    say $dist->version_string;
 
-    say P->tmpl->render( \$tmpl, { dist => $dist } )->$*;
+    my $tbl = P->text->table(
+        header => 0,
+        grid   => undef,
+        style  => 'compact',
+        width  => 100,
+        cols   => [
+            1 => {
+                width => 10,
+                align => -1,
+            },
+            2 => { align => -1, },
+        ],
+    );
+
+    print $tbl->render_all(
+        [    #
+            [ module => $dist->module->name, ],
+            [ root   => $dist->root, ],
+            [ lib    => $dist->module->lib, ],
+            [ share  => $dist->share_dir, ]
+        ]
+    );
 
     return;
 }

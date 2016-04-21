@@ -294,6 +294,10 @@ sub clear ($self) {
     return;
 }
 
+sub version_string ($self) {
+    return join q[ ], $self->name, $self->id->{release_id}, join( q[ ], grep {$_} $self->id->{branch}, $self->id->{bookmark}, sort $self->id->{tags}->@* ), $self->id->{node} . ( $self->is_commited ? q[] : q[+] ), $self->id->{date};
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
