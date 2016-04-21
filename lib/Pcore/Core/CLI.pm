@@ -549,7 +549,7 @@ sub help_usage ( $self, $invalid_options = undef ) {
 
 sub help_version ($self) {
     my $format_dist_info = sub ($dist) {
-        my $branch_tag = join q[ ], grep {$_} $dist->id->{branch}, $dist->id->{bookmark}, $dist->id->{tags}->@*;
+        my $branch_tag = join q[ ], grep {$_} $dist->id->{branch}, $dist->id->{bookmark}, sort $dist->id->{tags}->@*;
 
         return "@{[$dist->name]} @{[$dist->id->{release_id}]} $branch_tag @{[$dist->id->{node}]} @{[$dist->id->{date}]}";
     };
