@@ -343,7 +343,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
     if ( $res->severity_range_is('ERROR') ) {
         $self->_total_report->{severity_range}->{error}++;
 
-        $severity = BOLD RED;
+        $severity = BOLD WHITE ON_RED;
     }
     elsif ( $res->severity_range_is('WARNING') ) {
         $self->_total_report->{severity_range}->{warning}++;
@@ -374,7 +374,8 @@ sub _report_file ( $self, $res, $max_path_len ) {
     }
 
     # modified
-    push @row, ( $res->was_changed ? BOLD WHITE ON_RED . ' modified ' . RESET : q[] );
+    push @row, ( $res->was_changed ? BOLD WHITE ON_RED . ' modified ' . RESET : q[ no ] );
+    exit;
 
     print $self->{tbl}->render_row( \@row );
 
@@ -425,9 +426,11 @@ sub _wrap_color ( $self, $str, $color ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
+## |    4 | 380, 382             | ControlStructures::ProhibitUnreachableCode - Unreachable code                                                  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 341                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 417                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
+## |    3 | 418                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
