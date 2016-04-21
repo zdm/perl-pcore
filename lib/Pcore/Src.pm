@@ -320,7 +320,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
                 },
                 modified => {
                     width => 12,
-                    align => 0,
+                    align => 1,
                 },
             ],
         );
@@ -356,7 +356,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
         $severity = BOLD GREEN;
     }
 
-    $severity .= $res->severity_range . q[: ] . $res->severity . q[ - ] . $reversed_severity->{ $res->severity } . RESET;
+    $severity .= q[ ] . $res->severity_range . q[: ] . $res->severity . q[ - ] . $reversed_severity->{ $res->severity } . q[ ] . RESET;
 
     push @row, $severity;
 
@@ -375,7 +375,6 @@ sub _report_file ( $self, $res, $max_path_len ) {
 
     # modified
     push @row, ( $res->was_changed ? BOLD WHITE ON_RED . ' modified ' . RESET : q[ no ] );
-    exit;
 
     print $self->{tbl}->render_row( \@row );
 
@@ -426,11 +425,9 @@ sub _wrap_color ( $self, $str, $color ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    4 | 380, 382             | ControlStructures::ProhibitUnreachableCode - Unreachable code                                                  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 341                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 418                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
+## |    3 | 417                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
