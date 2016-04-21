@@ -155,24 +155,24 @@ sub scm_id ( $self, $root, $cb, $args ) {
         sub ($res) {
             if ( $res->is_success ) {
                 my %res = (
-                    node                     => undef,
-                    tags                     => undef,
-                    bookmark                 => undef,
-                    branch                   => undef,
-                    desc                     => undef,
-                    date                     => undef,
-                    current_release          => undef,
-                    current_release_distance => undef,
+                    node             => undef,
+                    tags             => undef,
+                    bookmark         => undef,
+                    branch           => undef,
+                    desc             => undef,
+                    date             => undef,
+                    release          => undef,
+                    release_distance => undef,
                 );
 
-                ( $res{node}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{current_release} ) = split /\n/sm, $res->{result}->[0];
+                ( $res{node}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{release} ) = split /\n/sm, $res->{result}->[0];
 
                 $res{tags} = [ split /\x00/sm, $res{tags} ] if $res{tags};
 
-                if ( $res{current_release} ) {
-                    ( $res{current_release}, $res{current_release_distance} ) = split /\x00/sm, $res{current_release};
+                if ( $res{release} ) {
+                    ( $res{release}, $res{release_distance} ) = split /\x00/sm, $res{release};
 
-                    $res{current_release} = undef if $res{current_release} eq 'null';
+                    $res{release} = undef if $res{release} eq 'null';
                 }
 
                 $res->{result} = \%res;

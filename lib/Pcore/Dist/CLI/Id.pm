@@ -87,15 +87,15 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
                 push @row, $dist->name;
 
-                if ( !defined $dist->id->{current_release} ) {
+                if ( $dist->id->{release} eq 'v0.0.0' ) {
                     push @row, WHITE . ON_RED . ' unreleased ' . RESET;
                 }
                 else {
-                    push @row, $dist->id->{current_release};
+                    push @row, $dist->id->{release};
                 }
 
-                if ( $dist->id->{current_release_distance} ) {
-                    push @row, WHITE . ON_RED . sprintf( ' %3s ', $dist->id->{current_release_distance} ) . RESET;
+                if ( $dist->id->{release_distance} ) {
+                    push @row, WHITE . ON_RED . sprintf( ' %3s ', $dist->id->{release_distance} ) . RESET;
                 }
                 else {
                     push @row, q[];
@@ -129,6 +129,8 @@ sub _show_dist_info ( $self, $dist ) {
 name: <: $dist.name :>
 version: <: $dist.version :>
 node: <: $dist.id.node :>
+branch: <: $dist.id.branch :>
+current release: <: $dist.id.release_id :>
 is CPAN dist: <: $dist.is_cpan_dist :>
 module name: <: $dist.module.name :>
 root: <: $dist.root :>

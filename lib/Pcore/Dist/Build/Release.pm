@@ -17,7 +17,7 @@ sub run ($self) {
     return if !$self->_can_release;
 
     # create new version
-    my $cur_ver = $self->dist->id->{current_release} // 'v0.0.0';
+    my $cur_ver = $self->dist->id->{release};
 
     my $new_ver = $self->_compose_new_version;
 
@@ -213,7 +213,7 @@ sub _can_release ($self) {
     }
 
     # check distance from the last release
-    if ( !$self->dist->id->{current_release_distance} ) {
+    if ( !$self->dist->id->{release_distance} ) {
         say q[No changes to release];
 
         return;
@@ -247,16 +247,12 @@ sub _can_release ($self) {
 sub _compose_new_version ($self) {
 
     # show current and new versions, take confirmation
-    my $cur_ver = $self->dist->id->{current_release};
+    my $cur_ver = $self->dist->id->{release};
 
-    if ( !$cur_ver ) {
-        if ( $self->bugfix ) {
-            say 'Bugfix has no sense on first release';
+    if ( $cur_ver eq 'v0.0.0' && $self->bugfix ) {
+        say 'Bugfix has no sense on first release';
 
-            return;
-        }
-
-        $cur_ver = 'v0.0.0';
+        return;
     }
 
     my ( $major, $minor, $bugfix ) = $cur_ver =~ /v(\d+)[.](\d+)[.](\d+)/sm;
@@ -377,12 +373,12 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 53, 188              | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 354                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 350                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 65,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |      | 85, 99, 147          |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 350                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 346                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

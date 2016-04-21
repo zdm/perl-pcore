@@ -13,12 +13,7 @@ has clean => ( is => 'ro', isa => Maybe [Bool] );
 has release => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 sub _build_release ($self) {
-    if ( $self->dist->id->{current_release} && !$self->dist->id->{current_release_distance} ) {
-        return 1;
-    }
-    else {
-        return 0;
-    }
+    return $self->dist->id->{release_distance} ? 0 : 1;
 }
 
 sub run ($self) {
@@ -125,7 +120,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 61, 80, 108, 113     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 56, 75, 103, 108     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

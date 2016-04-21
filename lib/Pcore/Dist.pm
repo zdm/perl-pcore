@@ -217,14 +217,14 @@ sub _build_build ($self) {
 
 sub _build_id ($self) {
     my $id = {
-        node                     => undef,
-        tags                     => undef,
-        bookmark                 => undef,
-        branch                   => undef,
-        desc                     => undef,
-        date                     => undef,
-        current_release          => undef,
-        current_release_distance => undef,
+        node             => undef,
+        tags             => undef,
+        bookmark         => undef,
+        branch           => undef,
+        desc             => undef,
+        date             => undef,
+        release          => undef,
+        release_distance => undef,
     };
 
     if ( !$self->is_cpan_dist && $self->scm ) {
@@ -232,8 +232,8 @@ sub _build_id ($self) {
             $id->@{ keys $scm_id->{result}->%* } = values $scm_id->{result}->%*;
         }
 
-        if ( $id->{current_release} && defined $id->{current_release_distance} && $id->{current_release_distance} == 1 ) {
-            $id->{current_release_distance} = 0 if $id->{desc} =~ /added tag.+$id->{current_release}/smi;
+        if ( $id->{release} && defined $id->{release_distance} && $id->{release_distance} == 1 ) {
+            $id->{release_distance} = 0 if $id->{desc} =~ /added tag.+$id->{release}/smi;
         }
     }
     elsif ( -f $self->share_dir . 'dist_id.perl' ) {
@@ -241,6 +241,12 @@ sub _build_id ($self) {
     }
 
     $id->{date} = P->date->from_string( $id->{date} )->at_utc if defined $id->{date};
+
+    $id->{release} //= 'v0.0.0';
+
+    $id->{release_id} = $id->{release};
+
+    $id->{release_id} .= "+$id->{release_distance}" if $id->{release_distance};
 
     return $id;
 }
@@ -253,7 +259,7 @@ sub _build_version ($self) {
     return $ver if defined $ver;
 
     # for crypted PAR distrs try to get version from id
-    return version->parse( $self->id->{current_release} // 'v0.0.0' );
+    return version->parse( $self->id->{release} );
 }
 
 sub _build_is_commited ($self) {
