@@ -374,7 +374,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
     }
 
     # modified
-    push @row, ( $res->was_changed ? BOLD WHITE ON_RED . ' modified ' . RESET : q[ no ] );
+    push @row, ( $res->was_changed ? BOLD WHITE ON_RED . ' modified ' . RESET : q[ - ] );
 
     print $self->{tbl}->render_row( \@row );
 
