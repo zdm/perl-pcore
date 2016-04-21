@@ -1,6 +1,6 @@
 package Pcore::Dist::Build::Docker;
 
-use Pcore -class;
+use Pcore -class, -ansi;
 use Pcore::API::DockerHub;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
@@ -171,7 +171,17 @@ sub run ( $self, $args ) {
     # index builds
     for my $build ( $build_history->{result}->@* ) {
         if ( !exists $report->{ $build->dockertag_name }->{build_status} ) {
-            $report->{ $build->dockertag_name }->{build_status} = $build->build_status_name;
+            if ( $build->build_status_name eq 'Error' ) {
+                $report->{ $build->dockertag_name }->{build_status} = BOLD WHITE ON_RED;
+            }
+            elsif ( $build->build_status_name eq 'Success' ) {
+                $report->{ $build->dockertag_name }->{build_status} = BLACK ON_GREEN;
+            }
+            else {
+                $report->{ $build->dockertag_name }->{build_status} = BLACK ON_WHITE;
+            }
+
+            $report->{ $build->dockertag_name }->{build_status} .= q[ ] . $build->build_status_name . q[ ] . RESET;
 
             $report->{ $build->dockertag_name }->{build_status_updated} = $build->last_updated;
         }
@@ -200,9 +210,9 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (30)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53, 164, 184         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 53, 164, 194         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
