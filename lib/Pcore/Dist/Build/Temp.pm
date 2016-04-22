@@ -162,7 +162,6 @@ BUILD_PL
     return;
 }
 
-# TODO get meta resources from upstream api object
 sub _generate_meta_json ( $self, $tree ) {
     my $meta = {
         abstract => 'unknown',
@@ -271,8 +270,8 @@ PERL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    2 |                      | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          |
-## |      | 191                  | * Found method-call chain of length 4                                                                          |
-## |      | 192                  | * Found method-call chain of length 5                                                                          |
+## |      | 190                  | * Found method-call chain of length 4                                                                          |
+## |      | 191                  | * Found method-call chain of length 5                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
