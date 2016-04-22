@@ -126,12 +126,12 @@ sub _create_upstream_repo ($self) {
         );
     }
 
-    my $confirm = P->term->prompt( qq[Create upstream repository "@{[$self->{upstream_api}->id]}" on @{[$self->upstream]}?], [qw[yes no skip]], enter => 1 );
+    my $confirm = P->term->prompt( qq[Create upstream repository "@{[$self->{upstream_api}->id]}" on @{[$self->upstream]}?], [qw[yes no exit]], enter => 1 );
 
-    if ( $confirm eq 'skip' ) {
+    if ( $confirm eq 'no' ) {
         return 1;
     }
-    elsif ( $confirm eq 'no' ) {
+    elsif ( $confirm eq 'exit' ) {
         $ERROR = 'Error creating upstream repository';
 
         return;
