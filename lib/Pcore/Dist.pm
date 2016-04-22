@@ -236,11 +236,12 @@ sub _build_id ($self) {
             $id->{release_distance} = 0 if $id->{desc} =~ /added tag.+$id->{release}/smi;
         }
     }
-    elsif ( -f $self->share_dir . 'dist_id.perl' ) {
-        $id = P->cfg->load( $self->share_dir . 'dist_id.perl' );
+    elsif ( -f $self->share_dir . 'dist-id.json' ) {
+        $id = P->cfg->load( $self->share_dir . 'dist-id.json' );
     }
 
-    $id->{date} = P->date->from_string( $id->{date} )->at_utc if defined $id->{date};
+    # convert date to UTC
+    $id->{date} = P->date->from_string( $id->{date} )->at_utc->to_string if defined $id->{date};
 
     $id->{release} //= 'v0.0.0';
 

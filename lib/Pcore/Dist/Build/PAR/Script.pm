@@ -335,16 +335,16 @@ sub _add_dist ( $self, $dist ) {
         # add main dist dist.perl
         $self->tree->add_file( 'share/dist.perl', $dist->share_dir . '/dist.perl' );
 
-        # add main dist dist_id.perl
-        $self->tree->add_file( 'share/dist_id.perl', P->data->to_perl( $dist->id, readable => 1 ) );
+        # add main dist dist-id.json
+        $self->tree->add_file( 'share/dist-id.json', P->data->to_perl( $dist->id, readable => 1 ) );
     }
     else {
 
         # add dist.perl
         $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist.perl", $dist->share_dir . '/dist.perl' );
 
-        # add dist_id.perl
-        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist_id.perl", P->data->to_perl( $dist->id, readable => 1 ) );
+        # add dist-id.json
+        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.json", P->data->to_perl( $dist->id, readable => 1 ) );
     }
 
     # register dist share in order to find them later via $ENV->share->get interface
