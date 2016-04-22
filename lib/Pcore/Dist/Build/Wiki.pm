@@ -17,7 +17,9 @@ sub run ($self) {
 
     my $wiki_path = P->path('wiki/')->realpath;
 
-    my $upstream = Pcore::API::SCM->new($wiki_path)->upstream;
+    my $scm = Pcore::API::SCM->new($wiki_path);
+
+    my $upstream = $scm->upstream;
 
     my $base_url = q[/] . $upstream->namespace . q[/] . $upstream->repo_name . q[/wiki/];
 
@@ -94,6 +96,18 @@ MD
 
     say keys( $toc->%* ) + 1 . ' wiki page(s) were generated';
 
+    if ( !$scm->scm_is_commited ) {
+        $scm->scm_addremove;
+
+        $scm->scm_commit('auto updated');
+
+        print 'Pushing wiki ... ';
+
+        my $res = $scm->scm_push;
+
+        say $res->reason;
+    }
+
     return;
 }
 
@@ -104,9 +118,9 @@ MD
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 81, 95               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 83, 97               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 95                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 97                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
