@@ -50,7 +50,7 @@ sub run ($self) {
 
     say qq[New version will be: $new_ver$LF];
 
-    return if P->term->prompt( qq[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
+    return if P->term->prompt( q[Continue release process?], [qw[yes no]], enter => 1 ) ne 'yes';
 
     say q[];
 
@@ -171,22 +171,22 @@ sub run ($self) {
 
       CREATE_DOCKERHUB_VERSION_TAG:
         if ( !$self->dist->build->docker->create_build_tag( $dockerhub_repo, $new_ver ) ) {
-            goto CREATE_DOCKERHUB_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+            goto CREATE_DOCKERHUB_VERSION_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       CREATE_DOCKERHUB_LATEST_TAG:
         if ( !$self->dist->build->docker->create_build_tag( $dockerhub_repo, 'latest' ) ) {
-            goto CREATE_DOCKERHUB_LATEST_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+            goto CREATE_DOCKERHUB_LATEST_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       TRIGGER_BUILD_VERSION_TAG:
         if ( !$self->dist->build->docker->trigger_build( $dockerhub_repo, $new_ver ) ) {
-            goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+            goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       TRIGGER_BUILD_LATEST_TAG:
         if ( !$self->dist->build->docker->trigger_build( $dockerhub_repo, 'latest' ) ) {
-            goto TRIGGER_BUILD_LATEST_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+            goto TRIGGER_BUILD_LATEST_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
     }
 
@@ -384,9 +384,6 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (28)                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53, 174, 179, 184,   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |      | 189                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 364                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
