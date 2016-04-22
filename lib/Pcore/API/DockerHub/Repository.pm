@@ -453,6 +453,8 @@ sub build_settings ( $self, % ) {
 
                     $tag->{repo} = $self;
 
+                    $tag->set_status( $res->status, $res->reason );
+
                     $build_tags->{ $tag->id } = $tag;
                 }
 
