@@ -61,18 +61,6 @@ sub run ($self) {
 
     # NOTE !!!WARNING!!! start release, next changes will be hard to revert
 
-    # update release version in the main module
-    unless ( $self->dist->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
-        say q[Error updating version in the main dist module];
-
-        return;
-    }
-
-    P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
-
-    # clear cached data, important for version
-    $self->dist->clear;
-
     # working with the issue tracker
     {
         my $cv = AE::cv;
@@ -136,6 +124,18 @@ sub run ($self) {
         }
     }
 
+    # update release version in the main module
+    unless ( $self->dist->module->content->$* =~ s[^(\s*package\s+\w[\w\:\']*\s+)v?[\d._]+(\s*;)][$1$new_ver$2]sm ) {
+        say q[Error updating version in the main dist module];
+
+        return;
+    }
+
+    P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
+
+    # clear cached data, important for version
+    $self->dist->clear;
+
     # update working copy
     $self->dist->build->update;
 
@@ -145,8 +145,6 @@ sub run ($self) {
     # generate wiki
     if ( $self->dist->build->wiki ) {
         $self->dist->build->wiki->run;
-
-        # TODO addremove and commit wiki
     }
 
     # addremove
@@ -155,6 +153,7 @@ sub run ($self) {
     # commit
     $self->dist->scm->scm_commit(qq[release $new_ver]) or die;
 
+    # TODO set "latest" tag only for the latest release
     $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or die;
 
     print 'Pushing to the upstream repository ... ';
@@ -252,8 +251,24 @@ sub _can_release ($self) {
 
         my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
 
-        if ( $dockerfile->$* !~ m[^FROM\s+[^:]+:v\d+[.]\d+[.]\d+$]sm ) {
-            say q[Dockerfile base image must contain version tag. Use "pcore docker --from <TAG>".];
+        if ( $dockerfile->$* =~ /^FROM\s+([^:]+):(.+?)$/sm ) {
+            my $dockerimage = $1;
+
+            my $dockertag = $2;
+
+            say qq[Docker base image is "$dockerimage:$dockertag".];
+
+            if ( $dockertag eq 'latest' ) {
+                return if P->term->prompt( 'Are you sure to continue release with the "latest" tag?', [qw[yes no]], enter => 1 ) eq 'no';
+            }
+            elsif ( $dockertag !~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
+                say q[Docker base image tag can be "latest" or "vx.x.x". Use "pcore docker --from <TAG>" to set needed tag.];
+
+                return;
+            }
+        }
+        else {
+            say q[Can not parse base images tag from Dockerfile.];
 
             return;
         }
@@ -389,15 +404,15 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (29)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53, 180, 193, 201,   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |      | 206                  |                                                                                                                |
+## |    3 | 53, 179, 192, 200,   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 205                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 368                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 383                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 27, 30, 38, 43, 65,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 85, 99, 147          |                                                                                                                |
+## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |      | 87, 128, 147         |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 364                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 379                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
