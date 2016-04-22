@@ -200,42 +200,42 @@ sub run ($self) {
 
 sub _can_release ($self) {
     if ( !$self->dist->scm ) {
-        say q[SCM is required];
+        say q[SCM is required.];
 
         return;
     }
 
     # check for uncommited changes
     if ( !$self->dist->is_commited ) {
-        say q[Working copy or sub-repositories has uncommited changes or unknown files];
+        say q[Working copy or sub-repositories has uncommited changes or unknown files.];
 
         return;
     }
 
     # check distance from the last release
     if ( !$self->dist->id->{release_distance} ) {
-        say q[No changes to release];
+        say q[No changes since latest release.];
 
         return;
     }
 
     if ( $self->dist->cfg->{dist}->{cpan} && !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{username} || !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{password} ) {
-        say q[You need to specify PAUSE credentials];
+        say q[You need to specify PAUSE credentials.];
 
         return;
     }
 
     if ( $self->dist->docker_cfg ) {
         if ( !$ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_username} || !$ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_password} ) {
-            say q[You need to specify DockerHub credentials];
+            say q[You need to specify DockerHub credentials.];
 
             return;
         }
 
         my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
 
-        if ( $dockerfile->$* !~ m[^FROM\s+[^:]+:v\d+[.]\d+[.]\d+$]smi ) {
-            say q[Dockerfile base image must contains version tag];
+        if ( $dockerfile->$* !~ m[^FROM\s+[^:]+:v\d+[.]\d+[.]\d+$]sm ) {
+            say q[Dockerfile base image must contain version tag. Use "pcore docker --from <TAG>".];
 
             return;
         }

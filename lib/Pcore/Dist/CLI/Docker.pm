@@ -18,6 +18,11 @@ sub CLI ($self) {
                 type => 'TAG',
                 isa  => 'Str',
             },
+            from => {
+                desc => 'update base image version in Dockerfile and commit',
+                type => 'VERSION',
+                isa  => 'Str',
+            },
         },
     };
 }
@@ -101,7 +106,7 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 91                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 96                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

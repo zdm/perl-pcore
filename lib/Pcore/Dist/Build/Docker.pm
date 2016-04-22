@@ -12,6 +12,28 @@ around new => sub ( $orig, $self, $args ) {
 };
 
 sub run ( $self, $args ) {
+    if ( $args->{from} ) {
+        my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
+
+        if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$args->{from}/sm ) {
+            if ( "$1$2" eq "$1:$args->{from}" ) {
+                say qq[Docker base image wasn't changed];
+            }
+            else {
+                P->file->write_bin( $self->dist->root . 'Dockerfile', $dockerfile );
+
+                $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$args->{from}"], 'Dockerfile' ) or die;
+
+                say qq[Docker base image changed from "$1$2" to "$1:$args->{from}"];
+            }
+        }
+        else {
+            say q[Error updating docker base image];
+        }
+
+        return;
+    }
+
     my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker_cfg->{namespace} } );
 
     my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
@@ -210,9 +232,11 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (30)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (36)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53, 164, 194         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 20                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 75, 186, 216         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

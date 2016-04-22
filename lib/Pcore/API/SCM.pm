@@ -169,8 +169,8 @@ sub scm_addremove ( $self, $cb = undef ) {
     return $self->_request( 'scm_addremove', [$cb] );
 }
 
-sub scm_commit ( $self, $message, $cb = undef ) {
-    return $self->_request( 'scm_commit', [ $message, $cb ] );
+sub scm_commit ( $self, $message, @args ) {
+    return $self->_request( 'scm_commit', [ $message, @args ] );
 }
 
 sub scm_push ( $self, $cb = undef ) {

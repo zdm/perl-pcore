@@ -256,9 +256,7 @@ sub scm_addremove ( $self, $root, $cb, $args ) {
 }
 
 sub scm_commit ( $self, $root, $cb, $args ) {
-    my $message = $args->[0];
-
-    $self->scm_cmd( $root, $cb, [ qw[commit --subrepos -m], $message ] );
+    $self->scm_cmd( $root, $cb, [ qw[commit --subrepos -m], $args->@* ] );
 
     return;
 }
