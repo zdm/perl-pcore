@@ -212,9 +212,7 @@ sub _can_release ($self) {
 
     # check distance from the last release
     if ( !$self->dist->id->{release_distance} ) {
-        say q[No changes since last release.];
-
-        return;
+        return if P->term->prompt( q[No changes since last release. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
     }
 
     if ( $self->dist->cfg->{dist}->{cpan} && !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{username} || !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{password} ) {
@@ -385,13 +383,13 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (28)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 364                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 362                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |      | 87, 128, 147, 173,   |                                                                                                                |
 ## |      | 178, 183, 188        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 360                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 358                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
