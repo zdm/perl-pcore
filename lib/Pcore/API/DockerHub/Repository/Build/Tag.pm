@@ -7,7 +7,7 @@ extends qw[Pcore::API::Response];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
 has id   => ( is => 'ro', isa => Int, required => 1 );
-has name => ( is => 'ro', isa => Str, required => 1 );
+has name => ( is => 'ro', isa => Str, required => 1 );    # dockerhub tag name
 has source_type => ( is => 'ro', isa => Enum [qw[Tag Branch]], required => 1 );
 has source_name => ( is => 'ro', isa => Str, required => 1 );    # SCM tag / branch name
 

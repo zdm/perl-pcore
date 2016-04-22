@@ -170,13 +170,13 @@ sub run ($self) {
         my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
 
         # create dockerhub tag
-      CREATE_DOCKERHUB_TAG:
+      CREATE_DOCKERHUB_VERSION_TAG:
         print qq[Creating DockerHub tag "$new_ver" ... ];
 
         unless ( my $res = $dockerhub_repo->create_build_tag( name => $new_ver, source_name => $new_ver ) ) {
             say $res->reason;
 
-            goto CREATE_DOCKERHUB_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+            goto CREATE_DOCKERHUB_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
         else {
             say 'done';

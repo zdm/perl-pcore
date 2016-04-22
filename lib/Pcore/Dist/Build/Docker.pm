@@ -26,7 +26,7 @@ sub run ( $self, $args ) {
 
     my $cv = AE::cv;
 
-    my ( $tags, $build_history );
+    my ( $tags, $build_history, $build_settings );
 
     $cv->begin;
     $dockerhub_repo->tags(
@@ -50,6 +50,17 @@ sub run ( $self, $args ) {
         }
     );
 
+    $cv->begin;
+    $dockerhub_repo->build_settings(
+        cb => sub ($res) {
+            $build_settings = $res;
+
+            $cv->end;
+
+            return;
+        }
+    );
+
     $cv->recv;
 
     my $tbl = P->text->table(
@@ -57,6 +68,19 @@ sub run ( $self, $args ) {
             tag => {
                 title => 'TAG NAME',
                 width => 20,
+            },
+            is_build_tag => {
+                title  => "BUILD\nTAG",
+                width  => 7,
+                align  => 1,
+                format => sub ( $val, $id, $row ) {
+                    if ( !$val ) {
+                        return BOLD WHITE ON_RED . ' no ' . RESET;
+                    }
+                    else {
+                        return BLACK ON_GREEN . q[ yes ] . RESET;
+                    }
+                }
             },
             size => {
                 width  => 15,
@@ -121,6 +145,11 @@ sub run ( $self, $args ) {
             size         => $tag->full_size,
             last_updated => $tag->last_updated,
         };
+    }
+
+    # index build tags
+    for my $build_tag ( values $build_settings->{result}->{build_tags}->%* ) {
+        $report->{ $build_tag->name }->{is_build_tag} = 1 if $build_tag->name ne '{sourceref}';
     }
 
     # index builds
@@ -268,11 +297,12 @@ sub _remove_tag ( $self, $dockerhub_repo, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (25)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 119, 149, 192, 243   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 143, 151, 178, 221,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 272                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 195                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
