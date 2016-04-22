@@ -12,84 +12,17 @@ around new => sub ( $orig, $self, $args ) {
 };
 
 sub run ( $self, $args ) {
-    if ( $args->{from} ) {
-        my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
-
-        if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$args->{from}/sm ) {
-            if ( "$1$2" eq "$1:$args->{from}" ) {
-                say qq[Docker base image wasn't changed];
-            }
-            else {
-                P->file->write_bin( $self->dist->root . 'Dockerfile', $dockerfile );
-
-                $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$args->{from}"], 'Dockerfile' ) or die;
-
-                say qq[Docker base image changed from "$1$2" to "$1:$args->{from}"];
-            }
-        }
-        else {
-            say q[Error updating docker base image];
-        }
-
-        return;
-    }
+    return $self->_update_from_tag( $args->{from} ) if $args->{from};
 
     my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker_cfg->{namespace} } );
 
     my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
 
-    if ( $args->{trigger} ) {
-        print qq[Triggering build for tag "$args->{trigger}" ... ];
+    $self->_create_build_tag( $dockerhub_repo, $args->{create} ) if $args->{create};
 
-        my $res = $dockerhub_repo->trigger_build( $args->{trigger} );
+    $self->_remove_tag( $dockerhub_repo, $args->{remove} ) if $args->{remove};
 
-        say $res->status ? 'OK' : $res->reason;
-    }
-
-    # remove tag
-    if ( $args->{remove} ) {
-        print qq[Removing tag "$args->{remove}" ... ];
-
-        my $tags = $dockerhub_repo->tags;
-
-        if ( !$tags->{result}->{ $args->{remove} } ) {
-            say 'Tag does not exists';
-        }
-        else {
-            my $res = $tags->{result}->{ $args->{remove} }->remove;
-
-            say $res->status ? 'OK' : $res->reason;
-        }
-
-        # remove build tag
-        print qq[Removing build tag "$args->{remove}" ... ];
-
-        my $build_settings = $dockerhub_repo->build_settings;
-
-        if ( !$build_settings ) {
-            say $build_settings->reason;
-        }
-        else {
-            my $build_tag;
-
-            for ( values $build_settings->{result}->{build_tags}->%* ) {
-                if ( $_->name eq $args->{remove} ) {
-                    $build_tag = $_;
-
-                    last;
-                }
-            }
-
-            if ( !$build_tag ) {
-                say 'Tag does not exists';
-            }
-            else {
-                my $res1 = $build_tag->remove;
-
-                say $res1->status ? 'OK' : $res1->reason;
-            }
-        }
-    }
+    $self->_trigger_build( $dockerhub_repo, $args->{trigger} ) if $args->{trigger};
 
     my $cv = AE::cv;
 
@@ -225,6 +158,109 @@ sub run ( $self, $args ) {
     return;
 }
 
+sub _update_from_tag ( $self, $tag ) {
+    my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
+
+    if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$tag/sm ) {
+        if ( "$1$2" eq "$1:$tag" ) {
+            say qq[Docker base image wasn't changed];
+        }
+        else {
+            P->file->write_bin( $self->dist->root . 'Dockerfile', $dockerfile );
+
+            $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$tag"], 'Dockerfile' ) or die;
+
+            say qq[Docker base image changed from "$1$2" to "$1:$tag"];
+        }
+    }
+    else {
+        say q[Error updating docker base image];
+    }
+
+    return;
+}
+
+sub _create_build_tag ( $self, $dockerhub_repo, $tag ) {
+    print qq[Creating build tag "$tag" ... ];
+
+    my $build_settings = $dockerhub_repo->build_settings;
+
+    if ( !$build_settings ) {
+        say $build_settings->reason;
+    }
+    else {
+        for ( values $build_settings->{result}->{build_tags}->%* ) {
+            if ( $_->name eq $tag || $_->source_name eq $tag ) {
+                say q[tag already exists];
+
+                return;
+            }
+        }
+    }
+
+    my $res = $dockerhub_repo->create_build_tag( name => $tag, source_name => $tag );
+
+    say $res->status ? 'OK' : $res->reason;
+
+    return;
+}
+
+sub _trigger_build ( $self, $dockerhub_repo, $tag ) {
+    print qq[Triggering build for tag "$tag" ... ];
+
+    my $res = $dockerhub_repo->trigger_build($tag);
+
+    say $res->status ? 'OK' : $res->reason;
+
+    return;
+}
+
+sub _remove_tag ( $self, $dockerhub_repo, $tag ) {
+    print qq[Removing tag "$tag" ... ];
+
+    my $tags = $dockerhub_repo->tags;
+
+    if ( !$tags->{result}->{$tag} ) {
+        say 'Tag does not exists';
+    }
+    else {
+        my $res = $tags->{result}->{$tag}->remove;
+
+        say $res->status ? 'OK' : $res->reason;
+    }
+
+    # remove build tag
+    print qq[Removing build tag "$tag" ... ];
+
+    my $build_settings = $dockerhub_repo->build_settings;
+
+    if ( !$build_settings ) {
+        say $build_settings->reason;
+    }
+    else {
+        my $build_tag;
+
+        for ( values $build_settings->{result}->{build_tags}->%* ) {
+            if ( $_->name eq $tag ) {
+                $build_tag = $_;
+
+                last;
+            }
+        }
+
+        if ( !$build_tag ) {
+            say 'Tag does not exists';
+        }
+        else {
+            my $res1 = $build_tag->remove;
+
+            say $res1->status ? 'OK' : $res1->reason;
+        }
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -232,11 +268,11 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (36)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 20                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 119, 149, 192, 243   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 75, 186, 216         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 166                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

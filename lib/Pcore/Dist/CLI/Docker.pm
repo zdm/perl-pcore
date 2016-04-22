@@ -13,6 +13,11 @@ sub CLI ($self) {
                 type => 'TAG',
                 isa  => 'Str',
             },
+            create => {
+                desc => 'create build tag',
+                type => 'TAG',
+                isa  => 'Str',
+            },
             remove => {
                 desc => 'remove tag',
                 type => 'TAG',
@@ -106,7 +111,7 @@ sub run ( $self, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 96                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 101                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
