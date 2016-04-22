@@ -170,22 +170,22 @@ sub run ($self) {
         my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
 
       CREATE_DOCKERHUB_VERSION_TAG:
-        if ( !$self->dist->docker->create_build_tag( $dockerhub_repo, $new_ver ) ) {
+        if ( !$self->dist->build->docker->create_build_tag( $dockerhub_repo, $new_ver ) ) {
             goto CREATE_DOCKERHUB_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       CREATE_DOCKERHUB_LATEST_TAG:
-        if ( !$self->dist->docker->create_build_tag( $dockerhub_repo, 'latest' ) ) {
+        if ( !$self->dist->build->docker->create_build_tag( $dockerhub_repo, 'latest' ) ) {
             goto CREATE_DOCKERHUB_LATEST_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       TRIGGER_BUILD_VERSION_TAG:
-        if ( !$self->dist->docker->trigger_build( $dockerhub_repo, $new_ver ) ) {
+        if ( !$self->dist->build->docker->trigger_build( $dockerhub_repo, $new_ver ) ) {
             goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       TRIGGER_BUILD_LATEST_TAG:
-        if ( !$self->dist->docker->trigger_build( $dockerhub_repo, 'latest' ) ) {
+        if ( !$self->dist->build->docker->trigger_build( $dockerhub_repo, 'latest' ) ) {
             goto TRIGGER_BUILD_LATEST_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
     }
@@ -391,7 +391,8 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## |    3 | 364                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 87, 128, 147         |                                                                                                                |
+## |      | 87, 128, 147, 173,   |                                                                                                                |
+## |      | 178, 183, 188        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 360                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
