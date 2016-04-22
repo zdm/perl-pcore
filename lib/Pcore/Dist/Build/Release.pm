@@ -186,7 +186,7 @@ sub run ($self) {
 
       TRIGGER_BUILD_LATEST_TAG:
         if ( !$self->dist->docker->trigger_build( $dockerhub_repo, 'latest' ) ) {
-            goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+            goto TRIGGER_BUILD_LATEST_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
     }
 
