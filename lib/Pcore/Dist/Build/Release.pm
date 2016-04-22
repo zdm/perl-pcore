@@ -171,25 +171,43 @@ sub run ($self) {
         my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
 
         # create dockerhub tag
+      CREATE_DOCKERHUB_TAG:
         print qq[Creating DockerHub tag "$new_ver" ... ];
 
-        $dockerhub_repo->create_build_tag( name => $new_ver, source_name => $new_ver ) or die;
+        unless ( my $res = $dockerhub_repo->create_build_tag( name => $new_ver, source_name => $new_ver ) ) {
+            say $res->reason;
 
-        say 'done';
+            goto CREATE_DOCKERHUB_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+        }
+        else {
+            say 'done';
+        }
 
         # trigger build for new version tag
+      TRIGGER_BUILD_VERSION:
         print qq[Trigger DockerHub build for tag "$new_ver" ... ];
 
-        $dockerhub_repo->trigger_build($new_ver) or die;
+        unless ( my $res = $dockerhub_repo->trigger_build($new_ver) ) {
+            say $res->reason;
 
-        say 'done';
+            goto TRIGGER_BUILD_VERSION if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+        }
+        else {
+            say 'done';
+        }
 
         # trigger build for latest tag
+      TRIGGER_BUILD_LATEST:
         print qq[Trigger DockerHub build for tag: "latest" ... ];
 
-        $dockerhub_repo->trigger_build('latest') or die;
+        unless ( my $res = $dockerhub_repo->trigger_build('latest') ) {
+            say $res->reason;
 
-        say 'done';
+            goto TRIGGER_BUILD_LATEST if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+        }
+        else {
+            say 'done';
+        }
     }
 
     # upload to the CPAN if this is the CPAN distribution, prompt before upload
@@ -369,16 +387,17 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (29)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53, 188              | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 53, 180, 193, 201,   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 206                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 350                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 368                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 65,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |      | 85, 99, 147          |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 346                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 364                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -96,10 +96,10 @@ MD
 
     say keys( $toc->%* ) + 1 . ' wiki page(s) were generated';
 
-    if ( !$scm->scm_is_commited ) {
-        $scm->scm_addremove;
+    $scm->scm_addremove or die;
 
-        $scm->scm_commit('auto updated');
+    if ( !$scm->scm_is_commited->{result} ) {
+        $scm->scm_commit('automatically updated') or die;
 
         print 'Pushing wiki ... ';
 
