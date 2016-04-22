@@ -212,7 +212,7 @@ sub _can_release ($self) {
 
     # check distance from the last release
     if ( !$self->dist->id->{release_distance} ) {
-        say q[No changes since latest release.];
+        say q[No changes since last release.];
 
         return;
     }
