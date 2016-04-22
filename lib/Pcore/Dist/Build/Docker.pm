@@ -12,18 +12,24 @@ around new => sub ( $orig, $self, $args ) {
 };
 
 sub run ( $self, $args ) {
-    return $self->_update_from_tag( $args->{from} ) if $args->{from};
+    return $self->update_from_tag( $args->{from} ) if $args->{from};
 
     my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker_cfg->{namespace} } );
 
     my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
 
-    $self->_create_build_tag( $dockerhub_repo, $args->{create} ) if $args->{create};
+    $self->create_build_tag( $dockerhub_repo, $args->{create} ) if $args->{create};
 
-    $self->_remove_tag( $dockerhub_repo, $args->{remove} ) if $args->{remove};
+    $self->remove_tag( $dockerhub_repo, $args->{remove} ) if $args->{remove};
 
-    $self->_trigger_build( $dockerhub_repo, $args->{trigger} ) if $args->{trigger};
+    $self->trigger_build( $dockerhub_repo, $args->{trigger} ) if $args->{trigger};
 
+    $self->report($dockerhub_repo);
+
+    return;
+}
+
+sub report ( $self, $dockerhub_repo ) {
     my $cv = AE::cv;
 
     my ( $tags, $build_history, $build_settings );
@@ -67,7 +73,7 @@ sub run ( $self, $args ) {
         cols => [
             tag => {
                 title => 'TAG NAME',
-                width => 20,
+                width => 15,
             },
             is_build_tag => {
                 title  => "BUILD\nTAG",
@@ -184,10 +190,12 @@ sub run ( $self, $args ) {
 
     print $tbl->render_all( [ map { $report->{$_} } ( sort $version_tags->@* ), $report->{latest} ? 'latest' : (), ( sort $named_tags->@* ) ] );
 
+    say 'NOTE: if build tag is not set - repository will not be builded automatically, when build link will be updated';
+
     return;
 }
 
-sub _update_from_tag ( $self, $tag ) {
+sub update_from_tag ( $self, $tag ) {
     my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
 
     if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$tag/sm ) {
@@ -209,7 +217,7 @@ sub _update_from_tag ( $self, $tag ) {
     return;
 }
 
-sub _create_build_tag ( $self, $dockerhub_repo, $tag ) {
+sub create_build_tag ( $self, $dockerhub_repo, $tag ) {
     print qq[Creating build tag "$tag" ... ];
 
     my $build_settings = $dockerhub_repo->build_settings;
@@ -222,29 +230,43 @@ sub _create_build_tag ( $self, $dockerhub_repo, $tag ) {
             if ( $_->name eq $tag || $_->source_name eq $tag ) {
                 say q[tag already exists];
 
-                return;
+                return 1;
             }
         }
     }
 
     my $res = $dockerhub_repo->create_build_tag( name => $tag, source_name => $tag );
 
-    say $res->status ? 'OK' : $res->reason;
+    if ( $res->status ) {
+        say 'OK';
 
-    return;
+        return 1;
+    }
+    else {
+        say $res->reason;
+
+        return 0;
+    }
 }
 
-sub _trigger_build ( $self, $dockerhub_repo, $tag ) {
+sub trigger_build ( $self, $dockerhub_repo, $tag ) {
     print qq[Triggering build for tag "$tag" ... ];
 
     my $res = $dockerhub_repo->trigger_build($tag);
 
-    say $res->status ? 'OK' : $res->reason;
+    if ( $res->status ) {
+        say 'OK';
 
-    return;
+        return 1;
+    }
+    else {
+        say $res->reason;
+
+        return 0;
+    }
 }
 
-sub _remove_tag ( $self, $dockerhub_repo, $tag ) {
+sub remove_tag ( $self, $dockerhub_repo, $tag ) {
     print qq[Removing tag "$tag" ... ];
 
     my $tags = $dockerhub_repo->tags;
@@ -297,12 +319,12 @@ sub _remove_tag ( $self, $dockerhub_repo, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (25)                       |
+## |    3 | 32                   | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (21)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 143, 151, 178, 221,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 272                  |                                                                                                                |
+## |    3 | 149, 157, 184, 229,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 294                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 195                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 203                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

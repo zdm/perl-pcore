@@ -169,43 +169,24 @@ sub run ($self) {
 
         my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
 
-        # create dockerhub tag
       CREATE_DOCKERHUB_VERSION_TAG:
-        print qq[Creating DockerHub tag "$new_ver" ... ];
-
-        unless ( my $res = $dockerhub_repo->create_build_tag( name => $new_ver, source_name => $new_ver ) ) {
-            say $res->reason;
-
+        if ( !$self->dist->docker->create_build_tag( $dockerhub_repo, $new_ver ) ) {
             goto CREATE_DOCKERHUB_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
-        else {
-            say 'done';
+
+      CREATE_DOCKERHUB_LATEST_TAG:
+        if ( !$self->dist->docker->create_build_tag( $dockerhub_repo, 'latest' ) ) {
+            goto CREATE_DOCKERHUB_LATEST_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
-        # trigger build for new version tag
-      TRIGGER_BUILD_VERSION:
-        print qq[Trigger DockerHub build for tag "$new_ver" ... ];
-
-        unless ( my $res = $dockerhub_repo->trigger_build($new_ver) ) {
-            say $res->reason;
-
-            goto TRIGGER_BUILD_VERSION if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
-        }
-        else {
-            say 'done';
+      TRIGGER_BUILD_VERSION_TAG:
+        if ( !$self->dist->docker->trigger_build( $dockerhub_repo, $new_ver ) ) {
+            goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
-        # trigger build for latest tag
-      TRIGGER_BUILD_LATEST:
-        print qq[Trigger DockerHub build for tag: "latest" ... ];
-
-        unless ( my $res = $dockerhub_repo->trigger_build('latest') ) {
-            say $res->reason;
-
-            goto TRIGGER_BUILD_LATEST if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
-        }
-        else {
-            say 'done';
+      TRIGGER_BUILD_LATEST_TAG:
+        if ( !$self->dist->docker->trigger_build( $dockerhub_repo, 'latest' ) ) {
+            goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( qq[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
     }
 
@@ -402,17 +383,17 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (29)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (28)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 53, 179, 192, 200,   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |      | 205                  |                                                                                                                |
+## |    3 | 53, 174, 179, 184,   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |      | 189                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 383                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 364                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |      | 87, 128, 147         |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 379                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 360                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
