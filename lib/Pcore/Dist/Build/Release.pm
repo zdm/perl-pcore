@@ -210,15 +210,15 @@ sub _can_release ($self) {
         return;
     }
 
-    # check distance from the last release
-    if ( !$self->dist->id->{release_distance} ) {
-        return if P->term->prompt( q[No changes since last release. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
-    }
-
     if ( $self->dist->cfg->{dist}->{cpan} && !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{username} || !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{password} ) {
         say q[You need to specify PAUSE credentials.];
 
         return;
+    }
+
+    # check distance from the last release
+    if ( !$self->dist->id->{release_distance} ) {
+        return if P->term->prompt( q[No changes since last release. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
     }
 
     if ( $self->dist->docker_cfg ) {
@@ -262,7 +262,7 @@ sub _compose_new_version ($self) {
     my $cur_ver = $self->dist->id->{release};
 
     if ( $cur_ver eq 'v0.0.0' && $self->bugfix ) {
-        say 'Bugfix has no sense on first release';
+        say 'Bugfix is impossible on first release';
 
         return;
     }
