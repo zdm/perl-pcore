@@ -6,7 +6,7 @@ use Pcore::API::DockerHub;
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
 around new => sub ( $orig, $self, $args ) {
-    return if !$args->{dist}->docker_cfg;
+    return if !$args->{dist}->docker;
 
     return $self->$orig($args);
 };
@@ -14,9 +14,9 @@ around new => sub ( $orig, $self, $args ) {
 sub run ( $self, $args ) {
     return $self->update_from_tag( $args->{from} ) if $args->{from};
 
-    my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker_cfg->{namespace} } );
+    my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker->{namespace} } );
 
-    my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
+    my $dockerhub_repo = $dockerhub_api->get_repo( $self->dist->docker->{repo_name} );
 
     $self->create_build_tag( $dockerhub_repo, $args->{create} ) if $args->{create};
 
@@ -207,6 +207,8 @@ sub update_from_tag ( $self, $tag ) {
 
             $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$tag"], 'Dockerfile' ) or die;
 
+            $self->dist->clean_docker;
+
             say qq[Docker base image changed from "$1$2" to "$1:$tag"];
         }
     }
@@ -321,8 +323,8 @@ sub remove_tag ( $self, $dockerhub_repo, $tag ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 32                   | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (21)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 149, 157, 184, 229,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 294                  |                                                                                                                |
+## |    3 | 149, 157, 184, 231,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 296                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 203                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

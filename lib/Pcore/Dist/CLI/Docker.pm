@@ -88,7 +88,7 @@ sub run ( $self, $args ) {
             $files->add_file( 'share/docker.json', P->data->to_json( { namespace => $namespace }, readable => 1 ) );
 
             $files->render_tmpl(
-                {   pcore_dockerhub_namespace => $ENV->pcore->docker_cfg->{namespace},
+                {   pcore_dockerhub_namespace => $ENV->pcore->docker->{namespace},
                     author                    => P->text->mark_raw( $self->dist->cfg->{dist}->{author} ),
                     dist_path                 => lc $self->dist->name,
                 }

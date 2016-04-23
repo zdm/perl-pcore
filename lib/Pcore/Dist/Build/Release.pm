@@ -153,7 +153,6 @@ sub run ($self) {
     # commit
     $self->dist->scm->scm_commit(qq[release $new_ver]) or die;
 
-    # TODO set "latest" tag only for the latest release
     $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or die;
 
     print 'Pushing to the upstream repository ... ';
@@ -165,9 +164,9 @@ sub run ($self) {
     if ( $self->dist->build->docker ) {
         require Pcore::API::DockerHub;
 
-        my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker_cfg->{namespace} } );
+        my $dockerhub_api = Pcore::API::DockerHub->new( { namespace => $self->dist->docker->{namespace} } );
 
-        my $dockerhub_repo = $dockerhub_api->get_repo( lc $self->dist->name );
+        my $dockerhub_repo = $dockerhub_api->get_repo( $self->dist->docker->{repo_name} );
 
       CREATE_DOCKERHUB_VERSION_TAG:
         if ( !$self->dist->build->docker->create_build_tag( $dockerhub_repo, $new_ver ) ) {
@@ -221,33 +220,20 @@ sub _can_release ($self) {
         return if P->term->prompt( q[No changes since last release. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
     }
 
-    if ( $self->dist->docker_cfg ) {
+    if ( $self->dist->docker ) {
         if ( !$ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_username} || !$ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_password} ) {
             say q[You need to specify DockerHub credentials.];
 
             return;
         }
 
-        my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
+        say qq[Docker base image is "@{[$self->dist->docker->{from}]}".];
 
-        if ( $dockerfile->$* =~ /^FROM\s+([^:]+):(.+?)$/sm ) {
-            my $dockerimage = $1;
-
-            my $dockertag = $2;
-
-            say qq[Docker base image is "$dockerimage:$dockertag".];
-
-            if ( $dockertag eq 'latest' ) {
-                return if P->term->prompt( 'Are you sure to continue release with the "latest" tag?', [qw[yes no]], enter => 1 ) eq 'no';
-            }
-            elsif ( $dockertag !~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
-                say q[Docker base image tag can be "latest" or "vx.x.x". Use "pcore docker --from <TAG>" to set needed tag.];
-
-                return;
-            }
+        if ( $self->dist->docker->{from_tag} eq 'latest' ) {
+            return if P->term->prompt( 'Are you sure to continue release with the "latest" tag?', [qw[yes no]], enter => 1 ) eq 'no';
         }
-        else {
-            say q[Can not parse base images tag from Dockerfile.];
+        elsif ( $self->dist->docker->{from_tag} !~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
+            say q[Docker base image tag can be "latest" or "vx.x.x". Use "pcore docker --from <TAG>" to set needed tag.];
 
             return;
         }
@@ -383,13 +369,13 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (28)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 362                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 348                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 87, 128, 147, 173,   |                                                                                                                |
-## |      | 178, 183, 188        |                                                                                                                |
+## |      | 87, 128, 147, 172,   |                                                                                                                |
+## |      | 177, 182, 187        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 358                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 344                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

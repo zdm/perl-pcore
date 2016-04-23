@@ -146,7 +146,8 @@ sub _show_dist_info ( $self, $dist ) {
             [ module => $dist->module->name, ],
             [ root   => $dist->root, ],
             [ lib    => $dist->module->lib, ],
-            [ share  => $dist->share_dir, ]
+            [ share  => $dist->share_dir, ],
+            $self->dist->docker ? [ docker => $self->dist->docker->{id} . ' FROM ' . $self->dist->docker->{from} ] : (),
         ]
     );
 

@@ -20,6 +20,7 @@ has id      => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef )
 has version => ( is => 'lazy', isa => Object,  clearer => 1, init_arg => undef );
 has is_commited => ( is => 'lazy', isa => Maybe [Bool],     init_arg => undef );
 has releases    => ( is => 'lazy', isa => Maybe [ArrayRef], init_arg => undef );
+has docker      => ( is => 'lazy', isa => Maybe [HashRef],  clearer  => 1, init_arg => undef );
 
 around new => sub ( $orig, $self, $dist ) {
 
@@ -292,11 +293,44 @@ sub clear ($self) {
 
     $self->clear_docker_cfg;
 
+    $self->clear_docker;
+
     return;
 }
 
 sub version_string ($self) {
     return join q[ ], $self->name, $self->id->{release_id}, join( q[ ], grep {$_} $self->id->{branch}, $self->id->{bookmark}, sort $self->id->{tags}->@* ), $self->id->{node} . ( $self->is_commited ? q[] : q[+] ), $self->id->{date};
+}
+
+sub _build_docker ($self) {
+    if ( $self->docker_cfg && -f $self->root . 'Dockerfile' ) {
+        my $docker = {
+            namespace      => $self->docker_cfg->{namespace},
+            repo_name      => lc $self->name,
+            from_repo_name => undef,
+            from_tag       => undef,
+        };
+
+        $docker->{id} = "$docker->{namespace}/$docker->{repo_name}";
+
+        my $dockerfile = P->file->read_bin( $self->root . 'Dockerfile' );
+
+        if ( $dockerfile->$* =~ /^FROM\s+([^:]+):?(.*?)$/sm ) {
+            $docker->{from_repo_name} = $1;
+
+            $docker->{from_tag} = $2 // 'latest';
+
+            $docker->{from} = "$docker->{from_repo_name}:$docker->{from_tag}";
+
+            return $docker;
+        }
+        else {
+            die q[Can't parse Dockerfile.];
+        }
+    }
+    else {
+        return;
+    }
 }
 
 1;
@@ -306,9 +340,9 @@ sub version_string ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 107, 157             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 108, 158             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 232                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 233                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
