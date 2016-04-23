@@ -89,6 +89,7 @@ sub report ( $self, $dockerhub_repo ) {
                 }
             },
             size => {
+                title  => 'IMAGE SIZE',
                 width  => 15,
                 align  => 1,
                 format => sub ( $val, $id, $row ) {
@@ -96,7 +97,7 @@ sub report ( $self, $dockerhub_repo ) {
                 }
             },
             last_updated => {
-                title  => 'LAST UPDATED',
+                title  => 'IMAGE LAST UPDATED',
                 width  => 35,
                 align  => 1,
                 format => sub ( $val, $id, $row ) {
@@ -323,10 +324,10 @@ sub remove_tag ( $self, $dockerhub_repo, $tag ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 32                   | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (21)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 149, 157, 184, 231,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 296                  |                                                                                                                |
+## |    3 | 150, 158, 185, 232,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 297                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 203                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 204                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
