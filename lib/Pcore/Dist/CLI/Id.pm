@@ -70,11 +70,11 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                     },
                     unreleased => {
                         title => "UNRELEASED\nCHANGES",
-                        width => 14,
+                        width => 12,
                         align => 1,
                     },
                     uncommited => {
-                        width => 15,
+                        width => 14,
                         align => 1,
                     },
                 ],
