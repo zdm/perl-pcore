@@ -57,7 +57,7 @@ sub _clone_upstream_wiki ($self) {
 
     print qq[Cloning upstream wiki "$clone_uri" ... ];
 
-    if ( my $res = Pcore::API::SCM->scm_clone( $self->dist->root . '/wiki/', $clone_uri ) ) {
+    if ( my $res = Pcore::API::SCM->scm_clone( $self->dist->root . '/wiki/', $clone_uri, update => 'tip' ) ) {
         say 'done';
 
         return 1;
