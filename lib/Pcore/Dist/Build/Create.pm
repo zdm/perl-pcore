@@ -49,7 +49,6 @@ sub _build_tmpl_params ($self) {
         dist_name         => $self->namespace =~ s/::/-/smgr,                                                                    # Package-Name
         dist_path         => lc $self->namespace =~ s/::/-/smgr,                                                                 # package-name
         module_name       => $self->namespace,                                                                                   # Package::Name
-        main_script       => 'main.pl',
         author            => $ENV->user_cfg->{'Pcore::Dist'}->{author},
         author_email      => $ENV->user_cfg->{'Pcore::Dist'}->{email},
         copyright_year    => P->date->now->year,

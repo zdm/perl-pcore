@@ -17,6 +17,8 @@
             'Method/Generate/Accessor__WITH__Method/Generate/Accessor/Role/TypeTiny.pm',
             'Method/Generate/Accessor__WITH__Method/Generate/Accessor/Role/TypeTiny__WITH__Method/Generate/Accessor/Role/TypeTiny.pm',
         ],
+
+        # architecture dependent settings
         arch => {
             'MSWin32-x86-multi-thread-64int' => {
 

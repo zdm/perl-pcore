@@ -31,9 +31,32 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 }
 
 sub run ( $self, $opt ) {
-    $self->dist->build->par( $opt->%* );
+    if ( !$self->dist->par_cfg ) {
+        if ( P->term->prompt( qq[Create PAR profile?], [qw[yes no]], enter => 1 ) eq 'yes' ) {
+            require Pcore::Util::File::Tree;
 
-    return;
+            # copy files
+            my $files = Pcore::Util::File::Tree->new;
+
+            $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/par/' );
+
+            $files->render_tmpl(
+                {   main_script => 'main.pl',    #
+                }
+            );
+
+            $files->write_to( $self->dist->root );
+
+            say q[PAR profile was created. You should edit "par.perl" manually.];
+        }
+
+        return;
+    }
+    else {
+        $self->dist->build->par( $opt->%* );
+
+        return;
+    }
 }
 
 1;
@@ -43,7 +66,9 @@ sub run ( $self, $opt ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 34                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 35                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 56                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

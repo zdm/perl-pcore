@@ -17,7 +17,7 @@ has arg  => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 has is_cmd     => ( is => 'lazy', isa => Bool,    init_arg => undef );
 has _cmd_index => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->cfg->{par} && exists $ENV->dist->cfg->{par}->{ $ENV->{SCRIPT_NAME} };
+my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->par_cfg && exists $ENV->dist->par_cfg->{script}->{ $ENV->{SCRIPT_NAME} };
 
 sub _build_spec ($self) {
     return $self->_get_class_spec;

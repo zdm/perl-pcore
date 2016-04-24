@@ -43,8 +43,8 @@ sub run ($self) {
     }
 
     # check for distribution has configure PAR profiles in dist.perl
-    if ( !$self->dist->cfg->{par} && !ref $self->dist->cfg->{par} eq 'HASH' ) {
-        say q[par profile wasn't found.];
+    if ( !$self->dist->par_cfg && !ref $self->dist->par_cfg->{script} eq 'HASH' ) {
+        say q[par script profile wasn't found.];
 
         exit 1;
     }
@@ -53,7 +53,7 @@ sub run ($self) {
     my $pcore_cfg = P->cfg->load( $ENV->share->get( '/data/pcore.perl', lib => 'Pcore' ) );
 
     # build scripts
-    for my $script ( sort keys $self->dist->cfg->{par}->%* ) {
+    for my $script ( sort keys $self->dist->par_cfg->{script}->%* ) {
         if ( !exists $pardeps->{$script}->{ $Config{archname} } ) {
             say BOLD . RED . qq[Deps for $script "$Config{archname}" wasn't scanned.] . RESET;
 
@@ -62,7 +62,7 @@ sub run ($self) {
             next;
         }
 
-        my $profile = $self->dist->cfg->{par}->{$script};
+        my $profile = $self->dist->par_cfg->{script}->{$script};
 
         $profile->{dist}    = $self->dist;
         $profile->{script}  = P->path( $self->dist->root . 'bin/' . $script );
@@ -70,6 +70,12 @@ sub run ($self) {
         $profile->{crypt}   = $self->crypt if defined $self->crypt;
         $profile->{upx}     = $self->upx if defined $self->upx;
         $profile->{clean}   = $self->clean if defined $self->clean;
+
+        if ( !-f $profile->{script} ) {
+            say BOLD . RED . qq[Script "$script" wasn't found.] . RESET;
+
+            next;
+        }
 
         # add pardeps.cbor modules, skip eval records
         $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->{ $Config{archname} }->%* } = ();
@@ -113,7 +119,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 56, 75, 96, 101      | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 56, 81, 102, 107     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

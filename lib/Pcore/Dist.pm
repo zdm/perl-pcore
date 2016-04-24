@@ -11,6 +11,7 @@ has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], p
 
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );    # dist.perl
 has docker_cfg => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );    # docker.json
+has par_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );                     # par.perl
 has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                               # Dist-Name
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );                # main process dist
@@ -198,6 +199,14 @@ sub _build_docker_cfg ($self) {
     return;
 }
 
+sub _build_par_cfg ($self) {
+    if ( -f $self->share_dir . 'par.perl' ) {
+        return P->cfg->load( $self->share_dir . 'par.perl' );
+    }
+
+    return;
+}
+
 sub _build_name ($self) {
     return $self->cfg->{dist}->{name};
 }
@@ -340,9 +349,9 @@ sub _build_docker ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 108, 158             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 109, 159             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 233                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 242                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

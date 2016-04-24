@@ -11,13 +11,12 @@ use Config;
 
 has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
-has release => ( is => 'ro', isa => Bool, required => 1 );
-has crypt   => ( is => 'ro', isa => Bool, required => 1 );
-has upx     => ( is => 'ro', isa => Bool, required => 1 );
-has clean   => ( is => 'ro', isa => Bool, required => 1 );
-
-has mod   => ( is => 'ro', isa => HashRef,  required => 1 );
-has shlib => ( is => 'ro', isa => ArrayRef, required => 1 );
+has release => ( is => 'ro', isa => Bool,     required => 1 );
+has crypt   => ( is => 'ro', isa => Bool,     required => 1 );
+has upx     => ( is => 'ro', isa => Bool,     required => 1 );
+has clean   => ( is => 'ro', isa => Bool,     required => 1 );
+has mod     => ( is => 'ro', isa => HashRef,  required => 1 );
+has shlib   => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix   => ( is => 'lazy', isa => Str,     init_arg => undef );
@@ -348,11 +347,11 @@ sub _add_dist ( $self, $dist ) {
     $ENV->register_dist($dist);
 
     # process dist modules shares
-    if ( $dist->cfg->{par_mod_share} ) {
+    if ( $dist->par_cfg->{mod_share} ) {
 
         # register shares to add later
-        for my $mod ( grep { exists $self->mod->{$_} } keys $dist->cfg->{par_mod_share}->%* ) {
-            $self->share->@{ $dist->cfg->{par_mod_share}->{$mod}->@* } = ();
+        for my $mod ( grep { exists $self->mod->{$_} } keys $dist->par_cfg->{mod_share}->%* ) {
+            $self->share->@{ $dist->par_cfg->{mod_share}->{$mod}->@* } = ();
         }
     }
 
@@ -570,20 +569,20 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 180, 199, 206, 238,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 313, 354, 506        |                                                                                                                |
+## |    3 | 179, 198, 205, 237,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 312, 353, 505        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 252                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 251                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 388, 406             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 387, 405             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 441                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 440                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 476                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 475                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 528, 530             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 527, 529             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 463, 469             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 462, 468             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
