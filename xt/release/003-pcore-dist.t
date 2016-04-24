@@ -294,9 +294,7 @@ sub generate_test_dir ( $dist_name, $args ) {
     my $tree = Pcore::Util::File::Tree->new;
 
     my $dist_perl = <<"PERL";
-{   dist => {
-        name => '$dist_name',
-    }
+{   name => '$dist_name',
 }
 PERL
 
