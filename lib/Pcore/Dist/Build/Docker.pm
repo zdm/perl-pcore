@@ -178,20 +178,25 @@ sub report ( $self, $dockerhub_repo ) {
         }
     }
 
-    my $version_tags = [];
+    if ( keys $report->%* ) {
+        my $version_tags = [];
 
-    my $named_tags = [];
+        my $named_tags = [];
 
-    for ( keys $report->%* ) {
-        $report->{$_}->{tag} = $_;
+        for ( keys $report->%* ) {
+            $report->{$_}->{tag} = $_;
 
-        if    (/\Av\d+[.]\d+[.]\d+\z/sm) { push $version_tags->@*, $_ }
-        elsif ( $_ ne 'latest' )         { push $named_tags->@*,   $_ }
+            if    (/\Av\d+[.]\d+[.]\d+\z/sm) { push $version_tags->@*, $_ }
+            elsif ( $_ ne 'latest' )         { push $named_tags->@*,   $_ }
+        }
+
+        print $tbl->render_all( [ map { $report->{$_} } ( sort $version_tags->@* ), $report->{latest} ? 'latest' : (), ( sort $named_tags->@* ) ] );
+
+        say 'NOTE: if build tag is not set - repository will not be builded automatically, when build link will be updated';
     }
-
-    print $tbl->render_all( [ map { $report->{$_} } ( sort $version_tags->@* ), $report->{latest} ? 'latest' : (), ( sort $named_tags->@* ) ] );
-
-    say 'NOTE: if build tag is not set - repository will not be builded automatically, when build link will be updated';
+    else {
+        say q[No docker tags were found.];
+    }
 
     return;
 }
@@ -322,12 +327,12 @@ sub remove_tag ( $self, $dockerhub_repo, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 32                   | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (21)                    |
+## |    3 | 32                   | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (23)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 150, 158, 185, 232,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 297                  |                                                                                                                |
+## |    3 | 150, 158, 181, 186,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 237, 302             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 204                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 209                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
