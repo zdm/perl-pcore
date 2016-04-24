@@ -25,20 +25,4 @@
         # util_accessor_name => 'Util::Package::Name'
         # and lateer in the code you can use: P->util_accessor_name->
     },
-
-    # shared resources, used by modules in this distribution
-    par_mod_share => {
-
-        # eg.:
-        # 'Distribution/Module/Name.pm' => ['/data/pcore.perl', '/data/web2.perl'],
-    },
-
-    # PAR scripts
-    par => {
-        '<: $main_script :>' => {
-            crypt => 1,    # crypt PAR by default
-            upx   => 1,    # compress DLLs with upx by default
-            clean => 1,    # clean PAR cache on exit
-        },
-    },
 }
