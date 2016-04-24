@@ -57,7 +57,7 @@ sub run ($self) {
         if ( !exists $pardeps->{$script}->{ $Config{archname} } ) {
             say BOLD . RED . qq[Deps for $script "$Config{archname}" wasn't scanned.] . RESET;
 
-            say qq[Run "$script ---scan-deps"];
+            say qq[Run "$script ---scan-deps".];
 
             next;
         }
@@ -74,27 +74,20 @@ sub run ($self) {
         # add pardeps.cbor modules, skip eval records
         $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->{ $Config{archname} }->%* } = ();
 
-        # add global modules
+        # add common modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{mod}->@* } = ();
-
-        # add global ignored modules
-        $profile->{mod_ignore}->@{ $pcore_cfg->{par}->{mod_ignore}->@* } = ();
 
         # add global arch modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod}->@* } = () if exists $pcore_cfg->{par}->{arch}->{ $Config{archname} }->{mod};
+
+        # remove common ignored modules
+        delete $profile->{mod}->@{ $pcore_cfg->{par}->{mod_ignore}->@* };
 
         # replace Inline.pm with Pcore/Core/Inline.pm
         $profile->{mod}->{'Pcore/Core/Inline.pm'} = undef if delete $profile->{mod}->{'Inline.pm'};
 
         # add Filter::Crypto::Decrypt deps if crypt mode is used
         $profile->{mod}->{'Filter/Crypto/Decrypt.pm'} = undef if $profile->{crypt};
-
-        # index and add script shares
-        my $share = {};
-
-        $share->@{ $profile->{share}->@* } = () if $profile->{share};
-
-        $profile->{share} = $share;
 
         # index and add shlib
         my $shlib = {};
@@ -120,7 +113,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 56, 75, 103, 108     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 56, 75, 96, 101      | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -3,19 +3,27 @@
         'MSWin32-x64-multi-thread'       => [qw[Test::TCP]],
     },
     par => {
-        mod => [        # default modules, that will be added to each PAR
 
-            # example:
+        # common modules, that will be added to the each PAR
+        mod => [
+
+            # eg.:
             # 'bytes_heavy.pl',
             # 'HTTP/Date.pm',
         ],
-        mod_ignore => [    # modules to ignore
+
+        # common modules to ignore
+        mod_ignore => [    #
             'Method/Generate/Accessor__WITH__Method/Generate/Accessor/Role/TypeTiny.pm',
             'Method/Generate/Accessor__WITH__Method/Generate/Accessor/Role/TypeTiny__WITH__Method/Generate/Accessor/Role/TypeTiny.pm',
         ],
         arch => {
             'MSWin32-x86-multi-thread-64int' => {
-                mod       => [],
+
+                # common arch. dependent modules, same as "mod", but arch. dependent
+                mod => [],
+
+                # common arch. dependent shared libs names, used by modules
                 mod_shlib => {
                     'B/Hooks/OP/Check.pm'       => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
                     'Filter/Crypto/Decrypt.pm'  => [ 'libeay32_.dll', 'zlib1_.dll' ],
@@ -26,7 +34,11 @@
                 },
             },
             'MSWin32-x64-multi-thread' => {
-                mod       => [],
+
+                # common default arch. dependent modules, same as "mod", but arch. dependent
+                mod => [],
+
+                # common arch. dependent shared libs names, used by modules
                 mod_shlib => {
                     'B/Hooks/OP/Check.pm'       => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
                     'Filter/Crypto/Decrypt.pm'  => [ 'libeay32__.dll', 'zlib1__.dll' ],

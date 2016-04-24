@@ -16,15 +16,14 @@ has crypt   => ( is => 'ro', isa => Bool, required => 1 );
 has upx     => ( is => 'ro', isa => Bool, required => 1 );
 has clean   => ( is => 'ro', isa => Bool, required => 1 );
 
-has mod        => ( is => 'ro', isa => HashRef,  required => 1 );
-has mod_ignore => ( is => 'ro', isa => HashRef,  required => 1 );
-has share      => ( is => 'ro', isa => HashRef,  required => 1 );
-has shlib      => ( is => 'ro', isa => ArrayRef, required => 1 );
+has mod   => ( is => 'ro', isa => HashRef,  required => 1 );
+has shlib => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
 has par_suffix   => ( is => 'lazy', isa => Str,     init_arg => undef );
 has exe_filename => ( is => 'lazy', isa => Str,     init_arg => undef );
 has main_mod     => ( is => 'lazy', isa => HashRef, default  => sub { {} }, init_arg => undef );    # main modules, found during deps processing
+has share        => ( is => 'ro',   isa => HashRef, default  => sub { {} }, init_arg => undef );
 
 sub _build_tree ($self) {
     return Pcore::Util::File::Tree->new;
@@ -67,7 +66,9 @@ sub run ($self) {
 
     # add modules
     print 'adding modules ... ';
+
     $self->_add_modules;
+
     say 'done';
 
     # process found main modules
@@ -196,10 +197,6 @@ sub _add_modules ($self) {
 
     # add .pl, .pm
     for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->mod->%* ) {
-
-        # skip ignored module
-        next if exists $self->mod_ignore->{$module};
-
         my $found = $self->_add_module($module);
 
         $self->_error(qq[required module wasn't found: "$module"]) if !$found;
@@ -573,20 +570,20 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 179, 198, 209, 241,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 316, 357, 509        |                                                                                                                |
+## |    3 | 180, 199, 206, 238,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 313, 354, 506        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 255                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 252                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 391, 409             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 388, 406             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 444                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 441                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 479                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 476                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 531, 533             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 528, 530             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 466, 472             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 463, 469             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
