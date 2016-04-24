@@ -332,7 +332,7 @@ sub _add_dist ( $self, $dist ) {
         $self->tree->add_file( 'share/dist.perl', $dist->share_dir . '/dist.perl' );
 
         # add main dist dist-id.json
-        $self->tree->add_file( 'share/dist-id.json', P->data->to_perl( $dist->id, readable => 1 ) );
+        $self->tree->add_file( 'share/dist-id.json', P->data->to_json( $dist->id, readable => 1 ) );
     }
     else {
 
@@ -340,7 +340,7 @@ sub _add_dist ( $self, $dist ) {
         $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist.perl", $dist->share_dir . '/dist.perl' );
 
         # add dist-id.json
-        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.json", P->data->to_perl( $dist->id, readable => 1 ) );
+        $self->tree->add_file( "lib/auto/share/dist/@{[ $dist->name ]}/dist-id.json", P->data->to_json( $dist->id, readable => 1 ) );
     }
 
     # register dist share in order to find them later via $ENV->share->get interface

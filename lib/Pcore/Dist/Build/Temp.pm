@@ -68,7 +68,7 @@ sub _gather_files ($self) {
     }
 
     # add dist-id.json
-    $tree->add_file( 'share/dist-id.json', P->data->to_perl( $self->dist->id, readable => 1 ) );
+    $tree->add_file( 'share/dist-id.json', P->data->to_json( $self->dist->id, readable => 1 ) );
 
     # add t/author-pod-syntax.t
     my $t = <<'PERL';

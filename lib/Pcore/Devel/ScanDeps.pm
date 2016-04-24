@@ -17,6 +17,9 @@ if ( $ENV->dist ) {
 
     # eval TypeTiny Error
     eval { Int->('error') };
+
+    # eval common modules
+    require JSON::XS;    ## no critic qw[Modules::ProhibitEvilModules]
 }
 
 sub add_deps ( $self, $deps ) {
@@ -71,9 +74,9 @@ sub DESTROY {
 ## |======+======================+================================================================================================================|
 ## |    3 | 19                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 23, 49               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 26, 52               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 35                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 38                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
