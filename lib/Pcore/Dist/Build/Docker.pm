@@ -213,7 +213,7 @@ sub update_from_tag ( $self, $tag ) {
 
             $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$tag"], 'Dockerfile' ) or die;
 
-            $self->dist->clean_docker;
+            $self->dist->clear_docker;
 
             say qq[Docker base image changed from "$1$2" to "$1:$tag"];
         }
