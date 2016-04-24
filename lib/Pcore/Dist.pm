@@ -308,7 +308,11 @@ sub clear ($self) {
 }
 
 sub version_string ($self) {
-    return join q[ ], $self->name, $self->id->{release_id}, join( q[ ], grep {$_} $self->id->{branch}, $self->id->{bookmark}, sort $self->id->{tags}->@* ), $self->id->{node} . ( $self->is_commited ? q[] : q[+] ), $self->id->{date};
+    my $is_commited = $self->is_commited;
+
+    $is_commited //= 1;
+
+    return join q[ ], $self->name, $self->id->{release_id}, join( q[ ], grep {$_} $self->id->{branch}, $self->id->{bookmark}, sort $self->id->{tags}->@* ), $self->id->{node} . ( $is_commited ? q[] : q[+] ), $self->id->{date};
 }
 
 sub _build_docker ($self) {
