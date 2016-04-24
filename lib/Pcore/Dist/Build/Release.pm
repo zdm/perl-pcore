@@ -190,7 +190,7 @@ sub run ($self) {
     }
 
     # upload to the CPAN if this is the CPAN distribution, prompt before upload
-    $self->_upload_to_cpan if $self->dist->cfg->{dist}->{cpan};
+    $self->_upload_to_cpan if $self->dist->cfg->{cpan};
 
     return 1;
 }
@@ -209,7 +209,7 @@ sub _can_release ($self) {
         return;
     }
 
-    if ( $self->dist->cfg->{dist}->{cpan} && !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{username} || !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{password} ) {
+    if ( $self->dist->cfg->{cpan} && !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{username} || !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{password} ) {
         say q[You need to specify PAUSE credentials.];
 
         return;

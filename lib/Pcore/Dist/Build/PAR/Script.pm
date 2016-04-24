@@ -281,7 +281,7 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
 
         # do not crypt modules, that belongs to the CPAN distribution
         if ( !$is_cpan_module && ( my $dist = Pcore::Dist->new( P->path($source)->dirname ) ) ) {
-            $crypt = 0 if $dist->cfg->{dist}->{cpan};
+            $crypt = 0 if $dist->cfg->{cpan};
         }
 
         if ($crypt) {

@@ -208,7 +208,7 @@ sub _build_par_cfg ($self) {
 }
 
 sub _build_name ($self) {
-    return $self->cfg->{dist}->{name};
+    return $self->cfg->{name};
 }
 
 sub _build_is_pcore ($self) {

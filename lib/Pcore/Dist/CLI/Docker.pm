@@ -89,7 +89,7 @@ sub run ( $self, $args ) {
 
             $files->render_tmpl(
                 {   pcore_dockerhub_namespace => $ENV->pcore->docker->{namespace},
-                    author                    => P->text->mark_raw( $self->dist->cfg->{dist}->{author} ),
+                    author                    => P->text->mark_raw( $self->dist->cfg->{author} ),
                     dist_path                 => lc $self->dist->name,
                 }
             );

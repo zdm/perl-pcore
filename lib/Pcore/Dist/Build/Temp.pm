@@ -51,7 +51,7 @@ sub run ( $self, $keep = 0 ) {
 sub _gather_files ($self) {
     my $tree = Pcore::Util::File::Tree->new;
 
-    my $cpan_bin = $self->dist->cfg->{dist}->{cpan} && $self->dist->cfg->{dist}->{cpan_bin};
+    my $cpan_bin = $self->dist->cfg->{cpan} && $self->dist->cfg->{cpan_bin};
 
     my @dir = qw[lib/ share/ t/ xt/];
 
@@ -166,12 +166,12 @@ sub _generate_meta_json ( $self, $tree ) {
     my $meta = {
         abstract => 'unknown',
         author   => [            #
-            $self->dist->cfg->{dist}->{author},
+            $self->dist->cfg->{author},
         ],
         dynamic_config => 0,
-        license        => [ lc $self->dist->cfg->{dist}->{license} ],
+        license        => [ lc $self->dist->cfg->{license} ],
         name           => $self->dist->name,
-        no_index       => {                                             #
+        no_index       => {                                     #
             directory => [qw[share t]],
         },
         release_status => 'stable',
@@ -194,23 +194,23 @@ sub _generate_meta_json ( $self, $tree ) {
         $upstream_meta = {};
     }
 
-    if ( my $val = $self->dist->cfg->{dist}->{meta}->{homepage} || $upstream_meta->{homepage} ) {
+    if ( my $val = $self->dist->cfg->{meta}->{homepage} || $upstream_meta->{homepage} ) {
         $meta->{resources}->{homepage} = $val;
     }
 
-    if ( my $val = $self->dist->cfg->{dist}->{meta}->{repository}->{web} || $upstream_meta->{repository}->{web} ) {
+    if ( my $val = $self->dist->cfg->{meta}->{repository}->{web} || $upstream_meta->{repository}->{web} ) {
         $meta->{resources}->{repository}->{web} = $val;
     }
 
-    if ( my $val = $self->dist->cfg->{dist}->{meta}->{repository}->{url} || $upstream_meta->{repository}->{url} ) {
+    if ( my $val = $self->dist->cfg->{meta}->{repository}->{url} || $upstream_meta->{repository}->{url} ) {
         $meta->{resources}->{repository}->{url} = $val;
     }
 
-    if ( my $val = $self->dist->cfg->{dist}->{meta}->{repository}->{type} || $upstream_meta->{repository}->{type} ) {
+    if ( my $val = $self->dist->cfg->{meta}->{repository}->{type} || $upstream_meta->{repository}->{type} ) {
         $meta->{resources}->{repository}->{type} = $val;
     }
 
-    if ( my $val = $self->dist->cfg->{dist}->{meta}->{bugtracker}->{web} || $upstream_meta->{bugtracker}->{web} ) {
+    if ( my $val = $self->dist->cfg->{meta}->{bugtracker}->{web} || $upstream_meta->{bugtracker}->{web} ) {
         $meta->{resources}->{bugtracker}->{web} = $val;
     }
 
