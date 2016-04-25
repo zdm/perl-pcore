@@ -4,9 +4,7 @@ MAINTAINER <: $author :>
 
 USER root
 
-ENV DIST_NAME="<: $dist_path :>"
-
-ENV DIST_PATH="$PCORE_LIB/$DIST_NAME"
+ENV DIST_PATH="$PCORE_LIB/<: $dist_path :>"
 
 ADD . $DIST_PATH
 

@@ -4,10 +4,9 @@ MAINTAINER admin@softvisio.net
 
 USER root
 
-ENV DIST_NAME="pcore" \
-    PCORE_LIB="/var/local"
+ENV PCORE_LIB="/var/local"
 
-ENV DIST_PATH="$PCORE_LIB/$DIST_NAME"
+ENV DIST_PATH="$PCORE_LIB/pcore"
 
 ENV PATH="$DIST_PATH/bin:$PATH" \
     PERL5LIB="$DIST_PATH/lib"
