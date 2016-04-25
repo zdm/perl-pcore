@@ -55,6 +55,7 @@ sub _build_tmpl_params ($self) {
         copyright_holder  => $ENV->user_cfg->{'Pcore::Dist'}->{copyright_holder} || $ENV->user_cfg->{'Pcore::Dist'}->{author},
         license           => $ENV->user_cfg->{'Pcore::Dist'}->{license},
         cpan_distribution => $self->cpan,
+        pcore_version     => $ENV->pcore->version->normal,
     };
 }
 

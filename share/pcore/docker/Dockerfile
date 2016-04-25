@@ -14,6 +14,4 @@ RUN pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
     && rm -rf ~/.cpanm
 
-VOLUME ["$DIST_PATH/data/", "$DIST_PATH/log/"]
-
 ENTRYPOINT ["bin/main.pl"]

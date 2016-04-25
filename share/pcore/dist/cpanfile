@@ -1,1 +1,1 @@
-requires 'Pcore';
+requires 'Pcore', <: $pcore_version :>;
