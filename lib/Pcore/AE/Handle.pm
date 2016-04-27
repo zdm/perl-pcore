@@ -669,11 +669,11 @@ sub read_http_res_headers {
     return;
 }
 
-sub read_http_req_headers ( $self, $cb ) {
+sub read_http_req_headers ( $self, $cb, $env = undef ) {
     $self->push_read(
         http_headers => sub ( $h, @ ) {
             if ( $_[1] ) {
-                my $env = {};
+                $env //= {};
 
                 my $res = HTTP::Parser::XS::parse_http_request( $_[1], $env );
 
@@ -702,7 +702,7 @@ sub read_http_body ( $self, $on_read, @ ) {
     my %args = (
         chunked  => 0,
         length   => undef,    # false - read until EOF
-        headers  => 0,
+        headers  => 0,        # false or headers object to read trailing headers
         buf_size => 65_536,
         splice @_, 2,
     );

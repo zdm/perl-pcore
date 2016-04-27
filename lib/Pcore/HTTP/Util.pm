@@ -59,10 +59,10 @@ sub http_request ($args) {
 
                 if ($persistent) {
                     if ( $runtime->{res}->{version} == 1.1 ) {    # HTTP/1.1
-                        $persistent = 0 if $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bclose\b/smi;
+                        $persistent = 0 if $runtime->{res}->headers->{CONNECTION} && $runtime->{res}->headers->{CONNECTION} =~ /\bclose\b/smio;
                     }
                     elsif ( $runtime->{res}->{version} == 1.0 ) {    # HTTP/1.0
-                        $persistent = 0 if !$runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bkeep-?alive\b/smi;
+                        $persistent = 0 if !$runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bkeep-?alive\b/smio;
                     }
                 }
 
