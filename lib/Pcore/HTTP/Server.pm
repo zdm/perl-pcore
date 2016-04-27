@@ -114,8 +114,10 @@ sub _wait_request ( $self, $h ) {
 sub _run_app ( $self, $h, $env ) {
 
     # create psgi.input reader
+    my $psgi_input;
+
     if ( $env->{CONTENT_LENGTH} ) {
-        $env->{'psgi.input'} = bless {
+        $psgi_input = bless {
             server         => $self,
             h              => $h,
             chunked        => 0,
@@ -125,7 +127,7 @@ sub _run_app ( $self, $h, $env ) {
           'Pcore::HTTP::Server::Reader';
     }
     elsif ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smio ) {
-        $env->{'psgi.input'} = bless {
+        $psgi_input = bless {
             server         => $self,
             h              => $h,
             chunked        => 1,
@@ -135,7 +137,7 @@ sub _run_app ( $self, $h, $env ) {
           'Pcore::HTTP::Server::Reader';
     }
     else {
-        $env->{'psgi.input'} = bless {
+        $psgi_input = bless {
             server         => $self,
             h              => $h,
             chunked        => 0,
@@ -145,6 +147,8 @@ sub _run_app ( $self, $h, $env ) {
           'Pcore::HTTP::Server::Reader';
     }
 
+    $env->{'psgi.input'} = $psgi_input;
+
     # evaluate application
     my $res = eval { $self->app->($env) };
 
@@ -152,11 +156,14 @@ sub _run_app ( $self, $h, $env ) {
     my $keep_alive = $self->keep_alive;
 
     if ($keep_alive) {
-        if ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.0' ) {
+        if ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.1' ) {
+            $keep_alive = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smio;
+        }
+        elsif ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.0' ) {
             $keep_alive = 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smio;
         }
-        elsif ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.1' ) {
-            $keep_alive = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smio;
+        else {
+            $keep_alive = 0;
         }
     }
 
@@ -167,7 +174,7 @@ sub _run_app ( $self, $h, $env ) {
     elsif ( ref $res eq 'ARRAY' ) {
         $self->_write_psgi_response( $h, $res, $keep_alive );
 
-        $self->_finish_request( $h, $keep_alive );
+        $self->_finish_request( $h, $keep_alive, $psgi_input );
     }
     elsif ( ref $res eq 'CODE' ) {
         eval {
@@ -180,11 +187,12 @@ sub _run_app ( $self, $h, $env ) {
                             server     => $self,
                             h          => $h,
                             keep_alive => $keep_alive,
+                            psgi_input => $psgi_input,
                           },
                           'Pcore::HTTP::Server::Writer';
                     }
                     else {
-                        $self->_finish_request( $h, $keep_alive );
+                        $self->_finish_request( $h, $keep_alive, $psgi_input );
                     }
 
                     return;
@@ -204,18 +212,18 @@ sub _run_app ( $self, $h, $env ) {
 sub _return_xxx ( $self, $h, $status, $reason = undef ) {
     $self->_write_psgi_response( $h, [$status], 0 );
 
-    $self->_finish_request( $h, 0 );
+    $self->_finish_request( $h, 0, undef );
 
     return;
 }
 
-sub _finish_request ( $self, $h, $keep_alive = 0 ) {
+sub _finish_request ( $self, $h, $keep_alive, $psgi_input ) {
     $self->_cv->end;
 
     if ( !$keep_alive ) {
         $h->destroy;
     }
-    elsif (1) {
+    elsif ( $psgi_input->{has_data} ) {
         $h->destroy;
     }
     else {
@@ -286,9 +294,13 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 101                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 173                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 114                  | Subroutines::ProhibitExcessComplexity - Subroutine "_run_app" with high complexity score (21)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 266                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 180                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 220                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 274                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 57                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

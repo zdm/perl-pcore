@@ -5,6 +5,7 @@ use Pcore -class;
 has server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1, weak_ref => 1 );
 has h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1, weak_ref => 1 );
 has keep_alive => ( is => 'ro', isa => Bool, required => 1 );
+has psgi_input => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server::Reader'], required => 1 );
 
 sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     $self->{h}->push_write( sprintf( '%x', length( ref $data ? $data->$* : $data ) ) . $CRLF . ( ref $data ? $data->$* : $data ) . $CRLF );
@@ -23,7 +24,7 @@ sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConven
         # TODO write trailing headers, if client is supported
     }
 
-    $self->{server}->_finish_request( $self->{h}, $self->{keep_alive} );
+    $self->{server}->_finish_request( $self->{h}, $self->{keep_alive}, $self->{psgi_input} );
 
     return;
 }
@@ -35,7 +36,7 @@ sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConven
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 19                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 20                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
