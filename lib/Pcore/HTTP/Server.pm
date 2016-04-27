@@ -14,12 +14,15 @@ has app    => ( is => 'ro', isa => CodeRef, required => 1 );
 
 has backlog      => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 has tcp_no_delay => ( is => 'ro', isa => Bool,              default => 0 );
-has keep_alive   => ( is => 'ro', isa => PositiveOrZeroInt, default => 4 );
+has keep_alive   => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 has server_signature => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _cv => ( is => 'lazy', isa => Object, default => sub {AE::cv}, init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
+
+# TODO implement shutdown and graceful shutdown
+# TODO disconnect header on finish request
 
 sub BUILD ( $self, $args ) {
     $self->_listen_socket;
@@ -93,10 +96,10 @@ sub _wait_request ( $self, $h ) {
     $h->read_http_req_headers(
         sub ( $h1, $env, $error ) {
             if ($error) {
-                $self->_return_xxx( 400, $error );
+                $self->_return_xxx( $h, 400, $error );
             }
             else {
-                $self->_cv->begin;
+                $self->{_cv}->begin;
 
                 $env->@{ keys $psgi_env->%* } = values $psgi_env->%*;
 
@@ -116,22 +119,22 @@ sub _run_app ( $self, $h, $env ) {
     # create psgi.input reader
     my $psgi_input;
 
-    if ( $env->{CONTENT_LENGTH} ) {
-        $psgi_input = bless {
-            server         => $self,
-            h              => $h,
-            chunked        => 0,
-            content_length => $env->{CONTENT_LENGTH},
-            has_data       => 1,
-          },
-          'Pcore::HTTP::Server::Reader';
-    }
-    elsif ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smio ) {
+    if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smio ) {
         $psgi_input = bless {
             server         => $self,
             h              => $h,
             chunked        => 1,
             content_length => 0,
+            has_data       => 1,
+          },
+          'Pcore::HTTP::Server::Reader';
+    }
+    elsif ( $env->{CONTENT_LENGTH} ) {
+        $psgi_input = bless {
+            server         => $self,
+            h              => $h,
+            chunked        => 0,
+            content_length => $env->{CONTENT_LENGTH},
             has_data       => 1,
           },
           'Pcore::HTTP::Server::Reader';
@@ -169,10 +172,10 @@ sub _run_app ( $self, $h, $env ) {
 
     # processing first psgi app response
     if ($@) {
-        $self->_return_xxx(500);
+        $self->_return_xxx( $h, 500 );
     }
     elsif ( ref $res eq 'ARRAY' ) {
-        $self->_write_psgi_response( $h, $res, $keep_alive );
+        $self->_write_psgi_response( $h, $res, $keep_alive && !$psgi_input->has_data, 0 );
 
         $self->_finish_request( $h, $keep_alive, $psgi_input );
     }
@@ -180,18 +183,21 @@ sub _run_app ( $self, $h, $env ) {
         eval {
             $res->(
                 sub ($res) {
-                    $self->_write_psgi_response( $h, $res, $keep_alive );
-
                     if ( defined wantarray && !$res->[2] ) {
+                        $self->_write_psgi_response( $h, $res, $keep_alive, 1 );
+
                         return bless {
                             server     => $self,
                             h          => $h,
                             keep_alive => $keep_alive,
                             psgi_input => $psgi_input,
+                            buf_size   => 65_536,
                           },
                           'Pcore::HTTP::Server::Writer';
                     }
                     else {
+                        $self->_write_psgi_response( $h, $res, $keep_alive, 0 );
+
                         $self->_finish_request( $h, $keep_alive, $psgi_input );
                     }
 
@@ -200,17 +206,17 @@ sub _run_app ( $self, $h, $env ) {
             );
         };
 
-        $self->_return_xxx(500) if $@;
+        $self->_return_xxx( $h, 500 ) if $@;
     }
     else {
-        $self->_return_xxx(500);
+        $self->_return_xxx( $h, 500 );
     }
 
     return;
 }
 
 sub _return_xxx ( $self, $h, $status, $reason = undef ) {
-    $self->_write_psgi_response( $h, [$status], 0 );
+    $self->_write_psgi_response( $h, [$status], 0, 0 );
 
     $self->_finish_request( $h, 0, undef );
 
@@ -218,7 +224,7 @@ sub _return_xxx ( $self, $h, $status, $reason = undef ) {
 }
 
 sub _finish_request ( $self, $h, $keep_alive, $psgi_input ) {
-    $self->_cv->end;
+    $self->{_cv}->end;
 
     if ( !$keep_alive ) {
         $h->destroy;
@@ -246,13 +252,29 @@ sub _finish_request ( $self, $h, $keep_alive, $psgi_input ) {
     return;
 }
 
+# // default to the Nxx group names in RFC 2616
+#     if (100 <= code && code <= 199) {
+#         return "Informational";
+#     }
+#     else if (200 <= code && code <= 299) {
+#         return "Success";
+#     }
+#     else if (300 <= code && code <= 399) {
+#         return "Redirection";
+#     }
+#     else if (400 <= code && code <= 499) {
+#         return "Client Error";
+#     }
+#     else {
+#         return "Error";
+#     }
+
+# TODO how to pass custom reason
 # TODO add support for different body types, body can be FileHandle or CodeRef or ScalarRef, etc ...
-sub _write_psgi_response ( $self, $h, $res, $keep_alive ) {
+sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
     my $reason = $Pcore::HTTP::Status::STATUS_REASON->{ $res->[0] } // 'Unknown reason';
 
     my $headers = "HTTP/1.1 $res->[0] $reason";
-
-    $headers .= $CRLF . 'Transfer-Encoding: chunked';
 
     $headers .= $CRLF . 'Server: ' . $self->{server_signature} if $self->{server_signature};
 
@@ -263,23 +285,37 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive ) {
         $headers .= $CRLF . 'Connection: close';
     }
 
+    # TODO convert headers to CamelCase
     $headers .= $CRLF . join map { $_->key . q[: ] . $_->value } pairs $res->[1]->@* if $res->[1] && $res->[1]->@*;
 
-    $headers .= $CRLF x 2;
-
-    if ( $res->[2] ) {
-        if ( ref $res->[2] eq 'ARRAY' ) {
-            my $body = join q[], $res->[2]->@*;
-
-            $h->push_write( $headers . sprintf( '%x', length $body ) . $CRLF . $body . $CRLF . 0 . $CRLF . $CRLF );
-        }
-        else {
-            die q[Body type isn't supported];
-        }
+    if ($delayed_body) {
+        $h->push_write( $headers . $CRLF . 'Transfer-Encoding: chunked' . $CRLF . $CRLF );
     }
     else {
+        if ( $res->[2] ) {
+            if ( ref $res->[2] eq 'ARRAY' ) {
+                if ( my $body = join q[], $res->[2]->@* ) {
 
-        $h->push_write($headers);
+                    # has body
+                    $h->push_write( $headers . $CRLF . 'Content-Length: ' . length($body) . $CRLF . $CRLF . $body );
+                }
+                else {
+
+                    # body is empty
+                    $h->push_write( $headers . $CRLF . $CRLF );
+                }
+            }
+            else {
+
+                # TODO add support for other body types
+                die q[Body type isn't supported];
+            }
+        }
+        else {
+
+            # no body
+            $h->push_write( $headers . $CRLF . $CRLF );
+        }
     }
 
     return;
@@ -292,17 +328,15 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 101                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 104                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 114                  | Subroutines::ProhibitExcessComplexity - Subroutine "_run_app" with high complexity score (21)                  |
+## |    3 | 117                  | Subroutines::ProhibitExcessComplexity - Subroutine "_run_app" with high complexity score (22)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 180                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 183                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 220                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 226, 274             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 274                  | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 57                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 60                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

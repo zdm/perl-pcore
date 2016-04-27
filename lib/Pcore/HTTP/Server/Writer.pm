@@ -4,11 +4,20 @@ use Pcore -class;
 
 has server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1, weak_ref => 1 );
 has h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1, weak_ref => 1 );
-has keep_alive => ( is => 'ro', isa => Bool, required => 1 );
+has keep_alive => ( is => 'ro', isa => PositiveOrZeroInt, required => 1 );
 has psgi_input => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server::Reader'], required => 1 );
+has buf_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 65_536 );
+
+has buf => ( is => 'ro', isa => Str, default => q[], init_arg => undef );
 
 sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    $self->{h}->push_write( sprintf( '%x', length( ref $data ? $data->$* : $data ) ) . $CRLF . ( ref $data ? $data->$* : $data ) . $CRLF );
+    $self->{buf} .= ref $data ? $data->$* : $data;
+
+    if ( length $self->{buf} >= $self->{buf_size} ) {
+        $self->{h}->push_write( sprintf( '%x', length $self->{buf} ) . $CRLF . $self->{buf} . $CRLF );
+
+        $self->{buf} = q[];
+    }
 
     return;
 }
@@ -17,7 +26,7 @@ sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConventions::ProhibitAmbiguousNames Subroutines::ProhibitBuiltinHomonyms]
 
     # write last chunk
-    $self->{h}->push_write( 0 . $CRLF . $CRLF );
+    $self->{h}->push_write( ( length $self->{buf} ? sprintf( '%x', length $self->{buf} ) . $CRLF . $self->{buf} . $CRLF : q[] ) . 0 . $CRLF . $CRLF );
 
     if ($trailing_headers) {
 
@@ -36,7 +45,7 @@ sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConven
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 29                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
