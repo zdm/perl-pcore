@@ -14,7 +14,7 @@ sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
     $self->{buf} .= ref $data ? $data->$* : $data;
 
     if ( length $self->{buf} >= $self->{buf_size} ) {
-        $self->{h}->push_write( sprintf( '%x', length $self->{buf} ) . $CRLF . $self->{buf} . $CRLF );
+        $self->{server}->_write_buf( $self->{h}, \( sprintf( '%x', length $self->{buf} ) . $CRLF . $self->{buf} . $CRLF ) );
 
         $self->{buf} = q[];
     }
@@ -26,7 +26,7 @@ sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConventions::ProhibitAmbiguousNames Subroutines::ProhibitBuiltinHomonyms]
 
     # write last chunk
-    $self->{h}->push_write( ( length $self->{buf} ? sprintf( '%x', length $self->{buf} ) . $CRLF . $self->{buf} . $CRLF : q[] ) . 0 . $CRLF . $CRLF );
+    $self->{server}->_write_buf( $self->{h}, \( ( length $self->{buf} ? sprintf( '%x', length $self->{buf} ) . $CRLF . $self->{buf} . $CRLF : q[] ) . 0 . $CRLF . $CRLF ) );
 
     if ($trailing_headers) {
 

@@ -297,12 +297,12 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
                 if ( my $body = join q[], $res->[2]->@* ) {
 
                     # has body
-                    $h->push_write( $headers . $CRLF . 'Content-Length: ' . length($body) . $CRLF . $CRLF . $body );
+                    $self->_write_buf( $h, \( $headers . $CRLF . 'Content-Length: ' . length($body) . $CRLF . $CRLF . $body ) );
                 }
                 else {
 
                     # body is empty
-                    $h->push_write( $headers . $CRLF . $CRLF );
+                    $self->_write_buf( $h, \( $headers . $CRLF . $CRLF ) );
                 }
             }
             else {
@@ -314,8 +314,22 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
         else {
 
             # no body
-            $h->push_write( $headers . $CRLF . $CRLF );
+            $self->_write_buf( $h, \( $headers . $CRLF . $CRLF ) );
         }
+    }
+
+    return;
+}
+
+sub _write_buf ( $self, $h, $buf_ref ) {
+    my $len = syswrite $h->{fh}, $buf_ref->$*;
+
+    # fallback to more slower method in the case of error
+    if ( !defined $len ) {
+        $h->push_write( $buf_ref->$* );
+    }
+    elsif ( $len < length $buf_ref->$* ) {
+        $h->push_write( substr $buf_ref->$*, $len );
     }
 
     return;
