@@ -15,6 +15,7 @@ has backlog      => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 has tcp_no_delay => ( is => 'ro', isa => Bool,              default => 0 );
 has keep_alive   => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 has server_signature => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
+has feersum => ( is => 'ro', isa => Bool, default => 0 );
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _cv => ( is => 'lazy', isa => Object, default => sub {AE::cv}, init_arg => undef );
@@ -26,7 +27,40 @@ has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
 # TODO disconnect header on finish request
 
 sub BUILD ( $self, $args ) {
-    $self->_listen_socket;
+    if ( $self->feersum ) {
+        require Feersum::Runner;
+
+        my $feersum = Feersum::Runner->new(
+            listen => [ ( $self->_listen_uri->host || '0.0.0.0' ) . q[:] . $self->_listen_uri->port ],
+            pre_fork => 0,
+            quiet    => 0,
+        );
+
+        $feersum->_prepare;
+
+        $feersum->{endjinn}->psgi_request_handler(
+            sub ($env) {
+                if ( my $psgi_input = delete $env->{'psgi.input'} ) {
+                    if ( $env->{CONTENT_LENGTH} ) {
+                        $env->{'psgi.input'} = q[];
+
+                        $psgi_input->read( $env->{'psgi.input'}, $env->{CONTENT_LENGTH} );
+                    }
+                }
+
+                delete $env->{'psgi.errors'};
+
+                delete $env->{'psgix.io'};
+
+                return $self->{app}->($env);
+            }
+        );
+
+        $self->{_listen_socket} = $feersum;
+    }
+    else {
+        $self->_listen_socket;
+    }
 
     return;
 }
@@ -49,8 +83,6 @@ sub _build__listen_socket ($self) {
 }
 
 sub _on_prepare ( $self, $fh, $host, $port ) {
-    say 'HTTP server listen on ' . $self->_listen_uri->to_string;
-
     return $self->backlog;
 }
 
@@ -163,7 +195,7 @@ sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
 sub _run_app ( $self, $h, $env ) {
 
     # evaluate application
-    my $res = eval { $self->app->($env) };
+    my $res = eval { $self->{app}->($env) };
 
     # detect keep-alive
     my $keep_alive = $self->keep_alive;
@@ -332,13 +364,13 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 109                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 133, 264             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 296             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 193                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 225                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 61                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 93                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
