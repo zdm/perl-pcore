@@ -6,7 +6,6 @@ use AnyEvent::Socket qw[];
 use Pcore::Util::List qw[pairs];
 use Pcore::HTTP::Status;
 use Socket qw[IPPROTO_TCP TCP_NODELAY];
-use Pcore::HTTP::Server::Reader;
 use Pcore::HTTP::Server::Writer;
 
 has listen => ( is => 'ro', isa => Str,     required => 1 );
@@ -20,6 +19,8 @@ has server_signature => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _cv => ( is => 'lazy', isa => Object, default => sub {AE::cv}, init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
+
+# TODO content length - https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
 
 # TODO implement shutdown and graceful shutdown
 # TODO disconnect header on finish request
@@ -88,7 +89,7 @@ sub _wait_request ( $self, $h ) {
 
         # extensions
         'psgix.io'              => undef,
-        'psgix.input.buffered'  => 0,
+        'psgix.input.buffered'  => 1,
         'psgix.logger'          => undef,
         'psgix.session'         => undef,
         'psgix.session.options' => undef,
@@ -100,14 +101,24 @@ sub _wait_request ( $self, $h ) {
     $h->read_http_req_headers(
         sub ( $h1, $env, $error ) {
             if ($error) {
-                $self->_return_xxx( $h, 400, $error );
+                $self->_return_xxx( $h, 400 );
             }
             else {
                 $self->{_cv}->begin;
 
                 $env->@{ keys $psgi_env->%* } = values $psgi_env->%*;
 
-                $self->_run_app( $h, $env );
+                if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smio ) {
+                    $self->_read_body( $h, $env, 1, 0 );
+                }
+                elsif ( $env->{CONTENT_LENGTH} ) {
+                    $self->_read_body( $h, $env, 0, $env->{CONTENT_LENGTH} );
+                }
+                else {
+                    $env->{'psgi.input'} = undef;
+
+                    $self->_run_app( $h, $env );
+                }
             }
 
             return;
@@ -117,44 +128,39 @@ sub _wait_request ( $self, $h ) {
     return;
 }
 
-# TODO content length - https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
+# TODO control read timeout, return status 408 - Request timeout
+# TODO control max body size, return 413 - Request Entity Too Large
+sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
+    $h->read_http_body(
+        sub ( $h, $buf_ref, $total_bytes_readed, $error_message ) {
+            if ($error_message) {
+                $self->_return_xxx( $h, 400 );
+            }
+            else {
+                if ( !$buf_ref ) {
+                    $self->_run_app( $h, $env );
+                }
+                else {
+                    $env->{'psgi.input'} .= $buf_ref->$*;
+
+                    $env->{CONTENT_LENGTH} = $total_bytes_readed;
+
+                    return 1;
+                }
+            }
+
+            return;
+        },
+        chunked  => $chunked,
+        length   => $content_length,
+        headers  => 0,
+        buf_size => 65_536,
+    );
+
+    return;
+}
+
 sub _run_app ( $self, $h, $env ) {
-
-    # create psgi.input reader
-    my $psgi_input;
-
-    if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smio ) {
-        $psgi_input = bless {
-            server         => $self,
-            h              => $h,
-            chunked        => 1,
-            content_length => 0,
-            has_data       => 1,
-          },
-          'Pcore::HTTP::Server::Reader';
-    }
-    elsif ( $env->{CONTENT_LENGTH} ) {
-        $psgi_input = bless {
-            server         => $self,
-            h              => $h,
-            chunked        => 0,
-            content_length => $env->{CONTENT_LENGTH},
-            has_data       => 1,
-          },
-          'Pcore::HTTP::Server::Reader';
-    }
-    else {
-        $psgi_input = bless {
-            server         => $self,
-            h              => $h,
-            chunked        => 0,
-            content_length => 0,
-            has_data       => 0,
-          },
-          'Pcore::HTTP::Server::Reader';
-    }
-
-    $env->{'psgi.input'} = $psgi_input;
 
     # evaluate application
     my $res = eval { $self->app->($env) };
@@ -179,9 +185,9 @@ sub _run_app ( $self, $h, $env ) {
         $self->_return_xxx( $h, 500 );
     }
     elsif ( ref $res eq 'ARRAY' ) {
-        $self->_write_psgi_response( $h, $res, $keep_alive && !$psgi_input->has_data, 0 );
+        $self->_write_psgi_response( $h, $res, $keep_alive, 0 );
 
-        $self->_finish_request( $h, $keep_alive, $psgi_input );
+        $self->_finish_request( $h, $keep_alive );
     }
     elsif ( ref $res eq 'CODE' ) {
         eval {
@@ -194,7 +200,6 @@ sub _run_app ( $self, $h, $env ) {
                             server     => $self,
                             h          => $h,
                             keep_alive => $keep_alive,
-                            psgi_input => $psgi_input,
                             buf_size   => 65_536,
                           },
                           'Pcore::HTTP::Server::Writer';
@@ -202,7 +207,7 @@ sub _run_app ( $self, $h, $env ) {
                     else {
                         $self->_write_psgi_response( $h, $res, $keep_alive, 0 );
 
-                        $self->_finish_request( $h, $keep_alive, $psgi_input );
+                        $self->_finish_request( $h, $keep_alive );
                     }
 
                     return;
@@ -219,7 +224,7 @@ sub _run_app ( $self, $h, $env ) {
     return;
 }
 
-sub _return_xxx ( $self, $h, $status, $reason = undef ) {
+sub _return_xxx ( $self, $h, $status ) {
     $self->_write_psgi_response( $h, [$status], 0, 0 );
 
     $self->_finish_request( $h, 0, undef );
@@ -227,14 +232,11 @@ sub _return_xxx ( $self, $h, $status, $reason = undef ) {
     return;
 }
 
-sub _finish_request ( $self, $h, $keep_alive, $psgi_input ) {
+sub _finish_request ( $self, $h, $keep_alive ) {
     $self->{_cv}->end;
 
     if ( !$h->destroyed ) {
         if ( !$keep_alive ) {
-            $h->destroy;
-        }
-        elsif ( $psgi_input->{has_data} ) {
             $h->destroy;
         }
         else {
@@ -258,29 +260,9 @@ sub _finish_request ( $self, $h, $keep_alive, $psgi_input ) {
     return;
 }
 
-# // default to the Nxx group names in RFC 2616
-#     if (100 <= code && code <= 199) {
-#         return "Informational";
-#     }
-#     else if (200 <= code && code <= 299) {
-#         return "Success";
-#     }
-#     else if (300 <= code && code <= 399) {
-#         return "Redirection";
-#     }
-#     else if (400 <= code && code <= 499) {
-#         return "Client Error";
-#     }
-#     else {
-#         return "Error";
-#     }
-
-# TODO how to pass custom reason
 # TODO add support for different body types, body can be FileHandle or CodeRef or ScalarRef, etc ...
 sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
-    my $reason = $Pcore::HTTP::Status::STATUS_REASON->{ $res->[0] } // 'Unknown reason';
-
-    my $headers = "HTTP/1.1 $res->[0] $reason";
+    my $headers = "HTTP/1.1 $res->[0] " . Pcore::HTTP::Status->get_reason( $res->[0] );
 
     $headers .= $CRLF . 'Server: ' . $self->{server_signature} if $self->{server_signature};
 
@@ -350,15 +332,13 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 108                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 109                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 121                  | Subroutines::ProhibitExcessComplexity - Subroutine "_run_app" with high complexity score (22)                  |
+## |    3 | 133, 264             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 187                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 193                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 230, 280             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 60                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 61                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

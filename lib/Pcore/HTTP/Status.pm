@@ -65,7 +65,7 @@ const our $STATUS_REASON => {
     415 => 'Unsupported Media Type',
     416 => 'Request Range Not Satisfiable',
     417 => 'Expectation Failed',
-    418 => 'I\'m a teapot',                     # RFC 2324
+    418 => q[I'm a teapot],                     # RFC 2324
     422 => 'Unprocessable Entity',              # RFC 2518 (WebDAV)
     423 => 'Locked',                            # RFC 2518 (WebDAV)
     424 => 'Failed Dependency',                 # RFC 2518 (WebDAV)
@@ -96,13 +96,21 @@ around reason => sub ( $orig, $self ) {
 
     if    ( exists $self->{reason} )           { return $self->{reason} }
     elsif ( exists $STATUS_REASON->{$status} ) { return $STATUS_REASON->{$status} }
-    elsif ( $status >= 100 && $status < 200 ) { return 'INFO' }
-    elsif ( $status >= 200 && $status < 300 ) { return 'OK' }
-    elsif ( $status >= 300 && $status < 400 ) { return 'REDIRECT' }
-    elsif ( $status >= 400 && $status < 500 ) { return 'CLIENT ERROR' }
-    elsif ( $status >= 500 && $status < 600 ) { return 'SERVER ERROR' }
-    else                                      { return 'UNKNOWN' }
+    elsif ( $status >= 100 && $status < 200 ) { return 'Informational' }
+    elsif ( $status >= 200 && $status < 300 ) { return 'Success' }
+    elsif ( $status >= 300 && $status < 400 ) { return 'Redirection' }
+    elsif ( $status >= 400 && $status < 500 ) { return 'Client Error' }
+    else                                      { return 'Error' }
 };
+
+sub get_reason ( $self, $status ) {
+    if ( exists $STATUS_REASON->{$status} ) { return $STATUS_REASON->{$status} }
+    elsif ( $status >= 100 && $status < 200 ) { return 'Informational' }
+    elsif ( $status >= 200 && $status < 300 ) { return 'Success' }
+    elsif ( $status >= 300 && $status < 400 ) { return 'Redirection' }
+    elsif ( $status >= 400 && $status < 500 ) { return 'Client Error' }
+    else                                      { return 'Error' }
+}
 
 # STATUS WRITER
 around set_status => sub ( $orig, $self, $status, $reason = undef ) {
@@ -140,16 +148,6 @@ sub is_server_error ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 97                   | ControlStructures::ProhibitCascadingIfElse - Cascading if-elsif chain                                          |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
