@@ -10,7 +10,7 @@ has has_data       => ( is => 'ro', isa => Bool,              required => 1 );
 
 # TODO deal with error message
 sub read ( $self, $cb ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    if ( !$self->{has_data} ) {
+    if ( !$self->{has_data} || $self->{h}->destroyed ) {
         $cb->( undef, $self->{content_length} );
     }
     else {

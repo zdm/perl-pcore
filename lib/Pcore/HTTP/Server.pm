@@ -71,6 +71,10 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 }
 
 sub _wait_request ( $self, $h ) {
+
+    # clear keep-alive timeout for cached handle
+    $h->timeout;
+
     state $psgi_env = {
         'psgi.version'      => [ 1, 1 ],
         'psgi.url_scheme'   => 'http',
@@ -226,27 +230,29 @@ sub _return_xxx ( $self, $h, $status, $reason = undef ) {
 sub _finish_request ( $self, $h, $keep_alive, $psgi_input ) {
     $self->{_cv}->end;
 
-    if ( !$keep_alive ) {
-        $h->destroy;
-    }
-    elsif ( $psgi_input->{has_data} ) {
-        $h->destroy;
-    }
-    else {
-        my $destroy = sub ( $h, @ ) {
+    if ( !$h->destroyed ) {
+        if ( !$keep_alive ) {
             $h->destroy;
+        }
+        elsif ( $psgi_input->{has_data} ) {
+            $h->destroy;
+        }
+        else {
+            my $destroy = sub ( $h, @ ) {
+                $h->destroy;
 
-            return;
-        };
+                return;
+            };
 
-        $h->on_error($destroy);
-        $h->on_eof($destroy);
-        $h->on_read($destroy);
-        $h->on_timeout(undef);
-        $h->timeout_reset;
-        $h->timeout($keep_alive);
+            $h->on_error($destroy);
+            $h->on_eof($destroy);
+            $h->on_read($destroy);
+            $h->on_timeout(undef);
+            $h->timeout_reset;
+            $h->timeout($keep_alive);
 
-        $self->_wait_request($h);
+            $self->_wait_request($h);
+        }
     }
 
     return;
@@ -322,6 +328,8 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
 }
 
 sub _write_buf ( $self, $h, $buf_ref ) {
+    return if $h->destroyed;
+
     my $len = syswrite $h->{fh}, $buf_ref->$*;
 
     # fallback to more slower method in the case of error
@@ -342,13 +350,13 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 104                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 108                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 117                  | Subroutines::ProhibitExcessComplexity - Subroutine "_run_app" with high complexity score (22)                  |
+## |    3 | 121                  | Subroutines::ProhibitExcessComplexity - Subroutine "_run_app" with high complexity score (22)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 183                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 187                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 226, 274             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 230, 280             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 60                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
