@@ -11,9 +11,9 @@ use Pcore::HTTP::Server::Writer;
 has listen => ( is => 'ro', isa => Str,     required => 1 );
 has app    => ( is => 'ro', isa => CodeRef, required => 1 );
 
-has backlog      => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
-has tcp_no_delay => ( is => 'ro', isa => Bool,              default => 0 );
-has keep_alive   => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
+has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
+has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
+has keep_alive => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 has server_signature => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
 has feersum => ( is => 'ro', isa => Bool, default => 0 );
 
@@ -83,7 +83,7 @@ sub _build__listen_socket ($self) {
 }
 
 sub _on_prepare ( $self, $fh, $host, $port ) {
-    return $self->backlog;
+    return $self->backlog // 0;
 }
 
 sub _on_accept ( $self, $fh, $host, $port ) {

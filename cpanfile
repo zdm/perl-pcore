@@ -65,6 +65,9 @@ on develop => sub {
 
 # Pcore::HTTP
 requires 'HTTP::Parser::XS';
+feature linux => sub {
+    suggests 'Feersum';
+};
 
 # Pcore::Src
 requires 'Perl::Tidy';
