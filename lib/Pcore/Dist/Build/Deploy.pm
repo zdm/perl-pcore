@@ -22,14 +22,14 @@ sub BUILDARGS ( $self, $args ) {
 sub run ($self) {
     my $chdir_guard = P->file->chdir( $self->dist->root );
 
-    # chmod
-    $self->_chmod;
-
     # deps
     exit 3 if !$self->_deps;
 
     # build
     exit 3 if !$self->_build;
+
+    # chmod
+    $self->_chmod;
 
     # install
     exit 3 if $self->install && !$self->_install;
