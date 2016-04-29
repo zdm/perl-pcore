@@ -51,44 +51,34 @@ sub run ( $self, $keep = 0 ) {
 sub _gather_files ($self) {
     my $tree = Pcore::Util::File::Tree->new;
 
-    my $cpan_bin = $self->dist->cfg->{cpan} && $self->dist->cfg->{cpan_bin};
-
-    my @dir = qw[lib/ share/ t/ xt/];
-
-    push @dir, 'bin/' if $cpan_bin;
-
-    for (@dir) {
+    for (qw[bin/ lib/ share/ t/ xt/]) {
         next if !-d $self->dist->root . $_;
 
         $tree->add_dir( $self->dist->root . $_, $_ );
     }
 
-    for (qw[CHANGES cpanfile LICENSE README.md]) {
-        $tree->add_file( $_, $self->dist->root . $_ );
-    }
-
-    # add dist-id.json
-    $tree->add_file( 'share/dist-id.json', P->data->to_json( $self->dist->id, readable => 1 ) );
-
-    # add t/author-pod-syntax.t
-    my $t = <<'PERL';
-#!perl
-
-# This file was generated automatically.
-
-use strict;
-use warnings;
-use Test::More;
-use Test::Pod 1.41;
-
-all_pod_files_ok();
-PERL
-
-    $self->_patch_xt( $tree->add_file( 't/author-pod-syntax.t', \$t ), 'author' );
+    # relocate files, apply cpan_manifest_skip
+    my $cpan_manifest_skip = $self->dist->cfg->{cpan} && $self->dist->cfg->{cpan_manifest_skip} && $self->dist->cfg->{cpan_manifest_skip}->@* ? $self->dist->cfg->{cpan_manifest_skip} : undef;
 
     $tree->find_file(
         sub ($file) {
-            if ( $cpan_bin && $file->path =~ m[\Abin/(.+)\z]sm ) {
+            if ($cpan_manifest_skip) {
+                my $skipped;
+
+                for my $skip_re ( $cpan_manifest_skip->@* ) {
+                    if ( $file->path =~ $skip_re ) {
+                        $skipped = 1;
+
+                        $file->remove;
+
+                        last;
+                    }
+                }
+
+                return if $skipped;
+            }
+
+            if ( $file->path =~ m[\Abin/(.+)\z]sm ) {
 
                 # relocate scripts from the /bin/ to /script/
                 my $name = $1;
@@ -105,16 +95,17 @@ PERL
             }
             elsif ( $file->path =~ m[\At/(.+)\z]sm && $file->path !~ m[[.]t\z]sm ) {
 
-                # remove everything from the /t/ dir, that os not a .t file
+                # olny *.t files are allowed in /t/ dir
                 $file->remove;
             }
             elsif ( $file->path =~ m[\Axt/(author|release|smoke)/(.+)\z]sm ) {
 
-                # path /xt/*/.t files and relocate to the /t/ dir
+                # patch /xt/*/.t files and relocate to the /t/ dir
                 my $test = $1;
 
                 my $name = $2;
 
+                # add common header to /xt/*.t file
                 if ( $file->path =~ m[[.]t\z]sm ) {
                     $file->move("t/$test-$name");
 
@@ -128,6 +119,30 @@ PERL
             return;
         }
     );
+
+    for (qw[CHANGES cpanfile LICENSE README.md]) {
+        $tree->add_file( $_, $self->dist->root . $_ );
+    }
+
+    # add dist-id.json
+    $tree->add_file( 'share/dist-id.json', P->data->to_json( $self->dist->id, readable => 1 ) );
+
+    # add "t/author-pod-syntax.t"
+    my $t = <<'PERL';
+#!perl
+
+# This file was generated automatically.
+
+use strict;
+use warnings;
+use Test::More;
+use Test::Pod 1.41;
+
+all_pod_files_ok();
+PERL
+
+    # add common header to "t/author-pod-syntax.t"
+    $self->_patch_xt( $tree->add_file( 't/author-pod-syntax.t', \$t ), 'author' );
 
     # remove /bin, /xt
     $tree->find_file(
@@ -269,9 +284,11 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
+## |    3 | 51                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (21)             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          |
-## |      | 190                  | * Found method-call chain of length 4                                                                          |
-## |      | 191                  | * Found method-call chain of length 5                                                                          |
+## |      | 205                  | * Found method-call chain of length 4                                                                          |
+## |      | 206                  | * Found method-call chain of length 5                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
