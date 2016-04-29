@@ -309,11 +309,11 @@ sub _upload_to_cpan ($self) {
 
         unlink $tgz or 1;
 
-        print q[Removing old distributions from PAUSE ... ];
-
-        $pause->clean;
-
-        say 'done';
+        # print q[Removing old distributions from PAUSE ... ];
+        #
+        # $pause->clean;
+        #
+        # say 'done';
     }
     else {
         say join q[ ], $res->status, $res->reason;
