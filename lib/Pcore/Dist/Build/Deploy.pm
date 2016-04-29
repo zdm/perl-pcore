@@ -25,11 +25,14 @@ sub run ($self) {
     # chmod
     $self->_chmod;
 
-    # cpanm
-    exit 100 if !$self->_cpanm;
+    # deps
+    exit 3 if !$self->_deps;
+
+    # build
+    exit 3 if !$self->_build;
 
     # install
-    exit 101 if $self->install && !$self->_install;
+    exit 3 if $self->install && !$self->_install;
 
     return;
 }
@@ -74,7 +77,7 @@ sub _chmod ($self) {
     return;
 }
 
-sub _cpanm ($self) {
+sub _deps ($self) {
     if ( -f 'cpanfile' ) {
         my $cfg = P->cfg->load( $ENV->share->get( '/data/pcore.perl', lib => 'Pcore' ) );
 
@@ -99,6 +102,29 @@ sub _cpanm ($self) {
     }
 
     return 1;
+}
+
+sub _build ($self) {
+    eval {
+        P->file->find(
+            $self->dist->root . 'lib/',
+            abs => 1,
+            dir => 0,
+            sub ($file) {
+                if ( $file->suffix eq 'PL' ) {
+                    my $res = P->pm->run_proc( [ $^X, $file, $file->dirname . $file->filename_base ] );
+
+                    if ( !$res ) {
+                        say qq["$file" return ] . $res;
+
+                        die;
+                    }
+                }
+            }
+        );
+    };
+
+    return $@ ? 0 : 1;
 }
 
 sub _install ($self) {
@@ -178,9 +204,11 @@ SH
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106, 123, 128, 149   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 108                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 137                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    3 | 132, 149, 154, 175   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 163                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
