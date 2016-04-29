@@ -91,7 +91,7 @@ sub run ($self) {
         }
     }
 
-    $files->move_file( 'lib/Module.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
+    $files->move_file( 'lib/_MainModule.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
 
     # rename share/_dist.perl -> share/dist.perl
     $files->move_file( 'share/_dist.perl', 'share/dist.perl' );
