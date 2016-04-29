@@ -3,6 +3,7 @@
 package main v0.1.0;
 
 use Pcore;
+use Pcore::Util::URI::Host;
 
 sub CLI {
     return { arg => [ script => { isa => 'Str' } ] };
