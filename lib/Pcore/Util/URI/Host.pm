@@ -98,7 +98,7 @@ sub update_all ( $self ) {
             }
         }
 
-        $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort keys $_suffixes->%* ), 'Pcore' );
+        $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort keys $suffixes->%* ), 'Pcore' );
 
         undef $PUB_SUFFIX;
     }
