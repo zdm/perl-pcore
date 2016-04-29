@@ -113,7 +113,7 @@ sub _configure_inc {
             # find and add other dist libs to @INC
             if ( $ENV{PCORE_LIB} && -d $ENV{PCORE_LIB} ) {
                 for my $dir ( sort { $b cmp $a } P->file->read_dir( $ENV{PCORE_LIB}, full_path => 1 )->@* ) {
-                    if ( !exists $inc_index->{qq[$dir/lib]} && -d qq[$dir/lib/] && Pcore::Dist->dir_is_dist($dir) ) {
+                    if ( !exists $inc_index->{qq[$dir/lib]} && -d qq[$dir/lib/] && Pcore::Dist->dir_is_dist_root($dir) ) {
                         $inc_index->{qq[$dir/lib]} = 1;
 
                         unshift @inc, qq[$dir/lib];

@@ -117,7 +117,7 @@ around new => sub ( $orig, $self, $dist ) {
             }
         );
     }
-    elsif ( $self->dir_is_dist("$module_lib/../") ) {
+    elsif ( $self->dir_is_dist_root("$module_lib/../") ) {
         my $root = P->path("$module_lib/../")->to_string;
 
         # module is a dist
@@ -137,11 +137,11 @@ around new => sub ( $orig, $self, $dist ) {
 sub find_dist_root ( $self, $path ) {
     $path = P->path( $path, is_dir => 1 ) if !ref $path;
 
-    if ( !$self->dir_is_dist($path) ) {
+    if ( !$self->dir_is_dist_root($path) ) {
         $path = $path->parent;
 
         while ($path) {
-            last if $self->dir_is_dist($path);
+            last if $self->dir_is_dist_root($path);
 
             $path = $path->parent;
         }
@@ -155,8 +155,8 @@ sub find_dist_root ( $self, $path ) {
     }
 }
 
-sub dir_is_dist ( $self, $path ) {
-    return -f $path . '/share/dist.perl' && $path !~ m[/share/pcore/dist/\z]sm ? 1 : 0;
+sub dir_is_dist_root ( $self, $path ) {
+    return -f $path . '/share/dist.perl' ? 1 : 0;
 }
 
 # CONSTRUCTOR

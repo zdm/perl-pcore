@@ -64,7 +64,7 @@ sub lib_is_dist ( $self, $lib ) {
         return 0;
     }
     else {
-        return Pcore::Dist->dir_is_dist( $self->lib . '/../' ) ? 1 : 0;
+        return Pcore::Dist->dir_is_dist_root( $self->lib . '/../' ) ? 1 : 0;
     }
 }
 
