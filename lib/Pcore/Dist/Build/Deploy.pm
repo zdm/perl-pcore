@@ -90,7 +90,7 @@ sub _cpanm ($self) {
             ( $self->recommends ? '--with-recommends' : () ),
             ( $self->suggests   ? '--with-suggests'   : () ),
             ( $self->verbose    ? '--verbose'         : () ),
-            '--installdeps', q[.],
+            '--metacpan', '--installdeps', q[.],
         );
 
         say join q[ ], @args;
