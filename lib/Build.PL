@@ -8,6 +8,8 @@ sub CLI {
     return { arg => [ script => { isa => 'Str' } ] };
 }
 
+Pcore::Util::URI::Host->update_all or exit 3;
+
 1;
 __END__
 =pod

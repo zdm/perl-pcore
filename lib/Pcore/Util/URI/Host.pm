@@ -1,6 +1,6 @@
 package Pcore::Util::URI::Host;
 
-use Pcore -class, -const;
+use Pcore -class;
 use Pcore::Util::Text qw[encode_utf8];
 use AnyEvent::Socket qw[];
 use Pcore::Util::URI::Punycode qw[:ALL];
@@ -35,6 +35,9 @@ has is_root_domain       => ( is => 'lazy', init_arg => undef );    # domain is 
 has root_domain          => ( is => 'lazy', init_arg => undef );
 has root_domain_utf8     => ( is => 'lazy', init_arg => undef );
 
+our $TLD;
+our $PUB_SUFFIX;
+
 # NOTE host should be in UTF-8 or ASCII punycoded, UTF-8 encoded - is invalid value
 around new => sub ( $orig, $self, $host ) {
     $host = domain_to_ascii($host) if utf8::is_utf8($host);
@@ -42,90 +45,80 @@ around new => sub ( $orig, $self, $host ) {
     return bless { name => lc $host }, __PACKAGE__;
 };
 
-sub pub_suffixes ( $self, $force_download = 0 ) {
-    state $suffixes = do {
-        my $path = $ENV->share->get('/data/pub_suffix.dat');
+sub update_all ( $self ) {
 
-        if ( !$path || $force_download ) {
-            my $res = P->http->get(
-                'https://publicsuffix.org/list/effective_tld_names.dat',
-                buf_size    => 0,
-                on_progress => 0,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        my $_suffixes = {};
+    # update TLD
+    say 'updating tld.dat';
 
-                        for my $domain ( split /\n/sm, $res->body->$* ) {
+    if ( my $res = P->http->get( 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt', buf_size => 0, on_progress => 0 ) ) {
+        $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), 'Pcore' );
 
-                            # ignore comments
-                            next if $domain =~ m[//]smo;
+        undef $TLD;
+    }
+    else {
+        return 0;
+    }
 
-                            # ignore empty lines
-                            next if $domain =~ /\A\s*\z/smo;
+    # update pub. suffixes, should be updated after TLDs
+    say 'updating pub_suffix.dat';
 
-                            $_suffixes->{$domain} = 1;
-                        }
+    if ( my $res = P->http->get( 'https://publicsuffix.org/list/effective_tld_names.dat', buf_size => 0, on_progress => 0 ) ) {
+        my $suffixes = {};
 
-                        # add tlds
-                        # TODO inherit force download tlds
-                        for my $tld ( keys $self->tlds->%* ) {
-                            utf8::encode($tld);
+        for my $domain ( split /\n/sm, $res->body->$* ) {
 
-                            $_suffixes->{$tld} = 1;
-                        }
+            # ignore comments
+            next if $domain =~ m[//]smo;
 
-                        # add domains, which is not known public suffixes, but is a public suffix parent
-                        for my $domain ( keys $_suffixes->%* ) {
-                            my @labels = split /[.]/sm, $domain;
+            # ignore empty lines
+            next if $domain =~ /\A\s*\z/smo;
 
-                            shift @labels;
-
-                            while (@labels) {
-                                my $parent = join q[.], @labels;
-
-                                $_suffixes->{ q[.] . $parent } = 1 if !exists $_suffixes->{$parent};
-
-                                shift @labels;
-                            }
-                        }
-
-                        $path = $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort keys $_suffixes->%* ), 'Pcore' );
-                    }
-
-                    return;
-                }
-            );
+            $suffixes->{$domain} = 1;
         }
 
-        my $_suffixes = { map { $_ => 1 } P->file->read_lines($path)->@* };
-    };
+        # add tlds
+        for my $tld ( keys $self->tlds->%* ) {
+            utf8::encode($tld);
 
-    return $suffixes;
+            $suffixes->{$tld} = 1;
+        }
+
+        # add domains, which is not known public suffixes, but is a public suffix parent
+        for my $domain ( keys $suffixes->%* ) {
+            my @labels = split /[.]/sm, $domain;
+
+            shift @labels;
+
+            while (@labels) {
+                my $parent = join q[.], @labels;
+
+                $suffixes->{ q[.] . $parent } = 1 if !exists $suffixes->{$parent};
+
+                shift @labels;
+            }
+        }
+
+        $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort keys $_suffixes->%* ), 'Pcore' );
+
+        undef $PUB_SUFFIX;
+    }
+    else {
+        return 0;
+    }
+
+    return 1;
 }
 
-sub tlds ( $self, $force_download = 0 ) {
-    state $tlds = do {
-        my $path = $ENV->share->get('/data/tld.dat');
+sub tlds ( $self ) {
+    $TLD = { map { $_ => 1 } P->file->read_lines( $ENV->share->get('/data/tld.dat') )->@* } if !$TLD;
 
-        if ( !$path || $force_download ) {
-            my $res = P->http->get(
-                'https://data.iana.org/TLD/tlds-alpha-by-domain.txt',
-                buf_size    => 0,
-                on_progress => 0,
-                on_finish   => sub ($res) {
-                    if ( $res->status == 200 ) {
-                        $path = $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), 'Pcore' );
-                    }
+    return $TLD;
+}
 
-                    return;
-                }
-            );
-        }
+sub pub_suffixes ( $self ) {
+    $PUB_SUFFIX = { map { $_ => 1 } P->file->read_lines( $ENV->share->get('/data/pub_suffix.dat') )->@* } if !$PUB_SUFFIX;
 
-        my $_tlds = { map { $_ => 1 } P->file->read_lines($path)->@* };
-    };
-
-    return $tlds;
+    return $PUB_SUFFIX;
 }
 
 sub to_string ($self) {
@@ -325,9 +318,9 @@ sub _build_root_domain_utf8 ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 71, 78, 92           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 80, 87, 101          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 268, 271             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 261, 264             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
