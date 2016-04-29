@@ -124,9 +124,6 @@ sub _gather_files ($self) {
         $tree->add_file( $_, $self->dist->root . $_ );
     }
 
-    # rename share/_dist.perl -> share/dist.perl
-    $tree->move_file( 'share/_dist.perl', 'share/dist.perl' );
-
     # add dist-id.json
     $tree->add_file( 'share/dist-id.json', P->data->to_json( $self->dist->id, readable => 1 ) );
 
@@ -290,8 +287,8 @@ PERL
 ## |    3 | 51                   | Subroutines::ProhibitExcessComplexity - Subroutine "_gather_files" with high complexity score (21)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls                                                          |
-## |      | 208                  | * Found method-call chain of length 4                                                                          |
-## |      | 209                  | * Found method-call chain of length 5                                                                          |
+## |      | 205                  | * Found method-call chain of length 4                                                                          |
+## |      | 206                  | * Found method-call chain of length 5                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
