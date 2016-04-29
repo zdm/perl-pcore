@@ -11,7 +11,7 @@
 
         # eg.:
         # qr[\Ashare/data/.+[.]dat\z]smi,
-        # qr[\Abin/]smi,                            # ignore "/bin/" directory
+        # qr[\Abin/]smi,    # ignore "/bin/" directory
     ],
 
     # Pcore utils, provided by this distribution
