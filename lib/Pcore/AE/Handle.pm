@@ -822,14 +822,16 @@ sub read_http_body ( $self, $on_read, @ ) {
         $self->push_read( line => $read_chunk );
     }
     elsif ( !$args{length} ) {    # read until EOF
-        $self->on_eof(
-            sub ($h) {
+        $self->on_eof(undef);
+
+        $self->on_error(
+            sub ( $h, $fatal, $reason ) {
 
                 # remove "on_read" callback
                 $h->on_read(undef);
 
                 # remove "on_eof" callback
-                $h->on_eof(undef);
+                $h->on_error(undef);
 
                 $on_read_buf->( undef, undef );
 
@@ -946,13 +948,13 @@ sub get_connect ($connect) {
 ## |    2 | 648                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 963                  | * Link L<AnyEvent::Handle> on line 1005 does not specify text                                                  |
-## |      | 963                  | * Link L<AnyEvent::Handle> on line 1021 does not specify text                                                  |
-## |      | 963                  | * Link L<AnyEvent::Handle> on line 969 does not specify text                                                   |
-## |      | 963                  | * Link L<AnyEvent::Handle> on line 977 does not specify text                                                   |
-## |      | 963                  | * Link L<AnyEvent::Socket> on line 1021 does not specify text                                                  |
-## |      | 963                  | * Link L<Pcore::Proxy> on line 1021 does not specify text                                                      |
-## |      | 963, 963             | * Link L<Pcore::Proxy> on line 987 does not specify text                                                       |
+## |      | 965                  | * Link L<AnyEvent::Handle> on line 1007 does not specify text                                                  |
+## |      | 965                  | * Link L<AnyEvent::Handle> on line 1023 does not specify text                                                  |
+## |      | 965                  | * Link L<AnyEvent::Handle> on line 971 does not specify text                                                   |
+## |      | 965                  | * Link L<AnyEvent::Handle> on line 979 does not specify text                                                   |
+## |      | 965                  | * Link L<AnyEvent::Socket> on line 1023 does not specify text                                                  |
+## |      | 965                  | * Link L<Pcore::Proxy> on line 1023 does not specify text                                                      |
+## |      | 965, 965             | * Link L<Pcore::Proxy> on line 989 does not specify text                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 53, 58, 470, 555,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |      | 558, 561, 567        |                                                                                                                |
