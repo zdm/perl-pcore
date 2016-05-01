@@ -167,7 +167,7 @@ sub try ( $try, $catch = undef ) : prototype(&@) {
 
     # error handling
     if ($failed) {
-        my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 2, trace => 1 );
+        my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 1, trace => 1 );
 
         if ($catch) {
             if ($wantarray) {

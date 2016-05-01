@@ -3,33 +3,33 @@ package Pcore::Util::Date;
 use Pcore;
 use base qw[Time::Moment];
 
-# %a - The abbreviated weekday name ('Sun')
-# %A - The  full  weekday  name ('Sunday')
-# %b - The abbreviated month name ('Jan')
-# %B - The  full  month  name ('January')
-# %c - The preferred local date and time representation
-# %d - Day of the month (01..31)
-# %e - Day of the month without leading zeroes (1..31)
-# %H - Hour of the day, 24-hour clock (00..23)
-# %I - Hour of the day, 12-hour clock (01..12)
-# %j - Day of the year (001..366)
-# %k - Hour of the day, 24-hour clock w/o leading zeroes ( 0..23)
-# %l - Hour of the day, 12-hour clock w/o leading zeroes ( 1..12)
-# %m - Month of the year (01..12)
-# %M - Minute of the hour (00..59)
-# %p - Meridian indicator ('AM'  or  'PM')
-# %P - Meridian indicator ('am'  or  'pm')
-# %S - Second of the minute (00..60)
-# %U - Week  number  of the current year, starting with the first Sunday as the first day of the first week (00..53)
-# %W - Week  number  of the current year, starting with the first Monday as the first day of the first week (00..53)
-# %w - Day of the week (Sunday is 0, 0..6)
-# %x - Preferred representation for the date alone, no time
-# %X - Preferred representation for the time alone, no date
-# %y - Year without a century (00..99)
-# %Y - Year with century
-# %Z - Time zone name
+# %a - the abbreviated weekday name ('Sun')
+# %A - the  full  weekday  name ('Sunday')
+# %b - the abbreviated month name ('Jan')
+# %B - the  full  month  name ('January')
+# %c - the preferred local date and time representation
+# %d - day of the month (01..31)
+# %e - day of the month without leading zeroes (1..31)
+# %H - hour of the day, 24-hour clock (00..23)
+# %I - hour of the day, 12-hour clock (01..12)
+# %j - day of the year (001..366)
+# %k - hour of the day, 24-hour clock w/o leading zeroes ( 0..23)
+# %l - hour of the day, 12-hour clock w/o leading zeroes ( 1..12)
+# %m - month of the year (01..12)
+# %M - minute of the hour (00..59)
+# %p - meridian indicator ('AM'  or  'PM')
+# %P - meridian indicator ('am'  or  'pm')
+# %S - second of the minute (00..60)
+# %U - week  number  of the current year, starting with the first Sunday as the first day of the first week (00..53)
+# %W - week  number  of the current year, starting with the first Monday as the first day of the first week (00..53)
+# %w - day of the week (Sunday is 0, 0..6)
+# %x - preferred representation for the date alone, no time
+# %X - preferred representation for the time alone, no date
+# %y - year without a century (00..99)
+# %Y - year with century
+# %Z - time zone name
 # %z - +/- hhmm
-# %% - Literal '%' character
+# %% - literal '%' character
 
 sub from_strptime ( $self, $date, $format ) {
     state $zone_offset = do {
