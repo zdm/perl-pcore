@@ -360,22 +360,22 @@ const our $OFFSET => { map { $_ => abs $TIMEZONE->{$_} >= 100 ? ( int( abs $TIME
 const our $STRPTIME_TOKEN => {
     a => [ '(?i:' . join( q[|], $WEEKDAY_ABBR->@* ) . ')' ],    # the abbreviated weekday name ('Sun')
     A => [ '(?i:' . join( q[|], sort $WEEKDAY->@* ) . ')' ],    # the full weekday  name ('Sunday')
-    b => [ '((?i:' . join( q[|], sort $MONTH_ABBR->@* ) . '))', '$args{month} = $MONTH_ABBR_NUM->{lc $1}' ],    # the abbreviated month name ('Jan')
-    B => [ '((?i:' . join( q[|], sort $MONTH->@* ) . '))',      '$args{month} = $1' ],                          # the full  month  name ('January')
-    d => [ '(\d\d)',     '$args{day} = $1' ],                                                                   # day of the month (01..31)
-    H => [ '(\d\d)',     '$args{hour} = $1' ],                                                                  # hour of the day, 24-hour clock (00..23)
-    m => [ '(\d\d)',     '$args{month} = $1' ],                                                                 # month of the year (01..12)
-    M => [ '(\d\d)',     '$args{minute} = $1' ],                                                                # minute of the hour (00..59)
-    S => [ '(\d\d)',     '$args{second} = $1' ],                                                                # second of the minute (00..60)
-    y => [ '(\d\d)',     '$args{year} = $1 + ( $1 >= 69 ? 1900 : 2000 )' ],                                     # year without a century (00..99)
-    Y => [ '(\d\d\d\d)', '$args{year} = $1' ],                                                                  # year with century
-    Z => [                                                                                                      # time zone name
+    b => [ '((?i:' . join( q[|], sort $MONTH_ABBR->@* ) . '))', '\$args{month} = \$MONTH_ABBR_NUM->{lc $1}' ],    # the abbreviated month name ('Jan')
+    B => [ '((?i:' . join( q[|], sort $MONTH->@* ) . '))',      '\$args{month} = \$1' ],                          # the full  month  name ('January')
+    d => [ '(\d\d)',     '\$args{day} = \$1' ],                                                                   # day of the month (01..31)
+    H => [ '(\d\d)',     '\$args{hour} = \$1' ],                                                                  # hour of the day, 24-hour clock (00..23)
+    m => [ '(\d\d)',     '\$args{month} = \$1' ],                                                                 # month of the year (01..12)
+    M => [ '(\d\d)',     '\$args{minute} = \$1' ],                                                                # minute of the hour (00..59)
+    S => [ '(\d\d)',     '\$args{second} = \$1' ],                                                                # second of the minute (00..60)
+    y => [ '(\d\d)',     '\$args{year} = \( $1 + ( $1 >= 69 ? 1900 : 2000 ) )' ],                                 # year without a century (00..99)
+    Y => [ '(\d\d\d\d)', '\$args{year} = \$1' ],                                                                  # year with century
+    Z => [                                                                                                        # time zone name
         '((?i:' . join( q[|], sort { length $b <=> length $a } grep { defined $OFFSET->{$_} } keys $OFFSET->%* ) . '))',
-        '$args{offset} = $OFFSET->{uc $1}'
+        '\$args{offset} = \$OFFSET->{uc $1}'
     ],
-    z => [                                                                                                      # +/-hhmm, +/-hh:mm
+    z => [                                                                                                        # +/-hhmm, +/-hh:mm
         '([+-])(\d\d):?(\d\d)',
-        '$args{offset} = ($2 * 60 + $3) / ($1 eq q[-] ? -1 : 1)',
+        '\$args{offset} = \( ($2 * 60 + $3) / ($1 eq q[-] ? -1 : 1) )',
     ],
 };
 
