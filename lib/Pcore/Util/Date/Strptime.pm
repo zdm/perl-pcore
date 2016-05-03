@@ -3,24 +3,24 @@ package Pcore::Util::Date::Strptime;
 use Pcore -role, -const;
 
 # %a - the abbreviated weekday name ('Sun')
-# %A - the full weekday  name ('Sunday')
+# %A - the full weekday name ('Sunday')
 # %b - the abbreviated month name ('Jan')
-# %B - the full  month  name ('January')
+# %B - the full month name ('January')
 # %c - the preferred local date and time representation
 # %d - day of the month (01..31)
 # %e - day of the month without leading zeroes (1..31)
 # %H - hour of the day, 24-hour clock (00..23)
 # %I - hour of the day, 12-hour clock (01..12)
 # %j - day of the year (001..366)
-# %k - hour of the day, 24-hour clock w/o leading zeroes ( 0..23)
-# %l - hour of the day, 12-hour clock w/o leading zeroes ( 1..12)
+# %k - hour of the day, 24-hour clock w/o leading zeroes (0..23)
+# %l - hour of the day, 12-hour clock w/o leading zeroes (1..12)
 # %m - month of the year (01..12)
 # %M - minute of the hour (00..59)
-# %p - meridian indicator ('AM'  or  'PM')
-# %P - meridian indicator ('am'  or  'pm')
+# %p - meridian indicator ('AM' or 'PM')
+# %P - meridian indicator ('am' or 'pm')
 # %S - second of the minute (00..60)
-# %U - week number  of the current year, starting with the first Sunday as the first day of the first week (00..53)
-# %W - week number  of the current year, starting with the first Monday as the first day of the first week (00..53)
+# %U - week number of the current year, starting with the first Sunday as the first day of the first week (00..53)
+# %W - week number of the current year, starting with the first Monday as the first day of the first week (00..53)
 # %w - day of the week (Sunday is 0, 0..6)
 # %x - preferred representation for the date alone, no time
 # %X - preferred representation for the time alone, no date
