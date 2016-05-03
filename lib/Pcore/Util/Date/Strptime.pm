@@ -1,6 +1,6 @@
 package Pcore::Util::Date::Strptime;
 
-use Pcore -class, -const;
+use Pcore -role, -const;
 
 # %a - the abbreviated weekday name ('Sun')
 # %A - the full weekday  name ('Sunday')
@@ -43,409 +43,407 @@ const our $MONTH_NUM => { map { $_ => state $i++ + 1 } $MONTH->@* };
 const our $MONTH_ABBR_NUM => { map { $_ => state $i++ + 1 } $MONTH_ABBR->@* };
 
 const our $TIMEZONE => {
-    a      => '+0100',
-    acdt   => '+1030',
-    acst   => '+0930',
-    adt    => undef,
-    aedt   => '+1100',
-    aes    => '+1000',
-    aest   => '+1000',
-    aft    => '+0430',
-    ahdt   => '-0900',
-    ahst   => '-1000',
-    akdt   => '-0800',
-    akst   => '-0900',
-    amst   => '+0400',
-    amt    => '+0400',
-    anast  => '+1300',
-    anat   => '+1200',
-    art    => '-0300',
-    ast    => undef,
-    at     => '-0100',
-    awst   => '+0800',
-    azost  => '+0000',
-    azot   => '-0100',
-    azst   => '+0500',
-    azt    => '+0400',
-    b      => '+0200',
-    badt   => '+0400',
-    bat    => '+0600',
-    bdst   => '+0200',
-    bdt    => '+0600',
-    bet    => '-1100',
-    bnt    => '+0800',
-    bort   => '+0800',
-    bot    => '-0400',
-    bra    => '-0300',
-    bst    => undef,
-    bt     => undef,
-    btt    => '+0600',
-    c      => '+0300',
-    cast   => '+0930',
-    cat    => undef,
-    cct    => undef,
-    cdt    => undef,
-    cest   => '+0200',
-    cet    => '+0100',
-    cetdst => '+0200',
-    chadt  => '+1345',
-    chast  => '+1245',
-    ckt    => '-1000',
-    clst   => '-0300',
-    clt    => '-0400',
-    cot    => '-0500',
-    cst    => undef,
-    csut   => '+1030',
-    cut    => '+0000',
-    cvt    => '-0100',
-    cxt    => '+0700',
-    chst   => '+1000',
-    d      => '+0400',
-    davt   => '+0700',
-    ddut   => '+1000',
-    dnt    => '+0100',
-    dst    => '+0200',
-    e      => '+0500',
-    easst  => '-0500',
-    east   => undef,
-    eat    => '+0300',
-    ect    => undef,
-    edt    => undef,
-    eest   => '+0300',
-    eet    => '+0200',
-    eetdst => '+0300',
-    egst   => '+0000',
-    egt    => '-0100',
-    emt    => '+0100',
-    est    => undef,
-    esut   => '+1100',
-    f      => '+0600',
-    fdt    => undef,
-    fjst   => '+1300',
-    fjt    => '+1200',
-    fkst   => '-0300',
-    fkt    => '-0400',
-    fst    => undef,
-    fwt    => '+0100',
-    g      => '+0700',
-    galt   => '-0600',
-    gamt   => '-0900',
-    gest   => '+0500',
-    get    => '+0400',
-    gft    => '-0300',
-    gilt   => '+1200',
-    gmt    => '+0000',
-    gst    => undef,
-    gt     => '+0000',
-    gyt    => '-0400',
-    gz     => '+0000',
-    h      => '+0800',
-    haa    => '-0300',
-    hac    => '-0500',
-    hae    => '-0400',
-    hap    => '-0700',
-    har    => '-0600',
-    hat    => '-0230',
-    hay    => '-0800',
-    hdt    => '-0930',
-    hfe    => '+0200',
-    hfh    => '+0100',
-    hg     => '+0000',
-    hkt    => '+0800',
-    hl     => undef,     # 'local',
-    hna    => '-0400',
-    hnc    => '-0600',
-    hne    => '-0500',
-    hnp    => '-0800',
-    hnr    => '-0700',
-    hnt    => '-0330',
-    hny    => '-0900',
-    hoe    => '+0100',
-    hst    => '-1000',
-    i      => '+0900',
-    ict    => '+0700',
-    idle   => '+1200',
-    idlw   => '-1200',
-    idt    => undef,
-    iot    => '+0500',
-    irdt   => '+0430',
-    irkst  => '+0900',
-    irkt   => '+0800',
-    irst   => '+0430',
-    irt    => '+0330',
-    ist    => undef,
-    it     => '+0330',
-    ita    => '+0100',
-    javt   => '+0700',
-    jayt   => '+0900',
-    jst    => '+0900',
-    jt     => '+0700',
-    k      => '+1000',
-    kdt    => '+1000',
-    kgst   => '+0600',
-    kgt    => '+0500',
-    kost   => '+1200',
-    krast  => '+0800',
-    krat   => '+0700',
-    kst    => '+0900',
-    l      => '+1100',
-    lhdt   => '+1100',
-    lhst   => '+1030',
-    ligt   => '+1000',
-    lint   => '+1400',
-    lkt    => '+0600',
-    lst    => undef,     # 'local',
-    lt     => undef,     # 'local',
-    m      => '+1200',
-    magst  => '+1200',
-    magt   => '+1100',
-    mal    => '+0800',
-    mart   => '-0930',
-    mat    => '+0300',
-    mawt   => '+0600',
-    mdt    => '-0600',
-    med    => '+0200',
-    medst  => '+0200',
-    mest   => '+0200',
-    mesz   => '+0200',
-    met    => undef,
-    mewt   => '+0100',
-    mex    => '-0600',
-    mez    => '+0100',
-    mht    => '+1200',
-    mmt    => '+0630',
-    mpt    => '+1000',
-    msd    => '+0400',
-    msk    => '+0300',
-    msks   => '+0400',
-    mst    => '-0700',
-    mt     => '+0830',
-    mut    => '+0400',
-    mvt    => '+0500',
-    myt    => '+0800',
-    n      => '-0100',
-    nct    => '+1100',
-    ndt    => '-0230',
-    nft    => undef,
-    nor    => '+0100',
-    novst  => '+0700',
-    novt   => '+0600',
-    npt    => '+0545',
-    nrt    => '+1200',
-    nst    => undef,
-    nsut   => '+0630',
-    nt     => '-1100',
-    nut    => '-1100',
-    nzdt   => '+1300',
-    nzst   => '+1200',
-    nzt    => '+1200',
-    o      => '-0200',
-    oesz   => '+0300',
-    oez    => '+0200',
-    omsst  => '+0700',
-    omst   => '+0600',
-    oz     => undef,     # 'local',
-    p      => '-0300',
-    pdt    => '-0700',
-    pet    => '-0500',
-    petst  => '+1300',
-    pett   => '+1200',
-    pgt    => '+1000',
-    phot   => '+1300',
-    pht    => '+0800',
-    pkt    => '+0500',
-    pmdt   => '-0200',
-    pmt    => '-0300',
-    pnt    => '-0830',
-    pont   => '+1100',
-    pst    => undef,
-    pwt    => '+0900',
-    pyst   => '-0300',
-    pyt    => '-0400',
-    q      => '-0400',
-    r      => '-0500',
-    r1t    => '+0200',
-    r2t    => '+0300',
-    ret    => '+0400',
-    rok    => '+0900',
-    s      => '-0600',
-    sadt   => '+1030',
-    sast   => undef,
-    sbt    => '+1100',
-    sct    => '+0400',
-    set    => '+0100',
-    sgt    => '+0800',
-    srt    => '-0300',
-    sst    => undef,
-    swt    => '+0100',
-    t      => '-0700',
-    tft    => '+0500',
-    tha    => '+0700',
-    that   => '-1000',
-    tjt    => '+0500',
-    tkt    => '-1000',
-    tmt    => '+0500',
-    tot    => '+1300',
-    trut   => '+1000',
-    tst    => '+0300',
-    tuc    => '+0000',
-    tvt    => '+1200',
-    u      => '-0800',
-    ulast  => '+0900',
-    ulat   => '+0800',
-    usz1   => '+0200',
-    usz1s  => '+0300',
-    usz3   => '+0400',
-    usz3s  => '+0500',
-    usz4   => '+0500',
-    usz4s  => '+0600',
-    usz5   => '+0600',
-    usz5s  => '+0700',
-    usz6   => '+0700',
-    usz6s  => '+0800',
-    usz7   => '+0800',
-    usz7s  => '+0900',
-    usz8   => '+0900',
-    usz8s  => '+1000',
-    usz9   => '+1000',
-    usz9s  => '+1100',
-    utz    => '-0300',
-    uyt    => '-0300',
-    uz10   => '+1100',
-    uz10s  => '+1200',
-    uz11   => '+1200',
-    uz11s  => '+1300',
-    uz12   => '+1200',
-    uz12s  => '+1300',
-    uzt    => '+0500',
-    v      => '-0900',
-    vet    => '-0400',
-    vlast  => '+1100',
-    vlat   => '+1000',
-    vtz    => '-0200',
-    vut    => '+1100',
-    w      => '-1000',
-    wakt   => '+1200',
-    wast   => undef,
-    wat    => '+0100',
-    west   => '+0100',
-    wesz   => '+0100',
-    wet    => '+0000',
-    wetdst => '+0100',
-    wez    => '+0000',
-    wft    => '+1200',
-    wgst   => '-0200',
-    wgt    => '-0300',
-    wib    => '+0700',
-    wit    => '+0900',
-    wita   => '+0800',
-    wst    => undef,
-    wtz    => '-0100',
-    wut    => '+0100',
-    x      => '-1100',
-    y      => '-1200',
-    yakst  => '+1000',
-    yakt   => '+0900',
-    yapt   => '+1000',
-    ydt    => '-0800',
-    yekst  => '+0600',
-    yekt   => '+0500',
-    yst    => '-0900',
-    z      => '+0000',
-    utc    => '+0000',
+    A      => '+0100',
+    ACDT   => '+1030',
+    ACST   => '+0930',
+    ADT    => undef,
+    AEDT   => '+1100',
+    AES    => '+1000',
+    AEST   => '+1000',
+    AFT    => '+0430',
+    AHDT   => '-0900',
+    AHST   => '-1000',
+    AKDT   => '-0800',
+    AKST   => '-0900',
+    AMST   => '+0400',
+    AMT    => '+0400',
+    ANAST  => '+1300',
+    ANAT   => '+1200',
+    ART    => '-0300',
+    AST    => undef,
+    AT     => '-0100',
+    AWST   => '+0800',
+    AZOST  => '+0000',
+    AZOT   => '-0100',
+    AZST   => '+0500',
+    AZT    => '+0400',
+    B      => '+0200',
+    BADT   => '+0400',
+    BAT    => '+0600',
+    BDST   => '+0200',
+    BDT    => '+0600',
+    BET    => '-1100',
+    BNT    => '+0800',
+    BORT   => '+0800',
+    BOT    => '-0400',
+    BRA    => '-0300',
+    BST    => undef,
+    BT     => undef,
+    BTT    => '+0600',
+    C      => '+0300',
+    CAST   => '+0930',
+    CAT    => undef,
+    CCT    => undef,
+    CDT    => undef,
+    CEST   => '+0200',
+    CET    => '+0100',
+    CETDST => '+0200',
+    CHADT  => '+1345',
+    CHAST  => '+1245',
+    CKT    => '-1000',
+    CLST   => '-0300',
+    CLT    => '-0400',
+    COT    => '-0500',
+    CST    => undef,
+    CSUT   => '+1030',
+    CUT    => '+0000',
+    CVT    => '-0100',
+    CXT    => '+0700',
+    CHST   => '+1000',
+    D      => '+0400',
+    DAVT   => '+0700',
+    DDUT   => '+1000',
+    DNT    => '+0100',
+    DST    => '+0200',
+    E      => '+0500',
+    EASST  => '-0500',
+    EAST   => undef,
+    EAT    => '+0300',
+    ECT    => undef,
+    EDT    => undef,
+    EEST   => '+0300',
+    EET    => '+0200',
+    EETDST => '+0300',
+    EGST   => '+0000',
+    EGT    => '-0100',
+    EMT    => '+0100',
+    EST    => undef,
+    ESUT   => '+1100',
+    F      => '+0600',
+    FDT    => undef,
+    FJST   => '+1300',
+    FJT    => '+1200',
+    FKST   => '-0300',
+    FKT    => '-0400',
+    FST    => undef,
+    FWT    => '+0100',
+    G      => '+0700',
+    GALT   => '-0600',
+    GAMT   => '-0900',
+    GEST   => '+0500',
+    GET    => '+0400',
+    GFT    => '-0300',
+    GILT   => '+1200',
+    GMT    => '+0000',
+    GST    => undef,
+    GT     => '+0000',
+    GYT    => '-0400',
+    GZ     => '+0000',
+    H      => '+0800',
+    HAA    => '-0300',
+    HAC    => '-0500',
+    HAE    => '-0400',
+    HAP    => '-0700',
+    HAR    => '-0600',
+    HAT    => '-0230',
+    HAY    => '-0800',
+    HDT    => '-0930',
+    HFE    => '+0200',
+    HFH    => '+0100',
+    HG     => '+0000',
+    HKT    => '+0800',
+    HL     => undef,     # 'local',
+    HNA    => '-0400',
+    HNC    => '-0600',
+    HNE    => '-0500',
+    HNP    => '-0800',
+    HNR    => '-0700',
+    HNT    => '-0330',
+    HNY    => '-0900',
+    HOE    => '+0100',
+    HST    => '-1000',
+    I      => '+0900',
+    ICT    => '+0700',
+    IDLE   => '+1200',
+    IDLW   => '-1200',
+    IDT    => undef,
+    IOT    => '+0500',
+    IRDT   => '+0430',
+    IRKST  => '+0900',
+    IRKT   => '+0800',
+    IRST   => '+0430',
+    IRT    => '+0330',
+    IST    => undef,
+    IT     => '+0330',
+    ITA    => '+0100',
+    JAVT   => '+0700',
+    JAYT   => '+0900',
+    JST    => '+0900',
+    JT     => '+0700',
+    K      => '+1000',
+    KDT    => '+1000',
+    KGST   => '+0600',
+    KGT    => '+0500',
+    KOST   => '+1200',
+    KRAST  => '+0800',
+    KRAT   => '+0700',
+    KST    => '+0900',
+    L      => '+1100',
+    LHDT   => '+1100',
+    LHST   => '+1030',
+    LIGT   => '+1000',
+    LINT   => '+1400',
+    LKT    => '+0600',
+    LST    => undef,     # 'local',
+    LT     => undef,     # 'local',
+    M      => '+1200',
+    MAGST  => '+1200',
+    MAGT   => '+1100',
+    MAL    => '+0800',
+    MART   => '-0930',
+    MAT    => '+0300',
+    MAWT   => '+0600',
+    MDT    => '-0600',
+    MED    => '+0200',
+    MEDST  => '+0200',
+    MEST   => '+0200',
+    MESZ   => '+0200',
+    MET    => undef,
+    MEWT   => '+0100',
+    MEX    => '-0600',
+    MEZ    => '+0100',
+    MHT    => '+1200',
+    MMT    => '+0630',
+    MPT    => '+1000',
+    MSD    => '+0400',
+    MSK    => '+0300',
+    MSKS   => '+0400',
+    MST    => '-0700',
+    MT     => '+0830',
+    MUT    => '+0400',
+    MVT    => '+0500',
+    MYT    => '+0800',
+    N      => '-0100',
+    NCT    => '+1100',
+    NDT    => '-0230',
+    NFT    => undef,
+    NOR    => '+0100',
+    NOVST  => '+0700',
+    NOVT   => '+0600',
+    NPT    => '+0545',
+    NRT    => '+1200',
+    NST    => undef,
+    NSUT   => '+0630',
+    NT     => '-1100',
+    NUT    => '-1100',
+    NZDT   => '+1300',
+    NZST   => '+1200',
+    NZT    => '+1200',
+    O      => '-0200',
+    OESZ   => '+0300',
+    OEZ    => '+0200',
+    OMSST  => '+0700',
+    OMST   => '+0600',
+    OZ     => undef,     # 'local',
+    P      => '-0300',
+    PDT    => '-0700',
+    PET    => '-0500',
+    PETST  => '+1300',
+    PETT   => '+1200',
+    PGT    => '+1000',
+    PHOT   => '+1300',
+    PHT    => '+0800',
+    PKT    => '+0500',
+    PMDT   => '-0200',
+    PMT    => '-0300',
+    PNT    => '-0830',
+    PONT   => '+1100',
+    PST    => undef,
+    PWT    => '+0900',
+    PYST   => '-0300',
+    PYT    => '-0400',
+    Q      => '-0400',
+    R      => '-0500',
+    R1T    => '+0200',
+    R2T    => '+0300',
+    RET    => '+0400',
+    ROK    => '+0900',
+    S      => '-0600',
+    SADT   => '+1030',
+    SAST   => undef,
+    SBT    => '+1100',
+    SCT    => '+0400',
+    SET    => '+0100',
+    SGT    => '+0800',
+    SRT    => '-0300',
+    SST    => undef,
+    SWT    => '+0100',
+    T      => '-0700',
+    TFT    => '+0500',
+    THA    => '+0700',
+    THAT   => '-1000',
+    TJT    => '+0500',
+    TKT    => '-1000',
+    TMT    => '+0500',
+    TOT    => '+1300',
+    TRUT   => '+1000',
+    TST    => '+0300',
+    TUC    => '+0000',
+    TVT    => '+1200',
+    U      => '-0800',
+    ULAST  => '+0900',
+    ULAT   => '+0800',
+    USZ1   => '+0200',
+    USZ1S  => '+0300',
+    USZ3   => '+0400',
+    USZ3S  => '+0500',
+    USZ4   => '+0500',
+    USZ4S  => '+0600',
+    USZ5   => '+0600',
+    USZ5S  => '+0700',
+    USZ6   => '+0700',
+    USZ6S  => '+0800',
+    USZ7   => '+0800',
+    USZ7S  => '+0900',
+    USZ8   => '+0900',
+    USZ8S  => '+1000',
+    USZ9   => '+1000',
+    USZ9S  => '+1100',
+    UTZ    => '-0300',
+    UYT    => '-0300',
+    UZ10   => '+1100',
+    UZ10S  => '+1200',
+    UZ11   => '+1200',
+    UZ11S  => '+1300',
+    UZ12   => '+1200',
+    UZ12S  => '+1300',
+    UZT    => '+0500',
+    V      => '-0900',
+    VET    => '-0400',
+    VLAST  => '+1100',
+    VLAT   => '+1000',
+    VTZ    => '-0200',
+    VUT    => '+1100',
+    W      => '-1000',
+    WAKT   => '+1200',
+    WAST   => undef,
+    WAT    => '+0100',
+    WEST   => '+0100',
+    WESZ   => '+0100',
+    WET    => '+0000',
+    WETDST => '+0100',
+    WEZ    => '+0000',
+    WFT    => '+1200',
+    WGST   => '-0200',
+    WGT    => '-0300',
+    WIB    => '+0700',
+    WIT    => '+0900',
+    WITA   => '+0800',
+    WST    => undef,
+    WTZ    => '-0100',
+    WUT    => '+0100',
+    X      => '-1100',
+    Y      => '-1200',
+    YAKST  => '+1000',
+    YAKT   => '+0900',
+    YAPT   => '+1000',
+    YDT    => '-0800',
+    YEKST  => '+0600',
+    YEKT   => '+0500',
+    YST    => '-0900',
+    Z      => '+0000',
+    UTC    => '+0000',
 };
 
 const our $OFFSET => { map { $_ => abs $TIMEZONE->{$_} >= 100 ? ( int( abs $TIMEZONE->{$_} / 100 ) * 60 + abs( $TIMEZONE->{$_} ) % 100 ) / ( $TIMEZONE->{$_} < 0 ? -1 : 1 ) : $TIMEZONE->{$_} } grep { defined $TIMEZONE->{$_} } keys $TIMEZONE->%* };
 
-# TODO shortcuts for directly supported Time::Moment strings
 const our $STRPTIME_TOKEN => {
-    a => [ join( q[|], $WEEKDAY_ABBR->@* ) ],                                 # the abbreviated weekday name ('Sun')
-    A => [ join( q[|], sort $WEEKDAY->@* ) ],                                 # the full weekday  name ('Sunday')
-    b => [ join( q[|], sort $MONTH_ABBR->@* ), 'month', $MONTH_ABBR_NUM ],    # the abbreviated month name ('Jan')
-    B => [ join( q[|], sort $MONTH->@* ), 'month', $MONTH_NUM ],              # the full  month  name ('January')
-    d => [ '\d\d',     'day' ],                                               # day of the month (01..31)
-    H => [ '\d\d',     'hour' ],                                              # hour of the day, 24-hour clock (00..23)
-    m => [ '\d\d',     'month' ],                                             # month of the year (01..12)
-    M => [ '\d\d',     'minute' ],                                            # minute of the hour (00..59)
-    S => [ '\d\d',     'second' ],                                            # second of the minute (00..60)
-    y => [ '\d\d',     'year', sub { $_ += $_ >= 69 ? 1900 : 2000 } ],        # year without a century (00..99)
-    Y => [ '\d\d\d\d', 'year' ],                                              # year with century
-    Z => [ join( q[|], sort { length $b <=> length $a } grep { defined $OFFSET->{$_} } keys $OFFSET->%* ), 'offset', $OFFSET ],    # time zone name
-    z => [ '[+-]\d\d:?\d\d', 'offset', sub { s/://sm; $_ = ( int( abs $_ / 100 ) * 60 + abs %100 ) / ( $_ < 0 ? -1 : 1 ) if abs >= 100 } ],    # +/-hhmm, +/-hh:mm
+    a => [ '(?i:' . join( q[|], $WEEKDAY_ABBR->@* ) . ')' ],    # the abbreviated weekday name ('Sun')
+    A => [ '(?i:' . join( q[|], sort $WEEKDAY->@* ) . ')' ],    # the full weekday  name ('Sunday')
+    b => [ '((?i:' . join( q[|], sort $MONTH_ABBR->@* ) . '))', '$args{month} = $MONTH_ABBR_NUM->{lc $1}' ],    # the abbreviated month name ('Jan')
+    B => [ '((?i:' . join( q[|], sort $MONTH->@* ) . '))',      '$args{month} = $1' ],                          # the full  month  name ('January')
+    d => [ '(\d\d)',     '$args{day} = $1' ],                                                                   # day of the month (01..31)
+    H => [ '(\d\d)',     '$args{hour} = $1' ],                                                                  # hour of the day, 24-hour clock (00..23)
+    m => [ '(\d\d)',     '$args{month} = $1' ],                                                                 # month of the year (01..12)
+    M => [ '(\d\d)',     '$args{minute} = $1' ],                                                                # minute of the hour (00..59)
+    S => [ '(\d\d)',     '$args{second} = $1' ],                                                                # second of the minute (00..60)
+    y => [ '(\d\d)',     '$args{year} = $1 + ( $1 >= 69 ? 1900 : 2000 )' ],                                     # year without a century (00..99)
+    Y => [ '(\d\d\d\d)', '$args{year} = $1' ],                                                                  # year with century
+    Z => [                                                                                                      # time zone name
+        '((?i:' . join( q[|], sort { length $b <=> length $a } grep { defined $OFFSET->{$_} } keys $OFFSET->%* ) . '))',
+        '$args{offset} = $OFFSET->{uc $1}'
+    ],
+    z => [                                                                                                      # +/-hhmm, +/-hh:mm
+        '([+-])(\d\d):?(\d\d)',
+        '$args{offset} = ($2 * 60 + $3) / ($1 eq q[-] ? -1 : 1)',
+    ],
 };
 
-sub strptime_compile_pattern ( $self, $pattern, $use_cache = 1 ) {
+our $CACHE = {};
+
+sub from_strptime ( $self, $str, $pattern, $use_cache = 1 ) {
+    return $CACHE->{$pattern}->($str) if $use_cache and $CACHE->{$pattern};
+
+    return $self->_strptime_compile_pattern( $pattern, $use_cache )->($str);
+}
+
+sub _strptime_compile_pattern ( $self, $pattern, $use_cache = 1 ) {
     state $split_re = qr/%([@{[ join q[|], keys $STRPTIME_TOKEN->%* ]}])/smo;
 
-    state $cache = {};
+    return $CACHE->{$pattern} if $use_cache and $CACHE->{$pattern};
 
-    return $cache->{$pattern} if $use_cache and $cache->{$pattern};
-
-    my $res;
-
-    my ( $re, $map, $coerce );
+    my $re;
 
     my $match_id = 0;
 
+    my $sub;
+
     for my $token ( split $split_re, $pattern ) {
         if ( !exists $STRPTIME_TOKEN->{$token} ) {
-            $re .= fc $token;
+            $re .= $token;
         }
         else {
-            $re .= "($STRPTIME_TOKEN->{$token}->[0])";
+            $re .= $STRPTIME_TOKEN->{$token}->[0];
 
-            if ( my $attr = $STRPTIME_TOKEN->{$token}->[1] ) {
+            if ( $STRPTIME_TOKEN->{$token}->[1] ) {
+                my $code = $STRPTIME_TOKEN->{$token}->[1];
 
-                # adding new attr or replacing old attr with the new without coercion
-                if ( !$map->{$attr} || ( $coerce->{$attr} && !$STRPTIME_TOKEN->{$token}->[2] ) ) {
-                    $map->{$attr} = $match_id;
+                my $id = 1;
 
-                    if ( $STRPTIME_TOKEN->{$token}->[2] ) {
-                        $coerce->{$attr} = $STRPTIME_TOKEN->{$token}->[2];
-                    }
-                    else {
-                        delete $coerce->{$attr};
-                    }
+              NEXT: if ( $code =~ /\$$id/sm ) {
+                    $code =~ s/\$$id/\$match[$match_id]/smg;
+
+                    $id++;
+
+                    $match_id++;
+
+                    goto NEXT;
                 }
-            }
 
-            $match_id++;
+                $sub .= "        $code;$LF";
+            }
         }
     }
 
-    undef $coerce if $coerce && !keys $coerce->%*;
+    $sub = <<"PERL";
+sub ( \$str ) {
+    if ( my \@match = \$str =~ m[$re]smo ) {
+        my \%args;
 
-    $res = [ qr/$re/smo, $map, $coerce ];
-
-    $cache->{$pattern} = $res if $use_cache;
-
-    return $res;
-}
-
-sub strptime_match_pattern ( $self, $str, $pattern ) {
-    if ( my @match = fc($str) =~ $pattern->[0] ) {
-        my $args->@{ keys $pattern->[1]->%* } = @match[ values $pattern->[1]->%* ];
-
-        if ( $pattern->[2] ) {
-            for my $attr ( keys $pattern->[2]->%* ) {
-                my $coerce = $pattern->[2]->{$attr};
-
-                if ( ref $coerce eq 'HASH' ) {
-                    $args->{$attr} = $coerce->{ $args->{$attr} };
-                }
-                else {
-                    \$_ = \$args->{$attr};
-
-                    $coerce->&*;
-                }
-            }
-        }
-
-        return P->date->new( $args->%* );
+$sub
+        return \$self->new( \%args );
     }
     else {
         die q[Strftime pattern does not match];
     }
+};
+PERL
+
+    $sub = eval $sub || die;    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+
+    $CACHE->{$pattern} = $sub if $use_cache;
+
+    return $sub;
 }
 
 1;
@@ -455,10 +453,11 @@ sub strptime_match_pattern ( $self, $str, $pattern ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 358, 373, 416, 427,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 430, 444             |                                                                                                                |
+## |    3 | 358, 373             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 362, 363             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 363, 364, 365, 366,  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |      | 367, 368, 369, 370,  |                                                                                                                |
+## |      | 371, 374, 378        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 373                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

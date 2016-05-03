@@ -101,11 +101,11 @@ requires 'MIME::Base64';
 requires 'Convert::Ascii85';
 
 # Pcore::Util::Date
+requires 'Time::Moment';
 requires 'HTTP::Date';
 requires 'Time::Zone';
-requires 'Time::Moment';
-requires 'Time::Piece';
-requires 'DateTime::TimeZone';
+
+# requires 'DateTime::TimeZone';
 
 # Pcore::Util::Digest
 requires 'Digest';

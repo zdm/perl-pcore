@@ -1,63 +1,7 @@
 package Pcore::Util::Date;
 
 use Pcore;
-use base qw[Time::Moment];
-
-sub from_strptime ( $self, $date, $format ) {
-    state $zone_offset = do {
-        require Time::Piece;
-        require Time::Zone;
-
-        my %zone_offset;
-
-        @zone_offset{ keys %Time::Zone::dstZone } = values %Time::Zone::dstZone;
-        @zone_offset{ keys %Time::Zone::Zone }    = values %Time::Zone::Zone;
-
-        for ( keys %zone_offset ) {
-            my $zone = uc;
-
-            $zone_offset{$zone} = delete $zone_offset{$_};
-
-            my $sec = abs $zone_offset{$zone};
-
-            my $min = $sec % 3600;
-
-            $sec -= $min;
-
-            my $hour = $sec / 3600;
-
-            $min = $min / 60;
-
-            if ( $zone_offset{$zone} < 0 ) {
-                $zone_offset{$zone} = [ $zone_offset{$zone} / 60, sprintf '-%02s%02s', $hour, $min ];
-            }
-            else {
-                $zone_offset{$zone} = [ $zone_offset{$zone} / 60, sprintf '+%02s%02s', $hour, $min ];
-            }
-        }
-
-        \%zone_offset;
-    };
-
-    state $zone_re = do {
-        my $re = '(' . join( q[|], sort { length $b cmp length $a } keys $zone_offset->%* ) . ')';
-
-        qr/$re/smio;
-    };
-
-    local $SIG{__WARN__} = sub { };
-
-    if ( ( my $idx = index $format, '%Z' ) != -1 && scalar $date =~ s/$zone_re/$zone_offset->{uc $1}->[1]/smio ) {
-        substr $format, $idx, 2, '%z';
-
-        my $zone = uc $1;
-
-        return $self->from_epoch( Time::Piece->strptime( $date, $format )->epoch )->with_offset_same_instant( $zone_offset->{$zone}->[0] );
-    }
-    else {
-        return $self->from_epoch( Time::Piece->strptime( $date, $format )->epoch );
-    }
-}
+use base qw[Time::Moment Pcore::Util::Date::Strptime];
 
 sub parse ( $self, $date ) {
     state $init = do {
@@ -112,18 +56,6 @@ sub to_w3cdtf ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 43                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 43                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
