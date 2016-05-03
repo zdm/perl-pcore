@@ -358,22 +358,53 @@ const our $TIMEZONE => {
 const our $OFFSET => { map { $_ => abs $TIMEZONE->{$_} >= 100 ? ( int( abs $TIMEZONE->{$_} / 100 ) * 60 + abs( $TIMEZONE->{$_} ) % 100 ) / ( $TIMEZONE->{$_} < 0 ? -1 : 1 ) : $TIMEZONE->{$_} } grep { defined $TIMEZONE->{$_} } keys $TIMEZONE->%* };
 
 const our $STRPTIME_TOKEN => {
-    a => [ '(?i:' . join( q[|], $WEEKDAY_ABBR->@* ) . ')' ],    # the abbreviated weekday name ('Sun')
-    A => [ '(?i:' . join( q[|], sort $WEEKDAY->@* ) . ')' ],    # the full weekday  name ('Sunday')
-    b => [ '((?i:' . join( q[|], sort $MONTH_ABBR->@* ) . '))', '\$args{month} = \$MONTH_ABBR_NUM->{lc $1}' ],    # the abbreviated month name ('Jan')
-    B => [ '((?i:' . join( q[|], sort $MONTH->@* ) . '))',      '\$args{month} = \$1' ],                          # the full  month  name ('January')
-    d => [ '(\d\d)',     '\$args{day} = \$1' ],                                                                   # day of the month (01..31)
-    H => [ '(\d\d)',     '\$args{hour} = \$1' ],                                                                  # hour of the day, 24-hour clock (00..23)
-    m => [ '(\d\d)',     '\$args{month} = \$1' ],                                                                 # month of the year (01..12)
-    M => [ '(\d\d)',     '\$args{minute} = \$1' ],                                                                # minute of the hour (00..59)
-    S => [ '(\d\d)',     '\$args{second} = \$1' ],                                                                # second of the minute (00..60)
-    y => [ '(\d\d)',     '\$args{year} = \( $1 + ( $1 >= 69 ? 1900 : 2000 ) )' ],                                 # year without a century (00..99)
-    Y => [ '(\d\d\d\d)', '\$args{year} = \$1' ],                                                                  # year with century
-    Z => [                                                                                                        # time zone name
-        '((?i:' . join( q[|], sort { length $b <=> length $a } grep { defined $OFFSET->{$_} } keys $OFFSET->%* ) . '))',
-        '\$args{offset} = \$OFFSET->{uc $1}'
+    a => [    # the abbreviated weekday name ('Sun')
+        '(?i:' . join( q[|], $WEEKDAY_ABBR->@* ) . ')',
     ],
-    z => [                                                                                                        # +/-hhmm, +/-hh:mm
+    A => [    # the full weekday  name ('Sunday')
+        '(?i:' . join( q[|], sort $WEEKDAY->@* ) . ')',
+    ],
+    b => [    # the abbreviated month name ('Jan')
+        '((?i:' . join( q[|], sort $MONTH_ABBR->@* ) . '))',
+        '\$args{month} = \$MONTH_ABBR_NUM->{lc $1}',
+    ],
+    B => [    # the full  month  name ('January')
+        '((?i:' . join( q[|], sort $MONTH->@* ) . '))',
+        '\$args{month} = \$1',
+    ],
+    d => [    # day of the month (01..31)
+        '(\d\d)',
+        '\$args{day} = \$1',
+    ],
+    H => [    # hour of the day, 24-hour clock (00..23)
+        '(\d\d)',
+        '\$args{hour} = \$1',
+    ],
+    m => [    # month of the year (01..12)
+        '(\d\d)',
+        '\$args{month} = \$1',
+    ],
+    M => [    # minute of the hour (00..59)
+        '(\d\d)',
+        '\$args{minute} = \$1',
+    ],
+    S => [    # second of the minute (00..60)
+        '(\d\d)',
+        '\$args{second} = \$1',
+    ],
+    y => [    # year without a century (00..99)
+        '(\d\d)',
+        '\$args{year} = \( $1 + ( $1 >= 69 ? 1900 : 2000 ) )',
+    ],
+    Y => [    # year with century
+        '(\d\d\d\d)',
+        '\$args{year} = \$1',
+    ],
+    Z => [    # time zone name
+        '((?i:' . join( q[|], sort { length $b <=> length $a } grep { defined $OFFSET->{$_} } keys $OFFSET->%* ) . '))',
+        '\$args{offset} = \$OFFSET->{uc $1}',
+    ],
+    z => [    # +/-hhmm, +/-hh:mm
         '([+-])(\d\d):?(\d\d)',
         '\$args{offset} = \( ($2 * 60 + $3) / ($1 eq q[-] ? -1 : 1) )',
     ],
@@ -453,13 +484,13 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 358, 373             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 358, 404             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 363, 364, 365, 366,  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
-## |      | 367, 368, 369, 370,  |                                                                                                                |
-## |      | 371, 374, 378        |                                                                                                                |
+## |    1 | 369, 373, 377, 381,  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |      | 385, 389, 393, 397,  |                                                                                                                |
+## |      | 401, 405, 409        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 373                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 404                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
