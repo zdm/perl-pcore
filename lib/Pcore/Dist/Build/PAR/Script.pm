@@ -8,6 +8,7 @@ use PAR::Filter;
 use Filter::Crypto::CryptFile;
 use Pcore::Src::File;
 use Config;
+use Fcntl qw[:DEFAULT];
 
 has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
@@ -135,7 +136,7 @@ sub run ($self) {
 
     P->file->move( $repacked_fh->path, $target_exe );
 
-    P->file->chmod( 'r-x------', $target_exe );
+    P->file->chmod( 'rwx------', $target_exe );
 
     say 'final binary size: ' . BLACK ON_GREEN . q[ ] . format_num( -s $target_exe ) . q[ ] . RESET . ' bytes';
 
@@ -432,8 +433,6 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $in_len = length $src->$*;
 
-    my $hash = P->digest->md5_hex( $src->$* );
-
     # find zip length
     $src->$* =~ s/(.{4})\x0APAR[.]pm\x0A\z//sm;
 
@@ -444,13 +443,6 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     # cut CACHE_ID, now $overlay contains only parl embedded files
     $overlay =~ s/.{40}\x{00}CACHE\z//sm;
-
-    # repacked_exe_fh contains raw exe header, without overlay
-    my $repacked_exe_fh = P->file->tempfile( suffix => $self->par_suffix );
-
-    my $exe_header_length = length $src->$*;
-
-    P->file->write_bin( $repacked_exe_fh, $src );
 
     my $parl_so_temp = P->file->tempdir;
 
@@ -498,22 +490,45 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         }
     }
 
-    if ( $self->upx ) {
-        $self->_compress_upx( [ grep { !ref } values $file_section->%* ] );
-    }
+    # repacked_exe_fh contains raw exe header, without overlay
+    my $path = P->file->temppath( suffix => $self->par_suffix );
+
+    my $md5 = Digest::MD5->new;
+
+    $md5->add( $src->$* );
+
+    P->file->write_bin( $path, $src );
+
+    $self->_compress_upx( [ $path, grep { !ref } values $file_section->%* ] ) if $self->upx;
+
+    my $exe_header_length = -s $path;
+
+    my $repacked_exe_fh = P->file->tempfile( suffix => $self->par_suffix );
+
+    P->file->write_bin( $repacked_exe_fh, P->file->read_bin($path) );
 
     # pack files sections
     for my $filename ( sort keys $file_section->%* ) {
         my $content = ref $file_section->{$filename} ? $file_section->{$filename} : P->file->read_bin( $file_section->{$filename} );
 
         print {$repacked_exe_fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32( $content->$* ) ) . q[/] . $filename . pack( 'N', length $content->$* ) . $content->$*;
+
+        $md5->add( $content->$* );
     }
 
     # add par itself
     $zip->writeToFileHandle($repacked_exe_fh);
 
+    for my $member ( sort { $a->fileName cmp $b->fileName } $zip->members ) {
+        $md5->add( $member->fileName . $member->crc32String );
+    }
+
+    my $hash = $md5->hexdigest;
+
     # write magic strings
     print {$repacked_exe_fh} pack( 'Z40', $hash ) . qq[\x00CACHE];
+
+    say 'hash: ' . $hash;
 
     print {$repacked_exe_fh} pack( 'N', $repacked_exe_fh->tell - $exe_header_length ) . "\x0APAR.pm\x0A";
 
@@ -535,7 +550,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
         state $init = !!require Win32::Exe;
 
-        my $exe = Win32::Exe->new( $repacked_exe_fh->path );
+        my $exe = Win32::Exe->new($path);
 
         $exe->update( icon => $ENV->share->get('/data/par.ico') );
 
@@ -558,18 +573,18 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 179, 198, 205, 237,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 312, 353, 502, 506   |                                                                                                                |
+## |    3 | 180, 199, 206, 238,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 313, 354, 502, 511   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 251                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 252                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 387, 405             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 388, 406             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 440                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 439                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 516, 518             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 529, 533             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 462, 468             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 454, 460             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
