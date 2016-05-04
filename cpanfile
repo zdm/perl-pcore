@@ -55,8 +55,9 @@ on develop => sub {
 
     # debugging and profiling
     requires 'Devel::NYTProf';
-    suggests 'Devel::hdb';
-    suggests 'Devel::Cover';
+
+    # suggests 'Devel::hdb';
+    # suggests 'Devel::Cover';
 
     # PAR
     requires 'PAR::Packer';
