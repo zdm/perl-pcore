@@ -171,7 +171,7 @@ sub decompress ( $self, % ) {
 
 sub compress ( $self, % ) {
     my %args = (
-        perl_compress             => 0,    # 0 - Perl::Stripper, 1 - Perl::Strip ()
+        perl_compress             => 0,    # 0 - Perl::Stripper, 1 - Perl::Strip
         perl_compress_end_section => 0,    # preserve __END__ section
         perl_compress_keep_ln     => 1,
         perl_strip_ws             => 1,
