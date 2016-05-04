@@ -454,7 +454,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $parl_so_temp = P->file->tempdir;
 
-    my $parl_so_temp_map = {};
+    my $file_section = {};
 
     while (1) {
         last if $overlay !~ s/\AFILE//sm;
@@ -472,16 +472,17 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         if ( $filename =~ /[.](?:pl|pm)\z/sm ) {
 
             # compress perl sources
-            $content = Pcore::Src::File->new(
+            $file_section->{$filename} = Pcore::Src::File->new(
                 {   action      => 'compress',
                     path        => $filename,
                     is_realpath => 0,
                     in_buffer   => \$content,
                     filter_args => {             #
-                        perl_compress => 1,
+                        perl_compress         => 1,
+                        perl_compress_keep_ln => 0,
                     },
                 }
-            )->run->out_buffer->$*;
+            )->run->out_buffer;
         }
         elsif ( $self->upx && $filename =~ /[.]$Config{so}\z/sm ) {
 
@@ -490,34 +491,22 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
             P->file->write_bin( $temppath, $content );
 
-            # save mapping for temppath -> parl filename
-            $parl_so_temp_map->{$temppath} = $filename;
-
-            # will be compressed and added later
-            next;
+            $file_section->{$filename} = $temppath->path;
         }
-
-        # pack file back to the overlay
-        print {$repacked_exe_fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32($content) ) . q[/] . $filename . pack( 'N', length $content ) . $content;
+        else {
+            $file_section->{$filename} = \$content;
+        }
     }
 
     if ( $self->upx ) {
-        $self->_compress_upx( [ keys $parl_so_temp_map->%* ] );
+        $self->_compress_upx( [ grep { !ref } values $file_section->%* ] );
+    }
 
-        P->file->find(
-            $parl_so_temp,
-            abs => 1,
-            dir => 0,
-            sub ($path) {
-                my $content = P->file->read_bin($path)->$*;
+    # pack files sections
+    for my $filename ( sort keys $file_section->%* ) {
+        my $content = ref $file_section->{$filename} ? $file_section->{$filename} : P->file->read_bin( $file_section->{$filename} );
 
-                my $filename = $parl_so_temp_map->{$path};
-
-                print {$repacked_exe_fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32($content) ) . q[/] . $filename . pack( 'N', length $content ) . $content;
-
-                return;
-            }
-        );
+        print {$repacked_exe_fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32( $content->$* ) ) . q[/] . $filename . pack( 'N', length $content->$* ) . $content->$*;
     }
 
     # add par itself
@@ -570,7 +559,7 @@ sub _error ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 179, 198, 205, 237,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 312, 353, 505        |                                                                                                                |
+## |      | 312, 353, 502, 506   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 251                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
@@ -578,9 +567,7 @@ sub _error ( $self, $msg ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 440                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 475                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 527, 529             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 516, 518             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 462, 468             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
