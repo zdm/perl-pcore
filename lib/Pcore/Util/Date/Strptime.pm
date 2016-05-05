@@ -418,6 +418,27 @@ sub from_strptime ( $self, $str, $pattern, $use_cache = 1 ) {
     return $self->_strptime_compile_pattern( $pattern, $use_cache )->($str);
 }
 
+sub expand_strptime_re ( $self, $re ) {
+    state $split_re = qr/%([@{[ join q[|], keys $STRPTIME_TOKEN->%* ]}])/smo;
+
+    my $expanded_re;
+
+    for my $token ( split $split_re, $re ) {
+        if ( !exists $STRPTIME_TOKEN->{$token} ) {
+            $expanded_re .= $token;
+        }
+        else {
+            state $cache = {};
+
+            $cache->{$token} //= $STRPTIME_TOKEN->{$token}->[0] =~ s/[(](?![?])/(?:/smrg;
+
+            $expanded_re .= $cache->{$token};
+        }
+    }
+
+    return $expanded_re;
+}
+
 sub _strptime_compile_pattern ( $self, $pattern, $use_cache = 1 ) {
     state $split_re = qr/%([@{[ join q[|], keys $STRPTIME_TOKEN->%* ]}])/smo;
 
