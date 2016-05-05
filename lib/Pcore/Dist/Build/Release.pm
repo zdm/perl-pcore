@@ -24,7 +24,7 @@ sub run ($self) {
     return if !$new_ver;
 
     # check for resolved issues without milestone
-    if ( my $resolved_issues = $self->dist->build->issues->get( resolved => 1 ) ) {
+    if ( $self->dist->build->issues && ( my $resolved_issues = $self->dist->build->issues->get( resolved => 1 ) ) ) {
         say qq[Following issues are resolved and not closed:$LF];
 
         $self->dist->build->issues->print_issues($resolved_issues);
@@ -35,7 +35,7 @@ sub run ($self) {
     }
 
     # working with issues tracker
-    my $closed_issues = $self->dist->build->issues->get( closed => 1 );
+    my $closed_issues = $self->dist->build->issues && $self->dist->build->issues->get( closed => 1 );
 
     if ($closed_issues) {
         say qq[\nFollowing issues will be added to the release CHANGES file\n];
@@ -62,7 +62,7 @@ sub run ($self) {
     # NOTE !!!WARNING!!! start release, next changes will be hard to revert
 
     # working with the issue tracker
-    {
+    if ( $self->dist->build->issues ) {
         my $cv = AE::cv;
 
         # create new version on issues tracker
@@ -155,11 +155,13 @@ sub run ($self) {
 
     $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or die;
 
-    print 'Pushing to the upstream repository ... ';
+    if ( $self->dist->scm->upstream ) {
+        print 'Pushing to the upstream repository ... ';
 
-    $self->dist->scm->scm_push or die;
+        $self->dist->scm->scm_push or die;
 
-    say 'done';
+        say 'done';
+    }
 
     if ( $self->dist->build->docker ) {
         require Pcore::API::DockerHub;
@@ -367,15 +369,15 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (28)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (32)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 348                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 350                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 87, 128, 147, 172,   |                                                                                                                |
-## |      | 177, 182, 187        |                                                                                                                |
+## |      | 87, 128, 147, 174,   |                                                                                                                |
+## |      | 179, 184, 189        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 344                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 346                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
