@@ -195,6 +195,24 @@ sub _add_share ($self) {
 
 sub _add_modules ($self) {
 
+    # add full unicore database
+    for my $lib ( reverse @INC ) {
+        if ( -d "$lib/unicore/" ) {
+            P->file->find(
+                "$lib/unicore/",
+                abs => 1,
+                dir => 0,
+                sub ($path) {
+                    return if $path !~ /[.]p[lm]\z/sm;
+
+                    $self->_add_module($path);
+
+                    return;
+                }
+            );
+        }
+    }
+
     # add .pl, .pm
     for my $module ( grep {/[.](?:pl|pm)\z/sm} keys $self->mod->%* ) {
         my $found = $self->_add_module($module);
@@ -592,18 +610,18 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 180, 199, 206, 238,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 313, 354, 511, 528   |                                                                                                                |
+## |    3 | 180, 217, 224, 256,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 331, 372, 529, 546   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 252                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 270                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 388, 406             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 406, 424             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 440                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 458                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 549, 552             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 567, 570             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 457, 463             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 475, 481             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
