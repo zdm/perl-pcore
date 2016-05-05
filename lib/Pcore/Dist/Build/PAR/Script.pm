@@ -569,7 +569,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $out_len = $fh->tell;
 
-    say 'parl repacked, ', BLACK ON_GREEN . q[ ] . format_num( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
+    say 'done, ', BLACK ON_GREEN . q[ ] . format_num( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
 
     say 'hash: ' . $hash;
 
