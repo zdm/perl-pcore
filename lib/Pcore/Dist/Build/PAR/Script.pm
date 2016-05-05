@@ -445,7 +445,7 @@ sub _compress_upx ( $self, $path ) {
 }
 
 sub _repack_parl ( $self, $parl_path, $zip ) {
-    say 'repacking parl ... ';
+    print 'repacking parl ... ';
 
     my $src = P->file->read_bin($parl_path);
 
@@ -561,8 +561,6 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $hash = $md5->hexdigest;
 
-    say 'hash: ' . $hash;
-
     # writing cache id
     $fh->print( pack( 'Z40', $hash ) . qq[\x00CACHE] );
 
@@ -571,7 +569,9 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $out_len = $fh->tell;
 
-    say 'parl repacked: ', BLACK ON_GREEN . q[ ] . format_num( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
+    say 'parl repacked, ', BLACK ON_GREEN . q[ ] . format_num( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
+
+    say 'hash: ' . $hash;
 
     # need to close fh before copy / patch file
     $fh->close;
@@ -619,7 +619,7 @@ sub _error ( $self, $msg ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 458                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 567, 570             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 565, 568             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 475, 481             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
