@@ -122,7 +122,7 @@ sub run ($self) {
     # create parl executable
     my $parl_path = P->file->temppath( suffix => $self->par_suffix );
 
-    print 'write parl ... ';
+    print 'writing parl ... ';
 
     my $cmd = qq[parl -B -O$parl_path ] . $zip_fh->path;
 
@@ -445,7 +445,7 @@ sub _compress_upx ( $self, $path ) {
 }
 
 sub _repack_parl ( $self, $parl_path, $zip ) {
-    say 'repack parl ... ';
+    say 'repacking parl ... ';
 
     my $src = P->file->read_bin($parl_path);
 
@@ -583,7 +583,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         # 4 layers, 16x16, 32x32, 16x16, 32x32
         # all layers 8bpp, 1-bit alpha, 256-slot palette
 
-        print 'patch win exe icon ... ';
+        print 'patching win exe icon ... ';
 
         state $init = !!require Win32::Exe;
 
