@@ -54,7 +54,9 @@ on develop => sub {
     requires 'CPAN::Changes';
 
     # debugging and profiling
-    requires 'Devel::NYTProf';
+    feature linux => sub {
+        requires 'Devel::NYTProf';
+    };
 
     # suggests 'Devel::hdb';
     # suggests 'Devel::Cover';
