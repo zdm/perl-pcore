@@ -1,4 +1,4 @@
-FROM softvisio/perl:v5.22.1
+FROM softvisio/perl:v5.22.2
 
 MAINTAINER zdm <zdm@softvisio.net>
 
