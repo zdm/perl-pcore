@@ -8,7 +8,7 @@ use PAR::Filter;
 use Filter::Crypto::CryptFile;
 use Pcore::Src::File;
 use Config;
-use Fcntl qw[:DEFAULT];
+use Fcntl qw[:DEFAULT SEEK_END];
 
 has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
@@ -513,34 +513,28 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $path = P->file->temppath( suffix => $self->par_suffix );
 
-    my $fh = P->file->get_fh( $path, O_CREAT | O_RDWR );
+    # write raw exe
+    P->file->write_bin( $path, $src );
+
+    # patch windows exe icon, need to patch before upx
+    $self->_patch_icon($path);
 
     my $md5 = Digest::MD5->new;
 
-    my $exe_header_length;
-
     if ( $self->upx ) {
+        $self->_compress_upx( [ $path, grep { !ref } values $file_section->%* ] );
 
-        # write exe header to temp file
-        my $exe_header_path = P->file->temppath( base => $parl_so_temp, suffix => $self->par_suffix );
-
-        P->file->write_bin( $exe_header_path, $src );
-
-        $self->_compress_upx( [ $exe_header_path, grep { !ref } values $file_section->%* ] );
-
-        my $exe_header = P->file->read_bin($exe_header_path);
-
-        $fh->print( $exe_header->$* );
-
-        $md5->add( $exe_header->$* );
+        $md5->add( P->file->read_bin($path)->$* );
     }
     else {
-        $fh->print( $src->$* );
-
         $md5->add( $src->$* );
     }
 
-    $exe_header_length = $fh->tell;
+    my $fh = P->file->get_fh( $path, O_RDWR );
+
+    $fh->seek( 0, SEEK_END );
+
+    my $exe_header_length = $fh->tell;
 
     # adding files sections
     for my $filename ( sort keys $file_section->%* ) {
@@ -551,7 +545,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         $md5->add( $content->$* );
     }
 
-    # addding par zip section
+    # addding par zip section, handle should be opened in r/w mode
     $zip->writeToFileHandle( $fh, 1 ) and die;
 
     # calculate par zip section hash
@@ -576,25 +570,25 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
     # need to close fh before copy / patch file
     $fh->close;
 
-    # patch windows exe icon
+    return $path;
+}
+
+sub _patch_icon ( $self, $path ) {
+
+    # .ico
+    # 4 layers, 16x16, 32x32, 16x16, 32x32
+    # all layers 8bpp, 1-bit alpha, 256-slot palette
+
     if ($MSWIN) {
-
-        # .ico
-        # 4 layers, 16x16, 32x32, 16x16, 32x32
-        # all layers 8bpp, 1-bit alpha, 256-slot palette
-
-        print 'patching win exe icon ... ';
-
         state $init = !!require Win32::Exe;
 
-        my $exe = Win32::Exe->new($path);
+        # path should be passed as plain string
+        my $exe = Win32::Exe->new("$path");
 
         $exe->update( icon => $ENV->share->get('/data/par.ico') );
-
-        say 'done';
     }
 
-    return $path;
+    return;
 }
 
 sub _error ( $self, $msg ) {
@@ -611,7 +605,7 @@ sub _error ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 180, 217, 224, 256,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 331, 372, 529, 546   |                                                                                                                |
+## |      | 331, 372, 525, 540   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 270                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
@@ -619,7 +613,7 @@ sub _error ( $self, $msg ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 458                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 565, 568             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 559, 562             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 475, 481             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
