@@ -130,11 +130,11 @@ sub run ($self) {
 
     say 'done';
 
-    my $repacked_fh = $self->_repack_parl( $parl_path, $zip );
+    my $repacked_path = $self->_repack_parl( $parl_path, $zip );
 
     my $target_exe = $self->dist->root . 'data/' . $self->exe_filename;
 
-    P->file->move( $repacked_fh->path, $target_exe );
+    P->file->move( $repacked_path, $target_exe );
 
     P->file->chmod( 'rwx------', $target_exe );
 
@@ -433,15 +433,18 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $in_len = length $src->$*;
 
-    # find zip length
+    # cut magic string
     $src->$* =~ s/(.{4})\x0APAR[.]pm\x0A\z//sm;
 
-    my $zip_overlay_length = unpack 'N', $1;
+    # unpack overlay length
+    my $overlay_length = unpack 'N', $1;
 
-    # cut zip overlay
-    my $overlay = substr $src->$*, length( $src->$* ) - $zip_overlay_length, $zip_overlay_length, q[];
+    # extract overlay
+    # src = raw exe header
+    # overlay = files sections + par zip section + cache id string
+    my $overlay = substr $src->$*, length( $src->$* ) - $overlay_length, $overlay_length, q[];
 
-    # cut CACHE_ID, now $overlay contains only parl embedded files
+    # cut cache id, now overlay = files sections + par zip section
     $overlay =~ s/.{40}\x{00}CACHE\z//sm;
 
     my $parl_so_temp = P->file->tempdir;
@@ -490,54 +493,70 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         }
     }
 
-    # repacked_exe_fh contains raw exe header, without overlay
     my $path = P->file->temppath( suffix => $self->par_suffix );
+
+    my $fh = P->file->get_fh( $path, O_CREAT | O_RDWR );
 
     my $md5 = Digest::MD5->new;
 
-    $md5->add( $src->$* );
+    my $exe_header_length;
 
-    P->file->write_bin( $path, $src );
+    if ( $self->upx ) {
 
-    $self->_compress_upx( [ $path, grep { !ref } values $file_section->%* ] ) if $self->upx;
+        # write exe header to temp file
+        my $exe_header_path = P->file->temppath( base => $parl_so_temp, suffix => $self->par_suffix );
 
-    my $exe_header_length = -s $path;
+        P->file->write_bin( $exe_header_path, $src );
 
-    my $repacked_exe_fh = P->file->tempfile( suffix => $self->par_suffix );
+        $self->_compress_upx( [ $exe_header_path, grep { !ref } values $file_section->%* ] );
 
-    P->file->write_bin( $repacked_exe_fh, P->file->read_bin($path) );
+        my $exe_header = P->file->read_bin($exe_header_path);
 
-    # pack files sections
+        $fh->print( $exe_header->$* );
+
+        $md5->add( $exe_header->$* );
+    }
+    else {
+        $fh->print( $src->$* );
+
+        $md5->add( $src->$* );
+    }
+
+    $exe_header_length = $fh->tell;
+
+    # adding files sections
     for my $filename ( sort keys $file_section->%* ) {
         my $content = ref $file_section->{$filename} ? $file_section->{$filename} : P->file->read_bin( $file_section->{$filename} );
 
-        print {$repacked_exe_fh} 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32( $content->$* ) ) . q[/] . $filename . pack( 'N', length $content->$* ) . $content->$*;
+        $fh->print( 'FILE' . pack( 'N', length($filename) + 9 ) . sprintf( '%08x', Archive::Zip::computeCRC32( $content->$* ) ) . q[/] . $filename . pack( 'N', length $content->$* ) . $content->$* );
 
         $md5->add( $content->$* );
     }
 
-    # add par itself
-    $zip->writeToFileHandle($repacked_exe_fh);
+    # addding par zip section
+    $zip->writeToFileHandle( $fh, 1 ) and die;
 
+    # calculate par zip section hash
     for my $member ( sort { $a->fileName cmp $b->fileName } $zip->members ) {
         $md5->add( $member->fileName . $member->crc32String );
     }
 
     my $hash = $md5->hexdigest;
 
-    # write magic strings
-    print {$repacked_exe_fh} pack( 'Z40', $hash ) . qq[\x00CACHE];
-
     say 'hash: ' . $hash;
 
-    print {$repacked_exe_fh} pack( 'N', $repacked_exe_fh->tell - $exe_header_length ) . "\x0APAR.pm\x0A";
+    # writing cache id
+    $fh->print( pack( 'Z40', $hash ) . qq[\x00CACHE] );
 
-    my $out_len = $repacked_exe_fh->tell;
+    # writing overlay length
+    $fh->print( pack( 'N', $fh->tell - $exe_header_length ) . "\x0APAR.pm\x0A" );
+
+    my $out_len = $fh->tell;
 
     say 'parl repacked: ', BLACK ON_GREEN . q[ ] . format_num( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
 
     # need to close fh before copy / patch file
-    $repacked_exe_fh->close;
+    $fh->close;
 
     # patch windows exe icon
     if ($MSWIN) {
@@ -557,7 +576,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
         say 'done';
     }
 
-    return $repacked_exe_fh;
+    return $path;
 }
 
 sub _error ( $self, $msg ) {
@@ -574,17 +593,17 @@ sub _error ( $self, $msg ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 180, 199, 206, 238,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 313, 354, 502, 511   |                                                                                                                |
+## |      | 313, 354, 511, 528   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 252                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 388, 406             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 439                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 440                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 529, 533             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 549, 552             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 454, 460             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 457, 463             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
