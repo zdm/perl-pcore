@@ -22,6 +22,14 @@ sub is_glob {
     return 0;
 }
 
+sub on_destroy ( $scalar, $cb ) {
+    state $init = !!require Variable::Magic;
+
+    Variable::Magic::cast( $_[0], Variable::Magic::wizard( free => $cb ) );
+
+    return;
+}
+
 1;
 __END__
 =pod
