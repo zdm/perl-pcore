@@ -220,33 +220,11 @@ sub _build_user_cfg_path ($self) {
 
 sub _build_user_cfg ($self) {
     if ( !-f $self->user_cfg_path ) {
-        my $cfg = {
-            'Pcore::Dist' => {
-                author           => q[],
-                email            => q[],
-                license          => 'Perl_5',
-                copyright_holder => q[],
-            },
-            'Pcore::API::PAUSE' => {
-                username => q[],
-                password => q[],
-            },
-            'Pcore::API::Bitbucket' => {
-                repo_owner   => q[],
-                api_username => q[],
-                api_password => q[],
-            },
-            'Pcore::API::Dockerhub' => {    #
-                username => q[],
-            },
-        };
-
-        P->cfg->store( $self->user_cfg_path, $cfg, readable => 1 );
-
-        return $cfg;
+        return {};
     }
-
-    return P->cfg->load("$self->{PCORE_USER_DIR}pcore.perl");
+    else {
+        return P->cfg->load("$self->{PCORE_USER_DIR}pcore.perl");
+    }
 }
 
 sub register_dist ( $self, $dist ) {
@@ -311,7 +289,7 @@ sub dist ( $self, $dist_name = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 20                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 268                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 246                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 115                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
