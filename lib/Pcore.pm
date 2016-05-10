@@ -1,5 +1,6 @@
 package Pcore v0.23.6;
 
+# use v5.24.0;
 use v5.22.1;
 use common::header;
 use Pcore::Core::Exporter qw[];
@@ -537,21 +538,21 @@ sub i18n {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 101                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 102                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 219                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 220                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 297                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 420                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 298                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 421                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 334, 363, 366, 370,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 402, 405, 410, 413,  |                                                                                                                |
-## |      | 441, 458             |                                                                                                                |
+## |    3 | 335, 364, 367, 371,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 403, 406, 411, 414,  |                                                                                                                |
+## |      | 442, 459             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 229                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 230                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 338                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 339                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
