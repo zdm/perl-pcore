@@ -1,4 +1,4 @@
-package Pcore v0.23.7;
+package Pcore v0.23.8;
 
 # use v5.24.0;
 use v5.22.1;
