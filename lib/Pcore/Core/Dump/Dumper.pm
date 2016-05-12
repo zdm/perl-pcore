@@ -181,7 +181,7 @@ sub _dump_blessed {
         @_,
     );
 
-    return q[blessed: ] . $self->_dump( $obj, path => $args{path}, unbless => 1 );
+    return 'blessed: ' . $self->_dump( $obj, path => $args{path}, unbless => 1 );
 }
 
 sub _tied_to {
@@ -190,7 +190,7 @@ sub _tied_to {
 
     if ($tied) {
         $_[0] //= [];
-        push @{ $_[0] }, q[tied to ] . ref $tied;
+        push @{ $_[0] }, 'tied to ' . ref $tied;
     }
 
     return;
@@ -204,7 +204,7 @@ sub UNKNOWN {
         @_,
     );
 
-    return colored( q[unknown: ] . $args{var_type}, $COLOR->{unknown} );
+    return colored( 'unknown: ' . $args{var_type}, $COLOR->{unknown} );
 }
 
 sub BLESSED {
@@ -228,11 +228,14 @@ sub BLESSED {
         no strict qw[refs];
 
         if ( my @superclasses = @{ $ref . '::ISA' } ) {
-            $res .= $self->_indent . q[@ISA: ] . join q[, ], map { colored( $_, $COLOR->{class} ) } @superclasses;
+            $res .= $self->_indent . '@ISA: ' . join q[, ], map { colored( $_, $COLOR->{class} ) } @superclasses;
 
             $res .= qq[,\n];
         }
     }
+
+    # reafddr
+    $res .= $self->_indent . 'refaddr: ' . refaddr($obj) . qq[,\n];
 
     # class dump method
     if ( my $dump_method = $self->dump_method && $obj->can( $self->dump_method ) ) {
@@ -522,9 +525,9 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 396                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 399                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 80, 231, 290         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 80, 231, 293         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
