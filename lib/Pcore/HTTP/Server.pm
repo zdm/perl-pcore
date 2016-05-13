@@ -259,7 +259,7 @@ sub _run_app ( $self, $h, $env ) {
 sub _return_xxx ( $self, $h, $status ) {
     $self->_write_psgi_response( $h, [$status], 0, 0 );
 
-    $self->_finish_request( $h, 0, undef );
+    $self->_finish_request( $h, 0 );
 
     return;
 }
