@@ -419,7 +419,7 @@ sub from_strptime ( $self, $str, $pattern, $use_cache = 1 ) {
 }
 
 sub expand_strptime_re ( $self, $re ) {
-    state $split_re = qr/%([@{[ join q[|], keys $STRPTIME_TOKEN->%* ]}])/smo;
+    state $split_re = qr/%([@{[ join q[|], keys $STRPTIME_TOKEN->%* ]}])/sm;
 
     my $expanded_re;
 
@@ -440,7 +440,7 @@ sub expand_strptime_re ( $self, $re ) {
 }
 
 sub _strptime_compile_pattern ( $self, $pattern, $use_cache = 1 ) {
-    state $split_re = qr/%([@{[ join q[|], keys $STRPTIME_TOKEN->%* ]}])/smo;
+    state $split_re = qr/%([@{[ join q[|], keys $STRPTIME_TOKEN->%* ]}])/sm;
 
     return $CACHE->{$pattern} if $use_cache and $CACHE->{$pattern};
 
@@ -479,7 +479,7 @@ sub _strptime_compile_pattern ( $self, $pattern, $use_cache = 1 ) {
 
     $sub = <<"PERL";
 sub ( \$str ) {
-    if ( my \@match = \$str =~ m[$re]smo ) {
+    if ( my \@match = \$str =~ m[$re]sm ) {
         my \%args;
 
 $sub

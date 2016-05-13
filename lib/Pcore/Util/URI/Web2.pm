@@ -27,7 +27,7 @@ sub _web2_compile {
 
     my $re = join q[|], @re;
 
-    $WEB2_HOST_RE = qr/($re)\z/smio;
+    $WEB2_HOST_RE = qr/($re)\z/smi;
 
     return;
 }
@@ -40,12 +40,12 @@ sub _build__web2_data ($self) {
     if ( $self->host->canon =~ $WEB2_HOST_RE ) {
         my $web2_domain = $1;
 
-        my $web2_id = exists $WEB2_CFG->{$web2_domain} ? $web2_domain : $web2_domain =~ s/[.].+\z//smro;
+        my $web2_id = exists $WEB2_CFG->{$web2_domain} ? $web2_domain : $web2_domain =~ s/[.].+\z//smr;
 
         if ( $WEB2_CFG->{$web2_id}->{path} ) {
 
             # path-based web2 url must not contain subdomain and must have nont empty path
-            if ( $self->host->canon eq $web2_domain && $self->path =~ m[\A(/[^/]+)/?]smo ) {
+            if ( $self->host->canon eq $web2_domain && $self->path =~ m[\A(/[^/]+)/?]sm ) {
                 $res = [ $web2_id, $web2_domain, $web2_domain . $1 . q[/] ];
             }
         }

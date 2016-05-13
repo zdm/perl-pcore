@@ -13,7 +13,7 @@ const our $PC_INITIAL_BIAS => 72;
 const our $PC_INITIAL_N    => 128;
 
 sub domain_to_ascii ($domain) {
-    $domain = lc join q[.], map { /[^\x00-\x7f]/smo ? 'xn--' . to_punycode($_) : $_ } split /[.]/smo, $domain, -1;
+    $domain = lc join q[.], map { /[^\x00-\x7f]/sm ? 'xn--' . to_punycode($_) : $_ } split /[.]/sm, $domain, -1;
 
     utf8::downgrade($domain);
 
@@ -21,7 +21,7 @@ sub domain_to_ascii ($domain) {
 }
 
 sub domain_to_utf8 ($domain) {
-    $domain = lc join q[.], map { /\Axn--(.+)\z/smo ? from_punycode($1) : $_ } split /[.]/sm, $domain, -1;
+    $domain = lc join q[.], map { /\Axn--(.+)\z/sm ? from_punycode($1) : $_ } split /[.]/sm, $domain, -1;
 
     utf8::upgrade($domain);
 
@@ -41,11 +41,11 @@ sub to_punycode ($output) {
     # Extract basic code points
     my $len = length $output;
 
-    my @input = map {ord} split //smo, $output;
+    my @input = map {ord} split //sm, $output;
 
     my @chars = sort grep { $_ >= $PC_INITIAL_N } @input;
 
-    $output =~ s/[^\x00-\x7f]+//smgo;
+    $output =~ s/[^\x00-\x7f]+//smg;
 
     my $h = my $basic = length $output;
 
@@ -113,7 +113,7 @@ sub from_punycode ($input) {
     my @output;
 
     # Consume all code points before the last delimiter
-    push @output, split //smo, $1 if $input =~ s/(.*)\x2d//sm;
+    push @output, split //sm, $1 if $input =~ s/(.*)\x2d//sm;
 
     while ( $input ne q[] ) {
         my $oldi = $i;

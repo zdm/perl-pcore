@@ -97,12 +97,12 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
 
     utf8::encode($uri) if utf8::is_utf8($uri);
 
-    $uri =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smgo;
+    $uri =~ s/([$ESCAPE_RE])/$ESC_CHARS->{$1}/smg;
 
     $uri = q[//] . $uri if $with_authority && index( $uri, q[//] ) == -1;
 
     # official regex from RFC 3986
-    $uri =~ m[^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)([?]([^#]*))?(#(.*))?]smo;
+    $uri =~ m[^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)([?]([^#]*))?(#(.*))?]sm;
 
     $args{scheme} = defined $2 ? lc $2 : q[];
 
@@ -112,7 +112,7 @@ sub _parse_uri_string ( $self, $uri, $with_authority = 0 ) {
     if ( defined $4 ) {
 
         # parse userinfo, host, port
-        $4 =~ m[\A((.+)@)?([^:]+)?(:(.*))?]smo;
+        $4 =~ m[\A((.+)@)?([^:]+)?(:(.*))?]sm;
 
         $args{userinfo} = $2 // q[];
 
@@ -219,7 +219,7 @@ sub _build_to_string ($self) {
 
         $uri .= q[/] if !$self->{path}->is_abs;
     }
-    elsif ( $self->{scheme} eq q[] && $self->{path}->to_uri =~ m[\A[^/]*:]smo ) {
+    elsif ( $self->{scheme} eq q[] && $self->{path}->to_uri =~ m[\A[^/]*:]sm ) {
 
         # prepend path with "./" if uri has no scheme, has no authority, path is absolute and first path segment contains ":"
         # pa:th/path -> ./pa:th/path

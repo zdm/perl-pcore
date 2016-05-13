@@ -31,8 +31,8 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
         next if !defined $kvp;
 
         # trim
-        $kvp =~ s/\A\s+//smo;
-        $kvp =~ s/\s+\z//smo;
+        $kvp =~ s/\A\s+//sm;
+        $kvp =~ s/\s+\z//sm;
 
         next if $kvp eq q[];
 
@@ -58,8 +58,8 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
         for my $attr (@attrs) {
 
             # trim
-            $attr =~ s/\A\s+//smo;
-            $attr =~ s/\s+\z//smo;
+            $attr =~ s/\A\s+//sm;
+            $attr =~ s/\s+\z//sm;
 
             next if $attr eq q[];
 
@@ -87,7 +87,7 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
                 next COOKIE if $url->host->is_ip;
 
                 # remove leading "." from cover domain
-                $v =~ s/\A[.]+//smo;
+                $v =~ s/\A[.]+//sm;
 
                 my $cover_domain = P->host( lc $v );
 

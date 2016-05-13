@@ -140,7 +140,7 @@ sub _wait_request ( $self, $h ) {
 
                 $env->@{ keys $psgi_env->%* } = values $psgi_env->%*;
 
-                if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smio ) {
+                if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
                     $self->_read_body( $h, $env, 1, 0 );
                 }
                 elsif ( $env->{CONTENT_LENGTH} ) {
@@ -202,10 +202,10 @@ sub _run_app ( $self, $h, $env ) {
 
     if ($keep_alive) {
         if ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.1' ) {
-            $keep_alive = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smio;
+            $keep_alive = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smi;
         }
         elsif ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.0' ) {
-            $keep_alive = 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smio;
+            $keep_alive = 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smi;
         }
         else {
             $keep_alive = 0;

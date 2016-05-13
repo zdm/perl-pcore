@@ -44,7 +44,7 @@ around new => sub ( $orig, $self, $dist ) {
         # if $dist contain .pm suffix - this is a full or related module name
         $module_name = $dist;
     }
-    elsif ( $dist =~ m[[./\\]]smo ) {
+    elsif ( $dist =~ m[[./\\]]sm ) {
 
         # if $dist doesn't contain .pm suffix, but contain ".", "/" or "\" - this is a path
         # try find dist by path

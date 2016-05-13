@@ -51,7 +51,7 @@ sub update_all ( $self ) {
     say 'updating tld.dat';
 
     if ( my $res = P->http->get( 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt', buf_size => 0, on_progress => 0 ) ) {
-        $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/smo } split /\n/smo, $res->body->$* ), 'Pcore' );
+        $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ), 'Pcore' );
 
         undef $TLD;
     }
@@ -68,10 +68,10 @@ sub update_all ( $self ) {
         for my $domain ( split /\n/sm, $res->body->$* ) {
 
             # ignore comments
-            next if $domain =~ m[//]smo;
+            next if $domain =~ m[//]sm;
 
             # ignore empty lines
-            next if $domain =~ /\A\s*\z/smo;
+            next if $domain =~ /\A\s*\z/sm;
 
             $suffixes->{$domain} = 1;
         }

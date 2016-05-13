@@ -93,21 +93,21 @@ around new => sub ( $orig, $self, $path = q[], @ ) {
     }
 
     # convert "\" to "/"
-    $path_args->{path} =~ s[\\+][/]smgo;
+    $path_args->{path} =~ s[\\+][/]smg;
 
     # convert "//" -> "/"
-    $path_args->{path} =~ s[/{2,}][/]smgo;
+    $path_args->{path} =~ s[/{2,}][/]smg;
 
     # parse MSWIN volume
     if ( $args{mswin} ) {
         if ( $args{from_uri} ) {
-            if ( $path_args->{path} =~ s[\A/([[:alpha:]]):/][/]smio ) {
+            if ( $path_args->{path} =~ s[\A/([[:alpha:]]):/][/]smi ) {
                 $path_args->{volume} = lc $1;
 
                 $path_args->{is_abs} = 1;
             }
         }
-        elsif ( $path_args->{path} =~ s[\A([[:alpha:]]):/][/]smio ) {
+        elsif ( $path_args->{path} =~ s[\A([[:alpha:]]):/][/]smi ) {
             $path_args->{volume} = lc $1;
 
             $path_args->{is_abs} = 1;
@@ -133,7 +133,7 @@ around new => sub ( $orig, $self, $path = q[], @ ) {
             $path_args->{volume} = $args{base}->{volume};
 
             # remove volume from base path dirname
-            $path_args->{path} = $args{base}->dirname =~ s[\A[[:alpha:]]:][]smor . $path_args->{path};
+            $path_args->{path} = $args{base}->dirname =~ s[\A[[:alpha:]]:][]smr . $path_args->{path};
         }
         else {
             $path_args->{path} = $args{base}->dirname . $path_args->{path};
@@ -146,7 +146,7 @@ around new => sub ( $orig, $self, $path = q[], @ ) {
         # perform full normalization only if path contains "."
         my @segments;
 
-        my @split = split m[/]smo, $path_args->{path};
+        my @split = split m[/]sm, $path_args->{path};
 
         for my $seg (@split) {
             next if $seg eq q[] || $seg eq q[.];
@@ -279,7 +279,7 @@ sub _build_to_uri ($self) {
     utf8::encode($uri) if utf8::is_utf8($uri);
 
     # http://tools.ietf.org/html/rfc3986#section-3.3
-    $uri =~ s/([$Pcore::Util::URI::ESCAPE_RE])/$Pcore::Util::URI::ESC_CHARS->{$1}/smgo;
+    $uri =~ s/([$Pcore::Util::URI::ESCAPE_RE])/$Pcore::Util::URI::ESC_CHARS->{$1}/smg;
 
     return $uri;
 }
