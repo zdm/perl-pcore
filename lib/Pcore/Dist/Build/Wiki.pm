@@ -101,11 +101,16 @@ MD
     if ( !$scm->scm_is_commited->{result} ) {
         $scm->scm_commit('automatically updated') or die;
 
+      PUSH_WIKI:
         print 'Pushing wiki ... ';
 
         my $res = $scm->scm_push;
 
         say $res->reason;
+
+        if ( !$res ) {
+            goto PUSH_WIKI if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+        }
     }
 
     return;

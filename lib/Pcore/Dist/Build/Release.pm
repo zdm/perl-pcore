@@ -156,11 +156,16 @@ sub run ($self) {
     $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or die;
 
     if ( $self->dist->scm->upstream ) {
+      PUSH_UPSTREAM:
         print 'Pushing to the upstream repository ... ';
 
-        $self->dist->scm->scm_push or die;
+        my $res = $self->dist->scm->scm_push;
 
-        say 'done';
+        say $res->reason;
+
+        if ( !$res ) {
+            goto PUSH_UPSTREAM if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
+        }
     }
 
     if ( $self->dist->build->docker ) {
@@ -369,15 +374,15 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (32)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (33)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 350                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 355                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 87, 128, 147, 174,   |                                                                                                                |
-## |      | 179, 184, 189        |                                                                                                                |
+## |      | 87, 128, 147, 179,   |                                                                                                                |
+## |      | 184, 189, 194        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 346                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 351                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
