@@ -56,7 +56,7 @@ sub _build_exe_filename ($self) {
 }
 
 sub run ($self) {
-    say qq[\nBuilding ] . ( $self->crypt ? BLACK ON_GREEN . ' crypted ' : BOLD WHITE ON_RED . q[ not crypted ] ) . RESET . q[ ] . BLACK ON_GREEN . ( $self->clean ? ' clean ' : ' not clean ' ) . RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
+    say qq[\nBuilding ] . ( $self->crypt ? BLACK ON_GREEN . ' crypted ' : BOLD WHITE ON_RED . q[ not crypted ] ) . RESET . q[ ] . BLACK ON_GREEN . ( $self->clean ? ' clean ' : ' cached ' ) . RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
 
     # add main script
     $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
