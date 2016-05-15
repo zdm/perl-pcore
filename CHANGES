@@ -1,3 +1,8 @@
+v0.23.12 2016-05-15T15:26:51Z
+ [BUG]
+ - [major] Pcore-v0.23.5: installation assumes that Pcore is already
+   installed (https://bitbucket.org/softvisio/pcore/issues/37/)
+
 v0.23.11 2016-05-13T15:24:06Z
  - No issues were closed since the last release
 
