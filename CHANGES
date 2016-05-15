@@ -1,3 +1,6 @@
+v0.23.13 2016-05-15T16:21:14Z
+ - No issues were closed since the last release
+
 v0.23.12 2016-05-15T15:26:51Z
  [BUG]
  - [major] Pcore-v0.23.5: installation assumes that Pcore is already
