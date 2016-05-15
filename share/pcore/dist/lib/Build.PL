@@ -3,7 +3,7 @@
 package main v0.1.0;
 
 use FindBin;
-use lib "$FindBin::RealBin/lib";
+use lib $FindBin::RealBin;
 
 use Pcore;
 
