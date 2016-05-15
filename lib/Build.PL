@@ -2,6 +2,9 @@
 
 package main v0.1.0;
 
+use FindBin;
+use lib "$FindBin::RealBin/lib";
+
 use Pcore;
 use Pcore::Util::URI::Host;
 
