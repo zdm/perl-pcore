@@ -4,6 +4,7 @@ use Pcore;
 use Pcore::Util::Scalar qw[is_glob];
 use Fcntl qw[:DEFAULT];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
+use Config;
 
 sub cat_path {
     return P->path( join q[/], splice @_, 1 );
@@ -743,17 +744,46 @@ sub find ( $path, @ ) {
     return;
 }
 
-# WHICH / WHERE
-sub which ($filename) {
-    state $init = !!require File::Which;
+# WHERE
+sub where ( $filename ) {
+    my $wantarray = wantarray;
 
-    return File::Which::which($filename);
-}
+    state $env_path = q[];
 
-sub where ($filename) {
-    state $init = !!require File::Which;
+    state $paths;
 
-    return File::Which::where($filename);
+    if ( $env_path ne $ENV{PATH} ) {
+        $env_path = $ENV{PATH};
+
+        $paths = [ q[.], grep {$_} split /$Config{path_sep}/sm, $ENV{PATH} ];
+    }
+
+    state $env_pathext = q[];
+
+    state $pathext = [q[]];
+
+    if ( $MSWIN && $ENV{PATHEXT} && $env_pathext ne $ENV{PATHEXT} ) {
+        $env_pathext = $ENV{PATHEXT};
+
+        $pathext = [ q[], grep {$_} split /$Config{path_sep}/sm, $ENV{PATHEXT} ];
+    }
+
+    my @res;
+
+    for my $path ( $paths->@* ) {
+        for my $ext ( $pathext->@* ) {
+            if ( -e "$path/${filename}${ext}" ) {
+                if ($wantarray) {
+                    push @res, P->path("$path/${filename}${ext}")->realpath;
+                }
+                else {
+                    return P->path("$path/${filename}${ext}")->realpath;
+                }
+            }
+        }
+    }
+
+    return @res;
 }
 
 1;
@@ -764,9 +794,9 @@ sub where ($filename) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 49                   | * Subroutine "calc_umask" with high complexity score (25)                                                      |
-## |      | 123                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
-## |      | 249                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
+## |      | 50                   | * Subroutine "calc_umask" with high complexity score (25)                                                      |
+## |      | 124                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
+## |      | 250                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
