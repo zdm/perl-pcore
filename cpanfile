@@ -1,4 +1,4 @@
-requires 'perl', v5.22.1;
+requires 'perl', v5.24.0;
 
 # Pcore::Core
 requires 'multidimensional';
@@ -157,7 +157,6 @@ requires 'HTML::Entities';
 # Pcore::Util::Template
 requires 'Text::Xslate';
 requires 'Text::Xslate::Bridge::TT2Like';
-requires 'Text::Xslate::Bridge::Star';
 
 # Pcore::Util::UUID
 requires 'Data::UUID';
