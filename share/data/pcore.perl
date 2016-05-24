@@ -28,7 +28,7 @@
                 # common arch. dependent shared libs names, used by modules
                 mod_shlib => {
                     'B/Hooks/OP/Check.pm'       => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
-                    'BerkeleyDB.pm'             => ['libdb-6.1_.dll'],
+                    'BerkeleyDB.pm'             => ['libdb-6.2_.dll'],
                     'Filter/Crypto/Decrypt.pm'  => [ 'libeay32_.dll', 'zlib1_.dll' ],
                     'Net/SSLeay.pm'             => [ 'ssleay32_.dll', 'libeay32_.dll', 'zlib1_.dll' ],
                     'Pcore/Util/PM/RPC/Proc.pm' => [$^X],
@@ -44,7 +44,7 @@
                 # common arch. dependent shared libs names, used by modules
                 mod_shlib => {
                     'B/Hooks/OP/Check.pm'       => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
-                    'BerkeleyDB.pm'             => ['libdb-6.1__.dll'],
+                    'BerkeleyDB.pm'             => ['libdb-6.2__.dll'],
                     'Filter/Crypto/Decrypt.pm'  => [ 'libeay32__.dll', 'zlib1__.dll' ],
                     'Net/SSLeay.pm'             => [ 'ssleay32__.dll', 'libeay32__.dll', 'zlib1__.dll' ],
                     'Pcore/Util/PM/RPC/Proc.pm' => [$^X],
