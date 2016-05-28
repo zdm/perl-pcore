@@ -195,8 +195,6 @@ sub _render_row ( $self, $row, $header_row = 0 ) {
 
     my $row_height = 1;
 
-    my $cell_attrs;
-
     # retrieve and format cells values
     for my $col ( $self->cols->@* ) {
         my $val;
@@ -221,27 +219,23 @@ sub _render_row ( $self, $row, $header_row = 0 ) {
             $val = $row->{$id} if $@;
         }
 
+        my $align;
+
         # format cell and create cell attributes
         if ($header_row) {
             if ( $self->{color} && defined $col->{title_color} ) {
                 $val = $col->{title_color} . $val . "\e[0m";
             }
 
-            $cell_attrs = {
-                align  => $col->title_align,
-                valign => $col->title_valign,
-            };
+            $align = $col->title_align;
         }
         else {
             $val = $col->format_val( $val, $row );
 
-            $cell_attrs = {
-                align  => $col->align,
-                valign => $col->valign,
-            };
+            $align = $col->align;
         }
 
-        $val = wrap $val, $col->{width} - ( $self->padding * 2 ), ansi => $self->color, align => $cell_attrs->{align};
+        $val = wrap $val, $col->{width} - ( $self->padding * 2 ), ansi => $self->color, align => $align;
 
         $val = [ q[ ] x ( $col->{width} - $self->padding * 2 ) ] if !$val->@*;
 
@@ -260,13 +254,15 @@ sub _render_row ( $self, $row, $header_row = 0 ) {
             if ( $cell_height < $row_height ) {
                 my $tmpl = q[ ] x ( $col->{width} - $self->padding * 2 );
 
-                if ( $cell_attrs->{valign} == -1 ) {
+                my $valign = $header_row ? $col->title_valign : $col->valign;
+
+                if ( $valign == -1 ) {
                     push $cell->@*, ($tmpl) x ( $row_height - $cell_height );
                 }
-                elsif ( $cell_attrs->{valign} == 1 ) {
+                elsif ( $valign == 1 ) {
                     unshift $cell->@*, ($tmpl) x ( $row_height - $cell_height );
                 }
-                elsif ( $cell_attrs->{valign} == 0 ) {
+                elsif ( $valign == 0 ) {
                     my $top = int( ( $row_height - $cell_height ) / 2 );
 
                     my $bottom = $row_height - $cell_height - $top;
@@ -322,7 +318,7 @@ sub _render_line ( $self, $idx ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 50, 52, 76           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 178                  | Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (32)               |
+## |    3 | 178                  | Subroutines::ProhibitExcessComplexity - Subroutine "_render_row" with high complexity score (33)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
