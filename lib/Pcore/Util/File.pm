@@ -559,12 +559,18 @@ sub rmtree ( $path, @ ) {
 
     state $init = !!require File::Path;
 
-    return File::Path::remove_tree( "$path", \%args );
+    my $error;
+
+    $args{error} = \$error;
+
+    my $removed = File::Path::remove_tree( "$path", \%args );
+
+    return $error->@* ? () : 1;
 }
 
 sub empty_dir ( $path, @ ) {
     my %args = (
-        safe => 0,                                                                                   # 0 - will attempts to alter file permission
+        safe => 0,    # 0 - will attempts to alter file permission
         splice @_, 1,
         keep_root => 1,
     );
