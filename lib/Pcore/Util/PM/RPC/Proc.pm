@@ -7,6 +7,7 @@ use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
 use Pcore::Util::Scalar qw[weaken];
 use if $MSWIN, 'Win32API::File';
+use Pcore::Util::Data qw[:CONST];
 
 has proc => ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 has pid => ( is => 'ro', isa => Int, init_arg => undef );    # real RPC process PID, reported in handshake
@@ -38,32 +39,20 @@ around new => sub ( $orig, $self, @ ) {
         }
     };
 
-    my $boot_args = {
-        script => {
-            path    => $ENV->{SCRIPT_PATH},
-            version => $main::VERSION->normal,
-        },
-        scan_deps => $args{scan_deps},
-    };
+    my $boot_args = [ $ENV->{SCRIPT_PATH}, $main::VERSION->normal, $args{scan_deps} ];
 
     if ($MSWIN) {
-        $boot_args->{ipc} = {
-            in  => Win32API::File::FdGetOsFHandle( fileno $in_r ),
-            out => Win32API::File::FdGetOsFHandle( fileno $out_w ),
-        };
+        push $boot_args->@*, Win32API::File::FdGetOsFHandle( fileno $in_r ), Win32API::File::FdGetOsFHandle( fileno $out_w );
     }
     else {
         fcntl $in_r,  Fcntl::F_SETFD, fcntl( $in_r,  Fcntl::F_GETFD, 0 ) & ~Fcntl::FD_CLOEXEC or die;
         fcntl $out_w, Fcntl::F_SETFD, fcntl( $out_w, Fcntl::F_GETFD, 0 ) & ~Fcntl::FD_CLOEXEC or die;
 
-        $boot_args->{ipc} = {
-            in  => fileno $in_r,
-            out => fileno $out_w,
-        };
+        push $boot_args->@*, fileno $in_r, fileno $out_w;
     }
 
     # serialize CBOR + HEX
-    $boot_args = P->data->to_cbor( $boot_args, encode => 2 )->$*;
+    $boot_args = P->data->to_cbor( $boot_args, encode => $DATA_ENC_B64 )->$*;
 
     my $cmd = [];
 
@@ -169,7 +158,7 @@ sub _handshake ( $self, $init, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 133, 143             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 122, 132             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

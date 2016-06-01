@@ -10,15 +10,16 @@ BEGIN {
     # preload Filter::Crypto::Decrypt to avoid "Can't run with Perl compiler backend" fatal error under crypted PAR
     require Filter::Crypto::Decrypt;
     require CBOR::XS;
+    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
-    $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', shift @ARGV );
+    $BOOT_ARGS = CBOR::XS::decode_cbor( MIME::Base64::decode_base64url( shift @ARGV ) );
 
-    $0 = $BOOT_ARGS->{script}->{path};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $0 = $BOOT_ARGS->[0];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    $main::VERSION = version->new( $BOOT_ARGS->{script}->{version} );
+    $main::VERSION = version->new( $BOOT_ARGS->[1] );
 }
 
-package                                   # hide from CPAN
+package                      # hide from CPAN
   main;
 
 use Pcore;
@@ -26,16 +27,16 @@ use Pcore::AE::Handle;
 use if $MSWIN, 'Win32API::File';
 
 if ($MSWIN) {
-    Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->{ipc}->{in},  'r' ) or die $!;
-    Win32API::File::OsFHandleOpen( *OUT, $BOOT_ARGS->{ipc}->{out}, 'w' ) or die $!;
+    Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
+    Win32API::File::OsFHandleOpen( *OUT, $BOOT_ARGS->[4], 'w' ) or die $!;
 }
 else {
-    open *IN,  '<&=', $BOOT_ARGS->{ipc}->{in}  or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
-    open *OUT, '>&=', $BOOT_ARGS->{ipc}->{out} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+    open *IN,  '<&=', $BOOT_ARGS->[3] or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+    open *OUT, '>&=', $BOOT_ARGS->[4] or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
 }
 
-my $IN;                                                      # read from
-my $OUT;                                                     # write to
+my $IN;                                             # read from
+my $OUT;                                            # write to
 
 # wrap IN
 Pcore::AE::Handle->new(
@@ -122,7 +123,7 @@ $CV->recv;
 sub _get_new_deps {
     my $new_deps;
 
-    if ( $BOOT_ARGS->{scan_deps} ) {
+    if ( $BOOT_ARGS->[2] ) {
         for my $pkg ( grep { !exists $DEPS->{$_} } keys %INC ) {
             $new_deps->{$pkg} = $INC{$pkg};
 
@@ -150,7 +151,7 @@ sub _on_call_responder ( $call_id, $data ) {
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
                 call_id => $call_id,
-                deps    => $BOOT_ARGS->{scan_deps} ? _get_new_deps() : undef,
+                deps    => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
             },
             $data
         ]
@@ -191,7 +192,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
                 call_id => $call_id,
-                deps    => $BOOT_ARGS->{scan_deps} ? _get_new_deps() : undef,
+                deps    => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
                 method  => $method,
             },
             $data
@@ -210,7 +211,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 74, 84               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 75, 85               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
