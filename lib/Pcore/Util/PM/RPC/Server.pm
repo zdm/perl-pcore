@@ -63,28 +63,47 @@ Pcore::AE::Handle->new(
     }
 );
 
-# handshake, send PID
-$OUT->push_write("READY$$\x00");
-
+my $RPC;
 my $DEPS    = {};
 my $QUEUE   = {};
 my $CALL_ID = 0;
 
 our $CV = AE::cv;
 
-# create object
-my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
+# handshake, send PID
+$OUT->push_write("READY1$$\x00");
 
-# start listen
-$IN->on_read(
-    sub ($h) {
+$IN->unshift_read(
+    chunk => 4,
+    sub ( $h, $len ) {
         $h->unshift_read(
-            chunk => 4,
+            chunk => unpack( 'L>', $len ),
             sub ( $h, $data ) {
-                $h->unshift_read(
-                    chunk => unpack( 'L>', $data ),
-                    sub ( $h, $data ) {
-                        _on_data( P->data->from_cbor($data) );
+                my $init = P->data->from_cbor($data);
+
+                $OUT->push_write("READY2$$\x00");
+
+                # create object
+                $RPC = P->class->load( $init->{class} )->new( $init->{buildargs} // () );
+
+                # start listen
+                $IN->on_read(
+                    sub ($h) {
+                        $h->unshift_read(
+                            chunk => 4,
+                            sub ( $h, $data ) {
+                                $h->unshift_read(
+                                    chunk => unpack( 'L>', $data ),
+                                    sub ( $h, $data ) {
+                                        _on_data( P->data->from_cbor($data) );
+
+                                        return;
+                                    }
+                                );
+
+                                return;
+                            }
+                        );
 
                         return;
                     }
@@ -191,7 +210,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 67                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 74, 84               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

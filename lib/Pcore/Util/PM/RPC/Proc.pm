@@ -43,8 +43,6 @@ around new => sub ( $orig, $self, @ ) {
             path    => $ENV->{SCRIPT_PATH},
             version => $main::VERSION->normal,
         },
-        class     => $args{class},
-        buildargs => $args{buildargs},
         scan_deps => $args{scan_deps},
     };
 
@@ -90,6 +88,9 @@ around new => sub ( $orig, $self, @ ) {
 
             # wrap AE handles and perform handshale
             $self->_handshake(
+                {   class     => $args{class},
+                    buildargs => $args{buildargs},
+                },
                 sub {
                     $args{on_ready}->($self);
 
@@ -104,7 +105,7 @@ around new => sub ( $orig, $self, @ ) {
     return;
 };
 
-sub _handshake ( $self, $cb ) {
+sub _handshake ( $self, $init, $cb ) {
     weaken $self;
 
     # wrap IN
@@ -131,10 +132,24 @@ sub _handshake ( $self, $cb ) {
     $self->{out}->push_read(
         line => "\x00",
         sub ( $h, $line, $eol ) {
-            if ( $line =~ /\AREADY(\d+)\z/sm ) {
+            if ( $line =~ /\AREADY1(\d+)\z/sm ) {
                 $self->{pid} = $1;
 
-                $cb->();
+                my $cbor = P->data->to_cbor($init);
+
+                $self->{in}->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+
+                $self->{out}->push_read(
+                    line => "\x00",
+                    sub ( $h, $line, $eol ) {
+                        if ( $line =~ /\AREADY2(\d+)\z/sm ) {
+                            $cb->();
+                        }
+                        else {
+                            die 'RPC handshake error';
+                        }
+                    }
+                );
             }
             else {
                 die 'RPC handshake error';
@@ -154,7 +169,7 @@ sub _handshake ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 132                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 133, 143             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
