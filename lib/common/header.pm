@@ -44,7 +44,9 @@ use if $^V lt 'v5.23', warnings => 'experimental::autoderef', FATAL => 'experime
 use if $^V ge 'v5.10', feature => ':all';
 no  if $^V ge 'v5.16', feature => 'array_base';
 
-use if $^V ge 'v5.22', re => 'strict';
+# TODO enable, when memory leak will be fixed
+# use if $^V ge 'v5.22', re => 'strict';
+
 no multidimensional;
 
 # TODO mro caller
