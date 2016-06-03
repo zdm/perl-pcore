@@ -299,6 +299,10 @@ sub _build_root_domain ($self) {
     return q[] unless $self->is_domain;
 
     if ( my $pub_suffix = $self->pub_suffix ) {
+
+        # TODO mem. leak workaround
+        no re qw[strict];
+
         if ( $self->canon =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
             return $1;
         }
