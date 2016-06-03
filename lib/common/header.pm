@@ -45,6 +45,7 @@ use if $^V ge 'v5.10', feature => ':all';
 no  if $^V ge 'v5.16', feature => 'array_base';
 
 # TODO enable, when memory leak will be fixed
+# TODO https://rt.perl.org/Public/Bug/Display.html?id=128313
 # use if $^V ge 'v5.22', re => 'strict';
 
 no multidimensional;
