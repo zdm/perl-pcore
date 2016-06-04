@@ -2,6 +2,11 @@ package Pcore::Util::PM::RPC::Worker;
 
 use Pcore -role;
 
+# NOTE can be overloaded in worker class
+sub RPC_ON_TERM ($self) {
+    exit;
+}
+
 sub rpc_call ( $self, @ ) {
     main->rpc_call( splice @_, 1 );
 

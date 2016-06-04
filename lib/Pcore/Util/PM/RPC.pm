@@ -1,6 +1,6 @@
 package Pcore::Util::PM::RPC;
 
-use Pcore -class, -const;
+use Pcore -class, -const, -export => { CONST => [qw[$RPC_MSG_TERM]] };
 use Pcore::Util::PM::RPC::Proc;
 use Config;
 use Pcore::Util::Scalar qw[weaken];
@@ -14,6 +14,9 @@ has _workers_idx => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_a
 has _call_id => ( is => 'ro', default => 0, init_arg => undef );
 has _queue => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
+has _term => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+
+const our $RPC_MSG_TERM => 1;
 
 around new => sub ( $orig, $self, $class, @args ) {
     my %args = (
@@ -62,13 +65,30 @@ sub _create_worker ( $self, $cv ) {
         class     => $self->class,
         buildargs => $self->buildargs,
         scan_deps => $self->_scan_deps,
-        on_ready  => sub ($rpc_proc) {
-            push $self->{_workers}->@*, $rpc_proc;
+        on_ready  => sub ($worker) {
+            push $self->{_workers}->@*, $worker;
 
-            $self->{_workers_idx}->{ $rpc_proc->pid } = $rpc_proc;
+            $self->{_workers_idx}->{ $worker->pid } = $worker;
+
+            # install on_error
+            $worker->in->on_error(
+                sub ( $h, $fatal, $msg ) {
+                    $self->_on_worker_finish($worker);
+
+                    return;
+                }
+            );
+
+            $worker->out->on_error(
+                sub ( $h, $fatal, $msg ) {
+                    $self->_on_worker_finish($worker);
+
+                    return;
+                }
+            );
 
             # install listener
-            $rpc_proc->out->on_read(
+            $worker->out->on_read(
                 sub ($h) {
                     $self->_on_read($h);
 
@@ -80,7 +100,26 @@ sub _create_worker ( $self, $cv ) {
 
             return;
         },
+        on_finish => sub ($worker) {
+            $self->_on_worker_finish($worker);
+
+            return;
+        }
     );
+
+    return;
+}
+
+sub _on_worker_finish ( $self, $worker ) {
+    if ( delete $self->{_workers_idx}->{ $worker->pid } ) {
+        for ( my $i = 0; $i <= $self->{_workers}->$#*; $i++ ) {
+            if ( $self->{_workers}->[$i] eq $worker ) {
+                splice $self->{_workers}->@*, $i, 1, ();
+
+                last;
+            }
+        }
+    }
 
     return;
 }
@@ -110,6 +149,8 @@ sub _build__scan_deps ($self) {
 }
 
 sub _on_data ( $self, $data ) {
+    return if $self->{_term};
+
     Pcore::Devel::ScanDeps->add_deps( $data->[0]->{deps} ) if $data->[0]->{deps} && $self->_scan_deps;
 
     if ( $data->[0]->{method} ) {
@@ -146,6 +187,8 @@ sub _on_call ( $self, $worker_pid, $call_id, $method, $data ) {
 }
 
 sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
+    return if $self->{_term};
+
     my $call_id;
 
     if ($cb) {
@@ -167,6 +210,55 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     return;
 }
 
+sub rpc_call_all ( $self, $method, $data = undef ) {
+    return if $self->{_term};
+
+    my $cbor = P->data->to_cbor( [ { call_id => undef, method => $method }, $data ] );
+
+    for my $worker ( $self->_workers->@* ) {
+        $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+    }
+
+    return;
+}
+
+sub rpc_term ( $self, $cb = undef ) {
+    return if $self->{_term};
+
+    $self->{_term} = 1;
+
+    my $cv = AE::cv sub {
+        $cb->() if $cb;
+
+        return;
+    };
+
+    my $cbor = P->data->to_cbor( [ { msg => $RPC_MSG_TERM } ] );
+
+    $cv->begin;
+
+    # send TERM message to all workers
+    for my $worker ( $self->_workers->@* ) {
+        $cv->begin;
+
+        $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+
+        $worker->on_finish(
+            sub ($worker) {
+                $self->_on_worker_finish($worker);
+
+                $cv->end;
+
+                return;
+            }
+        );
+    }
+
+    $cv->end;
+
+    return defined wantarray ? $cv->recv : ();
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -174,7 +266,9 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 127                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 168                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 115                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

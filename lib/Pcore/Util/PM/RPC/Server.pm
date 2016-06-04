@@ -25,6 +25,7 @@ package                      # hide from CPAN
 use Pcore;
 use Pcore::AE::Handle;
 use if $MSWIN, 'Win32API::File';
+use Pcore::Util::PM::RPC qw[:CONST];
 
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
@@ -42,7 +43,9 @@ my $OUT;                                            # write to
 Pcore::AE::Handle->new(
     fh       => \*IN,
     on_error => sub ( $h, $fatal, $msg ) {
-        exit;
+        _on_term();
+
+        return;
     },
     on_connect => sub ( $h, @ ) {
         $IN = $h;
@@ -55,7 +58,9 @@ Pcore::AE::Handle->new(
 Pcore::AE::Handle->new(
     fh       => \*OUT,
     on_error => sub ( $h, $fatal, $msg ) {
-        exit;
+        _on_term();
+
+        return;
     },
     on_connect => sub ( $h, @ ) {
         $OUT = $h;
@@ -63,6 +68,18 @@ Pcore::AE::Handle->new(
         return;
     }
 );
+
+# ignore INT
+$SIG->{INT} = AE::signal INT => sub {
+    return;
+};
+
+# term on TERM
+$SIG->{TERM} = AE::signal TERM => sub {
+    _on_term();
+
+    return;
+};
 
 my $RPC;
 my $DEPS    = {};
@@ -134,8 +151,29 @@ sub _get_new_deps {
     return $new_deps;
 }
 
+my $TERM;
+
+sub _on_term {
+    return if $TERM;
+
+    $TERM = 1;
+
+    $RPC->RPC_ON_TERM if $RPC->can('RPC_ON_TERM');
+
+    return;
+}
+
 sub _on_data ($data) {
-    if ( $data->[0]->{method} ) {
+
+    # stop receiving any data in TERM state
+    return if $TERM;
+
+    if ( $data->[0]->{msg} ) {
+        if ( $data->[0]->{msg} == $RPC_MSG_TERM ) {
+            _on_term();
+        }
+    }
+    elsif ( $data->[0]->{method} ) {
         _on_call( $data->[0]->{call_id}, $data->[0]->{method}, $data->[1] );
     }
     else {
@@ -180,6 +218,10 @@ sub _on_call ( $call_id, $method, $data ) {
 }
 
 sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
+
+    # stop sending new calls in TERM state
+    return if $TERM;
+
     my $call_id;
 
     if ($cb) {
@@ -211,7 +253,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 75, 85               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 92, 102              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

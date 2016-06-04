@@ -251,10 +251,10 @@ sub DEMOLISH ( $self, $global ) {
     if ( $self->{pid} ) {
 
         # kill process group, eg.: windows console subprocess
-        kill -9, $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        kill '-KILL', $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
         # kill process, because -9 is ignoref by process itself
-        kill 9, $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        kill 'KILL', $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
     }
 
     $self->_on_exit( 128 + 9 ) if !$global;
