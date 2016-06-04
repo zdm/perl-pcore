@@ -27,8 +27,9 @@ has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame
 
 has propagated => ( is => 'ro', isa => Bool, default => 0 );
 
-has longmess  => ( is => 'lazy', isa => Str, init_arg => undef );
-has to_string => ( is => 'lazy', isa => Str, init_arg => undef );
+has is_ae_cb_error => ( is => 'lazy', isa => Bool, init_arg => undef );
+has longmess       => ( is => 'lazy', isa => Str,  init_arg => undef );
+has to_string      => ( is => 'lazy', isa => Str,  init_arg => undef );
 
 has logged          => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 has _stop_propagate => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
@@ -83,6 +84,23 @@ around new => sub ( $orig, $self, $msg, %args ) {
 # CLASS METHODS
 sub PROPAGATE ( $self, $file, $line ) {
     return $self;
+}
+
+sub _build_is_ae_cb_error ($self) {
+    for my $frame ( $self->{call_stack}->@* ) {
+        if ( $frame->{subroutine} eq '(eval)' ) {
+            if ( $frame->{package} eq 'AnyEvent::Impl::EV' ) {
+                $self->{msg} = 'AE: error in callback: ' . $self->{msg};
+
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        }
+    }
+
+    return 0;
 }
 
 sub _build_exit_code ($self) {
