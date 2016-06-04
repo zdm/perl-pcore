@@ -230,7 +230,7 @@ sub rpc_term ( $self, $cb = undef ) {
     my $cv = AE::cv sub {
         $cb->() if $cb;
 
-        return;
+        return 1;
     };
 
     my $cbor = P->data->to_cbor( [ { msg => $RPC_MSG_TERM } ] );
