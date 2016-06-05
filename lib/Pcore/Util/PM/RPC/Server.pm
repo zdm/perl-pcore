@@ -164,16 +164,20 @@ sub _on_term {
 }
 
 sub _on_data ($data) {
-
-    # stop receiving any data in TERM state
-    return if $TERM;
-
     if ( $data->[0]->{msg} ) {
+
+        # stop receiving messages in TERM state
+        return if $TERM;
+
         if ( $data->[0]->{msg} == $RPC_MSG_TERM ) {
             _on_term();
         }
     }
     elsif ( $data->[0]->{method} ) {
+
+        # stop receiving new calls in TERM state
+        return if $TERM;
+
         _on_call( $data->[0]->{call_id}, $data->[0]->{method}, $data->[1] );
     }
     else {
@@ -218,10 +222,6 @@ sub _on_call ( $call_id, $method, $data ) {
 }
 
 sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
-
-    # stop sending new calls in TERM state
-    return if $TERM;
-
     my $call_id;
 
     if ($cb) {

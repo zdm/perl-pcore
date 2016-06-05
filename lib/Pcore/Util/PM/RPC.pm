@@ -149,8 +149,6 @@ sub _build__scan_deps ($self) {
 }
 
 sub _on_data ( $self, $data ) {
-    return if $self->{_term};
-
     Pcore::Devel::ScanDeps->add_deps( $data->[0]->{deps} ) if $data->[0]->{deps} && $self->_scan_deps;
 
     if ( $data->[0]->{method} ) {
@@ -187,6 +185,8 @@ sub _on_call ( $self, $worker_pid, $call_id, $method, $data ) {
 }
 
 sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
+
+    # stop creating new calls in the term state
     return if $self->{_term};
 
     my $call_id;
@@ -211,6 +211,8 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 }
 
 sub rpc_call_all ( $self, $method, $data = undef ) {
+
+    # stop creating new calls in the term state
     return if $self->{_term};
 
     my $cbor = P->data->to_cbor( [ { call_id => undef, method => $method }, $data ] );
@@ -223,6 +225,8 @@ sub rpc_call_all ( $self, $method, $data = undef ) {
 }
 
 sub rpc_term ( $self, $cb = undef ) {
+
+    # stop creating new messages in the term state
     return if $self->{_term};
 
     $self->{_term} = 1;
@@ -266,7 +270,7 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 168                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 166                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 115                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
