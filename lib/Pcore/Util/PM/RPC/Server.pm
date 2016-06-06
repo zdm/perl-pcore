@@ -10,9 +10,16 @@ BEGIN {
     # preload Filter::Crypto::Decrypt to avoid "Can't run with Perl compiler backend" fatal error under crypted PAR
     require Filter::Crypto::Decrypt;
     require CBOR::XS;
-    require MIME::Base64;    ## no critic qw[Modules::ProhibitEvilModules]
 
-    $BOOT_ARGS = CBOR::XS::decode_cbor( MIME::Base64::decode_base64url( shift @ARGV ) );
+    # shift class name
+    shift @ARGV;
+
+    # read and unpack boot args from STDIN
+    $BOOT_ARGS = <>;
+
+    chomp $BOOT_ARGS;
+
+    $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $BOOT_ARGS );
 
     $0 = $BOOT_ARGS->[0];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
@@ -85,6 +92,7 @@ my $RPC;
 my $DEPS    = {};
 my $QUEUE   = {};
 my $CALL_ID = 0;
+my $TERM;
 
 our $CV = AE::cv;
 
@@ -137,6 +145,8 @@ $IN->unshift_read(
 
 $CV->recv;
 
+exit;
+
 sub _get_new_deps {
     my $new_deps;
 
@@ -150,8 +160,6 @@ sub _get_new_deps {
 
     return $new_deps;
 }
-
-my $TERM;
 
 sub _on_term {
     return if $TERM;
@@ -246,14 +254,14 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     return;
 }
 
-1;
+1;    ## no critic qw[ControlStructures::ProhibitUnreachableCode]
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
 ## PerlCritic profile "pcore-script" policy violations:
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 92, 102              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 100, 110             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

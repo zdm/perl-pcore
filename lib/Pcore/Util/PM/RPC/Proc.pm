@@ -54,15 +54,15 @@ around new => sub ( $orig, $self, @ ) {
     }
 
     # serialize CBOR + HEX
-    $boot_args = P->data->to_cbor( $boot_args, encode => $DATA_ENC_B64 )->$*;
+    $boot_args = P->data->to_cbor( $boot_args, encode => $DATA_ENC_HEX )->$*;
 
     my $cmd = [];
 
     if ($MSWIN) {
-        push $cmd->@*, $perl, q[-MPcore::Util::PM::RPC::Server -e "" ] . $boot_args;
+        push $cmd->@*, $perl, qq[-MPcore::Util::PM::RPC::Server -e "" $args{class}];
     }
     else {
-        push $cmd->@*, $perl, '-MPcore::Util::PM::RPC::Server', '-e', q[], $boot_args;
+        push $cmd->@*, $perl, '-MPcore::Util::PM::RPC::Server', '-e', q[], $args{class};
     }
 
     # needed for PAR, pass current @INC libs to child process via $ENV{PERL5LIB}
@@ -74,8 +74,11 @@ around new => sub ( $orig, $self, @ ) {
     # create proc
     P->pm->run_proc(
         $cmd,
+        stdin    => 1,
         on_ready => sub ($proc) {
             $self->{proc} = $proc;
+
+            $proc->stdin->push_write( $boot_args . $LF );
 
             # wrap AE handles and perform handshale
             $self->_handshake(
@@ -165,7 +168,7 @@ sub _handshake ( $self, $init, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 129, 139             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 132, 142             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
