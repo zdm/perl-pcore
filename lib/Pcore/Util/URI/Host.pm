@@ -299,9 +299,18 @@ sub _build_root_domain ($self) {
     return q[] unless $self->is_domain;
 
     if ( my $pub_suffix = $self->pub_suffix ) {
-        if ( $self->canon =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
-            return $1;
-        }
+        my $canon = $self->canon;
+
+        return q[] if length $pub_suffix >= length $canon;
+
+        my $root = substr $canon, 0, length($canon) - length($pub_suffix) - 1;
+
+        return ( split /[.]/sm, $root )[-1] . ".$pub_suffix";
+
+        # TODO https://rt.perl.org/Public/Bug/Display.html?id=128313
+        # if ( $self->canon =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
+        #     return $1;
+        # }
     }
 
     return q[];
