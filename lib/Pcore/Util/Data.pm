@@ -20,7 +20,6 @@ use Pcore::Util::List qw[pairs];
 use Sort::Naturally qw[nsort];
 use Pcore::Util::Scalar qw[blessed];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-use WWW::Form::UrlEncoded::XS qw[];
 
 const our $DATA_TYPE_PERL => 1;
 const our $DATA_TYPE_JSON => 2;
@@ -581,7 +580,22 @@ sub from_b85 {
 # URI
 sub to_uri {
     if ( ref $_[0] ) {
-        return WWW::Form::UrlEncoded::XS::build_urlencoded( blessed $_[0] && $_[0]->isa('Pcore::Util::Hash::Multivalue') ? $_[0]->get_hash : $_[0] );
+        my $data = blessed $_[0] && $_[0]->isa('Pcore::Util::Hash::Multivalue') ? $_[0]->get_hash : $_[0];
+
+        my @res;
+
+        if ( ref $data eq 'ARRAY' ) {
+            for ( my $i = 0; $i <= $data->$#*; $i += 2 ) {
+                push @res, join q[=], defined $data->[$i] ? URI::Escape::XS::encodeURIComponent( $data->[$i] ) : q[], defined $data->[ $i + 1 ] ? URI::Escape::XS::encodeURIComponent( $data->[ $i + 1 ] ) : ();
+            }
+        }
+        else {
+            while ( my ( $k, $v ) = each $data->%* ) {
+                push @res, join q[=], URI::Escape::XS::encodeURIComponent($k), defined $v ? URI::Escape::XS::encodeURIComponent($v) : ();
+            }
+        }
+
+        return join q[&], @res;
     }
     else {
         return URI::Escape::XS::encodeURIComponent( $_[0] );
@@ -646,39 +660,51 @@ sub from_uri_query {
 
     state $encoding = {};
 
-    $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} ) if $args{encoding};
+    my $enc;
 
-    my $array = WWW::Form::UrlEncoded::XS::parse_urlencoded_arrayref( $_[0] );
+    if ( $args{encoding} ) {
+        $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
+
+        $enc = $encoding->{ $args{encoding} };
+    }
 
     my $res = P->hash->multivalue;
 
     my $hash = $res->get_hash;
 
-    for my $pair ( pairs( $array->@* ) ) {
-        $pair->[1] = undef if defined $pair->[1] && $pair->[1] eq q[];
+    for my $key ( split /&/sm, $_[0] ) {
+        my $val;
 
-        if ( $args{encoding} ) {
+        if ( ( my $idx = index $key, q[=] ) != -1 ) {
+            $val = substr $key, $idx, length $key, q[];
+
+            substr $val, 0, 1, q[];
+
+            $val = URI::Escape::XS::decodeURIComponent($val);
+        }
+
+        $key = URI::Escape::XS::decodeURIComponent($key);
+
+        if ($enc) {
 
             # decode key
-            if ( defined $pair->[0] ) {
-                eval {    #
-                    $pair->[0] = $encoding->{ $args{encoding} }->decode( $pair->[0], Encode::FB_CROAK | Encode::LEAVE_SRC );
-                };
+            eval {    #
+                $key = $enc->decode( $key, Encode::FB_CROAK | Encode::LEAVE_SRC );
+            };
 
-                utf8::upgrade( $pair->[0] ) if $@;
-            }
+            utf8::upgrade($key) if $@;
 
             # decode value
-            if ( defined $pair->[1] ) {
+            if ( defined $val ) {
                 eval {    #
-                    $pair->[1] = $encoding->{ $args{encoding} }->decode( $pair->[1], Encode::FB_CROAK | Encode::LEAVE_SRC );
+                    $val = $enc->decode( $val, Encode::FB_CROAK | Encode::LEAVE_SRC );
                 };
 
-                utf8::upgrade( $pair->[1] ) if $@;
+                utf8::upgrade($val) if $@;
             }
         }
 
-        push $hash->{ $pair->[0] }->@*, $pair->[1];
+        push $hash->{$key}->@*, $val;
     }
 
     if ( defined wantarray ) {
@@ -699,15 +725,17 @@ sub from_uri_query {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 50                   | * Subroutine "encode_data" with high complexity score (35)                                                     |
-## |      | 255                  | * Subroutine "decode_data" with high complexity score (33)                                                     |
+## |      | 49                   | * Subroutine "encode_data" with high complexity score (35)                                                     |
+## |      | 254                  | * Subroutine "decode_data" with high complexity score (33)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 78, 126, 173, 175,   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 363, 403             |                                                                                                                |
+## |    3 | 77, 125, 172, 174,   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 362, 402, 593        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 606, 624, 664, 673   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 620, 638, 691, 699   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 247                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    2 | 588                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 246                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

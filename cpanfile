@@ -99,7 +99,6 @@ requires 'Crypt::CBC';
 requires 'Crypt::DES';
 requires 'Compress::Zlib';
 requires 'URI::Escape::XS';
-requires 'WWW::Form::UrlEncoded::XS';
 requires 'MIME::Base64';
 requires 'Convert::Ascii85';
 
