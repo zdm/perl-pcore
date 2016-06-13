@@ -40,6 +40,16 @@ our $PUB_SUFFIX;
 
 # NOTE host should be in UTF-8 or ASCII punycoded, UTF-8 encoded - is invalid value
 around new => sub ( $orig, $self, $host ) {
+
+    # removing double "."
+    $host =~ s/[.]+/./smg if index( $host, q[..] ) != -1;
+
+    # removing leading "."
+    substr $host, 0, 1, q[] if substr( $host, 0, 1 ) eq q[.];
+
+    # removing trailing "."
+    substr $host, -1, 1, q[] if substr( $host, -1, 1 ) eq q[.];
+
     $host = domain_to_ascii($host) if utf8::is_utf8($host);
 
     return bless { name => lc $host }, __PACKAGE__;
@@ -292,7 +302,7 @@ sub _build_pub_suffix_utf8 ($self) {
 sub _build_is_root_domain ($self) {
     return 0 unless $self->is_domain;
 
-    return $self->root_domain eq $self->name ? 1 : 0;
+    return length( $self->root_domain ) eq length( $self->name ) ? 1 : 0;
 }
 
 sub _build_root_domain ($self) {
@@ -306,11 +316,6 @@ sub _build_root_domain ($self) {
         my $root = substr $canon, 0, length($canon) - length($pub_suffix) - 1;
 
         return ( split /[.]/sm, $root )[-1] . ".$pub_suffix";
-
-        # TODO https://rt.perl.org/Public/Bug/Display.html?id=128313
-        # if ( $self->canon =~ /\A.*?([^.]+[.]$pub_suffix)\z/sm ) {
-        #     return $1;
-        # }
     }
 
     return q[];
@@ -327,9 +332,9 @@ sub _build_root_domain_utf8 ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 80, 87, 101          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 90, 97, 111          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 261, 264             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 271, 274             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

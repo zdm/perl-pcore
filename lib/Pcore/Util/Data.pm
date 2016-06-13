@@ -609,46 +609,26 @@ sub from_uri {
         splice @_, 1,
     );
 
-    state $encodings;
+    my $u = URI::Escape::XS::decodeURIComponent( $_[0] );
+
+    if ( $args{encoding} ) {
+        state $encoding = {};
+
+        $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
+
+        eval { $u = $encoding->{ $args{encoding} }->decode( $u, Encode::FB_CROAK | Encode::LEAVE_SRC ) };
+
+        utf8::upgrade($u) if $@;
+    }
 
     if ( defined wantarray ) {
-        if ( $args{encoding} ) {
-            $encodings->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
-
-            my $u = URI::Escape::XS::decodeURIComponent( $_[0] );
-
-            eval {    #
-                $u = $encodings->{ $args{encoding} }->decode( $u, Encode::FB_CROAK | Encode::LEAVE_SRC );
-            };
-
-            utf8::upgrade($u) if $@;
-
-            return $u;
-        }
-        else {
-            return URI::Escape::XS::decodeURIComponent( $_[0] );
-        }
+        return $u;
     }
     else {
-        if ( $args{encoding} ) {
-            $encodings->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
+        $_[0] = $u;
 
-            my $u = URI::Escape::XS::decodeURIComponent( $_[0] );
-
-            eval {    #
-                $u = $encodings->{ $args{encoding} }->decode( $u, Encode::FB_CROAK | Encode::LEAVE_SRC );
-            };
-
-            utf8::upgrade($u) if $@;
-
-            $_[0] = $u;
-        }
-        else {
-            $_[0] = URI::Escape::XS::decodeURIComponent( $_[0] );
-        }
+        return;
     }
-
-    return;
 }
 
 # always return HashMultivalue
@@ -658,11 +638,11 @@ sub from_uri_query {
         splice @_, 1,
     );
 
-    state $encoding = {};
-
     my $enc;
 
     if ( $args{encoding} ) {
+        state $encoding = {};
+
         $encoding->{ $args{encoding} } //= Encode::find_encoding( $args{encoding} );
 
         $enc = $encoding->{ $args{encoding} };
@@ -731,7 +711,7 @@ sub from_uri_query {
 ## |    3 | 77, 125, 172, 174,   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |      | 362, 402, 593        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 620, 638, 691, 699   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 619, 671, 679        | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 588                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
