@@ -591,7 +591,18 @@ sub to_uri {
         }
         else {
             while ( my ( $k, $v ) = each $data->%* ) {
-                push @res, join q[=], URI::Escape::XS::encodeURIComponent($k), defined $v ? URI::Escape::XS::encodeURIComponent($v) : ();
+                $k = URI::Escape::XS::encodeURIComponent($k);
+
+                if ( ref $v ) {
+
+                    # value is ArrayRef
+                    for my $v1 ( $v->@* ) {
+                        push @res, join q[=], $k, defined $v1 ? URI::Escape::XS::encodeURIComponent($v1) : ();
+                    }
+                }
+                else {
+                    push @res, join q[=], $k, defined $v ? URI::Escape::XS::encodeURIComponent($v) : ();
+                }
             }
         }
 
@@ -711,7 +722,7 @@ sub from_uri_query {
 ## |    3 | 77, 125, 172, 174,   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |      | 362, 402, 593        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 619, 671, 679        | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 630, 682, 690        | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 588                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
