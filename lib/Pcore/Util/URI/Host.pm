@@ -1,7 +1,7 @@
 package Pcore::Util::URI::Host;
 
 use Pcore -class;
-use Pcore::Util::Text qw[encode_utf8];
+use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use AnyEvent::Socket qw[];
 use Pcore::Util::URI::Punycode qw[:ALL];
 
@@ -58,38 +58,45 @@ around new => sub ( $orig, $self, $host ) {
 sub update_all ( $self ) {
 
     # update TLD
-    say 'updating tld.dat';
+    print 'updating tld.dat ... ';
 
     if ( my $res = P->http->get( 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt', buf_size => 0, on_progress => 0 ) ) {
         $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ), 'Pcore' );
 
         undef $TLD;
+
+        say 'done';
     }
     else {
+        say 'error';
+
         return 0;
     }
 
     # update pub. suffixes, should be updated after TLDs
-    say 'updating pub_suffix.dat';
+    print 'updating pub_suffix.dat ... ';
 
     if ( my $res = P->http->get( 'https://publicsuffix.org/list/effective_tld_names.dat', buf_size => 0, on_progress => 0 ) ) {
         my $suffixes = {};
 
+        decode_utf8 $res->body->$*;
+
         for my $domain ( split /\n/sm, $res->body->$* ) {
 
-            # ignore comments
-            next if $domain =~ m[//]sm;
+            # remove spaces
+            $domain =~ s/\s//smg;
+
+            # remove comments
+            $domain =~ s[//.*][]sm;
 
             # ignore empty lines
-            next if $domain =~ /\A\s*\z/sm;
+            next if $domain eq q[];
 
             $suffixes->{$domain} = 1;
         }
 
         # add tlds
         for my $tld ( keys $self->tlds->%* ) {
-            utf8::encode($tld);
-
             $suffixes->{$tld} = 1;
         }
 
@@ -108,11 +115,15 @@ sub update_all ( $self ) {
             }
         }
 
-        $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort keys $suffixes->%* ), 'Pcore' );
+        $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort map { encode_utf8 $_} keys $suffixes->%* ), 'Pcore' );
 
         undef $PUB_SUFFIX;
+
+        say 'done';
     }
     else {
+        say 'error';
+
         return 0;
     }
 
@@ -126,7 +137,13 @@ sub tlds ( $self ) {
 }
 
 sub pub_suffixes ( $self ) {
-    $PUB_SUFFIX = { map { $_ => 1 } P->file->read_lines( $ENV->share->get('/data/pub_suffix.dat') )->@* } if !$PUB_SUFFIX;
+    if ( !$PUB_SUFFIX ) {
+        my $buf = P->file->read_bin( $ENV->share->get('/data/pub_suffix.dat') );
+
+        decode_utf8 $buf->$*;
+
+        $PUB_SUFFIX = { map { $_ => 1 } grep { defined && $_ ne q[] } split /\n/sm, $buf->$* };
+    }
 
     return $PUB_SUFFIX;
 }
@@ -332,9 +349,9 @@ sub _build_root_domain_utf8 ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 90, 97, 111          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 99, 104, 118         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 271, 274             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 288, 291             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
