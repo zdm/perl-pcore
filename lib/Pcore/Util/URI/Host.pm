@@ -61,7 +61,13 @@ sub update_all ( $self ) {
     print 'updating tld.dat ... ';
 
     if ( my $res = P->http->get( 'https://data.iana.org/TLD/tlds-alpha-by-domain.txt', buf_size => 0, on_progress => 0 ) ) {
-        $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, sort map { domain_to_utf8(lc) } grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ), 'Pcore' );
+        my $domains;
+
+        for my $domain_ascii ( map {lc} grep { $_ && !/\A\s*#/sm } split /\n/sm, $res->body->$* ) {
+            $domains->{$domain_ascii} = domain_to_utf8($domain_ascii);
+        }
+
+        $ENV->share->store( '/data/tld.dat', \encode_utf8( join $LF, map {"$domains->{$_};$_"} sort { $domains->{$a} cmp $domains->{$b} } keys $domains->%* ), 'Pcore' );
 
         undef $TLD;
 
@@ -81,41 +87,43 @@ sub update_all ( $self ) {
 
         decode_utf8 $res->body->$*;
 
-        for my $domain ( split /\n/sm, $res->body->$* ) {
+        for my $domain_utf8 ( split /\n/sm, $res->body->$* ) {
 
             # remove spaces
-            $domain =~ s/\s//smg;
+            $domain_utf8 =~ s/\s//smg;
 
             # remove comments
-            $domain =~ s[//.*][]sm;
+            $domain_utf8 =~ s[//.*][]sm;
 
             # ignore empty lines
-            next if $domain eq q[];
+            next if $domain_utf8 eq q[];
 
-            $suffixes->{$domain} = 1;
+            $suffixes->{ domain_to_ascii( lc $domain_utf8 ) } = lc $domain_utf8;
         }
 
         # add tlds
-        for my $tld ( keys $self->tlds->%* ) {
-            $suffixes->{$tld} = 1;
-        }
+        $suffixes->@{ keys $self->tlds->%* } = values $self->tlds->%*;
 
-        # add domains, which is not known public suffixes, but is a public suffix parent
+        # add pub. suffix parent as pub. suffix
         for my $domain ( keys $suffixes->%* ) {
             my @labels = split /[.]/sm, $domain;
 
+            # remove left label
             shift @labels;
 
             while (@labels) {
-                my $parent = join q[.], @labels;
+                my $label = shift @labels;
 
-                $suffixes->{ q[.] . $parent } = 1 if !exists $suffixes->{$parent};
+                # ignore "*" label
+                next if $label eq q[*];
 
-                shift @labels;
+                my $parent_ascii = join q[.], $label, @labels;
+
+                $suffixes->{$parent_ascii} = domain_to_utf8($parent_ascii) if !exists $suffixes->{$parent_ascii};
             }
         }
 
-        $ENV->share->store( '/data/pub_suffix.dat', \join( $LF, sort map { encode_utf8 $_} keys $suffixes->%* ), 'Pcore' );
+        $ENV->share->store( '/data/pub_suffix.dat', \encode_utf8( join $LF, map {"$suffixes->{$_};$_"} sort { $suffixes->{$a} cmp $suffixes->{$b} } keys $suffixes->%* ), 'Pcore' );
 
         undef $PUB_SUFFIX;
 
@@ -131,19 +139,33 @@ sub update_all ( $self ) {
 }
 
 sub tlds ( $self ) {
-    $TLD = { map { $_ => 1 } P->file->read_lines( $ENV->share->get('/data/tld.dat') )->@* } if !$TLD;
+    $TLD //= do {
+        my $tlds;
+
+        for my $rec ( split /\n/sm, P->file->read_text( $ENV->share->get('/data/tld.dat') )->$* ) {
+            my ( $utf8, $ascii ) = split /;/sm, $rec;
+
+            $tlds->{$ascii} = $utf8;
+        }
+
+        $tlds;
+    };
 
     return $TLD;
 }
 
 sub pub_suffixes ( $self ) {
-    if ( !$PUB_SUFFIX ) {
-        my $buf = P->file->read_bin( $ENV->share->get('/data/pub_suffix.dat') );
+    $PUB_SUFFIX //= do {
+        my $pub_suffix;
 
-        decode_utf8 $buf->$*;
+        for my $rec ( split /\n/sm, P->file->read_text( $ENV->share->get('/data/pub_suffix.dat') )->$* ) {
+            my ( $utf8, $ascii ) = split /;/sm, $rec;
 
-        $PUB_SUFFIX = { map { $_ => 1 } grep { defined && $_ ne q[] } split /\n/sm, $buf->$* };
-    }
+            $pub_suffix->{$ascii} = $utf8;
+        }
+
+        $pub_suffix;
+    };
 
     return $PUB_SUFFIX;
 }
@@ -232,7 +254,7 @@ sub _build_tld_utf8 ($self) {
 }
 
 sub _build_tld_is_valid ($self) {
-    return exists $self->tlds->{ $self->tld_utf8 } ? 1 : 0;
+    return exists $self->tlds->{ $self->tld } ? 1 : 0;
 }
 
 sub _build_canon ($self) {
@@ -253,63 +275,64 @@ sub _build_is_pub_suffix ($self) {
     return $self->pub_suffix eq $self->name ? 1 : 0;
 }
 
+# TODO
 sub _build_is_pub_suffix_parent ($self) {
     return 0 unless $self->is_domain;
 
     return exists $self->pub_suffixes->{ q[.] . $self->name_utf8 } ? 1 : 0;
 }
 
+# A public suffix is a set of DNS names or wildcards concatenated with dots.
+# It represents the part of a domain name which is not under the control of the individual registrant.
+# Public suffix is already registered.
 sub _build_pub_suffix ($self) {
     return q[] unless $self->is_domain;
 
     my $pub_suffixes = $self->pub_suffixes;
 
-    my $pub_suffix_utf8;
+    my $pub_suffix;
 
-    if ( my $name = $self->name_utf8 ) {
+    if ( my $name = $self->name ) {
         if ( exists $pub_suffixes->{$name} ) {
-            $pub_suffix_utf8 = $name;
+            $pub_suffix = $name;
         }
         else {
             my @labels = split /[.]/sm, $name;
 
             if ( @labels > 1 ) {
-                while (1) {
+                while (@labels) {
                     my $first_label = shift @labels;
 
                     my $parent = join q[.], @labels;
 
-                    if ( exists $pub_suffixes->{$parent} ) {
-                        $pub_suffix_utf8 = $parent;
+                    # TODO not quite correct
+                    # Wildcards may only be used to wildcard an entire level. That is, they must be surrounded by dots (or implicit dots, at the beginning of a line).
+                    # Valid wildcards:
+                    # *.foo
+                    # *.*.foo
+                    if ( exists $pub_suffixes->{"*.$parent"} ) {
+                        my $subdomain = "$first_label.$parent";
 
-                        last;
-                    }
-                    else {
-                        if ( exists $pub_suffixes->{ q[*.] . $parent } ) {
-                            my $subdomain = $first_label . q[.] . $parent;
+                        if ( !exists $pub_suffixes->{"!$subdomain"} ) {
+                            $pub_suffix = $subdomain;
 
-                            if ( !exists $pub_suffixes->{ q[!] . $subdomain } ) {
-                                $pub_suffix_utf8 = $subdomain;
-
-                                last;
-                            }
+                            last;
                         }
                     }
 
-                    last if @labels <= 1;
+                    if ( exists $pub_suffixes->{$parent} ) {
+                        $pub_suffix = $parent;
+
+                        last;
+                    }
+
+                    last if @labels == 1;
                 }
             }
         }
     }
 
-    if ($pub_suffix_utf8) {
-        $pub_suffix_utf8 = domain_to_ascii($pub_suffix_utf8);
-
-        return $pub_suffix_utf8;
-    }
-    else {
-        return q[];
-    }
+    return $pub_suffix // q[];
 }
 
 sub _build_pub_suffix_utf8 ($self) {
@@ -349,9 +372,9 @@ sub _build_root_domain_utf8 ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 99, 104, 118         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 70, 105, 108, 126    | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 288, 291             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 316                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
