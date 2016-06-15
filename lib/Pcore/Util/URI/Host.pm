@@ -284,7 +284,7 @@ sub _build_is_pub_suffix_parent ($self) {
 
 # A public suffix is a set of DNS names or wildcards concatenated with dots.
 # It represents the part of a domain name which is not under the control of the individual registrant.
-# Public suffix is already registered.
+# TODO wildcards like *.*.foo.bar should be supported
 sub _build_pub_suffix ($self) {
     return q[] unless $self->is_domain;
 
@@ -305,11 +305,6 @@ sub _build_pub_suffix ($self) {
 
                     my $parent = join q[.], @labels;
 
-                    # TODO not quite correct
-                    # Wildcards may only be used to wildcard an entire level. That is, they must be surrounded by dots (or implicit dots, at the beginning of a line).
-                    # Valid wildcards:
-                    # *.foo
-                    # *.*.foo
                     if ( exists $pub_suffixes->{"*.$parent"} ) {
                         my $subdomain = "$first_label.$parent";
 
@@ -374,7 +369,7 @@ sub _build_root_domain_utf8 ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 70, 105, 108, 126    | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 316                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 311                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
