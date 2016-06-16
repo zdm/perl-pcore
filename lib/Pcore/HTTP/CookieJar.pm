@@ -162,7 +162,7 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
         }
 
         if ( $cookie->{expires} && $cookie->{expires} < time ) {
-            delete $self->{cookies}->{ $cookie->{domain} }->{ $cookie->{path} }->{ $cookie->{name} };
+            $self->remove_cookie( $cookie->{domain}, $cookie->{path}, $cookie->{name} );
         }
         else {
             $self->{cookies}->{ $cookie->{domain} }->{ $cookie->{path} }->{ $cookie->{name} } = $cookie;
@@ -189,7 +189,7 @@ sub get_cookies ( $self, $url ) {
         return;
     };
 
-    state $match_domain = sub ( $cookies_cache, $domain, $domain_cookies, $url ) {
+    state $match_domain = sub ( $self, $domain, $domain_cookies, $url ) {
         my $cookies;
 
         my $time = time;
@@ -200,11 +200,7 @@ sub get_cookies ( $self, $url ) {
                     if ( $cookie->{expires} && $cookie->{expires} < $time ) {
 
                         # remove expired cookie
-                        delete $domain_cookies->{$cookie_path}->{ $cookie->{name} };
-
-                        delete $domain_cookies->{$cookie_path} if !keys $domain_cookies->{$cookie_path}->%*;
-
-                        delete $cookies_cache->{$domain} if !keys $cookies_cache->{$domain}->%*;
+                        $self->remove_cookie( $domain, $cookie_path, $cookie->{name} );
                     }
                     else {
                         next if $cookie->{secure} && !$url->is_secure;
@@ -226,7 +222,7 @@ sub get_cookies ( $self, $url ) {
     my $origin_domain_name = $url->host->name;
 
     if ( my $origin_cookies = $self->{cookies}->{$origin_domain_name} ) {
-        if ( my $match_cookies = $match_domain->( $self->{cookies}, $origin_domain_name, $origin_cookies, $url ) ) {
+        if ( my $match_cookies = $match_domain->( $self, $origin_domain_name, $origin_cookies, $url ) ) {
             push $cookies->@*, $match_cookies->@*;
         }
     }
@@ -236,24 +232,38 @@ sub get_cookies ( $self, $url ) {
     if ( !$url->host->is_ip ) {
         my @labels = split /[.]/sm, $url->host->name;
 
+        my $origin = 1;
+
         while ( @labels > 1 ) {
             my $domain = P->host( join q[.], @labels );
-
-            last if $domain->is_pub_suffix;
 
             my $cover_domain_name = q[.] . $domain->name;
 
             if ( my $cover_cookies = $self->{cookies}->{$cover_domain_name} ) {
-                if ( my $match_cookies = $match_domain->( $self->{cookies}, $cover_domain_name, $cover_cookies, $url ) ) {
+                if ( my $match_cookies = $match_domain->( $self, $cover_domain_name, $cover_cookies, $url ) ) {
                     push $cookies->@*, $match_cookies->@*;
                 }
             }
+
+            last if $domain->is_pub_suffix && !$origin;
+
+            $origin = 0;
 
             shift @labels;
         }
     }
 
     return $cookies;
+}
+
+sub remove_cookie ( $self, $domain, $path, $name ) {
+    if ( delete $self->{cookies}->{$domain}->{$path}->{$name} ) {
+        delete $self->{cookies}->{$domain}->{$path} if !keys $self->{cookies}->{$domain}->{$path}->%*;
+
+        delete $self->{cookies}->{$domain} if !keys $self->{cookies}->{$domain}->%*;
+    }
+
+    return;
 }
 
 1;
@@ -265,11 +275,11 @@ sub get_cookies ( $self, $url ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 27                   | * Subroutine "parse_cookies" with high complexity score (38)                                                   |
-## |      | 175                  | * Subroutine "get_cookies" with high complexity score (24)                                                     |
+## |      | 175                  | * Subroutine "get_cookies" with high complexity score (23)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 115, 135             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 197, 199, 205, 207   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 197, 199, 261, 263   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

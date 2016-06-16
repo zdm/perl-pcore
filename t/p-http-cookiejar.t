@@ -35,10 +35,14 @@ my $test_data = {
 
         [ 'compute.amazonaws.com', ['4;domain=compute.amazonaws.com'], 'compute.amazonaws.com', [qw[4]] ],
         [ 'amazonaws.com',         ['5;domain=amazonaws.com'],         'amazonaws.com',         [qw[5]] ],
-        [ 'amazonaws.com', [], 'www.amazonaws.com',         [qw[5]] ],
-        [ 'amazonaws.com', [], 'foo.www.amazonaws.com',     [qw[5]] ],
-        [ 'amazonaws.com', [], 'compute.amazonaws.com',     [qw[4 5]] ],
-        [ 'amazonaws.com', [], 'foo.compute.amazonaws.com', [4] ],
+        [ 'amazonaws.com', [], 'www.amazonaws.com',             [qw[5]] ],
+        [ 'amazonaws.com', [], 'foo.www.amazonaws.com',         [qw[5]] ],
+        [ 'amazonaws.com', [], 'compute.amazonaws.com',         [qw[4 5]] ],
+        [ 'amazonaws.com', [], 'foo.compute.amazonaws.com',     [] ],
+        [ 'amazonaws.com', [], 'www.foo.compute.amazonaws.com', [] ],
+
+        # expired cookie
+        [ 'amazonaws.com', [ '5;domain=amazonaws.com;expires=' . P->date->now_utc->minus_days(1)->to_http_date ], 'compute.amazonaws.com', [qw[4]] ],
     ],
 };
 
@@ -92,7 +96,7 @@ sub get_cookies {
         }
         else {
             if ( !keys $cookies->%* ) {
-                say {$STDERR_UTF8} dump { exspect => [ sort keys $index->%* ], got => [ sort keys $cookies->%* ] };
+                say {$STDERR_UTF8} dump { expect => [ sort keys $index->%* ], got => [ sort keys $cookies->%* ], cookies => $c->{cookies} };
 
                 ok( 0, 'get_cookies_' . $i++ );
             }
@@ -109,7 +113,7 @@ sub get_cookies {
                 }
 
                 if ( !$match ) {
-                    say {$STDERR_UTF8} dump { exspect => [ sort keys $index->%* ], got => [ sort keys $cookies->%* ] };
+                    say {$STDERR_UTF8} dump { expect => [ sort keys $index->%* ], got => [ sort keys $cookies->%* ], cookies => $c->{cookies} };
 
                     ok( 0, 'get_cookies_' . $i++ );
                 }
@@ -132,8 +136,10 @@ done_testing $TESTS;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 85, 86, 94, 95, 103, | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      |  112                 |                                                                                                                |
+## |    3 | 89, 90, 98, 99, 107, | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      |  116                 |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 45                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
