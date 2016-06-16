@@ -5,6 +5,7 @@ package main v0.1.0;
 use Pcore;
 use Test::More;
 use Pcore::HTTP::CookieJar;
+use Pcore::Util::URI::Host;
 
 my $test_data = {
     set_cover_domain => [    #
@@ -23,6 +24,21 @@ my $test_data = {
         [ 'aaa.ck', 'aaa.ck',  1 ],             # allow to set origin cookie from pub. suffix
     ],
     get_cookies => [                            #
+        [ 'www.aaa.ru', ['1;domain=;path='],       'www.aaa.ru', [qw[1]] ],
+        [ 'www.aaa.ru', ['2;domain=;path='],       'www.aaa.ru', [qw[1 2]] ],
+        [ 'www.aaa.ru', ['3;domain=aaa.ru;path='], 'www.aaa.ru', [qw[1 2 3]] ],
+        [ 'www.aaa.ru', [], 'ccc.www.aaa.ru', [qw[3]] ],
+
+        # compute.amazonaws.com only covers itself, since it's a public suffix;
+        # amazonaws.com covers amazonaws.com, www.amazonaws.com, foo.www.amazonaws.com, and compute.amazonaws.com;
+        # amazonaws.com does not cover foo.compute.amazonaws.com;
+
+        [ 'compute.amazonaws.com', ['4;domain=compute.amazonaws.com'], 'compute.amazonaws.com', [qw[4]] ],
+        [ 'amazonaws.com',         ['5;domain=amazonaws.com'],         'amazonaws.com',         [qw[5]] ],
+        [ 'amazonaws.com', [], 'www.amazonaws.com',         [qw[5]] ],
+        [ 'amazonaws.com', [], 'foo.www.amazonaws.com',     [qw[5]] ],
+        [ 'amazonaws.com', [], 'compute.amazonaws.com',     [qw[4 5]] ],
+        [ 'amazonaws.com', [], 'foo.compute.amazonaws.com', [4] ],
     ],
 };
 
@@ -30,8 +46,11 @@ our $TESTS = $test_data->{set_cover_domain}->@* + $test_data->{get_cookies}->@*;
 
 plan tests => $TESTS;
 
-# set cover domain
-{
+set_cover_domain();
+
+get_cookies();
+
+sub set_cover_domain {
     for my $args ( $test_data->{set_cover_domain}->@* ) {
         state $i = 0;
 
@@ -45,28 +64,79 @@ plan tests => $TESTS;
 
         ok( ( exists $c->{cookies}->{ $args->[1] } ? 1 : 0 ) == $args->[2], 'set_cover_domain_' . $i++ . '_' . $args->[1] );
     }
+
+    return;
 }
 
-# get cookies
-{
+sub get_cookies {
+    delete Pcore::Util::URI::Host->pub_suffixes->{'amazonaws.com'};
+
     my $c = Pcore::HTTP::CookieJar->new;
 
     for my $args ( $test_data->{get_cookies}->@* ) {
         state $i = 0;
 
-        $c->parse_cookies( 'http://' . $args->[0], ["1=2;domain=$args->[1]"] );
+        $c->parse_cookies( 'http://' . $args->[0], $args->[1] );
 
-        unless ( ( exists $c->{cookies}->{ $args->[1] } ? 1 : 0 ) == $args->[2] ) {
-            say {$STDERR_UTF8} dump $c->{cookies};
+        my $index->@{ map {"$_="} $args->[3]->@* } = ();
+
+        my $cookies->@{ ( $c->get_cookies("http://$args->[2]") // [] )->@* } = ();
+
+        if ( !keys $index->%* ) {
+            if ( !keys $cookies->%* ) {
+                ok( 1, 'get_cookies_' . $i++ );
+            }
+            else {
+                ok( 0, 'get_cookies_' . $i++ );
+            }
         }
+        else {
+            if ( !keys $cookies->%* ) {
+                say {$STDERR_UTF8} dump { exspect => [ sort keys $index->%* ], got => [ sort keys $cookies->%* ] };
 
-        ok( ( exists $c->{cookies}->{ $args->[1] } ? 1 : 0 ) == $args->[2], 'set_cover_domain_' . $i++ . '_' . $args->[1] );
+                ok( 0, 'get_cookies_' . $i++ );
+            }
+            else {
+                my $match = 1;
+
+                # compare
+                for ( keys $index->%*, keys $cookies->%* ) {
+                    if ( !exists $index->{$_} || !exists $cookies->{$_} ) {
+                        $match = 0;
+
+                        last;
+                    }
+                }
+
+                if ( !$match ) {
+                    say {$STDERR_UTF8} dump { exspect => [ sort keys $index->%* ], got => [ sort keys $cookies->%* ] };
+
+                    ok( 0, 'get_cookies_' . $i++ );
+                }
+                else {
+                    ok( 1, 'get_cookies_' . $i++ );
+                }
+            }
+        }
     }
+
+    return;
 }
 
 done_testing $TESTS;
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 85, 86, 94, 95, 103, | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      |  112                 |                                                                                                                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
