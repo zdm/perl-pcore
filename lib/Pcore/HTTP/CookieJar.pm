@@ -173,11 +173,62 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
 }
 
 sub get_cookies ( $self, $url ) {
+    state $match_path = sub ( $url_path, $cookie_path ) {
+        return 1 if $cookie_path eq $url_path;
+
+        return 1 if $cookie_path eq q[/];
+
+        if ( $url_path =~ /\A\Q$cookie_path\E(.*)/sm ) {
+            my $rest = $1;
+
+            return 1 if substr( $cookie_path, -1, 1 ) eq q[/];
+
+            return 1 if substr( $rest, 0, 1 ) eq q[/];
+        }
+
+        return;
+    };
+
+    state $match_domain = sub ( $cookies_cache, $domain, $domain_cookies, $url ) {
+        my $cookies;
+
+        my $time = time;
+
+        for my $cookie_path ( keys $domain_cookies->%* ) {
+            if ( $match_path->( $url->path, $cookie_path ) ) {
+                for my $cookie ( values $domain_cookies->{$cookie_path}->%* ) {
+                    if ( $cookie->{expires} && $cookie->{expires} < $time ) {
+
+                        # remove expired cookie
+                        delete $domain_cookies->{$cookie_path}->{ $cookie->{name} };
+
+                        delete $domain_cookies->{$cookie_path} if !keys $domain_cookies->{$cookie_path}->%*;
+
+                        delete $cookies_cache->{$domain} if !keys $cookies_cache->{$domain}->%*;
+                    }
+                    else {
+                        next if $cookie->{secure} && !$url->is_secure;
+
+                        push $cookies->@*, $cookie->{name} . q[=] . $cookie->{val};
+                    }
+                }
+            }
+        }
+
+        return $cookies;
+    };
+
+    $url = P->uri($url) if !ref $url;
+
     my $cookies;
 
     # origin cookie
-    if ( my $match_cookies = $self->_match_domain( $url->host->name, $url ) ) {
-        push $cookies->@*, $match_cookies->@*;
+    my $origin_domain_name = $url->host->name;
+
+    if ( my $origin_cookies = $self->{cookies}->{$origin_domain_name} ) {
+        if ( my $match_cookies = $match_domain->( $self->{cookies}, $origin_domain_name, $origin_cookies, $url ) ) {
+            push $cookies->@*, $match_cookies->@*;
+        }
     }
 
     # cover cookies
@@ -190,8 +241,12 @@ sub get_cookies ( $self, $url ) {
 
             last if $domain->is_pub_suffix;
 
-            if ( my $match_cookies = $self->_match_domain( q[.] . $domain->name, $url ) ) {
-                push $cookies->@*, $match_cookies->@*;
+            my $cover_domain_name = q[.] . $domain->name;
+
+            if ( my $cover_cookies = $self->{cookies}->{$cover_domain_name} ) {
+                if ( my $match_cookies = $match_domain->( $self->{cookies}, $cover_domain_name, $cover_cookies, $url ) ) {
+                    push $cookies->@*, $match_cookies->@*;
+                }
             }
 
             shift @labels;
@@ -201,47 +256,6 @@ sub get_cookies ( $self, $url ) {
     return $cookies;
 }
 
-sub _match_domain ( $self, $domain, $url ) {
-    my $cookies;
-
-    my $time = time;
-
-    if ( exists $self->{cookies}->{$domain} ) {
-        for my $cookie_path ( keys $self->{cookies}->{$domain}->%* ) {
-            if ( $self->_match_path( $url->path, $cookie_path ) ) {
-                for my $cookie ( values $self->{cookies}->{$domain}->{$cookie_path}->%* ) {
-                    if ( $cookie->{expires} && $cookie->{expires} < $time ) {
-                        delete $self->{cookies}->{$domain}->{$cookie_path}->{ $cookie->{name} };
-                    }
-                    else {
-                        next if $cookie->{secure} && !$url->is_secure;
-
-                        push $cookies->@*, $cookie->{name} . q[=] . $cookie->{val};
-                    }
-                }
-            }
-        }
-    }
-
-    return $cookies;
-}
-
-sub _match_path ( $self, $url_path, $cookie_path ) {
-    return 1 if $cookie_path eq $url_path;
-
-    return 1 if $cookie_path eq q[/];
-
-    if ( $url_path =~ /\A\Q$cookie_path\E(.*)/sm ) {
-        my $rest = $1;
-
-        return 1 if substr( $cookie_path, -1, 1 ) eq q[/];
-
-        return 1 if substr( $rest, 0, 1 ) eq q[/];
-    }
-
-    return 0;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -249,11 +263,13 @@ sub _match_path ( $self, $url_path, $cookie_path ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (38)             |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 27                   | * Subroutine "parse_cookies" with high complexity score (38)                                                   |
+## |      | 175                  | * Subroutine "get_cookies" with high complexity score (24)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 115, 135             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 210, 212             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 197, 199, 205, 207   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
