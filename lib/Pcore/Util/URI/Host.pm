@@ -272,14 +272,7 @@ sub _build_canon_utf8 ($self) {
 sub _build_is_pub_suffix ($self) {
     return 0 unless $self->is_domain;
 
-    return $self->pub_suffix eq $self->name ? 1 : 0;
-}
-
-# TODO
-sub _build_is_pub_suffix_parent ($self) {
-    return 0 unless $self->is_domain;
-
-    return exists $self->pub_suffixes->{ q[.] . $self->name_utf8 } ? 1 : 0;
+    return length( $self->pub_suffix ) == length( $self->name ) ? 1 : 0;
 }
 
 # A public suffix is a set of DNS names or wildcards concatenated with dots.
@@ -369,7 +362,7 @@ sub _build_root_domain_utf8 ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 70, 105, 108, 126    | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 311                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 304                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

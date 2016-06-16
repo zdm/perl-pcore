@@ -25,6 +25,8 @@ sub clear ($self) {
 # It appears that some browsers limit by bytes, while others limit the number of characters;
 
 sub parse_cookies ( $self, $url, $set_cookie_header ) {
+    $url = P->uri($url) if !ref $url;
+
   COOKIE: for ( $set_cookie_header->@* ) {
         my ( $kvp, @attrs ) = split /;/sm;
 
@@ -36,14 +38,17 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
 
         next if $kvp eq q[];
 
+        my $origin_domain_name = $url->host->name;
+
         my $cookie = {
-            domain   => $url->host->name,
+            domain   => $origin_domain_name,
             path     => $url->path->to_string,
             expires  => 0,
             httponly => 0,
             secure   => 0,
         };
 
+        # parse and set key and value
         if ( ( my $idx = index $kvp, q[=] ) != -1 ) {
             $cookie->{name} = substr $kvp, 0, $idx;
 
@@ -55,6 +60,7 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
             $cookie->{val} = q[];
         }
 
+        # parse attributes
         for my $attr (@attrs) {
 
             # trim
@@ -77,72 +83,74 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
             }
 
             if ( $k eq 'domain' ) {
+                if ( $v ne q[] ) {
 
-                # http://bayou.io/draft/cookie.domain.html
-                #
-                # origin domain - domain from the request
-                # cover domain - domain from cookie attribute
+                    # http://bayou.io/draft/cookie.domain.html
+                    # origin domain - domain from the request
+                    # cover domain - domain from cookie attribute
 
-                # if a cookie's origin domain is an IP, the cover domain must be null
-                next COOKIE if $url->host->is_ip;
+                    # if a cookie's origin domain is an IP, the cover domain must be null
+                    next COOKIE if $url->host->is_ip;
 
-                # remove leading "." from cover domain
-                $v =~ s/\A[.]+//sm;
+                    # parse cover domain
+                    my $cover_domain = P->host($v);
 
-                my $cover_domain = P->host( lc $v );
+                    # a cover domain must not be a IP address
+                    next COOKIE if $cover_domain->is_ip;
 
-                # the cover domain must not be a TLD
-                # As far as cookie handling is concerned, every TLD is a public suffix, even if it's not listed.
-                # For example, "test", "local", "my-fake-tld", etc. cannot be allowed as cover domains.
-                next COOKIE if $cover_domain->is_tld;
+                    my $cover_domain_name = $cover_domain->name;
 
-                # a cover domain must not be a IP address
-                next COOKIE if $cover_domain->is_ip;
+                    # if the origin domain is the same domain
+                    if ( $cover_domain_name eq $origin_domain_name ) {
 
-                # According to RFC_6265, if a cookie's cover domain is a public suffix:
-                # - if the origin domain is the same domain, reset the cover domain to null, then accept the cookie
-                # - otherwise, ignore the cookie entirely
-                if ( $cover_domain->is_pub_suffix ) {
-                    if ( $url->host->name eq $cover_domain->name ) {
-                        next;    # accept cookie
+                        # permit a public suffix domain to specify itself as the cover domain
+                        # ignore cover domain, if cover domain is pub. suffix
+                        next if $cover_domain->is_pub_suffix;
                     }
                     else {
-                        next COOKIE;    # ignore cookie
+                        # the cover domain must not be a TLD, a public suffix, or a parent of a public suffix
+                        next COOKIE if $cover_domain->is_pub_suffix;
+
+                        # the cover domain must cover (be a parent) the origin domain
+                        if ( ( my $idx = index $origin_domain_name, q[.] . $cover_domain_name ) > 0 ) {
+                            next COOKIE if length($origin_domain_name) != 1 + $idx + length $cover_domain_name;
+                        }
+                        else {
+                            next COOKIE;
+                        }
                     }
+
+                    # accept cover domain cookie
+                    $cookie->{domain} = q[.] . $cover_domain_name;
                 }
-
-                # the cover domain must not be a parent of a public suffix
-                #
-                # As far as cookie handling is concerned, parents of a public suffix are public suffixes too, even if they are not listed.
-                # For example, amazonaws.com is not listed as a public suffix, yet it cannot be allowed as cover domain either,
-                # because it is the parent of public suffix compute.amazonaws.com.
-                next COOKIE if $cover_domain->is_pub_suffix_parent;
-
-                # the cover domain must cover (be a substring) the origin domain
-                next COOKIE if substr( $url->host->name, 0 - length $cover_domain->name ) ne $cover_domain->name;
-
-                # accept coveer domain cookie
-                $cookie->{domain} = q[.] . $cover_domain->name;
             }
             elsif ( $k eq 'path' ) {
-                $cookie->{path} = $v;
+                if ( $v ne q[] ) {
+                    $cookie->{path} = $v;
+                }
             }
             elsif ( $k eq 'expires' ) {
-                if ( !$cookie->{expires} ) {    # do not process expires attribute, if expires is already set by expires or max-age
-                    if ( my $expires = eval { P->date->parse($v) } ) {
-                        $cookie->{expires} = $expires->epoch;
-                    }
-                    else {
-                        next COOKIE;            # ignore cookie, invalid expires value
+                if ( $v ne q[] ) {
+                    if ( !$cookie->{expires} ) {    # do not process expires attribute, if expires is already set by expires or max-age
+                        if ( my $expires = eval { P->date->parse($v) } ) {
+                            $cookie->{expires} = $expires->epoch;
+                        }
+                        else {
+                            # ignore cookie if expires value is invalid
+                            next COOKIE;
+                        }
                     }
                 }
             }
             elsif ( $k eq 'max-age' ) {
-                if ( $v =~ /\A\d+\z/sm ) {
-                    $cookie->{expires} = time + $v;
-                }
-                else {
-                    next COOKIE;                # ignore cookie, invalid max-age value
+                if ( $v ne q[] ) {
+                    if ( $v =~ /\A\d+\z/sm ) {
+                        $cookie->{expires} = time + $v;
+                    }
+                    else {
+                        # ignore cookie if max-age value is invalid
+                        next COOKIE;
+                    }
                 }
             }
             elsif ( $k eq 'httponly' ) {
@@ -241,9 +249,11 @@ sub _match_path ( $self, $url_path, $cookie_path ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (32)             |
+## |    3 | 27                   | Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (38)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 202, 204             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 115, 135             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 210, 212             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
