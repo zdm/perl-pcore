@@ -127,6 +127,13 @@ sub http_request ($args) {
         on_error_status => undef,
     };
 
+    # validate url
+    if ( !$args->{url}->is_http ) {
+        $runtime->{finish}->( 599, qq[Invalid URI scheme: "@{[$args->{url}->scheme]}"] );
+
+        return;
+    }
+
     # start "connect" phase
     $runtime->{on_error_status} = 595;
 
@@ -617,15 +624,15 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 23                   | * Subroutine "http_request" with high complexity score (27)                                                    |
-## |      | 234                  | * Subroutine "_write_request" with high complexity score (21)                                                  |
-## |      | 356                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 23                   | * Subroutine "http_request" with high complexity score (28)                                                    |
+## |      | 241                  | * Subroutine "_write_request" with high complexity score (21)                                                  |
+## |      | 363                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 103, 117, 119, 193   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 103, 117, 119, 200   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 336                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 343                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 567                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 574                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

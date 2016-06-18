@@ -42,6 +42,7 @@ has hostport     => ( is => 'lazy', init_arg => undef );    # punycoded, ASCII
 
 has scheme_is_valid => ( is => 'lazy', init_arg => undef );
 
+has is_http   => ( is => 'lazy', default => 0, init_arg => undef );
 has is_secure => ( is => 'lazy', default => 0, init_arg => undef );
 
 has default_port => ( is => 'lazy', default => 0, init_arg => undef );
@@ -337,12 +338,12 @@ sub to_psgi ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 74                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 107, 110, 117, 127,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
-## |      | 138, 143, 146        |                                                                                                                |
+## |    3 | 108, 111, 118, 128,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |      | 139, 144, 147        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 91                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 92                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -6,6 +6,7 @@ extends qw[Pcore::Util::URI];
 
 with qw[Pcore::Util::URI::Web2];
 
+has '+is_http'      => ( default => 1 );
 has '+is_secure'    => ( default => 1 );
 has '+default_port' => ( default => 443 );
 
