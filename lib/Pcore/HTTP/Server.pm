@@ -8,8 +8,8 @@ use Pcore::HTTP::Status;
 use Socket qw[IPPROTO_TCP TCP_NODELAY];
 use Pcore::HTTP::Server::Writer;
 
-has listen => ( is => 'ro', isa => Str,     required => 1 );
-has app    => ( is => 'ro', isa => CodeRef, required => 1 );
+has listen => ( is => 'ro', isa => Str, required => 1 );
+has app => ( is => 'ro', isa => CodeRef | ConsumerOf ['Pcore::HTTP::Server::Router'], required => 1 );
 
 has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
 has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
@@ -293,6 +293,7 @@ sub _finish_request ( $self, $h, $keep_alive ) {
 }
 
 # TODO add support for different body types, body can be FileHandle or CodeRef or ScalarRef, etc ...
+# TODO convert headers to CamelCase
 sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
     my $headers = "HTTP/1.1 $res->[0] " . Pcore::HTTP::Status->get_reason( $res->[0] );
 
@@ -306,7 +307,7 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
     }
 
     # TODO convert headers to CamelCase
-    $headers .= $CRLF . join map { $_->key . q[: ] . $_->value } pairs $res->[1]->@* if $res->[1] && $res->[1]->@*;
+    $headers .= $CRLF . join $CRLF, map { $_->key . q[: ] . $_->value } pairs $res->[1]->@* if $res->[1] && $res->[1]->@*;
 
     if ($delayed_body) {
         $h->push_write( $headers . $CRLF . 'Transfer-Encoding: chunked' . $CRLF . $CRLF );
@@ -366,7 +367,7 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 296             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 297             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 225                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
