@@ -320,16 +320,9 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
                 $self->_write_buf( $h, \( $headers . $CRLF . 'Content-Length: ' . length( $res->[2]->$* ) . $CRLF . $CRLF . $res->[2]->$* ) );
             }
             elsif ( ref $res->[2] eq 'ARRAY' ) {
-                if ( my $body = join q[], $res->[2]->@* ) {
+                my $body = join q[], $res->[2]->@*;
 
-                    # has body
-                    $self->_write_buf( $h, \( $headers . $CRLF . 'Content-Length: ' . length($body) . $CRLF . $CRLF . $body ) );
-                }
-                else {
-
-                    # body is empty
-                    $self->_write_buf( $h, \( $headers . $CRLF . $CRLF ) );
-                }
+                $self->_write_buf( $h, \( $headers . $CRLF . 'Content-Length: ' . length($body) . $CRLF . $CRLF . $body ) );
             }
             else {
 

@@ -9,6 +9,24 @@ has path_tail => ( is => 'ro', isa => Str, required => 1 );
 
 requires qw[run];
 
+sub return_static ($self) {
+    if ( $self->path_tail && $self->path_tail->is_file ) {
+        if ( my $path = $ENV->share->get( $self->path . $self->path_tail, storage => 'www' ) ) {
+            my $data = P->file->read_bin($path);
+
+            $path = P->path($path);
+
+            return [ 200, [ 'Content-Type' => $path->mime_type ], $data ];
+        }
+        else {
+            return [ 404, [], [] ];    # Not Found
+        }
+    }
+    else {
+        return [ 403, [], [] ];        # Forbidden
+    }
+}
+
 1;
 __END__
 =pod

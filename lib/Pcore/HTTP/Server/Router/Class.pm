@@ -90,7 +90,7 @@ sub run ( $self, $env ) {
         env       => $env,
         router    => $self,
         path      => $path,
-        path_tail => $path_tail,
+        path_tail => P->path($path_tail),
     }, $class;
 
     return $controller->run;

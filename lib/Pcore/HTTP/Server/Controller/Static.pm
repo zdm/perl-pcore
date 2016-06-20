@@ -5,16 +5,7 @@ use Pcore -role;
 with qw[Pcore::HTTP::Server::Controller];
 
 sub run ($self) {
-    if ( my $path = $ENV->share->get( $self->path . $self->path_tail, storage => 'www' ) ) {
-        my $data = P->file->read_bin($path);
-
-        $path = P->path($path);
-
-        return [ 200, [ 'Content-Type' => $path->mime_type ], $data ];
-    }
-    else {
-        return [404];
-    }
+    return $self->return_static;
 }
 
 1;
