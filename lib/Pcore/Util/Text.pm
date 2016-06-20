@@ -478,6 +478,7 @@ sub to_snake_case {
     }
 
     my %args = (
+        delim => q[_],
         split => undef,
         join  => undef,
         splice @_, 1,
@@ -489,7 +490,7 @@ sub to_snake_case {
         for (@parts) {
             $_ = lcfirst;
 
-            s/([[:upper:]])/q[_] . lc $1/smge;
+            s/([[:upper:]])/$args{delim} . lc $1/smge;
         }
 
         if ( $args{join} ) {
@@ -504,7 +505,7 @@ sub to_snake_case {
         # convert camelCase to snake_case notation
         $str = lcfirst $str;
 
-        $str =~ s/([[:upper:]])/q[_] . lc $1/smge;
+        $str =~ s/([[:upper:]])/$args{delim} . lc $1/smge;
     }
 
     if ( defined wantarray ) {
@@ -526,6 +527,7 @@ sub to_camel_case {
     }
 
     my %args = (
+        delim   => q[_],
         ucfirst => undef,
         split   => undef,
         join    => undef,
@@ -538,7 +540,7 @@ sub to_camel_case {
         for (@parts) {
             $_ = lc;
 
-            s/_(.)/uc $1/smge;    # convert snake_case to camelCase notation
+            s/$args{delim}(.)/uc $1/smge;    # convert snake_case to camelCase notation
 
             $_ = ucfirst if $args{ucfirst};
         }
@@ -553,7 +555,7 @@ sub to_camel_case {
     else {
         $str = lc $str;
 
-        $str =~ s/_(.)/uc $1/smge;    # convert snake_case to camelCase notation
+        $str =~ s/$args{delim}(.)/uc $1/smge;    # convert snake_case to camelCase notation
 
         $str = ucfirst $str if $args{ucfirst};
     }

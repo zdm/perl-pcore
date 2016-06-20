@@ -214,6 +214,8 @@ sub _run_app ( $self, $h, $env ) {
 
     # processing first psgi app response
     if ($@) {
+        warn $@;
+
         $self->_return_xxx( $h, 500 );
     }
     elsif ( ref $res eq 'ARRAY' ) {
@@ -367,9 +369,9 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 297             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 299             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 225                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 227                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 93                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
