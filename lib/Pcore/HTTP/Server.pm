@@ -316,7 +316,10 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
     }
     else {
         if ( $res->[2] ) {
-            if ( ref $res->[2] eq 'ARRAY' ) {
+            if ( ref $res->[2] eq 'SCALAR' ) {
+                $self->_write_buf( $h, \( $headers . $CRLF . 'Content-Length: ' . length( $res->[2]->$* ) . $CRLF . $CRLF . $res->[2]->$* ) );
+            }
+            elsif ( ref $res->[2] eq 'ARRAY' ) {
                 if ( my $body = join q[], $res->[2]->@* ) {
 
                     # has body
