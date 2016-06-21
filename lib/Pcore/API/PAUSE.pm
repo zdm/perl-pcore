@@ -1,7 +1,6 @@
 package Pcore::API::PAUSE;
 
 use Pcore -class;
-use Pcore::API;
 use Pcore::Util::Text qw[encode_utf8];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -123,11 +122,11 @@ sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = unde
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 57                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 56                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 68, 69, 73           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 67, 68, 72           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 103                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 102                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
