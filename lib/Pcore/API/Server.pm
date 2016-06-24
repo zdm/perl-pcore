@@ -3,10 +3,12 @@ package Pcore::API::Server;
 use Pcore -class;
 use Pcore::API::Response;
 
-has namespace => ( is => 'ro', isa => Str, required => 1 );
+has namespace       => ( is => 'ro', isa => Str,         required => 1 );
+has default_version => ( is => 'ro', isa => PositiveInt, required => 1 );
 
 has map => ( is => 'ro', isa => HashRef, init_arg => undef );
 
+# TODO scan API classes
 sub BUILD ( $self, $args ) {
     my $ns_path = $self->namespace =~ s[::][/]smgr;
 
@@ -36,25 +38,89 @@ sub BUILD ( $self, $args ) {
         }
     }
 
+    $self->{map} = {};
+
     for my $class ( sort keys $controllers->%* ) {
         P->class->load($class);
+
+        my $path = $controllers->{$class};
 
         if ( !$class->does('Pcore::API::Server::Class') ) {
             delete $controllers->{$class};
 
             say qq["$class" is not a consumer of "Pcore::API::Server::Class"];
+
+            next;
         }
+
+        my $version;
+
+        if ( $path =~ s[\A/v(\d+)][]sm ) {
+            $version = $1;
+        }
+        else {
+            say qq[Can not determine API version "$class"];
+
+            next;
+        }
+
+        my $obj = bless { api => $self }, $class;
+
+        my $map = $obj->map;
+
+        $self->{map}->{$version}->{$path} = {
+            class  => $class,
+            method => $map,
+        };
     }
 
-    $self->{map} = { reverse $controllers->%* };
+    # TODO check default version
 
     say dump $self->{map};
 
     return;
 }
 
-sub api_call ( $self, $class, $method, $data, $auth = undef ) {
-    return;
+# TODO
+sub api_call ( $self, $version, $class, $method, $data, $auth, $cb ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $version //= $self->default_version;
+
+    my $on_finish = sub ( $status, $reason = undef, $result = undef ) {
+        my $api_res = Pcore::API::Response->new( { status => $status, defined $reason ? ( reason => $reason ) : () } );
+
+        $api_res->{result} = $result;
+
+        $cb->($api_res) if $cb;
+
+        $blocking_cv->($api_res) if $blocking_cv;
+
+        return;
+    };
+
+    my $map = $self->{map}->{$version}->{$class};
+
+    if ( !$map ) {
+        $on_finish->( 404, q[API class was not found] );
+    }
+    elsif ( !exists $map->{method}->{$method} ) {
+        $on_finish->( 404, q[API method was not found] );
+    }
+    else {
+
+        # TODO check auth
+        if (0) {
+            $on_finish->( 401, q[Unauthorized] );
+        }
+        else {
+            my $obj = bless { api => $self }, $map->{class};
+
+            $obj->$method( $data, $on_finish );
+        }
+    }
+
+    return defined $blocking_cv ? $blocking_cv->recv : ();
 }
 
 1;
@@ -64,9 +130,11 @@ sub api_call ( $self, $class, $method, $data, $auth = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 39, 49               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 43                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 30                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    3 | 85                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 32                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

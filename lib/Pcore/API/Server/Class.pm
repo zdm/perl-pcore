@@ -4,6 +4,8 @@ use Pcore -role;
 
 requires qw[_build_map];
 
+has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Server'], required => 1 );
+
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 around _build_map => sub ( $orig, $self ) {
@@ -11,7 +13,11 @@ around _build_map => sub ( $orig, $self ) {
 
     # validate API class map
 
+    # TODO check API description
+
     # TODO check, that methods are exists
+
+    # TODO check api method description
 
     return $map;
 };

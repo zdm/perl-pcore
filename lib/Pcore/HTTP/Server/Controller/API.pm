@@ -4,6 +4,10 @@ use Pcore -role;
 
 with qw[Pcore::HTTP::Server::Controller];
 
+requires qw[_build_api];
+
+has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Server'] );
+
 # TODO get auth from token, then from cookies
 sub run ($self) {
     return;
