@@ -268,16 +268,15 @@ sub _write_request ( $args, $runtime ) {
         delete $args->{headers}->{TRANSFER_ENCODING};
     }
 
+    my $headers = $args->{headers}->to_string;
+
     # prepare basic authorization
     if ( my $userinfo_b64 = $args->{url}->userinfo_b64 ) {
-        $args->{headers}->{AUTHORIZATION} = 'Basic ' . $userinfo_b64;
-    }
-    else {
-        delete $args->{headers}->{AUTHORIZATION};
+        $headers .= 'Authorization: Basic ' . $userinfo_b64 . $CRLF;
     }
 
     # send request headers
-    $runtime->{h}->push_write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $args->{headers}->to_string . $CRLF );
+    $runtime->{h}->push_write( "$args->{method} $request_path HTTP/1.1" . $CRLF . $headers . $CRLF );
 
     # return if error occurred during send request headers
     return if !$runtime;
@@ -633,14 +632,14 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 23                   | * Subroutine "http_request" with high complexity score (28)                                                    |
-## |      | 241                  | * Subroutine "_write_request" with high complexity score (23)                                                  |
-## |      | 371                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 241                  | * Subroutine "_write_request" with high complexity score (22)                                                  |
+## |      | 370                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 103, 117, 119, 200   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 351                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 350                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 582                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 581                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
