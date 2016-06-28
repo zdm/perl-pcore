@@ -363,23 +363,25 @@ sub trigger_build ( $self, $source_name = 'latest', $source_type = $DOCKERHUB_SO
             dockerfile_location => $args{dockerfile_location},
         },
         sub ($res) {
-            if ( $res->is_success && !$res->{result}->@* ) {
-                $res->set_status( 404, 'Invalid build source name' );
-            }
-            else {
-                my $result = [];
-
-                for my $build ( $res->{result}->@* ) {
-                    $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
-
-                    $build->set_status( $res->status );
-
-                    $build->{repo} = $self;
-
-                    push $result->@*, $build;
+            if ( $res->is_success ) {
+                if ( !$res->{result}->@* ) {
+                    $res->set_status( 404, 'Invalid build source name' );
                 }
+                else {
+                    my $result = [];
 
-                $res->{result} = $result;
+                    for my $build ( $res->{result}->@* ) {
+                        $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
+
+                        $build->set_status( $res->status );
+
+                        $build->{repo} = $self;
+
+                        push $result->@*, $build;
+                    }
+
+                    $res->{result} = $result;
+                }
             }
 
             $args{cb}->($res) if $args{cb};

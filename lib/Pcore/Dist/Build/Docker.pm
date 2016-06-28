@@ -262,7 +262,7 @@ sub trigger_build ( $self, $dockerhub_repo, $tag ) {
 
     my $res = $dockerhub_repo->trigger_build($tag);
 
-    if ( $res->status ) {
+    if ( $res->is_success ) {
         say 'OK';
 
         return 1;
