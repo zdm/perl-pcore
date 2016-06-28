@@ -112,8 +112,8 @@ requires 'Time::Zone';
 # Pcore::Util::Digest
 requires 'Digest';
 requires 'Digest::MD5';
-requires 'Digest::Bcrypt';
 requires 'String::CRC32';
+requires 'Crypt::ScryptKDF';
 
 # Pcore::Util::File
 requires 'File::Copy::Recursive';

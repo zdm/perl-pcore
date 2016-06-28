@@ -206,7 +206,6 @@
                         'File::Spec',
                         'File::Basename',
                         'File::Find',
-                        '/Digest/',
                         '/Data::UUID/',
                         '/Data::Serializer/',
                         'Capture::Tiny',
@@ -224,12 +223,9 @@
                         'Moo',
                         'Moo::Role',
                         'MooX::late',
-
                         '/MooX::Types::MooseLike/',
                         '/Type::Tiny/',
                         '/\ATypes::/',
-
-                        'Text::ASCIITable',
                     )
                 ),
             },
