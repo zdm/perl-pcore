@@ -57,10 +57,11 @@
         status => 404,
         re     => undef,
     },
-    'xanga.com' => {
-        status => undef,
-        re     => qr[We\saren't\sshowing\sany\sblog\sarchives\ssaved\sfor\sthis\spage]smi,
-    },
+
+    # 'xanga.com' => {
+    #     status => undef,
+    #     re     => qr[We\saren't\sshowing\sany\sblog\sarchives\ssaved\sfor\sthis\spage]smi,
+    # },
     'skyrock.com' => {
         status => 404,
         re     => undef,
@@ -121,10 +122,11 @@
         status => 404,
         re     => undef,
     },
-    'hpage.com' => {
-        status => 404,
-        re     => undef,
-    },
+
+    # 'hpage.com' => {
+    #     status => 404,
+    #     re     => undef,
+    # },
     'hautetfort.com' => {
         status => 404,
         re     => undef,
@@ -164,8 +166,8 @@
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 10, 18, 62, 86, 94,  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
-## |      | 98, 118              |                                                                                                                |
+## |    3 | 10, 18, 87, 95, 99,  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |      | 119                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
