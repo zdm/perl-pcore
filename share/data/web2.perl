@@ -6,20 +6,20 @@
 # };
 
 {   'tumblr.com' => {
-        status => undef,
-        re     => qr[<p data-translation="message">Whatever you were looking for doesn't currently exist at this address[.] Unless you were looking for this error page, in which case: Congrats! You totally found it[.]]smi,
+        status => 404,
+        re     => qr[Whatever\syou\swere\slooking\sfor\sdoesn't\scurrently\sexist]smi,
     },
     'blogspot' => {
         status => 404,
-        re     => undef,
+        re     => qr[is\savailable\sto\sregister]smi,
     },
     'livejournal.com' => {
-        status => undef,
-        re     => qr[The\s+journal\s+<b>.+?</b>\s+is\s+not\s+currently\s+registered]smi,
+        status => 404,
+        re     => qr[is\snot\scurrently\sregistered]smi,
     },
     'weebly.com' => {
-        status => undef,
-        re     => qr[<div class="alert-heading">Site Not Published</div>]smi,
+        status => 404,
+        re     => undef,
     },
     'over-blog.com' => {
         status => undef,
@@ -29,9 +29,9 @@
         status => undef,
         re     => qr[[.]wordpress[.]com</em> doesn\&\#8217;t\&nbsp;exist</h2>]smi,
     },
-    'bravenet.com' => {
+    'bravehost.com' => {
         status => undef,
-        re     => qr[<title>Page\sNot\sFound</title>]smi,
+        re     => qr[<title>Available\sWebsite</title>]smi,
     },
     'jimdo.com' => {
         status => 403,
@@ -59,8 +59,8 @@
     },
 
     # 'xanga.com' => {
-    #     status => undef,
-    #     re     => qr[We\saren't\sshowing\sany\sblog\sarchives\ssaved\sfor\sthis\spage]smi,
+    #     status => 302,
+    #     re     => undef,
     # },
     'skyrock.com' => {
         status => 404,
@@ -76,7 +76,7 @@
     },
     'bravesites.com' => {
         status => 404,
-        re     => qr[<title>Available\sWebsite</title>]smi,
+        re     => undef,
     },
     'startlogic.com' => {
         status => 404,
@@ -91,8 +91,8 @@
         re     => undef,
     },
     'webnode.com' => {
-        status => undef,
-        re     => qr[exist[.]\sBut\sthis\saddress\sis\savailable\sfor\syour\snew\swebsite!]smi,
+        status => 404,
+        re     => qr[But this address is available for your new website!]smi,
     },
     'moonfruit.com' => {
         status => 404,
@@ -124,7 +124,7 @@
     },
 
     # 'hpage.com' => {
-    #     status => 404,
+    #     status => 302,
     #     re     => undef,
     # },
     'hautetfort.com' => {
@@ -135,23 +135,23 @@
     # path - based web2 subdomains
     'journalhome.com' => {
         path   => 1,
-        status => 404,
-        re     => undef,
+        status => 400,
+        re     => qr[The\sweblog,\spage\sor\sarticle\syou\sare\slooking\sfor\scould\snot\sbe\slocated]smi,
     },
     'purevolume.com' => {
         path   => 1,
-        status => 404,
-        re     => undef,
+        status => 301,
+        re     => qr[Page\sNot\sFound]smi,
     },
     'webjam.com' => {
         path   => 1,
-        status => 404,
-        re     => undef,
+        status => 200,
+        re     => qr[(error\s404)]smi,
     },
     'blogster.com' => {
         path   => 1,
         status => undef,
-        re     => qr[unknown\s+realm]smi,
+        re     => qr[this\swill\sbe\sa\sreal\s404\serror\sonce\si\sdecide\sthe\skinks\sare\sworked\sout]smi,
     },
     'twitter.com' => {
         path   => 1,
@@ -166,8 +166,8 @@
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 10, 18, 87, 95, 99,  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
-## |      | 119                  |                                                                                                                |
+## |    3 | 87, 99, 119, 139,    | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |      | 154                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
