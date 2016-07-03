@@ -18,8 +18,8 @@ around CLI => sub ( $orig, $self ) {
 # TODO daemonize at runtime
 around CLI_RUN => sub ( $orig, $self, $opt, @args ) {
 
-    # daemonize
-    P->pm->daemonize if $opt->{daemonize};
+    # set daemonize flag
+    $ENV->{DAEMONIZE} = 1 if $opt->{daemonize};
 
     return $self->$orig( $opt, @args );
 };
