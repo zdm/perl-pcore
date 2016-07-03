@@ -12,7 +12,7 @@ BEGIN {
     require CBOR::XS;
 
     # shift class name
-    shift @ARGV;
+    my $class_name = shift @ARGV;
 
     # read and unpack boot args from STDIN
     $BOOT_ARGS = <>;
@@ -21,12 +21,12 @@ BEGIN {
 
     $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $BOOT_ARGS );
 
-    $0 = $BOOT_ARGS->[0];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $0 = "$BOOT_ARGS->[0] $class_name";    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     $main::VERSION = version->new( $BOOT_ARGS->[1] );
 }
 
-package                      # hide from CPAN
+package                                    # hide from CPAN
   main;
 
 use Pcore;
