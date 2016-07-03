@@ -44,8 +44,6 @@ sub daemonize {
 
     $daemonized++;
 
-    P->EV->throw('CORE#DAEMONIZE');
-
     if ( !$MSWIN ) {
         fork && exit 0;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 

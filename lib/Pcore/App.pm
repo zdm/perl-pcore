@@ -124,9 +124,7 @@ has env_is_test  => ( is => 'lazy', isa => Bool, init_arg => undef );
 has env_is_prod  => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 # APPX
-has_appx ev      => ( isa => 'EV' );
 has_appx openssl => ( isa => 'OpenSSL' );
-has_appx h       => ( isa => 'H' );
 has_appx api     => ( isa => 'API' );
 
 our $CFG = { SECRET => undef, };

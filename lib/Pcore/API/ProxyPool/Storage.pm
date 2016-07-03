@@ -1,21 +1,15 @@
 package Pcore::API::ProxyPool::Storage;
 
 use Pcore -class;
+use Pcore::Handle;
 
 has pool_id => ( is => 'ro', isa => Int, required => 1 );
 
-has dbh => ( is => 'lazy', isa => Object, init_arg => undef );
+has dbh => ( is => 'lazy', isa => InstanceOf ['Pcore::Handle::sqlite'], init_arg => undef );
 has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 sub _build_dbh ($self) {
-    my $id = '__proxy_pool' . $self->pool_id;
-
-    H->add(
-        $id  => 'SQLite',
-        addr => 'memory://',
-    );
-
-    my $dbh = H->$id;
+    my $dbh = Pcore::Handle->new('sqlite:');
 
     my $ddl = $dbh->ddl;
 
@@ -190,7 +184,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 97, 125              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 91, 119              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

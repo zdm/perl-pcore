@@ -15,19 +15,11 @@ around CLI => sub ( $orig, $self ) {
     return $cli;
 };
 
+# TODO daemonize at runtime
 around CLI_RUN => sub ( $orig, $self, $opt, @args ) {
 
     # daemonize
-    if ( $opt->{daemonize} ) {
-        P->EV->register(
-            'CORE#RUN' => sub {
-                P->pm->daemonize;
-
-                return 1;
-            },
-            disposable => 1
-        );
-    }
+    P->pm->daemonize if $opt->{daemonize};
 
     return $self->$orig( $opt, @args );
 };

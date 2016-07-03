@@ -1,13 +1,14 @@
-package Pcore::Core::Log::Pipe::file;
+package Pcore::Core::Log::Pipe::file;    ## no critic qw[NamingConventions::Capitalization]
 
 use Pcore -class;
 use Fcntl qw[:flock];
+use IO::File;
 
 extends qw[Pcore::Core::Log::Pipe];
 
 has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 
-has hid => ( is => 'lazy', isa => Str, init_arg => undef );
+has h => ( is => 'lazy', isa => InstanceOf ['IO::File'], clearer => 1, init_arg => undef );
 
 around new => sub ( $orig, $self, $args ) {
     if ( $args->{uri}->path->is_abs ) {
@@ -26,32 +27,25 @@ around new => sub ( $orig, $self, $args ) {
 };
 
 sub _build_id ($self) {
-    return 'logger_file_' . $self->path;
+    return 'file:' . $self->path;
 }
 
-sub _build_hid ($self) {
-    my $hid = $self->id;
+sub _build_h ($self) {
+    my $h = IO::File->new( $self->path, '>>', P->file->calc_chmod(q[rw-------]) ) or die q[Unable to open "] . $self->path . q["];
 
-    H->add(
-        $hid      => 'File',
-        path      => $self->path->to_string,
-        binmode   => ':encoding(UTF-8)',
-        autoflush => 1
-    );
+    $h->binmode(':encoding(UTF-8)');
 
-    return $hid;
+    $h->autoflush(1);
+
+    return $h;
 }
 
 sub sendlog ( $self, $header, $data, $tag ) {
-    my $hid = $self->hid;
 
-    my $h = H->$hid->h;
+    # reopen file handle if file was removed
+    $self->clear_h if !-f $self->path;
 
-    if ( !-f $self->path ) {
-        H->$hid->h_disconnect;
-
-        $h = H->$hid->h;
-    }
+    my $h = $self->h;
 
     flock $h, LOCK_EX or die;
 
@@ -63,17 +57,6 @@ sub sendlog ( $self, $header, $data, $tag ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::Core::Log::Pipe::file" does not start with a upper case    |
-## |      |                      | letter                                                                                                         |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

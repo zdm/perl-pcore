@@ -124,7 +124,6 @@ sub import {
     Pcore::Core::Const->import( -caller => $caller );
     Pcore::Core::Dump->import( -caller => $caller );
     Pcore::Core::Exception->import( -caller => $caller );
-    Pcore::Core::H->import( -caller => $caller );
 
     if ( !$import->{pragma}->{config} ) {
 
@@ -308,13 +307,8 @@ sub _apply_roles ( $caller, @roles ) {
 }
 
 sub _CORE_INIT {
-    require Pcore::Core::EV;
-    Pcore::Core::EV->import(':CORE');
-
     require Pcore::Core::Dump;
     Pcore::Core::Dump->import(':CORE');
-
-    require Pcore::Core::H;
 
     # set default fallback mode for all further :encoding I/O layers
     $PerlIO::encoding::fallback = Encode::FB_CROAK() | Encode::STOP_AT_PARTIAL();
@@ -429,9 +423,6 @@ sub _CORE_RUN {
 
         Pcore::Core::CLI->new( { class => 'main' } )->run( \@ARGV );
 
-        # throw CORE#RUN event to perform daemonize, depends on CLI param
-        EV()->throw('CORE#RUN');
-
         if ( !$MSWIN ) {
 
             # GID is inherited from UID by default
@@ -539,19 +530,19 @@ sub i18n {
 ## |======+======================+================================================================================================================|
 ## |    3 | 101                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 219                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 218                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 297                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 420                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 296                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 414                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 334, 363, 366, 370,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 402, 405, 410, 413,  |                                                                                                                |
-## |      | 441, 458             |                                                                                                                |
+## |    3 | 328, 357, 360, 364,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 396, 399, 404, 407,  |                                                                                                                |
+## |      | 432, 449             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 229                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 228                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 338                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 332                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
