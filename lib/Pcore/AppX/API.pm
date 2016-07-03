@@ -80,7 +80,7 @@ sub _AUTOLOAD ( $self, $method, @ ) {
         sub {
             my \$self = shift;
 
-            return \$self->_api_backend->$method(\@_);
+            return \$self->_has_api_backend ? \$self->_api_backend->$method(\@_) : ();
         };
 PERL
 }
