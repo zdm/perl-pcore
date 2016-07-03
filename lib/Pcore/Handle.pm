@@ -1,12 +1,8 @@
 package Pcore::Handle;
 
-use Pcore -role, -autoload;
-
-requires qw[_connect _disconnect];
+use Pcore -role;
 
 has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], required => 1 );
-
-has h => ( is => 'lazy', isa => Object, builder => '_connect', predicate => 'is_connected', clearer => 1, init_arg => undef );
 
 sub new ( $self, $uri, %args ) {
     $uri = P->uri($uri) if !ref $uri;
@@ -16,51 +12,7 @@ sub new ( $self, $uri, %args ) {
     return $class->new( { uri => $uri, %args } );
 }
 
-sub DEMOLISH ( $self, $global ) {
-    $self->disconnect if $self->is_connected && !$global;
-
-    return;
-}
-
-sub _AUTOLOAD ( $self, $method, @ ) {
-    return <<"PERL";
-        sub {
-            my \$self = shift;
-
-            return \$self->h->$method(\@_);
-        };
-PERL
-}
-
-sub connect ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    if ( !$self->is_connected ) {
-        $self->{h} = $self->_connect;
-    }
-
-    return;
-}
-
-sub disconnect ($self) {
-    if ( $self->is_connected ) {
-        $self->_disconnect;
-
-        $self->clear_h;
-    }
-
-    return;
-}
-
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 25                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_AUTOLOAD' declared but not used    |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
