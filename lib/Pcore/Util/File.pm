@@ -792,6 +792,54 @@ sub where ( $filename ) {
     return @res;
 }
 
+# UNTAR
+sub untar ( $tar, $target, @ ) {
+    state $init = !!require Archive::Tar;
+
+    my %args = (
+        compressed      => 1,
+        strip_component => 0,
+        splice @_, 2,
+    );
+
+    $tar = Archive::Tar->new( $tar, $args{compressed} );
+
+    my $strip_component;
+
+    my @extracted;
+
+    for my $file ( $tar->get_files ) {
+        next if !$file->is_file;
+
+        my $path = P->path( q[/] . $file->full_path )->to_string;
+
+        if ( $args{strip_component} ) {
+            if ( !$strip_component ) {
+                my @labels = split m[/]sm, $path;
+
+                die q[Can't strip component, path is too short] if @labels < $args{strip_component};
+
+                $strip_component = P->path( q[/] . join( q[/], splice @labels, 0, $args{strip_component} + 1 ) )->to_string;
+            }
+
+            die qq[Can't strip component "$strip_component" from path "$path"] if $path !~ s[\A$strip_component][]sm;
+        }
+
+        my $target_path = P->path("$target/$path");
+
+        P->file->mkpath( $target_path->dirname ) if !-e $target_path->dirname;
+
+        if ( $file->extract($target_path) ) {
+            push @extracted, $target_path;
+        }
+        else {
+            die qq[Can't extract "$path"];
+        }
+    }
+
+    return \@extracted;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -803,6 +851,8 @@ sub where ( $filename ) {
 ## |      | 50                   | * Subroutine "calc_umask" with high complexity score (25)                                                      |
 ## |      | 124                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
 ## |      | 250                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 822                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
