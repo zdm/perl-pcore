@@ -282,9 +282,6 @@ sub app_test ($self) {
 
 sub app_run ($self) {
 
-    # create handles
-    $self->h->app_run;
-
     # preload API
     $self->api->app_run;
 
