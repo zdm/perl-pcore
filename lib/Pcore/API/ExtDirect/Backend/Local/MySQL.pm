@@ -112,7 +112,7 @@ sub run_ddl {
 
         my $digest = $self->hash_password( 'root', $password );
 
-        $self->h_api->do( q[INSERT INTO `user` SET `id` = 1, `username` = 'root', `digest` = ?], bind => [$digest] );
+        $self->h_api->do( q[INSERT INTO `user` SET `id` = 1, `username` = 'root', `digest` = ?], [$digest] );
     }
 
     return;
@@ -126,15 +126,15 @@ sub sync_api_map {
     $self->h_api->begin_work;
 
     # create app
-    $self->h_api->do( 'INSERT IGNORE INTO `api_app` SET `name` = ?', bind => [ $self->app->name ] );
+    $self->h_api->do( 'INSERT IGNORE INTO `api_app` SET `name` = ?', [ $self->app->name ] );
 
-    my $app_id = $self->h_api->selectval( 'SELECT `id` FROM `api_app` WHERE name = ?', bind => [ $self->app->name ] ) // die;
+    my $app_id = $self->h_api->selectval( 'SELECT `id` FROM `api_app` WHERE name = ?', [ $self->app->name ] ) // die;
 
     my $old_actions = {};
     my $old_methods = {};
 
     # fetch old api structure
-    if ( my $old_api = $self->h_api->selectall( 'SELECT `api_action`.`name` AS `action_name`, `api_method`.`action`, `api_method`.`id`, `api_method`.`name` FROM `api_action`, `api_method` WHERE `api_method`.`action` = `api_action`.`id` AND `api_action`.`app` = ?', bind => [ $app_id->$* ] ) ) {
+    if ( my $old_api = $self->h_api->selectall( 'SELECT `api_action`.`name` AS `action_name`, `api_method`.`action`, `api_method`.`id`, `api_method`.`name` FROM `api_action`, `api_method` WHERE `api_method`.`action` = `api_action`.`id` AND `api_action`.`app` = ?', [ $app_id->$* ] ) ) {
         for my $method ( $old_api->@* ) {
             $old_actions->{ $method->{action} } = 1;
 
@@ -145,15 +145,15 @@ sub sync_api_map {
     for my $action ( keys $api_map->%* ) {
 
         # create action
-        $self->h_api->do( 'INSERT IGNORE INTO `api_action` SET `name` = ?, `app` = ?', bind => [ $action, $app_id->$* ] );
-        my $action_id = $self->h_api->selectval( 'SELECT `id` FROM `api_action` WHERE name = ?', bind => [$action] ) // die;
+        $self->h_api->do( 'INSERT IGNORE INTO `api_action` SET `name` = ?, `app` = ?', [ $action, $app_id->$* ] );
+        my $action_id = $self->h_api->selectval( 'SELECT `id` FROM `api_action` WHERE name = ?', [$action] ) // die;
 
         delete $old_actions->{ $action_id->$* };
 
         for my $method ( keys $api_map->{$action}->%* ) {
             my $data = P->data->to_json( $api_map->{$action}->{$method} );
 
-            $self->h_api->do( 'INSERT INTO `api_method` SET `name` = ?, action = ?, data = ? ON DUPLICATE KEY UPDATE data = ?', bind => [ $method, $action_id->$*, $data->$*, $data->$* ] );
+            $self->h_api->do( 'INSERT INTO `api_method` SET `name` = ?, action = ?, data = ? ON DUPLICATE KEY UPDATE data = ?', [ $method, $action_id->$*, $data->$*, $data->$* ] );
 
             delete $old_methods->{ $action . q[#] . $method };
         }
@@ -161,12 +161,12 @@ sub sync_api_map {
 
     # delete old actions without methods
     for my $old_action_id ( keys $old_actions->%* ) {
-        $self->h_api->do( 'DELETE FROM api_action WHERE id = ?', bind => [$old_action_id] );
+        $self->h_api->do( 'DELETE FROM api_action WHERE id = ?', [$old_action_id] );
     }
 
     # delete old methods
     for my $old_method_id ( values $old_methods->%* ) {
-        $self->h_api->do( 'DELETE FROM api_method WHERE id = ?', bind => [$old_method_id] );
+        $self->h_api->do( 'DELETE FROM api_method WHERE id = ?', [$old_method_id] );
     }
 
     $self->h_api->commit;
@@ -179,7 +179,7 @@ sub _build_api_map {
 
     my $api_map = {};
 
-    if ( my $res = $self->h_api->selectall( 'SELECT `api_action`.`name` AS `action_name`, `api_method`.* FROM `api_app`, `api_action`, `api_method` WHERE `api_method`.`action` = `api_action`.`id` AND `api_action`.`app` = `api_app`.`id` AND `api_app`.`name` = ?', bind => [ $self->app->name ] ) ) {
+    if ( my $res = $self->h_api->selectall( 'SELECT `api_action`.`name` AS `action_name`, `api_method`.* FROM `api_app`, `api_action`, `api_method` WHERE `api_method`.`action` = `api_action`.`id` AND `api_action`.`app` = `api_app`.`id` AND `api_app`.`name` = ?', [ $self->app->name ] ) ) {
         for my $row ( $res->@* ) {
             $api_map->{ $row->{action_name} } //= {
                 id      => $row->{action},
@@ -204,7 +204,7 @@ sub do_signout {
 
     return unless $self->has_sid;
 
-    $self->h_api->do( q[DELETE FROM api_session WHERE id = ?], bind => [ pack 'H*', $self->sid ] );
+    $self->h_api->do( q[DELETE FROM api_session WHERE id = ?], [ pack 'H*', $self->sid ] );
 
     return;
 }
@@ -219,13 +219,13 @@ sub find_user {
     );
 
     if ( $args{token} ) {
-        return $self->h_api->selectrow_hashref( q[SELECT id AS uid FROM user WHERE disabled = 0 AND token = ?], bind => [ pack 'H*', $args{token} ] );
+        return $self->h_api->selectrow_hashref( q[SELECT id AS uid FROM user WHERE disabled = 0 AND token = ?], [ pack 'H*', $args{token} ] );
     }
     elsif ( $args{sid} ) {
         my $sid = pack 'H*', $args{sid};
 
-        if ( my $res = $self->h_api->selectrow_hashref( q[SELECT uid FROM api_session WHERE id = ? AND UNIX_TIMESTAMP(last_accessed) >= ?], bind => [ $sid, time - $self->session_ttl ] ) ) {
-            $self->h_api->do( q[UPDATE api_session SET last_accessed = CURRENT_TIMESTAMP WHERE id = ?], bind => [$sid] );
+        if ( my $res = $self->h_api->selectrow_hashref( q[SELECT uid FROM api_session WHERE id = ? AND UNIX_TIMESTAMP(last_accessed) >= ?], [ $sid, time - $self->session_ttl ] ) ) {
+            $self->h_api->do( q[UPDATE api_session SET last_accessed = CURRENT_TIMESTAMP WHERE id = ?], [$sid] );
 
             return $res;
         }
@@ -234,7 +234,7 @@ sub find_user {
         }
     }
     elsif ( $args{username} ) {
-        return $self->h_api->selectrow_hashref( q[SELECT id AS uid, digest FROM user WHERE disabled = 0 AND username = ?], bind => [ $args{username} ] );
+        return $self->h_api->selectrow_hashref( q[SELECT id AS uid, digest FROM user WHERE disabled = 0 AND username = ?], [ $args{username} ] );
     }
 }
 
@@ -247,7 +247,7 @@ sub create_sid {    # return newly created sid as hex string
     while (1) {
         $sid = $self->generate_sid;
 
-        last if $self->h_api->do( q[INSERT INTO api_session SET id = ?, uid = ?, last_accessed = CURRENT_TIMESTAMP], bind => [ pack( 'H*', $sid ), $uid ] );
+        last if $self->h_api->do( q[INSERT INTO api_session SET id = ?, uid = ?, last_accessed = CURRENT_TIMESTAMP], [ pack( 'H*', $sid ), $uid ] );
     }
 
     return $sid;
@@ -261,7 +261,7 @@ sub cleanup_expired_sessions {
     if ( !$sessions_last_cleaned || $sessions_last_cleaned->$* < ( time - $self->sessions_cleanup_timeout ) ) {
         $self->h_api->do(q[INSERT INTO api_information SET id = 1, sessions_last_cleaned = NOW() ON DUPLICATE KEY UPDATE sessions_last_cleaned = NOW()]);
 
-        $self->h_api->do( q[DELETE FROM api_session WHERE UNIX_TIMESTAMP(last_accessed) < ?], bind => [ time - $self->session_ttl ] );
+        $self->h_api->do( q[DELETE FROM api_session WHERE UNIX_TIMESTAMP(last_accessed) < ?], [ time - $self->session_ttl ] );
     }
 
     return;

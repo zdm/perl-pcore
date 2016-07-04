@@ -75,7 +75,7 @@ SQL
 sub add_proxy ( $self, $proxy ) {
     state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `hostport`, `source_id`, `source_enabled`, `weight`) VALUES (?, ?, ?, ?, ?)');
 
-    $q1->do( bind => [ $proxy->id, $proxy->hostport, $proxy->source->id, $proxy->source->can_connect, $proxy->weight ] );
+    $q1->do( [ $proxy->id, $proxy->hostport, $proxy->source->id, $proxy->source->can_connect, $proxy->weight ] );
 
     return;
 }
@@ -83,7 +83,7 @@ sub add_proxy ( $self, $proxy ) {
 sub remove_proxy ( $self, $proxy ) {
     state $q1 = $self->dbh->query('DELETE FROM `proxy` WHERE `id` = ?');
 
-    $q1->do( bind => [ $proxy->id ] );
+    $q1->do( [ $proxy->id ] );
 
     return;
 }
@@ -91,7 +91,7 @@ sub remove_proxy ( $self, $proxy ) {
 sub ban_proxy ( $self, $proxy, $ban_id, $release_time ) {
     state $q1 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_ban` (`proxy_id`, `ban_id`, `release_time`) VALUES (?, ?, ?)');
 
-    $q1->do( bind => [ $proxy->id, $ban_id, $release_time ] );
+    $q1->do( [ $proxy->id, $ban_id, $release_time ] );
 
     return;
 }
@@ -101,9 +101,9 @@ sub set_connect_error ( $self, $proxy ) {
 
     state $q2 = $self->dbh->query('DELETE FROM `proxy_connect` WHERE `proxy_id` = ?');
 
-    $q1->do( bind => [ $proxy->{connect_error_time}, $proxy->id ] );
+    $q1->do( [ $proxy->{connect_error_time}, $proxy->id ] );
 
-    $q2->do( bind => [ $proxy->id ] );
+    $q2->do( [ $proxy->id ] );
 
     return;
 }
@@ -111,7 +111,7 @@ sub set_connect_error ( $self, $proxy ) {
 sub update_weight ( $self, $proxy ) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `weight` = ? WHERE `id` = ?');
 
-    $q1->do( bind => [ $proxy->weight, $proxy->id ] );
+    $q1->do( [ $proxy->weight, $proxy->id ] );
 
     return;
 }
@@ -120,14 +120,14 @@ sub set_connection_test_results ( $self, $proxy, $connect_id, $proxy_type ) {
     if ( !$self->_connect_id->{$connect_id} ) {
         state $q1 = $self->dbh->query('INSERT INTO `connect` (`name`) VALUES (?)');
 
-        $q1->do( bind => [$connect_id] );
+        $q1->do( [$connect_id] );
 
         $self->{_connect_id}->{$connect_id} = $self->dbh->last_insert_id;
     }
 
     state $q2 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_connect` (`proxy_id`, `connect_id`, `proxy_type`) VALUES (?, ?, ?)');
 
-    $q2->do( bind => [ $proxy->id, $self->{_connect_id}->{$connect_id}, $proxy_type ] );
+    $q2->do( [ $proxy->id, $self->{_connect_id}->{$connect_id}, $proxy_type ] );
 
     return;
 }
@@ -136,7 +136,7 @@ sub set_connection_test_results ( $self, $proxy, $connect_id, $proxy_type ) {
 sub update_source_status ( $self, $source, $status ) {
     state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_enabled` = ? WHERE `source_id` = ?');
 
-    $q1->do( bind => [ $status, $source->id ] );
+    $q1->do( [ $status, $source->id ] );
 
     return;
 }
@@ -147,8 +147,8 @@ sub release_connect_error ( $self, $time ) {
 
     state $q2 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0, `connect_error_time` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
 
-    if ( my $res = $q1->selectcol( bind => [$time] ) ) {
-        $q2->do( bind => [$time] );
+    if ( my $res = $q1->selectcol( [$time] ) ) {
+        $q2->do( [$time] );
 
         return $res;
     }
@@ -168,8 +168,8 @@ SQL
 
     state $q2 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
 
-    if ( my $res = $q1->selectall( bind => [$time] ) ) {
-        $q2->do( bind => [$time] );
+    if ( my $res = $q1->selectall( [$time] ) ) {
+        $q2->do( [$time] );
 
         return $res;
     }

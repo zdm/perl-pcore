@@ -203,10 +203,10 @@ SQL
     my $res;
 
     if ( defined $ban_id ) {
-        $res = $q_ban_check->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] }, $ban_id ] );
+        $res = $q_ban_check->selectval( [ $self->storage->_connect_id->{ $connect->[3] }, $ban_id ] );
     }
     else {
-        $res = $q->selectval( bind => [ $self->storage->_connect_id->{ $connect->[3] } ] );
+        $res = $q->selectval( [ $self->storage->_connect_id->{ $connect->[3] } ] );
     }
 
     if ($res) {
