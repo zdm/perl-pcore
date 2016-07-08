@@ -4,10 +4,6 @@ use Pcore -class;
 
 extends qw[Pcore::Core::Log::Pipe];
 
-sub _build_id ($self) {
-    return $self->uri->scheme;
-}
-
 sub _build_is_text_ansi ($self) {
     return -t $STDERR_UTF8 ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
 }

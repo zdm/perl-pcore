@@ -61,6 +61,22 @@ sub add ( $self, $name, @ ) {
     return $ch;
 }
 
+sub remove_pipe ( $self, $pipe_id ) {
+
+    # remove pipe
+    return if !delete $PIPE->{$pipe_id};
+
+    for my $ch ( values $self->channel->%* ) {
+        if ( delete $ch->pipe->{$pipe_id} ) {
+
+            # remove channel without pipes
+            delete $self->channel->{ $ch->name } if !$ch->pipe->%*;
+        }
+    }
+
+    return;
+}
+
 sub canlog ( $self, $channel ) {
     return $self->{channel}->{$channel} ? 1 : 0;
 }
@@ -80,7 +96,7 @@ sub sendlog ( $self, $channel, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 18, 55               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 18, 55, 69, 73       | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
