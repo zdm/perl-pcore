@@ -72,8 +72,10 @@ around new => sub ( $orig, $self, $uri, @ ) {
     };
 
     if ( !exists $scheme_cache->{$scheme} ) {
-        eval {                 #
+        eval {
             $scheme_cache->{$scheme} = P->class->load( $scheme, ns => 'Pcore::Util::URI' );
+
+            $scheme_cache->{$scheme} = undef if !$scheme_cache->{$scheme}->isa('Pcore::Util::URI');
         };
 
         $scheme_cache->{$scheme} = undef if $@;
@@ -340,10 +342,10 @@ sub to_psgi ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 108, 111, 118, 128,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
-## |      | 139, 144, 147        |                                                                                                                |
+## |    3 | 110, 113, 120, 130,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |      | 141, 146, 149        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 92                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 94                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
