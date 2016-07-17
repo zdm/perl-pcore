@@ -13,8 +13,8 @@ const our $CONTENT_ENCODING_IDENTITY => 4;
 
 # $status => $switch_method_to_GET
 const our $REDIRECT => {
-    301 => 1,                                 # should ask user to repeat request, in auto mode - repeat as GET
-    302 => 1,                                 # resend request as GET
+    301 => 0,                                 # if method is not HEAD/GET - ask user and repeat request with original method
+    302 => 0,                                 # if method is not HEAD/GET - ask user and repeat request with original method
     303 => 1,                                 # always change method to GET, used in POST-GET requeusts chain
     307 => 0,                                 # do not change method
     308 => 0,                                 # do not change method
