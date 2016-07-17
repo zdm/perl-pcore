@@ -28,14 +28,14 @@ sub run ($self) {
         exit 1;
     }
 
-    # load .pardeps.cbor
+    # load pardeps.json
     my $pardeps;
 
-    if ( -f $self->dist->root . 'data/.pardeps.cbor' ) {
-        $pardeps = P->cfg->load( $self->dist->root . 'data/.pardeps.cbor' );
+    if ( -f $self->dist->root . 'share/pardeps.json' ) {
+        $pardeps = P->cfg->load( $self->dist->root . 'share/pardeps.json' );
     }
     else {
-        say q["data/.pardeps.cbor" is not exists.];
+        say q["share/pardeps.json" is not exists.];
 
         say q[Run source scripts with --scan-deps option.];
 

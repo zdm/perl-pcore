@@ -2,10 +2,10 @@ package Pcore::Devel::ScanDeps;
 
 use Pcore -types;
 use Config;
-use CBOR::XS qw[];
+use JSON::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 # store values, for access them later during global destruction
-our $FN          = "$ENV->{DATA_DIR}.pardeps.cbor";
+our $FN          = $ENV->dist->share_dir . 'pardeps.json';
 our $SCRIPT_NAME = $ENV->{SCRIPT_NAME};
 our $ARCHNAME    = $Config{archname};
 our $DEPS        = {};
@@ -37,7 +37,7 @@ sub DESTROY {
 
         local $/;
 
-        $deps = CBOR::XS::decode_cbor(<$deps_fh>);
+        $deps = JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->decode(<$deps_fh>);
 
         close $deps_fh or die;
     }
@@ -46,19 +46,19 @@ sub DESTROY {
     for my $pkg ( sort keys %INC ) {
         say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg};
 
-        $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = $INC{$pkg};
+        $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = 1;
     }
 
     for my $pkg ( sort keys $DEPS->%* ) {
         say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg};
 
-        $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = $DEPS->{$pkg};
+        $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = 1;
     }
 
     # store deps
     open my $deps_fh, '>:raw', $FN or die;
 
-    print {$deps_fh} CBOR::XS::encode_cbor($deps);
+    print {$deps_fh} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode($deps);
 
     close $deps_fh or die;
 
@@ -77,6 +77,8 @@ sub DESTROY {
 ## |    3 | 26, 52               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 38                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 40, 61               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
