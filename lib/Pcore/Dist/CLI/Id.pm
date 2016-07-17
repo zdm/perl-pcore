@@ -77,6 +77,10 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
                         width => 14,
                         align => 1,
                     },
+                    pushed => {
+                        width => 14,
+                        align => 1,
+                    },
                 ],
             );
 
@@ -103,6 +107,18 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
                 if ( !$dist->is_commited ) {
                     push @row, WHITE . ON_RED . ' uncommited ' . RESET;
+                }
+                else {
+                    push @row, q[ - ];
+                }
+
+                if ( $dist->id->{phase} ) {
+                    if ( lc $dist->id->{phase} eq 'public' ) {
+                        push @row, q[ - ];
+                    }
+                    else {
+                        push @row, WHITE . ON_RED . q[ ] . $dist->id->{phase} . q[ ] . RESET;
+                    }
                 }
                 else {
                     push @row, q[ - ];
@@ -161,6 +177,8 @@ sub _show_dist_info ( $self, $dist ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
+## |    3 | 24                   | Subroutines::ProhibitExcessComplexity - Subroutine "CLI_RUN" with high complexity score (23)                   |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 32                   | RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 12                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |

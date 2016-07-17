@@ -228,6 +228,7 @@ sub _build_build ($self) {
 sub _build_id ($self) {
     my $id = {
         node             => undef,
+        phase            => undef,
         tags             => undef,
         bookmark         => undef,
         branch           => undef,
@@ -355,7 +356,7 @@ sub _build_docker ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 109, 159             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 242                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 243                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

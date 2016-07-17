@@ -156,6 +156,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
             if ( $res->is_success ) {
                 my %res = (
                     node             => undef,
+                    phase            => undef,
                     tags             => undef,
                     bookmark         => undef,
                     branch           => undef,
@@ -165,7 +166,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
                     release_distance => undef,
                 );
 
-                ( $res{node}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{release} ) = split /\n/sm, $res->{result}->[0];
+                ( $res{node}, $res{phase}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{release} ) = split /\n/sm, $res->{result}->[0];
 
                 $res{tags} = [ split /\x00/sm, $res{tags} ] if $res{tags};
 
@@ -182,7 +183,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
 
             return;
         },
-        [ qw[log -r . --template], q[{node|short}\n{join(tags,'\x00')}\n{currentbookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ]
+        [ qw[log -r . --template], q[{node|short}\n{phase}\n{join(tags,'\x00')}\n{currentbookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ]
     );
 
     return;
@@ -290,7 +291,7 @@ sub scm_set_tag ( $self, $root, $cb, $args ) {
 ## |======+======================+================================================================================================================|
 ## |    2 | 105, 107, 113        | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 185                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 186                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
