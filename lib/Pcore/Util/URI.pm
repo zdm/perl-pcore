@@ -333,6 +333,20 @@ sub to_psgi ($self) {
     }
 }
 
+sub TO_DUMP ( $self, $dumper, @ ) {
+    my %args = (
+        path => undef,
+        splice @_, 2,
+    );
+
+    my $res;
+    my $tags;
+
+    $res = qq[uri: "@{[$self->to_string]}"];
+
+    return $res, $tags;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
