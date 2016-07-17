@@ -168,7 +168,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
 
                 ( $res{node}, $res{phase}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{release} ) = split /\n/sm, $res->{result}->[0];
 
-                $res{tags} = [ split /\x00/sm, $res{tags} ] if $res{tags};
+                $res{tags} = $res{tags} ? [ split /\x00/sm, $res{tags} ] : undef;
 
                 if ( $res{release} ) {
                     ( $res{release}, $res{release_distance} ) = split /\x00/sm, $res{release};
