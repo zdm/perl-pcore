@@ -5,9 +5,8 @@ use Config;
 use JSON::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 # store values, for access them later during global destruction
-our $FN          = $ENV->dist->share_dir . 'pardeps.json';
+our $FN          = $ENV->dist->share_dir . "pardeps-$Config{archname}.json";
 our $SCRIPT_NAME = $ENV->{SCRIPT_NAME};
-our $ARCHNAME    = $Config{archname};
 our $DEPS        = {};
 
 if ( $ENV->dist ) {
@@ -44,15 +43,15 @@ sub DESTROY {
 
     # add new deps
     for my $pkg ( sort keys %INC ) {
-        say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg};
+        say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$pkg};
 
-        $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = 1;
+        $deps->{$SCRIPT_NAME}->{$pkg} = 1;
     }
 
     for my $pkg ( sort keys $DEPS->%* ) {
-        say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg};
+        say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$pkg};
 
-        $deps->{$SCRIPT_NAME}->{$ARCHNAME}->{$pkg} = 1;
+        $deps->{$SCRIPT_NAME}->{$pkg} = 1;
     }
 
     # store deps
@@ -72,13 +71,13 @@ sub DESTROY {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 19                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 18                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 26, 52               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 25, 51               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 38                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 37                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 40, 61               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 39, 60               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

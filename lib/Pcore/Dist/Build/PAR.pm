@@ -31,18 +31,18 @@ sub run ($self) {
     # load pardeps.json
     my $pardeps;
 
-    if ( -f $self->dist->root . 'share/pardeps.json' ) {
-        $pardeps = P->cfg->load( $self->dist->root . 'share/pardeps.json' );
+    if ( -f $self->dist->root . "share/pardeps-$Config{archname}.json" ) {
+        $pardeps = P->cfg->load( $self->dist->root . "share/pardeps-$Config{archname}.json" );
     }
     else {
-        say q["share/pardeps.json" is not exists.];
+        say qq["share/pardeps-$Config{archname}.json" is not exists.];
 
         say q[Run source scripts with --scan-deps option.];
 
         exit 1;
     }
 
-    # check for distribution has configure PAR profiles in dist.perl
+    # check for distribution has configure PAR profiles in par.perl
     if ( !$self->dist->par_cfg ) {
         say q[par script profile wasn't found.];
 
@@ -54,8 +54,8 @@ sub run ($self) {
 
     # build scripts
     for my $script ( sort keys $self->dist->par_cfg->%* ) {
-        if ( !exists $pardeps->{$script}->{ $Config{archname} } ) {
-            say BOLD . RED . qq[Deps for $script "$Config{archname}" wasn't scanned.] . RESET;
+        if ( !exists $pardeps->{$script} ) {
+            say BOLD . RED . qq[Deps for script "$script" wasn't scanned.] . RESET;
 
             say qq[Run "$script ---scan-deps".];
 
@@ -77,8 +77,8 @@ sub run ($self) {
             next;
         }
 
-        # add pardeps.cbor modules, skip eval records
-        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->{ $Config{archname} }->%* } = ();
+        # add pardeps.json modules, skip eval records
+        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->%* } = ();
 
         # add common modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{mod}->@* } = ();
