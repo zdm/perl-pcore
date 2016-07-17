@@ -183,7 +183,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
 
             return;
         },
-        [ qw[log -r . --template], q[{node|short}\n{phase}\n{join(tags,'\x00')}\n{currentbookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ]
+        [ qw[log -r . --template], q[{node|short}\n{phase}\n{join(tags,'\x00')}\n{activebookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ]
     );
 
     return;
