@@ -304,6 +304,9 @@ sub scan_deps ($self) {
     # eval TypeTiny Error
     eval { Int->('error') };
 
+    # eval common modules
+    require JSON::XS;    ## no critic qw[Modules::ProhibitEvilModules]
+
     return;
 }
 
@@ -318,7 +321,15 @@ sub DEMOLISH ( $self, $global ) {
         my ( $index, $deps );
 
         if ( -f $self->{SCAN_DEPS} ) {
-            $deps = P->cfg->load( $self->{SCAN_DEPS} );
+
+            # load deps
+            open my $deps_fh, '<:raw', $self->{SCAN_DEPS} or die;
+
+            local $/;
+
+            $deps = JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->decode(<$deps_fh>);
+
+            close $deps_fh or die;
 
             $index->@{ $deps->{ $self->{SCRIPT_NAME} }->@* } = ();
         }
@@ -333,7 +344,12 @@ sub DEMOLISH ( $self, $global ) {
 
         $deps->{ $self->{SCRIPT_NAME} } = [ sort keys $index->%* ];
 
-        P->cfg->store( $self->{SCAN_DEPS}, $deps, readable => 1 );
+        # store deps
+        open my $deps_fh, '>:raw', $self->{SCAN_DEPS} or die;
+
+        print {$deps_fh} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode($deps);
+
+        close $deps_fh or die;
     }
 
     return;
@@ -348,11 +364,15 @@ sub DEMOLISH ( $self, $global ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 22, 305              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 255, 326, 334        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 255, 337, 345        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 328                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 330, 350             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 326                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 337                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
