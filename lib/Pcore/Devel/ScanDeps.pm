@@ -22,7 +22,7 @@ if ( $ENV->dist ) {
 }
 
 sub add_deps ( $self, $deps ) {
-    $DEPS->@{ keys $deps->%* } = values $deps->%*;
+    $DEPS->@{ keys $deps->%* } = ();
 
     return;
 }
@@ -45,14 +45,16 @@ sub DESTROY {
     for my $pkg ( sort keys %INC ) {
         say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$pkg};
 
-        $deps->{$SCRIPT_NAME}->{$pkg} = 1;
+        $deps->{$SCRIPT_NAME}->{$pkg} = undef;
     }
 
     for my $pkg ( sort keys $DEPS->%* ) {
         say 'new deps found: ' . $pkg if !exists $deps->{$SCRIPT_NAME}->{$pkg};
 
-        $deps->{$SCRIPT_NAME}->{$pkg} = 1;
+        $deps->{$SCRIPT_NAME}->{$pkg} = undef;
     }
+
+    $deps->{$SCRIPT_NAME} = [ sort keys $deps->{$SCRIPT_NAME}->%* ];
 
     # store deps
     open my $deps_fh, '>:raw', $FN or die;
@@ -73,11 +75,11 @@ sub DESTROY {
 ## |======+======================+================================================================================================================|
 ## |    3 | 18                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 25, 51               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 25, 51, 57           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 37                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 60               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 39, 62               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

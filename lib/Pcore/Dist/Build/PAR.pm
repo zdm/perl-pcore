@@ -80,7 +80,7 @@ sub run ($self) {
         }
 
         # add pardeps.json modules, skip eval records
-        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } keys $pardeps->{$script}->%* } = ();
+        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } $pardeps->{$script}->@* } = ();
 
         # add common modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{mod}->@* } = ();
@@ -121,7 +121,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 58, 83, 104, 109     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 58, 104, 109         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
