@@ -297,7 +297,7 @@ sub _build_can_scan_deps ($self) {
 sub scan_deps ($self) {
     return if !$self->can_scan_deps;
 
-    $self->{SCAN_DEPS} = 1;
+    $self->{SCAN_DEPS} = $self->dist->share_dir . "pardeps-@{[$^V->normal]}-$Config{archname}.json";
 
     Pcore::Core::Exception::cluck('Scanning the PAR dependencies ...');
 
@@ -315,12 +315,10 @@ sub add_deps ( $self, $deps ) {
 
 sub DEMOLISH ( $self, $global ) {
     if ( $self->{SCAN_DEPS} ) {
-        my $pardeps_path = $self->dist->share_dir . "pardeps-@{[$^V->normal]}-$Config{archname}.json";
-
         my ( $index, $deps );
 
-        if ( -f $pardeps_path ) {
-            $deps = P->cfg->load($pardeps_path);
+        if ( -f $self->{SCAN_DEPS} ) {
+            $deps = P->cfg->load( $self->{SCAN_DEPS} );
 
             $index->@{ $deps->{ $self->{SCRIPT_NAME} }->@* } = ();
         }
@@ -329,13 +327,13 @@ sub DEMOLISH ( $self, $global ) {
             if ( !exists $index->{$pkg} ) {
                 $index->{$pkg} = undef;
 
-                say 'new deps found: ' . $pkg;
+                say qq[new deps found: $pkg];
             }
         }
 
         $deps->{ $self->{SCRIPT_NAME} } = [ sort keys $index->%* ];
 
-        P->cfg->store( $self->{SCAN_DEPS_PATH}, $deps );
+        P->cfg->store( $self->{SCAN_DEPS}, $deps, readable => 1 );
     }
 
     return;
@@ -350,11 +348,11 @@ sub DEMOLISH ( $self, $global ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 22, 305              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 255, 328, 336        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 255, 326, 334        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 328                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 326                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
