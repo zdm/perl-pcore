@@ -152,9 +152,9 @@ sub _get_new_deps {
 
     if ( $BOOT_ARGS->[2] ) {
         for my $pkg ( grep { !exists $DEPS->{$_} } keys %INC ) {
-            $new_deps->{$pkg} = $INC{$pkg};
+            $DEPS->{$pkg} = undef;
 
-            $DEPS->{$pkg} = $INC{$pkg};
+            push $new_deps->@*, $pkg;
         }
     }
 

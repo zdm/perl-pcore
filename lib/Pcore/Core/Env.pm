@@ -16,6 +16,8 @@ has cli       => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg
 has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                              # $HOME/.pcore/pcore.perl config
 
+has can_scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
+
 # may not work, if executed from one-liner script
 eval { require FindBin };
 
@@ -152,6 +154,13 @@ sub _INIT ($self) {
     $self->{PCORE_SYS_DIR}  = P->path( $self->{SYS_TEMP_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
     $self->{INLINE_DIR}     = $self->is_par ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config{version}/$Config{archname}/", is_dir => 1, lazy => 1 );
 
+    # CLI options
+    $self->{SCAN_DEPS} = 0;
+    $self->{DEPS}      = undef;
+    $self->{DAEMONIZE} = 0;
+    $self->{UID}       = undef;
+    $self->{GID}       = undef;
+
     # load dist.perl
     if ( my $dist = $self->dist ) {
         if ( $self->is_par ) {
@@ -280,6 +289,58 @@ sub dist ( $self, $dist_name = undef ) {
     }
 }
 
+# SCAN DEPS
+sub _build_can_scan_deps ($self) {
+    return !$self->is_par && $self->dist && $self->dist->par_cfg && exists $self->dist->par_cfg->{ $self->{SCRIPT_NAME} };
+}
+
+sub scan_deps ($self) {
+    return if !$self->can_scan_deps;
+
+    $self->{SCAN_DEPS} = 1;
+
+    Pcore::Core::Exception::cluck('Scanning the PAR dependencies ...');
+
+    # eval TypeTiny Error
+    eval { Int->('error') };
+
+    return;
+}
+
+sub add_deps ( $self, $deps ) {
+    $self->{DEPS}->@{ $deps->@* } = () if $self->{SCAN_DEPS};
+
+    return;
+}
+
+sub DEMOLISH ( $self, $global ) {
+    if ( $self->{SCAN_DEPS} ) {
+        my $pardeps_path = $self->dist->share_dir . "pardeps-@{[$^V->normal]}-$Config{archname}.json";
+
+        my ( $index, $deps );
+
+        if ( -f $pardeps_path ) {
+            $deps = P->cfg->load($pardeps_path);
+
+            $index->@{ $deps->{ $self->{SCRIPT_NAME} }->@* } = ();
+        }
+
+        for my $pkg ( sort ( keys %INC, keys $self->{DEPS}->%* ) ) {
+            if ( !exists $index->{$pkg} ) {
+                $index->{$pkg} = undef;
+
+                say 'new deps found: ' . $pkg;
+            }
+        }
+
+        $deps->{ $self->{SCRIPT_NAME} } = [ sort keys $index->%* ];
+
+        P->cfg->store( $self->{SCAN_DEPS_PATH}, $deps );
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -287,11 +348,13 @@ sub dist ( $self, $dist_name = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 22, 305              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 246                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 255, 328, 336        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 115                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 328                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

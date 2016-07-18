@@ -13,7 +13,6 @@ has _workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_a
 has _workers_idx => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 has _call_id => ( is => 'ro', default => 0, init_arg => undef );
 has _queue => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has _scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 has _term => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 const our $RPC_MSG_TERM => 1;
@@ -64,7 +63,6 @@ sub _create_worker ( $self, $cv ) {
     Pcore::Util::PM::RPC::Proc->new(
         class     => $self->class,
         buildargs => $self->buildargs,
-        scan_deps => $self->_scan_deps,
         on_ready  => sub ($worker) {
             push $self->{_workers}->@*, $worker;
 
@@ -144,12 +142,8 @@ sub _on_read ( $self, $h ) {
     return;
 }
 
-sub _build__scan_deps ($self) {
-    return exists $INC{'Pcore/Devel/ScanDeps.pm'} ? 1 : 0;
-}
-
 sub _on_data ( $self, $data ) {
-    Pcore::Devel::ScanDeps->add_deps( $data->[0]->{deps} ) if $data->[0]->{deps} && $self->_scan_deps;
+    $ENV->add_deps( $data->[0]->{deps} ) if $ENV->{SCAN_DEPS} && $data->[0]->{deps};
 
     if ( $data->[0]->{method} ) {
         $self->_on_call( $data->[0]->{pid}, $data->[0]->{call_id}, $data->[0]->{method}, $data->[1] );
@@ -270,9 +264,9 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 166                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 160                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 115                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 113                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -19,7 +19,6 @@ around new => sub ( $orig, $self, @ ) {
     my %args = (
         class     => undef,
         buildargs => undef,                                                               # class constructor arguments
-        scan_deps => 0,
         on_ready  => undef,
         on_finish => undef,
         splice @_, 2,
@@ -41,7 +40,7 @@ around new => sub ( $orig, $self, @ ) {
         }
     };
 
-    my $boot_args = [ $ENV->{SCRIPT_PATH}, $main::VERSION->normal, $args{scan_deps} ];
+    my $boot_args = [ $ENV->{SCRIPT_PATH}, $main::VERSION->normal, $ENV->{SCAN_DEPS} ];
 
     if ($MSWIN) {
         push $boot_args->@*, Win32API::File::FdGetOsFHandle( fileno $in_r ), Win32API::File::FdGetOsFHandle( fileno $out_w );
@@ -168,7 +167,7 @@ sub _handshake ( $self, $init, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 132, 142             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 131, 141             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

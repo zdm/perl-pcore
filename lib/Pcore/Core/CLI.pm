@@ -17,8 +17,6 @@ has arg  => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
 has is_cmd     => ( is => 'lazy', isa => Bool,    init_arg => undef );
 has _cmd_index => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-my $SCAN_DEPS = !$ENV->is_par && $ENV->dist && $ENV->dist->par_cfg && exists $ENV->dist->par_cfg->{ $ENV->{SCRIPT_NAME} };
-
 sub _build_spec ($self) {
     return $self->_get_class_spec;
 }
@@ -200,7 +198,7 @@ sub _parse_cmd ( $self, $argv ) {
         $res->{opt},
         'help|h|?',
         'version',
-        ( $SCAN_DEPS ? 'scan-deps' : () ),
+        ( $ENV->can_scan_deps ? 'scan-deps' : () ),
         '<>' => sub ($arg) {
             if ( !$res->{cmd} && substr( $arg, 0, 1 ) ne q[-] ) {
                 $res->{cmd} = $arg;
@@ -216,7 +214,7 @@ sub _parse_cmd ( $self, $argv ) {
     push $res->{rest}->@*, $argv->@* if defined $argv && $argv->@*;
 
     # process --scan-deps option
-    require Pcore::Devel::ScanDeps if $SCAN_DEPS && $res->{opt}->{'scan-deps'};
+    $ENV->scan_deps if $ENV->can_scan_deps && $res->{opt}->{'scan-deps'};
 
     if ( $res->{opt}->{version} ) {
         return $self->help_version;
@@ -303,7 +301,7 @@ sub _parse_opt ( $self, $argv ) {
             $cli_spec->@*,
             'version',
             'help|h|?',
-            ( $SCAN_DEPS ? 'scan-deps' : () ),
+            ( $ENV->can_scan_deps ? 'scan-deps' : () ),
             '<>' => sub ($arg) {
                 push $parsed_args->@*, $arg;
 
@@ -315,7 +313,7 @@ sub _parse_opt ( $self, $argv ) {
     }
 
     # process --scan-deps option
-    require Pcore::Devel::ScanDeps if $SCAN_DEPS && $res->{opt}->{'scan-deps'};
+    $ENV->scan_deps if $ENV->can_scan_deps && $res->{opt}->{'scan-deps'};
 
     if ( $res->{opt}->{version} ) {
         return $self->help_version;
@@ -494,7 +492,7 @@ sub _help_usage ($self) {
 sub _help_footer ($self) {
     my @opt = qw[--help -h -? --version];
 
-    push @opt, '--scan-deps' if $SCAN_DEPS;
+    push @opt, '--scan-deps' if $ENV->can_scan_deps;
 
     return '(global options: ' . join( q[, ], @opt ) . q[)];
 }
@@ -577,17 +575,17 @@ sub help_error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 46                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 44                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 87, 90, 155, 235,    | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 270, 331, 354, 415,  |                                                                                                                |
-## |      | 471, 476, 480, 489   |                                                                                                                |
+## |    3 | 85, 88, 153, 233,    | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 268, 329, 352, 413,  |                                                                                                                |
+## |      | 469, 474, 478, 487   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 344                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 342                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 509, 537             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              |
+## |    3 | 507, 535             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "abstract"                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 113                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 111                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
