@@ -635,8 +635,8 @@ sub read_http_res_headers {
                 ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, my $parsed_headers ) = HTTP::Parser::XS::parse_http_response( $headers, !$args{headers} ? HEADERS_NONE : HEADERS_AS_ARRAYREF );
 
                 # fallback to pure-perl parser in case of errors
-                # TODO can be removed after this issue will be fixed
-                # https://github.com/kazuho/p5-http-parser-xs/issues/10
+                # TODO can be removed after this issue will be fixed - https://github.com/kazuho/p5-http-parser-xs/issues/10
+                # NOTE http://www.bizcoder.com/everything-you-need-to-know-about-http-header-syntax-but-were-afraid-to-ask
                 if ( $len == -1 ) {
                     $len = length $headers;
 
@@ -651,7 +651,19 @@ sub read_http_res_headers {
                             $res->{reason} = $3;
 
                             while ( my $header = shift @lines ) {
-                                if ( $header =~ /(.+?):\s+(.+)/sm ) {
+                                if ( substr( $header, 0, 1 ) eq q[ ] ) {
+                                    if ($parsed_headers) {
+                                        $parsed_headers->[-1] .= $header;
+                                    }
+                                    else {
+                                        $len = -2;
+
+                                        last;
+                                    }
+                                }
+                                elsif ( $header =~ /(.+?)\s*:\s*(.+)/sm ) {
+
+                                    # TODO remove trailing spaces from the value
                                     push $parsed_headers->@*, $1, $2;
                                 }
                             }
@@ -967,25 +979,26 @@ sub get_connect ($connect) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 72                   | * Subroutine "new" with high complexity score (44)                                                             |
-## |      | 732                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 618                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 744                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 156, 418             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 276, 654             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 276, 654, 655        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 57, 463, 500, 503,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |      | 515, 553, 556, 559   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 679                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 691                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 996                  | * Link L<AnyEvent::Handle> on line 1002 does not specify text                                                  |
-## |      | 996                  | * Link L<AnyEvent::Handle> on line 1010 does not specify text                                                  |
-## |      | 996                  | * Link L<AnyEvent::Handle> on line 1038 does not specify text                                                  |
-## |      | 996                  | * Link L<AnyEvent::Handle> on line 1054 does not specify text                                                  |
-## |      | 996                  | * Link L<AnyEvent::Socket> on line 1054 does not specify text                                                  |
-## |      | 996, 996             | * Link L<Pcore::Proxy> on line 1020 does not specify text                                                      |
-## |      | 996                  | * Link L<Pcore::Proxy> on line 1054 does not specify text                                                      |
+## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1015 does not specify text                                                  |
+## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1023 does not specify text                                                  |
+## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1051 does not specify text                                                  |
+## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1067 does not specify text                                                  |
+## |      | 1009                 | * Link L<AnyEvent::Socket> on line 1067 does not specify text                                                  |
+## |      | 1009, 1009           | * Link L<Pcore::Proxy> on line 1033 does not specify text                                                      |
+## |      | 1009                 | * Link L<Pcore::Proxy> on line 1067 does not specify text                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 53, 58, 468, 553,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |      | 556, 559, 565        |                                                                                                                |
