@@ -5,7 +5,7 @@ use Config;
 use JSON::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 # store values, for access them later during global destruction
-our $FN          = $ENV->dist->share_dir . "pardeps-$Config{archname}.json";
+our $FN          = $ENV->dist->share_dir . "pardeps-@{[$^V->normal]}-$Config{archname}.json";
 our $SCRIPT_NAME = $ENV->{SCRIPT_NAME};
 our $DEPS        = {};
 

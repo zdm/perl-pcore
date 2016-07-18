@@ -31,11 +31,13 @@ sub run ($self) {
     # load pardeps.json
     my $pardeps;
 
-    if ( -f $self->dist->root . "share/pardeps-$Config{archname}.json" ) {
-        $pardeps = P->cfg->load( $self->dist->root . "share/pardeps-$Config{archname}.json" );
+    my $pardeps_path = $self->dist->root . "share/pardeps-@{[$^V->normal]}-$Config{archname}.json";
+
+    if ( -f $pardeps_path ) {
+        $pardeps = P->cfg->load($pardeps_path);
     }
     else {
-        say qq["share/pardeps-$Config{archname}.json" is not exists.];
+        say qq["$pardeps_path" is not exists.];
 
         say q[Run source scripts with --scan-deps option.];
 
@@ -119,7 +121,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 56, 81, 102, 107     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 58, 83, 104, 109     | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
