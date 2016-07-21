@@ -297,7 +297,7 @@ sub _build_can_scan_deps ($self) {
 sub scan_deps ($self) {
     return if !$self->can_scan_deps;
 
-    $self->{SCAN_DEPS} = $self->dist->share_dir . "pardeps-@{[$^V->normal]}-$Config{archname}.json";
+    $self->{SCAN_DEPS} = $self->dist->share_dir . "pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json";
 
     Pcore::Core::Exception::cluck('Scanning the PAR dependencies ...');
 
@@ -331,7 +331,7 @@ sub DEMOLISH ( $self, $global ) {
 
             close $deps_fh or die;
 
-            $index->@{ $deps->{ $self->{SCRIPT_NAME} }->@* } = ();
+            $index->@{ $deps->@* } = ();
         }
 
         for my $pkg ( sort ( keys %INC, keys $self->{DEPS}->%* ) ) {
@@ -342,12 +342,10 @@ sub DEMOLISH ( $self, $global ) {
             }
         }
 
-        $deps->{ $self->{SCRIPT_NAME} } = [ sort keys $index->%* ];
-
         # store deps
         open my $deps_fh, '>:raw', $self->{SCAN_DEPS} or die;
 
-        print {$deps_fh} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode($deps);
+        print {$deps_fh} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode( [ sort keys $index->%* ] );
 
         close $deps_fh or die;
     }
@@ -364,11 +362,11 @@ sub DEMOLISH ( $self, $global ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 22, 305              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 255, 337, 345        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 255, 337, 348        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 328                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 330, 350             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 330, 348             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

@@ -17,7 +17,12 @@ sub _build_release ($self) {
 }
 
 sub run ($self) {
-    if ( !$self->dist->scm ) {
+    if ( !$self->dist->par_cfg ) {
+        say q[par profile wasn't found.];
+
+        exit 1;
+    }
+    elsif ( !$self->dist->scm ) {
         say q[SCM is required];
 
         exit 1;
@@ -28,40 +33,28 @@ sub run ($self) {
         exit 1;
     }
 
-    # load pardeps.json
-    my $pardeps;
-
-    my $pardeps_path = $self->dist->root . "share/pardeps-@{[$^V->normal]}-$Config{archname}.json";
-
-    if ( -f $pardeps_path ) {
-        $pardeps = P->cfg->load($pardeps_path);
-    }
-    else {
-        say qq["$pardeps_path" is not exists.];
-
-        say q[Run source scripts with --scan-deps option.];
-
-        exit 1;
-    }
-
-    # check for distribution has configure PAR profiles in par.perl
-    if ( !$self->dist->par_cfg ) {
-        say q[par script profile wasn't found.];
-
-        exit 1;
-    }
-
     # load global pcore.perl config
     my $pcore_cfg = P->cfg->load( $ENV->share->get( '/data/pcore.perl', lib => 'Pcore' ) );
 
     # build scripts
     for my $script ( sort keys $self->dist->par_cfg->%* ) {
-        if ( !exists $pardeps->{$script} ) {
+
+        # load pardeps.json
+        my $pardeps;
+
+        my $pardeps_path = $self->dist->root . "share/pardeps-$script-@{[$^V->normal]}-$Config{archname}.json";
+
+        if ( -f $pardeps_path ) {
+            $pardeps = P->cfg->load($pardeps_path);
+        }
+        else {
+            say qq["$pardeps_path" is not exists.];
+
             say BOLD . RED . qq[Deps for script "$script" wasn't scanned.] . RESET;
 
-            say qq[Run "$script ---scan-deps".];
+            say q[Run source scripts with --scan-deps option.];
 
-            next;
+            exit 1;
         }
 
         my $profile = $self->dist->par_cfg->{$script};
@@ -73,6 +66,7 @@ sub run ($self) {
         $profile->{upx}     = $self->upx if defined $self->upx;
         $profile->{clean}   = $self->clean if defined $self->clean;
 
+        # check, that script from par profile exists in filesystem
         if ( !-f $profile->{script} ) {
             say BOLD . RED . qq[Script "$script" wasn't found.] . RESET;
 
@@ -80,7 +74,7 @@ sub run ($self) {
         }
 
         # add pardeps.json modules, skip eval records
-        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } $pardeps->{$script}->@* } = ();
+        $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } $pardeps->@* } = ();
 
         # add common modules
         $profile->{mod}->@{ $pcore_cfg->{par}->{mod}->@* } = ();
@@ -121,7 +115,7 @@ sub run ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 58, 104, 109         | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 40, 98, 103          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
