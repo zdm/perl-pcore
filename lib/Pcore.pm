@@ -38,6 +38,7 @@ our $UTIL = {
     date     => 'Pcore::Util::Date',
     digest   => 'Pcore::Util::Digest',
     file     => 'Pcore::Util::File',
+    handle   => 'Pcore::Handle',
     hash     => 'Pcore::Util::Hash',
     host     => 'Pcore::Util::URI::Host',
     http     => 'Pcore::HTTP',
@@ -530,21 +531,21 @@ sub i18n {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 101                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 102                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 218                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 219                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 296                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 414                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 297                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 415                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 328, 357, 360, 364,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 396, 399, 404, 407,  |                                                                                                                |
-## |      | 432, 451             |                                                                                                                |
+## |    3 | 329, 358, 361, 365,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 397, 400, 405, 408,  |                                                                                                                |
+## |      | 433, 452             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 228                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 229                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 332                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 333                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
