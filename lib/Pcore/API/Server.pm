@@ -2,11 +2,13 @@ package Pcore::API::Server;
 
 use Pcore -class;
 use Pcore::API::Response;
+use Pcore::API::Server::Hash;
 
 has namespace       => ( is => 'ro', isa => Str,         required => 1 );
 has default_version => ( is => 'ro', isa => PositiveInt, required => 1 );
 
 has map => ( is => 'ro', isa => HashRef, init_arg => undef );
+has '_hash_rpc' => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::RPC'], init_arg => undef );
 
 # TODO scan API classes
 sub BUILD ( $self, $args ) {
@@ -81,6 +83,19 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
+sub _build__hash_rpc($self) {
+    return P->pm->run_rpc(
+        'Pcore::API::Server::Hash',
+        workers   => 1,
+        buildargs => {
+            scrypt_N   => 16_384,
+            scrypt_r   => 8,
+            scrypt_p   => 1,
+            scrypt_len => 32,
+        },
+    );
+}
+
 # TODO
 sub api_call ( $self, $version, $class, $method, $data, $auth, $cb ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
@@ -130,11 +145,11 @@ sub api_call ( $self, $version, $class, $method, $data, $auth, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 45                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 85                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 100                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 32                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 34                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

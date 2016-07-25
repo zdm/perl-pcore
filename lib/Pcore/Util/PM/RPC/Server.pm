@@ -5,6 +5,7 @@ use warnings;
 
 our $BOOT_ARGS;
 
+# TODO do not use $0 and FindBin
 BEGIN {
 
     # preload Filter::Crypto::Decrypt to avoid "Can't run with Perl compiler backend" fatal error under crypted PAR
@@ -12,7 +13,7 @@ BEGIN {
     require CBOR::XS;
 
     # shift class name
-    my $class_name = shift @ARGV;
+    my $name = shift @ARGV;
 
     # read and unpack boot args from STDIN
     $BOOT_ARGS = <>;
@@ -21,12 +22,12 @@ BEGIN {
 
     $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $BOOT_ARGS );
 
-    $0 = "$BOOT_ARGS->[0] $class_name";    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $0 = "$BOOT_ARGS->[0] $name";    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     $main::VERSION = version->new( $BOOT_ARGS->[1] );
 }
 
-package                                    # hide from CPAN
+package                              # hide from CPAN
   main;
 
 use Pcore;
@@ -261,7 +262,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 100, 110             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 101, 111             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

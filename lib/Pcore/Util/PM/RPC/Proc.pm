@@ -18,6 +18,7 @@ has on_finish => ( is => 'rw', isa => Maybe [CodeRef] );
 around new => sub ( $orig, $self, @ ) {
     my %args = (
         class     => undef,
+        name      => undef,                                                               # readable name for process manager
         buildargs => undef,                                                               # class constructor arguments
         on_ready  => undef,
         on_finish => undef,
@@ -57,11 +58,13 @@ around new => sub ( $orig, $self, @ ) {
 
     my $cmd = [];
 
+    $args{name} //= $args{class};
+
     if ($MSWIN) {
-        push $cmd->@*, $perl, qq[-MPcore::Util::PM::RPC::Server -e "" $args{class}];
+        push $cmd->@*, $perl, qq[-MPcore::Util::PM::RPC::Server -e "" $args{name}];
     }
     else {
-        push $cmd->@*, $perl, '-MPcore::Util::PM::RPC::Server', '-e', q[], $args{class};
+        push $cmd->@*, $perl, '-MPcore::Util::PM::RPC::Server', '-e', q[], $args{name};
     }
 
     # needed for PAR, pass current @INC libs to child process via $ENV{PERL5LIB}
@@ -167,7 +170,7 @@ sub _handshake ( $self, $init, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 131, 141             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 134, 144             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -6,6 +6,7 @@ use Config;
 use Pcore::Util::Scalar qw[weaken];
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
+has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
 has buildargs => ( is => 'ro', isa => Maybe [HashRef] );   # RPC object constructor arguments
 has on_call   => ( is => 'ro', isa => Maybe [CodeRef] );   # CodeRef($cb, $method, $data), $cb can be undef, if is not required on remote side
 
@@ -22,6 +23,7 @@ around new => sub ( $orig, $self, $class, @args ) {
         buildargs => undef,                                # Maybe[HashRef], RPC object constructor arguments
         on_call   => undef,                                # CodeRef($cb, $method, $data)
         workers   => undef,                                # FALSE - max. CPUs, -n - CPUs - n || 1
+        name      => $class,
         splice( @_, 3 ),
         class => $class,
     );
@@ -62,6 +64,7 @@ sub _create_worker ( $self, $cv ) {
 
     Pcore::Util::PM::RPC::Proc->new(
         class     => $self->class,
+        name      => $self->name,
         buildargs => $self->buildargs,
         on_ready  => sub ($worker) {
             push $self->{_workers}->@*, $worker;
@@ -264,9 +267,9 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 160                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 163                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 113                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 116                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
