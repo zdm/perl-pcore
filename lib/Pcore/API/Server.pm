@@ -76,7 +76,7 @@ sub _build_map ($self) {
 
         my $obj_map = $obj->map;
 
-        $obj_map->{$version}->{$path} = {
+        $map->{$version}->{$path} = {
             class  => $class,
             method => $obj_map,
         };

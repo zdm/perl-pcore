@@ -1,8 +1,12 @@
-package Pcore::API::Role::Auth;
+package Pcore::API::Server::Role::Auth;
 
 use Pcore -role;
 
-with qw[Pcore::API::Role];
+with qw[Pcore::API::Server::Role];
+
+sub _build_map ($self) {
+    return {};
+}
 
 sub create_user ( $self, $username, $password, $cb ) {
     state $q1 = $self->dbh->query('INSERT OR IGNORE INTO api_user (username, password, enabled) VALUES (?, 1, 0)');
@@ -78,7 +82,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Role::Auth
+Pcore::API::Server::Role::Auth
 
 =head1 SYNOPSIS
 
