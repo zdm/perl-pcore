@@ -17,10 +17,10 @@ sub is_root ($self) {
     return $self->{uid} == 1;
 }
 
-sub api_call ( $self, $version, $class, $method, $data, $auth, $cb ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+sub api_call ( $self, $version, $class, $method, @ ) {
+    my $cb = $_[-1];
 
-    $version //= $self->default_version;
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my $on_finish = sub ( $status, $reason = undef, $result = undef ) {
         my $api_res = Pcore::API::Response->new( { status => $status, defined $reason ? ( reason => $reason ) : () } );
@@ -34,24 +34,23 @@ sub api_call ( $self, $version, $class, $method, $data, $auth, $cb ) {
         return;
     };
 
-    my $map = $self->{map}->{$version}->{$class};
+    my $method_id = join q[/], $version, $class, $method;
+
+    my $map = $self->api->map->{$method_id};
 
     if ( !$map ) {
-        $on_finish->( 404, q[API class was not found] );
-    }
-    elsif ( !exists $map->{method}->{$method} ) {
         $on_finish->( 404, q[API method was not found] );
     }
     else {
 
         # TODO check auth
-        if (0) {
+        if ( $self->{uid} != 1 && !exists $self->allowed_methods->{$version}->{$class}->{$method} ) {
             $on_finish->( 401, q[Unauthorized] );
         }
         else {
             my $obj = bless { api => $self }, $map->{class};
 
-            $obj->$method( $data, $on_finish );
+            $obj->$method( splice( @_, 4, -1 ), $on_finish );
         }
     }
 
@@ -59,16 +58,6 @@ sub api_call ( $self, $version, $class, $method, $data, $auth, $cb ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 20                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

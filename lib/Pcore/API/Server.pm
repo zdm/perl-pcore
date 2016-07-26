@@ -4,12 +4,11 @@ use Pcore -role;
 use Pcore::API::Response;
 use Pcore::API::Server::Session;
 
-has default_version => ( is => 'ro', isa => PositiveInt, required => 1 );
 has auth => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server::Auth'], required => 1 );
 
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-# TODO check default version
+# TODO validate api map
 sub _build_map ($self) {
     my $map = {};
 
@@ -75,7 +74,7 @@ sub _build_map ($self) {
         };
     }
 
-    # TODO check default version
+    # TODO validate api map
 
     return $map;
 }
@@ -129,9 +128,9 @@ sub set_root_password ( $self, $password, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 44                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 43                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 35                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 34                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
