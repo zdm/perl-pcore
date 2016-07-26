@@ -24,7 +24,7 @@ sub _build_dbh ($self) {
                 `username` TEXT NOT NULL UNIQUE,
                 `password` BLOB NOT NULL,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
-                `api_role` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT
+                `api_role` INTEGER NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT
             );
 
             CREATE TABLE IF NOT EXISTS `api_token` (
@@ -139,12 +139,34 @@ sub auth_token ( $self, $token_b64, $cb ) {
 }
 
 # TODO - create user with uid = 1 if not exitst, return new password
-sub set_root_password ( $self, $password = undef ) {
+sub set_root_password ( $self, $password, $cb ) {
+    $password //= P->random->bytes_hex(32);
+
+    state $q1 = $self->dbh->query('SELECT id FROM api_user WHERE id = 1');
+
+    state $q2 = $self->dbh->query(q[INSERT INTO api_user (id, username, password, enabled) VALUES (1, 'root', ?, 1)]);
+
+    state $q3 = $self->dbh->query('UPDATE api_user SET password = ? WHERE id = 1');
+
+    $q2->do( [$password] ) if !$q1->selectall_arrayref;
+
+    $self->_hash_rpc->rpc_call(
+        'create_scrypt',
+        [$password],
+        sub ($password_hash) {
+            $q3->do( [$password_hash] );
+
+            $cb->($password);
+
+            return;
+        }
+    );
+
     return;
 }
 
 # TODO update api methods in database, or upload api map to cluster
-sub update_api_map ($self) {
+sub upload_api_map ( $self, $map, $cb ) {
     return;
 }
 

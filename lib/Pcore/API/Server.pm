@@ -84,8 +84,6 @@ sub _build_map ($self) {
 
     # TODO check default version
 
-    say dump $map;
-
     return $map;
 }
 
