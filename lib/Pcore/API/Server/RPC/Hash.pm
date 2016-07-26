@@ -1,4 +1,4 @@
-package Pcore::API::Server::Hash;
+package Pcore::API::Server::RPC::Hash;
 
 use Pcore -class;
 use Crypt::ScryptKDF qw[];
@@ -38,7 +38,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Hash - RPC hash generator
+Pcore::API::Server::RPC::Hash - RPC hash generator
 
 =head1 SYNOPSIS
 

@@ -1,4 +1,4 @@
-package Pcore::API::Server::Class;
+package Pcore::API::Server::Role;
 
 use Pcore -role;
 
@@ -30,7 +30,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Class
+Pcore::API::Server::Role
 
 =head1 SYNOPSIS
 
