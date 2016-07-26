@@ -1,26 +1,19 @@
 package Pcore::API::Server;
 
-use Pcore -class;
+use Pcore -role;
 use Pcore::API::Response;
-use Pcore::API::Server::Authenticated;
+use Pcore::API::Server::Session;
 
-has namespace       => ( is => 'ro', isa => Str,         required => 1 );
 has default_version => ( is => 'ro', isa => PositiveInt, required => 1 );
 has auth => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server::Auth'], required => 1 );
 
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-sub BUILD ( $self, $args ) {
-    $self->map;
-
-    return;
-}
-
-# TODO scan API classes
+# TODO check default version
 sub _build_map ($self) {
     my $map = {};
 
-    my $ns_path = $self->namespace =~ s[::][/]smgr;
+    my $ns_path = ref($self) =~ s[::][/]smgr;
 
     my $controllers = {};
 
@@ -94,7 +87,7 @@ sub auth_password ( $self, $username, $password, $cb ) {
         $password,
         sub ($uid) {
             if ($uid) {
-                $cb->( Pcore::API::Server::Authenticated->new( { uid => $uid, role_id => 1 } ) );
+                $cb->( Pcore::API::Server::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
             }
             else {
                 $cb->(undef);
@@ -110,7 +103,7 @@ sub auth_token ( $self, $token_b64, $cb ) {
         $token_b64,
         sub ($uid) {
             if ($uid) {
-                $cb->( Pcore::API::Server::Authenticated->new( { uid => $uid, role_id => 1 } ) );
+                $cb->( Pcore::API::Server::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
             }
             else {
                 $cb->(undef);
@@ -136,9 +129,9 @@ sub set_root_password ( $self, $password, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 51                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 44                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 42                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 35                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

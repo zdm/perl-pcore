@@ -5,7 +5,10 @@ use Pcore -role;
 with qw[Pcore::API::Server::Role];
 
 sub _build_map ($self) {
-    return {};
+    return {
+        create_user  => { desc => 'Create user', },
+        create_token => { desc => 'Create user token', },
+    };
 }
 
 sub create_user ( $self, $username, $password, $cb ) {

@@ -1,7 +1,8 @@
-package Pcore::API::Server::Authenticated;
+package Pcore::API::Server::Session;
 
 use Pcore -class;
 
+has api => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server'], required => 1 );
 has uid     => ( is => 'ro', isa => PositiveInt, required => 1 );
 has role_id => ( is => 'ro', isa => PositiveInt, required => 1 );
 
@@ -64,7 +65,7 @@ sub api_call ( $self, $version, $class, $method, $data, $auth, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 19                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 20                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -75,7 +76,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Authenticated
+Pcore::API::Server::Session
 
 =head1 SYNOPSIS
 
