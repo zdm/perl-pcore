@@ -2,11 +2,9 @@ package Pcore::API::Cluster;
 
 use Pcore -class;
 
-with qw[Pcore::API::Server::Auth];
+extends qw[Pcore::API::Client];
 
-has cluster_host => ( is => 'ro', isa => Str, required => 1 );
-has cluster_port => ( is => 'ro', isa => Str, default  => 80 );
-has api_token    => ( is => 'ro', isa => Str, required => 1 );
+with qw[Pcore::API::Server::Auth];
 
 sub set_root_password ( $self, $password = undef, $cb ) {
 
