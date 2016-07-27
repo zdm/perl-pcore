@@ -8,7 +8,6 @@ has auth => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server::Auth'], requir
 
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-# TODO validate api map
 sub _build_map ($self) {
     my $map = {};
 
@@ -31,7 +30,7 @@ sub _build_map ($self) {
 
                         my $class = "$ns_path/$route" =~ s[/][::]smgr;
 
-                        $controllers->{$class} = '/' . P->text->to_snake_case( $route, delim => '-', split => '/', join => '/' ) . '/';
+                        $controllers->{$class} = P->text->to_snake_case( $route, delim => '-', split => '/', join => '/' );
                     }
 
                     return;
@@ -55,7 +54,7 @@ sub _build_map ($self) {
 
         my $version;
 
-        if ( $path =~ s[\A/v(\d+)][]sm ) {
+        if ( $path =~ s[\Av(\d+)/][]sm ) {
             $version = $1;
         }
         else {
@@ -68,13 +67,22 @@ sub _build_map ($self) {
 
         my $obj_map = $obj->map;
 
-        $map->{$version}->{$path} = {
-            class  => $class,
-            method => $obj_map,
-        };
-    }
+        for my $method ( keys $obj_map->%* ) {
+            my $method_id = qq[/v$version/$path/$method];
 
-    # TODO validate api map
+            $map->{$method_id} = {
+                $obj_map->{$method}->%*,
+                id      => $method_id,
+                path    => $path,
+                version => $version,
+                class   => $class,
+                method  => $method,
+            };
+
+            # validate api method configuration
+            die qq[API method "$method_id" requires description] if !$map->{$method_id}->{desc};
+        }
+    }
 
     return $map;
 }
@@ -128,9 +136,9 @@ sub set_root_password ( $self, $password, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 42, 70, 74           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 34                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 33                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
