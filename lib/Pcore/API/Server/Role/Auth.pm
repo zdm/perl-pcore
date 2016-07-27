@@ -11,7 +11,7 @@ sub _build_map ($self) {
     };
 }
 
-sub create_user ( $self, $username, $password, $cb ) {
+sub create_user ( $self, $cb, $username, $password ) {
     state $q1 = $self->dbh->query('INSERT OR IGNORE INTO api_user (username, password, enabled) VALUES (?, 1, 0)');
 
     state $q2 = $self->dbh->query('UPDATE api_user SET password = ?, enabled = 1 WHERE id = ?');
@@ -41,7 +41,7 @@ sub create_user ( $self, $username, $password, $cb ) {
 }
 
 # TODO store uid inside token
-sub create_token ( $self, $uid, $role_id, $cb ) {
+sub create_token ( $self, $cb, $uid, $role_id ) {
     state $q1 = $self->dbh->query('INSERT OR IGNORE INTO api_token (id, token, uid, enabled) VALUES (?, ?, ?, 1)');
 
     state $generate_token;

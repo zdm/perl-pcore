@@ -27,9 +27,16 @@ sub api_call ( $self, $method_path, @ ) {
     $on_finish = sub ( $status, $reason = undef, $result = undef ) {
         undef $on_finish;
 
-        my $api_res = Pcore::API::Response->new( { status => $status, defined $reason ? ( reason => $reason ) : () } );
+        my $api_res;
 
-        $api_res->{result} = $result;
+        if ( ref $status ) {
+            $api_res = $status;
+        }
+        else {
+            $api_res = Pcore::API::Response->new( { status => $status, defined $reason ? ( reason => $reason ) : () } );
+
+            $api_res->{result} = $result;
+        }
 
         $cb->($api_res) if $cb;
 
@@ -48,7 +55,7 @@ sub api_call ( $self, $method_path, @ ) {
             $on_finish->( 401, qq[Unauthorized access to API method "$method_path"] );
         }
         else {
-            my $obj = bless { api => $self }, $method_cfg->{class};
+            my $obj = bless { api => $self->{spi}, api_session => $self }, $method_cfg->{class};
 
             my $method_name = $method_cfg->{method};
 
@@ -72,9 +79,9 @@ sub api_call ( $self, $method_path, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 55                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 62                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 55                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 62                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -72,11 +72,11 @@ sub _build_map ($self) {
 
             $map->{$method_id} = {
                 $obj_map->{$method}->%*,
-                id      => $method_id,
-                path    => $path,
-                version => $version,
-                class   => $class,
-                method  => $method,
+                id         => $method_id,
+                class_path => $path,
+                version    => $version,
+                class      => $class,
+                method     => $method,
             };
 
             # validate api method configuration
