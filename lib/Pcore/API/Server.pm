@@ -121,12 +121,12 @@ sub auth_token ( $self, $token_b64, $cb ) {
     );
 }
 
-sub upload_api_map ( $self, $cb ) {
-    return $self->auth->upload_api_map( $self->map, $cb );
+sub upload_api_map ( $self ) {
+    return $self->auth->upload_api_map( $self->map );
 }
 
-sub set_root_password ( $self, $password, $cb ) {
-    return $self->auth->set_root_password( $password, $cb );
+sub set_root_password ( $self, $password ) {
+    return $self->auth->set_root_password($password);
 }
 
 1;

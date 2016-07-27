@@ -44,14 +44,10 @@ sub _build_dbh ($self) {
 
             CREATE TABLE IF NOT EXISTS `api_method` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `app_id` TEXT NOT NULL,
-                `api_version` INTEGER NOT NULL,
-                `api_class` INTEGER NOT NULL,
-                `api_method` INTEGER NOT NULL,
+                `app_id` BLOB NOT NULL,
+                `method_id` BLOB NOT NULL UNIQUE,
                 `desc` TEXT NOT NULL
             );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS `api_method_uniq_idx` ON `api_method` (`app_id`, `api_version`, `api_class`, `api_method`);
 
             CREATE TABLE IF NOT EXISTS `api_role_has_method` (
                 `api_role_id` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE CASCADE,
@@ -139,7 +135,9 @@ sub auth_token ( $self, $token_b64, $cb ) {
 }
 
 # TODO - create user with uid = 1 if not exitst, return new password
-sub set_root_password ( $self, $password, $cb ) {
+sub set_root_password ( $self, $password ) {
+    my $blocking_cv = AE::cv;
+
     $password //= P->random->bytes_hex(32);
 
     state $q1 = $self->dbh->query('SELECT id FROM api_user WHERE id = 1');
@@ -156,17 +154,62 @@ sub set_root_password ( $self, $password, $cb ) {
         sub ($password_hash) {
             $q3->do( [$password_hash] );
 
-            $cb->($password);
+            $blocking_cv->send($password);
 
             return;
         }
     );
 
-    return;
+    return $blocking_cv->recv;
 }
 
 # TODO update api methods in database, or upload api map to cluster
-sub upload_api_map ( $self, $map, $cb ) {
+sub upload_api_map ( $self, $map ) {
+    my $remote_methods = $self->dbh->selectall_hashref( 'SELECT * FROM api_method', key_cols => 'method_id' );
+
+    my ( $add_methods, $remove_methods, $update_methods );
+
+    for my $method_path ( keys $map->%* ) {
+        if ( !exists $remote_methods->{$method_path} ) {
+            $add_methods->{$method_path} = $map->{$method_path};
+        }
+        else {
+            if ( $remote_methods->{$method_path}->{desc} ne $map->{$method_path}->{desc} ) {
+                $update_methods->{$method_path} = $map->{$method_path};
+            }
+        }
+    }
+
+    for my $method_path ( keys $remote_methods->%* ) {
+        if ( !exists $map->{$method_path} ) {
+            $remove_methods->{$method_path} = undef;
+        }
+    }
+
+    if ($add_methods) {
+        my $q1 = $self->dbh->query('INSERT INTO api_method (app_id, method_id, desc) VALUES (?, ?, ?)');
+
+        for my $method ( values $add_methods->%* ) {
+            $q1->do( [ '_', $method->{id}, $method->{desc} ] );
+        }
+    }
+
+    if ($update_methods) {
+        my $q1 = $self->dbh->query('UPDATE api_method SET desc = ? WHERE method_id = ?');
+
+        for my $method ( values $update_methods->%* ) {
+            $q1->do( [ $method->{desc}, $method->{id} ] );
+        }
+    }
+
+    if ($remove_methods) {
+        my $q1 = $self->dbh->query('DELETE FROM api_method WHERE method_id = ?');
+
+        for my $method ( keys $remove_methods->%* ) {
+            $q1->do( [$method] );
+        }
+    }
+
     return;
 }
 
@@ -197,6 +240,17 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 172, 183, 192, 200,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 208                  |                                                                                                                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
