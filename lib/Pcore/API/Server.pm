@@ -4,9 +4,31 @@ use Pcore -role;
 use Pcore::API::Response;
 use Pcore::API::Server::Session;
 
-has auth => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server::Auth'], required => 1 );
+has app_id => ( is => 'ro', isa => Str, required => 1 );
+has _auth => ( is => 'ro', isa => Str | ConsumerOf ['Pcore::DBH'] | ConsumerOf ['Pcore::API::Server::Auth'], required => 1, init_arg => 'auth' );
 
+has auth => ( is => 'lazy', isa => ConsumerOf ['Pcore::API::Server::Auth'], init_arg => 'undef' );
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
+
+sub _build_auth ($self) {
+    my $auth;
+
+    if ( !ref $self->{_auth} ) {
+        require Pcore::API::Server::Auth::Local;
+
+        $auth = Pcore::API::Server::Auth::Local->new( { api => $self, dbh => P->handle( $self->{_auth} ) } );
+    }
+    elsif ( $self->{_auth}->does('Pcore::DBH') ) {
+        $auth = Pcore::API::Server::Auth::Local->new( { api => $self, dbh => $self->{_auth} } );
+    }
+    else {
+        $auth = $self->{_auth};
+
+        $self->{_auth}->{api} = $self;
+    }
+
+    return $auth;
+}
 
 sub _build_map ($self) {
     my $map = {};
@@ -39,44 +61,44 @@ sub _build_map ($self) {
         }
     }
 
-    for my $class ( sort keys $controllers->%* ) {
-        P->class->load($class);
+    for my $class_name ( sort keys $controllers->%* ) {
+        P->class->load($class_name);
 
-        my $path = $controllers->{$class};
+        my $class_path = $controllers->{$class_name};
 
-        if ( !$class->does('Pcore::API::Server::Role') ) {
-            delete $controllers->{$class};
+        if ( !$class_name->does('Pcore::API::Server::Role') ) {
+            delete $controllers->{$class_name};
 
-            say qq["$class" is not a consumer of "Pcore::API::Server::Class"];
+            say qq["$class_name" is not a consumer of "Pcore::API::Server::Class"];
 
             next;
         }
 
         my $version;
 
-        if ( $path =~ s[\Av(\d+)/][]sm ) {
+        if ( $class_path =~ s[\Av(\d+)/][]sm ) {
             $version = $1;
         }
         else {
-            say qq[Can not determine API version "$class"];
+            say qq[Can not determine API version "$class_name"];
 
             next;
         }
 
-        my $obj = bless { api => $self }, $class;
+        my $obj = bless { api => $self }, $class_name;
 
         my $obj_map = $obj->map;
 
         for my $method ( keys $obj_map->%* ) {
-            my $method_id = qq[/v$version/$path/$method];
+            my $method_id = qq[/v$version/$class_path/$method];
 
             $map->{$method_id} = {
                 $obj_map->{$method}->%*,
-                id         => $method_id,
-                class_path => $path,
-                version    => $version,
-                class      => $class,
-                method     => $method,
+                id          => $method_id,
+                version     => "v$version",
+                class_name  => $class_name,
+                class_path  => $class_path,
+                method_name => $method,
             };
 
             # validate api method configuration
@@ -125,7 +147,7 @@ sub upload_api_map ( $self ) {
     return $self->auth->upload_api_map( $self->map );
 }
 
-sub set_root_password ( $self, $password ) {
+sub set_root_password ( $self, $password = undef ) {
     return $self->auth->set_root_password($password);
 }
 
@@ -136,9 +158,9 @@ sub set_root_password ( $self, $password ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42, 70, 74           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 64, 92, 96           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 33                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 55                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

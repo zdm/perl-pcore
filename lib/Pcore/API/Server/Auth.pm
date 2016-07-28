@@ -4,6 +4,8 @@ use Pcore -role;
 
 requires qw[auth_password auth_token set_root_password upload_api_map];
 
+has api => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server'], required => 1 );
+
 1;
 __END__
 =pod

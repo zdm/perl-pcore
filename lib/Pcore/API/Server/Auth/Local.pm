@@ -6,15 +6,21 @@ use Pcore::Util::Hash::RandKey;
 
 with qw[Pcore::API::Server::Auth];
 
-has dbh         => ( is => 'lazy', isa => ConsumerOf ['Pcore::DBH'],                 init_arg => undef );
-has _hash_rpc   => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::RPC'],       init_arg => undef );
-has _hash_cache => ( is => 'ro',   isa => InstanceOf ['Pcore::Util::Hash::RandKey'], default  => sub { Pcore::Util::Hash::RandKey->new }, init_arg => undef );
+has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
 
-sub _build_dbh ($self) {
-    my $dbh = P->handle('sqlite:auth.sqlite');
+has _hash_rpc => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::RPC'], init_arg => undef );
+has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], default => sub { Pcore::Util::Hash::RandKey->new }, init_arg => undef );
+
+sub BUILD ( $self, $args ) {
+    $self->_ddl_upgrade;
+
+    return;
+}
+
+sub _ddl_upgrade ($self) {
 
     # create db
-    my $ddl = $dbh->ddl;
+    my $ddl = $self->dbh->ddl;
 
     $ddl->add_changeset(
         id  => 1,
@@ -43,22 +49,24 @@ sub _build_dbh ($self) {
             );
 
             CREATE TABLE IF NOT EXISTS `api_method` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `id` BLOB PRIMARY KEY NOT NULL,
                 `app_id` BLOB NOT NULL,
-                `method_id` BLOB NOT NULL UNIQUE,
+                `version` BLOB NOT NULL,
+                `class_name` BLOB NOT NULL,
+                `method_name` BLOB NOT NULL,
                 `desc` TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS `api_role_has_method` (
                 `api_role_id` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE CASCADE,
-                `api_method_id` INTEGER NOT NULL REFERENCES `api_method` (`id`) ON DELETE CASCADE
+                `api_method_id` BLOB NOT NULL REFERENCES `api_method` (`id`) ON DELETE CASCADE
             );
 SQL
     );
 
     $ddl->upgrade;
 
-    return $dbh;
+    return;
 }
 
 sub _build__hash_rpc($self) {
@@ -135,7 +143,7 @@ sub auth_token ( $self, $token_b64, $cb ) {
 }
 
 # TODO - create user with uid = 1 if not exitst, return new password
-sub set_root_password ( $self, $password ) {
+sub set_root_password ( $self, $password = undef ) {
     my $blocking_cv = AE::cv;
 
     $password //= P->random->bytes_hex(32);
@@ -165,48 +173,48 @@ sub set_root_password ( $self, $password ) {
 
 # TODO update api methods in database, or upload api map to cluster
 sub upload_api_map ( $self, $map ) {
-    my $remote_methods = $self->dbh->selectall_hashref( 'SELECT * FROM api_method', key_cols => 'method_id' );
+    my $remote_methods = $self->dbh->selectall_hashref( 'SELECT * FROM api_method WHERE app_id = ?', [ $self->api->app_id ], key_cols => 'id' );
 
     my ( $add_methods, $remove_methods, $update_methods );
 
-    for my $method_path ( keys $map->%* ) {
-        if ( !exists $remote_methods->{$method_path} ) {
-            $add_methods->{$method_path} = $map->{$method_path};
+    for my $method_id ( keys $map->%* ) {
+        if ( !exists $remote_methods->{$method_id} ) {
+            $add_methods->{$method_id} = undef;
         }
         else {
-            if ( $remote_methods->{$method_path}->{desc} ne $map->{$method_path}->{desc} ) {
-                $update_methods->{$method_path} = $map->{$method_path};
+            if ( $remote_methods->{$method_id}->{desc} ne $map->{$method_id}->{desc} ) {
+                $update_methods->{$method_id} = undef;
             }
         }
     }
 
-    for my $method_path ( keys $remote_methods->%* ) {
-        if ( !exists $map->{$method_path} ) {
-            $remove_methods->{$method_path} = undef;
+    for my $method_id ( keys $remote_methods->%* ) {
+        if ( !exists $map->{$method_id} ) {
+            $remove_methods->{$method_id} = undef;
         }
     }
 
     if ($add_methods) {
-        my $q1 = $self->dbh->query('INSERT INTO api_method (app_id, method_id, desc) VALUES (?, ?, ?)');
+        my $q1 = $self->dbh->query('INSERT INTO api_method (id, app_id, version, class_name, method_name, desc) VALUES (?, ?, ?, ?, ?, ?)');
 
-        for my $method ( values $add_methods->%* ) {
-            $q1->do( [ '_', $method->{id}, $method->{desc} ] );
+        for my $method_id ( keys $add_methods->%* ) {
+            $q1->do( [ $method_id, $self->api->app_id, $map->{$method_id}->{version}, $map->{$method_id}->{class_name}, $map->{$method_id}->{method_name}, $map->{$method_id}->{desc} ] );
         }
     }
 
     if ($update_methods) {
-        my $q1 = $self->dbh->query('UPDATE api_method SET desc = ? WHERE method_id = ?');
+        my $q1 = $self->dbh->query('UPDATE api_method SET desc = ? WHERE id = ?');
 
-        for my $method ( values $update_methods->%* ) {
-            $q1->do( [ $method->{desc}, $method->{id} ] );
+        for my $method_id ( keys $update_methods->%* ) {
+            $q1->do( [ $map->{$method_id}->{desc}, $method_id ] );
         }
     }
 
     if ($remove_methods) {
-        my $q1 = $self->dbh->query('DELETE FROM api_method WHERE method_id = ?');
+        my $q1 = $self->dbh->query('DELETE FROM api_method WHERE id = ?');
 
-        for my $method ( keys $remove_methods->%* ) {
-            $q1->do( [$method] );
+        for my $method_id ( keys $remove_methods->%* ) {
+            $q1->do( [$method_id] );
         }
     }
 
@@ -246,8 +254,8 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 183, 192, 200,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 208                  |                                                                                                                |
+## |    3 | 180, 191, 200, 208,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 216                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
