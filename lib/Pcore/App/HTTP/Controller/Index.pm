@@ -1,8 +1,8 @@
-package Pcore::HTTP::Server::Controller::Index;
+package Pcore::App::HTTP::Controller::Index;
 
 use Pcore -role;
 
-with qw[Pcore::HTTP::Server::Controller];
+with qw[Pcore::App::HTTP::Controller];
 
 around run => sub ( $orig, $self ) {
     if ( $self->path_tail->is_file ) {
@@ -21,7 +21,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::Server::Controller::Index
+Pcore::App::HTTP::Controller::Index
 
 =head1 SYNOPSIS
 

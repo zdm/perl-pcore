@@ -1,8 +1,8 @@
-package Pcore::HTTP::Server::Controller::Static;
+package Pcore::App::HTTP::Controller::Static;
 
 use Pcore -role;
 
-with qw[Pcore::HTTP::Server::Controller];
+with qw[Pcore::App::HTTP::Controller];
 
 sub run ($self) {
     return $self->return_static;
@@ -16,7 +16,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::Server::Controller::Static
+Pcore::App::HTTP::Controller::Static
 
 =head1 SYNOPSIS
 

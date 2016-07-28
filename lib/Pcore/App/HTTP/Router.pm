@@ -1,12 +1,17 @@
-package Pcore::HTTP::Server::Router::Class;
+package Pcore::App::HTTP::Router;
 
 use Pcore -class;
 
 with qw[Pcore::HTTP::Server::Router];
 
-has namespace => ( is => 'ro', isa => Str, required => 1 );
+has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App::HTTP'], required => 1 );
 
 has route => ( is => 'ro', isa => HashRef, init_arg => undef );
+
+# Pcore::App::HTTP::Controller
+# Pcore::App::HTTP::Controller::Index
+# Pcore::App::HTTP::Controller::API
+# Pcore::App::HTTP::Controller::Static
 
 sub BUILD ( $self, $args ) {
     my $ns_path = $self->namespace =~ s[::][/]smgr;
@@ -103,9 +108,9 @@ sub run ( $self, $env ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 44, 56               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 49, 61               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 19, 35, 62, 79       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 24, 40, 67, 84       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -116,7 +121,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::Server::Router::Class
+Pcore::App::HTTP::Router
 
 =head1 SYNOPSIS
 

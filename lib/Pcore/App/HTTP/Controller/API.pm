@@ -1,8 +1,8 @@
-package Pcore::HTTP::Server::Controller::API;
+package Pcore::App::HTTP::Controller::API;
 
 use Pcore -role;
 
-with qw[Pcore::HTTP::Server::Controller];
+with qw[Pcore::App::HTTP::Controller];
 
 requires qw[_build_api];
 
@@ -21,7 +21,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::Server::Controller::API
+Pcore::App::HTTP::Controller::API
 
 =head1 SYNOPSIS
 

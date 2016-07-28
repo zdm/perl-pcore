@@ -1,4 +1,4 @@
-package Pcore::HTTP::Server::Controller;
+package Pcore::App::HTTP::Controller;
 
 use Pcore -role;
 
@@ -35,7 +35,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::Server::Controller
+Pcore::App::HTTP::Controller
 
 =head1 SYNOPSIS
 
