@@ -6,15 +6,18 @@ with qw[Pcore::HTTP::Server::Router];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App::HTTP'], required => 1 );
 
-has route => ( is => 'ro', isa => HashRef, init_arg => undef );
+has route => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 # Pcore::App::HTTP::Controller
 # Pcore::App::HTTP::Controller::Index
 # Pcore::App::HTTP::Controller::API
 # Pcore::App::HTTP::Controller::Static
 
-sub BUILD ( $self, $args ) {
-    my $ns_path = $self->namespace =~ s[::][/]smgr;
+# TODO die if api controller found, but no api server provided
+sub _build_route ($self) {
+    my $namespace = ref $self->app;
+
+    my $ns_path = $namespace =~ s[::][/]smgr;
 
     my $controllers = {};
 
@@ -49,18 +52,30 @@ sub BUILD ( $self, $args ) {
     for my $class ( sort keys $controllers->%* ) {
         P->class->load($class);
 
-        if ( !$class->does('Pcore::HTTP::Server::Controller') ) {
+        if ( !$class->does('Pcore::App::HTTP::Controller') ) {
             delete $controllers->{$class};
 
-            say qq["$class" is not a consumer of "Pcore::HTTP::Server::Controller"];
+            say qq["$class" is not a consumer of "Pcore::App::HTTP::Controller"];
+        }
+        else {
+            if ( $class->does('Pcore::App::HTTP::Controller::Index') ) {
+
+                # index controller
+            }
+            elsif ( $class->does('Pcore::App::HTTP::Controller::Static') ) {
+
+                # static controller
+            }
+            elsif ( $class->does('Pcore::App::HTTP::Controller::API') ) {
+
+                # api controller
+            }
         }
     }
 
-    die qq[Index controller "@{[$self->namespace]}" was not found] if !exists $controllers->{ $self->namespace };
+    die qq[Index controller "$namespace" was not found] if !exists $controllers->{$namespace};
 
-    $self->{route} = { reverse $controllers->%* };
-
-    return;
+    return { reverse $controllers->%* };
 }
 
 sub run ( $self, $env ) {
@@ -108,9 +123,9 @@ sub run ( $self, $env ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 49, 61               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 52, 78               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 24, 40, 67, 84       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 27, 43, 82, 99       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

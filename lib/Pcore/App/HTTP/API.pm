@@ -1,4 +1,4 @@
-package Pcore::API::Server;
+package Pcore::App::HTTP::API;
 
 use Pcore -role;
 use Pcore::API::Response;
@@ -171,7 +171,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server
+Pcore::App::HTTP::API
 
 =head1 SYNOPSIS
 

@@ -31,13 +31,16 @@ sub _build_router ($self) {
 sub _build_http_server ($self) {
     return Pcore::HTTP::Server->new(
         {   listen => '127.0.0.1:80',
-            app    => $self->index,
+            app    => $self->router,
         }
     );
 }
 
 # TODO start HTTP server
 sub run ($self) {
+    say dump $self->api->map;
+
+    $self->router;
 
     return;
 }
