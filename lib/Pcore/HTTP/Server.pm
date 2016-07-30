@@ -302,9 +302,15 @@ sub _finish_request ( $self, $h, $keep_alive ) {
 
 # TODO add support for different body types, body can be FileHandle or CodeRef or ScalarRef, etc ...
 # TODO convert headers to CamelCase
-# TODO possibility to send custom reason
 sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
-    my $headers = "HTTP/1.1 $res->[0] " . Pcore::HTTP::Status->get_reason( $res->[0] );
+    my $headers = do {
+        if ( !ref $res->[0] ) {
+            "HTTP/1.1 $res->[0] " . Pcore::HTTP::Status->get_reason( $res->[0] );
+        }
+        else {
+            "HTTP/1.1 $res->[0]->[0] $res->[0]->[1]";
+        }
+    };
 
     $headers .= $CRLF . 'Server: ' . $self->{server_signature} if $self->{server_signature};
 
@@ -372,7 +378,7 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 306             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 305             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 227                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
