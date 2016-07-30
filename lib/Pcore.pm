@@ -525,11 +525,25 @@ sub i18n {
 }
 
 sub init_demolish ( $self, $class ) {
-    state $init = !!require Method::Generate::DemolishAll;
+    state $init = do {
+        require Method::Generate::DemolishAll;
+
+        # avoid to call Method::Generate::DemolishAll->generate_method again from Moo ->new method
+        my $generate_method = \&Method::Generate::DemolishAll::generate_method;
+
+        no warnings qw[redefine];
+
+        *Method::Generate::DemolishAll::generate_method = sub {
+            my ( $self, $into ) = @_;
+
+            return if *{ Moo::_Utils::_getglob("$into\::DEMOLISHALL") }{CODE};
+
+            return $generate_method->(@_);
+        };
+    };
 
     # install DEMOLISH to make it works, when object is instantiated with direct "bless" call
     # https://rt.cpan.org/Ticket/Display.html?id=116590
-    # TODO avoid to call Method::Generate::DemolishAll->generate_method again from Moo ->new method
     Method::Generate::DemolishAll->new->generate_method($class) if $class->can('DEMOLISH') && $class->isa('Moo::Object');
 
     return;
@@ -553,6 +567,8 @@ sub init_demolish ( $self, $class ) {
 ## |    3 | 329, 358, 361, 365,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 397, 400, 405, 408,  |                                                                                                                |
 ## |      | 433, 452             |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 539                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 229                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
