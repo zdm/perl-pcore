@@ -194,9 +194,6 @@ sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
 
 sub _run_app ( $self, $h, $env ) {
 
-    # evaluate application
-    my $res = eval { $self->{app}->($env) };
-
     # detect keep-alive
     my $keep_alive = $self->keep_alive;
 
@@ -211,6 +208,9 @@ sub _run_app ( $self, $h, $env ) {
             $keep_alive = 0;
         }
     }
+
+    # evaluate application
+    my $res = eval { $self->{app}->($env) };
 
     # processing first psgi app response
     if ($@) {
@@ -249,7 +249,11 @@ sub _run_app ( $self, $h, $env ) {
             );
         };
 
-        $self->_return_xxx( $h, 500 ) if $@;
+        if ($@) {
+            warn $@;
+
+            $self->_return_xxx( $h, 500 ) if $@;
+        }
     }
     else {
         $self->_return_xxx( $h, 500 );
@@ -365,7 +369,7 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 299             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 303             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 227                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

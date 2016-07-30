@@ -7,21 +7,18 @@ use Pcore::App::HTTP::Router;
 has app_id => ( is => 'ro', isa => Str, required => 1 );
 has cluster => ( is => 'ro', isa => Maybe [Str] );    # cluster uri, https://host:port/api/
 
-has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::API::Server'] ], init_arg => undef );
+has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::HTTP::API'] ], init_arg => undef );
 has router      => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'],         init_arg => undef );
 
-# TODO init api
 sub _build_api ($self) {
     my $api_class = eval { P->class->load( 'API', ns => ref $self ) };
 
     return if $@;
 
-    return $api_class->new(
-        {   app_id => $self->app_id,
-            auth   => 'sqlite:auth.sqlite',
-        }
-    );
+    die qq[API class "$api_class" is not consumer of "Pcore::App::HTTP::API"] if !$api_class->does('Pcore::App::HTTP::API');
+
+    return $api_class->new( { app => $self } );
 }
 
 sub _build_router ($self) {
@@ -37,6 +34,7 @@ sub _build_http_server ($self) {
 }
 
 # TODO start HTTP server
+# TODO die if api controller found, but no api server provided
 sub run ($self) {
     say dump $self->api->map;
 

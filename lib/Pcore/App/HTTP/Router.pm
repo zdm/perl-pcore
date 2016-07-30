@@ -1,30 +1,27 @@
 package Pcore::App::HTTP::Router;
 
 use Pcore -class;
+use Pcore::App::HTTP::Router::Request;
 
 with qw[Pcore::HTTP::Server::Router];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App::HTTP'], required => 1 );
 
-has route => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has route       => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has index_class => ( is => 'ro',   isa => Str,     init_arg => undef );
+has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
 
-# Pcore::App::HTTP::Controller
-# Pcore::App::HTTP::Controller::Index
-# Pcore::App::HTTP::Controller::API
-# Pcore::App::HTTP::Controller::Static
-
-# TODO die if api controller found, but no api server provided
 sub _build_route ($self) {
-    my $namespace = ref $self->app;
-
-    my $ns_path = $namespace =~ s[::][/]smgr;
+    my $index_class = ref( $self->app ) . '::Index';
 
     my $controllers = {};
+
+    my $ns_path = $index_class =~ s[::][/]smgr;
 
     # scan namespace, find and preload controllers
     for my $path ( grep { !ref } @INC ) {
         if ( -f "$path/$ns_path.pm" ) {
-            $controllers->{ $self->namespace } = '/';
+            $controllers->{$index_class} = '/';
         }
 
         if ( -d "$path/$ns_path" ) {
@@ -53,67 +50,75 @@ sub _build_route ($self) {
         P->class->load($class);
 
         if ( !$class->does('Pcore::App::HTTP::Controller') ) {
-            delete $controllers->{$class};
-
-            say qq["$class" is not a consumer of "Pcore::App::HTTP::Controller"];
+            die qq["$class" is not a consumer of "Pcore::App::HTTP::Controller"];
         }
         else {
             if ( $class->does('Pcore::App::HTTP::Controller::Index') ) {
 
                 # index controller
-            }
-            elsif ( $class->does('Pcore::App::HTTP::Controller::Static') ) {
-
-                # static controller
+                $self->{index_class} = $class;
             }
             elsif ( $class->does('Pcore::App::HTTP::Controller::API') ) {
 
                 # api controller
+                $self->{api_class} = $class;
             }
         }
     }
 
-    die qq[Index controller "$namespace" was not found] if !exists $controllers->{$namespace};
+    die qq[Index controller "$index_class" was not found or nor a consumer of "Pcore::App::HTTP::Controller::Index"] if !$self->{index_class};
 
     return { reverse $controllers->%* };
 }
 
 sub run ( $self, $env ) {
-    my $path = P->path( '/' . $env->{PATH_INFO} );
+    return sub ( $responder ) {
+        my $path = P->path( '/' . $env->{PATH_INFO} );
 
-    my $path_tail = $path->filename;
+        my $path_tail = $path->filename;
 
-    $path = $path->dirname;
+        $path = $path->dirname;
 
-    my $class;
+        my $route = $self->route;
 
-    if ( exists $self->{route}->{$path} ) {
-        $class = $self->{route}->{$path};
-    }
-    else {
-        my @labels = split /\//sm, $path;
+        my $class;
 
-        while (@labels) {
-            $path_tail = pop(@labels) . "/$path_tail";
+        if ( exists $self->{route}->{$path} ) {
+            $class = $self->{route}->{$path};
+        }
+        else {
+            my @labels = split /\//sm, $path;
 
-            $path = join( '/', @labels ) . '/';
+            while (@labels) {
+                $path_tail = pop(@labels) . "/$path_tail";
 
-            if ( exists $self->{route}->{$path} ) {
-                $class = $self->{route}->{$path};
+                $path = join( '/', @labels ) . '/';
 
-                last;
+                if ( exists $self->{route}->{$path} ) {
+                    $class = $self->{route}->{$path};
+
+                    last;
+                }
             }
         }
-    }
 
-    my $controller = bless {
-        env       => $env,
-        router    => $self,
-        path      => $path,
-        path_tail => P->path($path_tail),
-    }, $class;
+        my $req = bless {
+            env       => $env,
+            responder => $responder,
+          },
+          'Pcore::App::HTTP::Router::Request';
 
-    return $controller->run;
+        my $controller = bless {
+            app       => $self->{app},
+            req       => $req,
+            path      => $path,
+            path_tail => P->path($path_tail),
+        }, $class;
+
+        $controller->run;
+
+        return;
+    };
 }
 
 1;
@@ -123,9 +128,9 @@ sub run ( $self, $env ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 52, 78               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 49, 71               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 27, 43, 82, 99       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 24, 40, 76, 95       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

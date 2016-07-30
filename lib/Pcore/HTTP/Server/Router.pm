@@ -10,11 +10,6 @@ use overload    #
 
 requires qw[run];
 
-# TODO create request
-around run => sub ( $orig, $self, $env ) {
-    return $self->$orig($env);
-};
-
 1;
 __END__
 =pod
