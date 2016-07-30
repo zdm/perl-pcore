@@ -524,6 +524,17 @@ sub i18n {
     return &Pcore::Core::I18N::i18n;    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
 }
 
+sub init_demolish ( $self, $class ) {
+    state $init = !!require Method::Generate::DemolishAll;
+
+    # install DEMOLISH to make it works, when object is instantiated with direct "bless" call
+    # https://rt.cpan.org/Ticket/Display.html?id=116590
+    # TODO avoid to call Method::Generate::DemolishAll->generate_method again from Moo ->new method
+    Method::Generate::DemolishAll->new->generate_method($class) if $class->can('DEMOLISH') && $class->isa('Moo::Object');
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
