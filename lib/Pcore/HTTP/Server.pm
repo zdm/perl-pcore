@@ -232,13 +232,13 @@ sub _run_app ( $self, $h, $env ) {
                         # write http response headers, body is delayed
                         $self->_write_psgi_response( $h, $res, $keep_alive, 1 );
 
-                        return bless {
-                            server     => $self,
-                            h          => $h,
-                            keep_alive => $keep_alive,
-                            buf_size   => 65_536,
-                          },
-                          'Pcore::HTTP::Server::Writer';
+                        return Pcore::HTTP::Server::Writer->new(
+                            {   server     => $self,
+                                h          => $h,
+                                keep_alive => $keep_alive,
+                                buf_size   => 65_536,
+                            }
+                        );
                     }
                     else {
                         $self->_write_psgi_response( $h, $res, $keep_alive, 0 );
@@ -312,20 +312,20 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
         }
     };
 
-    $headers .= $CRLF . 'Server: ' . $self->{server_signature} if $self->{server_signature};
+    $headers .= $CRLF . 'Server:' . $self->{server_signature} if $self->{server_signature};
 
     if ($keep_alive) {
-        $headers .= $CRLF . 'Connection: Keep-Alive';
+        $headers .= $CRLF . 'Connection:Keep-Alive';
     }
     else {
-        $headers .= $CRLF . 'Connection: close';
+        $headers .= $CRLF . 'Connection:close';
     }
 
     # TODO convert headers to CamelCase
-    $headers .= $CRLF . join $CRLF, map { $_->key . q[: ] . $_->value } pairs $res->[1]->@* if $res->[1] && $res->[1]->@*;
+    $headers .= $CRLF . join $CRLF, map {"$_->[0]:$_->[1]"} pairs $res->[1]->@* if $res->[1] && $res->[1]->@*;
 
     if ($delayed_body) {
-        $h->push_write( $headers . $CRLF . 'Transfer-Encoding: chunked' . $CRLF . $CRLF );
+        $h->push_write( $headers . $CRLF . 'Transfer-Encoding:chunked' . $CRLF . $CRLF );
     }
     else {
         if ( $res->[2] ) {
