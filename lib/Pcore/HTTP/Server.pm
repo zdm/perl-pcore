@@ -228,6 +228,8 @@ sub _run_app ( $self, $h, $env ) {
             $res->(
                 sub ($res) {
                     if ( defined wantarray && !$res->[2] ) {
+
+                        # write http response headers, body is delayed
                         $self->_write_psgi_response( $h, $res, $keep_alive, 1 );
 
                         return bless {
@@ -278,7 +280,7 @@ sub _finish_request ( $self, $h, $keep_alive ) {
             $h->destroy;
         }
         else {
-            my $destroy = sub ( $h, @ ) {
+            state $destroy = sub ( $h, @ ) {
                 $h->destroy;
 
                 return;
@@ -300,6 +302,7 @@ sub _finish_request ( $self, $h, $keep_alive ) {
 
 # TODO add support for different body types, body can be FileHandle or CodeRef or ScalarRef, etc ...
 # TODO convert headers to CamelCase
+# TODO possibility to send custom reason
 sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
     my $headers = "HTTP/1.1 $res->[0] " . Pcore::HTTP::Status->get_reason( $res->[0] );
 
@@ -369,7 +372,7 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 303             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 306             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 227                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
