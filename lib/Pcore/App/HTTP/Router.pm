@@ -102,18 +102,19 @@ sub run ( $self, $env ) {
             }
         }
 
-        my $req = bless {
-            env       => $env,
-            responder => $responder,
-          },
-          'Pcore::App::HTTP::Router::Request';
+        my $req = Pcore::App::HTTP::Router::Request->new(
+            {   env       => $env,
+                responder => $responder,
+            }
+        );
 
-        my $controller = bless {
-            app       => $self->{app},
-            req       => $req,
-            path      => $path,
-            path_tail => P->path($path_tail),
-        }, $class;
+        my $controller = $class->new(
+            {   app       => $self->{app},
+                req       => $req,
+                path      => $path,
+                path_tail => P->path($path_tail),
+            }
+        );
 
         $controller->run;
 

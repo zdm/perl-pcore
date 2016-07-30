@@ -3,21 +3,22 @@ package Pcore::HTTP::Server::Writer;
 use Pcore -class;
 use Pcore::Util::List qw[pairs];
 
-has server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1, weak_ref => 1 );
-has h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1, weak_ref => 1 );
+has server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1 );
+has h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
 has keep_alive => ( is => 'ro', isa => PositiveOrZeroInt, required => 1 );
 has buf_size   => ( is => 'ro', isa => PositiveOrZeroInt, default  => 65_536 );
 
 has buf => ( is => 'ro', isa => Str, default => q[], init_arg => undef );
+has is_closed => ( is => 'ro', isa => Bool, default => 0 );
 
-# TODO finish request on destroy, if not destoroyed yet;
-# TODO on exception - do not write last junk, just close socket;
+sub DEMOLISH ( $self, $global ) {
+    say 'WRITER DEMOLISHED' if !$global;
 
-# sub DEMOLISH ( $self, $global ) {
-#     $self->close if !$global;
-#
-#     return;
-# }
+    # close socket on abnormal writer termination
+    $self->{server}->_finish_request( $self->{h}, 0 ) if !$global && !$self->{is_closed};
+
+    return;
+}
 
 sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     $self->{buf} .= ref $data ? $data->$* : $data;
@@ -32,6 +33,8 @@ sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 }
 
 sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConventions::ProhibitAmbiguousNames Subroutines::ProhibitBuiltinHomonyms]
+    $self->{is_closed} = 1;
+
     my $buf = q[];
 
     # add last buffer
@@ -41,6 +44,7 @@ sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConven
     $buf .= "0$CRLF";
 
     # add trailing headers
+    # https://tools.ietf.org/html/rfc7230#section-3.2
     $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $trailing_headers->@* ) . $CRLF if $trailing_headers && $trailing_headers->@*;
 
     $buf .= $CRLF;

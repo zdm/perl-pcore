@@ -208,6 +208,7 @@ sub _run_app ( $self, $h, $env ) {
             $keep_alive = 0;
         }
     }
+    say "--- START REQUEST - " . P->scalar->refaddr($h);
 
     # evaluate application
     my $res = eval { $self->{app}->($env) };
@@ -224,9 +225,13 @@ sub _run_app ( $self, $h, $env ) {
         $self->_finish_request( $h, $keep_alive );
     }
     elsif ( ref $res eq 'CODE' ) {
+        my $headers_written;
+
         eval {
             $res->(
                 sub ($res) {
+                    $headers_written = 1;
+
                     if ( defined wantarray && !$res->[2] ) {
 
                         # write http response headers, body is delayed
@@ -241,6 +246,8 @@ sub _run_app ( $self, $h, $env ) {
                         );
                     }
                     else {
+
+                        # write full http response
                         $self->_write_psgi_response( $h, $res, $keep_alive, 0 );
 
                         $self->_finish_request( $h, $keep_alive );
@@ -253,8 +260,8 @@ sub _run_app ( $self, $h, $env ) {
 
         if ($@) {
             warn $@;
-
-            $self->_return_xxx( $h, 500 ) if $@;
+            say '-- RETURN ERROR' if !$headers_written;
+            $self->_return_xxx( $h, 500 ) if !$headers_written;
         }
     }
     else {
@@ -265,7 +272,7 @@ sub _run_app ( $self, $h, $env ) {
 }
 
 sub _return_xxx ( $self, $h, $status ) {
-    $self->_write_psgi_response( $h, [$status], 0, 0 );
+    $self->_write_psgi_response( $h, [ $status, undef, ['ERROR'] ], 0, 0 );
 
     $self->_finish_request( $h, 0 );
 
@@ -274,7 +281,7 @@ sub _return_xxx ( $self, $h, $status ) {
 
 sub _finish_request ( $self, $h, $keep_alive ) {
     $self->{_cv}->end;
-
+    say "FINISH REQ: $keep_alive";
     if ( !$h->destroyed ) {
         if ( !$keep_alive ) {
             $h->destroy;
@@ -303,6 +310,10 @@ sub _finish_request ( $self, $h, $keep_alive ) {
 # TODO add support for different body types, body can be FileHandle or CodeRef or ScalarRef, etc ...
 # TODO convert headers to CamelCase
 sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
+    return if $h->destroyed;
+
+    # compose headers
+    # https://tools.ietf.org/html/rfc7230#section-3.2
     my $headers = do {
         if ( !ref $res->[0] ) {
             "HTTP/1.1 $res->[0] " . Pcore::HTTP::Status->get_reason( $res->[0] );
@@ -325,7 +336,7 @@ sub _write_psgi_response ( $self, $h, $res, $keep_alive, $delayed_body ) {
     $headers .= $CRLF . join $CRLF, map {"$_->[0]:$_->[1]"} pairs $res->[1]->@* if $res->[1] && $res->[1]->@*;
 
     if ($delayed_body) {
-        $h->push_write( $headers . $CRLF . 'Transfer-Encoding:chunked' . $CRLF . $CRLF );
+        $self->_write_buf( $h, \( $headers . $CRLF . 'Transfer-Encoding:chunked' . $CRLF . $CRLF ) );
     }
     else {
         if ( $res->[2] ) {
@@ -378,9 +389,11 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 305             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 312             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 227                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 211                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 230                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 93                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
