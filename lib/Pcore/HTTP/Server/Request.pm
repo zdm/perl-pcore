@@ -1,12 +1,18 @@
-package Pcore::App::HTTP::Router::Request;
+package Pcore::HTTP::Server::Request;
 
 use Pcore -class;
+
+P->init_demolish(__PACKAGE__);
 
 has env       => ( is => 'ro', isa => HashRef, required => 1 );
 has responder => ( is => 'ro', isa => CodeRef, required => 1 );
 
 has _headers_written => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 has _body_written    => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+
+sub DEMOLISH ( $self, $global ) {
+    return;
+}
 
 sub write_headers ( $self, $status, $headers = undef ) {
     die qq[Headers already written] if $self->{_headers_written};
@@ -58,7 +64,7 @@ sub finish ( $self, $trailing_headers = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 18                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -69,7 +75,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::HTTP::Router::Request
+Pcore::HTTP::Server::Request
 
 =head1 SYNOPSIS
 

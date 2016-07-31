@@ -3,6 +3,8 @@ package Pcore::HTTP::Server::Writer;
 use Pcore -class;
 use Pcore::Util::List qw[pairs];
 
+P->init_demolish(__PACKAGE__);
+
 has server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1 );
 has h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
 has keep_alive => ( is => 'ro', isa => PositiveOrZeroInt, required => 1 );
@@ -12,7 +14,6 @@ has buf => ( is => 'ro', isa => Str, default => q[], init_arg => undef );
 has is_closed => ( is => 'ro', isa => Bool, default => 0 );
 
 sub DEMOLISH ( $self, $global ) {
-    say 'WRITER DEMOLISHED' if !$global;
 
     # close socket on abnormal writer termination
     $self->{server}->_finish_request( $self->{h}, 0 ) if !$global && !$self->{is_closed};
@@ -21,6 +22,8 @@ sub DEMOLISH ( $self, $global ) {
 }
 
 sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    die q[Can't write to closed HTTP responder] if $self->{is_closed};
+
     $self->{buf} .= ref $data ? $data->$* : $data;
 
     if ( length $self->{buf} >= $self->{buf_size} ) {
@@ -33,6 +36,8 @@ sub write ( $self, $data ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 }
 
 sub close ( $self, $trailing_headers = undef ) {    ## no critic qw[NamingConventions::ProhibitAmbiguousNames Subroutines::ProhibitBuiltinHomonyms]
+    die q[HTTP responder is already closed] if $self->{is_closed};
+
     $self->{is_closed} = 1;
 
     my $buf = q[];

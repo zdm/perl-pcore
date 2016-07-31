@@ -208,7 +208,6 @@ sub _run_app ( $self, $h, $env ) {
             $keep_alive = 0;
         }
     }
-    say "--- START REQUEST - " . P->scalar->refaddr($h);
 
     # evaluate application
     my $res = eval { $self->{app}->($env) };
@@ -237,13 +236,14 @@ sub _run_app ( $self, $h, $env ) {
                         # write http response headers, body is delayed
                         $self->_write_psgi_response( $h, $res, $keep_alive, 1 );
 
-                        return Pcore::HTTP::Server::Writer->new(
-                            {   server     => $self,
-                                h          => $h,
-                                keep_alive => $keep_alive,
-                                buf_size   => 65_536,
-                            }
-                        );
+                        # return writer object
+                        return bless {
+                            server     => $self,
+                            h          => $h,
+                            keep_alive => $keep_alive,
+                            buf_size   => 65_536,
+                          },
+                          'Pcore::HTTP::Server::Writer';
                     }
                     else {
 
@@ -260,8 +260,13 @@ sub _run_app ( $self, $h, $env ) {
 
         if ($@) {
             warn $@;
-            say '-- RETURN ERROR' if !$headers_written;
-            $self->_return_xxx( $h, 500 ) if !$headers_written;
+
+            if ( !$headers_written ) {
+                $self->_return_xxx( $h, 500 );
+            }
+            else {
+                $self->_finish_request( $h, 0 );
+            }
         }
     }
     else {
@@ -272,7 +277,17 @@ sub _run_app ( $self, $h, $env ) {
 }
 
 sub _return_xxx ( $self, $h, $status ) {
-    $self->_write_psgi_response( $h, [ $status, undef, ['ERROR'] ], 0, 0 );
+    my $reason = Pcore::HTTP::Status->get_reason($status);
+
+    my $body = <<"HTML";
+<html><head><title>$status $reason</title></head><body bgcolor="white"><center><h1>
+
+$status $reason
+
+</h1></center></body></html>
+HTML
+
+    $self->_write_psgi_response( $h, [ $status, [ 'Content-Type' => 'text/html; charset=utf-8' ], \$body ], 0, 0 );
 
     $self->_finish_request( $h, 0 );
 
@@ -281,7 +296,7 @@ sub _return_xxx ( $self, $h, $status ) {
 
 sub _finish_request ( $self, $h, $keep_alive ) {
     $self->{_cv}->end;
-    say "FINISH REQ: $keep_alive";
+
     if ( !$h->destroyed ) {
         if ( !$keep_alive ) {
             $h->destroy;
@@ -389,11 +404,9 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 312             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 165, 327             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 211                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 230                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 229                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 93                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

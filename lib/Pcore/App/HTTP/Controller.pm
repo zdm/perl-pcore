@@ -2,8 +2,8 @@ package Pcore::App::HTTP::Controller;
 
 use Pcore -role;
 
-has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App::HTTP'], required => 1 );
-has req => ( is => 'ro', isa => InstanceOf ['Pcore::App::HTTP::Router::Request'], required => 1 );
+has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App::HTTP'],             required => 1 );
+has req => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server::Request'], required => 1 );
 has path => ( is => 'ro', isa => Str, required => 1 );
 has path_tail => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 

@@ -1,7 +1,7 @@
 package Pcore::App::HTTP::Router;
 
 use Pcore -class;
-use Pcore::App::HTTP::Router::Request;
+use Pcore::HTTP::Server::Request;
 
 with qw[Pcore::HTTP::Server::Router];
 
@@ -102,11 +102,11 @@ sub run ( $self, $env ) {
             }
         }
 
-        my $req = Pcore::App::HTTP::Router::Request->new(
-            {   env       => $env,
-                responder => $responder,
-            }
-        );
+        my $req = bless {
+            env       => $env,
+            responder => $responder,
+          },
+          'Pcore::HTTP::Server::Request';
 
         my $controller = $class->new(
             {   app       => $self->{app},
