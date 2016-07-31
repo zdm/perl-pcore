@@ -1,7 +1,6 @@
 package Pcore::App::HTTP::Router;
 
 use Pcore -class;
-use Pcore::HTTP::Server::Request;
 
 with qw[Pcore::HTTP::Server::Router];
 
@@ -71,55 +70,49 @@ sub _build_route ($self) {
     return { reverse $controllers->%* };
 }
 
-sub run ( $self, $env ) {
-    return sub ( $responder ) {
-        my $path = P->path( '/' . $env->{PATH_INFO} );
+sub run ( $self, $req ) {
+    my $env = $req->{env};
 
-        my $path_tail = $path->filename;
+    my $path = P->path( '/' . $env->{PATH_INFO} );
 
-        $path = $path->dirname;
+    my $path_tail = $path->filename;
 
-        my $route = $self->route;
+    $path = $path->dirname;
 
-        my $class;
+    my $route = $self->route;
 
-        if ( exists $self->{route}->{$path} ) {
-            $class = $self->{route}->{$path};
-        }
-        else {
-            my @labels = split /\//sm, $path;
+    my $class;
 
-            while (@labels) {
-                $path_tail = pop(@labels) . "/$path_tail";
+    if ( exists $self->{route}->{$path} ) {
+        $class = $self->{route}->{$path};
+    }
+    else {
+        my @labels = split /\//sm, $path;
 
-                $path = join( '/', @labels ) . '/';
+        while (@labels) {
+            $path_tail = pop(@labels) . "/$path_tail";
 
-                if ( exists $self->{route}->{$path} ) {
-                    $class = $self->{route}->{$path};
+            $path = join( '/', @labels ) . '/';
 
-                    last;
-                }
+            if ( exists $self->{route}->{$path} ) {
+                $class = $self->{route}->{$path};
+
+                last;
             }
         }
+    }
 
-        my $req = bless {
-            env       => $env,
-            responder => $responder,
-          },
-          'Pcore::HTTP::Server::Request';
+    my $controller = $class->new(
+        {   app       => $self->{app},
+            req       => $req,
+            path      => $path,
+            path_tail => P->path($path_tail),
+        }
+    );
 
-        my $controller = $class->new(
-            {   app       => $self->{app},
-                req       => $req,
-                path      => $path,
-                path_tail => P->path($path_tail),
-            }
-        );
+    $controller->run;
 
-        $controller->run;
-
-        return;
-    };
+    return;
 }
 
 1;
@@ -129,9 +122,9 @@ sub run ( $self, $env ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 49, 71               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 48, 70               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 24, 40, 76, 95       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 23, 39, 76, 95       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

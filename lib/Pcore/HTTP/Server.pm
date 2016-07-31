@@ -5,8 +5,8 @@ use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
 use Pcore::Util::List qw[pairs];
 use Pcore::HTTP::Status;
+use Pcore::HTTP::Server::Request;
 use Socket qw[IPPROTO_TCP TCP_NODELAY];
-use Pcore::HTTP::Server::Writer;
 
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has app => ( is => 'ro', isa => CodeRef | ConsumerOf ['Pcore::HTTP::Server::Router'], required => 1 );
@@ -158,90 +158,28 @@ sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
     return;
 }
 
+# TODO run app via request object
 sub _run_app ( $self, $h, $env ) {
-
-    # detect keep-alive
-    my $keep_alive = $self->keep_alive;
-
-    if ($keep_alive) {
-        if ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.1' ) {
-            $keep_alive = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smi;
-        }
-        elsif ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.0' ) {
-            $keep_alive = 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smi;
-        }
-        else {
-            $keep_alive = 0;
-        }
-    }
+    my $req = bless {
+        _server => $self,
+        _h      => $h,
+        env     => $env,
+      },
+      'Pcore::HTTP::Server::Request';
 
     # evaluate application
-    my $res = eval { $self->{app}->($env) };
+    eval { $self->{app}->($req) };
 
-    # processing first psgi app response
     if ($@) {
-        warn $@;
+        $@->sendlog;
 
-        $self->_return_xxx( $h, 500 );
-    }
-    elsif ( ref $res eq 'ARRAY' ) {
-        $self->_write_psgi_response( $h, $res, $keep_alive, 0 );
-
-        $self->_finish_request( $h, $keep_alive );
-    }
-    elsif ( ref $res eq 'CODE' ) {
-        my $headers_written;
-
-        eval {
-            $res->(
-                sub ($res) {
-                    $headers_written = 1;
-
-                    if ( defined wantarray && !$res->[2] ) {
-
-                        # write http response headers, body is delayed
-                        $self->_write_psgi_response( $h, $res, $keep_alive, 1 );
-
-                        # return writer object
-                        return bless {
-                            server     => $self,
-                            h          => $h,
-                            keep_alive => $keep_alive,
-                            buf_size   => 65_536,
-                          },
-                          'Pcore::HTTP::Server::Writer';
-                    }
-                    else {
-
-                        # write full http response
-                        $self->_write_psgi_response( $h, $res, $keep_alive, 0 );
-
-                        $self->_finish_request( $h, $keep_alive );
-                    }
-
-                    return;
-                }
-            );
-        };
-
-        if ($@) {
-            warn $@;
-
-            if ( !$headers_written ) {
-                $self->_return_xxx( $h, 500 );
-            }
-            else {
-                $self->_finish_request( $h, 0 );
-            }
-        }
-    }
-    else {
-        $self->_return_xxx( $h, 500 );
+        $self->_return_xxx( $h, 500 ) if !$req->{_response_status};
     }
 
     return;
 }
 
+# TODO return error body, based on accept header, htmp, json, or no body
 sub _return_xxx ( $self, $h, $status ) {
     my $reason = Pcore::HTTP::Status->get_reason($status);
 
@@ -370,9 +308,9 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 107                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 131, 293             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 131, 231             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 195                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 171                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 59                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
