@@ -15,7 +15,6 @@ has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
 has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
 has keep_alive => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 has server_signature => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
-has feersum => ( is => 'ro', isa => Bool, default => 0 );
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _cv => ( is => 'lazy', isa => Object, default => sub {AE::cv}, init_arg => undef );
@@ -26,43 +25,10 @@ has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
 # TODO implement shutdown and graceful shutdown
 # TODO disconnect header on finish request
 
-sub BUILD ( $self, $args ) {
-    if ( $self->feersum ) {
-        require Feersum::Runner;
+sub run ($self) {
+    $self->_listen_socket;
 
-        my $feersum = Feersum::Runner->new(
-            listen => [ ( $self->_listen_uri->host || '0.0.0.0' ) . q[:] . $self->_listen_uri->port ],
-            pre_fork => 0,
-            quiet    => 0,
-        );
-
-        $feersum->_prepare;
-
-        $feersum->{endjinn}->psgi_request_handler(
-            sub ($env) {
-                if ( my $psgi_input = delete $env->{'psgi.input'} ) {
-                    if ( $env->{CONTENT_LENGTH} ) {
-                        $env->{'psgi.input'} = q[];
-
-                        $psgi_input->read( $env->{'psgi.input'}, $env->{CONTENT_LENGTH} );
-                    }
-                }
-
-                delete $env->{'psgi.errors'};
-
-                delete $env->{'psgix.io'};
-
-                return $self->{app}->($env);
-            }
-        );
-
-        $self->{_listen_socket} = $feersum;
-    }
-    else {
-        $self->_listen_socket;
-    }
-
-    return;
+    return $self;
 }
 
 sub _build__listen_uri ($self) {
@@ -402,13 +368,13 @@ sub _write_buf ( $self, $h, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 141                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 107                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 165, 327             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 131, 293             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 229                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 195                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 93                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 59                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

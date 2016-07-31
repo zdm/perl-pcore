@@ -1,23 +1,27 @@
 package Pcore::HTTP::Server::Request;
 
-use Pcore -class;
+use Pcore -class, -const;
 
 P->init_demolish(__PACKAGE__);
+
+const our $HTTP_SERVER_RESPONSE_NEW              => 0;
+const our $HTTP_SERVER_RESPONSE_HEADERS_FINISHED => 1;
+const our $HTTP_SERVER_RESPONSE_BODY_STARTED     => 2;
+const our $HTTP_SERVER_RESPONSE_FINISHED         => 3;
 
 has env       => ( is => 'ro', isa => HashRef, required => 1 );
 has responder => ( is => 'ro', isa => CodeRef, required => 1 );
 
-has _headers_written => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
-has _body_written    => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has _response_status => ( is => 'ro', isa => Bool, default => $HTTP_SERVER_RESPONSE_NEW, init_arg => undef );
 
 sub DEMOLISH ( $self, $global ) {
     return;
 }
 
 sub write_headers ( $self, $status, $headers = undef ) {
-    die qq[Headers already written] if $self->{_headers_written};
+    die qq[Headers already written] if $self->{_response_status} > $HTTP_SERVER_RESPONSE_NEW;
 
-    $self->{_headers_written} = 1;
+    $self->{_response_status} = $HTTP_SERVER_RESPONSE_HEADERS_FINISHED;
 
     $self->{responder} = $self->{responder}->( [ $status, $headers // [] ] );
 
@@ -48,7 +52,7 @@ sub finish ( $self, $trailing_headers = undef ) {
 
     die if $self->{_body_written};
 
-    $self->{_body_written} = 1;
+    $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
     $self->{responder}->close($trailing_headers);
 
@@ -64,7 +68,7 @@ sub finish ( $self, $trailing_headers = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 18                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 22                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
