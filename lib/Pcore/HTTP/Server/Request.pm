@@ -133,7 +133,6 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
     return $self;
 }
 
-# TODO 204 - keepalive + body status
 sub finish ( $self, $trailing_headers = undef ) {
     my $response_status = $self->{_response_status};
 
@@ -238,9 +237,9 @@ sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 192                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 191                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 192                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
+## |    3 | 191                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
