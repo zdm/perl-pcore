@@ -154,11 +154,7 @@ sub wait_headers ( $self, $h ) {
                         # evaluate application
                         eval { $self->{app}->($req) };
 
-                        if ($@) {
-                            $@->sendlog;
-
-                            $h->destroy;
-                        }
+                        $@->sendlog if $@;
                     }
 
                     return;
@@ -172,30 +168,25 @@ sub wait_headers ( $self, $h ) {
     return;
 }
 
-sub return_xxx ( $self, $h, $status ) {
-    my $reason = Pcore::HTTP::Status->get_reason($status);
+sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
+    state $responses = {};
 
-    my $body = <<"HTML";
-<html><head><title>$status $reason</title></head><body bgcolor="white"><center><h1>
+    if ( !$responses->{$status}->[$use_keepalive] ) {
+        my $reason = Pcore::HTTP::Status->get_reason($status);
 
-$status $reason
+        my @headers = (    #
+            "HTTP/1.1 $status $reason",
+            'Content-Length:0',
+            ( $self->{server_tokens} ? "Server:$self->{server_tokens}" : () ),
+            ( $use_keepalive         ? 'Connection:keep-alive'         : 'Connection:close' ),
+        );
 
-</h1></center></body></html>
-HTML
+        $responses->{$status}->[$use_keepalive] = join( $CRLF, @headers ) . $CRLF . $CRLF;
+    }
 
-    my @headers = (    #
-        "HTTP/1.1 $status $reason",
-        'Content-Length:' . length $body,
-        'Content-Type:text/html; charset=utf-8',
-        'Connection:close',
-        ( $self->{server_tokens} ? "Server:$self->{server_tokens}" : () ),
-    );
+    $h->push_write( $responses->{$status}->[$use_keepalive] );
 
-    my $buf = join( $CRLF, @headers ) . $CRLF . $CRLF . $body;
-
-    $h->push_write($buf);
-
-    $h->destroy;
+    $h->destroy if !$use_keepalive;
 
     return;
 }

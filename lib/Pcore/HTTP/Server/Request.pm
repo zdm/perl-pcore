@@ -65,7 +65,7 @@ sub _build_has_body ($self) {
 # TODO encode body
 # TODO serialize body related to body ref type and content type
 sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    die q[Unable to write, HTTP response already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
+    die q[Unable to write, HTTP response is already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
 
     my $body;
 
@@ -133,53 +133,50 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
     return $self;
 }
 
+# TODO 204 - keepalive + body status
 sub finish ( $self, $trailing_headers = undef ) {
-    if ( $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED ) {
+    my $response_status = $self->{_response_status};
+
+    if ( $response_status == $HTTP_SERVER_RESPONSE_FINISHED ) {
         die q[Unable to finish HTTP response, already finished];
     }
     else {
-        my $buf;
+
+        # mark request as finished
+        $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
         my $keepalive_timeout = $self->_keepalive_timeout;
 
-        if ( !$self->{_response_status} ) {
+        my $use_keepalive = $keepalive_timeout && !$self->has_body;
+
+        if ( !$response_status ) {
 
             # return 204 No Content - The server successfully processed the request and is not returning any content
-            state $return_204 = "HTTP/1.1 204 @{[Pcore::HTTP::Status->get_reason( 204 )]}${CRLF}Content-Length:0$CRLF" . ( $self->{server_tokens} ? "Server:$self->{_server}->{server_tokens}$CRLF" : q[] );
-
-            $buf = $return_204;
-
-            if ($keepalive_timeout) {
-                $buf .= "Connection:keep-alive$CRLF";
-            }
-            else {
-                $buf .= "Connection:close$CRLF";
-            }
+            $self->{_server}->return_xxx( $self->{_h}, 204, $use_keepalive );
         }
         else {
 
             # write last chunk
-            $buf = "0$CRLF";
+            my $buf = "0$CRLF";
 
             # write trailing headers
             # https://tools.ietf.org/html/rfc7230#section-3.2
             $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $trailing_headers->@* ) . $CRLF if $trailing_headers && $trailing_headers->@*;
+
+            # close response
+            $buf .= $CRLF;
+
+            $self->{_h}->push_write($buf);
         }
 
-        # close response
-        $buf .= $CRLF;
-
-        $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
-
-        $self->{_h}->push_write($buf);
-
-        if ( $self->has_body || !$keepalive_timeout ) {
-            $self->{_h}->destroy;
-        }
-        else {
+        if ($use_keepalive) {
 
             # keepalive
             $self->{_server}->wait_headers( $self->{_h} );
+
+        }
+        else {
+            $self->{_h}->destroy;
         }
 
         undef $self->{_h};
@@ -241,9 +238,9 @@ sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 195                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 192                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 195                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
+## |    3 | 192                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
