@@ -5,7 +5,9 @@ use Pcore -role;
 with qw[Pcore::App::HTTP::Controller];
 
 sub run ($self) {
-    return $self->return_static;
+    $self->return_static;
+
+    return;
 }
 
 1;

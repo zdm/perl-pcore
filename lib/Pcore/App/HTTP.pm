@@ -7,6 +7,9 @@ use Pcore::App::HTTP::Router;
 has app_id => ( is => 'ro', isa => Str, required => 1 );
 has cluster => ( is => 'ro', isa => Maybe [Str] );    # cluster uri, https://host:port/api/
 
+has listen => ( is => 'ro', isa => Str, required => 1 );
+has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
+
 has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::HTTP::API'] ], init_arg => undef );
 has router      => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'],         init_arg => undef );
@@ -27,8 +30,9 @@ sub _build_router ($self) {
 
 sub _build_http_server ($self) {
     return Pcore::HTTP::Server->new(
-        {   listen => '127.0.0.1:80',
-            app    => $self->router,
+        {   listen            => $self->listen,
+            keepalive_timeout => $self->keepalive_timeout,
+            app               => $self->router,
         }
     );
 }
@@ -36,9 +40,10 @@ sub _build_http_server ($self) {
 # TODO start HTTP server
 # TODO die if api controller found, but no api server provided
 sub run ($self) {
-    say dump $self->api->map;
 
-    $self->router;
+    # say dump $self->api->map;
+
+    $self->http_server->run;
 
     return;
 }

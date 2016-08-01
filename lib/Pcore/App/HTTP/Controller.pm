@@ -16,15 +16,17 @@ sub return_static ($self) {
 
             $path = P->path($path);
 
-            return [ 200, [ 'Content-Type' => $path->mime_type ], $data ];
+            $self->req->write( 200, [ 'Content-Type' => $path->mime_type ], $data )->finish;
         }
         else {
-            return [ 404, [], [] ];    # Not Found
+            $self->req->write(404)->finish;    # not found
         }
     }
     else {
-        return [ 403, [], [] ];        # Forbidden
+        $self->req->write(403)->finish;        # forbidden
     }
+
+    return;
 }
 
 1;

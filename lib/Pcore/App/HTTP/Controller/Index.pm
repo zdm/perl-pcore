@@ -6,7 +6,9 @@ with qw[Pcore::App::HTTP::Controller];
 
 around run => sub ( $orig, $self ) {
     if ( $self->path_tail->is_file ) {
-        return $self->return_static;
+        $self->return_static;
+
+        return;
     }
     else {
         return $self->$orig;

@@ -6,11 +6,11 @@ with qw[Pcore::HTTP::Server::Router];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App::HTTP'], required => 1 );
 
-has route       => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has map         => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has index_class => ( is => 'ro',   isa => Str,     init_arg => undef );
 has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
 
-sub _build_route ($self) {
+sub _build_map ($self) {
     my $index_class = ref( $self->app ) . '::Index';
 
     my $controllers = {};
@@ -79,12 +79,12 @@ sub run ( $self, $req ) {
 
     $path = $path->dirname;
 
-    my $route = $self->route;
+    my $map = $self->map;
 
     my $class;
 
-    if ( exists $self->{route}->{$path} ) {
-        $class = $self->{route}->{$path};
+    if ( exists $map->{$path} ) {
+        $class = $map->{$path};
     }
     else {
         my @labels = split /\//sm, $path;
@@ -94,8 +94,8 @@ sub run ( $self, $req ) {
 
             $path = join( '/', @labels ) . '/';
 
-            if ( exists $self->{route}->{$path} ) {
-                $class = $self->{route}->{$path};
+            if ( exists $map->{$path} ) {
+                $class = $map->{$path};
 
                 last;
             }
