@@ -9,12 +9,11 @@ has _h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required
 has env => ( is => 'ro', isa => HashRef, required => 1 );
 
 has _keepalive_timeout => ( is => 'lazy', isa => PositiveOrZeroInt, init_arg => undef );
-has has_body => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
-const our $HTTP_SERVER_RESPONSE_FINISHED => 2;
+const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
 
 P->init_demolish(__PACKAGE__);
 
@@ -48,17 +47,8 @@ sub _build__keepalive_timeout($self) {
     return $keepalive_timeout;
 }
 
-sub _build_has_body ($self) {
-    my $env = $self->{env};
-
-    if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
-        return 1;
-    }
-    elsif ( $env->{CONTENT_LENGTH} ) {
-        return 1;
-    }
-
-    return 0;
+sub body ($self) {
+    return $self->{env}->{'psgi.input'} ? \$self->{env}->{'psgi.input'} : undef;
 }
 
 # TODO convert headers to Camel-Case
@@ -146,7 +136,7 @@ sub finish ( $self, $trailing_headers = undef ) {
 
         my $keepalive_timeout = $self->_keepalive_timeout;
 
-        my $use_keepalive = $keepalive_timeout && !$self->has_body;
+        my $use_keepalive = !!$keepalive_timeout;
 
         if ( !$response_status ) {
 
@@ -184,65 +174,7 @@ sub finish ( $self, $trailing_headers = undef ) {
     return;
 }
 
-# -----------------------------------------------------------------
-
-# TODO control read timeout, return status 408 - Request timeout
-# TODO control max body size, return 413 - Request Entity Too Large
-sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
-    if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
-        $self->_read_body( $h, $env, 1, 0 );
-    }
-    elsif ( $env->{CONTENT_LENGTH} ) {
-        $self->_read_body( $h, $env, 0, $env->{CONTENT_LENGTH} );
-    }
-    else {
-        $env->{'psgi.input'} = undef;
-
-        $self->_run_app( $h, $env );
-    }
-
-    $h->read_http_body(
-        sub ( $h, $buf_ref, $total_bytes_readed, $error_message ) {
-            if ($error_message) {
-                $self->_return_xxx( $h, 400 );
-            }
-            else {
-                if ( !$buf_ref ) {
-                    $self->_run_app( $h, $env );
-                }
-                else {
-                    $env->{'psgi.input'} .= $buf_ref->$*;
-
-                    $env->{CONTENT_LENGTH} = $total_bytes_readed;
-
-                    return 1;
-                }
-            }
-
-            return;
-        },
-        chunked  => $chunked,
-        length   => $content_length,
-        headers  => 0,
-        buf_size => 65_536,
-    );
-
-    return;
-}
-
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 191                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 191                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

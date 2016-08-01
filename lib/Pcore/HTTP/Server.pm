@@ -21,7 +21,6 @@ has client_body_timeout   => ( is => 'ro', isa => PositiveInt,       default => 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
 
-# TODO implement content length - https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
 # TODO implement shutdown and graceful shutdown
 
 sub run ($self) {
@@ -66,6 +65,65 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     return;
 }
 
+# TODO implement content length - https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
+sub _read_body ( $self, $h, $env, $cb ) {
+    my ( $chunked, $content_length ) = ( 0, 0 );
+
+    if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
+        $chunked = 1;
+    }
+    elsif ( $env->{CONTENT_LENGTH} ) {
+        $content_length = $env->{CONTENT_LENGTH};
+    }
+    else {
+
+        # no body
+        $cb->(undef);
+
+        return;
+    }
+
+    $h->timeout( $self->{client_body_timeout} );
+
+    $h->on_timeout(
+        sub {
+            $cb->(408);
+        }
+    );
+
+    $h->read_http_body(
+        sub ( $h1, $buf_ref, $total_bytes_readed, $error_message ) {
+            if ($error_message) {
+                $cb->(400);
+            }
+            else {
+                if ( !$buf_ref ) {
+                    $h->timeout(undef);
+
+                    $h->on_timeout(undef);
+
+                    $cb->(undef);
+                }
+                else {
+                    $env->{'psgi.input'} .= $buf_ref->$*;
+
+                    $env->{CONTENT_LENGTH} = $total_bytes_readed;
+
+                    return 1;
+                }
+            }
+
+            return;
+        },
+        chunked  => $chunked,
+        length   => $content_length,
+        headers  => 0,
+        buf_size => 65_536,
+    );
+
+    return;
+}
+
 sub wait_headers ( $self, $h ) {
     state $destroy = sub ( $h, @ ) {
         $h->destroy;
@@ -94,7 +152,7 @@ sub wait_headers ( $self, $h ) {
 
         # extensions
         'psgix.io'              => undef,
-        'psgix.input.buffered'  => 0,
+        'psgix.input.buffered'  => 1,
         'psgix.logger'          => undef,
         'psgix.session'         => undef,
         'psgix.session.options' => undef,
@@ -142,19 +200,34 @@ sub wait_headers ( $self, $h ) {
                         # create env
                         $env->@{ keys $psgi_env->%* } = values $psgi_env->%*;
 
-                        # create request object
-                        my $req = bless {
-                            _server          => $self,
-                            _h               => $h,
-                            env              => $env,
-                            _response_status => 0,
-                          },
-                          'Pcore::HTTP::Server::Request';
+                        $self->_read_body(
+                            $h, $env,
+                            sub ($body_error_status) {
+                                if ($body_error_status) {
 
-                        # evaluate application
-                        eval { $self->{app}->($req) };
+                                    # body read error
+                                    $self->return_xxx( $h, $body_error_status );
+                                }
+                                else {
 
-                        $@->sendlog if $@;
+                                    # create request object
+                                    my $req = bless {
+                                        _server          => $self,
+                                        _h               => $h,
+                                        env              => $env,
+                                        _response_status => 0,
+                                      },
+                                      'Pcore::HTTP::Server::Request';
+
+                                    # evaluate application
+                                    eval { $self->{app}->($req) };
+
+                                    $@->sendlog if $@;
+                                }
+
+                                return;
+                            }
+                        );
                     }
 
                     return;
@@ -198,11 +271,11 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 143                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 201                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 155                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 223                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 58                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 57                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
