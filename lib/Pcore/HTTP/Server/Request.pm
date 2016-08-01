@@ -1,85 +1,209 @@
 package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const;
-
-P->init_demolish(__PACKAGE__);
-
-const our $HTTP_SERVER_RESPONSE_NEW              => 0;
-const our $HTTP_SERVER_RESPONSE_HEADERS_FINISHED => 1;
-const our $HTTP_SERVER_RESPONSE_BODY_STARTED     => 2;
-const our $HTTP_SERVER_RESPONSE_FINISHED         => 3;
+use Pcore::HTTP::Status;
+use Pcore::Util::List qw[pairs];
 
 has _server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1 );
 has _h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
 has env => ( is => 'ro', isa => HashRef, required => 1 );
 
-has _keep_alive => ( is => 'lazy', isa => PositiveOrZeroInt, init_arg => undef );
+has _keepalive_timeout => ( is => 'lazy', isa => PositiveOrZeroInt, init_arg => undef );
+has has_body => ( is => 'lazy', isa => Bool, init_arg => undef );
 
-has _response_status => ( is => 'ro', isa => Bool, default => $HTTP_SERVER_RESPONSE_NEW, init_arg => undef );
+has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
-sub DEMOLISH ( $self, $global ) {
-    return;
-}
+const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
+const our $HTTP_SERVER_RESPONSE_FINISHED => 2;
 
-sub _build__keep_alive($self) {
-    my $env = $self->{env};
+sub _build__keepalive_timeout($self) {
+    my $keepalive_timeout = $self->{_server}->{keepalive_timeout};
 
-    my $keep_alive = $self->{_server}->{keep_alive};
+    if ($keepalive_timeout) {
+        my $env = $self->{env};
 
-    if ($keep_alive) {
         if ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.1' ) {
-            $keep_alive = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smi;
+            $keepalive_timeout = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smi;
         }
         elsif ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.0' ) {
-            $keep_alive = 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smi;
+            $keepalive_timeout = 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smi;
         }
         else {
-            $keep_alive = 0;
+            $keepalive_timeout = 0;
         }
     }
 
-    return $keep_alive;
+    return $keepalive_timeout;
 }
 
-sub write_headers ( $self, $status, $headers = undef ) {
-    die qq[Headers already written] if $self->{_response_status} > $HTTP_SERVER_RESPONSE_NEW;
+sub _build_has_body ($self) {
+    my $env = $self->{env};
 
-    $self->{_response_status} = $HTTP_SERVER_RESPONSE_HEADERS_FINISHED;
+    if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
+        return 1;
+    }
+    elsif ( $env->{CONTENT_LENGTH} ) {
+        return 1;
+    }
 
-    $self->{_server}->_write_psgi_response( $self->{_h}, [ $status, $headers // [] ], $self->_keep_alive, 1 );
-
-    return $self;
+    return 0;
 }
 
-# TODO implement buffered chunk write
+# TODO test - can I return valid response without read body comletely???
+# TODO how to handle errors in AE callback and close connection???
+
+# TODO convert headers to Camel-Case
+# TODO encode body
+# TODO serialize body related to body ref type and content type
 sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    die qq[Unable to write, HTTP response already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
+
+    my $body;
+
     if ( !$self->{_response_status} ) {
-        $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
-        $self->{_server}->_write_psgi_response( $self->{_h}, [ splice @_, 1 ], $self->_keep_alive, 0 );
+        # compose headers
+        # https://tools.ietf.org/html/rfc7230#section-3.2
+        my $headers = do {
+            if ( !ref $_[1] ) {
+                "HTTP/1.1 $_[1] " . Pcore::HTTP::Status->get_reason( $_[1] ) . $CRLF;
+            }
+            else {
+                "HTTP/1.1 $_[1]->[0] $_[1]->[1]$CRLF";
+            }
+        };
 
-        $self->{_server}->_finish_request( $self->{_h}, $self->_keep_alive );
+        $headers .= "Server:$self->{_server}->{server_tokens}$CRLF" if $self->{server_tokens};
+
+        # always use chunked transfer
+        $headers .= "Transfer-Encoding:chunked$CRLF";
+
+        if ( $self->_keepalive_timeout ) {
+            $headers .= "Connection:keep-alive$CRLF";
+        }
+        else {
+            $headers .= "Connection:close$CRLF";
+        }
+
+        # TODO convert headers to Camel-Case
+        $headers .= join( $CRLF, map {"$_->[0]:$_->[1]"} pairs $_[2]->@* ) . $CRLF if $_[2] && $_[2]->@*;
+
+        $headers .= $CRLF;
+
+        $self->{_h}->push_write($headers);
+
+        \$body = \$_[3] if $_[3];
+
+        $self->{_response_status} = $HTTP_SERVER_RESPONSE_STARTED;
     }
     else {
-        die if $self->{_response_status} == $HTTP_SERVER_RESPONSE_HEADERS_FINISHED;
+        \$body = \$_[1];
+    }
 
-        # TODO implement buffered chunk write
-        $self->{_server}->_write_psgi_response( $self->{_h}, \$_[1] );
+    if ($body) {
+        my $body_ref = ref $body;
+
+        if ( !$body_ref ) {
+            $self->{_h}->push_write( sprintf( '%x', bytes::length $body ) . $CRLF . $body . $CRLF );
+        }
+        elsif ( $body_ref eq 'SCALAR' ) {
+            $self->{_h}->push_write( sprintf( '%x', bytes::length $body->$* ) . $CRLF . $body->$* . $CRLF );
+        }
+        elsif ( $body_ref eq 'ARRAY' ) {
+            my $buf = join q[], $body->@*;
+
+            $self->{_h}->push_write( sprintf( '%x', bytes::length $buf ) . $CRLF . $buf . $CRLF );
+        }
+        else {
+
+            # TODO add support for other body types
+            die q[Body type isn't supported];
+        }
     }
 
     return $self;
 }
 
-# TODO inplement writer close method
+# TODO return 204 No Content - The server successfully processed the request and is not returning any content
 sub finish ( $self, $trailing_headers = undef ) {
+    if ( !$self->{_response_status} ) {
 
-    # die if !$self->{_headers_written};
-
-    # die if $self->{_body_written};
+        # TODO return 204 No Content - The server successfully processed the request and is not returning any content
+    }
+    elsif ( $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED ) {
+        die q[Unable to finish HTTP response, already finished];
+    }
 
     $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
-    $self->{_server}->_finish_request( $self->{_h}, $self->_keep_alive );
+    # write last chunk
+    my $buf = "0$CRLF";
+
+    # write trailing headers
+    # https://tools.ietf.org/html/rfc7230#section-3.2
+    $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $trailing_headers->@* ) . $CRLF if $trailing_headers && $trailing_headers->@*;
+
+    # close response
+    $buf .= $CRLF;
+
+    $self->{_h}->push_write($buf);
+
+    if ( $self->has_body || !$self->_keepalive_timeout ) {
+        $self->{_h}->destroy;
+    }
+    else {
+
+        # keepalive
+        $self->{_server}->wait_headers( $self->{_h} );
+    }
+
+    undef $self->{_h};
+
+    return;
+}
+
+# -----------------------------------------------------------------
+
+# TODO control read timeout, return status 408 - Request timeout
+# TODO control max body size, return 413 - Request Entity Too Large
+sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
+    if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
+        $self->_read_body( $h, $env, 1, 0 );
+    }
+    elsif ( $env->{CONTENT_LENGTH} ) {
+        $self->_read_body( $h, $env, 0, $env->{CONTENT_LENGTH} );
+    }
+    else {
+        $env->{'psgi.input'} = undef;
+
+        $self->_run_app( $h, $env );
+    }
+
+    $h->read_http_body(
+        sub ( $h, $buf_ref, $total_bytes_readed, $error_message ) {
+            if ($error_message) {
+                $self->_return_xxx( $h, 400 );
+            }
+            else {
+                if ( !$buf_ref ) {
+                    $self->_run_app( $h, $env );
+                }
+                else {
+                    $env->{'psgi.input'} .= $buf_ref->$*;
+
+                    $env->{CONTENT_LENGTH} = $total_bytes_readed;
+
+                    return 1;
+                }
+            }
+
+            return;
+        },
+        chunked  => $chunked,
+        length   => $content_length,
+        headers  => 0,
+        buf_size => 65_536,
+    );
 
     return;
 }
@@ -91,7 +215,11 @@ sub finish ( $self, $trailing_headers = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 45                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 59                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 169                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 169                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
