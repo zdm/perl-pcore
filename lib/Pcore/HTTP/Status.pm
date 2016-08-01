@@ -35,6 +35,7 @@ const our $STATUS_REASON => {
     206 => 'Partial Content',
     207 => 'Multi-Status',                    # RFC 2518 (WebDAV)
     208 => 'Already Reported',                # RFC 5842
+    226 => 'IM Used',
 
     # 300
     300 => 'Multiple Choices',
@@ -43,6 +44,7 @@ const our $STATUS_REASON => {
     303 => 'See Other',
     304 => 'Not Modified',
     305 => 'Use Proxy',
+    306 => 'Switch Proxy',
     307 => 'Temporary Redirect',
     308 => 'Permanent Redirect',              # RFC 7238
 
@@ -60,12 +62,13 @@ const our $STATUS_REASON => {
     410 => 'Gone',
     411 => 'Length Required',
     412 => 'Precondition Failed',
-    413 => 'Request Entity Too Large',
-    414 => 'Request-URI Too Large',
+    413 => 'Payload Too Large',
+    414 => 'URI Too Long',
     415 => 'Unsupported Media Type',
-    416 => 'Request Range Not Satisfiable',
+    416 => 'Range Not Satisfiable',
     417 => 'Expectation Failed',
     418 => q[I'm a teapot],                     # RFC 2324
+    421 => 'Misdirected Request',
     422 => 'Unprocessable Entity',              # RFC 2518 (WebDAV)
     423 => 'Locked',                            # RFC 2518 (WebDAV)
     424 => 'Failed Dependency',                 # RFC 2518 (WebDAV)
@@ -75,6 +78,7 @@ const our $STATUS_REASON => {
     429 => 'Too Many Requests',
     431 => 'Request Header Fields Too Large',
     449 => 'Retry with',                        # unofficial Microsoft
+    451 => 'Unavailable For Legal Reasons',
 
     # 500
     500 => 'Internal Server Error',
@@ -85,6 +89,7 @@ const our $STATUS_REASON => {
     505 => 'HTTP Version Not Supported',
     506 => 'Variant Also Negotiates',           # RFC 2295
     507 => 'Insufficient Storage',              # RFC 2518 (WebDAV)
+    508 => 'Loop Detected',
     509 => 'Bandwidth Limit Exceeded',          # unofficial
     510 => 'Not Extended',                      # RFC 2774
     511 => 'Network Authentication Required',

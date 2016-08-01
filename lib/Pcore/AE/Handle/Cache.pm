@@ -61,12 +61,14 @@ sub store ( $self, $h, $timeout = undef ) {
     $h->on_eof($destroy);
     $h->on_read($destroy);
     $h->on_timeout(undef);
+
     $h->timeout_reset;
     $h->timeout( $timeout || $self->default_timeout );
 
     return;
 }
 
+# TODO detect, if $h is not closed
 sub fetch ( $self, $key ) {
     return if !exists $self->{connection}->{$key};
 
@@ -83,6 +85,8 @@ sub fetch ( $self, $key ) {
             delete $self->{connection}->{$_} if !$self->{connection}->{$_}->has_items;
         }
     }
+
+    # return if $h->destroyed;
 
     $h->on_error(undef);
     $h->on_eof(undef);
