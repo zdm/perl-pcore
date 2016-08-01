@@ -16,6 +16,18 @@ has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => und
 const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
 const our $HTTP_SERVER_RESPONSE_FINISHED => 2;
 
+P->init_demolish(__PACKAGE__);
+
+sub DEMOLISH ( $self, $global ) {
+    if ( !$global && $self->{_response_status} != $HTTP_SERVER_RESPONSE_FINISHED ) {
+
+        # request is destroyed without ->finish call, possible unhandled error in AE callback
+        $self->{_server}->return_xxx( $self->{_h}, 500 );
+    }
+
+    return;
+}
+
 sub _build__keepalive_timeout($self) {
     my $keepalive_timeout = $self->{_server}->{keepalive_timeout};
 
@@ -49,14 +61,11 @@ sub _build_has_body ($self) {
     return 0;
 }
 
-# TODO test - can I return valid response without read body comletely???
-# TODO how to handle errors in AE callback and close connection???
-
 # TODO convert headers to Camel-Case
 # TODO encode body
 # TODO serialize body related to body ref type and content type
 sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    die qq[Unable to write, HTTP response already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
+    die q[Unable to write, HTTP response already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
 
     my $body;
 
@@ -124,40 +133,57 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
     return $self;
 }
 
-# TODO return 204 No Content - The server successfully processed the request and is not returning any content
 sub finish ( $self, $trailing_headers = undef ) {
-    if ( !$self->{_response_status} ) {
-
-        # TODO return 204 No Content - The server successfully processed the request and is not returning any content
-    }
-    elsif ( $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED ) {
+    if ( $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED ) {
         die q[Unable to finish HTTP response, already finished];
     }
-
-    $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
-
-    # write last chunk
-    my $buf = "0$CRLF";
-
-    # write trailing headers
-    # https://tools.ietf.org/html/rfc7230#section-3.2
-    $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $trailing_headers->@* ) . $CRLF if $trailing_headers && $trailing_headers->@*;
-
-    # close response
-    $buf .= $CRLF;
-
-    $self->{_h}->push_write($buf);
-
-    if ( $self->has_body || !$self->_keepalive_timeout ) {
-        $self->{_h}->destroy;
-    }
     else {
+        my $buf;
 
-        # keepalive
-        $self->{_server}->wait_headers( $self->{_h} );
+        my $keepalive_timeout = $self->_keepalive_timeout;
+
+        if ( !$self->{_response_status} ) {
+
+            # return 204 No Content - The server successfully processed the request and is not returning any content
+            state $return_204 = "HTTP/1.1 204 @{[Pcore::HTTP::Status->get_reason( 204 )]}${CRLF}Content-Length:0$CRLF" . ( $self->{server_tokens} ? "Server:$self->{_server}->{server_tokens}$CRLF" : q[] );
+
+            $buf = $return_204;
+
+            if ($keepalive_timeout) {
+                $buf .= "Connection:keep-alive$CRLF";
+            }
+            else {
+                $buf .= "Connection:close$CRLF";
+            }
+        }
+        else {
+
+            # write last chunk
+            $buf = "0$CRLF";
+
+            # write trailing headers
+            # https://tools.ietf.org/html/rfc7230#section-3.2
+            $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $trailing_headers->@* ) . $CRLF if $trailing_headers && $trailing_headers->@*;
+        }
+
+        # close response
+        $buf .= $CRLF;
+
+        $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
+
+        $self->{_h}->push_write($buf);
+
+        if ( $self->has_body || !$keepalive_timeout ) {
+            $self->{_h}->destroy;
+        }
+        else {
+
+            # keepalive
+            $self->{_server}->wait_headers( $self->{_h} );
+        }
+
+        undef $self->{_h};
     }
-
-    undef $self->{_h};
 
     return;
 }
@@ -215,11 +241,9 @@ sub _read_body ( $self, $h, $env, $chunked, $content_length ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 195                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 169                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 169                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
+## |    3 | 195                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_read_body' declared but not used   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

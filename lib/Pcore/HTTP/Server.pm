@@ -14,10 +14,9 @@ has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
 has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
 
 has server_tokens => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
-has keepalive_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );             # 0 - disable keepalive
+has keepalive_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - disable keepalive
 has client_header_timeout => ( is => 'ro', isa => PositiveInt,       default => 60 );
 has client_body_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
-has client_max_body_size  => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 );    # 0 - unlimited
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
@@ -140,18 +139,6 @@ sub wait_headers ( $self, $h ) {
                         # clear client header timeout
                         $h->timeout(undef);
 
-                        # check content length if client_max_body_size is specified
-                        if ( $self->{client_max_body_size} && $env->{CONTENT_LENGTH} && $env->{CONTENT_LENGTH} > $self->{client_max_body_size} ) {
-
-                            # return standard error response and destroy handle
-                            # 413 - Payload Too Large
-                            $self->return_xxx( $h, 413 );
-
-                            return;
-                        }
-
-                        # TODO return 411 - Length Required if !exists CONTENT_LENGTH and not chunked
-
                         # create env
                         $env->@{ keys $psgi_env->%* } = values $psgi_env->%*;
 
@@ -170,15 +157,7 @@ sub wait_headers ( $self, $h ) {
                         if ($@) {
                             $@->sendlog;
 
-                            if ( !$req->{_response_status} ) {
-
-                                # return standard error response and destroy handle
-                                # 500 - Internal Server Error
-                                $self->return_xxx( $h, 500 );
-                            }
-                            else {
-                                $h->destroy;
-                            }
+                            $h->destroy;
                         }
                     }
 
@@ -228,11 +207,11 @@ HTML
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 156                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 143                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 168                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 155                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 59                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 58                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
