@@ -42,13 +42,17 @@ sub _build_http_server ($self) {
 }
 
 # TODO start HTTP server
-# TODO die if api controller found, but no api server provided
 sub run ($self) {
-    say dump $self->api->map;
+
+    # scan router classes
+    $self->router->map;
+
+    # die if API controller found, but no API server provided
+    die q[API is required] if $self->router->api_class && !$self->api;
 
     $self->api->upload_api_map;
 
-    # $self->http_server->run;
+    $self->http_server->run;
 
     return;
 }
