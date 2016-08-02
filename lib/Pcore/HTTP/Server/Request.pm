@@ -3,6 +3,8 @@ package Pcore::HTTP::Server::Request;
 use Pcore -class, -const;
 use Pcore::HTTP::Status;
 use Pcore::Util::List qw[pairs];
+use Pcore::Util::Text qw[encode_utf8];
+use Digest::SHA1 qw[];
 
 has _server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1 );
 has _h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
@@ -14,6 +16,8 @@ has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => und
 
 const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
 const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
+
+const our $WS_GUID => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 P->init_demolish(__PACKAGE__);
 
@@ -52,7 +56,6 @@ sub body ($self) {
 }
 
 # TODO convert headers to Camel-Case
-# TODO encode body
 # TODO serialize body related to body ref type and content type
 sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     die q[Unable to write, HTTP response is already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
@@ -103,13 +106,13 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
         my $body_ref = ref $body;
 
         if ( !$body_ref ) {
-            $self->{_h}->push_write( sprintf( '%x', bytes::length $body ) . $CRLF . $body . $CRLF );
+            $self->{_h}->push_write( sprintf( '%x', bytes::length $body ) . $CRLF . encode_utf8($body) . $CRLF );
         }
         elsif ( $body_ref eq 'SCALAR' ) {
-            $self->{_h}->push_write( sprintf( '%x', bytes::length $body->$* ) . $CRLF . $body->$* . $CRLF );
+            $self->{_h}->push_write( sprintf( '%x', bytes::length $body->$* ) . $CRLF . encode_utf8( $body->$* ) . $CRLF );
         }
         elsif ( $body_ref eq 'ARRAY' ) {
-            my $buf = join q[], $body->@*;
+            my $buf = join q[], map { encode_utf8 $_} $body->@*;
 
             $self->{_h}->push_write( sprintf( '%x', bytes::length $buf ) . $CRLF . $buf . $CRLF );
         }
@@ -172,6 +175,42 @@ sub finish ( $self, $trailing_headers = undef ) {
     }
 
     return;
+}
+
+sub accept_websocket ($self) {
+
+    # HTTP_SEC_WEBSOCKET_EXTENSIONS => "permessage-deflate"
+
+    # HTTP_SEC_WEBSOCKET_VERSION => 13 handshake
+
+    state $header = do {
+        my $reason = Pcore::HTTP::Status->get_reason(101);
+
+        my @headers = (    #
+            "HTTP/1.1 101 $reason",
+            'Content-Length:0',
+            'Upgrade:WebSocket',
+            'Connection:upgrade',
+            ( $self->{server_tokens} ? "Server:$self->{server_tokens}" : () ),
+        );
+
+        join( $CRLF, @headers ) . $CRLF;
+    };
+
+    my $buf = $header;
+
+    $buf .= 'Sec-WebSocket-Accept:' . P->data->to_b64( Digest::SHA1::sha1( ( $self->env->{HTTP_SEC_WEBSOCKET_KEY} || q[] ) . $WS_GUID ), q[] ) . $CRLF;
+
+    # ' WebSocket-Origin '     => ' http : // 127.0.0.1 : 80 / ',
+    # ' WebSocket-Location '   => ' ws   : // 127.0.0.1 : 80 / websocket /',
+
+    $buf .= $CRLF;
+
+    $self->{_h}->push_write($buf);
+
+    $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
+
+    return $self->_h;
 }
 
 1;

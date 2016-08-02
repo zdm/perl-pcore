@@ -8,28 +8,7 @@ with qw[Pcore::App::Controller];
 # https://learn.javascript.ru/websockets
 
 sub run ($self) {
-    my $h = $self->req->_h;
-
-    # "HTTP_SEC_WEBSOCKET_EXTENSIONS" => "permessage-deflate" # ASCII, bytes::len = 18,
-
-    # say dump $self->req->env;
-
-    my $ac = P->data->to_b64( Digest::SHA1::sha1( $self->req->env->{HTTP_SEC_WEBSOCKET_KEY} . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11' ) );
-    $ac =~ s/\n//smg;
-
-    # HTTP_SEC_WEBSOCKET_VERSION 13 handshake
-    $self->req->write(
-        101,
-        [   Upgrade                => 'WebSocket',
-            Connection             => 'Upgrade',
-            'Sec-WebSocket-Accept' => $ac,
-
-            # 'WebSocket-Origin'     => 'http://127.0.0.1:80/',
-            # 'WebSocket-Location'   => 'ws://127.0.0.1:80/websocket/',
-        ]
-    );
-
-    $self->req->{_response_status} = $Pcore::HTTP::Server::Request::HTTP_SERVER_RESPONSE_FINISHED;
+    my $h = $self->req->accept_websocket;
 
     say 'CONNECTED';
 
@@ -127,13 +106,11 @@ sub build_frame ( $self, $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $payload ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 11                   | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 64                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 85                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    2 | 81                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 102                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 110                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 89                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
