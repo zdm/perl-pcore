@@ -12,11 +12,12 @@ has on_text  => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_bin   => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_close => ( is => 'ro', isa => Maybe [CodeRef] );
 
+has status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # remote close status
+
 has _msg_op         => ( is => 'ro',   isa => Str,      init_arg => undef );
 has _msg_buf        => ( is => 'ro',   isa => ArrayRef, init_arg => undef );
 has _ping_callbacks => ( is => 'lazy', isa => ArrayRef, default  => sub { [] }, init_arg => undef );
 has _close_sent => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
-has status      => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # remote close status
 
 const our $WS_GUID => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
@@ -27,13 +28,21 @@ const our $WS_CLOSE        => 0x8;
 const our $WS_PING         => 0x9;
 const our $WS_PONG         => 0xa;
 
-const our $WS_CLOSE_NORMAL          => 1000;                                        # normal close
-const our $WS_CLOSE_GONE            => 1001;                                        # удалённая сторона «исчезла». Например, процесс сервера убит или браузер перешёл на другую страницу
-const our $WS_CLOSE_PROTOCOL_ERROR  => 1002;                                        # protocol error
-const our $WS_CLOSE_INVALID_OPCODE  => 1003;                                        # unsupported message opcode
+const our $WS_CLOSE_NORMAL          => 1000;    # normal close
+const our $WS_CLOSE_GONE            => 1001;    # удалённая сторона «исчезла». Например, процесс сервера убит или браузер перешёл на другую страницу
+const our $WS_CLOSE_PROTOCOL_ERROR  => 1002;    # protocol error
+const our $WS_CLOSE_INVALID_OPCODE  => 1003;    # unsupported message opcode
 const our $WS_CLOSE_FRAME_TOO_LARGE => 1010;
 
-# TODO process handle on_error callback
+# TODO process handle on_error callback;
+# TODO store server connections in global cache by object refaddr, remove on destroy;
+# TODO implement reconnect feature for clients;
+# TODO implement ping on timeout feature for servers;
+# TODO on_disconnect handle;
+# TODO on_connect handle;
+# TODO max_frame_length - can be "0" - do not check length;
+# TODO implement ping timeout;
+# TODO validate ping data on pong;
 
 sub DEMOLISH ( $self, $global ) {
     $self->close($WS_CLOSE_GONE) if !$global;
@@ -41,8 +50,8 @@ sub DEMOLISH ( $self, $global ) {
     return;
 }
 
-# TODO
-sub connect ( $self, $url, @ ) {                                                    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+# TODO generate key, validate key on response
+sub connect ( $self, $url, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my %args = (
         on_error        => undef,
         on_connect      => undef,
@@ -430,24 +439,24 @@ sub _xor_encode ( $data_ref, $mask ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 145                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
+## |    3 | 154                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | NamingConventions::ProhibitAmbiguousNames                                                                      |
-## |      | 244                  | * Ambiguously named subroutine "close"                                                                         |
-## |      | 348, 350             | * Ambiguously named variable "second"                                                                          |
+## |      | 253                  | * Ambiguously named subroutine "close"                                                                         |
+## |      | 357, 359             | * Ambiguously named variable "second"                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 306                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 315                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 346                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
+## |    3 | 355                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
 ## |      |                      | "unless"                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 324                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 333                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 419                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 428                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 46                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 55                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 332, 348, 419, 421   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 341, 357, 428, 430   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

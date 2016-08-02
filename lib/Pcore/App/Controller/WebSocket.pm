@@ -1,11 +1,30 @@
 package Pcore::App::Controller::WebSocket;
 
 use Pcore -role;
+use Pcore::API::WebSocket;
 
 with qw[Pcore::App::Controller];
 
 sub run ($self) {
-    my $h = $self->req->accept_websocket;
+    my $ws = Pcore::API::WebSocket->new(
+        {   h       => $self->req->accept_websocket,
+            on_text => sub ($data_ref) {
+                $self->on_text($data_ref);
+
+                return;
+            },
+            on_bin => sub ($data_ref) {
+                $self->on_bin($data_ref);
+
+                return;
+            },
+            on_close => sub ($status) {
+                $self->on_close($status);
+
+                return;
+            }
+        }
+    )->listen;
 
     return;
 }
