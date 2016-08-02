@@ -1,9 +1,9 @@
-package Pcore::App::HTTP::Controller::WebSocket;
+package Pcore::App::Controller::WebSocket;
 
 use Pcore -role;
 use Digest::SHA1 qw[];
 
-with qw[Pcore::App::HTTP::Controller];
+with qw[Pcore::App::Controller];
 
 # https://learn.javascript.ru/websockets
 
@@ -144,7 +144,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::HTTP::Controller::WebSocket
+Pcore::App::Controller::WebSocket
 
 =head1 SYNOPSIS
 

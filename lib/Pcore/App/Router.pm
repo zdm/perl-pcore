@@ -1,10 +1,10 @@
-package Pcore::App::HTTP::Router;
+package Pcore::App::Router;
 
 use Pcore -class;
 
 with qw[Pcore::HTTP::Server::Router];
 
-has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App::HTTP'], required => 1 );
+has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has map         => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has index_class => ( is => 'ro',   isa => Str,     init_arg => undef );
@@ -48,16 +48,16 @@ sub _build_map ($self) {
     for my $class ( sort keys $controllers->%* ) {
         P->class->load($class);
 
-        if ( !$class->does('Pcore::App::HTTP::Controller') ) {
-            die qq["$class" is not a consumer of "Pcore::App::HTTP::Controller"];
+        if ( !$class->does('Pcore::App::Controller') ) {
+            die qq["$class" is not a consumer of "Pcore::App::Controller"];
         }
         else {
-            if ( $class->does('Pcore::App::HTTP::Controller::Index') ) {
+            if ( $class->does('Pcore::App::Controller::Index') ) {
 
                 # index controller
                 $self->{index_class} = $class;
             }
-            elsif ( $class->does('Pcore::App::HTTP::Controller::API') ) {
+            elsif ( $class->does('Pcore::App::Controller::API') ) {
 
                 # api controller
                 $self->{api_class} = $class;
@@ -65,7 +65,7 @@ sub _build_map ($self) {
         }
     }
 
-    die qq[Index controller "$index_class" was not found or nor a consumer of "Pcore::App::HTTP::Controller::Index"] if !$self->{index_class};
+    die qq[Index controller "$index_class" was not found or nor a consumer of "Pcore::App::Controller::Index"] if !$self->{index_class};
 
     return { reverse $controllers->%* };
 }
@@ -135,7 +135,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::HTTP::Router
+Pcore::App::Router
 
 =head1 SYNOPSIS
 

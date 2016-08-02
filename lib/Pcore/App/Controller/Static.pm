@@ -1,11 +1,12 @@
-package Pcore::App::HTTP::Controller::API;
+package Pcore::App::Controller::Static;
 
 use Pcore -role;
 
-with qw[Pcore::App::HTTP::Controller];
+with qw[Pcore::App::Controller];
 
-# TODO get auth from token, then from cookies
 sub run ($self) {
+    $self->return_static;
+
     return;
 }
 
@@ -17,7 +18,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::HTTP::Controller::API
+Pcore::App::Controller::Static
 
 =head1 SYNOPSIS
 

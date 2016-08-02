@@ -1,8 +1,8 @@
-package Pcore::App::HTTP;
+package Pcore::App;
 
 use Pcore -role;
 use Pcore::HTTP::Server;
-use Pcore::App::HTTP::Router;
+use Pcore::App::Router;
 
 has app_id => ( is => 'ro', isa => Str, required => 1 );
 has cluster => ( is => 'ro', isa => Maybe [Str] );    # cluster uri, https://host:port/api/
@@ -10,7 +10,7 @@ has cluster => ( is => 'ro', isa => Maybe [Str] );    # cluster uri, https://hos
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 
-has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::HTTP::API'] ], init_arg => undef );
+has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
 has router      => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'],         init_arg => undef );
 
@@ -19,13 +19,13 @@ sub _build_api ($self) {
 
     return if $@;
 
-    die qq[API class "$api_class" is not consumer of "Pcore::App::HTTP::API"] if !$api_class->does('Pcore::App::HTTP::API');
+    die qq[API class "$api_class" is not consumer of "Pcore::App::API"] if !$api_class->does('Pcore::App::API');
 
     return $api_class->new( { app => $self } );
 }
 
 sub _build_router ($self) {
-    return Pcore::App::HTTP::Router->new( { app => $self } );
+    return Pcore::App::Router->new( { app => $self } );
 }
 
 sub _build_http_server ($self) {
@@ -56,7 +56,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::HTTP
+Pcore::App
 
 =head1 SYNOPSIS
 
