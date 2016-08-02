@@ -6,11 +6,12 @@ use Pcore::App::API::Session;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
+has app_id => ( is => 'lazy', isa => Str, init_arg => undef );
 has auth => ( is => 'lazy', isa => ConsumerOf ['Pcore::App::API::Auth'], init_arg => 'undef' );
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-sub _build__auth ($self) {
-    return $self->{app}->{auth};
+sub _build_app_id ($self) {
+    return $self->{app}->app_id;
 }
 
 sub _build_auth ($self) {
@@ -19,10 +20,10 @@ sub _build_auth ($self) {
     if ( !ref $self->{app}->{auth} ) {
         require Pcore::App::API::Auth::Local;
 
-        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => P->handle( $self->{_auth} ) } );
+        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => P->handle( $self->{app}->{auth} ) } );
     }
     elsif ( $self->{app}->{auth}->does('Pcore::DBH') ) {
-        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => $self->{_auth} } );
+        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => $self->{app}->{auth} } );
     }
     else {
         $auth = $self->{app}->{auth};
@@ -159,9 +160,9 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65, 93, 97           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 66, 94, 98           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 56                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 57                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -7,8 +7,12 @@ use Pcore::App::Router;
 has app_id => ( is => 'ro', isa => Str, required => 1 );
 has cluster => ( is => 'ro', isa => Maybe [Str] );    # cluster uri, https://host:port/api/
 
+# HTTP server settings
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
+
+# API settings
+has auth => ( is => 'ro', isa => Maybe [ Str | ConsumerOf ['Pcore::DBH'] | ConsumerOf ['Pcore::App::API::Auth'] ] );
 
 has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
 has router      => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
@@ -41,6 +45,8 @@ sub _build_http_server ($self) {
 # TODO die if api controller found, but no api server provided
 sub run ($self) {
     say dump $self->api->map;
+
+    $self->api->upload_api_map;
 
     # $self->http_server->run;
 
