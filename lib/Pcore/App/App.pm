@@ -40,10 +40,9 @@ sub _build_http_server ($self) {
 # TODO start HTTP server
 # TODO die if api controller found, but no api server provided
 sub run ($self) {
+    say dump $self->api->map;
 
-    # say dump $self->api->map;
-
-    $self->http_server->run;
+    # $self->http_server->run;
 
     return;
 }

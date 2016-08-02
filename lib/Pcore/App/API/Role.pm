@@ -1,11 +1,11 @@
-package Pcore::API::Server::Role;
+package Pcore::App::API::Role;
 
 use Pcore -role;
 
 requires qw[_build_map];
 
-has api         => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server'],          required => 1 );
-has api_session => ( is => 'ro', isa => InstanceOf ['Pcore::API::Server::Session'], required => 1 );
+has api         => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'],          required => 1 );
+has api_session => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Session'], required => 1 );
 
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
@@ -35,7 +35,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Role
+Pcore::App::API::Role
 
 =head1 SYNOPSIS
 

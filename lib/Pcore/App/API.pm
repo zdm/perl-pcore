@@ -2,29 +2,30 @@ package Pcore::App::API;
 
 use Pcore -role;
 use Pcore::API::Response;
-use Pcore::API::Server::Session;
+use Pcore::App::API::Session;
 
-has app_id => ( is => 'ro', isa => Str, required => 1 );
-has _auth => ( is => 'ro', isa => Str | ConsumerOf ['Pcore::DBH'] | ConsumerOf ['Pcore::API::Server::Auth'], required => 1, init_arg => 'auth' );
+has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has auth => ( is => 'lazy', isa => ConsumerOf ['Pcore::API::Server::Auth'], init_arg => 'undef' );
+has auth => ( is => 'lazy', isa => ConsumerOf ['Pcore::App::API::Auth'], init_arg => 'undef' );
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
+
+sub _build__auth ($self) {
+    return $self->{app}->{auth};
+}
 
 sub _build_auth ($self) {
     my $auth;
 
-    if ( !ref $self->{_auth} ) {
-        require Pcore::API::Server::Auth::Local;
+    if ( !ref $self->{app}->{auth} ) {
+        require Pcore::App::API::Auth::Local;
 
-        $auth = Pcore::API::Server::Auth::Local->new( { api => $self, dbh => P->handle( $self->{_auth} ) } );
+        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => P->handle( $self->{_auth} ) } );
     }
-    elsif ( $self->{_auth}->does('Pcore::DBH') ) {
-        $auth = Pcore::API::Server::Auth::Local->new( { api => $self, dbh => $self->{_auth} } );
+    elsif ( $self->{app}->{auth}->does('Pcore::DBH') ) {
+        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => $self->{_auth} } );
     }
     else {
-        $auth = $self->{_auth};
-
-        $self->{_auth}->{api} = $self;
+        $auth = $self->{app}->{auth};
     }
 
     return $auth;
@@ -66,10 +67,10 @@ sub _build_map ($self) {
 
         my $class_path = $controllers->{$class_name};
 
-        if ( !$class_name->does('Pcore::API::Server::Role') ) {
+        if ( !$class_name->does('Pcore::App::API::Role') ) {
             delete $controllers->{$class_name};
 
-            say qq["$class_name" is not a consumer of "Pcore::API::Server::Class"];
+            say qq["$class_name" is not a consumer of "Pcore::App::API::Role"];
 
             next;
         }
@@ -116,7 +117,7 @@ sub auth_password ( $self, $username, $password, $cb ) {
         $password,
         sub ($uid) {
             if ($uid) {
-                $cb->( Pcore::API::Server::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
+                $cb->( Pcore::App::API::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
             }
             else {
                 $cb->(undef);
@@ -132,7 +133,7 @@ sub auth_token ( $self, $token_b64, $cb ) {
         $token_b64,
         sub ($uid) {
             if ($uid) {
-                $cb->( Pcore::API::Server::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
+                $cb->( Pcore::App::API::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
             }
             else {
                 $cb->(undef);
@@ -158,9 +159,9 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64, 92, 96           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 65, 93, 97           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 55                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 56                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

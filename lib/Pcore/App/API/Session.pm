@@ -1,8 +1,8 @@
-package Pcore::API::Server::Session;
+package Pcore::App::API::Session;
 
 use Pcore -class;
 
-has api => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server'], required => 1 );
+has api => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'], required => 1 );
 has uid     => ( is => 'ro', isa => PositiveInt, required => 1 );
 has role_id => ( is => 'ro', isa => PositiveInt, required => 1 );
 
@@ -96,7 +96,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Session
+Pcore::App::API::Session
 
 =head1 SYNOPSIS
 

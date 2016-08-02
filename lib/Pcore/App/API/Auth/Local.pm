@@ -1,10 +1,10 @@
-package Pcore::API::Server::Auth::Local;
+package Pcore::App::API::Auth::Local;
 
 use Pcore -class;
-use Pcore::API::Server::RPC::Hash;
+use Pcore::App::API::RPC::Hash;
 use Pcore::Util::Hash::RandKey;
 
-with qw[Pcore::API::Server::Auth];
+with qw[Pcore::App::API::Auth];
 
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
 
@@ -71,7 +71,7 @@ SQL
 
 sub _build__hash_rpc($self) {
     return P->pm->run_rpc(
-        'Pcore::API::Server::RPC::Hash',
+        'Pcore::App::API::RPC::Hash',
         workers   => 1,
         buildargs => {
             scrypt_N   => 16_384,
@@ -266,7 +266,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Auth::Local
+Pcore::App::API::Auth::Local
 
 =head1 SYNOPSIS
 

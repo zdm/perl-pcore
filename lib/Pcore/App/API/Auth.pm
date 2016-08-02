@@ -1,10 +1,10 @@
-package Pcore::API::Server::Auth;
+package Pcore::App::API::Auth;
 
 use Pcore -role;
 
 requires qw[auth_password auth_token set_root_password upload_api_map];
 
-has api => ( is => 'ro', isa => ConsumerOf ['Pcore::API::Server'], required => 1 );
+has api => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'], required => 1 );
 
 1;
 __END__
@@ -14,7 +14,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Auth
+Pcore::App::API::Auth
 
 =head1 SYNOPSIS
 

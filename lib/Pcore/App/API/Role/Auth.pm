@@ -1,8 +1,8 @@
-package Pcore::API::Server::Role::Auth;
+package Pcore::App::API::Role::Auth;
 
 use Pcore -role;
 
-with qw[Pcore::API::Server::Role];
+with qw[Pcore::App::API::Role];
 
 sub _build_map ($self) {
     return {
@@ -85,7 +85,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Server::Role::Auth
+Pcore::App::API::Role::Auth
 
 =head1 SYNOPSIS
 
