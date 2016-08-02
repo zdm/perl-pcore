@@ -5,6 +5,8 @@ use Digest::SHA1 qw[];
 
 with qw[Pcore::App::HTTP::Controller];
 
+# https://learn.javascript.ru/websockets
+
 sub run ($self) {
     my $h = $self->req->_h;
 
@@ -125,13 +127,13 @@ sub build_frame ( $self, $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $payload ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 11                   | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 83                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 85                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 100                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 102                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 108                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 110                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
