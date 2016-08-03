@@ -21,20 +21,35 @@ has _msg_buf        => ( is => 'ro',   isa => ArrayRef, init_arg => undef );
 has _ping_callbacks => ( is => 'lazy', isa => ArrayRef, default  => sub { [] }, init_arg => undef );
 has _close_sent => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
+const our $WS_VERSION => 13;
+
 const our $WS_GUID => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
-const our $WS_CONTINUATION => 0x0;
-const our $WS_TEXT         => 0x1;
-const our $WS_BINARY       => 0x2;
-const our $WS_CLOSE        => 0x8;
-const our $WS_PING         => 0x9;
-const our $WS_PONG         => 0xa;
+const our $WS_CONTINUATION => 0;
+const our $WS_TEXT         => 1;
+const our $WS_BINARY       => 2;
+const our $WS_CLOSE        => 8;
+const our $WS_PING         => 9;
+const our $WS_PONG         => 10;
 
-const our $WS_CLOSE_NORMAL          => 1000;    # normal close
-const our $WS_CLOSE_GONE            => 1001;    # удалённая сторона «исчезла». Например, процесс сервера убит или браузер перешёл на другую страницу
-const our $WS_CLOSE_PROTOCOL_ERROR  => 1002;    # protocol error
-const our $WS_CLOSE_INVALID_OPCODE  => 1003;    # unsupported message opcode
-const our $WS_CLOSE_FRAME_TOO_LARGE => 1010;
+# http://www.iana.org/assignments/websocket/websocket.xml#close-code-number
+const our $WS_CLOSE_REASON => {
+    1000 => 'Normal Closure',
+    1001 => 'Going Away',                   # удалённая сторона «исчезла». Например, процесс сервера убит или браузер перешёл на другую страницу
+    1002 => 'Protocol error',
+    1003 => 'Unsupported Data',
+    1004 => 'Reserved',
+    1005 => 'No Status Rcvd',
+    1006 => 'Abnormal Closure',
+    1007 => 'Invalid frame payload data',
+    1008 => 'Policy Violation',
+    1009 => 'Message Too Big',
+    1010 => 'Mandatory Ext.',
+    1011 => 'Internal Error',
+    1012 => 'Service Restart',
+    1013 => 'Try Again Later',
+    1015 => 'TLS handshake',
+};
 
 # TODO process handle on_error callback;
 # TODO store server connections in global cache by object refaddr, remove on destroy;
@@ -441,24 +456,24 @@ sub _xor_encode ( $data_ref, $mask ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 156                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
+## |    3 | 171                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | NamingConventions::ProhibitAmbiguousNames                                                                      |
-## |      | 255                  | * Ambiguously named subroutine "close"                                                                         |
-## |      | 359, 361             | * Ambiguously named variable "second"                                                                          |
+## |      | 270                  | * Ambiguously named subroutine "close"                                                                         |
+## |      | 374, 376             | * Ambiguously named variable "second"                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 317                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 332                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 357                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
+## |    3 | 372                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
 ## |      |                      | "unless"                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 335                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 350                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 430                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 445                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 57                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 72                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 343, 359, 430, 432   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 358, 374, 445, 447   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
