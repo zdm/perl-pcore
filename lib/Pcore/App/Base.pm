@@ -197,16 +197,6 @@ sub app_reset ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 201                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 205 does not match the package declaration      |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
@@ -214,7 +204,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App
+Pcore::App::Base
 
 =head1 SYNOPSIS
 
