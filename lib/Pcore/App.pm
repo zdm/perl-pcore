@@ -2,113 +2,12 @@ package Pcore::App::Role;
 
 use Pcore -role;
 
-package Pcore::AppX::Role;
-
-use Pcore -role, -ansi;
-
-has _appx_enum     => ( is => 'lazy', isa => ArrayRef, init_arg => undef );
-has _appx_builded  => ( is => 'rw',   isa => Bool,     default  => 0 );
-has _appx_deployed => ( is => 'rw',   isa => Bool,     default  => 0 );
-
-sub _build__appx_enum ($self) {
-    my $enum = [];
-
-    for my $attr_name ( sort { $a cmp $b } grep { $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->{$_}->{is_appx} } keys $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->%* ) {
-        push $enum->@*, $Moo::MAKERS{ ref $self }->{constructor}->{attribute_specs}->{$attr_name};
-    }
-
-    return $enum;
-}
-
-# REPORT
-sub _appx_report_fatal ( $self, $msg ) {
-    say BOLD . RED . q[[ FATAL ] ] . RESET . $msg;
-
-    exit 255;
-}
-
-sub _appx_report_warn ( $self, $msg ) {
-    say BOLD . YELLOW . q[[ WARN ]  ] . RESET . $msg;
-
-    return;
-}
-
-sub _appx_report_info ( $self, $msg ) {
-    say $msg;
-
-    return;
-}
-
-# APPX
-around app_build => sub ( $orig, $self ) {
-    if ( !$self->_appx_builded ) {
-        $self->_appx_builded(1);
-
-        for my $attr ( $self->_appx_enum->@* ) {
-            my $attr_reader = $attr->{reader};
-
-            $self->_appx_report_info(qq[Build AppX component "$attr_reader"]);
-
-            $self->$attr_reader->app_build;
-        }
-
-        $self->$orig;
-    }
-
-    return;
-};
-
-around app_deploy => sub ( $orig, $self ) {
-    if ( !$self->_appx_deployed ) {
-        $self->_appx_deployed(1);
-
-        for my $attr ( $self->_appx_enum->@* ) {
-            my $attr_reader = $attr->{reader};
-
-            $self->_appx_report_info(qq[Deploy AppX component "$attr_reader"]);
-
-            $self->$attr_reader->app_deploy;
-        }
-
-        $self->$orig;
-    }
-
-    return;
-};
-
-around app_reset => sub ( $orig, $self ) {
-
-    # call reset of included AppX objects
-    for my $attr ( @{ $self->_appx_enum } ) {
-        my $attr_reader = $attr->{reader};
-
-        my $predicate = $attr->{predicate};
-
-        if ( $self->$predicate ) {    # if attr has value
-            if ( $self->$attr_reader->appx_reset eq 'CLEAR' ) {
-                my $clearer = $attr->{clearer};
-
-                $self->$clearer;
-            }
-            else {
-                $self->$attr_reader->app_reset;
-            }
-        }
-    }
-
-    $self->$orig;
-
-    return;
-};
-
 package Pcore::App;
 
-use Pcore -class;
-use Pcore::AppX::HasAppX;
+use Pcore -class, -ansi;
 use Pcore::Util::Text qw[to_camel_case];
 
 with qw[Pcore::App::Role];
-with qw[Pcore::AppX::Role];
 
 has name            => ( is => 'ro',   isa => SnakeCaseStr, required => 1 );
 has name_camel_case => ( is => 'lazy', isa => Str,          init_arg => undef );
@@ -122,10 +21,6 @@ has runtime_env => ( is => 'rwp', isa => Enum [qw[development test production]],
 has env_is_devel => ( is => 'lazy', isa => Bool, init_arg => undef );
 has env_is_test  => ( is => 'lazy', isa => Bool, init_arg => undef );
 has env_is_prod  => ( is => 'lazy', isa => Bool, init_arg => undef );
-
-# APPX
-has_appx openssl => ( isa => 'OpenSSL' );
-has_appx api     => ( isa => 'API' );
 
 our $CFG = { SECRET => undef, };
 
@@ -155,32 +50,32 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
     if ( $opt->{app} ) {
         if ( $opt->{app} eq 'build' ) {
-            $app->_appx_report_info(qq[Build application "@{[$app->name]}"]);
-            $app->_appx_report_info(qq[Application data dir "@{[$app->app_dir]}"]);
+            $app->report_info(qq[Build application "@{[$app->name]}"]);
+            $app->report_info(qq[Application data dir "@{[$app->app_dir]}"]);
 
             $app->app_build;
 
-            $app->_appx_report_info(q[Build completed]);
+            $app->report_info(q[Build completed]);
 
             exit;
         }
         elsif ( $opt->{app} eq 'deploy' ) {
-            $app->_appx_report_info(qq[Deploy application "@{[$app->name]}"]);
-            $app->_appx_report_info(qq[Application data dir "@{[$app->app_dir]}"]);
+            $app->report_info(qq[Deploy application "@{[$app->name]}"]);
+            $app->report_info(qq[Application data dir "@{[$app->app_dir]}"]);
 
             $app->app_deploy;
 
-            $app->_appx_report_info(q[Deploy completed]);
+            $app->report_info(q[Deploy completed]);
 
             exit;
         }
         elsif ( $opt->{app} eq 'test' ) {
-            $app->_appx_report_info(qq[Test application "@{[$app->name]}"]);
-            $app->_appx_report_info(qq[Application data dir "@{[$app->app_dir]}"]);
+            $app->report_info(qq[Test application "@{[$app->name]}"]);
+            $app->report_info(qq[Application data dir "@{[$app->app_dir]}"]);
 
             $app->app_test;
 
-            $app->_appx_report_info(q[Test completed]);
+            $app->report_info(q[Test completed]);
 
             exit;
         }
@@ -196,6 +91,25 @@ sub BUILD ( $self, $args ) {
     P->hash->merge( $self->cfg, $args->{cfg} ) if $args->{cfg};    # merge default cfg with inline cfg
 
     P->hash->merge( $self->cfg, $self->_read_local_cfg );          # merge with local cfg
+
+    return;
+}
+
+# REPORT
+sub report_fatal ( $self, $msg ) {
+    say BOLD . RED . q[[ FATAL ] ] . RESET . $msg;
+
+    exit 255;
+}
+
+sub report_warn ( $self, $msg ) {
+    say BOLD . YELLOW . q[[ WARN ]  ] . RESET . $msg;
+
+    return;
+}
+
+sub report_info ( $self, $msg ) {
+    say $msg;
 
     return;
 }
@@ -230,13 +144,6 @@ sub _create_local_cfg ($self) {
     # create local cfg
     my $local_cfg = { SECRET => P->random->bytes_hex(16), };
 
-    # create AppX local configs
-    for my $attr ( @{ $self->_appx_enum } ) {
-        my $attr_reader = $attr->{reader};
-
-        $self->$attr_reader->_create_local_cfg($local_cfg);
-    }
-
     return $local_cfg;
 }
 
@@ -261,12 +168,15 @@ sub run ($self) {
 sub app_build ($self) {
 
     # create local cfg
-    $self->_appx_report_info(q[Create local config]);
+    $self->report_info(q[Create local config]);
+
     my $local_cfg = $self->_create_local_cfg;
+
     P->hash->merge( $local_cfg, $self->_read_local_cfg );    # override local cfg with already configured values
 
     # store local config
-    $self->_appx_report_info( q[Store local config to "] . $self->_local_cfg_path . q["] );
+    $self->report_info( q[Store local config to "] . $self->_local_cfg_path . q["] );
+
     P->cfg->store( $self->_local_cfg_path, $local_cfg, readable => 1 );
 
     return;
@@ -293,20 +203,6 @@ sub app_reset ($self) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 16                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 24                   | * Private subroutine/method '_appx_report_fatal' declared but not used                                         |
-## |      | 30                   | * Private subroutine/method '_appx_report_warn' declared but not used                                          |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
