@@ -2,7 +2,7 @@ package Pcore::HTTP::WebSocket;
 
 use Pcore -class, -const;
 use Pcore::AE::Handle;
-use Pcore::Util::Text qw[decode_utf8];
+use Pcore::Util::Text qw[decode_utf8 to_xor];
 use Compress::Raw::Zlib;
 
 # NOTE http://www.iana.org/assignments/websocket/websocket.xml
@@ -171,7 +171,7 @@ sub listen ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 sub _on_frame ( $self, $header, $data_ref ) {
 
     # unmask data
-    $data_ref = _xor_encode( $data_ref, $header->{mask} ) if $header->{mask} && $data_ref;
+    $data_ref = \to_xor( $data_ref, $header->{mask} ) if $header->{mask} && $data_ref;
 
     my $op = $header->{op};
 
@@ -362,7 +362,7 @@ sub _build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $data_ref ) {
     if ($masked) {
         my $mask = pack 'N', int( rand 9 x 7 );
 
-        $data_ref = \( $mask . _xor_encode( $data_ref, $mask ) );
+        $data_ref = \( $mask . to_xor( $data_ref, $mask ) );
     }
 
     return $frame . $data_ref->$*;
@@ -433,22 +433,6 @@ sub _parse_frame_header ( $buf_ref ) {
     return $res;
 }
 
-sub _xor_encode ( $data_ref, $mask ) {
-    no feature qw[bitwise];
-
-    $mask = $mask x 128;
-
-    my $len = length $mask;
-
-    my $buffer = my $output = q[];
-
-    $output .= $buffer ^ $mask while length( $buffer = substr( $data_ref->$*, 0, $len, q[] ) ) == $len;
-
-    $output .= $buffer ^ substr( $mask, 0, length $buffer, q[] );
-
-    return \$output;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -469,11 +453,9 @@ sub _xor_encode ( $data_ref, $mask ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 350                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 445                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 72                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 358, 374, 445, 447   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 358, 374             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

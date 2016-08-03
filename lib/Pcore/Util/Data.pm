@@ -11,6 +11,7 @@ use Pcore -const, -export,
     B64   => [qw[to_b64 to_b64_url from_b64 from_b64_url]],
     B85   => [qw[to_b85 from_b85]],
     URI   => [qw[to_uri from_uri from_uri_query]],
+    XOR   => [qw[to_xor from_xor]],
     CONST => [qw[$DATA_ENC_B64 $DATA_ENC_HEX $DATA_ENC_B85 $DATA_COMPRESS_ZLIB $DATA_CIPHER_DES]],
     TYPE  => [qw[$DATA_TYPE_PERL $DATA_TYPE_JSON $DATA_TYPE_CBOR $DATA_TYPE_YAML $DATA_TYPE_XML $DATA_TYPE_INI]],
   };
@@ -708,6 +709,32 @@ sub from_uri_query {
     }
 }
 
+# XOR
+sub to_xor ( $buf, $mask ) {
+    no feature qw[bitwise];
+
+    my $mlen = length $mask;
+
+    # select mask length, max. mask length is 1K
+    state $max_mlen = 1024;
+
+    if ( length $buf > $max_mlen && $mlen < $max_mlen ) {
+        $mask = $mask x int $max_mlen / $mlen;
+
+        $mlen = length $mask;
+    }
+
+    my $tmp_buf = my $out = q[];
+
+    $out .= $tmp_buf ^ $mask while length( $tmp_buf = substr( $buf, 0, $mlen, q[] ) ) == $mlen;
+
+    $out .= $tmp_buf ^ substr( $mask, 0, length $tmp_buf );
+
+    return $out;
+}
+
+*from_xor = \&to_xor;
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -716,17 +743,19 @@ sub from_uri_query {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 49                   | * Subroutine "encode_data" with high complexity score (35)                                                     |
-## |      | 254                  | * Subroutine "decode_data" with high complexity score (33)                                                     |
+## |      | 50                   | * Subroutine "encode_data" with high complexity score (35)                                                     |
+## |      | 255                  | * Subroutine "decode_data" with high complexity score (33)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 77, 125, 172, 174,   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 362, 402, 593        |                                                                                                                |
+## |    3 | 78, 126, 173, 175,   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 363, 403, 594        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 630, 682, 690        | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 631, 683, 691        | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 588                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 589                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 246                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    2 | 729                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 247, 729, 731        | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
