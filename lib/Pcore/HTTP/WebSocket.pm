@@ -1,9 +1,11 @@
-package Pcore::API::WebSocket;
+package Pcore::HTTP::WebSocket;
 
 use Pcore -class, -const;
 use Pcore::AE::Handle;
 use Pcore::Util::Text qw[decode_utf8];
 use Compress::Raw::Zlib;
+
+# NOTE http://www.iana.org/assignments/websocket/websocket.xml
 
 has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has max_frame_length => ( is => 'ro', isa => PositiveInt, default => 1024 * 1024 * 10 );
@@ -439,24 +441,24 @@ sub _xor_encode ( $data_ref, $mask ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 154                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
+## |    3 | 156                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | NamingConventions::ProhibitAmbiguousNames                                                                      |
-## |      | 253                  | * Ambiguously named subroutine "close"                                                                         |
-## |      | 357, 359             | * Ambiguously named variable "second"                                                                          |
+## |      | 255                  | * Ambiguously named subroutine "close"                                                                         |
+## |      | 359, 361             | * Ambiguously named variable "second"                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 315                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 317                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 355                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
+## |    3 | 357                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
 ## |      |                      | "unless"                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 333                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 335                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 428                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 430                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 55                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 57                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 341, 357, 428, 430   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 343, 359, 430, 432   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -467,7 +469,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::WebSocket
+Pcore::HTTP::WebSocket
 
 =head1 SYNOPSIS
 
