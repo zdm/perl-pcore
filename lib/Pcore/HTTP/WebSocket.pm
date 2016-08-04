@@ -2,7 +2,8 @@ package Pcore::HTTP::WebSocket;
 
 use Pcore -class, -const;
 use Pcore::AE::Handle;
-use Pcore::Util::Text qw[decode_utf8 to_xor];
+use Pcore::Util::Text qw[decode_utf8];
+use Pcore::Util::Data qw[to_xor];
 use Compress::Raw::Zlib;
 
 # NOTE http://www.iana.org/assignments/websocket/websocket.xml
@@ -62,7 +63,7 @@ const our $WS_CLOSE_REASON => {
 # TODO validate ping data on pong;
 
 sub DEMOLISH ( $self, $global ) {
-    $self->close($WS_CLOSE_GONE) if !$global;
+    $self->close(1001) if !$global;
 
     return;
 }
@@ -127,7 +128,7 @@ sub listen ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
                 if ( !$opcode_supported ) {
 
                     # opcode is not supported
-                    $self->close($WS_CLOSE_INVALID_OPCODE);
+                    $self->close(1003);
 
                     return;
                 }
@@ -140,7 +141,7 @@ sub listen ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
                     # disconnect if max frame length is exceeded
                     if ( $header->{len} > $self->{max_frame_length} ) {
-                        $self->close($WS_CLOSE_FRAME_TOO_LARGE);
+                        $self->close(1009);
 
                         return;
                     }
@@ -171,7 +172,7 @@ sub listen ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 sub _on_frame ( $self, $header, $data_ref ) {
 
     # unmask data
-    $data_ref = \to_xor( $data_ref, $header->{mask} ) if $header->{mask} && $data_ref;
+    $data_ref = \to_xor( $data_ref->$*, $header->{mask} ) if $header->{mask} && $data_ref;
 
     my $op = $header->{op};
 
@@ -183,7 +184,7 @@ sub _on_frame ( $self, $header, $data_ref ) {
             if ( !$self->{_msg_op} ) {
                 undef $self->{_msg_buf};
 
-                return $self->close($WS_CLOSE_PROTOCOL_ERROR);
+                return $self->close(1002);
             }
 
             # add continuation frame
@@ -206,7 +207,7 @@ sub _on_frame ( $self, $header, $data_ref ) {
         if ( !$self->{_msg_op} ) {
 
             # ignore frame, if message was not started
-            return $self->close($WS_CLOSE_PROTOCOL_ERROR);
+            return $self->close(1002);
         }
 
         # fin and continuaton frame
@@ -247,7 +248,7 @@ sub _on_frame ( $self, $header, $data_ref ) {
             $self->{status} = $data_ref->$*;
 
             # send back close op, according to RFC
-            $self->close($WS_CLOSE_NORMAL);
+            $self->close(1000);
 
             $self->{on_close}->( $self->{status} ) if $self->{on_close};
         }
@@ -261,13 +262,13 @@ sub _on_frame ( $self, $header, $data_ref ) {
         }
     }
     else {
-        $self->close($WS_CLOSE_INVALID_OPCODE);
+        $self->close(1003);
     }
 
     return;
 }
 
-sub close ( $self, $status = $WS_CLOSE_NORMAL ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub close ( $self, $status = 1000 ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return if $self->{_close_sent};
 
     $self->{_close_sent} = $status;
@@ -275,7 +276,7 @@ sub close ( $self, $status = $WS_CLOSE_NORMAL ) {    ## no critic qw[Subroutines
     $self->h->push_write( _build_frame( 0, 1, 0, 0, 0, $WS_CLOSE, \$status ) );
 
     # close connection if error is fatal
-    $self->h->destroy if $status != $WS_CLOSE_NORMAL;
+    $self->h->destroy if $status != 1000;
 
     return;
 }
@@ -362,7 +363,7 @@ sub _build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $data_ref ) {
     if ($masked) {
         my $mask = pack 'N', int( rand 9 x 7 );
 
-        $data_ref = \( $mask . to_xor( $data_ref, $mask ) );
+        $data_ref = \( $mask . to_xor( $data_ref->$*, $mask ) );
     }
 
     return $frame . $data_ref->$*;
@@ -440,22 +441,22 @@ sub _parse_frame_header ( $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 171                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
+## |    3 | 172                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | NamingConventions::ProhibitAmbiguousNames                                                                      |
-## |      | 270                  | * Ambiguously named subroutine "close"                                                                         |
-## |      | 374, 376             | * Ambiguously named variable "second"                                                                          |
+## |      | 271                  | * Ambiguously named subroutine "close"                                                                         |
+## |      | 375, 377             | * Ambiguously named variable "second"                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 332                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 333                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 372                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
+## |    3 | 373                  | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
 ## |      |                      | "unless"                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 350                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 351                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 72                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 73                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 358, 374             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 359, 375             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

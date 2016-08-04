@@ -4,20 +4,17 @@ use Pcore -class, -const;
 use Pcore::HTTP::Status;
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
-use Digest::SHA1 qw[];
 
 has _server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1 );
 has _h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
 has env => ( is => 'ro', isa => HashRef, required => 1 );
 
-has _keepalive_timeout => ( is => 'lazy', isa => PositiveOrZeroInt, init_arg => undef );
+has _use_keepalive => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
 const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
-
-const our $WS_GUID => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 P->init_demolish(__PACKAGE__);
 
@@ -25,37 +22,31 @@ sub DEMOLISH ( $self, $global ) {
     if ( !$global && $self->{_response_status} != $HTTP_SERVER_RESPONSE_FINISHED ) {
 
         # request is destroyed without ->finish call, possible unhandled error in AE callback
-        $self->{_server}->return_xxx( $self->{_h}, 500 );
+        $self->return_xxx(500);
     }
 
     return;
 }
 
-sub _build__keepalive_timeout($self) {
-    my $keepalive_timeout = $self->{_server}->{keepalive_timeout};
+sub _build__use_keepalive($self) {
+    return 0 if !$self->{_server}->{keepalive_timeout};
 
-    if ($keepalive_timeout) {
-        my $env = $self->{env};
+    my $env = $self->{env};
 
-        if ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.1' ) {
-            $keepalive_timeout = 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smi;
-        }
-        elsif ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.0' ) {
-            $keepalive_timeout = 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smi;
-        }
-        else {
-            $keepalive_timeout = 0;
-        }
+    if ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.1' ) {
+        return 0 if $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bclose\b/smi;
+    }
+    elsif ( $env->{SERVER_PROTOCOL} eq 'HTTP/1.0' ) {
+        return 0 if !$env->{HTTP_CONNECTION} || $env->{HTTP_CONNECTION} !~ /\bkeep-?alive\b/smi;
     }
 
-    return $keepalive_timeout;
+    return 1;
 }
 
 sub body ($self) {
     return $self->{env}->{'psgi.input'} ? \$self->{env}->{'psgi.input'} : undef;
 }
 
-# TODO convert headers to Camel-Case
 # TODO serialize body related to body ref type and content type
 sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     die q[Unable to write, HTTP response is already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
@@ -80,14 +71,10 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
         # always use chunked transfer
         $headers .= "Transfer-Encoding:chunked$CRLF";
 
-        if ( $self->_keepalive_timeout ) {
-            $headers .= "Connection:keep-alive$CRLF";
-        }
-        else {
-            $headers .= "Connection:close$CRLF";
-        }
+        # keepalive
+        $headers .= 'Connection:' . ( $self->_use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
 
-        # TODO convert headers to Camel-Case
+        # add custom headers
         $headers .= join( $CRLF, map {"$_->[0]:$_->[1]"} pairs $_[2]->@* ) . $CRLF if $_[2] && $_[2]->@*;
 
         $headers .= $CRLF;
@@ -129,47 +116,34 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
 sub finish ( $self, $trailing_headers = undef ) {
     my $response_status = $self->{_response_status};
 
-    if ( $response_status == $HTTP_SERVER_RESPONSE_FINISHED ) {
-        die q[Unable to finish HTTP response, already finished];
+    die q[Unable to finish already finished HTTP request] if $response_status == $HTTP_SERVER_RESPONSE_FINISHED;
+
+    my $use_keepalive = $self->_use_keepalive;
+
+    if ( !$response_status ) {
+
+        # return 204 No Content - the server successfully processed the request and is not returning any content
+        $self->return_xxx( 204, $use_keepalive );
     }
     else {
-
         # mark request as finished
         $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
-        my $keepalive_timeout = $self->_keepalive_timeout;
+        # write last chunk
+        my $buf = "0$CRLF";
 
-        my $use_keepalive = !!$keepalive_timeout;
+        # write trailing headers
+        # https://tools.ietf.org/html/rfc7230#section-3.2
+        $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $trailing_headers->@* ) . $CRLF if $trailing_headers && $trailing_headers->@*;
 
-        if ( !$response_status ) {
+        # close response
+        $buf .= $CRLF;
 
-            # return 204 No Content - The server successfully processed the request and is not returning any content
-            $self->{_server}->return_xxx( $self->{_h}, 204, $use_keepalive );
-        }
-        else {
+        $self->{_h}->push_write($buf);
 
-            # write last chunk
-            my $buf = "0$CRLF";
-
-            # write trailing headers
-            # https://tools.ietf.org/html/rfc7230#section-3.2
-            $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $trailing_headers->@* ) . $CRLF if $trailing_headers && $trailing_headers->@*;
-
-            # close response
-            $buf .= $CRLF;
-
-            $self->{_h}->push_write($buf);
-        }
-
-        if ($use_keepalive) {
-
-            # keepalive
-            $self->{_server}->wait_headers( $self->{_h} );
-
-        }
-        else {
-            $self->{_h}->destroy;
-        }
+        # process handle
+        if   ($use_keepalive) { $self->{_server}->wait_headers( $self->{_h} ) }
+        else                  { $self->{_h}->destroy }
 
         undef $self->{_h};
     }
@@ -177,40 +151,39 @@ sub finish ( $self, $trailing_headers = undef ) {
     return;
 }
 
-sub accept_websocket ($self) {
-
-    # HTTP_SEC_WEBSOCKET_EXTENSIONS => "permessage-deflate"
-
-    # HTTP_SEC_WEBSOCKET_VERSION => 13 handshake
-
-    state $header = do {
-        my $reason = Pcore::HTTP::Status->get_reason(101);
-
-        my @headers = (    #
-            "HTTP/1.1 101 $reason",
-            'Content-Length:0',
-            'Upgrade:WebSocket',
-            'Connection:upgrade',
-            ( $self->{server_tokens} ? "Server:$self->{server_tokens}" : () ),
-        );
-
-        join( $CRLF, @headers ) . $CRLF;
-    };
-
-    my $buf = $header;
-
-    $buf .= 'Sec-WebSocket-Accept:' . P->data->to_b64( Digest::SHA1::sha1( ( $self->env->{HTTP_SEC_WEBSOCKET_KEY} || q[] ) . $WS_GUID ), q[] ) . $CRLF;
-
-    # ' WebSocket-Origin '     => ' http : // 127.0.0.1 : 80 / ',
-    # ' WebSocket-Location '   => ' ws   : // 127.0.0.1 : 80 / websocket /',
-
-    $buf .= $CRLF;
-
-    $self->{_h}->push_write($buf);
+# return simple response and finish request
+sub return_xxx ( $self, $status, $use_keepalive = 0 ) {
+    die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
     $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
-    return $self->_h;
+    $self->{_server}->return_xxx( $self->{_h}, $status, $use_keepalive );
+
+    undef $self->{_h};
+
+    return;
+}
+
+sub accept_websocket ( $self, $headers = undef ) {
+    state $reason = Pcore::HTTP::Status->get_reason(101);
+
+    die q[Unable to finish already started HTTP request] if $self->{_response_status};
+
+    $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
+
+    my @headers = (    #
+        "HTTP/1.1 $status $reason",
+        'Content-Length:0',
+        'Upgrade:websocket',
+        'Connection:upgrade',
+        ( $self->{server_tokens} ? "Server:$self->{server_tokens}" : () ),
+    );
+
+    push @headers, map {"$_->[0]:$_->[1]"} pairs $headers->@* if $headers && $headers->@*;
+
+    $self->{_h}->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+
+    return $h;
 }
 
 1;
