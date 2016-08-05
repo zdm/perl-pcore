@@ -87,7 +87,7 @@ sub websocket_listen ($self) {
     return;
 }
 
-sub on_frame ( $self, $header, $data_ref ) {
+sub _on_frame ( $self, $header, $data_ref ) {
     $self->websocket_on_text($data_ref);
 
     return;
@@ -199,7 +199,7 @@ sub on_frame ( $self, $header, $data_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 211                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 215 does not match the package declaration      |
+## |    1 | 207                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 211 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -43,13 +43,14 @@ around run => sub ( $orig, $self ) {
 
         # crealte supported extensions list
         my @extensions;
-        push @extensions, 'permessage-deflate' if $self->websocket_ext_permessage_deflate;
+
+        # push @extensions, 'permessage-deflate' if $self->websocket_ext_permessage_deflate;
 
         # create response headers
         my @headers = (    #
-            'Sec-WebSocket-Accept:' . Pcore::HTTP::WebSocket::Util::get_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
-            ( $websocket_protocol ? "Sec-WebSocket-Protocol:$websocket_protocol" : () ),
-            ( @extensions ? 'Sec-WebSocket-Extensions:' . join q[, ], @extensions : () ),
+            'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket::Util::get_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
+            ( $websocket_protocol ? ( 'Sec-WebSocket-Protocol' => $websocket_protocol ) : () ),
+            ( @extensions ? ( 'Sec-WebSocket-Extensions' => join q[, ], @extensions ) : () ),
         );
 
         # add custom headers
@@ -58,7 +59,7 @@ around run => sub ( $orig, $self ) {
         # accept websocket connection
         $self->{websocket_h} = $req->accept_websocket( \@headers );
 
-        # create websocket object and store in HTTP server cache, using refaddr as key
+        # store websocket object in HTTP server cache, using refaddr as key
         $req->{_server}->{_websocket_cache}->{ refaddr $self} = $self;
 
         $self->websocket_listen;
@@ -89,7 +90,7 @@ sub websocket_on_close ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 97                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 101 does not match the package declaration      |
+## |    1 | 98                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 102 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
