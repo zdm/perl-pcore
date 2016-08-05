@@ -4,7 +4,7 @@ use Pcore -role;
 use Pcore::HTTP::WebSocket::Util qw[:CONST];
 use Pcore::Util::Scalar qw[refaddr];
 
-requires qw[run websocket_can_accept websocket_on_close];
+requires qw[run websocket_on_accept websocket_on_close];
 
 around run => sub ( $orig, $self ) {
     my $req = $self->req;
@@ -29,27 +29,27 @@ around run => sub ( $orig, $self ) {
             return $req->return_xxx( [ 400, qq[WebSocket subprotocol should be "$websocket_protocol"] ] );
         }
 
-        my $websocket_can_accept = $self->websocket_can_accept;
+        my ( $websocket_accept, $accept_headers ) = $self->websocket_on_accept;
 
         # websocket connect request can't be accepted
-        return $req->return_xxx(400) if !$websocket_can_accept;
+        return $req->return_xxx( $accept_headers // 400 ) if !$websocket_accept;
 
         # check and set extension
         if ( $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} ) {
 
             # set ext_permessage_deflate, only if enabled locally
-            $self->{websocket_ext_permessage_deflate} = $self->{websocket_ext_permessage_deflate} && $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
+            $self->{websocket_permessage_deflate} = $self->{websocket_permessage_deflate} && $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
         }
 
         # create response headers
         my @headers = (    #
             'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket::Util::get_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
-            ( $websocket_protocol                       ? ( 'Sec-WebSocket-Protocol'   => $websocket_protocol )  : () ),
-            ( $self->{websocket_ext_permessage_deflate} ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
+            ( $websocket_protocol                   ? ( 'Sec-WebSocket-Protocol'   => $websocket_protocol )  : () ),
+            ( $self->{websocket_permessage_deflate} ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
         );
 
         # add custom headers
-        push @headers, $websocket_can_accept->@* if ref $websocket_can_accept;
+        push @headers, $accept_headers->@* if $accept_headers;
 
         # accept websocket connection
         $self->{_websocket_h} = $req->accept_websocket( \@headers );

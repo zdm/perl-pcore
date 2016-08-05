@@ -7,7 +7,7 @@ with qw[Pcore::App::Controller Pcore::HTTP::WebSocket::Server Pcore::HTTP::WebSo
 
 # NOTE perform additional checks, return true or headers array on success, or false, if connection is not possible
 # TODO possibility to return error status + reason
-sub websocket_can_accept ( $self ) {
+sub websocket_on_accept ( $self ) {
     return 1;
 }
 

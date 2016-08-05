@@ -12,7 +12,7 @@ has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, defaul
 
 # http://www.iana.org/assignments/websocket/websocket.xml#extension-name
 # https://tools.ietf.org/html/rfc7692#page-10
-has websocket_ext_permessage_deflate => ( is => 'ro', isa => Bool, default => 0 );
+has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 0 );
 
 has _websocket_msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # fragmentated message data, [$payload, $op, $rsv1]
 
@@ -53,7 +53,7 @@ sub websocket_listen ($self) {
                     else {
 
                         # set "rsv1" flag
-                        $header->{rsv1} = $self->{websocket_ext_permessage_deflate} && $header->{rsv1} ? 1 : 0;
+                        $header->{rsv1} = $self->{websocket_permessage_deflate} && $header->{rsv1} ? 1 : 0;
                     }
                 }
                 else {
@@ -75,7 +75,7 @@ sub websocket_listen ($self) {
                         $self->{_websocket_msg}->[1] = $header->{op};
 
                         # set and store "rsv1" flag
-                        $self->{_websocket_msg}->[2] = $header->{rsv1} = $self->{websocket_ext_permessage_deflate} && $header->{rsv1} ? 1 : 0;
+                        $self->{_websocket_msg}->[2] = $header->{rsv1} = $self->{websocket_permessage_deflate} && $header->{rsv1} ? 1 : 0;
                     }
                 }
 
@@ -175,7 +175,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # send pong
-            $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PONG, $self->{websocket_ext_permessage_deflate}, $payload_ref ) );
+            $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PONG, 9, $payload_ref ) );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
 
@@ -214,7 +214,7 @@ sub websocket_close ( $self, $status ) {
     undef $self->{_websocket_msg};
 
     # send close message
-    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, $self->{websocket_ext_permessage_deflate}, \$status ) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \$status ) );
 
     # destroy handle
     $self->{_websocket_h}->destroy;
@@ -223,13 +223,13 @@ sub websocket_close ( $self, $status ) {
 }
 
 sub websocket_send_text ( $self, $payload ) {
-    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_TEXT, $self->{websocket_ext_permessage_deflate}, \encode_utf8 $payload) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, 0, \encode_utf8 $payload) );
 
     return;
 }
 
 sub websocket_send_binary ( $self, $payload ) {
-    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_BINARY, $self->{websocket_ext_permessage_deflate}, \$payload ) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, 0, \$payload ) );
 
     return;
 }
@@ -238,7 +238,7 @@ sub websocket_send_binary ( $self, $payload ) {
 sub websocket_ping ($self) {
     my $payload = time;
 
-    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PING, $self->{websocket_ext_permessage_deflate}, \$payload ) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PING, 0, \$payload ) );
 
     return;
 }
