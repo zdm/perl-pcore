@@ -1,8 +1,8 @@
 package Pcore::HTTP::WebSocket::Util;
 
-use Pcore -const, -export => { CONST => [qw[$WEBSOCKET_VERSION]] };
+use Pcore -const, -export => { CONST => [qw[$WEBSOCKET_VERSION $WEBSOCKET_OP_CONTINUATION $WEBSOCKET_OP_TEXT $WEBSOCKET_OP_BINARY $WEBSOCKET_OP_CLOSE $WEBSOCKET_OP_PING $WEBSOCKET_OP_PONG]] };
 use Digest::SHA1 qw[];
-use Pcore::Util::Data qw[to_b64];
+use Pcore::Util::Data qw[to_b64 to_xor];
 
 const our $WEBSOCKET_VERSION => 13;
 const our $WEBSOCKET_GUID    => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -39,7 +39,7 @@ sub get_challenge ( $key ) {
 }
 
 # stolen directly from Mojo::WebSocket
-sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $data_ref ) {
+sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
 
     # head
     my $head = $op + ( $fin ? 128 : 0 );
@@ -50,7 +50,7 @@ sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $data_ref ) {
     my $frame = pack 'C', $head;
 
     # small payload
-    my $len = length $data_ref->$*;
+    my $len = length $payload_ref->$*;
 
     if ( $len < 126 ) {
         $frame .= pack 'C', $masked ? ( $len | 128 ) : $len;
@@ -72,10 +72,10 @@ sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $data_ref ) {
     if ($masked) {
         my $mask = pack 'N', int( rand 9 x 7 );
 
-        $data_ref = \( $mask . to_xor( $data_ref->$*, $mask ) );
+        $payload_ref = \( $mask . to_xor( $payload_ref->$*, $mask ) );
     }
 
-    return $frame . $data_ref->$*;
+    return $frame . $payload_ref->$*;
 }
 
 sub parse_frame_header ( $buf_ref ) {

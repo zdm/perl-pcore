@@ -4,8 +4,6 @@ use Pcore -role;
 
 with qw[Pcore::App::Controller Pcore::HTTP::WebSocket::Server Pcore::HTTP::WebSocket::Protocol::Raw];
 
-requires qw[run];
-
 sub websocket_can_accept ( $self ) {
     return 1;
 }
