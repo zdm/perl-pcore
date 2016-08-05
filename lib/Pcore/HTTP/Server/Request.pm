@@ -180,7 +180,7 @@ sub accept_websocket ( $self, $headers = undef ) {
     $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
     my @headers = (    #
-        "HTTP/1.1 $status $reason",
+        "HTTP/1.1 101 $reason",
         'Content-Length:0',
         'Upgrade:websocket',
         'Connection:upgrade',
@@ -191,7 +191,7 @@ sub accept_websocket ( $self, $headers = undef ) {
 
     $self->{_h}->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
 
-    return $h;
+    return $self->{_h};
 }
 
 1;

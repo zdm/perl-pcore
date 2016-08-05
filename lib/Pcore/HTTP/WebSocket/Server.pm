@@ -1,74 +1,83 @@
 package Pcore::HTTP::WebSocket::Server;
 
 use Pcore -role;
+use Pcore::HTTP::WebSocket::Util qw[:CONST];
+use Pcore::Util::Scalar qw[refaddr];
 
-with qw[Pcore::HTTP::WebSocket::Base];
+requires qw[run websocket_can_accept];
 
-requires qw[websocket_can_accept];
-
-sub websocket_on_accept ( $self, $req ) {
+around run => sub ( $orig, $self ) {
     my $req = $self->req;
-
-    my $env = $req->{env};
 
     # this is websocket connect request
     if ( $req->is_websocket_connect_request ) {
+        my $env = $req->{env};
 
         # websocket version is not specified or not supported
-        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $Pcore::HTTP::WebSocket::Base::WS_VERSION;
+        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $WEBSOCKET_VERSION;
 
         # websocket key is not specified
         return $req->return_xxx( [ 400, q[WebSocket key is required] ] ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
 
         # check websocket subprotocol
-        my $subprotocol = $self->subprotocol;
+        my $websocket_protocol = $self->websocket_protocol;
 
         if ( $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} ) {
-            return $req->return_xxx( [ 400, qq[Unsupported WebSocket subprotocol] ] ) if !$subprotocol || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$subprotocol\b/smi;
+            return $req->return_xxx( [ 400, qq[Unsupported WebSocket protocol] ] ) if !$websocket_protocol || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$websocket_protocol\b/smi;
         }
-        elsif ($subprotocol) {
-            return $req->return_xxx( [ 400, qq[WebSocket subprotocol should be "$subprotocol"] ] );
+        elsif ($websocket_protocol) {
+            return $req->return_xxx( [ 400, qq[WebSocket subprotocol should be "$websocket_protocol"] ] );
         }
 
-        my $can_accept = $self->websocket_can_accept($env);
+        my $websocket_can_accept = $self->websocket_can_accept;
 
         # websocket connect request can't be accepted
-        return $req->return_xxx(400) if !$can_accept;
+        return $req->return_xxx(400) if !$websocket_can_accept;
 
         # check and set extension
         if ( $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} ) {
-            $self->{ext_permessage_deflate} = 1 if $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
+
+            # set ext_permessage_deflate
+            $self->{websocket_ext_permessage_deflate} = $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
         }
 
         # crealte supported extensions list
         my @extensions;
-        push @extensions, 'permessage-deflate' if $self->ext_permessage_deflate;
+        push @extensions, 'permessage-deflate' if $self->websocket_ext_permessage_deflate;
 
         # create response headers
         my @headers = (    #
-            'Sec-WebSocket-Accept:' . $self->get_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
-            ( $subprotocol ? "Sec-WebSocket-Protocol:$subprotocol" : () ),
+            'Sec-WebSocket-Accept:' . Pcore::HTTP::WebSocket::Util::get_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
+            ( $websocket_protocol ? "Sec-WebSocket-Protocol:$websocket_protocol" : () ),
             ( @extensions ? 'Sec-WebSocket-Extensions:' . join q[, ], @extensions : () ),
         );
 
         # add custom headers
-        push @headers, $can_accept->@* if ref $can_accept;
+        push @headers, $websocket_can_accept->@* if ref $websocket_can_accept;
 
         # accept websocket connection
-        my $h = $req->accept_websocket( \@headers );
+        $self->{websocket_h} = $req->accept_websocket( \@headers );
 
-        # TODO create websocket object and store in HTTP server cache, using refaddr as key
+        # create websocket object and store in HTTP server cache, using refaddr as key
         $req->{_server}->{_websocket_cache}->{ refaddr $self} = $self;
 
-        $ws->listen;
+        $self->websocket_listen;
 
         return;
     }
 
     # this is NOT websocket connect request
     else {
-        return $req->return_xxx(400);
+        return $self->$orig;
     }
+};
+
+sub websocket_on_close ($self) {
+    undef $self->req->{_server}->{_websocket_cache}->{ refaddr $self};
+
+    $self->{websocket_h}->disconnect;
+
+    return;
 }
 
 1;
@@ -78,9 +87,9 @@ sub websocket_on_accept ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 26                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 88                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 92 does not match the package declaration       |
+## |    1 | 97                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 101 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
