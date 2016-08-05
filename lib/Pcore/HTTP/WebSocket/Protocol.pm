@@ -3,7 +3,6 @@ package Pcore::HTTP::WebSocket::Protocol;
 use Pcore -const, -role;
 use Pcore::HTTP::WebSocket::Util qw[:CONST];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
-use Pcore::Util::Text qw[decode_utf8];
 use Pcore::Util::Data qw[to_xor];
 use Compress::Raw::Zlib qw[];
 
@@ -20,18 +19,25 @@ has _websocket_msg_op                 => ( is => 'ro', isa => Str,      init_arg
 has _websocket_msg_permessage_deflate => ( is => 'ro', isa => Bool,     init_arg => undef );
 has _websocket_msg_buf                => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # buffer for fragmentated message payload
 
-has status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );                     # remote close status
+has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );     # close status
 
 has _ping_callbacks => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _close_sent => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
-# TODO install on_error callback
 sub websocket_listen ($self) {
 
     # cleanup buffers
     $self->{_websocket_msg_op}                 = undef;
     $self->{_websocket_msg_permessage_deflate} = 0;
     $self->{_websocket_msg_buf}                = q[];
+
+    $self->websocket_h->on_error(
+        sub ( $h, @ ) {
+            $self->websocket_on_close(1001) if !$self->{websocket_close_status};    # going away
+
+            return;
+        }
+    );
 
     $self->websocket_h->on_read(
         sub ($h) {
@@ -84,7 +90,6 @@ sub websocket_listen ($self) {
                 }
 
                 # check max. message size, return 1009 - message too big
-                # TODO check for decompressed frame payload
                 return $self->websocket_close(1009) if $self->{websocket_max_message_size} && ( $header->{len} + length $self->{_websocket_msg_buf} ) > $self->{websocket_max_message_size};
 
                 # empty frame
@@ -120,6 +125,9 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     # decompress
     if ( $header->{permessage_deflate} && $payload_ref ) {
+
+        # TODO cache inflate object
+        # TODO check buffer size
         my $inflate = $self->{inflate} ||= Compress::Raw::Zlib::Inflate->new(
             Bufsize     => $self->{websocket_max_message_size},
             LimitOutput => 1,
@@ -150,35 +158,84 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
         $self->{_websocket_msg_permessage_deflate} = 0;
         $self->{_websocket_msg_buf}                = q[];
 
-        $self->websocket_on_text($payload_ref);
+        # dispatch message
+        if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
+            decode_utf8 $payload_ref->$*;
+
+            $self->websocket_on_text($payload_ref);
+        }
+        elsif ( $header->{op} == $WEBSOCKET_OP_BINARY ) {
+            $self->websocket_on_binary($payload_ref);
+        }
+        elsif ( $header->{op} == $WEBSOCKET_OP_CLOSE ) {
+            $self->websocket_on_close( $payload_ref->$* );
+        }
+        elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
+
+        }
+        elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
+
+        }
     }
 
     return;
 }
 
+# called, when remote peer close connection
+around websocket_on_close => sub ( $orig, $self, $status ) {
+
+    # connection already closed
+    return if $self->{websocket_close_status};
+
+    # close connection
+    $self->websocket_close($status);
+
+    # call original on_close method
+    $self->$orig($status);
+
+    return;
+};
+
+# METHODS
 sub websocket_close ( $self, $status ) {
+
+    # connection already closed
+    return if $self->{websocket_close_status};
+
+    # mark connection as closed
+    $self->{websocket_close_status} = $status;
 
     # cleanup buffers
     $self->{_websocket_msg_op}                 = undef;
     $self->{_websocket_msg_permessage_deflate} = 0;
     $self->{_websocket_msg_buf}                = q[];
 
+    # send close message
+    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, $self->{websocket_ext_permessage_deflate}, \$status ) );
+
+    # destroy handle
+    $self->{websocket_h}->destroy;
+
     return;
 }
 
-sub websocket_send_text {
+sub websocket_send_text ( $self, $payload ) {
+    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_TEXT, $self->{websocket_ext_permessage_deflate}, \encode_utf8 $payload) );
 
-    # my $deflate = $self->{deflate} ||= Compress::Raw::Zlib::Deflate->new(
-    #     AppendOutput => 1,
-    #     MemLevel     => 8,
-    #     WindowBits   => -15
-    # );
-    #
-    # $deflate->deflate( $frame->[5], my $out );
-    #
-    # $deflate->flush( $out, Z_SYNC_FLUSH );
-    #
-    # @$frame[ 1, 5 ] = ( 1, substr( $out, 0, length($out) - 4 ) );
+    return;
+}
+
+sub websocket_send_binary ( $self, $payload ) {
+    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_BINARY, $self->{websocket_ext_permessage_deflate}, \$payload ) );
+
+    return;
+}
+
+# TODO
+sub websocket_ping ($self) {
+    my $payload = time;
+
+    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PING, $self->{websocket_ext_permessage_deflate}, \$payload ) );
 
     return;
 }
@@ -190,9 +247,9 @@ sub websocket_send_text {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 129                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 137                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 200                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 204 does not match the package declaration      |
+## |    1 | 257                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 261 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

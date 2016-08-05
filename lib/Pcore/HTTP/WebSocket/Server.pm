@@ -76,8 +76,6 @@ around run => sub ( $orig, $self ) {
 sub websocket_on_close ($self) {
     undef $self->req->{_server}->{_websocket_cache}->{ refaddr $self};
 
-    $self->{websocket_h}->disconnect;
-
     return;
 }
 
@@ -90,7 +88,7 @@ sub websocket_on_close ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 98                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 102 does not match the package declaration      |
+## |    1 | 96                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 100 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

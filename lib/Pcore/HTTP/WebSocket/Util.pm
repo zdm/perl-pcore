@@ -39,7 +39,8 @@ sub get_challenge ( $key ) {
 }
 
 # stolen directly from Mojo::WebSocket
-sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
+# TODO deflate
+sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $permessage_deflate, $payload_ref ) {
 
     # head
     my $head = $op + ( $fin ? 128 : 0 );
@@ -66,6 +67,21 @@ sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
         $frame .= pack 'C', $masked ? ( 127 | 128 ) : 127;
 
         $frame .= pack( 'Q>', $len );
+    }
+
+    if ($permessage_deflate) {
+
+        # my $deflate = $self->{deflate} ||= Compress::Raw::Zlib::Deflate->new(
+        #     AppendOutput => 1,
+        #     MemLevel     => 8,
+        #     WindowBits   => -15
+        # );
+        #
+        # $deflate->deflate( $frame->[5], my $out );
+        #
+        # $deflate->flush( $out, Z_SYNC_FLUSH );
+        #
+        # @$frame[ 1, 5 ] = ( 1, substr( $out, 0, length($out) - 4 ) );
     }
 
     # mask payload
@@ -150,16 +166,16 @@ sub parse_frame_header ( $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 43                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 82                   | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
+## |    3 | 98                   | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
 ## |      |                      | "unless"                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 84, 86               | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 100, 102             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 60                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 61                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 68, 84               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 69, 100              | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

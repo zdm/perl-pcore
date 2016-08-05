@@ -4,6 +4,7 @@ use Pcore -role;
 
 with qw[Pcore::App::Controller Pcore::HTTP::WebSocket::Server Pcore::HTTP::WebSocket::Protocol::Raw];
 
+# NOTE perform additional checks, return true or headers array on success, or false, if connection is not possible
 sub websocket_can_accept ( $self ) {
     return 1;
 }
