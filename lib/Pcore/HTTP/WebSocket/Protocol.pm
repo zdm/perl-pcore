@@ -8,21 +8,20 @@ use Compress::Raw::Zlib qw[];
 
 requires qw[websocket_protocol websocket_on_close];
 
-has websocket_h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'] );
 has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );
 
 # http://www.iana.org/assignments/websocket/websocket.xml#extension-name
 # https://tools.ietf.org/html/rfc7692#page-10
 has websocket_ext_permessage_deflate => ( is => 'ro', isa => Bool, default => 0 );
 
+# TODO use arrayref
 has _websocket_msg_op                 => ( is => 'ro', isa => Str,      init_arg => undef );
 has _websocket_msg_permessage_deflate => ( is => 'ro', isa => Bool,     init_arg => undef );
 has _websocket_msg_buf                => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # buffer for fragmentated message payload
 
+# TODO make private
+has websocket_h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );
 has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );     # close status
-
-has _ping_callbacks => ( is => 'lazy', isa => ArrayRef, default => sub { [] }, init_arg => undef );
-has _close_sent => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 sub websocket_listen ($self) {
 
@@ -33,7 +32,7 @@ sub websocket_listen ($self) {
 
     $self->websocket_h->on_error(
         sub ( $h, @ ) {
-            $self->websocket_on_close(1001) if !$self->{websocket_close_status};    # going away
+            $self->websocket_on_close(1001) if !$self->{websocket_close_status};                # going away
 
             return;
         }
@@ -118,6 +117,8 @@ sub websocket_listen ($self) {
     return;
 }
 
+# TODO process ping
+# TODO test inflate message size
 sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     # unmask
@@ -172,9 +173,12 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
+            # send pong
+            $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PONG, $self->{websocket_ext_permessage_deflate}, $payload_ref ) );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
 
+            # TODO call ping callbacks
         }
     }
 
@@ -247,9 +251,9 @@ sub websocket_ping ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 137                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 138                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 257                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 261 does not match the package declaration      |
+## |    1 | 261                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 265 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

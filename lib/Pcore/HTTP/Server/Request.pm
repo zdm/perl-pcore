@@ -189,9 +189,13 @@ sub accept_websocket ( $self, $headers = undef ) {
 
     push @headers, map {"$_->[0]:$_->[1]"} pairs $headers->@* if $headers && $headers->@*;
 
-    $self->{_h}->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+    my $h = $self->{_h};
 
-    return $self->{_h};
+    undef $self->{_h};
+
+    $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+
+    return $h;
 }
 
 1;

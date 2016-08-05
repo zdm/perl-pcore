@@ -2,9 +2,11 @@ package Pcore::App::Controller::WebSocket;
 
 use Pcore -role;
 
+# NOTE WebSocket::Server role must be before WebSocket::Protocol
 with qw[Pcore::App::Controller Pcore::HTTP::WebSocket::Server Pcore::HTTP::WebSocket::Protocol::Raw];
 
 # NOTE perform additional checks, return true or headers array on success, or false, if connection is not possible
+# TODO possibility to return error status + reason
 sub websocket_can_accept ( $self ) {
     return 1;
 }
@@ -17,6 +19,12 @@ sub websocket_on_text ( $self, $data_ref ) {
 
 sub websocket_on_binary ( $self, $data_ref ) {
     say dump $data_ref;
+
+    return;
+}
+
+sub websocket_on_close ( $self, $status ) {
+    say 'WEBSOCKET CLOSED: ' . $status;
 
     return;
 }

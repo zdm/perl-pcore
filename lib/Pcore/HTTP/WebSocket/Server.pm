@@ -4,7 +4,7 @@ use Pcore -role;
 use Pcore::HTTP::WebSocket::Util qw[:CONST];
 use Pcore::Util::Scalar qw[refaddr];
 
-requires qw[run websocket_can_accept];
+requires qw[run websocket_can_accept websocket_on_close];
 
 around run => sub ( $orig, $self ) {
     my $req = $self->req;
@@ -37,20 +37,15 @@ around run => sub ( $orig, $self ) {
         # check and set extension
         if ( $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} ) {
 
-            # set ext_permessage_deflate
-            $self->{websocket_ext_permessage_deflate} = $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
+            # set ext_permessage_deflate, only if enabled locally
+            $self->{websocket_ext_permessage_deflate} = $self->{websocket_ext_permessage_deflate} && $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
         }
-
-        # crealte supported extensions list
-        my @extensions;
-
-        # push @extensions, 'permessage-deflate' if $self->websocket_ext_permessage_deflate;
 
         # create response headers
         my @headers = (    #
             'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket::Util::get_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
-            ( $websocket_protocol ? ( 'Sec-WebSocket-Protocol' => $websocket_protocol ) : () ),
-            ( @extensions ? ( 'Sec-WebSocket-Extensions' => join q[, ], @extensions ) : () ),
+            ( $websocket_protocol                       ? ( 'Sec-WebSocket-Protocol'   => $websocket_protocol )  : () ),
+            ( $self->{websocket_ext_permessage_deflate} ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
         );
 
         # add custom headers
@@ -73,11 +68,13 @@ around run => sub ( $orig, $self ) {
     }
 };
 
-sub websocket_on_close ($self) {
+around websocket_on_close => sub ( $orig, $self, $status ) {
     undef $self->req->{_server}->{_websocket_cache}->{ refaddr $self};
 
+    $self->$orig($status);
+
     return;
-}
+};
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -88,7 +85,7 @@ sub websocket_on_close ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 26                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 96                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 100 does not match the package declaration      |
+## |    1 | 93                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 97 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

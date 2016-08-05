@@ -1,8 +1,8 @@
 package Pcore::HTTP::WebSocket::Util;
 
 use Pcore -const, -export => { CONST => [qw[$WEBSOCKET_VERSION $WEBSOCKET_OP_CONTINUATION $WEBSOCKET_OP_TEXT $WEBSOCKET_OP_BINARY $WEBSOCKET_OP_CLOSE $WEBSOCKET_OP_PING $WEBSOCKET_OP_PONG]] };
-use Digest::SHA1 qw[];
 use Pcore::Util::Data qw[to_b64 to_xor];
+use Digest::SHA1 qw[];
 
 const our $WEBSOCKET_VERSION => 13;
 const our $WEBSOCKET_GUID    => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -40,6 +40,7 @@ sub get_challenge ( $key ) {
 
 # stolen directly from Mojo::WebSocket
 # TODO deflate
+# TODO use array ref for arguments
 sub build_frame ( $masked, $fin, $rsv1, $rsv2, $rsv3, $op, $permessage_deflate, $payload_ref ) {
 
     # head
@@ -166,16 +167,16 @@ sub parse_frame_header ( $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 44                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 98                   | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
+## |    3 | 99                   | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
 ## |      |                      | "unless"                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 100, 102             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 101, 103             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 61                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 62                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 69, 100              | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 70, 101              | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
