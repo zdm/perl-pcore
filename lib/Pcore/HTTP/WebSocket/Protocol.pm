@@ -49,7 +49,7 @@ sub websocket_listen ($self) {
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->websocket_close(1002) if ( !$self->{_websocket_msg_op} );
+                        return $self->websocket_on_close(1002) if ( !$self->{_websocket_msg_op} );
 
                         # restore message "op"
                         $header->{op} = $self->{_websocket_msg_op};
@@ -71,7 +71,7 @@ sub websocket_listen ($self) {
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->websocket_close(1002) if ( !$self->{_websocket_msg_op} );
+                        return $self->websocket_on_close(1002) if ( !$self->{_websocket_msg_op} );
 
                         # restore "permessage_deflate" flag
                         $header->{permessage_deflate} = $self->{_websocket_msg_permessage_deflate};
@@ -89,7 +89,7 @@ sub websocket_listen ($self) {
                 }
 
                 # check max. message size, return 1009 - message too big
-                return $self->websocket_close(1009) if $self->{websocket_max_message_size} && ( $header->{len} + length $self->{_websocket_msg_buf} ) > $self->{websocket_max_message_size};
+                return $self->websocket_on_close(1009) if $self->{websocket_max_message_size} && ( $header->{len} + length $self->{_websocket_msg_buf} ) > $self->{websocket_max_message_size};
 
                 # empty frame
                 if ( !$header->{len} ) {
@@ -139,7 +139,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
         $inflate->inflate( $payload_ref->$*, my $out );
 
-        return $self->websocket_close(1009) if length $payload_ref->$*;
+        return $self->websocket_on_close(1009) if length $payload_ref->$*;
 
         $payload_ref = \$out;
     }
@@ -151,7 +151,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
         $self->{_websocket_msg_buf} .= $payload_ref->$* if $payload_ref;
     }
 
-    # message complete, dispatch message
+    # message completed, dispatch message
     else {
 
         # cleanup buffers
