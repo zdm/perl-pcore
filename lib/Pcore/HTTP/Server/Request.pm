@@ -9,7 +9,8 @@ has _server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required
 has _h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
 has env => ( is => 'ro', isa => HashRef, required => 1 );
 
-has _use_keepalive => ( is => 'lazy', isa => Bool, init_arg => undef );
+has is_websocket_connect_request => ( is => 'lazy', isa => Bool, init_arg => undef );
+has _use_keepalive               => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
@@ -162,6 +163,13 @@ sub return_xxx ( $self, $status, $use_keepalive = 0 ) {
     undef $self->{_h};
 
     return;
+}
+
+# WEBSOCKET
+sub _build_is_websocket_connect_request ( $self ) {
+    my $env = $self->{env};
+
+    return $env->{HTTP_UPGRADE} && $env->{HTTP_UPGRADE} =~ /websocket/smi && $env->{HTTP_CONNECTION} && $env->{HTTP_CONNECTION} =~ /\bupgrade\b/smi;
 }
 
 sub accept_websocket ( $self, $headers = undef ) {

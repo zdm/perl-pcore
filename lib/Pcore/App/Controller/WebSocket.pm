@@ -10,8 +10,6 @@ requires qw[run];
 # ' WebSocket-Origin '     => ' http : // 127.0.0.1 : 80 / ',
 # ' WebSocket-Location '   => ' ws   : // 127.0.0.1 : 80 / websocket /',
 
-# $buf .= 'Sec-WebSocket-Accept:' . P->data->to_b64( Digest::SHA1::sha1( ( $self->env->{HTTP_SEC_WEBSOCKET_KEY} || q[] ) . $WS_GUID ), q[] ) . $CRLF;
-
 around run => sub ( $orig, $self ) {
     my $req = $self->req;
 
