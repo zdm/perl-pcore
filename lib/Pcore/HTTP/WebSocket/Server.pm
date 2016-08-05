@@ -52,7 +52,7 @@ around run => sub ( $orig, $self ) {
         push @headers, $websocket_can_accept->@* if ref $websocket_can_accept;
 
         # accept websocket connection
-        $self->{websocket_h} = $req->accept_websocket( \@headers );
+        $self->{_websocket_h} = $req->accept_websocket( \@headers );
 
         # store websocket object in HTTP server cache, using refaddr as key
         $req->{_server}->{_websocket_cache}->{ refaddr $self} = $self;

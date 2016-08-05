@@ -14,99 +14,100 @@ has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, defaul
 # https://tools.ietf.org/html/rfc7692#page-10
 has websocket_ext_permessage_deflate => ( is => 'ro', isa => Bool, default => 0 );
 
-# TODO use arrayref
-has _websocket_msg_op                 => ( is => 'ro', isa => Str,      init_arg => undef );
-has _websocket_msg_permessage_deflate => ( is => 'ro', isa => Bool,     init_arg => undef );
-has _websocket_msg_buf                => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # buffer for fragmentated message payload
+has _websocket_msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # fragmentated message data, [$payload, $op, $rsv1]
 
-# TODO make private
-has websocket_h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );
-has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );     # close status
+has _websocket_h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );
+has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # close status
 
 sub websocket_listen ($self) {
 
-    # cleanup buffers
-    $self->{_websocket_msg_op}                 = undef;
-    $self->{_websocket_msg_permessage_deflate} = 0;
-    $self->{_websocket_msg_buf}                = q[];
+    # cleanup fragmentated message data
+    undef $self->{_websocket_msg};
 
-    $self->websocket_h->on_error(
+    $self->{_websocket_h}->on_error(
         sub ( $h, @ ) {
-            $self->websocket_on_close(1001) if !$self->{websocket_close_status};                # going away
+            $self->websocket_on_close(1001) if !$self->{websocket_close_status};               # going away
 
             return;
         }
     );
 
-    $self->websocket_h->on_read(
+    $self->{_websocket_h}->on_read(
         sub ($h) {
             if ( my $header = Pcore::HTTP::WebSocket::Util::parse_frame_header( \$h->{rbuf} ) ) {
 
                 # check protocol errors
                 if ( $header->{fin} ) {
 
-                    # this is the last frame of fragmentated message
+                    # this is the last frame of the fragmentated message
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->websocket_on_close(1002) if ( !$self->{_websocket_msg_op} );
+                        return $self->websocket_on_close(1002) if !$self->{_websocket_msg};
 
-                        # restore message "op"
-                        $header->{op} = $self->{_websocket_msg_op};
-
-                        # restore "permessage_deflate" flag
-                        $header->{permessage_deflate} = $self->{_websocket_msg_permessage_deflate};
+                        # restore message "op", "rsv1"
+                        ( $header->{op}, $header->{rsv1} ) = ( $self->{_websocket_msg}->[1], $self->{_websocket_msg}->[2] );
                     }
 
                     # this is the single-frame message
                     else {
 
-                        # set "permessage_deflate" flag
-                        $header->{permessage_deflate} = $self->{websocket_ext_permessage_deflate} && $header->{rsv1} ? 1 : 0;
+                        # set "rsv1" flag
+                        $header->{rsv1} = $self->{websocket_ext_permessage_deflate} && $header->{rsv1} ? 1 : 0;
                     }
                 }
                 else {
 
-                    # this is the next frame of fragmentated message
+                    # this is the next frame of the fragmentated message
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->websocket_on_close(1002) if ( !$self->{_websocket_msg_op} );
+                        return $self->websocket_on_close(1002) if !$self->{_websocket_msg};
 
-                        # restore "permessage_deflate" flag
-                        $header->{permessage_deflate} = $self->{_websocket_msg_permessage_deflate};
+                        # restore "rsv1" flag
+                        $header->{rsv1} = $self->{_websocket_msg}->[2];
                     }
 
                     # this is the first frame of the fragmentated message
                     else {
 
                         # store message "op"
-                        $self->{_websocket_msg_op} = $header->{op};
+                        $self->{_websocket_msg}->[1] = $header->{op};
 
-                        # set and store "permessage_deflate" flag
-                        $self->{_websocket_msg_op} = $header->{permessage_deflate} = $self->{websocket_ext_permessage_deflate} && $header->{rsv1} ? 1 : 0;
+                        # set and store "rsv1" flag
+                        $self->{_websocket_msg}->[2] = $header->{rsv1} = $self->{websocket_ext_permessage_deflate} && $header->{rsv1} ? 1 : 0;
                     }
                 }
-
-                # check max. message size, return 1009 - message too big
-                return $self->websocket_on_close(1009) if $self->{websocket_max_message_size} && ( $header->{len} + length $self->{_websocket_msg_buf} ) > $self->{websocket_max_message_size};
 
                 # empty frame
                 if ( !$header->{len} ) {
                     $self->_on_frame( $header, undef );
                 }
-                elsif ( length $h->{rbuf} >= $header->{len} ) {
-                    $self->_websocket_on_frame( $header, \substr $h->{rbuf}, 0, $header->{len}, q[] );
-                }
                 else {
-                    $h->unshift_read(
-                        chunk => $header->{len},
-                        sub ( $h, $payload ) {
-                            $self->_websocket_on_frame( $header, \$payload );
 
-                            return;
+                    # check max. message size, return 1009 - message too big
+                    if ( $self->{websocket_max_message_size} ) {
+                        if ( $self->{_websocket_msg} && $self->{_websocket_msg}->[0] ) {
+                            return $self->websocket_on_close(1009) if $header->{len} + length $self->{_websocket_msg}->[0] > $self->{websocket_max_message_size};
                         }
-                    );
+                        else {
+                            return $self->websocket_on_close(1009) if $header->{len} > $self->{websocket_max_message_size};
+                        }
+                    }
+
+                    if ( length $h->{rbuf} >= $header->{len} ) {
+                        $self->_websocket_on_frame( $header, \substr $h->{rbuf}, 0, $header->{len}, q[] );
+                    }
+                    else {
+                        $h->unshift_read(
+                            chunk => $header->{len},
+                            sub ( $h, $payload ) {
+                                $self->_websocket_on_frame( $header, \$payload );
+
+                                return;
+                            }
+                        );
+                    }
                 }
             }
 
@@ -125,7 +126,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
     $payload_ref = \to_xor( $payload_ref->$*, $header->{mask} ) if $header->{mask} && $payload_ref;
 
     # decompress
-    if ( $header->{permessage_deflate} && $payload_ref ) {
+    if ( $header->{rsv1} && $payload_ref ) {
 
         # TODO cache inflate object
         # TODO check buffer size
@@ -148,16 +149,16 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
     if ( !$header->{fin} ) {
 
         # add frame to the message buffer
-        $self->{_websocket_msg_buf} .= $payload_ref->$* if $payload_ref;
+        $self->{_websocket_msg}->[1] .= $payload_ref->$* if $payload_ref;
     }
 
     # message completed, dispatch message
     else {
 
-        # cleanup buffers
-        $self->{_websocket_msg_op}                 = undef;
-        $self->{_websocket_msg_permessage_deflate} = 0;
-        $self->{_websocket_msg_buf}                = q[];
+        # cleanup fragmentated message data
+        undef $self->{_websocket_msg};
+
+        # TODO add buffer, if message is fragmentated
 
         # dispatch message
         if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
@@ -174,7 +175,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # send pong
-            $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PONG, $self->{websocket_ext_permessage_deflate}, $payload_ref ) );
+            $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PONG, $self->{websocket_ext_permessage_deflate}, $payload_ref ) );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
 
@@ -209,28 +210,26 @@ sub websocket_close ( $self, $status ) {
     # mark connection as closed
     $self->{websocket_close_status} = $status;
 
-    # cleanup buffers
-    $self->{_websocket_msg_op}                 = undef;
-    $self->{_websocket_msg_permessage_deflate} = 0;
-    $self->{_websocket_msg_buf}                = q[];
+    # cleanup fragmentated message data
+    undef $self->{_websocket_msg};
 
     # send close message
-    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, $self->{websocket_ext_permessage_deflate}, \$status ) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, $self->{websocket_ext_permessage_deflate}, \$status ) );
 
     # destroy handle
-    $self->{websocket_h}->destroy;
+    $self->{_websocket_h}->destroy;
 
     return;
 }
 
 sub websocket_send_text ( $self, $payload ) {
-    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_TEXT, $self->{websocket_ext_permessage_deflate}, \encode_utf8 $payload) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_TEXT, $self->{websocket_ext_permessage_deflate}, \encode_utf8 $payload) );
 
     return;
 }
 
 sub websocket_send_binary ( $self, $payload ) {
-    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_BINARY, $self->{websocket_ext_permessage_deflate}, \$payload ) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_BINARY, $self->{websocket_ext_permessage_deflate}, \$payload ) );
 
     return;
 }
@@ -239,7 +238,7 @@ sub websocket_send_binary ( $self, $payload ) {
 sub websocket_ping ($self) {
     my $payload = time;
 
-    $self->{websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PING, $self->{websocket_ext_permessage_deflate}, \$payload ) );
+    $self->{_websocket_h}->push_write( Pcore::HTTP::WebSocket::Util::build_frame( 0, 1, 0, 0, 0, $WEBSOCKET_OP_PING, $self->{websocket_ext_permessage_deflate}, \$payload ) );
 
     return;
 }
@@ -251,9 +250,11 @@ sub websocket_ping ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 138                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "websocket_listen" with high complexity score (25)          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 261                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 265 does not match the package declaration      |
+## |    2 | 139                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 262                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 266 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
