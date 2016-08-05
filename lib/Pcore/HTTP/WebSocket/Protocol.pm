@@ -15,6 +15,7 @@ has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, defaul
 has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 0 );
 
 has _websocket_msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # fragmentated message data, [$payload, $op, $rsv1]
+has _websocket_inflate => ( is => 'ro', init_arg => undef );
 
 has _websocket_h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );
 has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # close status
@@ -119,7 +120,6 @@ sub websocket_listen ($self) {
 }
 
 # TODO process ping
-# TODO test inflate message size
 sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     # unmask
@@ -127,10 +127,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     # decompress
     if ( $header->{rsv1} && $payload_ref ) {
-
-        # TODO cache inflate object
-        # TODO check buffer size
-        my $inflate = $self->{inflate} ||= Compress::Raw::Zlib::Inflate->new(
+        my $inflate = $self->{_websocket_inflate} ||= Compress::Raw::Zlib::Inflate->new(
             Bufsize     => $self->{websocket_max_message_size},
             LimitOutput => 1,
             WindowBits  => -15
@@ -138,7 +135,9 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
         $payload_ref->$* .= "\x00\x00\xff\xff";
 
-        $inflate->inflate( $payload_ref->$*, my $out );
+        $inflate->inflate( $payload_ref, my $out );
+
+        $inflate->inflateReset;
 
         return $self->websocket_on_close(1009) if length $payload_ref->$*;
 
@@ -149,7 +148,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
     if ( !$header->{fin} ) {
 
         # add frame to the message buffer
-        $self->{_websocket_msg}->[1] .= $payload_ref->$* if $payload_ref;
+        $self->{_websocket_msg}->[0] .= $payload_ref->$* if $payload_ref;
     }
 
     # message completed, dispatch message
@@ -250,11 +249,11 @@ sub websocket_ping ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "websocket_listen" with high complexity score (25)          |
+## |    3 | 23                   | Subroutines::ProhibitExcessComplexity - Subroutine "websocket_listen" with high complexity score (25)          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 139                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 136                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 262                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 266 does not match the package declaration      |
+## |    1 | 261                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 265 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

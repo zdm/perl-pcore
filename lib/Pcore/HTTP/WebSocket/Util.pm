@@ -3,6 +3,7 @@ package Pcore::HTTP::WebSocket::Util;
 use Pcore -const, -export => { CONST => [qw[$WEBSOCKET_VERSION $WEBSOCKET_OP_CONTINUATION $WEBSOCKET_OP_TEXT $WEBSOCKET_OP_BINARY $WEBSOCKET_OP_CLOSE $WEBSOCKET_OP_PING $WEBSOCKET_OP_PONG]] };
 use Pcore::Util::Data qw[to_b64 to_xor];
 use Digest::SHA1 qw[];
+use Compress::Raw::Zlib;
 
 const our $WEBSOCKET_VERSION => 13;
 const our $WEBSOCKET_GUID    => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -69,18 +70,17 @@ sub build_frame ( $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref ) {
     }
 
     if ($rsv1) {
+        state $deflate = Compress::Raw::Zlib::Deflate->new(
+            AppendOutput => 1,
+            MemLevel     => 8,
+            WindowBits   => -15
+        );
 
-        # my $deflate = $self->{deflate} ||= Compress::Raw::Zlib::Deflate->new(
-        #     AppendOutput => 1,
-        #     MemLevel     => 8,
-        #     WindowBits   => -15
-        # );
-        #
-        # $deflate->deflate( $frame->[5], my $out );
-        #
-        # $deflate->flush( $out, Z_SYNC_FLUSH );
-        #
-        # @$frame[ 1, 5 ] = ( 1, substr( $out, 0, length($out) - 4 ) );
+        $deflate->deflate( $payload_ref, my $out );
+
+        $deflate->flush( $out, Z_SYNC_FLUSH );
+
+        $payload_ref = \substr $out, 0, -4;
     }
 
     # mask payload
@@ -165,16 +165,16 @@ sub parse_frame_header ( $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 43                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 97                   | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
 ## |      |                      | "unless"                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 99, 101              | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 60                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 61                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 68, 99               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 69, 99               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
