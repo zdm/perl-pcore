@@ -82,13 +82,13 @@ sub websocket_close ( $self, $status, $reason = undef ) {
     # mark connection as closed
     $self->{websocket_status} = $status;
 
-    $self->{websocket_reason} = $reason // $WEBSOCKET_CLOSE_REASON->{$status} // 'Unknown reason';
+    $self->{websocket_reason} = $reason //= $WEBSOCKET_CLOSE_REASON->{$status} // 'Unknown reason';
 
     # cleanup fragmentated message data
     undef $self->{_websocket_msg};
 
     # send close message
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \( pack( 'n', $status ) . encode_utf8 $self->{websocket_reason} ) ) );
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \( pack( 'n', $status ) . encode_utf8 $reason ) ) );
 
     # destroy handle
     $self->{_websocket_h}->destroy;
@@ -285,6 +285,8 @@ sub _websocket_on_close ( $self, $status, $reason = undef ) {
     # connection already closed
     return if defined $self->{websocket_status};
 
+    $reason //= $WEBSOCKET_CLOSE_REASON->{$status} // 'Unknown reason';
+
     # close connection
     $self->websocket_close( $status, $reason );
 
@@ -431,17 +433,17 @@ sub _websocket_parse_frame_header ( $self, $buf_ref ) {
 ## |      | 100                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
 ## |      | 200                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 301                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 303                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 361, 363             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 363, 365             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 217                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 337                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 339                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 345, 361             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 347, 363             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 449                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 453 does not match the package declaration      |
+## |    1 | 451                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 455 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

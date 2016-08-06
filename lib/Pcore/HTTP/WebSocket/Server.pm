@@ -5,6 +5,8 @@ use Pcore::Util::Scalar qw[refaddr];
 
 requires qw[run websocket_on_accept websocket_on_close];
 
+has websocket_autoping => ( is => 'ro', isa => PositiveOrZeroInt, default => 5 );    # 0 - do not ping on timeout
+
 around run => sub ( $orig, $self ) {
     my $req = $self->req;
 
@@ -56,6 +58,19 @@ around run => sub ( $orig, $self ) {
         # store websocket object in HTTP server cache, using refaddr as key
         $req->{_server}->{_websocket_cache}->{ refaddr $self} = $self;
 
+        # init autoping
+        if ( $self->{websocket_autoping} ) {
+            $self->{_websocket_h}->timeout( $self->{websocket_autoping} );
+
+            $self->{_websocket_h}->on_timeout(
+                sub ($h) {
+                    $self->websocket_ping;
+
+                    return;
+                }
+            );
+        }
+
         $self->websocket_listen;
 
         return;
@@ -82,9 +97,9 @@ around websocket_on_close => sub ( $orig, $self, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 25                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 27                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 92                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 96 does not match the package declaration       |
+## |    1 | 107                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 111 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
