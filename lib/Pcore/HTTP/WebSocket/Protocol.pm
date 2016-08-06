@@ -68,7 +68,7 @@ sub websocket_send_binary ( $self, $payload ) {
 
 sub websocket_ping ($self) {
     my $payload = time;
-    say "PING: $payload";
+
     $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, 0, \$payload ) );
 
     return;
