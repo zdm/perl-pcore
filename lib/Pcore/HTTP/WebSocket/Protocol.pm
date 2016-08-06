@@ -102,6 +102,10 @@ sub websocket_on_pong ( $self, $payload_ref ) {
 }
 
 # UTILS
+sub websocket_challenge ( $self, $key ) {
+    return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
+}
+
 sub websocket_listen ($self) {
 
     # cleanup fragmentated message data
@@ -201,10 +205,6 @@ sub websocket_listen ($self) {
     return;
 }
 
-sub websocket_challenge ( $self, $key ) {
-    return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
-}
-
 sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     if ($payload_ref) {
@@ -276,7 +276,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # send pong
-            $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PONG, 0, $payload_ref ) );
+            $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, 0, $payload_ref ) );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
             $self->websocket_on_pong($payload_ref);
@@ -433,7 +433,7 @@ sub _websocket_parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 105                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
+## |      | 109                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
 ## |      | 208                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 306                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |

@@ -4,6 +4,8 @@ use Pcore -role;
 use Pcore::AE::Handle;
 
 # TODO implement TLS
+# TODO implement reconnect / autoreconnect
+# websocket_is_connected
 
 sub websocket_connect ( $self, $url, @ ) {
     my %args = (
@@ -110,9 +112,9 @@ sub websocket_connect ( $self, $url, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 17                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 19                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 9                    | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 11                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
