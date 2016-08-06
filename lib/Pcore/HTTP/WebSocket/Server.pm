@@ -5,7 +5,7 @@ use Pcore::Util::Scalar qw[refaddr];
 
 requires qw[run websocket_on_accept websocket_on_close];
 
-has websocket_autoping => ( is => 'ro', isa => PositiveOrZeroInt, default => 5 );    # 0 - do not ping on timeout
+has websocket_autoping => ( is => 'ro', isa => PositiveOrZeroInt, default => 30 );    # 0 - do not ping on timeout
 
 around run => sub ( $orig, $self ) {
     my $req = $self->req;

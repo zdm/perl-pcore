@@ -68,8 +68,8 @@ sub websocket_send_binary ( $self, $payload ) {
 
 sub websocket_ping ($self) {
     my $payload = time;
-
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PING, 0, \$payload ) );
+    say "PING: $payload";
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, 0, \$payload ) );
 
     return;
 }
@@ -88,11 +88,15 @@ sub websocket_close ( $self, $status, $reason = undef ) {
     undef $self->{_websocket_msg};
 
     # send close message
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \( pack( 'n', $status ) . encode_utf8 $reason ) ) );
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \( pack( 'n', $status ) . encode_utf8 $reason ) ) );
 
     # destroy handle
     $self->{_websocket_h}->destroy;
 
+    return;
+}
+
+sub websocket_on_pong ( $self, $payload_ref ) {
     return;
 }
 
@@ -196,7 +200,6 @@ sub websocket_listen ($self) {
     return;
 }
 
-# TODO process pong message
 sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     if ($payload_ref) {
@@ -271,8 +274,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
             $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PONG, 0, $payload_ref ) );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-
-            # TODO process PONG message
+            $self->websocket_on_pong($payload_ref);
         }
     }
 
@@ -430,20 +432,20 @@ sub _websocket_parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 100                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
-## |      | 200                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
+## |      | 104                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
+## |      | 203                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 303                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 305                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 363, 365             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 365, 367             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 217                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 220                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 339                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 341                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 347, 363             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 349, 365             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 451                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 455 does not match the package declaration      |
+## |    1 | 453                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 457 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
