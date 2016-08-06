@@ -96,6 +96,7 @@ sub websocket_close ( $self, $status, $reason = undef ) {
     return;
 }
 
+# this callback can be redefined in subclasses
 sub websocket_on_pong ( $self, $payload_ref ) {
     return;
 }
@@ -200,6 +201,10 @@ sub websocket_listen ($self) {
     return;
 }
 
+sub websocket_challenge ( $self, $key ) {
+    return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
+}
+
 sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     if ($payload_ref) {
@@ -296,10 +301,6 @@ sub _websocket_on_close ( $self, $status, $reason = undef ) {
     $self->websocket_on_close( $status, $reason );
 
     return;
-}
-
-sub websocket_challenge ( $self, $key ) {
-    return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
 }
 
 sub _websocket_build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref ) {
@@ -432,20 +433,20 @@ sub _websocket_parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 104                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
-## |      | 203                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
+## |      | 105                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
+## |      | 208                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 305                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 306                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 365, 367             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 366, 368             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 220                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 225                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 341                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 342                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 349, 365             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 350, 366             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 453                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 457 does not match the package declaration      |
+## |    1 | 454                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 458 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

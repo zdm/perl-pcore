@@ -3,6 +3,8 @@ package Pcore::HTTP::WebSocket::Client;
 use Pcore -role;
 use Pcore::AE::Handle;
 
+# TODO implement TLS
+
 sub websocket_connect ( $self, $url, @ ) {
     my %args = (
         on_error        => undef,
@@ -108,9 +110,9 @@ sub websocket_connect ( $self, $url, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 17                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 7                    | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 9                    | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
