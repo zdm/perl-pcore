@@ -1,7 +1,6 @@
 package Pcore::HTTP::WebSocket::Server;
 
 use Pcore -role;
-use Pcore::HTTP::WebSocket::Util qw[:CONST];
 use Pcore::Util::Scalar qw[refaddr];
 
 requires qw[run websocket_on_accept websocket_on_close];
@@ -14,7 +13,7 @@ around run => sub ( $orig, $self ) {
         my $env = $req->{env};
 
         # websocket version is not specified or not supported
-        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $WEBSOCKET_VERSION;
+        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $Pcore::HTTP::WebSocket::Protocol::WEBSOCKET_VERSION;
 
         # websocket key is not specified
         return $req->return_xxx( [ 400, q[WebSocket key is required] ] ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
@@ -43,7 +42,7 @@ around run => sub ( $orig, $self ) {
 
         # create response headers
         my @headers = (    #
-            'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket::Util::get_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
+            'Sec-WebSocket-Accept' => $self->websocket_challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
             ( $websocket_protocol                   ? ( 'Sec-WebSocket-Protocol'   => $websocket_protocol )  : () ),
             ( $self->{websocket_permessage_deflate} ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
         );
@@ -83,9 +82,9 @@ around websocket_on_close => sub ( $orig, $self, $status ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 26                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 25                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 93                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 97 does not match the package declaration       |
+## |    1 | 92                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 96 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
