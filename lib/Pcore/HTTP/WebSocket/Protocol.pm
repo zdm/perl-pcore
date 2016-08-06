@@ -288,7 +288,7 @@ sub _websocket_on_close ( $self, $status, $reason = undef ) {
     # close connection
     $self->websocket_close( $status, $reason );
 
-    # call original on_close method
+    # call the websocket_on_close method
     $self->websocket_on_close( $status, $reason );
 
     return;

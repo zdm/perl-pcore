@@ -70,7 +70,7 @@ around run => sub ( $orig, $self ) {
 around websocket_on_close => sub ( $orig, $self, $status, $reason ) {
     undef $self->req->{_server}->{_websocket_cache}->{ refaddr $self};
 
-    $self->$orig($status);
+    $self->$orig( $status, $reason );
 
     return;
 };
