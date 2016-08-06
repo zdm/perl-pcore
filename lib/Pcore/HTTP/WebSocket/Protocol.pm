@@ -6,9 +6,9 @@ use Pcore::Util::Data qw[to_b64 to_xor];
 use Compress::Raw::Zlib;
 use Digest::SHA1 qw[];
 
-requires qw[websocket_protocol websocket_on_close];
+requires qw[websocket_protocol websocket_on_text websocket_on_binary websocket_on_close];
 
-has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );
+has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
 
 # http://www.iana.org/assignments/websocket/websocket.xml#extension-name
 # https://tools.ietf.org/html/rfc7692#page-10
@@ -19,7 +19,7 @@ has _websocket_deflate => ( is => 'ro', init_arg => undef );
 has _websocket_inflate => ( is => 'ro', init_arg => undef );
 
 has _websocket_h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );
-has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # close status
+has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # close status, undef - opened
 
 const our $WEBSOCKET_VERSION => 13;
 const our $WEBSOCKET_GUID    => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -51,6 +51,47 @@ const our $WEBSOCKET_CLOSE_REASON => {
     1015 => 'TLS handshake',
 };
 
+sub websocket_close ( $self, $status ) {
+
+    # connection already closed
+    return if $self->{websocket_close_status};
+
+    # mark connection as closed
+    $self->{websocket_close_status} = $status;
+
+    # cleanup fragmentated message data
+    undef $self->{_websocket_msg};
+
+    # send close message
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \$status ) );
+
+    # destroy handle
+    $self->{_websocket_h}->destroy;
+
+    return;
+}
+
+sub websocket_send_text ( $self, $payload ) {
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, 0, \encode_utf8 $payload) );
+
+    return;
+}
+
+sub websocket_send_binary ( $self, $payload ) {
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, 0, \$payload ) );
+
+    return;
+}
+
+sub websocket_ping ($self) {
+    my $payload = time;
+
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PING, 0, \$payload ) );
+
+    return;
+}
+
+# UTILS
 sub websocket_listen ($self) {
 
     # cleanup fragmentated message data
@@ -150,29 +191,32 @@ sub websocket_listen ($self) {
     return;
 }
 
-# TODO process ping
+# TODO process pong message
 sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
-    # unmask
-    $payload_ref = \to_xor( $payload_ref->$*, $header->{mask} ) if $header->{mask} && $payload_ref;
+    if ($payload_ref) {
 
-    # decompress
-    if ( $header->{rsv1} && $payload_ref ) {
-        my $inflate = $self->{_websocket_inflate} ||= Compress::Raw::Zlib::Inflate->new(
-            -WindowBits => -15,
-            ( $self->{websocket_max_message_size} ? ( -Bufsize => $self->{websocket_max_message_size} ) : () ),
-            -AppendOutput => 0,
-            -ConsumeInput => 1,
-            -LimitOutput  => 1,
-        );
+        # unmask
+        $payload_ref = \to_xor( $payload_ref->$*, $header->{mask} ) if $header->{mask};
 
-        $payload_ref->$* .= "\x00\x00\xff\xff";
+        # decompress
+        if ( $header->{rsv1} ) {
+            my $inflate = $self->{_websocket_inflate} ||= Compress::Raw::Zlib::Inflate->new(
+                -WindowBits => -15,
+                ( $self->{websocket_max_message_size} ? ( -Bufsize => $self->{websocket_max_message_size} ) : () ),
+                -AppendOutput => 0,
+                -ConsumeInput => 1,
+                -LimitOutput  => 1,
+            );
 
-        $inflate->inflate( $payload_ref, my $out );
+            $payload_ref->$* .= "\x00\x00\xff\xff";
 
-        return $self->websocket_on_close(1009) if length $payload_ref->$*;
+            $inflate->inflate( $payload_ref, my $out );
 
-        $payload_ref = \$out;
+            return $self->websocket_on_close(1009) if length $payload_ref->$*;
+
+            $payload_ref = \$out;
+        }
     }
 
     # this is message fragment frame
@@ -184,39 +228,42 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     # message completed, dispatch message
     else {
+        if ( $self->{_websocket_msg} ) {
+            $payload_ref = \( $self->{_websocket_msg}->[0] . $payload_ref->$* ) if $payload_ref && defined $self->{_websocket_msg}->[0];
 
-        # cleanup fragmentated message data
-        undef $self->{_websocket_msg};
-
-        # TODO add buffer, if message is fragmentated
+            # cleanup fragmentated message data
+            undef $self->{_websocket_msg};
+        }
 
         # dispatch message
         if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
-            decode_utf8 $payload_ref->$*;
+            if ($payload_ref) {
+                decode_utf8 $payload_ref->$*;
 
-            $self->websocket_on_text($payload_ref);
+                $self->websocket_on_text($payload_ref);
+            }
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_BINARY ) {
-            $self->websocket_on_binary($payload_ref);
+            $self->websocket_on_binary($payload_ref) if $payload_ref;
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_CLOSE ) {
-            $self->websocket_on_close( $payload_ref->$* );
+            $self->websocket_on_close( $payload_ref ? $payload_ref->$* : 1006 );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # send pong
-            $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PONG, 9, $payload_ref ) );
+            $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PONG, 0, $payload_ref ) );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
 
-            # TODO call ping callbacks
+            # TODO process PONG message
         }
     }
 
     return;
 }
 
-# called, when remote peer close connection
+# called automatically, when remote peer close connection
 around websocket_on_close => sub ( $orig, $self, $status ) {
 
     # connection already closed
@@ -230,48 +277,6 @@ around websocket_on_close => sub ( $orig, $self, $status ) {
 
     return;
 };
-
-# METHODS
-sub websocket_close ( $self, $status ) {
-
-    # connection already closed
-    return if $self->{websocket_close_status};
-
-    # mark connection as closed
-    $self->{websocket_close_status} = $status;
-
-    # cleanup fragmentated message data
-    undef $self->{_websocket_msg};
-
-    # send close message
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \$status ) );
-
-    # destroy handle
-    $self->{_websocket_h}->destroy;
-
-    return;
-}
-
-sub websocket_send_text ( $self, $payload ) {
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, 0, \encode_utf8 $payload) );
-
-    return;
-}
-
-sub websocket_send_binary ( $self, $payload ) {
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, 0, \$payload ) );
-
-    return;
-}
-
-# TODO
-sub websocket_ping ($self) {
-    my $payload = time;
-
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_PING, 0, \$payload ) );
-
-    return;
-}
 
 sub websocket_challenge ( $self, $key ) {
     return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
@@ -406,19 +411,21 @@ sub _websocket_parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 54                   | Subroutines::ProhibitExcessComplexity - Subroutine "websocket_listen" with high complexity score (25)          |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 95                   | * Subroutine "websocket_listen" with high complexity score (25)                                                |
+## |      | 195                  | * Subroutine "_websocket_on_frame" with high complexity score (21)                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 280                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 285                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 340, 342             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 345, 347             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 169                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 212                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 316                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 321                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 324, 340             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 329, 345             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 426                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 430 does not match the package declaration      |
+## |    1 | 433                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 437 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
