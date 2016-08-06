@@ -6,6 +6,8 @@ use Pcore::Util::Data qw[to_b64 to_xor];
 use Compress::Raw::Zlib;
 use Digest::SHA1 qw[];
 
+# https://tools.ietf.org/html/rfc6455
+
 requires qw[websocket_protocol websocket_on_text websocket_on_binary websocket_on_close];
 
 has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
@@ -19,7 +21,8 @@ has _websocket_deflate => ( is => 'ro', init_arg => undef );
 has _websocket_inflate => ( is => 'ro', init_arg => undef );
 
 has _websocket_h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );
-has websocket_close_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # close status, undef - opened
+has websocket_status => ( is => 'ro', isa => Bool, init_arg => undef );      # close status, undef - opened
+has websocket_reason => ( is => 'ro', isa => Str,  init_arg => undef );      # close reason, undef - opened
 
 const our $WEBSOCKET_VERSION => 13;
 const our $WEBSOCKET_GUID    => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
@@ -51,26 +54,6 @@ const our $WEBSOCKET_CLOSE_REASON => {
     1015 => 'TLS handshake',
 };
 
-sub websocket_close ( $self, $status ) {
-
-    # connection already closed
-    return if $self->{websocket_close_status};
-
-    # mark connection as closed
-    $self->{websocket_close_status} = $status;
-
-    # cleanup fragmentated message data
-    undef $self->{_websocket_msg};
-
-    # send close message
-    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \$status ) );
-
-    # destroy handle
-    $self->{_websocket_h}->destroy;
-
-    return;
-}
-
 sub websocket_send_text ( $self, $payload ) {
     $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, 0, \encode_utf8 $payload) );
 
@@ -91,6 +74,28 @@ sub websocket_ping ($self) {
     return;
 }
 
+sub websocket_close ( $self, $status, $reason = undef ) {
+
+    # connection already closed
+    return if defined $self->{websocket_status};
+
+    # mark connection as closed
+    $self->{websocket_status} = $status;
+
+    $self->{websocket_reason} = $reason // $WEBSOCKET_CLOSE_REASON->{$status} // 'Unknown reason';
+
+    # cleanup fragmentated message data
+    undef $self->{_websocket_msg};
+
+    # send close message
+    $self->{_websocket_h}->push_write( $self->_websocket_build_frame( 1, $self->{websocket_permessage_deflate}, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \( pack( 'n', $status ) . encode_utf8 $self->{websocket_reason} ) ) );
+
+    # destroy handle
+    $self->{_websocket_h}->destroy;
+
+    return;
+}
+
 # UTILS
 sub websocket_listen ($self) {
 
@@ -99,7 +104,7 @@ sub websocket_listen ($self) {
 
     $self->{_websocket_h}->on_error(
         sub ( $h, @ ) {
-            $self->websocket_on_close(1001) if !$self->{websocket_close_status};    # going away
+            $self->_websocket_on_close(1001) if !defined $self->{websocket_status};    # 1001 - Going Away
 
             return;
         }
@@ -116,7 +121,7 @@ sub websocket_listen ($self) {
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->websocket_on_close(1002) if !$self->{_websocket_msg};
+                        return $self->_websocket_on_close(1002) if !$self->{_websocket_msg};
 
                         # restore message "op", "rsv1"
                         ( $header->{op}, $header->{rsv1} ) = ( $self->{_websocket_msg}->[1], $self->{_websocket_msg}->[2] );
@@ -135,7 +140,7 @@ sub websocket_listen ($self) {
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->websocket_on_close(1002) if !$self->{_websocket_msg};
+                        return $self->_websocket_on_close(1002) if !$self->{_websocket_msg};
 
                         # restore "rsv1" flag
                         $header->{rsv1} = $self->{_websocket_msg}->[2];
@@ -161,10 +166,10 @@ sub websocket_listen ($self) {
                     # check max. message size, return 1009 - message too big
                     if ( $self->{websocket_max_message_size} ) {
                         if ( $self->{_websocket_msg} && $self->{_websocket_msg}->[0] ) {
-                            return $self->websocket_on_close(1009) if $header->{len} + length $self->{_websocket_msg}->[0] > $self->{websocket_max_message_size};
+                            return $self->_websocket_on_close(1009) if $header->{len} + length $self->{_websocket_msg}->[0] > $self->{websocket_max_message_size};
                         }
                         else {
-                            return $self->websocket_on_close(1009) if $header->{len} > $self->{websocket_max_message_size};
+                            return $self->_websocket_on_close(1009) if $header->{len} > $self->{websocket_max_message_size};
                         }
                     }
 
@@ -213,7 +218,7 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
             $inflate->inflate( $payload_ref, my $out );
 
-            return $self->websocket_on_close(1009) if length $payload_ref->$*;
+            return $self->_websocket_on_close(1009) if length $payload_ref->$*;
 
             $payload_ref = \$out;
         }
@@ -247,7 +252,18 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
             $self->websocket_on_binary($payload_ref) if $payload_ref;
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_CLOSE ) {
-            $self->websocket_on_close( $payload_ref ? $payload_ref->$* : 1006 );
+            my ( $status, $reason );
+
+            if ( $payload_ref && length $payload_ref->$* >= 2 ) {
+                $status = unpack 'n', substr $payload_ref->$*, 0, 2, q[];
+
+                $reason = decode_utf8 $payload_ref->$* if length $payload_ref->$*;
+            }
+            else {
+                $status = 1006;    # 1006 - Abnormal Closure - if close status was not specified
+            }
+
+            $self->_websocket_on_close( $status, $reason );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
@@ -264,19 +280,19 @@ sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 }
 
 # called automatically, when remote peer close connection
-around websocket_on_close => sub ( $orig, $self, $status ) {
+sub _websocket_on_close ( $self, $status, $reason = undef ) {
 
     # connection already closed
-    return if $self->{websocket_close_status};
+    return if defined $self->{websocket_status};
 
     # close connection
-    $self->websocket_close($status);
+    $self->websocket_close( $status, $reason );
 
     # call original on_close method
-    $self->$orig($status);
+    $self->websocket_on_close( $status, $reason );
 
     return;
-};
+}
 
 sub websocket_challenge ( $self, $key ) {
     return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
@@ -412,20 +428,20 @@ sub _websocket_parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 95                   | * Subroutine "websocket_listen" with high complexity score (25)                                                |
-## |      | 195                  | * Subroutine "_websocket_on_frame" with high complexity score (21)                                             |
+## |      | 100                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
+## |      | 200                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 285                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 301                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 345, 347             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 361, 363             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 212                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 217                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 321                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 337                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 329, 345             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 345, 361             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 433                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 437 does not match the package declaration      |
+## |    1 | 449                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 453 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
