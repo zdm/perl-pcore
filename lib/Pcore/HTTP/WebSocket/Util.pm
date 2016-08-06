@@ -39,62 +39,8 @@ sub get_challenge ( $key ) {
     return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
 }
 
-# TODO deflate
-sub build_frame ( $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref ) {
-
-    # head
-    my $head = $op + ( $fin ? 128 : 0 );
-    $head |= 0b01000000 if $rsv1;
-    $head |= 0b00100000 if $rsv2;
-    $head |= 0b00010000 if $rsv3;
-
-    my $frame = pack 'C', $head;
-
-    # small payload
-    my $len = length $payload_ref->$*;
-
-    if ( $len < 126 ) {
-        $frame .= pack 'C', $masked ? ( $len | 128 ) : $len;
-    }
-
-    # extended payload (16-bit)
-    elsif ( $len < 65536 ) {
-        $frame .= pack 'Cn', $masked ? ( 126 | 128 ) : 126, $len;
-    }
-
-    # extended payload (64-bit with 32-bit fallback)
-    else {
-        $frame .= pack 'C', $masked ? ( 127 | 128 ) : 127;
-
-        $frame .= pack( 'Q>', $len );
-    }
-
-    if ($rsv1) {
-        state $deflate = Compress::Raw::Zlib::Deflate->new(
-            AppendOutput => 1,
-            MemLevel     => 8,
-            WindowBits   => -15
-        );
-
-        $deflate->deflate( $payload_ref, my $out );
-
-        $deflate->flush( $out, Z_SYNC_FLUSH );
-
-        $payload_ref = \substr $out, 0, -4;
-    }
-
-    # mask payload
-    if ($masked) {
-        my $mask = pack 'N', int( rand 9 x 7 );
-
-        $payload_ref = \( $mask . to_xor( $payload_ref->$*, $mask ) );
-    }
-
-    return $frame . $payload_ref->$*;
-}
-
 sub parse_frame_header ( $buf_ref ) {
-    return unless length $buf_ref->$* >= 2;
+    return if length $buf_ref->$* < 2;
 
     my ( $first, $second ) = unpack 'C*', substr( $buf_ref->$*, 0, 2 );
 
@@ -165,16 +111,9 @@ sub parse_frame_header ( $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 45, 47               | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 97                   | ControlStructures::ProhibitNegativeExpressionsInUnlessAndUntilConditions - Found ">=" in condition for an      |
-## |      |                      | "unless"                                                                                                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99, 101              | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 61                   | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 69, 99               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 45                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
