@@ -22,7 +22,7 @@ sub websocket_on_binary ( $self, $data_ref ) {
     return;
 }
 
-sub websocket_on_close ( $self, $status ) {
+sub websocket_on_close ( $self, $status, $reason ) {
     say 'WEBSOCKET CLOSED: ' . $status;
 
     return;
