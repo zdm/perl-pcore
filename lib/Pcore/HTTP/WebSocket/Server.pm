@@ -59,17 +59,7 @@ around run => sub ( $orig, $self ) {
         $req->{_server}->{_websocket_cache}->{ refaddr $self} = $self;
 
         # init autoping
-        if ( $self->{websocket_autoping} ) {
-            $self->{_websocket_h}->timeout( $self->{websocket_autoping} );
-
-            $self->{_websocket_h}->on_timeout(
-                sub ($h) {
-                    $self->websocket_ping;
-
-                    return;
-                }
-            );
-        }
+        $self->websocket_start_autoping( $self->{websocket_autoping} ) if $self->{websocket_autoping};
 
         $self->websocket_listen;
 
@@ -99,7 +89,7 @@ around websocket_on_close => sub ( $orig, $self, $status, $reason ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 27                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 107                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 111 does not match the package declaration      |
+## |    1 | 97                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 101 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

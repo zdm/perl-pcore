@@ -205,6 +205,20 @@ sub websocket_listen ($self) {
     return;
 }
 
+sub websocket_start_autoping ( $self, $timeout ) {
+    $self->{_websocket_h}->on_timeout(
+        sub ($h) {
+            $self->websocket_ping;
+
+            return;
+        }
+    );
+
+    $self->{_websocket_h}->timeout($timeout);
+
+    return;
+}
+
 sub _websocket_on_frame ( $self, $header, $payload_ref ) {
 
     if ($payload_ref) {
@@ -434,19 +448,19 @@ sub _websocket_parse_frame_header ( $self, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 109                  | * Subroutine "websocket_listen" with high complexity score (25)                                                |
-## |      | 208                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
+## |      | 222                  | * Subroutine "_websocket_on_frame" with high complexity score (24)                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 306                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 320                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 366, 368             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 380, 382             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 225                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 239                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 342                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
+## |    2 | 356                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 350, 366             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 364, 380             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 454                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 458 does not match the package declaration      |
+## |    1 | 468                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 472 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
