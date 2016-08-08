@@ -5,6 +5,7 @@ use Pcore::Util::Scalar qw[refaddr];
 
 requires qw[run websocket_on_accept websocket_on_close];
 
+# this parameter should be less, than nginx "proxy_read_timeout" in nginx
 has websocket_autoping => ( is => 'ro', isa => PositiveOrZeroInt, default => 30 );    # 0 - do not ping on timeout
 
 around run => sub ( $orig, $self ) {
@@ -87,9 +88,9 @@ around websocket_on_close => sub ( $orig, $self, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 28                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 97                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 101 does not match the package declaration      |
+## |    1 | 98                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 102 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
