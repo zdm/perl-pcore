@@ -15,6 +15,7 @@ sub rpc_call ( $self, $method, $data, $cb = undef ) {
 
 # message protocol:
 # [$method_name, $callback_id, \@args]
+# TODO scan-deps flag should be in request message
 sub _on_message ( $self, $data ) {
     say dump $data;
 

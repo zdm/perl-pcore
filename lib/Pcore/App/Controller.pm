@@ -3,27 +3,25 @@ package Pcore::App::Controller;
 use Pcore -role;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
-has req => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server::Request'], required => 1 );
-has path => ( is => 'ro', isa => Str, required => 1 );
-has path_tail => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
+has path => ( is => 'ro', isa => Str, required => 1 );    # HTTP controller url path, always finished with "/"
 
 requires qw[run];
 
-sub return_static ($self) {
-    if ( $self->path_tail && $self->path_tail->is_file ) {
-        if ( my $path = $ENV->share->get( $self->path . $self->path_tail, storage => 'www' ) ) {
+sub return_static ( $self, $req ) {
+    if ( $req->{path_tail} && $req->{path_tail}->is_file ) {
+        if ( my $path = $ENV->share->get( $req->{path} . $req->{path_tail}, storage => 'www' ) ) {
             my $data = P->file->read_bin($path);
 
             $path = P->path($path);
 
-            $self->req->write( 200, [ 'Content-Type' => $path->mime_type ], $data )->finish;
+            $req->write( 200, [ 'Content-Type' => $path->mime_type ], $data )->finish;
         }
         else {
-            $self->req->write(404)->finish;    # not found
+            $req->write(404)->finish;    # not found
         }
     }
     else {
-        $self->req->write(403)->finish;        # forbidden
+        $req->write(403)->finish;        # forbidden
     }
 
     return;

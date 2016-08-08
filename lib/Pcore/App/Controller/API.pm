@@ -5,7 +5,7 @@ use Pcore -role;
 with qw[Pcore::App::Controller];
 
 # TODO get auth from token, then from cookies
-sub run ($self) {
+sub run ( $self, $req ) {
     return;
 }
 

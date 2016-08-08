@@ -10,6 +10,8 @@ has map         => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has index_class => ( is => 'ro',   isa => Str,     init_arg => undef );
 has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
 
+has _cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # HTTP controllers cache
+
 sub _build_map ($self) {
     my $index_class = ref( $self->app ) . '::Index';
 
@@ -102,15 +104,15 @@ sub run ( $self, $req ) {
         }
     }
 
-    my $controller = $class->new(
-        {   app       => $self->{app},
-            req       => $req,
-            path      => $path,
-            path_tail => P->path($path_tail),
+    $req->@{qw[path path_tail]} = ( $path, P->path($path_tail) );
+
+    my $ctrl = $self->{_cache}->{$path} //= $class->new(
+        {   app  => $self->{app},
+            path => $path,
         }
     );
 
-    $controller->run;
+    $ctrl->run($req);
 
     return;
 }
@@ -122,9 +124,9 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 48, 70               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 50, 72               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 23, 39, 76, 95       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 25, 41, 78, 97       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -4,8 +4,8 @@ use Pcore -role;
 
 with qw[Pcore::App::Controller];
 
-sub run ($self) {
-    $self->return_static;
+sub run ( $self, $req ) {
+    $self->return_static($req);
 
     return;
 }

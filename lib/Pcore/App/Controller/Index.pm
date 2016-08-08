@@ -4,14 +4,14 @@ use Pcore -role;
 
 with qw[Pcore::App::Controller];
 
-around run => sub ( $orig, $self ) {
-    if ( $self->path_tail->is_file ) {
-        $self->return_static;
+around run => sub ( $orig, $self, $req ) {
+    if ( $req->{path_tail}->is_file ) {
+        $self->return_static($req);
 
         return;
     }
     else {
-        return $self->$orig;
+        return $self->$orig($req);
     }
 };
 
