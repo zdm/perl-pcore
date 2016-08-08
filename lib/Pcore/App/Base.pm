@@ -185,10 +185,6 @@ sub app_test ($self) {
 }
 
 sub app_run ($self) {
-
-    # preload API
-    $self->api->app_run;
-
     return;
 }
 
