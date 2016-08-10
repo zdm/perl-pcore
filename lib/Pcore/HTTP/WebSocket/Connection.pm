@@ -10,12 +10,12 @@ use Digest::SHA1 qw[];
 
 # https://tools.ietf.org/html/rfc6455
 
-has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 0 );
+has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 1 );
 has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
 
 # http://www.iana.org/assignments/websocket/websocket.xml#extension-name
 # https://tools.ietf.org/html/rfc7692#page-10
-has permessage_deflate => ( is => 'ro', isa => Bool, default => 0 );
+has permessage_deflate => ( is => 'ro', isa => Bool, required => 1 );
 
 # callbacks
 has on_text       => ( is => 'ro', isa => Maybe [CodeRef] );
@@ -23,17 +23,13 @@ has on_binary     => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_pong       => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef] );
 
-# client attributes
-has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
-has protocol         => ( is => 'ro', isa => Maybe [Str] );
-has on_proxy_connect => ( is => 'ro', isa => Maybe [CodeRef] );
-has on_connect_error => ( is => 'ro', isa => Maybe [CodeRef] );
-has on_connect       => ( is => 'ro', isa => Maybe [CodeRef] );
-
 has status => ( is => 'ro', isa => Bool, init_arg => undef );    # close status, undef - opened
 has reason => ( is => 'ro', isa => Str,  init_arg => undef );    # close reason, undef - opened
 
-has _msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );  # fragmentated message data, [$payload, $op, $rsv1]
+# mask data on send, for websocket client only
+has mask => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+
+has _msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # fragmentated message data, [$payload, $op, $rsv1]
 has _deflate => ( is => 'ro', init_arg => undef );
 has _inflate => ( is => 'ro', init_arg => undef );
 
@@ -68,46 +64,65 @@ const our $WEBSOCKET_CLOSE_REASON => {
 };
 
 # TODO client should send masked data
+# TODO check if browser mask ping, close payload???
 
 # TODO check headers
 # TODO return status, reason on error
 sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    $self->{uri} = $uri = ref $uri ? $uri : Pcore->uri($uri);
+    $uri = Pcore->uri($uri) if !ref $uri;
 
     my %args = (
-        permessage_deflate => 0,
-        handle_params      => {},
-        connect_timeout    => undef,
-        tls_ctx            => undef,
-        bind_ip            => undef,
-        proxy              => undef,
+
+        # websocket args
+        protocol           => undef,
+        permessage_deflate => 1,
+
+        # handle args
+        handle_params          => {},
+        connect_timeout        => undef,
+        tls_ctx                => undef,
+        bind_ip                => undef,
+        proxy                  => undef,
+        on_proxy_connect_error => undef,
+        on_connect_error       => undef,
+        on_connect             => undef,
         splice @_, 2,
     );
 
     Pcore::AE::Handle->new(
+        persistent => 0,
         $args{handle_params}->%*,
         connect         => $uri,
-        connect_timeout => $args{timeout},
-        persistent      => 0,
+        connect_timeout => $args{connect_timeout},
         tls_ctx         => $args{tls_ctx},
         bind_ip         => $args{bind_ip},
         proxy           => $args{proxy},
-        on_proxy_connect_error => sub ( $h, $message, $proxy_error ) {
-            if ( $self->{on_proxy_connect_error} ) {
-                $self->{on_proxy_connect_error}->( $self, $message, $proxy_error );
+        on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
+            if ( $args{on_proxy_connect_error} ) {
+                $args{on_proxy_connect_error}->( 594, $reason, $proxy_error );
             }
             else {
-                die qq[WebSocket proxy connect error: $message, $proxy_error];
+                die qq[WebSocket proxy connect error: 594, $reason, $proxy_error];
             }
 
             return;
         },
-        on_connect_error => sub ( $h, $message ) {
-            if ( $self->{on_connect_error} ) {
-                $self->{on_connect_error}->( $self, $message );
+        on_connect_error => sub ( $h, $reason ) {
+            if ( $args{on_connect_error} ) {
+                $args{on_connect_error}->( 595, $reason );
             }
             else {
-                die qq[WebSocket connect error: $message];
+                die qq[WebSocket connect error: 595, $reason];
+            }
+
+            return;
+        },
+        on_error => sub ( $h, $fatal, $reason ) {
+            if ( $args{on_connect_error} ) {
+                $args{on_connect_error}->( 596, $reason );
+            }
+            else {
+                die qq[WebSocket connect error: 596, $reason];
             }
 
             return;
@@ -118,7 +133,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
             $h->starttls('connect') if $uri->is_secure && !exists $h->{tls};
 
             # generate websocket key
-            my $key = to_b64 random_bytes(16), q[];
+            my $key = to_b64 rand 100_000, q[];
 
             my $request_path = $uri->path->to_uri . ( $uri->query ? q[?] . $uri->query : q[] );
 
@@ -130,7 +145,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                 'Origin:' . $uri,
                 'Sec-WebSocket-Version:' . $WEBSOCKET_VERSION,
                 'Sec-WebSocket-Key:' . $key,
-                ( $self->{protocol}         ? 'Sec-WebSocket-Protocol:' . $self->{protocol} : () ),
+                ( $args{protocol}           ? "Sec-WebSocket-Protocol:$args{protocol}"      : () ),
                 ( $args{permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
             );
 
@@ -139,42 +154,56 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
             $h->read_http_res_headers(
                 headers => 1,
                 sub ( $h1, $headers, $error_reason ) {
-                    if ( !$error_reason ) {
+                    my $error_status;
+
+                    if ($error_reason) {
+
+                        # headers parsing error
+                        $error_status = 596;
+                    }
+                    else {
 
                         # CONNECTION => upgrade
                         # UPGRADE => websocket
 
                         if ( $headers->{status} != 101 ) {
+                            $error_status = $headers->{status};
+
                             $error_reason = $headers->{reason};
                         }
                         elsif ( !$headers->{headers}->{SEC_WEBSOCKET_ACCEPT} || $headers->{headers}->{SEC_WEBSOCKET_ACCEPT} ne $self->challenge($key) ) {
+                            $error_status = 596;
+
                             $error_reason = 'Invalid websocket challenge';
                         }
                     }
 
-                    if ($error_reason) {
-                        if ( $self->{on_connect_error} ) {
-                            $self->{on_connect_error}->( $self, $error_reason );
+                    if ($error_status) {
+                        if ( $args{on_connect_error} ) {
+                            $args{on_connect_error}->( $error_status, $error_reason );
                         }
                         else {
-                            die qq[WebSocket connect error: $error_reason];
+                            die qq[WebSocket connect error: $error_status, $error_reason];
                         }
                     }
                     else {
+                        my $permessage_deflate = 0;
 
                         # check and set extensions
                         if ( $headers->{headers}->{SEC_WEBSOCKET_EXTENSIONS} ) {
-                            $self->{permessage_deflate} = $args{permessage_deflate} && $headers->{headers}->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
-                        }
-                        else {
-                            $self->{permessage_deflate} = 0;
+                            $permessage_deflate = 1 if $args{permessage_deflate} && $headers->{headers}->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
                         }
 
-                        $self->{h} = $h;
+                        $args{h}                  = $h;
+                        $args{permessage_deflate} = $permessage_deflate;
 
-                        $self->start_listen;
+                        my $ws = $self->new( \%args );
 
-                        $args{on_connect}->( $self, $headers ) if $args{on_connect};
+                        $ws->{mask} = 1;
+
+                        $ws->start_listen;
+
+                        $args{on_connect}->( $ws, $headers ) if $args{on_connect};
                     }
 
                     return;
@@ -186,10 +215,6 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
     );
 
     return;
-}
-
-sub reconnect ( $self, $uri = undef ) {
-    return $self->connect( $uri // $self->{uri} );
 }
 
 sub send_text ( $self, $payload ) {
@@ -579,17 +604,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 74                   | * Subroutine "connect" with high complexity score (24)                                                         |
-## |      | 242                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 355                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 71                   | * Subroutine "connect" with high complexity score (26)                                                         |
+## |      | 267                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 380                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 88                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 94                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 452                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 477                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 512, 514             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 537, 539             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 371                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 396                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

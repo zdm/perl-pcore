@@ -8,7 +8,7 @@ with qw[Pcore::App::Controller];
 
 has websocket_protocol => ( is => 'ro', isa => Maybe [Str] );
 has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
-has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 0 );
+has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 1 );
 
 # this parameter should be less, than nginx "proxy_read_timeout" in nginx
 has websocket_autoping => ( is => 'ro', isa => PositiveOrZeroInt, default => 50 );                          # 0 - do not ping on timeout
