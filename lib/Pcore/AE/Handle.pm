@@ -20,7 +20,7 @@ const our $PROXY_TYPE_SOCKS5  => 33;
 
 const our $PROXY_ERROR_CONNECT => 1;    # proxy should be disabled
 const our $PROXY_ERROR_AUTH    => 2;    # proxy should be disabled
-const our $PROXY_ERROR_TYPE    => 3;    # invalid proty type used, proxy type should be banned
+const our $PROXY_ERROR_TYPE    => 3;    # invalid proxy type used, proxy type should be banned
 const our $PROXY_ERROR_OTHER   => 4;    # unknown error
 
 # $PERSISTENT_IDENT:
