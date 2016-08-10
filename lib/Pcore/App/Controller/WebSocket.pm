@@ -38,7 +38,10 @@ around run => sub ( $orig, $self, $req ) {
             return $req->return_xxx( [ 400, q[WebSocket client requested no subprotocol] ] );
         }
 
-        my ( $websocket_accept, $accept_headers ) = $self->websocket_on_accept($req);
+        # create empty websocket object
+        my $ws = bless {}, 'Pcore::HTTP::WebSocket';
+
+        my ( $websocket_accept, $accept_headers ) = $self->websocket_on_accept( $ws, $req );
 
         # websocket connect request can't be accepted
         return $req->return_xxx( $accept_headers // 400 ) if !$websocket_accept;
@@ -63,32 +66,33 @@ around run => sub ( $orig, $self, $req ) {
         push @headers, $accept_headers->@* if $accept_headers;
 
         # accept websocket connection
-        my $ws = Pcore::HTTP::WebSocket->new(
-            {   h                  => $req->accept_websocket( \@headers ),
-                max_message_size   => $self->{websocket_max_message_size},
-                permessage_deflate => $permessage_deflate,
-                on_text            => sub ( $ws, $payload_ref ) {
-                    $self->websocket_on_text( $ws, $payload_ref );
+        $ws->{h} = $req->accept_websocket( \@headers );
 
-                    return;
-                },
-                on_binary => sub ( $ws, $payload_ref ) {
-                    $self->websocket_on_binary( $ws, $payload_ref );
+        # initialize websocket object
+        $ws->{max_message_size}   = $self->{websocket_max_message_size};
+        $ws->{permessage_deflate} = $permessage_deflate;
 
-                    return;
-                },
-                on_pong => sub ( $ws, $payload_ref ) {
-                    $self->websocket_on_pong( $ws, $payload_ref );
+        # initialize callbacks
+        $ws->{on_text} = sub ( $ws, $payload_ref ) {
+            $self->websocket_on_text( $ws, $payload_ref );
 
-                    return;
-                },
-                on_disconnect => sub ( $ws, $status, $reason ) {
-                    $self->websocket_on_disconnect( $ws, $status, $reason );
+            return;
+        };
+        $ws->{on_binary} = sub ( $ws, $payload_ref ) {
+            $self->websocket_on_binary( $ws, $payload_ref );
 
-                    return;
-                },
-            }
-        );
+            return;
+        };
+        $ws->{on_pong} = sub ( $ws, $payload_ref ) {
+            $self->websocket_on_pong( $ws, $payload_ref );
+
+            return;
+        };
+        $ws->{on_disconnect} = sub ( $ws, $status, $reason ) {
+            $self->websocket_on_disconnect( $ws, $status, $reason );
+
+            return;
+        };
 
         # store websocket object in HTTP server cache, using refaddr as key
         $self->{_websocket_cache}->{ refaddr $ws} = $ws;
@@ -97,6 +101,8 @@ around run => sub ( $orig, $self, $req ) {
         $ws->start_autopong( $self->{websocket_autopong} ) if $self->{websocket_autopong};
 
         $ws->start_listen;
+
+        $self->websocket_on_connect($ws);
 
         return;
     }
@@ -125,14 +131,14 @@ around websocket_on_disconnect => sub ( $orig, $self, $ws, $status, $reason ) {
     return $self->$orig( $ws, $status, $reason );
 };
 
-# LOOPBACK METHODS, CAN BE REDEFINED
 # called, before websocket connection accept
-# NOTE websocket_on_accept - perform additional checks, return true or headers array on success, or false, if connection is not possible
+# should return $accept, \@headers = undef
+# needed connection variables can  de stored in the $ws object attributes for further usage
 sub websocket_on_accept ( $self, $ws, $req ) {
     return 1;
 }
 
-# called, when websocket connection is accepted and ready to use
+# called, when websocket connection is accepted and ready for use
 sub websocket_on_connect ( $self, $ws ) {
     return;
 }

@@ -452,7 +452,9 @@ sub _on_frame ( $self, $header, $payload_ref ) {
         # dispatch message
         if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
             if ($payload_ref) {
-                decode_utf8 $payload_ref->$*;
+                eval { decode_utf8 $payload_ref->$* };
+
+                return $self->_on_close( 1003, 'UTF-8 decode error' ) if $@;
 
                 $self->{on_text}->( $self, $payload_ref ) if $self->{on_text};
             }
@@ -477,10 +479,10 @@ sub _on_frame ( $self, $header, $payload_ref ) {
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # send pong automatically
-            $self->pong( $payload_ref->%* );
+            $self->pong( $payload_ref ? $payload_ref->$* : q[] );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-            $self->{on_pong}->( $self, $payload_ref->$* ) if $self->{on_pong};
+            $self->{on_pong}->( $self, $payload_ref ? $payload_ref->$* : q[] ) if $self->{on_pong};
         }
     }
 
@@ -637,13 +639,15 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 70                   | * Subroutine "connect" with high complexity score (37)                                                         |
 ## |      | 297                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 410                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 410                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 96, 480              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 96                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 258, 264, 507        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 258, 264, 509        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 568, 570             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 455                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 570, 572             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 41, 426              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
