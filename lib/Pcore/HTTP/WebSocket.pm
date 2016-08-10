@@ -1,4 +1,4 @@
-package Pcore::HTTP::WebSocket::Connection;
+package Pcore::HTTP::WebSocket;
 
 use Pcore -const, -class;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
@@ -630,7 +630,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::WebSocket::Connection
+Pcore::HTTP::WebSocket
 
 =head1 SYNOPSIS
 
