@@ -3,8 +3,9 @@ package Pcore::HTTP::WebSocket;
 use Pcore -const, -class;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Pcore::Util::Data qw[to_b64 to_xor];
-use Pcore::AE::Handle;
+use Pcore::Util::Scalar qw[pairs];
 use Pcore::Util::Random qw[random_bytes];
+use Pcore::AE::Handle;
 use Compress::Raw::Zlib;
 use Digest::SHA1 qw[];
 
@@ -74,7 +75,8 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
         # websocket args
         subprotocol        => undef,
         permessage_deflate => 1,
-        origin             => undef,
+        useragent          => "Pcore-HTTP/$Pcore::VERSION",
+        headers            => undef,                          # ArrayRef
 
         # handle args
         handle_params          => {},
@@ -141,12 +143,14 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                 'Host:' . $uri->host,
                 'Upgrade:websocket',
                 'Connection:upgrade',
-                ( $args{origin} ? "Origin:$args{origin}" : () ),    # pass url by default???
                 "Sec-WebSocket-Version:$WEBSOCKET_VERSION",
                 "Sec-WebSocket-Key:$sec_websocket_key",
                 ( $args{subprotocol}        ? "Sec-WebSocket-Protocol:$args{subprotocol}"   : () ),
                 ( $args{permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
+                ( $args{useragent}          ? "User-Agent:$args{useragent}"                 : () ),
             );
+
+            push @headers, map {"$_->[0]:$_->[1]"} pairs $args{headers}->@* if $args{headers};
 
             $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
 
@@ -630,17 +634,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 69                   | * Subroutine "connect" with high complexity score (36)                                                         |
-## |      | 292                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 405                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 70                   | * Subroutine "connect" with high complexity score (37)                                                         |
+## |      | 296                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 409                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 93, 475              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 95, 479              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 253, 259, 502        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 257, 263, 506        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 563, 565             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 567, 569             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 40, 421              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 41, 425              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
