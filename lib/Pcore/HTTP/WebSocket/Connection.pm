@@ -27,7 +27,7 @@ has status => ( is => 'ro', isa => Bool, init_arg => undef );    # close status,
 has reason => ( is => 'ro', isa => Str,  init_arg => undef );    # close reason, undef - opened
 
 # mask data on send, for websocket client only
-has mask => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has _send_masked => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 has _msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );    # fragmentated message data, [$payload, $op, $rsv1]
 has _deflate => ( is => 'ro', init_arg => undef );
@@ -62,9 +62,6 @@ const our $WEBSOCKET_CLOSE_REASON => {
     1013 => 'Try Again Later',
     1015 => 'TLS handshake',
 };
-
-# TODO client should send masked data
-# TODO check if browser mask ping, close payload???
 
 # TODO check headers
 # TODO return status, reason on error
@@ -199,7 +196,8 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 
                         my $ws = $self->new( \%args );
 
-                        $ws->{mask} = 1;
+                        # client always send masked frames
+                        $ws->{_send_masked} = 1;
 
                         $ws->start_listen;
 
@@ -218,13 +216,13 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 }
 
 sub send_text ( $self, $payload ) {
-    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, 0, \encode_utf8 $payload) );
+    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, \encode_utf8 $payload) );
 
     return;
 }
 
 sub send_binary ( $self, $payload ) {
-    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, 0, \$payload ) );
+    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, \$payload ) );
 
     return;
 }
@@ -232,7 +230,7 @@ sub send_binary ( $self, $payload ) {
 sub ping ($self) {
     my $payload = time;
 
-    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, 0, \$payload ) );
+    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$payload ) );
 
     return;
 }
@@ -251,7 +249,7 @@ sub disconnect ( $self, $status, $reason = undef ) {
     undef $self->{_msg};
 
     # send close message
-    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, 0, \( pack( 'n', $status ) . encode_utf8 $reason ) ) );
+    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status ) . encode_utf8 $reason ) ) );
 
     # destroy handle
     $self->{h}->destroy;
@@ -447,7 +445,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # send pong
-            $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, 0, $payload_ref ) );
+            $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, $payload_ref ) );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
             $self->{on_pong}->( $self, $payload_ref ) if $self->{on_pong};
@@ -474,7 +472,7 @@ sub _on_close ( $self, $status, $reason = undef ) {
     return;
 }
 
-sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref ) {
+sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
 
     # deflate
     if ($rsv1) {
@@ -522,7 +520,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref 
     }
 
     # mask payload
-    if ($masked) {
+    if ( $self->{_send_masked} ) {
         my $mask = pack 'N', int( rand 9 x 7 );
 
         $payload_ref = \( $mask . to_xor( $payload_ref->$*, $mask ) );
@@ -604,17 +602,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 71                   | * Subroutine "connect" with high complexity score (26)                                                         |
-## |      | 267                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 380                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 68                   | * Subroutine "connect" with high complexity score (26)                                                         |
+## |      | 265                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 378                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 94                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 91                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 477                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 475                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 537, 539             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 535, 537             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 396                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 394                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
