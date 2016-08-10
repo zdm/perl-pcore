@@ -67,7 +67,7 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
             }
         };
 
-        $headers .= "Server:$self->{_server}->{server_tokens}$CRLF" if $self->{server_tokens};
+        $headers .= "Server:$self->{_server}->{server_tokens}$CRLF" if $self->{_server}->{server_tokens};
 
         # always use chunked transfer
         $headers .= "Transfer-Encoding:chunked$CRLF";
@@ -184,7 +184,7 @@ sub accept_websocket ( $self, $headers = undef ) {
         'Content-Length:0',
         'Upgrade:websocket',
         'Connection:upgrade',
-        ( $self->{server_tokens} ? "Server:$self->{server_tokens}" : () ),
+        ( $self->{_server}->{server_tokens} ? "Server:$self->{_server}->{server_tokens}" : () ),
     );
 
     push @headers, map {"$_->[0]:$_->[1]"} pairs $headers->@* if $headers && $headers->@*;

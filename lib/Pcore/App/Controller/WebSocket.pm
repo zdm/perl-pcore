@@ -41,68 +41,75 @@ around run => sub ( $orig, $self, $req ) {
         # create empty websocket object
         my $ws = bless {}, 'Pcore::HTTP::WebSocket';
 
-        my ( $websocket_accept, $accept_headers ) = $self->websocket_on_accept( $ws, $req );
+        my $accept = sub ($headers = undef) {
+            my $permessage_deflate = 0;
 
-        # websocket connect request can't be accepted
-        return $req->return_xxx( $accept_headers // 400 ) if !$websocket_accept;
+            # check and set extensions
+            if ( $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} ) {
 
-        my $permessage_deflate = 0;
+                # set ext_permessage_deflate, only if enabled locally
+                $permessage_deflate = 1 if $self->{websocket_permessage_deflate} && $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
+            }
 
-        # check and set extensions
-        if ( $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} ) {
+            # create response headers
+            my @headers = (    #
+                'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket->challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
+                ( $websocket_subprotocol ? ( 'Sec-WebSocket-Protocol'   => $websocket_subprotocol ) : () ),
+                ( $permessage_deflate    ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' )   : () ),
+            );
 
-            # set ext_permessage_deflate, only if enabled locally
-            $permessage_deflate = 1 if $self->{websocket_permessage_deflate} && $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
-        }
+            # add custom headers
+            push @headers, $headers->@* if $headers;
 
-        # create response headers
-        my @headers = (    #
-            'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket->challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
-            ( $websocket_subprotocol ? ( 'Sec-WebSocket-Protocol'   => $websocket_subprotocol ) : () ),
-            ( $permessage_deflate    ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' )   : () ),
-        );
+            # accept websocket connection
+            $ws->{h} = $req->accept_websocket( \@headers );
 
-        # add custom headers
-        push @headers, $accept_headers->@* if $accept_headers;
+            # initialize websocket object
+            $ws->{max_message_size}   = $self->{websocket_max_message_size};
+            $ws->{permessage_deflate} = $permessage_deflate;
 
-        # accept websocket connection
-        $ws->{h} = $req->accept_websocket( \@headers );
+            # initialize callbacks
+            $ws->{on_text} = sub ( $ws, $payload_ref ) {
+                $self->websocket_on_text( $ws, $payload_ref );
 
-        # initialize websocket object
-        $ws->{max_message_size}   = $self->{websocket_max_message_size};
-        $ws->{permessage_deflate} = $permessage_deflate;
+                return;
+            };
+            $ws->{on_binary} = sub ( $ws, $payload_ref ) {
+                $self->websocket_on_binary( $ws, $payload_ref );
 
-        # initialize callbacks
-        $ws->{on_text} = sub ( $ws, $payload_ref ) {
-            $self->websocket_on_text( $ws, $payload_ref );
+                return;
+            };
+            $ws->{on_pong} = sub ( $ws, $payload_ref ) {
+                $self->websocket_on_pong( $ws, $payload_ref );
+
+                return;
+            };
+            $ws->{on_disconnect} = sub ( $ws, $status, $reason ) {
+                $self->websocket_on_disconnect( $ws, $status, $reason );
+
+                return;
+            };
+
+            # store websocket object in cache, using refaddr as key
+            $self->{_websocket_cache}->{ refaddr $ws} = $ws;
+
+            # start autopong
+            $ws->start_autopong( $self->{websocket_autopong} ) if $self->{websocket_autopong};
+
+            $ws->start_listen;
+
+            $self->websocket_on_connect($ws);
 
             return;
         };
-        $ws->{on_binary} = sub ( $ws, $payload_ref ) {
-            $self->websocket_on_binary( $ws, $payload_ref );
 
-            return;
-        };
-        $ws->{on_pong} = sub ( $ws, $payload_ref ) {
-            $self->websocket_on_pong( $ws, $payload_ref );
-
-            return;
-        };
-        $ws->{on_disconnect} = sub ( $ws, $status, $reason ) {
-            $self->websocket_on_disconnect( $ws, $status, $reason );
+        my $decline = sub ( $status = 400, $headers = undef ) {
+            $req->write( $status, $headers )->finish;
 
             return;
         };
 
-        # store websocket object in HTTP server cache, using refaddr as key
-        $self->{_websocket_cache}->{ refaddr $ws} = $ws;
-
-        # start autopong
-        $ws->start_autopong( $self->{websocket_autopong} ) if $self->{websocket_autopong};
-
-        $ws->start_listen;
-
-        $self->websocket_on_connect($ws);
+        $self->websocket_on_accept( $ws, $req, $accept, $decline );
 
         return;
     }
@@ -134,8 +141,10 @@ around websocket_on_disconnect => sub ( $orig, $self, $ws, $status, $reason ) {
 # called, before websocket connection accept
 # should return $accept, \@headers = undef
 # needed connection variables can  de stored in the $ws object attributes for further usage
-sub websocket_on_accept ( $self, $ws, $req ) {
-    return 1;
+sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
+    $accept->();
+
+    return;
 }
 
 # called, when websocket connection is accepted and ready for use
