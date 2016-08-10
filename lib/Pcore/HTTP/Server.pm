@@ -20,7 +20,6 @@ has client_body_timeout   => ( is => 'ro', isa => PositiveInt,       default => 
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
-has _websocket_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # opened websocket connections cache
 
 # TODO implement shutdown and graceful shutdown
 
@@ -281,11 +280,11 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 206                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 205                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 228                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 227                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 58                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 57                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
