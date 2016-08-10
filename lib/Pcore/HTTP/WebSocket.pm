@@ -15,6 +15,7 @@ has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 
 
 # http://www.iana.org/assignments/websocket/websocket.xml#extension-name
 # https://tools.ietf.org/html/rfc7692#page-10
+# https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/
 has permessage_deflate => ( is => 'ro', isa => Bool, required => 1 );
 
 # callbacks
@@ -65,8 +66,6 @@ const our $WEBSOCKET_CLOSE_REASON => {
     1015 => 'TLS handshake',
 };
 
-# TODO check headers
-# TODO return status, reason on error
 sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     $uri = Pcore->uri($uri) if !ref $uri;
 
@@ -631,17 +630,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 70                   | * Subroutine "connect" with high complexity score (36)                                                         |
-## |      | 293                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 406                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 69                   | * Subroutine "connect" with high complexity score (36)                                                         |
+## |      | 292                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 405                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 94, 476              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 93, 475              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 254, 260, 503        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 253, 259, 502        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 564, 566             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 563, 565             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 422              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 40, 421              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
