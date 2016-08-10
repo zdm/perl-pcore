@@ -6,7 +6,7 @@ use Pcore::Util::Scalar qw[refaddr];
 
 with qw[Pcore::App::Controller];
 
-has websocket_protocol => ( is => 'ro', isa => Maybe [Str] );
+has websocket_subprotocol => ( is => 'ro', isa => Maybe [Str] );
 has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
 has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 1 );
 
@@ -26,16 +26,16 @@ around run => sub ( $orig, $self, $req ) {
         return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $Pcore::HTTP::WebSocket::WEBSOCKET_VERSION;
 
         # websocket key is not specified
-        return $req->return_xxx( [ 400, q[WebSocket key is required] ] ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
+        return $req->return_xxx( [ 400, q[WebSocket SEC_WEBSOCKET_KEY header is required] ] ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
 
         # check websocket subprotocol
-        my $websocket_protocol = $self->websocket_protocol;
+        my $websocket_subprotocol = $self->websocket_subprotocol;
 
         if ( $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} ) {
-            return $req->return_xxx( [ 400, qq[Unsupported WebSocket protocol] ] ) if !$websocket_protocol || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$websocket_protocol\b/smi;
+            return $req->return_xxx( [ 400, q[Unsupported WebSocket subprotocol requested] ] ) if !$websocket_subprotocol || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$websocket_subprotocol\b/smi;
         }
-        elsif ($websocket_protocol) {
-            return $req->return_xxx( [ 400, qq[WebSocket subprotocol should be "$websocket_protocol"] ] );
+        elsif ($websocket_subprotocol) {
+            return $req->return_xxx( [ 400, q[WebSocket client requested no subprotocol] ] );
         }
 
         my ( $websocket_accept, $accept_headers ) = $self->websocket_on_accept($req);
@@ -55,8 +55,8 @@ around run => sub ( $orig, $self, $req ) {
         # create response headers
         my @headers = (    #
             'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket->challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
-            ( $websocket_protocol ? ( 'Sec-WebSocket-Protocol'   => $websocket_protocol )  : () ),
-            ( $permessage_deflate ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
+            ( $websocket_subprotocol ? ( 'Sec-WebSocket-Protocol'   => $websocket_subprotocol ) : () ),
+            ( $permessage_deflate    ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' )   : () ),
         );
 
         # add custom headers
@@ -147,16 +147,6 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 35                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

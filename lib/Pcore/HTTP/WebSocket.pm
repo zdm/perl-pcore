@@ -73,8 +73,9 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
     my %args = (
 
         # websocket args
-        protocol           => undef,
+        subprotocol        => undef,
         permessage_deflate => 1,
+        origin             => undef,
 
         # handle args
         handle_params          => {},
@@ -132,7 +133,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
             $h->starttls('connect') if $uri->is_secure && !exists $h->{tls};
 
             # generate websocket key
-            my $key = to_b64 rand 100_000, q[];
+            my $sec_websocket_key = to_b64 rand 100_000, q[];
 
             my $request_path = $uri->path->to_uri . ( $uri->query ? q[?] . $uri->query : q[] );
 
@@ -141,10 +142,10 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                 'Host:' . $uri->host,
                 'Upgrade:websocket',
                 'Connection:upgrade',
-                'Origin:' . $uri,
-                'Sec-WebSocket-Version:' . $WEBSOCKET_VERSION,
-                'Sec-WebSocket-Key:' . $key,
-                ( $args{protocol}           ? "Sec-WebSocket-Protocol:$args{protocol}"      : () ),
+                ( $args{origin} ? "Origin:$args{origin}" : () ),    # pass url by default???
+                "Sec-WebSocket-Version:$WEBSOCKET_VERSION",
+                "Sec-WebSocket-Key:$sec_websocket_key",
+                ( $args{subprotocol}        ? "Sec-WebSocket-Protocol:$args{subprotocol}"   : () ),
                 ( $args{permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
             );
 
@@ -155,25 +156,46 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                 sub ( $h1, $headers, $error_reason ) {
                     my $error_status;
 
+                    my $res_headers;
+
                     if ($error_reason) {
 
                         # headers parsing error
                         $error_status = 596;
                     }
                     else {
+                        $res_headers = $headers->{headers};
 
-                        # CONNECTION => upgrade
-                        # UPGRADE => websocket
-
+                        # check response status
                         if ( $headers->{status} != 101 ) {
                             $error_status = $headers->{status};
-
                             $error_reason = $headers->{reason};
                         }
-                        elsif ( !$headers->{headers}->{SEC_WEBSOCKET_ACCEPT} || $headers->{headers}->{SEC_WEBSOCKET_ACCEPT} ne $self->challenge($key) ) {
-                            $error_status = 596;
 
-                            $error_reason = 'Invalid websocket challenge';
+                        # check response connection headers
+                        elsif ( !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi ) {
+                            $error_status = 596;
+                            $error_reason = q[WebSocket handshake error];
+                        }
+
+                        # check SEC_WEBSOCKET_ACCEPT
+                        elsif ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne $self->challenge($sec_websocket_key) ) {
+                            $error_status = 596;
+                            $error_reason = q[Invalid WebSocket SEC_WEBSOCKET_ACCEPT];
+                        }
+
+                        # check subprotocol
+                        else {
+                            if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
+                                if ( !$args{subprotocol} || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$args{subprotocol}\b/smi ) {
+                                    $error_status = 596;
+                                    $error_reason = qq[WebSocket server returned unsupported supbrotocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"];
+                                }
+                            }
+                            elsif ( $args{subprotocol} ) {
+                                $error_status = 596;
+                                $error_reason = q[WebSocket server returned no supbrotocol];
+                            }
                         }
                     }
 
@@ -189,8 +211,8 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                         my $permessage_deflate = 0;
 
                         # check and set extensions
-                        if ( $headers->{headers}->{SEC_WEBSOCKET_EXTENSIONS} ) {
-                            $permessage_deflate = 1 if $args{permessage_deflate} && $headers->{headers}->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
+                        if ( $res_headers->{SEC_WEBSOCKET_EXTENSIONS} ) {
+                            $permessage_deflate = 1 if $args{permessage_deflate} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
                         }
 
                         $args{h}                  = $h;
@@ -203,7 +225,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 
                         $ws->start_listen;
 
-                        $args{on_connect}->( $ws, $headers ) if $args{on_connect};
+                        $args{on_connect}->( $ws, $res_headers ) if $args{on_connect};
                     }
 
                     return;
@@ -609,17 +631,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 70                   | * Subroutine "connect" with high complexity score (26)                                                         |
-## |      | 271                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 384                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 70                   | * Subroutine "connect" with high complexity score (36)                                                         |
+## |      | 293                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 406                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 93, 454              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 94, 476              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 232, 238, 481        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 254, 260, 503        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 542, 544             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 564, 566             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 400              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 422              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
