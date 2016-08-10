@@ -259,9 +259,9 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 
     my $buf = "HTTP/1.1 $status $reason\r\nContent-Length:0\r\n";
 
-    $buf .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
-
     $buf .= 'Connection:' . ( $use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
+
+    $buf .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
 
     $h->push_write( $buf . $CRLF );
 

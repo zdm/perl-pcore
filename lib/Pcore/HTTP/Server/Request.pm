@@ -179,21 +179,17 @@ sub accept_websocket ( $self, $headers = undef ) {
 
     $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
-    my @headers = (    #
-        "HTTP/1.1 101 $reason",
-        'Content-Length:0',
-        'Upgrade:websocket',
-        'Connection:upgrade',
-        ( $self->{_server}->{server_tokens} ? "Server:$self->{_server}->{server_tokens}" : () ),
-    );
+    my $buf = "HTTP/1.1 101 $reason\r\nContent-Length:0\r\nUpgrade:websocket\r\nConnection:upgrade\r\n";
 
-    push @headers, map {"$_->[0]:$_->[1]"} pairs $headers->@* if $headers && $headers->@*;
+    $buf .= "Server:$self->{_server}->{server_tokens}\r\n" if $self->{_server}->{server_tokens};
+
+    $buf .= ( join $CRLF, map {"$_->[0]:$_->[1]"} pairs $headers->@* ) . $CRLF if $headers && $headers->@*;
 
     my $h = $self->{_h};
 
     undef $self->{_h};
 
-    $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+    $h->push_write( $buf . $CRLF );
 
     return $h;
 }
