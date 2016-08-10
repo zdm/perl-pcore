@@ -3,7 +3,7 @@ package Pcore::HTTP::WebSocket;
 use Pcore -const, -class;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Pcore::Util::Data qw[to_b64 to_xor];
-use Pcore::Util::Scalar qw[pairs];
+use Pcore::Util::List qw[pairs];
 use Pcore::Util::Random qw[random_bytes];
 use Pcore::AE::Handle;
 use Compress::Raw::Zlib;
