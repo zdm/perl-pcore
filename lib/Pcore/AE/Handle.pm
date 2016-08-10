@@ -43,7 +43,7 @@ const our $DISABLE_PROXY => 1;
 
 const our $CACHE => Pcore::AE::Handle::Cache->new( { default_timeout => 4 } );
 
-# register "http_headers" push_read type
+# register "http_headers" read type
 AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
     return sub {
         return unless defined $_[0]{rbuf};
@@ -462,7 +462,7 @@ sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_finish ) {
 
         $self->push_write( qq[\x04\x01] . pack( 'n', $connect->[1] ) . AnyEvent::Socket::unpack_sockaddr( $target->[3] ) . $proxy->userinfo . qq[\x00] );
 
-        $self->push_read(
+        $self->unshift_read(
             chunk => 8,
             sub ( $h, $chunk ) {
                 my $rep = unpack 'C*', substr( $chunk, 1, 1 );
@@ -503,7 +503,7 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_finish ) {
         $self->push_write(qq[\x05\x01\x00]);
     }
 
-    $self->push_read(
+    $self->unshift_read(
         chunk => 2,
         sub ( $h, $chunk ) {
             my ( $ver, $method ) = unpack 'C*', $chunk;
@@ -514,7 +514,7 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_finish ) {
             elsif ( $method == 2 ) {    # start username / password authorization
                 $h->push_write( qq[\x01] . pack( 'C', length $proxy->username ) . $proxy->username . pack( 'C', length $proxy->password ) . $proxy->password );
 
-                $h->push_read(
+                $h->unshift_read(
                     chunk => 2,
                     sub ( $h, $chunk ) {
                         my ( $auth_ver, $auth_status ) = unpack 'C*', $chunk;
@@ -559,14 +559,14 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
         $self->push_write( qq[\x05\x01\x00\x03] . pack( 'C', length $connect->[0] ) . $connect->[0] . pack( 'n', $connect->[1] ) );
     }
 
-    $self->push_read(
+    $self->unshift_read(
         chunk => 4,
         sub ( $h, $chunk ) {
             my ( $ver, $rep, $rsv, $atyp ) = unpack( 'C*', $chunk );
 
             if ( $rep == 0 ) {
                 if ( $atyp == 1 ) {                                         # IPv4 addr, 4 bytes
-                    $h->push_read(                                          # read IPv4 addr (4 bytes) + port (2 bytes)
+                    $h->unshift_read(                                       # read IPv4 addr (4 bytes) + port (2 bytes)
                         chunk => 6,
                         sub ( $h, $chunk ) {
                             $on_finish->( $h, undef, undef );
@@ -576,10 +576,10 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
                     );
                 }
                 elsif ( $atyp == 3 ) {                                      # domain name
-                    $h->push_read(                                          # read domain name length
+                    $h->unshift_read(                                       # read domain name length
                         chunk => 1,
                         sub ( $h, $chunk ) {
-                            $h->push_read(                                  # read domain name + port (2 bytes)
+                            $h->unshift_read(                               # read domain name + port (2 bytes)
                                 chunk => unpack( 'C', $chunk ) + 2,
                                 sub ( $h, $chunk ) {
                                     $on_finish->( $h, undef, undef );
@@ -593,7 +593,7 @@ sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
                     );
                 }
                 if ( $atyp == 4 ) {    # IPv6 addr, 16 bytes
-                    $h->push_read(     # read IPv6 addr (16 bytes) + port (2 bytes)
+                    $h->unshift_read(    # read IPv6 addr (16 bytes) + port (2 bytes)
                         chunk => 18,
                         sub ( $h, $chunk ) {
                             $on_finish->( $h, undef, undef );
@@ -624,7 +624,7 @@ sub read_http_res_headers {
         @_,
     );
 
-    $self->push_read(
+    $self->unshift_read(
         http_headers => sub ( $h, @ ) {
             if ( $_[1] ) {
                 my $res;
@@ -702,7 +702,7 @@ sub read_http_res_headers {
                 $cb->( $h, undef, undef );
             }
             else {
-                $cb->( $h, undef, q[No headers] );
+                $cb->( $h, undef, 'No headers' );
             }
 
             return;
@@ -713,7 +713,7 @@ sub read_http_res_headers {
 }
 
 sub read_http_req_headers ( $self, $cb, $env = undef ) {
-    $self->push_read(
+    $self->unshift_read(
         http_headers => sub ( $h, @ ) {
             if ( $_[1] ) {
                 $env //= {};
@@ -750,18 +750,18 @@ sub read_http_body ( $self, $on_read, @ ) {
         splice @_, 2,
     );
 
-    my $on_read_buf = sub ( $buf_ref, $error_message ) {
+    my $on_read_buf = sub ( $buf_ref, $error_reason ) {
         state $buf = q[];
 
         state $total_bytes_readed = 0;
 
-        if ($error_message) {
+        if ($error_reason) {
 
             # drop buffer if has data
             return if length $buf && !$on_read->( $self, \$buf, $total_bytes_readed, undef );
 
             # throw error
-            $on_read->( $self, undef, $total_bytes_readed, $error_message );
+            $on_read->( $self, undef, $total_bytes_readed, $error_reason );
         }
         elsif ( defined $buf_ref ) {
             $buf .= $buf_ref->$*;
@@ -800,7 +800,7 @@ sub read_http_body ( $self, $on_read, @ ) {
                 my $chunk_len = hex $1;
 
                 if ($chunk_len) {                                   # read chunk body
-                    $h->push_read(
+                    $h->unshift_read(
                         chunk => $chunk_len,
                         sub ( $h, @ ) {
                             my $chunk_ref = \$_[1];
@@ -812,7 +812,7 @@ sub read_http_body ( $self, $on_read, @ ) {
                             }
                             else {
                                 # read trailing chunk $CRLF
-                                $h->push_read(
+                                $h->unshift_read(
                                     line => sub ( $h, @ ) {
                                         if ( length $_[1] ) {                # error, chunk traililg can contain only $CRLF
                                             undef $read_chunk;
@@ -820,7 +820,7 @@ sub read_http_body ( $self, $on_read, @ ) {
                                             $on_read_buf->( undef, 'Garbled chunked transfer encoding (last chunk)' );
                                         }
                                         else {
-                                            $h->push_read( line => $read_chunk );
+                                            $h->unshift_read( line => $read_chunk );
                                         }
 
                                         return;
@@ -862,7 +862,7 @@ sub read_http_body ( $self, $on_read, @ ) {
             return;
         };
 
-        $self->push_read( line => $read_chunk );
+        $self->unshift_read( line => $read_chunk );
     }
     elsif ( !$args{length} ) {    # read until EOF
         $self->on_eof(undef);

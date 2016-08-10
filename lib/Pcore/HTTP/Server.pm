@@ -188,8 +188,8 @@ sub wait_headers ( $self, $h ) {
             );
 
             $h->read_http_req_headers(
-                sub ( $h1, $env, $error ) {
-                    if ($error) {
+                sub ( $h1, $env, $error_reason ) {
+                    if ($error_reason) {
 
                         # HTTP headers parsing error, request is invalid
                         # return standard error response and destroy handle
