@@ -149,8 +149,8 @@ sub http_request ($args) {
 
             # prepare handle
             $h->on_error(
-                sub ( $h, $fatal, $message ) {
-                    $runtime->{finish}->( $runtime->{on_error_status}, $message );
+                sub ( $h, $fatal, $reason ) {
+                    $runtime->{finish}->( $runtime->{on_error_status}, $reason );
 
                     return;
                 }
@@ -206,18 +206,18 @@ sub _connect ( $args, $runtime, $cb ) {
         tls_ctx                => $args->{tls_ctx},
         bind_ip                => $args->{bind_ip},
         proxy                  => $args->{proxy},
-        on_proxy_connect_error => sub ( $h, $message, $proxy_error ) {
-            $runtime->{finish}->( 594, $message );
+        on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
+            $runtime->{finish}->( 594, $reason );
 
             return;
         },
-        on_connect_error => sub ( $h, $message ) {
-            $runtime->{finish}->( $runtime->{on_error_status}, $message );
+        on_connect_error => sub ( $h, $reason ) {
+            $runtime->{finish}->( $runtime->{on_error_status}, $reason );
 
             return;
         },
-        on_error => sub ( $h, $fatal, $message ) {
-            $runtime->{finish}->( $runtime->{on_error_status}, $message );
+        on_error => sub ( $h, $fatal, $reason ) {
+            $runtime->{finish}->( $runtime->{on_error_status}, $reason );
 
             return;
         },

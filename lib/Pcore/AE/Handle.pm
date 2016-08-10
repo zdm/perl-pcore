@@ -193,16 +193,16 @@ sub new ( $self, @ ) {
             my $on_error         = $args{on_error};
             my $on_connect       = $args{on_connect};
 
-            $args{on_connect_error} = sub ( $h, $message ) {
+            $args{on_connect_error} = sub ( $h, $reason ) {
                 delete $h->{on_connect_error};
 
                 delete $h->{on_connect};
 
                 if ($on_connect_error) {
-                    $on_connect_error->( $hdl, $message );
+                    $on_connect_error->( $hdl, $reason );
                 }
                 elsif ($on_error) {
-                    $on_error->( $hdl, 1, $message );
+                    $on_error->( $hdl, 1, $reason );
                 }
                 else {
                     $on_connect->( undef, undef, undef, undef );
@@ -322,7 +322,7 @@ sub _connect_proxy ( $self, $args ) {
     my $connect                = $args->{connect};
     my $timeout                = $args->{timeout};
 
-    my $on_finish = sub ( $h, $message, $proxy_error ) {
+    my $on_finish = sub ( $h, $error_reason, $proxy_error ) {
         my $proxy = $args->{proxy};
 
         # cleanup
@@ -334,13 +334,13 @@ sub _connect_proxy ( $self, $args ) {
             $proxy->_set_connect_error if $proxy && $proxy_error == $PROXY_ERROR_CONNECT || $proxy_error == $PROXY_ERROR_AUTH;
 
             if ( $proxy_error && $on_proxy_connect_error ) {
-                $on_proxy_connect_error->( $hdl, $message, $proxy_error );
+                $on_proxy_connect_error->( $hdl, $error_reason, $proxy_error );
             }
             elsif ($on_connect_error) {
-                $on_connect_error->( $hdl, $message );
+                $on_connect_error->( $hdl, $error_reason );
             }
             elsif ($on_error) {
-                $on_error->( $hdl, 1, $message );
+                $on_error->( $hdl, 1, $error_reason );
             }
             else {
                 $on_connect->( undef, undef, undef, undef );
@@ -374,7 +374,7 @@ sub _connect_proxy ( $self, $args ) {
         return;
     }
 
-    $args->{on_connect_error} = sub ( $h, $message ) {
+    $args->{on_connect_error} = sub ( $h, $reason ) {
         $on_finish->( @_, $PROXY_ERROR_CONNECT );
 
         return;
@@ -388,8 +388,8 @@ sub _connect_proxy ( $self, $args ) {
         }
 
         $h->on_error(
-            sub ( $h, $fatal, $message ) {
-                $on_finish->( $h, $message, $PROXY_ERROR_OTHER );
+            sub ( $h, $fatal, $reason ) {
+                $on_finish->( $h, $reason, $PROXY_ERROR_OTHER );
 
                 return;
             }
@@ -1032,9 +1032,9 @@ Connect timeout in seconds.
 
 Proxy to use. First argument - is a preferred proxy type. Second argument - L<Pcore::Proxy> object, or HashRef, that will be passed to the L<Pcore::Proxy> constructor.
 
-=head2 on_proxy_connect_error = sub ( $self, $message )
+=head2 on_proxy_connect_error = sub ( $self, $reason, $proxy_error )
 
-    on_proxy_connect_error => sub ( $h, $message ) {
+    on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
         return;
     },
 
