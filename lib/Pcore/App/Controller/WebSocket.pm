@@ -128,7 +128,7 @@ sub websocket_on_binary ( $self, $ws, $payload_ref ) {
     return;
 }
 
-sub websocket_on_pong ( $self, $ws, $payload_ref ) {
+sub websocket_on_pong ( $self, $ws, $payload ) {
     return;
 }
 

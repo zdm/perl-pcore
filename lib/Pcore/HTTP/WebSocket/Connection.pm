@@ -36,6 +36,8 @@ has _inflate => ( is => 'ro', init_arg => undef );
 const our $WEBSOCKET_VERSION => 13;
 const our $WEBSOCKET_GUID    => '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
+const our $WEBSOCKET_PING_PONG_PAYLOAD => "\xFF";
+
 # http://www.iana.org/assignments/websocket/websocket.xml#opcode
 const our $WEBSOCKET_OP_CONTINUATION => 0;
 const our $WEBSOCKET_OP_TEXT         => 1;
@@ -228,12 +230,12 @@ sub send_binary ( $self, $payload ) {
 }
 
 sub ping ( $self ) {
-    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \"\x0A" ) );
+    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$WEBSOCKET_PING_PONG_PAYLOAD ) );
 
     return;
 }
 
-sub pong ( $self, $payload = "\x0A" ) {
+sub pong ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
     $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, \$payload ) );
 
     return;
@@ -452,7 +454,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
             $self->pong( $payload_ref->%* );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-            $self->{on_pong}->( $self, $payload_ref ) if $self->{on_pong};
+            $self->{on_pong}->( $self, $payload_ref->$* ) if $self->{on_pong};
         }
     }
 
@@ -607,17 +609,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 68                   | * Subroutine "connect" with high complexity score (26)                                                         |
-## |      | 269                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 382                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 70                   | * Subroutine "connect" with high complexity score (26)                                                         |
+## |      | 271                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 384                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 91, 452              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 93, 454              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 479                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 238, 481             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 540, 542             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 542, 544             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 231, 398             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 400              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
