@@ -257,14 +257,13 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
         $status = $status->[0];
     }
 
-    my @headers = (    #
-        "HTTP/1.1 $status $reason",
-        'Content-Length:0',
-        ( $self->{server_tokens} ? "Server:$self->{server_tokens}" : () ),
-        ( $use_keepalive         ? 'Connection:keep-alive'         : 'Connection:close' ),
-    );
+    my $buf = "HTTP/1.1 $status $reason\r\nContent-Length:0\r\n";
 
-    $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+    $buf .= "Server:$self->{server_tokens}\r\n" if $self->{server_tokens};
+
+    $buf .= 'Connection:' . ( $use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
+
+    $h->push_write( $buf . $CRLF );
 
     # process handle
     if   ($use_keepalive) { $self->wait_headers($h) }
