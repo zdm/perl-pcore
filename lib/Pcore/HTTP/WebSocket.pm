@@ -103,6 +103,9 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
             if ( $args{on_proxy_connect_error} ) {
                 $args{on_proxy_connect_error}->( 594, $reason, $proxy_error );
             }
+            elsif ( $args{on_connect_error} ) {
+                $args{on_proxy_connect_error}->( 594, $reason );
+            }
             else {
                 die qq[WebSocket proxy connect error: 594, $reason, $proxy_error];
             }
@@ -637,19 +640,19 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 70                   | * Subroutine "connect" with high complexity score (37)                                                         |
-## |      | 297                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 410                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
+## |      | 70                   | * Subroutine "connect" with high complexity score (38)                                                         |
+## |      | 300                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 413                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 96                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 258, 264, 509        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 261, 267, 512        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 455                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 458                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 570, 572             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 573, 575             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 426              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 41, 429              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
