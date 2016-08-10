@@ -3,12 +3,14 @@ package Pcore::HTTP::WebSocket::Connection;
 use Pcore -const, -class;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Pcore::Util::Data qw[to_b64 to_xor];
+use Pcore::AE::Handle;
+use Pcore::Util::Random qw[random_bytes];
 use Compress::Raw::Zlib;
 use Digest::SHA1 qw[];
 
 # https://tools.ietf.org/html/rfc6455
 
-has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 1 );
+has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 0 );
 has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
 
 # http://www.iana.org/assignments/websocket/websocket.xml#extension-name
@@ -20,6 +22,13 @@ has on_text       => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_binary     => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_pong       => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef] );
+
+# client attributes
+has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
+has protocol         => ( is => 'ro', isa => Maybe [Str] );
+has on_proxy_connect => ( is => 'ro', isa => Maybe [CodeRef] );
+has on_connect_error => ( is => 'ro', isa => Maybe [CodeRef] );
+has on_connect       => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has status => ( is => 'ro', isa => Bool, init_arg => undef );    # close status, undef - opened
 has reason => ( is => 'ro', isa => Str,  init_arg => undef );    # close reason, undef - opened
@@ -57,6 +66,131 @@ const our $WEBSOCKET_CLOSE_REASON => {
     1013 => 'Try Again Later',
     1015 => 'TLS handshake',
 };
+
+# TODO client should send masked data
+
+# TODO check headers
+# TODO return status, reason on error
+sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    $self->{uri} = $uri = ref $uri ? $uri : Pcore->uri($uri);
+
+    my %args = (
+        permessage_deflate => 0,
+        handle_params      => {},
+        connect_timeout    => undef,
+        tls_ctx            => undef,
+        bind_ip            => undef,
+        proxy              => undef,
+        splice @_, 2,
+    );
+
+    Pcore::AE::Handle->new(
+        $args{handle_params}->%*,
+        connect         => $uri,
+        connect_timeout => $args{timeout},
+        persistent      => 0,
+        tls_ctx         => $args{tls_ctx},
+        bind_ip         => $args{bind_ip},
+        proxy           => $args{proxy},
+        on_proxy_connect_error => sub ( $h, $message, $proxy_error ) {
+            if ( $self->{on_proxy_connect_error} ) {
+                $self->{on_proxy_connect_error}->( $self, $message, $proxy_error );
+            }
+            else {
+                die qq[WebSocket proxy connect error: $message, $proxy_error];
+            }
+
+            return;
+        },
+        on_connect_error => sub ( $h, $message ) {
+            if ( $self->{on_connect_error} ) {
+                $self->{on_connect_error}->( $self, $message );
+            }
+            else {
+                die qq[WebSocket connect error: $message];
+            }
+
+            return;
+        },
+        on_connect => sub ( $h, $host, $port, $retry ) {
+
+            # start TLS, only if TLS is required and TLS is not established yet
+            $h->starttls('connect') if $uri->is_secure && !exists $h->{tls};
+
+            # generate websocket key
+            my $key = to_b64 random_bytes(16), q[];
+
+            my $request_path = $uri->path->to_uri . ( $uri->query ? q[?] . $uri->query : q[] );
+
+            my @headers = (    #
+                "GET $request_path HTTP/1.1",
+                'Host:' . $uri->host,
+                'Upgrade:websocket',
+                'Connection:upgrade',
+                'Origin:' . $uri,
+                'Sec-WebSocket-Version:' . $WEBSOCKET_VERSION,
+                'Sec-WebSocket-Key:' . $key,
+                ( $self->{protocol}         ? 'Sec-WebSocket-Protocol:' . $self->{protocol} : () ),
+                ( $args{permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
+            );
+
+            $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
+
+            $h->read_http_res_headers(
+                headers => 1,
+                sub ( $h1, $headers, $error_reason ) {
+                    if ( !$error_reason ) {
+
+                        # CONNECTION => upgrade
+                        # UPGRADE => websocket
+
+                        if ( $headers->{status} != 101 ) {
+                            $error_reason = $headers->{reason};
+                        }
+                        elsif ( !$headers->{headers}->{SEC_WEBSOCKET_ACCEPT} || $headers->{headers}->{SEC_WEBSOCKET_ACCEPT} ne $self->challenge($key) ) {
+                            $error_reason = 'Invalid websocket challenge';
+                        }
+                    }
+
+                    if ($error_reason) {
+                        if ( $self->{on_connect_error} ) {
+                            $self->{on_connect_error}->( $self, $error_reason );
+                        }
+                        else {
+                            die qq[WebSocket connect error: $error_reason];
+                        }
+                    }
+                    else {
+
+                        # check and set extensions
+                        if ( $headers->{headers}->{SEC_WEBSOCKET_EXTENSIONS} ) {
+                            $self->{permessage_deflate} = $args{permessage_deflate} && $headers->{headers}->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
+                        }
+                        else {
+                            $self->{permessage_deflate} = 0;
+                        }
+
+                        $self->{h} = $h;
+
+                        $self->start_listen;
+
+                        $args{on_connect}->( $self, $headers ) if $args{on_connect};
+                    }
+
+                    return;
+                }
+            );
+
+            return;
+        },
+    );
+
+    return;
+}
+
+sub reconnect ( $self, $uri = undef ) {
+    return $self->connect( $uri // $self->{uri} );
+}
 
 sub send_text ( $self, $payload ) {
     $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, 0, \encode_utf8 $payload) );
@@ -102,7 +236,7 @@ sub disconnect ( $self, $status, $reason = undef ) {
 
 # UTILS
 sub challenge ( $self, $key ) {
-    return to_b64( Digest::SHA1::sha1( ( $key || q[] ) . $WEBSOCKET_GUID ), q[] );
+    return to_b64( Digest::SHA1::sha1( ($key) . $WEBSOCKET_GUID ), q[] );
 }
 
 sub start_listen ($self) {
@@ -219,7 +353,6 @@ sub start_autoping ( $self, $timeout ) {
 }
 
 sub _on_frame ( $self, $header, $payload_ref ) {
-
     if ($payload_ref) {
 
         # unmask
@@ -352,7 +485,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref 
     }
 
     # extended payload (16-bit)
-    elsif ( $len < 65536 ) {
+    elsif ( $len < 65_536 ) {
         $frame .= pack 'Cn', $masked ? ( 126 | 128 ) : 126, $len;
     }
 
@@ -360,7 +493,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref 
     else {
         $frame .= pack 'C', $masked ? ( 127 | 128 ) : 127;
 
-        $frame .= pack( 'Q>', $len );
+        $frame .= pack 'Q>', $len;
     }
 
     # mask payload
@@ -376,7 +509,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $masked, $payload_ref 
 sub _parse_frame_header ( $self, $buf_ref ) {
     return if length $buf_ref->$* < 2;
 
-    my ( $first, $second ) = unpack 'C*', substr( $buf_ref->$*, 0, 2 );
+    my ( $first, $second ) = unpack 'C*', substr $buf_ref->$*, 0, 2;
 
     my $masked = $second & 0b10000000;
 
@@ -446,18 +579,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 108                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 221                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 74                   | * Subroutine "connect" with high complexity score (24)                                                         |
+## |      | 242                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 355                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 319                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 379, 381             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 452                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 238                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    3 | 512, 514             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 355                  | ValuesAndExpressions::RequireNumberSeparators - Long number not separated with underscores                     |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 363, 379             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    2 | 371                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

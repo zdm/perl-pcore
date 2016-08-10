@@ -4,7 +4,6 @@ use Pcore -role;
 use Pcore::HTTP::WebSocket::Connection;
 use Pcore::Util::Scalar qw[refaddr];
 
-# NOTE WebSocket::Server role must be before WebSocket::Protocol
 with qw[Pcore::App::Controller];
 
 has websocket_protocol => ( is => 'ro', isa => Maybe [Str] );
@@ -23,7 +22,7 @@ around run => sub ( $orig, $self, $req ) {
         my $env = $req->{env};
 
         # websocket version is not specified or not supported
-        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $Pcore::HTTP::WebSocket::Protocol::WEBSOCKET_VERSION;
+        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $Pcore::HTTP::WebSocket::Connection::WEBSOCKET_VERSION;
 
         # websocket key is not specified
         return $req->return_xxx( [ 400, q[WebSocket key is required] ] ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
@@ -43,18 +42,20 @@ around run => sub ( $orig, $self, $req ) {
         # websocket connect request can't be accepted
         return $req->return_xxx( $accept_headers // 400 ) if !$websocket_accept;
 
-        # check and set extension
+        my $permessage_deflate = 0;
+
+        # check and set extensions
         if ( $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} ) {
 
             # set ext_permessage_deflate, only if enabled locally
-            $self->{websocket_permessage_deflate} = $self->{websocket_permessage_deflate} && $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi ? 1 : 0;
+            $permessage_deflate = 1 if $self->{websocket_permessage_deflate} && $env->{HTTP_SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
         }
 
         # create response headers
         my @headers = (    #
             'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket::Connection->challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
-            ( $websocket_protocol                   ? ( 'Sec-WebSocket-Protocol'   => $websocket_protocol )  : () ),
-            ( $self->{websocket_permessage_deflate} ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
+            ( $websocket_protocol ? ( 'Sec-WebSocket-Protocol'   => $websocket_protocol )  : () ),
+            ( $permessage_deflate ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
         );
 
         # add custom headers
@@ -63,8 +64,8 @@ around run => sub ( $orig, $self, $req ) {
         # accept websocket connection
         my $ws = Pcore::HTTP::WebSocket::Connection->new(
             {   h                  => $req->accept_websocket( \@headers ),
-                max_message_size   => $self->websocket_max_message_size,
-                permessage_deflate => $self->websocket_permessage_deflate,
+                max_message_size   => $self->{websocket_max_message_size},
+                permessage_deflate => $permessage_deflate,
                 on_text            => sub ( $ws, $payload_ref ) {
                     $self->websocket_on_text( $ws, $payload_ref );
 
@@ -151,7 +152,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 35                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 34                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
