@@ -7,7 +7,7 @@ use Pcore::Util::Scalar qw[refaddr];
 with qw[Pcore::App::Controller];
 
 has websocket_subprotocol => ( is => 'ro', isa => Maybe [Str] );
-has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
+has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 10 Mb, 0 - do not check
 has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 1 );
 
 # send pong automatically on handle timeout
@@ -107,6 +107,16 @@ around run => sub ( $orig, $self, $req ) {
     }
 };
 
+around websocket_disconnect => sub ( $orig, $self, $ws, $status, $reason = undef ) {
+
+    # remove websocket connection from cache
+    delete $self->{_websocket_cache}->{ refaddr $ws};
+
+    $ws->disconnect( $status, $reason );
+
+    return $self->$orig( $ws, $status, $ws->{reason} );
+};
+
 around websocket_on_disconnect => sub ( $orig, $self, $ws, $status, $reason ) {
 
     # remove websocket connection from cache
@@ -115,9 +125,16 @@ around websocket_on_disconnect => sub ( $orig, $self, $ws, $status, $reason ) {
     return $self->$orig( $ws, $status, $reason );
 };
 
+# LOOPBACK METHODS, CAN BE REDEFINED
+# called, before websocket connection accept
 # NOTE websocket_on_accept - perform additional checks, return true or headers array on success, or false, if connection is not possible
-sub websocket_on_accept ( $self, $req ) {
+sub websocket_on_accept ( $self, $ws, $req ) {
     return 1;
+}
+
+# called, when websocket connection is accepted and ready to use
+sub websocket_on_connect ( $self, $ws ) {
+    return;
 }
 
 sub websocket_on_text ( $self, $ws, $payload_ref ) {
@@ -132,16 +149,12 @@ sub websocket_on_pong ( $self, $ws, $payload ) {
     return;
 }
 
+# should be called, when local peer decided to close connection
 sub websocket_disconnect ( $self, $ws, $status, $reason = undef ) {
-
-    # remove websocket connection from cache
-    delete $self->{_websocket_cache}->{ refaddr $ws};
-
-    $ws->disconnect( $status, $reason );
-
     return;
 }
 
+# called, when remote peer close connection or on protocol errors
 sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
     return;
 }

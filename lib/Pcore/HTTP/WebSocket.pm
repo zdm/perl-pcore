@@ -12,7 +12,7 @@ use Digest::SHA1 qw[];
 # https://tools.ietf.org/html/rfc6455
 
 has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 1 );
-has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
+has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, required => 1 );    # 0 - do not check
 
 # http://www.iana.org/assignments/websocket/websocket.xml#extension-name
 # https://tools.ietf.org/html/rfc7692#page-10
@@ -74,11 +74,12 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 
         # websocket args
         subprotocol        => undef,
+        max_message_size   => 1024 x 1024 x 10,               # 10 Mb
         permessage_deflate => 1,
         useragent          => "Pcore-HTTP/$Pcore::VERSION",
         headers            => undef,                          # ArrayRef
 
-        # handle args
+        # create handle args
         handle_params          => {},
         connect_timeout        => undef,
         tls_ctx                => undef,
@@ -635,16 +636,16 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 70                   | * Subroutine "connect" with high complexity score (37)                                                         |
-## |      | 296                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 409                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 297                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 410                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 95, 479              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 96, 480              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 257, 263, 506        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 258, 264, 507        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 567, 569             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 568, 570             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 425              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 41, 426              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
