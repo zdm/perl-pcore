@@ -473,6 +473,7 @@ sub _on_close ( $self, $status, $reason = undef ) {
 }
 
 sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
+    my $masked = $self->{_send_masked};
 
     # deflate
     if ($rsv1) {
@@ -520,7 +521,7 @@ sub _build_frame ( $self, $fin, $rsv1, $rsv2, $rsv3, $op, $payload_ref ) {
     }
 
     # mask payload
-    if ( $self->{_send_masked} ) {
+    if ($masked) {
         my $mask = pack 'N', int( rand 9 x 7 );
 
         $payload_ref = \( $mask . to_xor( $payload_ref->$*, $mask ) );
@@ -610,7 +611,7 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 475                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 535, 537             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 536, 538             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 394                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
