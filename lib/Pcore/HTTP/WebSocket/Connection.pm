@@ -229,8 +229,8 @@ sub send_binary ( $self, $payload ) {
     return;
 }
 
-sub ping ( $self ) {
-    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$WEBSOCKET_PING_PONG_PAYLOAD ) );
+sub ping ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
+    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$payload ) );
 
     return;
 }
@@ -615,7 +615,7 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 93, 454              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 238, 481             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 232, 238, 481        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 542, 544             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
