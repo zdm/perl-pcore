@@ -227,10 +227,14 @@ sub send_binary ( $self, $payload ) {
     return;
 }
 
-sub ping ($self) {
-    my $payload = time;
+sub ping ( $self ) {
+    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \"\x0A" ) );
 
-    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$payload ) );
+    return;
+}
+
+sub pong ( $self, $payload = "\x0A" ) {
+    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, \$payload ) );
 
     return;
 }
@@ -361,10 +365,10 @@ sub start_listen ($self) {
     return;
 }
 
-sub start_autoping ( $self, $timeout ) {
+sub start_autopong ( $self, $timeout ) {
     $self->{h}->on_timeout(
         sub ($h) {
-            $self->ping;
+            $self->pong;
 
             return;
         }
@@ -444,8 +448,8 @@ sub _on_frame ( $self, $header, $payload_ref ) {
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
-            # send pong
-            $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, $payload_ref ) );
+            # send pong automatically
+            $self->pong( $payload_ref->%* );
         }
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
             $self->{on_pong}->( $self, $payload_ref ) if $self->{on_pong};
@@ -604,16 +608,16 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 68                   | * Subroutine "connect" with high complexity score (26)                                                         |
-## |      | 265                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 378                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 269                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 382                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 91                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 91, 452              | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 475                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 479                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 536, 538             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 540, 542             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 394                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 231, 398             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

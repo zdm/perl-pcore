@@ -10,8 +10,9 @@ has websocket_protocol => ( is => 'ro', isa => Maybe [Str] );
 has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 0 - do not check
 has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 1 );
 
+# send pong automatically on handle timeout
 # this parameter should be less, than nginx "proxy_read_timeout" in nginx
-has websocket_autoping => ( is => 'ro', isa => PositiveOrZeroInt, default => 50 );                          # 0 - do not ping on timeout
+has websocket_autopong => ( is => 'ro', isa => PositiveOrZeroInt, default => 50 );    # 0 - do not ping on timeout
 
 has _websocket_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
@@ -92,8 +93,8 @@ around run => sub ( $orig, $self, $req ) {
         # store websocket object in HTTP server cache, using refaddr as key
         $self->{_websocket_cache}->{ refaddr $ws} = $ws;
 
-        # init autoping
-        $ws->start_autoping( $self->{websocket_autoping} ) if $self->{websocket_autoping};
+        # start autopong
+        $ws->start_autopong( $self->{websocket_autopong} ) if $self->{websocket_autopong};
 
         $ws->start_listen;
 
@@ -152,7 +153,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 34                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 35                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
