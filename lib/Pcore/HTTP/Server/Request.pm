@@ -17,6 +17,23 @@ has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => und
 const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
 const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
 
+# const our $CONTENT_TYPE_HTML       => 1;
+# const our $CONTENT_TYPE_TEXT       => 2;
+# const our $CONTENT_TYPE_JSON       => 3;
+# const our $CONTENT_TYPE_CBOR       => 4;
+# const our $CONTENT_TYPE_JAVASCRIPT => 5;
+#
+# const our $CONTENT_TYPE_VALUE => {
+#     $CONTENT_TYPE_JSON       => 'application/json',                           # http://www.iana.org/assignments/media-types/application/json
+#     $CONTENT_TYPE_CBOR       => 'application/cbor',                           # http://www.iana.org/assignments/media-types/application/cbor
+#     $CONTENT_TYPE_JAVASCRIPT => 'application/javascript; charset=UTF-8',      # http://www.iana.org/assignments/media-types/application/javascript
+#     $CONTENT_TYPE_XML        => 'application/xml',
+#     $CONTENT_TYPE_HTML       => 'text/html; charset=UTF-8',                   # http://www.iana.org/assignments/media-types/text/html
+#     $CONTENT_TYPE_TEXT       => 'text/plain; charset=UTF-8',
+#     $CONTENT_TYPE_CSS        => 'text/css; charset=UTF-8',                    # http://www.iana.org/assignments/media-types/text/css
+#     $CONTENT_TYPE_CSV        => 'text/csv; charset=UTF-8; header=present',    # http://www.iana.org/assignments/media-types/text/csv
+# };
+
 P->init_demolish(__PACKAGE__);
 
 sub DEMOLISH ( $self, $global ) {
