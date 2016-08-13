@@ -4,8 +4,7 @@ use Pcore -role;
 
 requires qw[_build_map];
 
-has api         => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'],          required => 1 );
-has api_session => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Session'], required => 1 );
+has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 

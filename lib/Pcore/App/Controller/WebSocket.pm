@@ -6,15 +6,31 @@ use Pcore::Util::Scalar qw[refaddr];
 
 with qw[Pcore::App::Controller];
 
-has websocket_subprotocol => ( is => 'ro', isa => Maybe [Str] );
-has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1024 * 1024 * 10 );    # 10 Mb, 0 - do not check
-has websocket_permessage_deflate => ( is => 'ro', isa => Bool, default => 1 );
+has websocket_subprotocol => ( is => 'ro', isa => Maybe [Str], builder => '_build_websocket_subprotocol' );
+has websocket_max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, builder => '_build_websocket_max_message_size' );    # 0 - do not check
+has websocket_permessage_deflate => ( is => 'ro', isa => Bool, builder => '_build_websocket_permessage_deflate' );
 
 # send pong automatically on handle timeout
 # this parameter should be less, than nginx "proxy_read_timeout" in nginx
-has websocket_autopong => ( is => 'ro', isa => PositiveOrZeroInt, default => 50 );    # 0 - do not ping on timeout
+has websocket_autopong => ( is => 'ro', isa => PositiveOrZeroInt, builder => '_build_websocket_autopong' );    # 0 - do not ping on timeout
 
 has _websocket_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+
+sub _build_websocket_subprotocol ($self) {
+    return;
+}
+
+sub _build_websocket_max_message_size ($self) {
+    return 1024 * 1024 * 10;
+}
+
+sub _build_websocket_permessage_deflate ($self) {
+    return 1;
+}
+
+sub _build_websocket_autopong ($self) {
+    return 50;
+}
 
 around run => sub ( $orig, $self, $req ) {
 

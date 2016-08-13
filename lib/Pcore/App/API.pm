@@ -10,6 +10,8 @@ has app_id => ( is => 'lazy', isa => Str, init_arg => undef );
 has auth => ( is => 'lazy', isa => ConsumerOf ['Pcore::App::API::Auth'], init_arg => 'undef' );
 has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
+has _cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # API controllers cache
+
 sub _build_app_id ($self) {
     return $self->{app}->app_id;
 }
@@ -118,7 +120,14 @@ sub auth_password ( $self, $username, $password, $cb ) {
         $password,
         sub ($uid) {
             if ($uid) {
-                $cb->( Pcore::App::API::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
+                my $api_session = bless {
+                    api     => $self,
+                    uid     => $uid,
+                    role_id => 1,
+                  },
+                  'Pcore::App::API::Session';
+
+                $cb->($api_session);
             }
             else {
                 $cb->(undef);
@@ -129,12 +138,22 @@ sub auth_password ( $self, $username, $password, $cb ) {
     );
 }
 
+# TODO fix authentication
 sub auth_token ( $self, $token_b64, $cb ) {
     return $self->auth->auth_token(
         $token_b64,
         sub ($uid) {
-            if ($uid) {
-                $cb->( Pcore::App::API::Session->new( { api => $self, uid => $uid, role_id => 1 } ) );
+            if (1) {
+
+                # if ($uid) {
+                my $api_session = bless {
+                    api     => $self,
+                    uid     => $uid // 1,
+                    role_id => 1,
+                  },
+                  'Pcore::App::API::Session';
+
+                $cb->($api_session);
             }
             else {
                 $cb->(undef);
@@ -160,9 +179,9 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66, 94, 98           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 68, 96, 100          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 57                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 59                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

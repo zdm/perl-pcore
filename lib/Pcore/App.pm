@@ -18,7 +18,10 @@ has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init
 has router      => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'],         init_arg => undef );
 
+# TODO
 sub _build_api ($self) {
+
+    # TODO find class manually
     my $api_class = eval { P->class->load( 'API', ns => ref $self ) };
 
     return if $@;
