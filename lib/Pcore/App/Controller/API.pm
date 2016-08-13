@@ -155,43 +155,13 @@ sub _get_token ( $self, $env ) {
 }
 
 # WEBSOCKET INTERFACE
-sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
-    my $token = $self->_get_token( $req->{env} );
+sub _websocket_call ( $self, $ws, $payload_ref, $content_type ) {
 
-    # no auth token provided
-    return $decline->(401) if !$token;
-
-    $self->{app}->{api}->auth_token(
-        $token,
-        sub ($api_session) {
-
-            # token authentication error
-            return $decline->(401) if !$api_session;
-
-            # token authenticated successfully, store token in websocket connection object
-            $ws->{token} = $token;
-
-            # accept websocket connection
-            $accept->();
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub websocket_on_connect ( $self, $ws ) {
-    return;
-}
-
-sub websocket_on_text ( $self, $ws, $payload_ref ) {
-
-    # decode JSON payload
-    my $request = eval { from_json $payload_ref};
+    # decode payload
+    my $request = eval { $content_type eq $CONTENT_TYPE_JSON ? from_json $payload_ref : from_cbor $payload_ref};
 
     # content decode error
-    return $self->websocket_disconnect( $ws, 400, q[Error decoding JSON request body] ) if $@;
+    return $self->websocket_disconnect( $ws, 400, q[Error decoding request body] ) if $@;
 
     my $token = $ws->{token};
 
@@ -206,7 +176,7 @@ sub websocket_on_text ( $self, $ws, $payload_ref ) {
             # detect method id
             my $method_id;
 
-            # get metod id from request
+            # get method id from request
             if ( $request->{method} ) {
                 $method_id = $request->{method};
             }
@@ -240,7 +210,12 @@ sub websocket_on_text ( $self, $ws, $payload_ref ) {
                     };
 
                     # write response
-                    $ws->send_text( to_json($body)->$* );
+                    if ( $content_type eq $CONTENT_TYPE_JSON ) {
+                        $ws->send_text( to_json($body)->$* );
+                    }
+                    else {
+                        $ws->send_binary( to_cbor($body)->$* );
+                    }
 
                     return;
                 };
@@ -255,8 +230,45 @@ sub websocket_on_text ( $self, $ws, $payload_ref ) {
     return;
 }
 
-# TODO CBOR request entry point
+sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
+    my $token = $self->_get_token( $req->{env} );
+
+    # no auth token provided
+    return $decline->(401) if !$token;
+
+    $self->{app}->{api}->auth_token(
+        $token,
+        sub ($api_session) {
+
+            # token authentication error
+            return $decline->(401) if !$api_session;
+
+            # token authenticated successfully, store token in websocket connection object
+            $ws->{token} = $token;
+
+            # accept websocket connection
+            $accept->();
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub websocket_on_connect ( $self, $ws ) {
+    return;
+}
+
+sub websocket_on_text ( $self, $ws, $payload_ref ) {
+    $self->_websocket_call( $ws, $payload_ref, $CONTENT_TYPE_JSON );
+
+    return;
+}
+
 sub websocket_on_binary ( $self, $ws, $payload_ref ) {
+    $self->_websocket_call( $ws, $payload_ref, $CONTENT_TYPE_CBOR );
+
     return;
 }
 
@@ -270,6 +282,16 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 158                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
