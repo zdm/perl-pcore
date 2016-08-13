@@ -7,7 +7,7 @@ use Pcore::HTTP::Status;
 with qw[Pcore::App::Controller::WebSocket];
 
 # HTTP_AUTHORIZATION - Basic - username:password
-# HTTP_AUTHORIZATION - Token - token
+# HTTP_AUTHORIZATION - token - token
 # QUERY_STRING = access_token=asdasd
 
 const our $CONTENT_TYPE_JSON => 1;
@@ -155,7 +155,7 @@ sub _get_token ( $self, $env ) {
 }
 
 # WEBSOCKET INTERFACE
-sub _websocket_call ( $self, $ws, $payload_ref, $content_type ) {
+sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 
     # decode payload
     my $request = eval { $content_type eq $CONTENT_TYPE_JSON ? from_json $payload_ref : from_cbor $payload_ref};
@@ -261,13 +261,13 @@ sub websocket_on_connect ( $self, $ws ) {
 }
 
 sub websocket_on_text ( $self, $ws, $payload_ref ) {
-    $self->_websocket_call( $ws, $payload_ref, $CONTENT_TYPE_JSON );
+    $self->_websocket_api_call( $ws, $payload_ref, $CONTENT_TYPE_JSON );
 
     return;
 }
 
 sub websocket_on_binary ( $self, $ws, $payload_ref ) {
-    $self->_websocket_call( $ws, $payload_ref, $CONTENT_TYPE_CBOR );
+    $self->_websocket_api_call( $ws, $payload_ref, $CONTENT_TYPE_CBOR );
 
     return;
 }
@@ -277,7 +277,6 @@ sub websocket_on_pong ( $self, $ws, $payload ) {
 }
 
 sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
-    say "DISCONNECTED: $status $reason";
     return;
 }
 

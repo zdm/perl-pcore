@@ -36,8 +36,8 @@ sub is_root ($self) {
 
 sub api_call ( $self, $method_id, $args, $cb = undef ) {
 
-    # install cb, if defined
-    $self->{_cb} = $cb if $cb;
+    # remember cb, if defined
+    $self->{_cb} = $cb;
 
     my $method_cfg = $self->{api}->map->{$method_id};
 
