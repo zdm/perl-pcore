@@ -265,6 +265,7 @@ sub websocket_on_pong ( $self, $ws, $payload ) {
 }
 
 sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
+    say "DISCONNECTED: $status $reason";
     return;
 }
 

@@ -74,7 +74,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 
         # websocket args
         subprotocol        => undef,
-        max_message_size   => 1024 x 1024 x 10,               # 10 Mb
+        max_message_size   => 1024 * 1024 * 10,               # 10 Mb
         permessage_deflate => 1,
         useragent          => "Pcore-HTTP/$Pcore::VERSION",
         headers            => undef,                          # ArrayRef
