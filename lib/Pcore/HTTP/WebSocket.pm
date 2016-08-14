@@ -453,6 +453,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
         }
 
         # dispatch message
+        # TEXT message
         if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
             if ($payload_ref) {
                 eval { decode_utf8 $payload_ref->$* };
@@ -462,9 +463,13 @@ sub _on_frame ( $self, $header, $payload_ref ) {
                 $self->{on_text}->( $self, $payload_ref ) if $self->{on_text};
             }
         }
+
+        # BINARY message
         elsif ( $header->{op} == $WEBSOCKET_OP_BINARY ) {
             $self->{on_binary}->( $self, $payload_ref ) if $payload_ref && $self->{on_binary};
         }
+
+        # CLOSE message
         elsif ( $header->{op} == $WEBSOCKET_OP_CLOSE ) {
             my ( $status, $reason );
 
@@ -479,11 +484,15 @@ sub _on_frame ( $self, $header, $payload_ref ) {
 
             $self->_on_close( $status, $reason );
         }
+
+        # PING message
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
             # send pong automatically
             $self->pong( $payload_ref ? $payload_ref->$* : q[] );
         }
+
+        # PONG message
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
             $self->{on_pong}->( $self, $payload_ref ? $payload_ref->$* : q[] ) if $self->{on_pong};
         }
@@ -646,11 +655,11 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 96                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 261, 267, 512        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 261, 267, 521        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 458                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 459                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 573, 575             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 582, 584             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 41, 429              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

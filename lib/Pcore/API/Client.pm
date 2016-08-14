@@ -26,8 +26,6 @@ sub _build__is_http ($self) {
     return $self->_uri->is_http;
 }
 
-# TODO connect websocket on demand, wrap connection errors
-
 sub api_call ( $self, $method, @ ) {
     my ( $cb, $args );
 
@@ -40,6 +38,7 @@ sub api_call ( $self, $method, @ ) {
         $args = [ splice @_, 2 ];
     }
 
+    # HTTP protocol
     if ( $self->_is_http ) {
         P->http->get(
             $self->_uri,
@@ -68,78 +67,83 @@ sub api_call ( $self, $method, @ ) {
             },
         );
     }
+
+    # WebSocket protocol
     else {
-        $self->_websocket_connect(
-            sub ($usccess) {
-                my $request_id;
-
-                if ($cb) {
-                    $request_id = refaddr $cb;
-
-                    $self->{_request_cache}->{$request_id} = $cb;
-                }
-
-                $self->{_ws}->send_binary(
-                    to_cbor(
-                        {   request_id => $request_id,
-                            method     => $method,
-                            args       => $args,
-                        }
-                    )->$*
-                );
-
-                return;
-            }
-        );
-    }
-
-    return;
-}
-
-sub _websocket_connect ( $self, $cb ) {
-    Pcore::HTTP::WebSocket->connect(
-        $self->_uri,
-        subprotocol      => 'pcore-api',
-        headers          => [ 'Authorization' => 'token ' . $self->token, ],
-        on_connect_error => sub ($ws) {
-            die q[websocket connect error];
-        },
-        on_connect => sub ( $ws, $headers ) {
+        my $on_connect = sub ( $ws, $headers = undef ) {
             $self->{_ws} = $ws;
 
-            say 'CONNECTED';
+            my $request_id;
 
-            $cb->(1);
+            if ($cb) {
+                $request_id = refaddr $cb;
 
-            return;
-        },
-        on_text => sub ( $ws, $payload_ref ) {
-            die q[Text messages are not used];
-        },
-        on_binary => sub ( $ws, $payload_ref ) {
-
-            # decode payload
-            my $data = eval { from_cbor $payload_ref};
-
-            if ( $data->{request_id} ) {
-                my $cb = delete $self->{_request_cache}->{ $data->{request_id} };
-
-                $cb->($data) if $cb;
+                $self->{_request_cache}->{$request_id} = $cb;
             }
 
-            return;
-        },
-        on_pong => sub ( $ws, $payload ) {
-            return;
-        },
-        on_disconnect => sub ( $ws, $status, $reason ) {
-            say "DISCONNECTED: $status, $reason";
+            $ws->send_binary(
+                to_cbor(
+                    {   request_id => $request_id,
+                        method     => $method,
+                        args       => $args,
+                    }
+                )->$*
+            );
 
-            undef $self->{_ws};
-
             return;
-        },
-    );
+        };
+
+        my $ws = $self->{_ws};
+
+        if ( !$ws ) {
+            Pcore::HTTP::WebSocket->connect(
+                $self->_uri,
+                subprotocol            => 'pcore-api',
+                headers                => [ 'Authorization' => 'token ' . $self->token, ],
+                connect_timeout        => 10,
+                on_connect             => $on_connect,
+                on_proxy_connect_error => sub ( $status, $reason ) {
+                    my $api_res = Pcore::API::Response->new( { status => $status, reason => $reason } );
+
+                    $cb->($api_res) if $cb;
+
+                    return;
+                },
+                on_connect_error => sub ( $status, $reason ) {
+                    my $api_res = Pcore::API::Response->new( { status => $status, reason => $reason } );
+
+                    $cb->($api_res) if $cb;
+
+                    return;
+                },
+                on_disconnect => sub ( $ws, $status, $reason ) {
+                    undef $self->{_ws};
+
+                    return;
+                },
+                on_binary => sub ( $ws, $payload_ref ) {
+
+                    # decode payload
+                    my $data = eval { from_cbor $payload_ref};
+
+                    die q[WebSocket protocol error, can't decode CBOR payload] if $@;
+
+                    if ( $data->{request_id} && ( my $callback = delete $self->{_request_cache}->{ $data->{request_id} } ) ) {
+                        my $api_res = Pcore::API::Response->new( { status => $data->{status}, reason => $data->{reason} } );
+
+                        $api_res->{result} = $data->{result} if $api_res->is_success;
+
+                        $callback->($api_res);
+                    }
+
+                    return;
+                },
+            );
+        }
+        else {
+            $on_connect->($ws);
+        }
+    }
 
     return;
 }
