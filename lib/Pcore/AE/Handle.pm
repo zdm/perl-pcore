@@ -796,10 +796,12 @@ sub read_http_body ( $self, $on_read, @ ) {
         $read_chunk = sub ( $h, @ ) {
             my $chunk_len_ref = \$_[1];
 
-            if ( $chunk_len_ref->$* =~ /\A([[:xdigit:]]+)/sm ) {    # valid chunk length
+            # valid chunk length
+            if ( $chunk_len_ref->$* =~ /\A([[:xdigit:]]+)/sm ) {
                 my $chunk_len = hex $1;
 
-                if ($chunk_len) {                                   # read chunk body
+                # read chunk body
+                if ($chunk_len) {
                     $h->unshift_read(
                         chunk => $chunk_len,
                         sub ( $h, @ ) {
@@ -832,7 +834,9 @@ sub read_http_body ( $self, $on_read, @ ) {
                         }
                     );
                 }
-                else {    # last chunk
+
+                # last chunk
+                else {
 
                     # read trailing headers
                     $h->read_http_res_headers(
@@ -853,7 +857,9 @@ sub read_http_body ( $self, $on_read, @ ) {
                     );
                 }
             }
-            else {    # invalid chunk length
+
+            # invalid chunk length
+            else {
                 undef $read_chunk;
 
                 $on_read_buf->( undef, 'Garbled chunked transfer encoding (invalid chunk length)' );
@@ -992,13 +998,13 @@ sub get_connect ($connect) {
 ## |    2 | 691                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1015 does not specify text                                                  |
-## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1023 does not specify text                                                  |
-## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1051 does not specify text                                                  |
-## |      | 1009                 | * Link L<AnyEvent::Handle> on line 1067 does not specify text                                                  |
-## |      | 1009                 | * Link L<AnyEvent::Socket> on line 1067 does not specify text                                                  |
-## |      | 1009, 1009           | * Link L<Pcore::Proxy> on line 1033 does not specify text                                                      |
-## |      | 1009                 | * Link L<Pcore::Proxy> on line 1067 does not specify text                                                      |
+## |      | 1015                 | * Link L<AnyEvent::Handle> on line 1021 does not specify text                                                  |
+## |      | 1015                 | * Link L<AnyEvent::Handle> on line 1029 does not specify text                                                  |
+## |      | 1015                 | * Link L<AnyEvent::Handle> on line 1057 does not specify text                                                  |
+## |      | 1015                 | * Link L<AnyEvent::Handle> on line 1073 does not specify text                                                  |
+## |      | 1015                 | * Link L<AnyEvent::Socket> on line 1073 does not specify text                                                  |
+## |      | 1015, 1015           | * Link L<Pcore::Proxy> on line 1039 does not specify text                                                      |
+## |      | 1015                 | * Link L<Pcore::Proxy> on line 1073 does not specify text                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 53, 58, 468, 553,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |      | 556, 559, 565        |                                                                                                                |
