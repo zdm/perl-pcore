@@ -1,6 +1,6 @@
 package Pcore::HTTP::Server;
 
-use Pcore -class;
+use Pcore -class, -const;
 use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
 use Pcore::HTTP::Status;
@@ -20,6 +20,28 @@ has client_body_timeout   => ( is => 'ro', isa => PositiveInt,       default => 
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
+
+const our $PSGI_ENV => {
+    'psgi.version'      => [ 1, 1 ],
+    'psgi.url_scheme'   => 'http',
+    'psgi.input'        => undef,
+    'psgi.errors'       => undef,
+    'psgi.multithread'  => 0,
+    'psgi.multiprocess' => 0,
+    'psgi.run_once'     => 0,
+    'psgi.nonblocking'  => 1,
+    'psgi.streaming'    => 1,
+
+    # extensions
+    'psgix.io'              => undef,
+    'psgix.input.buffered'  => 1,
+    'psgix.logger'          => undef,
+    'psgix.session'         => undef,
+    'psgix.session.options' => undef,
+    'psgix.harakiri'        => 0,
+    'psgix.harakiri.commit' => 0,
+    'psgix.cleanup'         => 0,
+};
 
 # TODO implement shutdown and graceful shutdown
 
@@ -142,28 +164,6 @@ sub wait_headers ( $self, $h ) {
     # set keep-alive timeout or drop timeout
     $h->timeout( $self->{keepalive_timeout} || undef );
 
-    state $psgi_env = {
-        'psgi.version'      => [ 1, 1 ],
-        'psgi.url_scheme'   => 'http',
-        'psgi.input'        => undef,
-        'psgi.errors'       => undef,
-        'psgi.multithread'  => 0,
-        'psgi.multiprocess' => 0,
-        'psgi.run_once'     => 0,
-        'psgi.nonblocking'  => 1,
-        'psgi.streaming'    => 1,
-
-        # extensions
-        'psgix.io'              => undef,
-        'psgix.input.buffered'  => 1,
-        'psgix.logger'          => undef,
-        'psgix.session'         => undef,
-        'psgix.session.options' => undef,
-        'psgix.harakiri'        => 0,
-        'psgix.harakiri.commit' => 0,
-        'psgix.cleanup'         => 0,
-    };
-
     $h->on_read(
         sub ($h1) {
 
@@ -200,8 +200,8 @@ sub wait_headers ( $self, $h ) {
                         # clear client header timeout
                         $h->timeout(undef);
 
-                        # create env
-                        $env->@{ keys $psgi_env->%* } = values $psgi_env->%*;
+                        # copy default psgi env
+                        $env->@{ keys $PSGI_ENV->%* } = values $PSGI_ENV->%*;
 
                         $self->_read_body(
                             $h, $env,
