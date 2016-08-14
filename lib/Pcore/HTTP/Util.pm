@@ -601,7 +601,9 @@ sub _read_body ( $args, $runtime, $cb ) {
 
                     return 1;    # continue reading
                 }
-                else {           # last chunk
+
+                # last chunk
+                else {
                     $cb->();
                 }
             }
@@ -610,13 +612,18 @@ sub _read_body ( $args, $runtime, $cb ) {
         };
     }
 
-    if ($chunked) {              # read chunked body
+    # read chunked body
+    if ($chunked) {
         $runtime->{h}->read_http_body( $on_read, chunked => 1, headers => $runtime->{res}->headers );
     }
-    elsif ( $runtime->{content_length} ) {    # read body with known content length
+
+    # read body with known content length
+    elsif ( $runtime->{content_length} ) {
         $runtime->{h}->read_http_body( $on_read, length => $runtime->{content_length} );
     }
-    else {                                    # read body with unknown content length (until EOF)
+
+    # read body with unknown content length (until EOF)
+    else {
         $runtime->{h}->read_http_body($on_read);
     }
 
