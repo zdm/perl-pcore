@@ -25,14 +25,11 @@ has trace => ( is => 'ro', isa => Bool, default => 1 );
 has call_stack => ( is => 'ro', isa => Maybe [ArrayRef], required => 1 );
 has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame'], required => 1 );
 
-has propagated => ( is => 'ro', isa => Bool, default => 0 );
-
 has is_ae_cb_error => ( is => 'lazy', isa => Bool, init_arg => undef );
 has longmess       => ( is => 'lazy', isa => Str,  init_arg => undef );
 has to_string      => ( is => 'lazy', isa => Str,  init_arg => undef );
 
-has logged          => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
-has _stop_propagate => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has logged => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $msg, %args ) {
     $args{skip_frames} //= 0;
@@ -143,39 +140,6 @@ sub sendlog ( $self, @ ) {
     P->log->sendlog( $channel, $self->to_string, %args );
 
     return;
-}
-
-sub is_propagated ( $self, @propagate ) {
-    if ( !$self->propagated ) {
-        return;
-    }
-    else {
-        if (@propagate) {
-            return uc( $self->msg ) ~~ @propagate ? 1 : 0;
-        }
-        else {
-            return 1;
-        }
-    }
-}
-
-sub propagate ($self) {
-    if ( $self->level eq 'ERROR' ) {
-        CORE::die $self;
-
-        return;
-    }
-    else {
-        CORE::warn $self;
-
-        return;
-    }
-}
-
-sub stop_propagate ($self) {
-    $self->{_stop_propagate} = 1;
-
-    return 1;
 }
 
 1;

@@ -152,18 +152,13 @@ sub cluck {
     return CORE::warn $e;
 }
 
-# create and throw new propagated exception
-sub propagate ($msg) {
-    return Pcore::Core::Exception::Object->new( $msg, level => 'ERROR', skip_frames => 1, trace => 1, propagated => 1 )->propagate;
-}
-
 # TRY / CATCH
 sub try ( $try, $catch = undef ) : prototype(&@) {
     my $wantarray = wantarray;
 
-    my @res;
-
     my $prev_error = $@;
+
+    my @res;
 
     my $failed = not eval {
 
@@ -200,14 +195,6 @@ sub try ( $try, $catch = undef ) : prototype(&@) {
             else {
                 $catch->($e);
             }
-        }
-
-        if ( $e->is_propagated ) {
-
-            # clear $@ because handled propagated exception treat as not an error
-            $@ = q[];    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
-            $e->propagate unless $e->_stop_propagate;
         }
     }
 
