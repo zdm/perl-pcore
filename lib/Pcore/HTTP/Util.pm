@@ -561,7 +561,8 @@ sub _read_body ( $args, $runtime, $cb ) {
                     if ( !$decode->( $content_ref, $out_buf_ref ) ) {
                         $cb->( 597, 'Stream decode error' );
 
-                        return;    # stop reading
+                        # stop reading
+                        return;
                     }
                 }
                 elsif ( defined $content_ref ) {
@@ -599,7 +600,8 @@ sub _read_body ( $args, $runtime, $cb ) {
 
                     $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
 
-                    return 1;    # continue reading
+                    # continue reading
+                    return 1;
                 }
 
                 # last chunk
@@ -646,7 +648,7 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 350                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 581                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 582                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
