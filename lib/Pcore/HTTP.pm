@@ -210,10 +210,10 @@ sub _request {
     $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !ref $args{url};
 
     # set HOST header
-    $args{headers}->{HOST} = $args{url}->host->name unless exists $args{headers}->{HOST};
+    $args{headers}->{HOST} = $args{url}->host->name if !exists $args{headers}->{HOST};
 
     # set REFERER header
-    $args{headers}->{REFERER} = $args{url}->to_string unless exists $args{headers}->{REFERER};
+    $args{headers}->{REFERER} = $args{url}->to_string if !exists $args{headers}->{REFERER};
 
     # set ACCEPT_ENCODING headers
     $args{headers}->{ACCEPT_ENCODING} = 'gzip' if $args{accept_compressed} && !exists $args{headers}->{ACCEPT_ENCODING};

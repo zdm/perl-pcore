@@ -25,7 +25,7 @@ sub to_string ($self) {
     for ( keys $hash->%* ) {
         my $header = ( ucfirst lc ) =~ s/_([[:alpha:]])/q[-] . uc $1/smger;
 
-        for ( $hash->{$_}->@* ) {
+        for ( grep {defined} $hash->{$_}->@* ) {
             $headers .= $header . q[: ] . $_ . $CRLF;
         }
     }

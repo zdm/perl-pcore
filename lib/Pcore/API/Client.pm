@@ -7,6 +7,7 @@ use Pcore::Util::Scalar qw[refaddr];
 use Pcore::API::Response;
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
+has token => ( is => 'lazy', isa => Str );
 
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -17,12 +18,15 @@ sub _build__uri($self) {
     return P->uri( $self->uri );
 }
 
+sub _build_token ($self) {
+    return $self->_uri->userinfo;
+}
+
 sub _build__is_http ($self) {
     return $self->_uri->is_http;
 }
 
-# TODO extract token
-# TODO connect websocket, wrap connection errors
+# TODO connect websocket on demand, wrap connection errors
 
 sub api_call ( $self, $method, @ ) {
     my ( $cb, $args );
@@ -40,7 +44,8 @@ sub api_call ( $self, $method, @ ) {
         P->http->get(
             $self->_uri,
             headers => {
-                AUTHORIZATION => 'Token xxx',
+                REFERER       => undef,
+                AUTHORIZATION => 'token ' . $self->token,
                 CONTENT_TYPE  => 'application/cbor',
             },
             body => to_cbor(
@@ -95,7 +100,7 @@ sub _websocket_connect ( $self, $cb ) {
     Pcore::HTTP::WebSocket->connect(
         $self->_uri,
         subprotocol      => 'pcore-api',
-        headers          => [ 'Authorization' => 'token 12321321', ],
+        headers          => [ 'Authorization' => 'token ' . $self->token, ],
         on_connect_error => sub ($ws) {
             die q[websocket connect error];
         },

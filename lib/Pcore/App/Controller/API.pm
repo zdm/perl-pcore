@@ -25,6 +25,7 @@ sub _build_websocket_autopong ($self) {
     return 50;
 }
 
+# ENTRYPOINT
 sub run ( $self, $req ) {
     my $env = $req->{env};
 
@@ -135,7 +136,6 @@ sub run ( $self, $req ) {
     return;
 }
 
-# TODO get username/password from basic authentication???
 sub _get_token ( $self, $env ) {
 
     # get auth token from query param, header, cookie

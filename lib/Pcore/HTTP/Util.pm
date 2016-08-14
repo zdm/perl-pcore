@@ -271,7 +271,7 @@ sub _write_request ( $args, $runtime ) {
     my $headers = $args->{headers}->to_string;
 
     # prepare basic authorization
-    if ( my $userinfo_b64 = $args->{url}->userinfo_b64 ) {
+    if ( !$args->{headers}->{AUTHORIZATION} && ( my $userinfo_b64 = $args->{url}->userinfo_b64 ) ) {
         $headers .= 'Authorization: Basic ' . $userinfo_b64 . $CRLF;
     }
 
@@ -632,7 +632,7 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 23                   | * Subroutine "http_request" with high complexity score (28)                                                    |
-## |      | 241                  | * Subroutine "_write_request" with high complexity score (22)                                                  |
+## |      | 241                  | * Subroutine "_write_request" with high complexity score (23)                                                  |
 ## |      | 370                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 103, 117, 119, 200   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
