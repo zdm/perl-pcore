@@ -12,7 +12,8 @@ has token => ( is => 'lazy', isa => Str );
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
 has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg => undef );
-has _request_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _connect_cache => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+has _request_cache => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
 sub _build__uri($self) {
     return P->uri( $self->uri );
@@ -70,9 +71,7 @@ sub api_call ( $self, $method, @ ) {
 
     # WebSocket protocol
     else {
-        my $on_connect = sub ( $ws, $headers = undef ) {
-            $self->{_ws} = $ws;
-
+        my $on_connect = sub ( $ws ) {
             my $request_id;
 
             if ($cb) {
@@ -96,23 +95,43 @@ sub api_call ( $self, $method, @ ) {
         my $ws = $self->{_ws};
 
         if ( !$ws ) {
+            my $on_error = sub ( $status, $reason ) {
+                my $api_res = Pcore::API::Response->new( { status => $status, reason => $reason } );
+
+                $cb->($api_res) if $cb;
+
+                return;
+            };
+
+            push $self->{_connect_cache}->@*, [ $on_error, $on_connect ];
+
+            return if $self->{_connect_cache}->@* > 1;
+
             Pcore::HTTP::WebSocket->connect(
                 $self->_uri,
                 subprotocol            => 'pcore-api',
                 headers                => [ 'Authorization' => 'token ' . $self->token, ],
                 connect_timeout        => 10,
-                on_connect             => $on_connect,
                 on_proxy_connect_error => sub ( $status, $reason ) {
-                    my $api_res = Pcore::API::Response->new( { status => $status, reason => $reason } );
-
-                    $cb->($api_res) if $cb;
+                    while ( my $callback = shift $self->{_connect_cache}->@* ) {
+                        $callback->[0]->( $status, $reason );
+                    }
 
                     return;
                 },
                 on_connect_error => sub ( $status, $reason ) {
-                    my $api_res = Pcore::API::Response->new( { status => $status, reason => $reason } );
+                    while ( my $callback = shift $self->{_connect_cache}->@* ) {
+                        $callback->[0]->( $status, $reason );
+                    }
 
-                    $cb->($api_res) if $cb;
+                    return;
+                },
+                on_connect => sub ( $ws, $headers ) {
+                    $self->{_ws} = $ws;
+
+                    while ( my $callback = shift $self->{_connect_cache}->@* ) {
+                        $callback->[1]->($ws);
+                    }
 
                     return;
                 },
