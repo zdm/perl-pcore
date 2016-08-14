@@ -66,7 +66,7 @@ sub http_request ($args) {
                     }
                 }
 
-                $persistent ? $runtime->{h}->store : $runtime->{h}->destroy;
+                $persistent ? $runtime->{h}->store( $args->{keepalive_timeout} ) : $runtime->{h}->destroy;
 
                 # process redirect
                 if ( $runtime->{redirect} ) {

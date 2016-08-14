@@ -4,7 +4,7 @@ use Pcore -class;
 use Pcore::AE::Handle::Cache::Storage;
 use Pcore::Util::Scalar qw[refaddr];
 
-has default_timeout => ( is => 'ro', isa => PositiveInt, default => 4 );
+has default_keepalive_timeout => ( is => 'ro', isa => PositiveInt, default => 4 );
 
 has handle     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has connection => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -17,7 +17,7 @@ sub clear ($self) {
     return;
 }
 
-sub store ( $self, $h, $timeout = undef ) {
+sub store ( $self, $h, $keepalive_timeout = undef ) {
 
     # do not cache destroyed handles
     return if $h->destroyed;
@@ -63,7 +63,7 @@ sub store ( $self, $h, $timeout = undef ) {
     $h->on_timeout(undef);
 
     $h->timeout_reset;
-    $h->timeout( $timeout || $self->default_timeout );
+    $h->timeout( $keepalive_timeout || $self->default_keepalive_timeout );
 
     return;
 }

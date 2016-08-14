@@ -8,6 +8,7 @@ use Pcore::API::Response;
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
 has token => ( is => 'lazy', isa => Str );
+has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
 
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -43,7 +44,8 @@ sub api_call ( $self, $method, @ ) {
     if ( $self->_is_http ) {
         P->http->get(
             $self->_uri,
-            headers => {
+            keepalive_timeout => $self->keepalive_timeout,
+            headers           => {
                 REFERER       => undef,
                 AUTHORIZATION => 'token ' . $self->token,
                 CONTENT_TYPE  => 'application/cbor',

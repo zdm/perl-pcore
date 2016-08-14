@@ -41,7 +41,7 @@ const our $PERSISTENT_NO_PROXY => 3;
 
 const our $DISABLE_PROXY => 1;
 
-const our $CACHE => Pcore::AE::Handle::Cache->new( { default_timeout => 4 } );
+const our $CACHE => Pcore::AE::Handle::Cache->new( { default_keepalive_timeout => 4 } );
 
 # register "http_headers" read type
 AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {

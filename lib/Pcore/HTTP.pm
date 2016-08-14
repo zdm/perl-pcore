@@ -33,6 +33,7 @@ our $DEFAULT = {
 
     useragent         => "Pcore-HTTP/$Pcore::VERSION",
     recurse           => 7,                              # max. redirects
+    keepalive_timeout => undef,                          # keepalive timeout for persistent connections, if false - default value will be used
     timeout           => 300,                            # timeout in seconds
     accept_compressed => 1,                              # add ACCEPT_ENCODIING header
     decompress        => 1,                              # automatically decompress
@@ -413,14 +414,14 @@ sub _get_on_progress_cb (%args) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 110, 175, 184, 232,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 233, 254             |                                                                                                                |
+## |    3 | 111, 176, 185, 233,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 234, 255             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 113                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 114                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 174                  | Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (34)                  |
+## |    3 | 175                  | Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (34)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 160                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 161                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
