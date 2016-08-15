@@ -14,9 +14,9 @@ has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
 
 has server_tokens => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
 has keepalive_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - disable keepalive
-has client_header_timeout => ( is => 'ro', isa => PositiveInt,       default => 60 );
-has client_body_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
-has client_max_body_size  => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
+has client_header_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - do not use
+has client_body_timeout   => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - do not use
+has client_max_body_size  => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );     # 0 - do not check
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
