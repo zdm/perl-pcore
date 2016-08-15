@@ -14,7 +14,10 @@ has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
 has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
 
 has server_tokens => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
-has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - disable keepalive
+has keepalive_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - disable keepalive
+has client_header_timeout => ( is => 'ro', isa => PositiveInt,       default => 60 );
+has client_body_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
+has client_max_body_size  => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
@@ -74,6 +77,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     Pcore::AE::Handle->new(
         fh         => $fh,
         no_delay   => $self->tcp_no_delay,
+        keepalive  => 1,
         on_connect => sub ( $h, @ ) {
             $self->wait_headers($h);
 
@@ -84,41 +88,78 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     return;
 }
 
-# TODO implement content length - https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
 sub _read_body ( $self, $h, $env, $cb ) {
     my ( $chunked, $content_length ) = ( 0, 0 );
 
+    # https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
+    # Transfer-Encoding has priority before Content-Length
+
+    # chunked body
     if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
         $chunked = 1;
     }
+
+    # fixed body size
     elsif ( $env->{CONTENT_LENGTH} ) {
         $content_length = $env->{CONTENT_LENGTH};
     }
-    else {
 
-        # no body
+    # no body
+    else {
         $cb->(undef);
 
         return;
     }
 
+    # set client body timeout
+    if ( $self->{client_body_timeout} ) {
+        $h->rtimeout_reset;
+        $h->rtimeout( $self->{client_body_timeout} );
+        $h->on_rtimeout(
+            sub ($h) {
+
+                # client body read timeout
+                $self->return_xxx( $h, 408 );
+
+                return;
+            }
+        );
+    }
+
     $h->read_http_body(
         sub ( $h1, $buf_ref, $total_bytes_readed, $error_reason ) {
+
+            # read body error
             if ($error_reason) {
 
                 # read body error
                 $cb->(400);
             }
             else {
+
+                # read body finished
                 if ( !$buf_ref ) {
+
+                    # clear client body timeout
+                    $h->rtimeout(undef);
+
                     $cb->(undef);
                 }
+
+                # read body chunk
                 else {
-                    $env->{'psgi.input'} .= $buf_ref->$*;
+                    if ( $self->{client_max_body_size} && $total_bytes_readed > $self->{client_max_body_size} ) {
 
-                    $env->{CONTENT_LENGTH} = $total_bytes_readed;
+                        # payload too large
+                        $cb->(413);
+                    }
+                    else {
+                        $env->{'psgi.input'} .= $buf_ref->$*;
 
-                    return 1;
+                        $env->{CONTENT_LENGTH} = $total_bytes_readed;
+
+                        return 1;
+                    }
                 }
             }
 
@@ -140,59 +181,92 @@ sub wait_headers ( $self, $h ) {
         return;
     };
 
-    $h->timeout_reset;
     $h->on_error($destroy);
     $h->on_eof(undef);
-    $h->on_timeout(undef);
+    $h->on_rtimeout(undef);
+    $h->rtimeout_reset;
 
-    # set keepalive timeout or drop timeout
-    $h->timeout( $self->{keepalive_timeout} || undef );
+    # set keepalive timeout
+    $h->rtimeout( $self->{keepalive_timeout} || $self->{client_header_timeout} );
 
-    $h->read_http_req_headers(
-        sub ( $h1, $env, $error_reason ) {
-            if ($error_reason) {
+    $h->on_read(
+        sub {
 
-                # HTTP headers parsing error, request is invalid
-                # return standard error response and destroy handle
-                # 400 - Bad Request
-                $self->return_xxx( $h, 400 );
-            }
-            else {
-                # clear keepalive timeout
-                $h->timeout(undef);
+            # clear on_read callback
+            $h->on_read(undef);
 
-                # copy default psgi env
-                $env->@{ keys $PSGI_ENV->%* } = values $PSGI_ENV->%*;
+            # set client header timeout
+            if ( $self->{client_header_timeout} ) {
+                $h->rtimeout_reset;
+                $h->rtimeout( $self->{client_header_timeout} );
+                $h->on_rtimeout(
+                    sub ($h) {
 
-                $self->_read_body(
-                    $h, $env,
-                    sub ($body_error_status) {
-                        if ($body_error_status) {
-
-                            # body read error
-                            $self->return_xxx( $h, $body_error_status );
-                        }
-                        else {
-
-                            # create request object
-                            my $req = bless {
-                                _server          => $self,
-                                _h               => $h,
-                                env              => $env,
-                                _response_status => 0,
-                              },
-                              'Pcore::HTTP::Server::Request';
-
-                            # evaluate application
-                            eval { $self->{app}->($req) };
-
-                            $@->sendlog if $@;
-                        }
+                        # client header read timeout
+                        $self->return_xxx( $h, 408 );
 
                         return;
                     }
                 );
             }
+            else {
+
+                # clear keepalive timeout
+                $h->rtimeout(undef);
+            }
+
+            # read HTTP headers
+            $h->read_http_req_headers(
+                sub ( $h1, $env, $error_reason ) {
+                    if ($error_reason) {
+
+                        # HTTP headers parsing error, request is invalid
+                        # return standard error response and destroy the handle
+                        # 400 - Bad Request
+                        $self->return_xxx( $h, 400 );
+                    }
+                    else {
+
+                        # clear client header timeout
+                        $h->rtimeout(undef);
+
+                        # copy default psgi env
+                        $env->@{ keys $PSGI_ENV->%* } = values $PSGI_ENV->%*;
+
+                        # read HTTP body
+                        $self->_read_body(
+                            $h, $env,
+                            sub ($body_error_status) {
+                                if ($body_error_status) {
+
+                                    # body read error
+                                    $self->return_xxx( $h, $body_error_status );
+                                }
+                                else {
+
+                                    # create request object
+                                    my $req = bless {
+                                        _server          => $self,
+                                        _h               => $h,
+                                        env              => $env,
+                                        _response_status => 0,
+                                      },
+                                      'Pcore::HTTP::Server::Request';
+
+                                    # evaluate application
+                                    eval { $self->{app}->($req) };
+
+                                    $@->sendlog if $@;
+                                }
+
+                                return;
+                            }
+                        );
+                    }
+
+                    return;
+                }
+            );
 
             return;
         }
@@ -235,9 +309,9 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 165                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 234                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 187                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 257                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
