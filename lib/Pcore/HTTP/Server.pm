@@ -229,7 +229,7 @@ sub wait_headers ( $self, $h ) {
                         # clear client header timeout
                         $h->rtimeout(undef);
 
-                        # copy default psgi env
+                        # add default psgi env keys
                         $env->@{ keys $PSGI_ENV->%* } = values $PSGI_ENV->%*;
 
                         # read HTTP body
