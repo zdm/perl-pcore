@@ -6,10 +6,11 @@ use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
 use Pcore::Util::Scalar qw[refaddr];
 use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
 
+# https://en.wikipedia.org/wiki/HTTP_compression
+const our $CONTENT_ENCODING_IDENTITY => 0;    # no compression
 const our $CONTENT_ENCODING_GZIP     => 1;    # NOTE only gzip is supported now
-const our $CONTENT_ENCODING_COMPRESS => 2;
-const our $CONTENT_ENCODING_DEFLATE  => 3;
-const our $CONTENT_ENCODING_IDENTITY => 4;
+const our $CONTENT_ENCODING_DEFLATE  => 2;
+const our $CONTENT_ENCODING_COMPRESS => 3;
 
 # $status => $switch_method_to_GET
 const our $REDIRECT => {
@@ -647,15 +648,15 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 23                   | * Subroutine "http_request" with high complexity score (28)                                                    |
-## |      | 242                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
-## |      | 377                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 24                   | * Subroutine "http_request" with high complexity score (28)                                                    |
+## |      | 243                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
+## |      | 378                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 104, 118, 120, 201   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 105, 119, 121, 202   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 357                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 358                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 589                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 590                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
