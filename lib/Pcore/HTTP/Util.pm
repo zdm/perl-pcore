@@ -66,6 +66,7 @@ sub http_request ($args) {
                     }
                 }
 
+                # store or destroy handle
                 $persistent ? $runtime->{h}->store( $args->{keepalive_timeout} ) : $runtime->{h}->destroy;
 
                 # process redirect
@@ -251,6 +252,8 @@ sub _write_request ( $args, $runtime ) {
         $runtime->{h}->starttls('connect') if $args->{url}->is_secure && !exists $runtime->{h}->{tls};
     }
 
+    # TODO add Connection:close for not persistent connections
+
     # prepare content related headers
     if ( defined $args->{body} ) {
         if ( ref $args->{body} eq 'CODE' ) {
@@ -268,11 +271,12 @@ sub _write_request ( $args, $runtime ) {
         delete $args->{headers}->{TRANSFER_ENCODING};
     }
 
+    # serialize headers
     my $headers = $args->{headers}->to_string;
 
     # prepare basic authorization
     if ( !$args->{headers}->{AUTHORIZATION} && ( my $userinfo_b64 = $args->{url}->userinfo_b64 ) ) {
-        $headers .= 'Authorization: Basic ' . $userinfo_b64 . $CRLF;
+        $headers .= 'Authorization:Basic ' . $userinfo_b64 . $CRLF;
     }
 
     # send request headers
@@ -641,14 +645,14 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 23                   | * Subroutine "http_request" with high complexity score (28)                                                    |
-## |      | 241                  | * Subroutine "_write_request" with high complexity score (23)                                                  |
-## |      | 370                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 242                  | * Subroutine "_write_request" with high complexity score (23)                                                  |
+## |      | 374                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 103, 117, 119, 200   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 104, 118, 120, 201   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 350                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 354                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 582                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 586                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
