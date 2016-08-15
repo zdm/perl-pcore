@@ -219,9 +219,6 @@ sub _request {
     # set ACCEPT_ENCODING headers
     $args{headers}->{ACCEPT_ENCODING} = 'gzip' if $args{accept_compressed} && !exists $args{headers}->{ACCEPT_ENCODING};
 
-    # set TE header
-    $args{headers}->{TE} = 'trailers';
-
     # add COOKIE headers
     if ( $args{cookie_jar} && ( my $cookies = $args{cookie_jar}->get_cookies( $args{url} ) ) ) {
         $args{headers}->add( COOKIE => join q[; ], $cookies->@* );
@@ -414,8 +411,8 @@ sub _get_on_progress_cb (%args) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 111, 176, 185, 233,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 234, 255             |                                                                                                                |
+## |    3 | 111, 176, 185, 230,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 231, 252             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 114                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
