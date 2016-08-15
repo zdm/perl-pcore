@@ -14,9 +14,7 @@ has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
 has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
 
 has server_tokens => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
-has keepalive_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - disable keepalive
-has client_header_timeout => ( is => 'ro', isa => PositiveInt,       default => 60 );
-has client_body_timeout   => ( is => 'ro', isa => PositiveInt,       default => 60 );
+has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - disable keepalive
 
 has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
@@ -104,29 +102,15 @@ sub _read_body ( $self, $h, $env, $cb ) {
         return;
     }
 
-    $h->timeout( $self->{client_body_timeout} );
-
-    $h->on_timeout(
-        sub {
-
-            # read body timeout
-            $cb->(408);
-        }
-    );
-
     $h->read_http_body(
-        sub ( $h1, $buf_ref, $total_bytes_readed, $error_message ) {
-            if ($error_message) {
+        sub ( $h1, $buf_ref, $total_bytes_readed, $error_reason ) {
+            if ($error_reason) {
 
                 # read body error
                 $cb->(400);
             }
             else {
                 if ( !$buf_ref ) {
-                    $h->timeout(undef);
-
-                    $h->on_timeout(undef);
-
                     $cb->(undef);
                 }
                 else {
@@ -161,81 +145,54 @@ sub wait_headers ( $self, $h ) {
     $h->on_eof(undef);
     $h->on_timeout(undef);
 
-    # set keep-alive timeout or drop timeout
+    # set keepalive timeout or drop timeout
     $h->timeout( $self->{keepalive_timeout} || undef );
 
-    $h->on_read(
-        sub ($h1) {
+    $h->read_http_req_headers(
+        sub ( $h1, $env, $error_reason ) {
+            if ($error_reason) {
 
-            # clear on_read
-            $h->on_read(undef);
+                # HTTP headers parsing error, request is invalid
+                # return standard error response and destroy handle
+                # 400 - Bad Request
+                $self->return_xxx( $h, 400 );
+            }
+            else {
+                # clear keepalive timeout
+                $h->timeout(undef);
 
-            # set client header timeout
-            $h->timeout( $self->{client_header_timeout} );
+                # copy default psgi env
+                $env->@{ keys $PSGI_ENV->%* } = values $PSGI_ENV->%*;
 
-            # set client header timeout handler
-            $h->on_timeout(
-                sub ( $h, @ ) {
+                $self->_read_body(
+                    $h, $env,
+                    sub ($body_error_status) {
+                        if ($body_error_status) {
 
-                    # client header timeout
-                    # return standard error response and destroy handle
-                    # 408 - Request Timeout
-                    $self->return_xxx( $h, 408 );
+                            # body read error
+                            $self->return_xxx( $h, $body_error_status );
+                        }
+                        else {
 
-                    return;
-                }
-            );
+                            # create request object
+                            my $req = bless {
+                                _server          => $self,
+                                _h               => $h,
+                                env              => $env,
+                                _response_status => 0,
+                              },
+                              'Pcore::HTTP::Server::Request';
 
-            $h->read_http_req_headers(
-                sub ( $h1, $env, $error_reason ) {
-                    if ($error_reason) {
+                            # evaluate application
+                            eval { $self->{app}->($req) };
 
-                        # HTTP headers parsing error, request is invalid
-                        # return standard error response and destroy handle
-                        # 400 - Bad Request
-                        $self->return_xxx( $h, 400 );
+                            $@->sendlog if $@;
+                        }
+
+                        return;
                     }
-                    else {
-
-                        # clear client header timeout
-                        $h->timeout(undef);
-
-                        # copy default psgi env
-                        $env->@{ keys $PSGI_ENV->%* } = values $PSGI_ENV->%*;
-
-                        $self->_read_body(
-                            $h, $env,
-                            sub ($body_error_status) {
-                                if ($body_error_status) {
-
-                                    # body read error
-                                    $self->return_xxx( $h, $body_error_status );
-                                }
-                                else {
-
-                                    # create request object
-                                    my $req = bless {
-                                        _server          => $self,
-                                        _h               => $h,
-                                        env              => $env,
-                                        _response_status => 0,
-                                      },
-                                      'Pcore::HTTP::Server::Request';
-
-                                    # evaluate application
-                                    eval { $self->{app}->($req) };
-
-                                    $@->sendlog if $@;
-                                }
-
-                                return;
-                            }
-                        );
-                    }
-
-                    return;
-                }
-            );
+                );
+            }
 
             return;
         }
@@ -278,9 +235,9 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 204                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 165                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 226                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 187                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
