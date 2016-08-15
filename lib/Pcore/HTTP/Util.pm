@@ -252,8 +252,6 @@ sub _write_request ( $args, $runtime ) {
         $runtime->{h}->starttls('connect') if $args->{url}->is_secure && !exists $runtime->{h}->{tls};
     }
 
-    # TODO add Connection:close for not persistent connections
-
     # prepare content related headers
     if ( defined $args->{body} ) {
         if ( ref $args->{body} eq 'CODE' ) {
@@ -274,9 +272,14 @@ sub _write_request ( $args, $runtime ) {
     # serialize headers
     my $headers = $args->{headers}->to_string;
 
-    # prepare basic authorization
+    # add basic authorization
     if ( !$args->{headers}->{AUTHORIZATION} && ( my $userinfo_b64 = $args->{url}->userinfo_b64 ) ) {
         $headers .= 'Authorization:Basic ' . $userinfo_b64 . $CRLF;
+    }
+
+    # close connection, if not persistent
+    if ( !$args->{persistent} && !$args->{headers}->{CONNECTION} ) {
+        $headers .= 'Connection:close' . $CRLF;
     }
 
     # send request headers
@@ -645,14 +648,14 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 23                   | * Subroutine "http_request" with high complexity score (28)                                                    |
-## |      | 242                  | * Subroutine "_write_request" with high complexity score (23)                                                  |
-## |      | 374                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 242                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
+## |      | 377                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 104, 118, 120, 201   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 354                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 357                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 586                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 589                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
