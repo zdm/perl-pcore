@@ -5,7 +5,6 @@ use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
 use Pcore::HTTP::Status;
 use Pcore::HTTP::Server::Request;
-use Socket qw[IPPROTO_TCP TCP_NODELAY];
 
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has app => ( is => 'ro', isa => CodeRef | ConsumerOf ['Pcore::HTTP::Server::Router'], required => 1 );
@@ -309,9 +308,9 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 234                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 233                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 257                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 256                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
