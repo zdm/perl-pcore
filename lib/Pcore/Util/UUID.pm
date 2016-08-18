@@ -1,9 +1,13 @@
 package Pcore::Util::UUID;
 
-use Pcore;
+use Pcore -export => { ALL => [qw[uuid_str uuid_bin uuid_hex]] };
 use Data::UUID qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 my $uuid = Data::UUID->new;
+
+*uuid_str = \&str;
+*uuid_bin = \&bin;
+*uuid_hex = \&hex;
 
 sub str {
     return $uuid->create_str;
@@ -13,7 +17,7 @@ sub bin {
     return $uuid->create_bin;
 }
 
-sub hex {               ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub hex {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return substr $uuid->create_hex, 2;
 }
 
