@@ -79,13 +79,6 @@ sub _chmod ($self) {
 
 sub _deps ($self) {
     if ( -f 'cpanfile' ) {
-        my $cfg = P->cfg->load( $ENV->share->get( '/data/pcore.perl', lib => 'Pcore' ) );
-
-        # install known platform exceptions without tests
-        if ( exists $cfg->{cpan_notest}->{ $Config{archname} } && $cfg->{cpan_notest}->{ $Config{archname} }->@* ) {
-            P->pm->run_proc( [ 'cpanm', '--notest', $cfg->{cpan_notest}->{ $Config{archname} }->@* ] ) or return;
-        }
-
         my @args = (    #
             'cpanm',
             '--with-feature', ( $MSWIN ? 'windows' : 'linux' ),
@@ -204,11 +197,11 @@ SH
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 108                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 101                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 132, 149, 154, 175   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 125, 142, 147, 168   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 163                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 156                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

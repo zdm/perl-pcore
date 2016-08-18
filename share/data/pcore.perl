@@ -1,8 +1,4 @@
-{   cpan_notest => {    # following modules will be deployed without testing
-        'MSWin32-x86-multi-thread-64int' => [qw[Test::TCP]],
-        'MSWin32-x64-multi-thread'       => [qw[Test::TCP]],
-    },
-    par => {
+{   par => {
 
         # common modules, that will be added to the each PAR
         mod => [
