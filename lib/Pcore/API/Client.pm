@@ -3,7 +3,7 @@ package Pcore::API::Client;
 use Pcore -class;
 use Pcore::HTTP::WebSocket;
 use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
-use Pcore::Util::Scalar qw[refaddr];
+use Pcore::Util::UUID qw[uuid_str];
 use Pcore::API::Response;
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
@@ -13,8 +13,8 @@ has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
 has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg => undef );
-has _connect_cache => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
-has _request_cache => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
+has _ws_connect_cache => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
+has _ws_rid_cache     => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
 sub _build__uri($self) {
     return P->uri( $self->uri );
@@ -74,19 +74,19 @@ sub api_call ( $self, $method, @ ) {
     # WebSocket protocol
     else {
         my $on_connect = sub ( $ws ) {
-            my $request_id;
+            my $rid;
 
             if ($cb) {
-                $request_id = refaddr $cb;
+                $rid = uuid_str();
 
-                $self->{_request_cache}->{$request_id} = $cb;
+                $self->{_ws_rid_cache}->{$rid} = $cb;
             }
 
             $ws->send_binary(
                 to_cbor(
-                    {   request_id => $request_id,
-                        method     => $method,
-                        args       => $args,
+                    {   rid    => $rid,
+                        method => $method,
+                        args   => $args,
                     }
                 )->$*
             );
@@ -105,9 +105,9 @@ sub api_call ( $self, $method, @ ) {
                 return;
             };
 
-            push $self->{_connect_cache}->@*, [ $on_error, $on_connect ];
+            push $self->{_ws_connect_cache}->@*, [ $on_error, $on_connect ];
 
-            return if $self->{_connect_cache}->@* > 1;
+            return if $self->{_ws_connect_cache}->@* > 1;
 
             Pcore::HTTP::WebSocket->connect(
                 $self->_uri,
@@ -115,14 +115,14 @@ sub api_call ( $self, $method, @ ) {
                 headers                => [ 'Authorization' => 'token ' . $self->token, ],
                 connect_timeout        => 10,
                 on_proxy_connect_error => sub ( $status, $reason ) {
-                    while ( my $callback = shift $self->{_connect_cache}->@* ) {
+                    while ( my $callback = shift $self->{_ws_connect_cache}->@* ) {
                         $callback->[0]->( $status, $reason );
                     }
 
                     return;
                 },
                 on_connect_error => sub ( $status, $reason ) {
-                    while ( my $callback = shift $self->{_connect_cache}->@* ) {
+                    while ( my $callback = shift $self->{_ws_connect_cache}->@* ) {
                         $callback->[0]->( $status, $reason );
                     }
 
@@ -131,7 +131,7 @@ sub api_call ( $self, $method, @ ) {
                 on_connect => sub ( $ws, $headers ) {
                     $self->{_ws} = $ws;
 
-                    while ( my $callback = shift $self->{_connect_cache}->@* ) {
+                    while ( my $callback = shift $self->{_ws_connect_cache}->@* ) {
                         $callback->[1]->($ws);
                     }
 
@@ -144,17 +144,43 @@ sub api_call ( $self, $method, @ ) {
                 },
                 on_binary => sub ( $ws, $payload_ref ) {
 
-                    # decode payload
+                    # decode CBOR payload
                     my $data = eval { from_cbor $payload_ref};
 
                     die q[WebSocket protocol error, can't decode CBOR payload] if $@;
 
-                    if ( $data->{request_id} && ( my $callback = delete $self->{_request_cache}->{ $data->{request_id} } ) ) {
-                        my $api_res = Pcore::API::Response->new( { status => $data->{status}, reason => $data->{reason} } );
+                    # RID is present
+                    if ( $data->{rid} ) {
 
-                        $api_res->{result} = $data->{result} if $api_res->is_success;
+                        # this is API call, not supported in API client yet, ignoring
+                        if ( $data->{method} ) {
+                            return;
+                        }
 
-                        $callback->($api_res);
+                        # this is API callback
+                        else {
+                            if ( my $callback = delete $self->{_ws_rid_cache}->{ $data->{rid} } ) {
+                                my $api_res = Pcore::API::Response->new( { status => $data->{status}, reason => $data->{reason} } );
+
+                                $api_res->{result} = $data->{result} if $api_res->is_success;
+
+                                $callback->($api_res);
+                            }
+                        }
+                    }
+
+                    # RID is not present
+                    else {
+
+                        # this is void API call, not supported in API client yet, ignoring
+                        if ( $data->{method} ) {
+                            return;
+                        }
+
+                        # this is error, rid and/or method must be specified
+                        else {
+                            return;
+                        }
                     }
 
                     return;
@@ -170,6 +196,16 @@ sub api_call ( $self, $method, @ ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 31                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (24)                  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

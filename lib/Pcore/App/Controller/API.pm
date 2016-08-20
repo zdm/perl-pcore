@@ -31,12 +31,13 @@ sub run ( $self, $req ) {
 
     my $content_type = $CONTENT_TYPE_JSON;
 
-    my $request_id;
+    my $rid;
 
     # create callback
     my $cb = sub ( $status, $result = undef ) {
         my $reason;
 
+        # resolve reason
         if ( ref $status eq 'ARRAY' ) {
             $reason = $status->[1];
 
@@ -52,10 +53,10 @@ sub run ( $self, $req ) {
         );
 
         my $body = {
-            status     => $status,
-            reason     => $reason,
-            request_id => $request_id,
-            result     => $result,
+            rid    => $rid,
+            status => $status,
+            reason => $reason,
+            result => $result,
         };
 
         # write HTTP response
@@ -67,11 +68,11 @@ sub run ( $self, $req ) {
         return;
     };
 
-    my $request;
+    my $data;
 
     # JSON content type
     if ( !$env->{CONTENT_TYPE} || $env->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
-        $request = eval { from_json $req->body };
+        $data = eval { from_json $req->body };
 
         # content decode error
         return $cb->( [ 400, q[Error decoding JSON request body] ] ) if $@;
@@ -81,7 +82,7 @@ sub run ( $self, $req ) {
     elsif ( $env->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
         $content_type = $CONTENT_TYPE_CBOR;
 
-        $request = eval { from_cbor $req->body };
+        $data = eval { from_cbor $req->body };
 
         # content decode error
         return $cb->( [ 400, q[Error decoding CBOR request body] ] ) if $@;
@@ -93,7 +94,7 @@ sub run ( $self, $req ) {
     }
 
     # set request id
-    $request_id = $request->{request_id};
+    $rid = $data->{rid};
 
     # get auth token
     my $token = $self->_get_token($env);
@@ -109,25 +110,15 @@ sub run ( $self, $req ) {
             # token authentication error
             return $cb->( [ 401, q[Unauthorized] ] ) if !$api_session;
 
-            # detect method id
-            my $method_id;
-
-            # get metod id from request
-            if ( $request->{method} ) {
-                $method_id = $request->{method};
+            # method is specified, this is API call
+            if ( my $method_id = $data->{method} ) {
+                $api_session->api_call( $method_id, $data->{args}, $cb );
             }
 
-            # get metod id from HTTP request path tail
-            elsif ( $req->{path_tail} ) {
-                $method_id = $req->{path_tail};
-            }
-
-            # method id wasn't found
+            # method is not specified, this is callback, not supported in API server
             else {
                 return $cb->( [ 400, q[Method is required] ] );
             }
-
-            $api_session->api_call( $method_id, $request->{args}, $cb );
 
             return;
         }
@@ -136,6 +127,7 @@ sub run ( $self, $req ) {
     return;
 }
 
+# parse and return token from HTTP request
 sub _get_token ( $self, $env ) {
 
     # get auth token from query param, header, cookie
@@ -158,7 +150,7 @@ sub _get_token ( $self, $env ) {
 sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 
     # decode payload
-    my $request = eval { $content_type eq $CONTENT_TYPE_JSON ? from_json $payload_ref : from_cbor $payload_ref};
+    my $data = eval { $content_type eq $CONTENT_TYPE_JSON ? from_json $payload_ref : from_cbor $payload_ref};
 
     # content decode error
     return $self->websocket_disconnect( $ws, 400, q[Error decoding request body] ) if $@;
@@ -173,55 +165,53 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
             # token authentication error
             return $self->websocket_disconnect( $ws, 401, q[Unauthorized] ) if !$api_session;
 
-            # detect method id
-            my $method_id;
+            # -------------------------------
 
-            # get method id from request
-            if ( $request->{method} ) {
-                $method_id = $request->{method};
+            # method is specified, this is API call
+            if ( my $method_id = $data->{method} ) {
+                my $cb;
+
+                # this is not void API call, create callback
+                if ( my $rid = $data->{rid} ) {
+                    $cb = sub ( $status, $result = undef ) {
+                        my $reason;
+
+                        # resolve reason
+                        if ( ref $status eq 'ARRAY' ) {
+                            $reason = $status->[1];
+
+                            $status = $status->[0];
+                        }
+                        else {
+                            $reason = Pcore::HTTP::Status->get_reason($status);
+                        }
+
+                        my $body = {
+                            rid    => $rid,
+                            status => $status,
+                            reason => $reason,
+                            result => $result,
+                        };
+
+                        # write response
+                        if ( $content_type eq $CONTENT_TYPE_JSON ) {
+                            $ws->send_text( to_json($body)->$* );
+                        }
+                        else {
+                            $ws->send_binary( to_cbor($body)->$* );
+                        }
+
+                        return;
+                    };
+                }
+
+                $api_session->api_call( $method_id, $data->{args}, $cb );
             }
 
-            # method id wasn't found
+            # method is not specified, this is callback, not supported in API server
             else {
                 return $self->websocket_disconnect( $ws, 400, q[Method is required] );
             }
-
-            # create callback
-            my $cb;
-
-            if ( my $request_id = $request->{request_id} ) {
-                $cb = sub ( $status, $result = undef ) {
-                    my $reason;
-
-                    if ( ref $status eq 'ARRAY' ) {
-                        $reason = $status->[1];
-
-                        $status = $status->[0];
-                    }
-                    else {
-                        $reason = Pcore::HTTP::Status->get_reason($status);
-                    }
-
-                    my $body = {
-                        status     => $status,
-                        reason     => $reason,
-                        request_id => $request_id,
-                        result     => $result,
-                    };
-
-                    # write response
-                    if ( $content_type eq $CONTENT_TYPE_JSON ) {
-                        $ws->send_text( to_json($body)->$* );
-                    }
-                    else {
-                        $ws->send_binary( to_cbor($body)->$* );
-                    }
-
-                    return;
-                };
-            }
-
-            $api_session->api_call( $method_id, $request->{args}, $cb );
 
             return;
         }
@@ -287,7 +277,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 158                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 150                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
