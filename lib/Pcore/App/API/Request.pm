@@ -52,9 +52,9 @@ sub api_call ( $self, $method_id, $args, $cb = undef ) {
 
     my $method_cfg = $self->{api}->map->{$method_id};
 
-    return $self->response( [ 404, qq[API method "$method_id" was not found] ] ) if !$method_cfg;
+    return $self->write( [ 404, qq[API method "$method_id" was not found] ] ) if !$method_cfg;
 
-    return $self->response( [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $self->{uid} != 1 && !exists $self->allowed_methods->{$method_id};
+    return $self->write( [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $self->{uid} != 1 && !exists $self->allowed_methods->{$method_id};
 
     my $ctrl = $self->{api}->{_cache}->{$method_id} //= $method_cfg->{class_name}->new( { app => $self->{api}->{app} } );
 
