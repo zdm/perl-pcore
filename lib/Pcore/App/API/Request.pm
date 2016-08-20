@@ -1,6 +1,17 @@
-package Pcore::App::API::Session;
+package Pcore::App::API::Request;
 
 use Pcore -class;
+
+use subs qw[write];
+
+use overload    #
+  q[&{}] => sub ( $self, @ ) {
+    return sub { return write( $self, @_ ) };
+  },
+  bool => sub {
+    return 1;
+  },
+  fallback => undef;
 
 has api => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'], required => 1 );
 has uid     => ( is => 'ro', isa => PositiveInt, required => 1 );
@@ -16,7 +27,7 @@ P->init_demolish(__PACKAGE__);
 sub DEMOLISH ( $self, $global ) {
     if ( !$global && !$self->{_response_status} && $self->{_cb} ) {
 
-        # API session object destroyed without return any result, this is possible run-time error in AE callback
+        # API request object destroyed without return any result, this is possible run-time error in AE callback
         $self->{_cb}->(500);
     }
 
@@ -56,7 +67,7 @@ sub api_call ( $self, $method_id, $args, $cb = undef ) {
     return;
 }
 
-sub response ( $self, $status, $data ) {
+sub write ( $self, $status, $data = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     die q[Already responded] if $self->{_response_status};
 
     $self->{_response_status} = 1;
@@ -77,9 +88,11 @@ sub response ( $self, $status, $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 28                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 39                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 52                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 63                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 9                    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -90,7 +103,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Session
+Pcore::App::API::Request
 
 =head1 SYNOPSIS
 

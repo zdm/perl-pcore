@@ -105,14 +105,14 @@ sub run ( $self, $req ) {
     # authenticate token
     $self->{app}->{api}->auth_token(
         $token,
-        sub ($api_session) {
+        sub ($api_request) {
 
             # token authentication error
-            return $cb->( [ 401, q[Unauthorized] ] ) if !$api_session;
+            return $cb->( [ 401, q[Unauthorized] ] ) if !$api_request;
 
             # method is specified, this is API call
             if ( my $method_id = $data->{method} ) {
-                $api_session->api_call( $method_id, $data->{args}, $cb );
+                $api_request->api_call( $method_id, $data->{args}, $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
@@ -160,10 +160,10 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
     # authenticate token
     $self->{app}->{api}->auth_token(
         $token,
-        sub ($api_session) {
+        sub ($api_request) {
 
             # token authentication error
-            return $self->websocket_disconnect( $ws, 401, q[Unauthorized] ) if !$api_session;
+            return $self->websocket_disconnect( $ws, 401, q[Unauthorized] ) if !$api_request;
 
             # -------------------------------
 
@@ -205,7 +205,7 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
                     };
                 }
 
-                $api_session->api_call( $method_id, $data->{args}, $cb );
+                $api_request->api_call( $method_id, $data->{args}, $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
@@ -228,10 +228,10 @@ sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
 
     $self->{app}->{api}->auth_token(
         $token,
-        sub ($api_session) {
+        sub ($api_request) {
 
             # token authentication error
-            return $decline->(401) if !$api_session;
+            return $decline->(401) if !$api_request;
 
             # token authenticated successfully, store token in websocket connection object
             $ws->{token} = $token;

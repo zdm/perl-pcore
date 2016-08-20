@@ -2,7 +2,7 @@ package Pcore::App::API;
 
 use Pcore -role;
 use Pcore::API::Response;
-use Pcore::App::API::Session;
+use Pcore::App::API::Request;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
@@ -120,14 +120,14 @@ sub auth_password ( $self, $username, $password, $cb ) {
         $password,
         sub ($uid) {
             if ($uid) {
-                my $api_session = bless {
+                my $api_request = bless {
                     api     => $self,
                     uid     => $uid,
                     role_id => 1,
                   },
-                  'Pcore::App::API::Session';
+                  'Pcore::App::API::Request';
 
-                $cb->($api_session);
+                $cb->($api_request);
             }
             else {
                 $cb->(undef);
@@ -146,14 +146,14 @@ sub auth_token ( $self, $token_b64, $cb ) {
             if (1) {
 
                 # if ($uid) {
-                my $api_session = bless {
+                my $api_request = bless {
                     api     => $self,
                     uid     => $uid // 1,
                     role_id => 1,
                   },
-                  'Pcore::App::API::Session';
+                  'Pcore::App::API::Request';
 
-                $cb->($api_session);
+                $cb->($api_request);
             }
             else {
                 $cb->(undef);

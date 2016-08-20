@@ -5,6 +5,14 @@ use Pcore::HTTP::Status;
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
 
+use subs qw[write];
+
+use overload    #
+  q[&{}] => sub ( $self, @ ) {
+    return sub { return write( $self, @_ ) };
+  },
+  fallback => undef;
+
 has _server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1 );
 has _h      => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
 has env => ( is => 'ro', isa => HashRef, required => 1 );
@@ -212,6 +220,16 @@ sub accept_websocket ( $self, $headers = undef ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    1 | 12                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
