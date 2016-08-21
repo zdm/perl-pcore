@@ -31,7 +31,7 @@ sub run ( $self, $req ) {
 
     my $content_type = $CONTENT_TYPE_JSON;
 
-    my $rid;
+    my $cid;
 
     # create callback
     my $cb = sub ( $status, $result = undef ) {
@@ -53,7 +53,7 @@ sub run ( $self, $req ) {
         );
 
         my $body = {
-            rid    => $rid,
+            cid    => $cid,
             status => $status,
             reason => $reason,
             result => $result,
@@ -94,7 +94,7 @@ sub run ( $self, $req ) {
     }
 
     # set request id
-    $rid = $data->{rid};
+    $cid = $data->{cid};
 
     # get auth token
     my $token = $self->_get_token($env);
@@ -172,7 +172,7 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
                 my $cb;
 
                 # this is not void API call, create callback
-                if ( my $rid = $data->{rid} ) {
+                if ( my $cid = $data->{cid} ) {
                     $cb = sub ( $status, $result = undef ) {
                         my $reason;
 
@@ -187,7 +187,7 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
                         }
 
                         my $body = {
-                            rid    => $rid,
+                            cid    => $cid,
                             status => $status,
                             reason => $reason,
                             result => $result,

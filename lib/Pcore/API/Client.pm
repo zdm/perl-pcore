@@ -14,7 +14,7 @@ has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => 
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
 has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg => undef );
 has _ws_connect_cache => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
-has _ws_rid_cache     => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
+has _ws_cid_cache     => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
 sub _build__uri($self) {
     return P->uri( $self->uri );
@@ -74,17 +74,17 @@ sub api_call ( $self, $method, @ ) {
     # WebSocket protocol
     else {
         my $on_connect = sub ( $ws ) {
-            my $rid;
+            my $cid;
 
             if ($cb) {
-                $rid = uuid_str();
+                $cid = uuid_str();
 
-                $self->{_ws_rid_cache}->{$rid} = $cb;
+                $self->{_ws_cid_cache}->{$cid} = $cb;
             }
 
             $ws->send_binary(
                 to_cbor(
-                    {   rid    => $rid,
+                    {   cid    => $cid,
                         method => $method,
                         args   => $args,
                     }
@@ -149,8 +149,8 @@ sub api_call ( $self, $method, @ ) {
 
                     die q[WebSocket protocol error, can't decode CBOR payload] if $@;
 
-                    # RID is present
-                    if ( $data->{rid} ) {
+                    # cid is present
+                    if ( $data->{cid} ) {
 
                         # this is API call, not supported in API client yet, ignoring
                         if ( $data->{method} ) {
@@ -159,7 +159,7 @@ sub api_call ( $self, $method, @ ) {
 
                         # this is API callback
                         else {
-                            if ( my $callback = delete $self->{_ws_rid_cache}->{ $data->{rid} } ) {
+                            if ( my $callback = delete $self->{_ws_cid_cache}->{ $data->{cid} } ) {
                                 my $api_res = Pcore::API::Response->new( { status => $data->{status}, reason => $data->{reason} } );
 
                                 $api_res->{result} = $data->{result} if $api_res->is_success;
@@ -169,7 +169,7 @@ sub api_call ( $self, $method, @ ) {
                         }
                     }
 
-                    # RID is not present
+                    # cid is not present
                     else {
 
                         # this is void API call, not supported in API client yet, ignoring
@@ -177,7 +177,7 @@ sub api_call ( $self, $method, @ ) {
                             return;
                         }
 
-                        # this is error, rid and/or method must be specified
+                        # this is error, cid and/or method must be specified
                         else {
                             return;
                         }
