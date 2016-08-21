@@ -14,18 +14,18 @@ has scrypt_len => ( is => 'ro', isa => PositiveInt, default => 32 );
 # https://github.com/Leont/crypt-argon2
 # https://github.com/skinkade/p6-crypt-argon2
 
-sub create_scrypt ( $self, $cb, $args ) {
+sub create_scrypt ( $self, $cb, $str ) {
     my $salt = P->random->bytes(32);
 
-    my $hash = Crypt::ScryptKDF::scrypt_hash( P->text->encode_utf8( $args->[0] ), $salt, $self->{scrypt_N}, $self->{scrypt_r}, $self->{scrypt_p}, $self->{scrypt_len} );
+    my $hash = Crypt::ScryptKDF::scrypt_hash( P->text->encode_utf8($str), $salt, $self->{scrypt_N}, $self->{scrypt_r}, $self->{scrypt_p}, $self->{scrypt_len} );
 
     $cb->($hash);
 
     return;
 }
 
-sub verify_scrypt ( $self, $cb, $args ) {
-    $cb->( Crypt::ScryptKDF::scrypt_hash_verify( P->text->encode_utf8( $args->[0] ), $args->[1] ) ? 1 : 0 );
+sub verify_scrypt ( $self, $cb, $str, $hash ) {
+    $cb->( Crypt::ScryptKDF::scrypt_hash_verify( P->text->encode_utf8($str), $hash ) ? 1 : 0 );
 
     return;
 }

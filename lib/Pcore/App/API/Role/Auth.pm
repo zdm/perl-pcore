@@ -21,7 +21,7 @@ sub create_user ( $self, $cb, $username, $password ) {
 
         $self->_hash_rpc->rpc_call(
             'create_scrypt',
-            [$password],
+            $password,
             sub ($password_hash) {
                 $q2->do( [ $password_hash, $id ] );
 
@@ -53,7 +53,7 @@ sub create_token ( $self, $cb, $uid, $role_id ) {
 
         $self->_hash_rpc->rpc_call(
             'create_scrypt',
-            [$token],
+            $token,
             sub ($token_hash) {
                 if ( !$q1->do( [ $token_id, $token_hash, $uid ] ) ) {
 
