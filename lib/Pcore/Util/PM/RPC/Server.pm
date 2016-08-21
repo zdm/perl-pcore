@@ -191,17 +191,17 @@ sub _on_data ($data) {
     }
     else {
         if ( my $cb = delete $QUEUE->{ $data->[0]->{call_id} } ) {
-            $cb->( $data->[1] );
+            $cb->( $data->[1] ? $data->[1]->@* : () );
         }
     }
 
     return;
 }
 
-sub _on_call_responder ( $call_id, $data ) {
+sub _on_call_responder ( $cid, $data ) {
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
-                call_id => $call_id,
+                call_id => $cid,
                 deps    => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
             },
             $data
@@ -213,30 +213,40 @@ sub _on_call_responder ( $call_id, $data ) {
     return;
 }
 
-sub _on_call ( $call_id, $method, $data ) {
+sub _on_call ( $cid, $method, $args ) {
     if ( !$RPC->can($method) ) {
         die qq[Unknown RPC method "$method"];
     }
     else {
-        my $cb = !defined $call_id ? undef : sub ($data = undef) {
-            _on_call_responder( $call_id, $data );
+        my $cb = !defined $cid ? undef : sub (@) {
+            _on_call_responder( $cid, @_ ? \@_ : undef );
 
             return;
         };
 
-        $RPC->$method( $cb, $data );
+        $RPC->$method( $cb, $args ? $args->@* : () );
     }
 
     return;
 }
 
-sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
-    my $cid;
+# $method = Str, @args, $cb = Maybe[CodeRef]
+sub rpc_call ( $self, $method, @ ) {
+    my ( $cid, $cb, $args );
 
-    if ($cb) {
-        $cid = uuid_str();
+    if ( @_ > 2 ) {
+        if ( ref $_[-1] eq 'CODE' ) {
+            $cb = $_[-1];
 
-        $QUEUE->{$cid} = $cb;
+            $args = [ splice @_, 2, -1 ];
+
+            $cid = uuid_str();
+
+            $QUEUE->{$cid} = $cb;
+        }
+        else {
+            $args = [ splice @_, 2 ];
+        }
     }
 
     # prepare CBOR data
@@ -246,7 +256,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
                 deps    => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
                 method  => $method,
             },
-            $data
+            $args
         ]
     );
 

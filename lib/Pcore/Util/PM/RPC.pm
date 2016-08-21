@@ -153,20 +153,20 @@ sub _on_data ( $self, $data ) {
     }
     else {
         if ( my $cb = delete $self->_queue->{ $data->[0]->{call_id} } ) {
-            $cb->( $data->[1] );
+            $cb->( $data->[1] ? $data->[1]->@* : () );
         }
     }
 
     return;
 }
 
-sub _on_call ( $self, $worker_pid, $call_id, $method, $data ) {
+sub _on_call ( $self, $worker_pid, $cid, $method, $args ) {
     if ( !$self->on_call ) {
         die qq[RPC worker trying to call method "$method"];
     }
     else {
-        my $cb = !defined $call_id ? undef : sub ($data = undef) {
-            my $cbor = P->data->to_cbor( [ { call_id => $call_id, }, $data ] );
+        my $cb = !defined $cid ? undef : sub (@) {
+            my $cbor = P->data->to_cbor( [ { call_id => $cid, }, @_ ? \@_ : undef ] );
 
             my $worker = $self->{_workers_idx}->{$worker_pid};
 
@@ -175,23 +175,33 @@ sub _on_call ( $self, $worker_pid, $call_id, $method, $data ) {
             return;
         };
 
-        $self->on_call->( $cb, $method, $data );
+        $self->on_call->( $cb, $method, $args );
     }
 
     return;
 }
 
-sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
+# $method = Str, @args, $cb = Maybe[CodeRef]
+sub rpc_call ( $self, $method, @ ) {
 
     # stop creating new calls in the term state
     return if $self->{_term};
 
-    my $cid;
+    my ( $cid, $cb, $args );
 
-    if ($cb) {
-        $cid = uuid_str();
+    if ( @_ > 2 ) {
+        if ( ref $_[-1] eq 'CODE' ) {
+            $cb = $_[-1];
 
-        $self->_queue->{$cid} = $cb;
+            $args = [ splice @_, 2, -1 ];
+
+            $cid = uuid_str();
+
+            $self->_queue->{$cid} = $cb;
+        }
+        else {
+            $args = [ splice @_, 2 ];
+        }
     }
 
     # select worker, round-robin
@@ -200,19 +210,32 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     push $self->_workers->@*, $worker;
 
     # prepare CBOR data
-    my $cbor = P->data->to_cbor( [ { call_id => $cid, method => $method }, $data ] );
+    my $cbor = P->data->to_cbor(
+        [   {   call_id => $cid,
+                method  => $method
+            },
+            $args
+        ]
+    );
 
     $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
     return;
 }
 
-sub rpc_call_all ( $self, $method, $data = undef ) {
+# $method = Str, @args
+sub rpc_call_all ( $self, $method, @ ) {
 
     # stop creating new calls in the term state
     return if $self->{_term};
 
-    my $cbor = P->data->to_cbor( [ { call_id => undef, method => $method }, $data ] );
+    my $cbor = P->data->to_cbor(
+        [   {   call_id => undef,
+                method  => $method
+            },
+            @_ > 2 ? [ splice @_, 2 ] : undef
+        ]
+    );
 
     for my $worker ( $self->_workers->@* ) {
         $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
