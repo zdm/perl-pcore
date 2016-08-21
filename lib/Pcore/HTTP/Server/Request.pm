@@ -5,10 +5,10 @@ use Pcore::HTTP::Status;
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
 
-use subs qw[write];
-
 use overload    #
   q[&{}] => sub ( $self, @ ) {
+    use subs qw[write];
+
     return sub { return write( $self, @_ ) };
   },
   fallback => undef;

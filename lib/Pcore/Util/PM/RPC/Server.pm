@@ -35,6 +35,7 @@ use Pcore::AE::Handle;
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
+use Pcore::Util::PM::RPC::Request;
 
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
@@ -210,29 +211,29 @@ sub _on_method_call ( $cid, $method, $args ) {
         my $cb;
 
         if ( defined $cid ) {
-            $cb = sub (@) {
-                _on_call_responder( $cid, @_ ? \@_ : undef );
+            $cb = sub ($args = undef) {
+                my $cbor = P->data->to_cbor(
+                    {   pid  => $$,
+                        cid  => $cid,
+                        args => $args,
+                        deps => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
+                    }
+                );
+
+                $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
                 return;
             };
         }
 
-        $RPC->$method( $cb, $args ? $args->@* : () );
+        my $req = bless {
+            cid => $cid,
+            cb  => $cb,
+          },
+          'Pcore::Util::PM::RPC::Request';
+
+        $RPC->$method( $req, $args ? $args->@* : () );
     }
-
-    return;
-}
-
-sub _on_call_responder ( $cid, $args ) {
-    my $cbor = P->data->to_cbor(
-        {   pid  => $$,
-            cid  => $cid,
-            args => $args,
-            deps => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
-        }
-    );
-
-    $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
     return;
 }
@@ -278,7 +279,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 101, 111             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 102, 112             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

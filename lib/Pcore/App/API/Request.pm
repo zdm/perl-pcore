@@ -2,10 +2,10 @@ package Pcore::App::API::Request;
 
 use Pcore -class;
 
-use subs qw[write];
-
 use overload    #
   q[&{}] => sub ( $self, @ ) {
+    use subs qw[write];
+
     return sub { return write( $self, @_ ) };
   },
   bool => sub {
