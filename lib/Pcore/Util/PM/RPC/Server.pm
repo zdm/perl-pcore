@@ -34,6 +34,7 @@ use Pcore;
 use Pcore::AE::Handle;
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::PM::RPC qw[:CONST];
+use Pcore::Util::UUID qw[uuid_str];
 
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
@@ -90,9 +91,8 @@ $SIG->{TERM} = AE::signal TERM => sub {
 };
 
 my $RPC;
-my $DEPS    = {};
-my $QUEUE   = {};
-my $CALL_ID = 0;
+my $DEPS  = {};
+my $QUEUE = {};
 my $TERM;
 
 our $CV = AE::cv;
@@ -231,18 +231,18 @@ sub _on_call ( $call_id, $method, $data ) {
 }
 
 sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
-    my $call_id;
+    my $cid;
 
     if ($cb) {
-        $call_id = ++$CALL_ID;
+        $cid = uuid_str();
 
-        $QUEUE->{$call_id} = $cb;
+        $QUEUE->{$cid} = $cb;
     }
 
     # prepare CBOR data
     my $cbor = P->data->to_cbor(
         [   {   pid     => $$,
-                call_id => $call_id,
+                call_id => $cid,
                 deps    => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
                 method  => $method,
             },

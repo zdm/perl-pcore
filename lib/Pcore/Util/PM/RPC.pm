@@ -4,6 +4,7 @@ use Pcore -class, -const, -export => { CONST => [qw[$RPC_MSG_TERM]] };
 use Pcore::Util::PM::RPC::Proc;
 use Config;
 use Pcore::Util::Scalar qw[weaken];
+use Pcore::Util::UUID qw[uuid_str];
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
@@ -12,8 +13,7 @@ has on_call   => ( is => 'ro', isa => Maybe [CodeRef] );   # CodeRef($cb, $metho
 
 has _workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _workers_idx => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
-has _call_id => ( is => 'ro', default => 0, init_arg => undef );
-has _queue => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _queue       => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 has _term => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 const our $RPC_MSG_TERM => 1;
@@ -186,12 +186,12 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     # stop creating new calls in the term state
     return if $self->{_term};
 
-    my $call_id;
+    my $cid;
 
     if ($cb) {
-        $call_id = ++$self->{call_id};
+        $cid = uuid_str();
 
-        $self->_queue->{$call_id} = $cb;
+        $self->_queue->{$cid} = $cb;
     }
 
     # select worker, round-robin
@@ -200,7 +200,7 @@ sub rpc_call ( $self, $method, $data = undef, $cb = undef ) {
     push $self->_workers->@*, $worker;
 
     # prepare CBOR data
-    my $cbor = P->data->to_cbor( [ { call_id => $call_id, method => $method }, $data ] );
+    my $cbor = P->data->to_cbor( [ { call_id => $cid, method => $method }, $data ] );
 
     $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
