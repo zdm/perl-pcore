@@ -8,8 +8,8 @@ use Pcore::Util::UUID qw[uuid_str];
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
-has buildargs => ( is => 'ro', isa => Maybe [HashRef] );   # RPC object constructor arguments
-has on_call   => ( is => 'ro', isa => Maybe [CodeRef] );   # CodeRef($cb, $method, $data), $cb can be undef, if is not required on remote side
+has buildargs => ( is => 'ro', isa => Maybe [HashRef] );              # RPC object constructor arguments
+has on_call => ( is => 'ro', isa => Maybe [ HashRef [CodeRef] ] );    # CodeRef->($cb, @args), $cb can be undef, if is not required on remote side
 
 has _workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _workers_idx => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
@@ -20,9 +20,9 @@ const our $RPC_MSG_TERM => 1;
 
 around new => sub ( $orig, $self, $class, @args ) {
     my %args = (
-        buildargs => undef,                                # Maybe[HashRef], RPC object constructor arguments
-        on_call   => undef,                                # CodeRef($cb, $method, $data)
-        workers   => undef,                                # FALSE - max. CPUs, -n - CPUs - n || 1
+        buildargs => undef,                                           # Maybe[HashRef], RPC object constructor arguments
+        on_call   => undef,                                           # CodeRef($cb, $method, $data)
+        workers   => undef,                                           # FALSE - max. CPUs, -n - CPUs - n || 1
         name      => $class,
         splice( @_, 3 ),
         class => $class,
@@ -164,7 +164,7 @@ sub _on_data ( $self, $data ) {
 }
 
 sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
-    if ( !$self->on_call ) {
+    if ( !$self->{on_call} || !exists $self->{on_call}->{$method} ) {
         die qq[RPC worker trying to call method "$method"];
     }
     else {
@@ -186,7 +186,7 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
             };
         }
 
-        $self->on_call->( $method, $args, $cb );
+        $self->{on_call}->{$method}->( $cb, $args ? $args->@* : () );
     }
 
     return;
