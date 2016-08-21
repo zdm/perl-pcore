@@ -207,11 +207,15 @@ sub _on_method_call ( $cid, $method, $args ) {
         die qq[Unknown RPC method "$method"];
     }
     else {
-        my $cb = !defined $cid ? undef : sub (@) {
-            _on_call_responder( $cid, @_ ? \@_ : undef );
+        my $cb;
 
-            return;
-        };
+        if ( defined $cid ) {
+            $cb = sub (@) {
+                _on_call_responder( $cid, @_ ? \@_ : undef );
+
+                return;
+            };
+        }
 
         $RPC->$method( $cb, $args ? $args->@* : () );
     }

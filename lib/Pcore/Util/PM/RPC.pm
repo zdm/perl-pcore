@@ -168,19 +168,23 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
         die qq[RPC worker trying to call method "$method"];
     }
     else {
-        my $cb = !defined $cid ? undef : sub (@) {
-            my $cbor = P->data->to_cbor(
-                {   cid  => $cid,
-                    args => @_ ? \@_ : undef,
-                }
-            );
+        my $cb;
 
-            my $worker = $self->{_workers_idx}->{$worker_pid};
+        if ( defined $cid ) {
+            $cb = sub (@) {
+                my $cbor = P->data->to_cbor(
+                    {   cid  => $cid,
+                        args => @_ ? \@_ : undef,
+                    }
+                );
 
-            $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+                my $worker = $self->{_workers_idx}->{$worker_pid};
 
-            return;
-        };
+                $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
+
+                return;
+            };
+        }
 
         $self->on_call->( $method, $args, $cb );
     }
