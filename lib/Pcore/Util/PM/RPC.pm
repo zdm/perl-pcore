@@ -146,14 +146,14 @@ sub _on_read ( $self, $h ) {
 }
 
 sub _on_data ( $self, $data ) {
-    $ENV->add_deps( $data->[0]->{deps} ) if $ENV->{SCAN_DEPS} && $data->[0]->{deps};
+    $ENV->add_deps( $data->{deps} ) if $ENV->{SCAN_DEPS} && $data->{deps};
 
-    if ( $data->[0]->{method} ) {
-        $self->_on_call( $data->[0]->{pid}, $data->[0]->{call_id}, $data->[0]->{method}, $data->[1] );
+    if ( $data->{method} ) {
+        $self->_on_call( $data->{pid}, $data->{cid}, $data->{method}, $data->{args} );
     }
     else {
-        if ( my $cb = delete $self->_queue->{ $data->[0]->{call_id} } ) {
-            $cb->( $data->[1] ? $data->[1]->@* : () );
+        if ( my $cb = delete $self->_queue->{ $data->{cid} } ) {
+            $cb->( $data->{args} ? $data->{args}->@* : () );
         }
     }
 
@@ -166,7 +166,11 @@ sub _on_call ( $self, $worker_pid, $cid, $method, $args ) {
     }
     else {
         my $cb = !defined $cid ? undef : sub (@) {
-            my $cbor = P->data->to_cbor( [ { call_id => $cid, }, @_ ? \@_ : undef ] );
+            my $cbor = P->data->to_cbor(
+                {   cid  => $cid,
+                    args => @_ ? \@_ : undef,
+                }
+            );
 
             my $worker = $self->{_workers_idx}->{$worker_pid};
 
@@ -211,11 +215,10 @@ sub rpc_call ( $self, $method, @ ) {
 
     # prepare CBOR data
     my $cbor = P->data->to_cbor(
-        [   {   call_id => $cid,
-                method  => $method
-            },
-            $args
-        ]
+        {   cid    => $cid,
+            method => $method,
+            args   => $args,
+        }
     );
 
     $worker->in->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
@@ -230,11 +233,9 @@ sub rpc_call_all ( $self, $method, @ ) {
     return if $self->{_term};
 
     my $cbor = P->data->to_cbor(
-        [   {   call_id => undef,
-                method  => $method
-            },
-            @_ > 2 ? [ splice @_, 2 ] : undef
-        ]
+        {   method => $method,
+            args   => @_ > 2 ? [ splice @_, 2 ] : undef,
+        }
     );
 
     for my $worker ( $self->_workers->@* ) {
@@ -257,7 +258,7 @@ sub rpc_term ( $self, $cb = undef ) {
         return 1;
     };
 
-    my $cbor = P->data->to_cbor( [ { msg => $RPC_MSG_TERM } ] );
+    my $cbor = P->data->to_cbor( { msg => $RPC_MSG_TERM } );
 
     $cv->begin;
 

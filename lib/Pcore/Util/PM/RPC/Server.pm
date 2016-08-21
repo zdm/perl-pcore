@@ -173,42 +173,27 @@ sub _on_term {
 }
 
 sub _on_data ($data) {
-    if ( $data->[0]->{msg} ) {
+    if ( $data->{msg} ) {
 
         # stop receiving messages in TERM state
         return if $TERM;
 
-        if ( $data->[0]->{msg} == $RPC_MSG_TERM ) {
+        if ( $data->{msg} == $RPC_MSG_TERM ) {
             _on_term();
         }
     }
-    elsif ( $data->[0]->{method} ) {
+    elsif ( $data->{method} ) {
 
         # stop receiving new calls in TERM state
         return if $TERM;
 
-        _on_call( $data->[0]->{call_id}, $data->[0]->{method}, $data->[1] );
+        _on_call( $data->{cid}, $data->{method}, $data->{args} );
     }
     else {
-        if ( my $cb = delete $QUEUE->{ $data->[0]->{call_id} } ) {
-            $cb->( $data->[1] ? $data->[1]->@* : () );
+        if ( my $cb = delete $QUEUE->{ $data->{cid} } ) {
+            $cb->( $data->{args} ? $data->{args}->@* : () );
         }
     }
-
-    return;
-}
-
-sub _on_call_responder ( $cid, $data ) {
-    my $cbor = P->data->to_cbor(
-        [   {   pid     => $$,
-                call_id => $cid,
-                deps    => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
-            },
-            $data
-        ]
-    );
-
-    $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
     return;
 }
@@ -226,6 +211,20 @@ sub _on_call ( $cid, $method, $args ) {
 
         $RPC->$method( $cb, $args ? $args->@* : () );
     }
+
+    return;
+}
+
+sub _on_call_responder ( $cid, $args ) {
+    my $cbor = P->data->to_cbor(
+        {   pid  => $$,
+            cid  => $cid,
+            args => $args,
+            deps => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
+        }
+    );
+
+    $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
     return;
 }
@@ -251,13 +250,12 @@ sub rpc_call ( $self, $method, @ ) {
 
     # prepare CBOR data
     my $cbor = P->data->to_cbor(
-        [   {   pid     => $$,
-                call_id => $cid,
-                deps    => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
-                method  => $method,
-            },
-            $args
-        ]
+        {   pid    => $$,
+            cid    => $cid,
+            deps   => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
+            method => $method,
+            args   => $args,
+        }
     );
 
     $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
