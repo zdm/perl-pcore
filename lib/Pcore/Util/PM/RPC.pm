@@ -148,9 +148,12 @@ sub _on_read ( $self, $h ) {
 sub _on_data ( $self, $data ) {
     $ENV->add_deps( $data->{deps} ) if $ENV->{SCAN_DEPS} && $data->{deps};
 
+    # RPC method call
     if ( $data->{method} ) {
-        $self->_on_call( $data->{pid}, $data->{cid}, $data->{method}, $data->{args} );
+        $self->_on_method_call( $data->{pid}, $data->{cid}, $data->{method}, $data->{args} );
     }
+
+    # RPC callback
     else {
         if ( my $cb = delete $self->_queue->{ $data->{cid} } ) {
             $cb->( $data->{args} ? $data->{args}->@* : () );
@@ -160,7 +163,7 @@ sub _on_data ( $self, $data ) {
     return;
 }
 
-sub _on_call ( $self, $worker_pid, $cid, $method, $args ) {
+sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
     if ( !$self->on_call ) {
         die qq[RPC worker trying to call method "$method"];
     }
@@ -179,7 +182,7 @@ sub _on_call ( $self, $worker_pid, $cid, $method, $args ) {
             return;
         };
 
-        $self->on_call->( $cb, $method, $args );
+        $self->on_call->( $method, $args, $cb );
     }
 
     return;
@@ -291,7 +294,7 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 163                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 166                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 116                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -182,13 +182,17 @@ sub _on_data ($data) {
             _on_term();
         }
     }
+
+    # RPC method call
     elsif ( $data->{method} ) {
 
         # stop receiving new calls in TERM state
         return if $TERM;
 
-        _on_call( $data->{cid}, $data->{method}, $data->{args} );
+        _on_method_call( $data->{cid}, $data->{method}, $data->{args} );
     }
+
+    # RPC callback
     else {
         if ( my $cb = delete $QUEUE->{ $data->{cid} } ) {
             $cb->( $data->{args} ? $data->{args}->@* : () );
@@ -198,7 +202,7 @@ sub _on_data ($data) {
     return;
 }
 
-sub _on_call ( $cid, $method, $args ) {
+sub _on_method_call ( $cid, $method, $args ) {
     if ( !$RPC->can($method) ) {
         die qq[Unknown RPC method "$method"];
     }
