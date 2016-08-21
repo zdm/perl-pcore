@@ -209,7 +209,9 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
           },
           'Pcore::Util::PM::RPC::Request';
 
-        $self->{on_call}->{$method}->( $req, $args ? $args->@* : () );
+        eval { $self->{on_call}->{$method}->( $req, $args ? $args->@* : () ) };
+
+        $@->sendlog if $@;
     }
 
     return;
@@ -322,6 +324,8 @@ sub rpc_term ( $self, $cb = undef ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 168                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 212                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 118                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
