@@ -108,6 +108,7 @@ around reason => sub ( $orig, $self ) {
     else                                      { return $STATUS_REASON->{'5xx'} }
 };
 
+# TODO ???
 sub get_reason ( $self, $status ) {
     if ( exists $STATUS_REASON->{$status} ) { return $STATUS_REASON->{$status} }
     elsif ( $status >= 100 && $status < 200 ) { return $STATUS_REASON->{'1xx'} }
