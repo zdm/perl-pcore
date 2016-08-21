@@ -20,7 +20,7 @@ sub DEMOLISH ( $self, $global ) {
     if ( !$global && !$self->{_response_status} && $self->{cb} ) {
 
         # RPC request object destroyed without return any result, this is possible run-time error in AE callback
-        # $self->{cb}->(500);
+        $self->{cb}->(500);
     }
 
     return;
@@ -35,7 +35,7 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
     my $cb = delete $self->{cb};
 
     # return response, if callback is defined
-    $cb->( @_ > 1 ? [ splice @_, 1 ] : () ) if $cb;
+    $cb->( 200, @_ > 1 ? [ splice @_, 1 ] : () ) if $cb;
 
     return;
 }

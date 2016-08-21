@@ -6,6 +6,7 @@ use Config;
 use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
+use Pcore::HTTP::Status;
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
@@ -172,10 +173,24 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
         my $cb;
 
         if ( defined $cid ) {
-            $cb = sub ($args = undef) {
+            $cb = sub ( $status, $args = undef ) {
+                my $reason;
+
+                # resolve reason
+                if ( ref $status eq 'ARRAY' ) {
+                    $reason = $status->[1];
+
+                    $status = $status->[0];
+                }
+                else {
+                    $reason = Pcore::HTTP::Status->get_reason($status);
+                }
+
                 my $cbor = P->data->to_cbor(
-                    {   cid  => $cid,
-                        args => $args,
+                    {   cid    => $cid,
+                        status => $status,
+                        reason => $reason,
+                        args   => $args,
                     }
                 );
 
@@ -306,9 +321,9 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 167                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 168                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 117                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 118                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

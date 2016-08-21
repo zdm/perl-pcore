@@ -36,6 +36,7 @@ use if $MSWIN, 'Win32API::File';
 use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
+use Pcore::HTTP::Status;
 
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
@@ -211,12 +212,26 @@ sub _on_method_call ( $cid, $method, $args ) {
         my $cb;
 
         if ( defined $cid ) {
-            $cb = sub ($args = undef) {
+            $cb = sub ( $status, $args = undef ) {
+                my $reason;
+
+                # resolve reason
+                if ( ref $status eq 'ARRAY' ) {
+                    $reason = $status->[1];
+
+                    $status = $status->[0];
+                }
+                else {
+                    $reason = Pcore::HTTP::Status->get_reason($status);
+                }
+
                 my $cbor = P->data->to_cbor(
-                    {   pid  => $$,
-                        cid  => $cid,
-                        args => $args,
-                        deps => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
+                    {   pid    => $$,
+                        cid    => $cid,
+                        status => $status,
+                        reason => $reason,
+                        args   => $args,
+                        deps   => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
                     }
                 );
 
@@ -279,7 +294,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 102, 112             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 103, 113             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
