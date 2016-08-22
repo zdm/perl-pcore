@@ -27,7 +27,7 @@ use overload    #
         else {
             $self->{status} = $_[0];
 
-            $self->{reason} = get_reason->( undef, $_[0], $self->{status_reason} );
+            $self->{reason} = _get_reason->( $_[0], $self->{status_reason} );
         }
 
         return;
@@ -121,7 +121,7 @@ const our $STATUS_REASON => {
     511   => 'Network Authentication Required',
 };
 
-sub BUILDARGS ( $self, $status, $status_reason = undef ) {
+around new => sub ( $orig, $self, $status, $status_reason = undef ) {
     my $reason;
 
     if ( ref $status eq 'ARRAY' ) {
@@ -130,17 +130,17 @@ sub BUILDARGS ( $self, $status, $status_reason = undef ) {
         $status = $status->[0];
     }
     else {
-        $reason = get_reason->( undef, $status, $status_reason );
+        $reason = _get_reason->( $status, $status_reason );
     }
 
-    return {
+    return bless {
         status        => $status,
         reason        => $reason,
         status_reason => $status_reason,
-    };
-}
+    }, $self;
+};
 
-sub get_reason ( $self, $status, $status_reason = undef ) {
+sub _get_reason ( $status, $status_reason = undef ) {
     if ( $status_reason && $status_reason->{$status} ) { return $status_reason->{$status} }
     elsif ( exists $STATUS_REASON->{$status} ) { return $STATUS_REASON->{$status} }
     elsif ( $status < 200 ) { return $STATUS_REASON->{'1xx'} }
@@ -180,6 +180,16 @@ sub TO_DATA ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 143                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_reason' declared but not used  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
