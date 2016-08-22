@@ -159,7 +159,7 @@ sub set_root_password ( $self, $password = undef ) {
     $self->_hash_rpc->rpc_call(
         'create_scrypt',
         $password,
-        sub ($password_hash) {
+        sub ( $status, $password_hash ) {
             $q3->do( [$password_hash] );
 
             $blocking_cv->send($password);
@@ -234,7 +234,7 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
         $self->_hash_rpc->rpc_call(
             'verify_scrypt',
             $str, $hash,
-            sub ($match) {
+            sub ( $status, $match ) {
                 $self->{_hash_cache}->{$id} = undef;
 
                 $cb->($match);

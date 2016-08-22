@@ -175,6 +175,10 @@ sub is_server_error ($self) {
     return $self->{status} >= 500;
 }
 
+sub TO_DATA ($self) {
+    return [ $self->{status}, $self->{reason} ];
+}
+
 1;
 __END__
 =pod

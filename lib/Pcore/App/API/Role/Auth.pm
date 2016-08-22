@@ -22,7 +22,7 @@ sub create_user ( $self, $cb, $username, $password ) {
         $self->_hash_rpc->rpc_call(
             'create_scrypt',
             $password,
-            sub ($password_hash) {
+            sub ( $status, $password_hash ) {
                 $q2->do( [ $password_hash, $id ] );
 
                 $cb->($id);
@@ -54,7 +54,7 @@ sub create_token ( $self, $cb, $uid, $role_id ) {
         $self->_hash_rpc->rpc_call(
             'create_scrypt',
             $token,
-            sub ($token_hash) {
+            sub ( $status, $token_hash ) {
                 if ( !$q1->do( [ $token_id, $token_hash, $uid ] ) ) {
 
                     # token is not uniq.

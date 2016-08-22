@@ -6,7 +6,7 @@ use Config;
 use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
-use Pcore::HTTP::Status;
+use Pcore::Util::Status;
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
@@ -158,7 +158,9 @@ sub _on_data ( $self, $data ) {
     # RPC callback
     else {
         if ( my $cb = delete $self->_queue->{ $data->{cid} } ) {
-            $cb->( $data->{args} ? $data->{args}->@* : () );
+            my $status = Pcore::Util::Status->new( $data->{status} );
+
+            $cb->( $status, $data->{args} ? $data->{args}->@* : () );
         }
     }
 
@@ -174,22 +176,11 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
 
         if ( defined $cid ) {
             $cb = sub ( $status, $args = undef ) {
-                my $reason;
-
-                # resolve reason
-                if ( ref $status eq 'ARRAY' ) {
-                    $reason = $status->[1];
-
-                    $status = $status->[0];
-                }
-                else {
-                    $reason = Pcore::HTTP::Status->get_reason($status);
-                }
+                $status = Pcore::Util::Status->new($status);
 
                 my $cbor = P->data->to_cbor(
                     {   cid    => $cid,
                         status => $status,
-                        reason => $reason,
                         args   => $args,
                     }
                 );
@@ -323,9 +314,9 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 168                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 170                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 212                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 203                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 118                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
