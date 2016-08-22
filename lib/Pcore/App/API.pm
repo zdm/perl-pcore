@@ -2,7 +2,6 @@ package Pcore::App::API;
 
 use Pcore -role;
 use Pcore::App::API::Map;
-use Pcore::API::Response;
 use Pcore::App::API::Request;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
@@ -180,9 +179,9 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 69, 97, 101          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 68, 96, 100          | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 60                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 59                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

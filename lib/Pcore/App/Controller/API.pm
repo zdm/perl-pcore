@@ -2,7 +2,7 @@ package Pcore::App::Controller::API;
 
 use Pcore -const, -role;
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor];
-use Pcore::HTTP::Status;
+use Pcore::Util::Status;
 
 with qw[Pcore::App::Controller::WebSocket];
 
@@ -35,17 +35,7 @@ sub run ( $self, $req ) {
 
     # create callback
     my $cb = sub ( $status, $result = undef ) {
-        my $reason;
-
-        # resolve reason
-        if ( ref $status eq 'ARRAY' ) {
-            $reason = $status->[1];
-
-            $status = $status->[0];
-        }
-        else {
-            $reason = Pcore::HTTP::Status->get_reason($status);
-        }
+        $status = Pcore::Util::Status->new($status);
 
         # create list of HTTP response headers
         my @headers = (    #
@@ -55,12 +45,11 @@ sub run ( $self, $req ) {
         my $body = {
             cid    => $cid,
             status => $status,
-            reason => $reason,
             result => $result,
         };
 
         # write HTTP response
-        $req->write( [ $status, $reason ], \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $body : to_cbor $body)->finish;
+        $req->write( $status, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $body : to_cbor $body)->finish;
 
         # free HTTP request object
         undef $req;
@@ -174,22 +163,11 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
                 # this is not void API call, create callback
                 if ( my $cid = $data->{cid} ) {
                     $cb = sub ( $status, $result = undef ) {
-                        my $reason;
-
-                        # resolve reason
-                        if ( ref $status eq 'ARRAY' ) {
-                            $reason = $status->[1];
-
-                            $status = $status->[0];
-                        }
-                        else {
-                            $reason = Pcore::HTTP::Status->get_reason($status);
-                        }
+                        $status = Pcore::Util::Status->new($status);
 
                         my $body = {
                             cid    => $cid,
                             status => $status,
-                            reason => $reason,
                             result => $result,
                         };
 
@@ -277,7 +255,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 150                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 139                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

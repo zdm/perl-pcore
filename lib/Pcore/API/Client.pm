@@ -4,7 +4,7 @@ use Pcore -class;
 use Pcore::HTTP::WebSocket;
 use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
-use Pcore::API::Response;
+use Pcore::Util::Status;
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
 has token => ( is => 'lazy', isa => Str );
@@ -56,7 +56,7 @@ sub api_call ( $self, $method, @ ) {
                 }
             ),
             on_finish => sub ($res) {
-                my $api_res = Pcore::API::Response->new( { status => $res->status, reason => $res->reason } );
+                my $api_res = Pcore::Util::Status->new( [ $res->status, $res->reason ] );
 
                 if ( $res->is_success ) {
                     my $response = from_cbor $res->body;
@@ -98,7 +98,7 @@ sub api_call ( $self, $method, @ ) {
 
         if ( !$ws ) {
             my $on_error = sub ( $status, $reason ) {
-                my $api_res = Pcore::API::Response->new( { status => $status, reason => $reason } );
+                my $api_res = Pcore::Util::Status->new( [ $status, $reason ] );
 
                 $cb->($api_res) if $cb;
 
@@ -160,7 +160,7 @@ sub api_call ( $self, $method, @ ) {
                         # this is API callback
                         else {
                             if ( my $callback = delete $self->{_ws_cid_cache}->{ $data->{cid} } ) {
-                                my $api_res = Pcore::API::Response->new( { status => $data->{status}, reason => $data->{reason} } );
+                                my $api_res = Pcore::Util::Status->new( $data->{status} );
 
                                 $api_res->{result} = $data->{result} if $api_res->is_success;
 

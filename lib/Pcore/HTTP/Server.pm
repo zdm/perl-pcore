@@ -3,7 +3,8 @@ package Pcore::HTTP::Server;
 use Pcore -class, -const;
 use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
-use Pcore::HTTP::Status;
+use Pcore::Util::Status;
+use Pcore::Util::Scalar qw[blessed];
 use Pcore::HTTP::Server::Request;
 
 has listen => ( is => 'ro', isa => Str, required => 1 );
@@ -275,18 +276,9 @@ sub wait_headers ( $self, $h ) {
 }
 
 sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
-    my $reason;
+    $status = Pcore::Util::Status->new($status) if !blessed $status;
 
-    if ( !ref $status ) {
-        $reason = Pcore::HTTP::Status->get_reason($status);
-    }
-    else {
-        $reason = $status->[1];
-
-        $status = $status->[0];
-    }
-
-    my $buf = "HTTP/1.1 $status $reason\r\nContent-Length:0\r\n";
+    my $buf = "HTTP/1.1 $status->{status} $status->{reason}\r\nContent-Length:0\r\n";
 
     $buf .= 'Connection:' . ( $use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
 
@@ -308,9 +300,9 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 233                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 234                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 256                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 257                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

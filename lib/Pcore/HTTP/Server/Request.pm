@@ -1,7 +1,8 @@
 package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const;
-use Pcore::HTTP::Status;
+use Pcore::Util::Status;
+use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
 
@@ -84,12 +85,9 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
         # compose headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
         my $headers = do {
-            if ( !ref $_[1] ) {
-                "HTTP/1.1 $_[1] " . Pcore::HTTP::Status->get_reason( $_[1] ) . $CRLF;
-            }
-            else {
-                "HTTP/1.1 $_[1]->[0] $_[1]->[1]$CRLF";
-            }
+            my $status = blessed $_[1] ? $_[1] : Pcore::Util::Status->new( $_[1] );
+
+            "HTTP/1.1 $status->{status} $status->{reason}$CRLF";
         };
 
         $headers .= "Server:$self->{_server}->{server_tokens}$CRLF" if $self->{_server}->{server_tokens};
@@ -198,7 +196,7 @@ sub _build_is_websocket_connect_request ( $self ) {
 }
 
 sub accept_websocket ( $self, $headers = undef ) {
-    state $reason = Pcore::HTTP::Status->get_reason(101);
+    state $reason = Pcore::Util::Status->get_reason(101);
 
     die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
@@ -226,7 +224,7 @@ sub accept_websocket ( $self, $headers = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 12                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 13                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
