@@ -1,7 +1,6 @@
 package Pcore::API::SCM;
 
 use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_HG $SCM_TYPE_GIT]] };
-use Pcore::API::Response;
 
 const our $SCM_TYPE_HG  => 1;
 const our $SCM_TYPE_GIT => 2;
@@ -208,7 +207,7 @@ sub _request ( $self, $method, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 55                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 54                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -9,7 +9,7 @@ use Pcore::API::DockerHub::Repository::Tag;
 use Pcore::API::DockerHub::Repository::Build::Tag;
 use Pcore::API::DockerHub::Repository::Collaborator;
 
-extends qw[Pcore::API::Response];
+extends qw[Pcore::Util::Status];
 
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub'], required => 1 );
 

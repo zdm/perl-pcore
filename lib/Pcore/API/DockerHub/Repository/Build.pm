@@ -2,7 +2,7 @@ package Pcore::API::DockerHub::Repository::Build;
 
 use Pcore -class, -const;
 
-extends qw[Pcore::API::Response];
+extends qw[Pcore::Util::Status];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
 

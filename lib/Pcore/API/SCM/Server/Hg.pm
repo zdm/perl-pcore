@@ -4,7 +4,7 @@ use Pcore -class;
 use Pcore::API::SCM qw[:CONST];
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::API::SCM::Upstream;
-use Pcore::API::Response;
+use Pcore::Util::Status;
 use Pcore::Util::Scalar qw[weaken];
 
 with qw[Pcore::API::SCM::Server];
@@ -125,7 +125,7 @@ sub scm_cmd ( $self, $root, $cb, $cmd ) {
                     $self->_read(__SUB__);
                 }
                 else {
-                    my $api_res = Pcore::API::Response->new( { status => 200 } );
+                    my $api_res = Pcore::Util::Status->new( { status => 200 } );
 
                     if ( exists $res->{e} ) {
                         $api_res->set_status( 500, join q[ ], $res->{e}->@* );

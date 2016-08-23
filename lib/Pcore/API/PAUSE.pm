@@ -1,7 +1,7 @@
 package Pcore::API::PAUSE;
 
 use Pcore -class;
-use Pcore::API::Response;
+use Pcore::Util::Status;
 use Pcore::Util::Text qw[encode_utf8];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -45,7 +45,7 @@ sub upload ( $self, $path ) {
         body => \$body,
     );
 
-    return Pcore::API::Response->new( { status => $res->status, reason => $res->reason } );
+    return Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
 }
 
 sub clean ( $self ) {
@@ -89,14 +89,14 @@ sub clean ( $self ) {
                 body => P->data->to_uri($params),
             );
 
-            return Pcore::API::Response->new( { status => $res1->status, reason => $res1->reason } );
+            return Pcore::Util::Status->new( { status => $res1->status, reason => $res1->reason } );
         }
         else {
-            return Pcore::API::Response->new( { status => 200, reason => 'Nothing to do' } );
+            return Pcore::Util::Status->new( { status => 200, reason => 'Nothing to do' } );
         }
     }
     else {
-        return Pcore::API::Response->new( { status => $res->status, reason => $res->reason } );
+        return Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
     }
 }
 
