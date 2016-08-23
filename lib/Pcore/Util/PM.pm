@@ -3,12 +3,6 @@ package Pcore::Util::PM;
 use Pcore -export, [qw[is_superuser run_proc run_rpc]];
 use POSIX qw[];
 
-sub rename_process {
-    $0 = shift;    ## no critic (Variables::RequireLocalizedPunctuationVars)
-
-    return 1;
-}
-
 sub change_priv {
     my %args = (
         gid => undef,
