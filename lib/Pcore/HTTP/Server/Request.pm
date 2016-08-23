@@ -78,32 +78,30 @@ sub body ($self) {
 sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     die q[Unable to write, HTTP response is already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
 
-    my $body;
+    my ( $buf, $body );
 
     if ( !$self->{_response_status} ) {
 
         # compose headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
-        my $headers = do {
+        $buf = do {
             my $status = blessed $_[1] ? $_[1] : Pcore::Util::Status->new( { status => $_[1] } );
 
             "HTTP/1.1 $status->{status} $status->{reason}$CRLF";
         };
 
-        $headers .= "Server:$self->{_server}->{server_tokens}$CRLF" if $self->{_server}->{server_tokens};
+        $buf .= "Server:$self->{_server}->{server_tokens}$CRLF" if $self->{_server}->{server_tokens};
 
         # always use chunked transfer
-        $headers .= "Transfer-Encoding:chunked$CRLF";
+        $buf .= "Transfer-Encoding:chunked$CRLF";
 
         # keepalive
-        $headers .= 'Connection:' . ( $self->_use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
+        $buf .= 'Connection:' . ( $self->_use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
 
         # add custom headers
-        $headers .= join( $CRLF, map {"$_->[0]:$_->[1]"} pairs $_[2]->@* ) . $CRLF if $_[2] && $_[2]->@*;
+        $buf .= join( $CRLF, map {"$_->[0]:$_->[1]"} pairs $_[2]->@* ) . $CRLF if $_[2] && $_[2]->@*;
 
-        $headers .= $CRLF;
-
-        $self->{_h}->push_write($headers);
+        $buf .= $CRLF;
 
         \$body = \$_[3] if $_[3];
 
@@ -117,15 +115,15 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
         my $body_ref = ref $body;
 
         if ( !$body_ref ) {
-            $self->{_h}->push_write( sprintf( '%x', bytes::length $body ) . $CRLF . encode_utf8($body) . $CRLF );
+            $buf .= sprintf( '%x', bytes::length $body ) . $CRLF . encode_utf8($body) . $CRLF;
         }
         elsif ( $body_ref eq 'SCALAR' ) {
-            $self->{_h}->push_write( sprintf( '%x', bytes::length $body->$* ) . $CRLF . encode_utf8( $body->$* ) . $CRLF );
+            $buf .= sprintf( '%x', bytes::length $body->$* ) . $CRLF . encode_utf8( $body->$* ) . $CRLF;
         }
         elsif ( $body_ref eq 'ARRAY' ) {
-            my $buf = join q[], map { encode_utf8 $_} $body->@*;
+            my $buf1 = join q[], map { encode_utf8 $_} $body->@*;
 
-            $self->{_h}->push_write( sprintf( '%x', bytes::length $buf ) . $CRLF . $buf . $CRLF );
+            $buf .= sprintf( '%x', bytes::length $buf1 ) . $CRLF . $buf1 . $CRLF;
         }
         else {
 
@@ -133,6 +131,8 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
             die q[Body type isn't supported];
         }
     }
+
+    $self->{_h}->push_write($buf);
 
     return $self;
 }
