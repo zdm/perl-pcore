@@ -11,7 +11,8 @@ has listen => ( is => 'ro', isa => Str, required => 1 );
 has app => ( is => 'ro', isa => CodeRef | ConsumerOf ['Pcore::HTTP::Server::Router'], required => 1 );
 
 has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
-has tcp_no_delay => ( is => 'ro', isa => Bool, default => 0 );
+has tcp_no_delay     => ( is => 'ro', isa => Bool, default => 1 );
+has tcp_so_keepalive => ( is => 'ro', isa => Bool, default => 1 );
 
 has server_tokens => ( is => 'ro', isa => Maybe [Str], default => "Pcore-HTTP-Server/$Pcore::VERSION" );
 has keepalive_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - disable keepalive
@@ -75,10 +76,10 @@ sub _on_prepare ( $self, $fh, $host, $port ) {
 
 sub _on_accept ( $self, $fh, $host, $port ) {
     Pcore::AE::Handle->new(
-        fh         => $fh,
-        no_delay   => $self->tcp_no_delay,
-        keepalive  => 1,
-        on_connect => sub ( $h, @ ) {
+        fh              => $fh,
+        tcp_no_delay    => $self->tcp_no_delay,
+        tcp_so_kepalive => $self->tcp_so_kepalive,
+        on_connect      => sub ( $h, @ ) {
             $self->wait_headers($h);
 
             return;
@@ -300,9 +301,9 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 234                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 235                  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 257                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 258                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
