@@ -203,7 +203,7 @@ sub _request {
         }
     }
 
-    # create HTTP response object
+    # create empty HTTP response object
     $args{res} = Pcore::HTTP::Response->new( { status => 0 } );
 
     # resolve cookie_jar shortcut
