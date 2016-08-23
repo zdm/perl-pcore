@@ -56,7 +56,7 @@ sub api_call ( $self, $method, @ ) {
                 }
             ),
             on_finish => sub ($res) {
-                my $api_res = Pcore::Util::Status->new( { status => res->status, reason => $res->reason } );
+                my $api_res = Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
 
                 if ( $res->is_success ) {
                     my $response = from_cbor $res->body;
