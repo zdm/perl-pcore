@@ -2,7 +2,7 @@ package Pcore::API::Response;
 
 use Pcore -class;
 
-with qw[Pcore::HTTP::Status];
+with qw[Pcore::Util::Status::Role];
 
 1;
 __END__

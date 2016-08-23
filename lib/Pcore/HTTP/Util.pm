@@ -346,7 +346,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
                         $runtime->{redirect} = 1;
 
                         # create new response object and set it as default response for current request
-                        $runtime->{res} = Pcore::HTTP::Response->new;
+                        $runtime->{res} = Pcore::HTTP::Response->new( { status => $res->{status} } );
 
                         push $args->{res}->redirect->@*, $runtime->{res};
                     }
@@ -362,7 +362,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
                 # fill response object with HTTP response headers data
                 $runtime->{res}->{headers} = $res->{headers};
 
-                $runtime->{res}->set_version( q[1.] . $res->{minor_version} );
+                $runtime->{res}->set_version("1.$res->{minor_version}");
 
                 $runtime->{res}->set_status( $res->{status}, $res->{reason} );
             }

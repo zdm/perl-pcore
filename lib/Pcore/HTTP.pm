@@ -204,7 +204,7 @@ sub _request {
     }
 
     # create HTTP response object
-    $args{res} = Pcore::HTTP::Response->new;
+    $args{res} = Pcore::HTTP::Response->new( { status => 0 } );
 
     # resolve cookie_jar shortcut
     $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};

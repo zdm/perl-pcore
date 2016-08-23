@@ -4,7 +4,7 @@ use Pcore -class;
 use HTTP::Message;
 
 extends qw[Pcore::HTTP::Message];
-with qw[Pcore::HTTP::Status];
+with qw[Pcore::Util::Status::Role];
 
 has url => ( is => 'ro', isa => Str | Object, writer => 'set_url' );
 has version => ( is => 'ro', isa => Num, writer => 'set_version', init_arg => undef );
