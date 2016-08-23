@@ -132,6 +132,9 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
         }
     }
 
+    # TODO this call can be removed after issue in AnyEvent::Handle, lines 1021 and 1024, will be fixed
+    utf8::downgrade $buf;
+
     $self->{_h}->push_write($buf);
 
     return $self;
