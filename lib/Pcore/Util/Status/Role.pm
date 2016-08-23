@@ -4,7 +4,7 @@ use Pcore -const, -role;
 
 use overload    #
   q[bool] => sub {
-    return $_[0]->is_success;
+    return $_[0]->{status} >= 200 && $_[0]->{status} < 300;
   },
   q[0+] => sub {
     return $_[0]->{status};
