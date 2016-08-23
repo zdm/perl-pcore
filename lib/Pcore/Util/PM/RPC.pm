@@ -158,7 +158,7 @@ sub _on_data ( $self, $data ) {
     # RPC callback
     else {
         if ( my $cb = delete $self->_queue->{ $data->{cid} } ) {
-            my $status = Pcore::Util::Status->new( $data->{status} );
+            my $status = Pcore::Util::Status->new( { status => $data->{status} } );
 
             $cb->( $status, $data->{args} ? $data->{args}->@* : () );
         }
@@ -176,7 +176,7 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
 
         if ( defined $cid ) {
             $cb = sub ( $status, $args = undef ) {
-                $status = Pcore::Util::Status->new($status);
+                $status = Pcore::Util::Status->new( { status => $status } );
 
                 my $cbor = P->data->to_cbor(
                     {   cid    => $cid,

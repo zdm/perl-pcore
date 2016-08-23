@@ -35,7 +35,7 @@ sub run ( $self, $req ) {
 
     # create callback
     my $cb = sub ( $status, $result = undef ) {
-        $status = Pcore::Util::Status->new($status);
+        $status = Pcore::Util::Status->new( { status => $status } );
 
         # create list of HTTP response headers
         my @headers = (    #
@@ -163,7 +163,7 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
                 # this is not void API call, create callback
                 if ( my $cid = $data->{cid} ) {
                     $cb = sub ( $status, $result = undef ) {
-                        $status = Pcore::Util::Status->new($status);
+                        $status = Pcore::Util::Status->new( { status => $status } );
 
                         my $body = {
                             cid    => $cid,

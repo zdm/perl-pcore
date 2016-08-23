@@ -85,7 +85,7 @@ sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms
         # compose headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
         my $headers = do {
-            my $status = blessed $_[1] ? $_[1] : Pcore::Util::Status->new( $_[1] );
+            my $status = blessed $_[1] ? $_[1] : Pcore::Util::Status->new( { status => $_[1] } );
 
             "HTTP/1.1 $status->{status} $status->{reason}$CRLF";
         };
