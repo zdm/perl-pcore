@@ -18,10 +18,12 @@ our $EXPORT_PRAGMA = {
     inline      => 0,    # package use Inline
     no_isa_attr => 0,    # do not check isa for class / role attributes
     role        => 0,    # package is a Moo role
+    script_path => 1,    # specify script path for ENV, used in RPC
     types       => 0,    # export types
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
+our $SCRIPT_PATH = $0;      # script path was specified in Pcore pragma -script_path
 our $NO_ISA_ATTR = 0;       # do not check isa for class / role attributes
 our $WIN_ENC     = undef;
 our $CON_ENC     = undef;
@@ -71,6 +73,9 @@ sub import {
 
         # store -embedded pragma
         $EMBEDDED = 1 if $import->{pragma}->{embedded};
+
+        # store -script_path pragma
+        $SCRIPT_PATH = $import->{pragma}->{script_path} if $import->{pragma}->{script_path};
 
         # store -no_isa_attr pragma
         $NO_ISA_ATTR = 1 if $import->{pragma}->{no_isa_attr};
@@ -556,23 +561,25 @@ sub init_demolish ( $self, $class ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 102                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 63                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (21)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 219                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 107                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 224                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 297                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 415                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 302                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 420                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 329, 358, 361, 365,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 397, 400, 405, 408,  |                                                                                                                |
-## |      | 433, 452             |                                                                                                                |
+## |    3 | 334, 363, 366, 370,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 402, 405, 410, 413,  |                                                                                                                |
+## |      | 438, 457             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 539                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 544                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 229                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 234                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 333                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 338                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

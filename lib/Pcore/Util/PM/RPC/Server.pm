@@ -5,7 +5,6 @@ use warnings;
 
 our $BOOT_ARGS;
 
-# TODO do not use $0 and FindBin
 BEGIN {
 
     # preload Filter::Crypto::Decrypt to avoid "Can't run with Perl compiler backend" fatal error under crypted PAR
@@ -22,15 +21,13 @@ BEGIN {
 
     $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $BOOT_ARGS );
 
-    $0 = "$BOOT_ARGS->[0] $name";    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
     $main::VERSION = version->new( $BOOT_ARGS->[1] );
 }
 
-package                              # hide from CPAN
+package    # hide from CPAN
   main;
 
-use Pcore;
+use Pcore -script_path => $BOOT_ARGS->[0];
 use Pcore::AE::Handle;
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::PM::RPC qw[:CONST];
@@ -287,9 +284,9 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 241                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 238                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 103, 113             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 100, 110             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

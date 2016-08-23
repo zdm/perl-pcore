@@ -18,24 +18,10 @@ has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );       
 
 has can_scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 
-# may not work, if executed from one-liner script
-eval { require FindBin };
-
-if ($@) {
-    $FindBin::Bin = $FindBin::RealBin = Cwd::getcwd();
-
-    $FindBin::Script = $FindBin::RealScript = $0 =~ s[\A.*?[/\\](.+)\z][$1]smr;
-
-    # prevent attempts to reload FindBin later
-    delete $INC{'FindBin.pm'};
-
-    $INC{'FindBin.pm'} = 'eval()';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-}
-
 _normalize_inc();
 
 # create $ENV object
-$ENV = __PACKAGE__->new;              ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+$ENV = __PACKAGE__->new;                                                                               ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
 $ENV->_INIT;
 
@@ -143,16 +129,29 @@ sub _configure_inc {
 }
 
 sub _INIT ($self) {
-    $self->{START_DIR}      = P->file->cwd->to_string;
-    $self->{SCRIPT_NAME}    = $FindBin::RealScript;
-    $self->{SCRIPT_DIR}     = P->path( $FindBin::RealBin, is_dir => 1 )->realpath->to_string;
-    $self->{SCRIPT_PATH}    = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
-    $self->{SYS_TEMP_DIR}   = P->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
-    $self->{TEMP_DIR}       = P->file->tempdir( base => $self->{SYS_TEMP_DIR}, lazy => 1 );
-    $self->{USER_DIR}       = P->path( $ENV{HOME} || $ENV{USERPROFILE}, is_dir => 1 );
-    $self->{PCORE_USER_DIR} = P->path( $self->{USER_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
+    $self->{START_DIR} = P->file->cwd->to_string;
+
+    if ( $Pcore::SCRIPT_PATH eq '-e' || $Pcore::SCRIPT_PATH eq '-' ) {
+        $self->{SCRIPT_NAME} = '-e';
+        $self->{SCRIPT_DIR}  = $self->{START_DIR};
+    }
+    else {
+        die qq[Cannot find current script "$Pcore::SCRIPT_PATH"] if !-f $Pcore::SCRIPT_PATH;
+
+        my $path = P->path($Pcore::SCRIPT_PATH)->realpath;
+
+        $self->{SCRIPT_NAME} = $path->filename;
+        $self->{SCRIPT_DIR}  = $path->dirname;
+    }
+
+    $self->{SCRIPT_PATH} = $self->{SCRIPT_DIR} . $self->{SCRIPT_NAME};
+
+    $self->{SYS_TEMP_DIR} = P->path( File::Spec->tmpdir, is_dir => 1 )->to_string;
+    $self->{TEMP_DIR} = P->file->tempdir( base => $self->{SYS_TEMP_DIR}, lazy => 1 );
+    $self->{USER_DIR} = P->path( $ENV{HOME} || $ENV{USERPROFILE}, is_dir => 1 );
+    $self->{PCORE_USER_DIR} = P->path( $self->{USER_DIR} . '.pcore/',     is_dir => 1, lazy => 1 );
     $self->{PCORE_SYS_DIR}  = P->path( $self->{SYS_TEMP_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
-    $self->{INLINE_DIR}     = $self->is_par ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config{version}/$Config{archname}/", is_dir => 1, lazy => 1 );
+    $self->{INLINE_DIR} = $self->is_par ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config{version}/$Config{archname}/", is_dir => 1, lazy => 1 );
 
     # CLI options
     $self->{SCAN_DEPS} = 0;
@@ -360,17 +359,19 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22, 305              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 254, 336, 347        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 255, 337, 348        | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 304                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 328                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 327                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 330, 348             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 134                  | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 117                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    2 | 329, 347             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 337                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 103                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 336                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
