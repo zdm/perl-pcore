@@ -78,7 +78,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     Pcore::AE::Handle->new(
         fh              => $fh,
         tcp_no_delay    => $self->tcp_no_delay,
-        tcp_so_kepalive => $self->tcp_so_kepalive,
+        tcp_so_kepalive => $self->tcp_so_keepalive,
         on_connect      => sub ( $h, @ ) {
             $self->wait_headers($h);
 
