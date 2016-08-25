@@ -54,7 +54,6 @@ sub _build_http_server ($self) {
     );
 }
 
-# TODO start HTTP server
 sub run ($self) {
 
     # scan router classes
