@@ -4,17 +4,11 @@ use Pcore -class;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has map => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has method => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has obj => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-sub BUILD ( $self, $args ) {
-    $self->map;
-
-    return;
-}
-
-sub _build_map ($self) {
-    my $map = {};
+sub _build_method ($self) {
+    my $method = {};
 
     my $ns_path = ( ref( $self->app ) =~ s[::][/]smgr ) . '/API';
 
@@ -67,27 +61,27 @@ sub _build_map ($self) {
         my ($version) = $class_path =~ /\Av(\d+)/sm;
 
         # validate obj API map
-        for my $method ( sort keys $obj_map->%* ) {
-            my $method_id = qq[/$class_path/$method];
+        for my $method_name ( sort keys $obj_map->%* ) {
+            my $method_id = qq[/$class_path/$method_name];
 
-            $map->{$method_id} = {
-                $obj_map->{$method}->%*,
+            $method->{$method_id} = {
+                $obj_map->{$method_name}->%*,
                 id          => $method_id,
                 version     => "v$version",
                 class_name  => $class_name,
                 class_path  => "/$class_path",
-                method_name => $method,
+                method_name => $method_name,
             };
 
             # method should exists
-            die qq[API method "$method_id" is not exists] if !$obj->can($method);
+            die qq[API method "$method_id" is not exists] if !$obj->can($method_name);
 
             # validate api method configuration
-            die qq[API method "$method_id" requires description] if !$map->{$method_id}->{desc};
+            die qq[API method "$method_id" requires description] if !$method->{$method_id}->{desc};
         }
     }
 
-    return $map;
+    return $method;
 }
 
 1;
@@ -97,7 +91,7 @@ sub _build_map ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 51, 70, 74           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 45, 64, 68           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

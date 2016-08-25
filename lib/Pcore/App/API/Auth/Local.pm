@@ -173,23 +173,25 @@ sub set_root_password ( $self, $password = undef ) {
 
 # TODO update api methods in database, or upload api map to cluster
 sub upload_api_map ( $self, $map ) {
+    my $local_methods = $map->method;
+
     my $remote_methods = $self->dbh->selectall_hashref( 'SELECT * FROM api_method WHERE app_id = ?', [ $self->api->app_id ], key_cols => 'id' );
 
     my ( $add_methods, $remove_methods, $update_methods );
 
-    for my $method_id ( keys $map->%* ) {
+    for my $method_id ( keys $local_methods->%* ) {
         if ( !exists $remote_methods->{$method_id} ) {
             $add_methods->{$method_id} = undef;
         }
         else {
-            if ( $remote_methods->{$method_id}->{desc} ne $map->{$method_id}->{desc} ) {
+            if ( $remote_methods->{$method_id}->{desc} ne $local_methods->{$method_id}->{desc} ) {
                 $update_methods->{$method_id} = undef;
             }
         }
     }
 
     for my $method_id ( keys $remote_methods->%* ) {
-        if ( !exists $map->{$method_id} ) {
+        if ( !exists $local_methods->{$method_id} ) {
             $remove_methods->{$method_id} = undef;
         }
     }
@@ -198,7 +200,7 @@ sub upload_api_map ( $self, $map ) {
         my $q1 = $self->dbh->query('INSERT INTO api_method (id, app_id, version, class_name, method_name, desc) VALUES (?, ?, ?, ?, ?, ?)');
 
         for my $method_id ( keys $add_methods->%* ) {
-            $q1->do( [ $method_id, $self->api->app_id, $map->{$method_id}->{version}, $map->{$method_id}->{class_name}, $map->{$method_id}->{method_name}, $map->{$method_id}->{desc} ] );
+            $q1->do( [ $method_id, $self->api->app_id, $local_methods->{$method_id}->{version}, $local_methods->{$method_id}->{class_name}, $local_methods->{$method_id}->{method_name}, $local_methods->{$method_id}->{desc} ] );
         }
     }
 
@@ -206,7 +208,7 @@ sub upload_api_map ( $self, $map ) {
         my $q1 = $self->dbh->query('UPDATE api_method SET desc = ? WHERE id = ?');
 
         for my $method_id ( keys $update_methods->%* ) {
-            $q1->do( [ $map->{$method_id}->{desc}, $method_id ] );
+            $q1->do( [ $local_methods->{$method_id}->{desc}, $method_id ] );
         }
     }
 
@@ -254,8 +256,8 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 180, 191, 200, 208,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 216                  |                                                                                                                |
+## |    3 | 182, 193, 202, 210,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 218                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
