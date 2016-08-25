@@ -24,6 +24,8 @@ sub _build_api ($self) {
     # TODO find class manually
     my $api_class = eval { P->class->load( 'API', ns => ref $self ) };
 
+    $@->sendlog if $@;
+
     return if $@;
 
     die qq[API class "$api_class" is not consumer of "Pcore::App::API"] if !$api_class->does('Pcore::App::API');
