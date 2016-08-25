@@ -50,10 +50,13 @@ sub run ($self) {
     # scan router classes
     $self->router->map;
 
-    # die if API controller found, but no API server provided
-    die q[API is required] if $self->router->api_class && !$self->api;
-
-    $self->api->upload_api_map;
+    if ( $self->api ) {
+        $self->api->upload_api_map;
+    }
+    else {
+        # die if API controller found, but no API server provided
+        die q[API is required] if $self->router->api_class && !$self->api;
+    }
 
     $self->http_server->run;
 

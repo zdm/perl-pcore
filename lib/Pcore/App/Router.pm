@@ -12,6 +12,14 @@ has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
 
 has _cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # HTTP controllers cache
 
+sub _perl_class_path_to_snake_case ($str) {
+    $str =~ s/([[:lower:]])([[:upper:]])/"$1-" . lc $2/smge;
+
+    $str =~ s/(.)([[:upper:]])([[:lower:]])/"$1-" . lc($2) . $3/smge;
+
+    return lc $str;
+}
+
 sub _build_map ($self) {
     my $index_class = ref( $self->app ) . '::Index';
 
@@ -38,7 +46,7 @@ sub _build_map ($self) {
 
                         my $class = "$ns_path/$route" =~ s[/][::]smgr;
 
-                        $controllers->{$class} = '/' . P->text->to_snake_case( $route, delim => '-', split => '/', join => '/' ) . '/';
+                        $controllers->{$class} = '/' . _perl_class_path_to_snake_case($route) . '/';
                     }
 
                     return;
@@ -124,9 +132,9 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 50, 72               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 58, 80               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 25, 41, 78, 97       | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 33, 49, 86, 105      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
