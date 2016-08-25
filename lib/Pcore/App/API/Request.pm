@@ -50,17 +50,17 @@ sub api_call ( $self, $method_id, $args, $cb = undef ) {
     # remember cb, if defined
     $self->{_cb} = $cb;
 
-    my $method_cfg = $self->{api}->map->{$method_id};
+    my $method_cfg = $self->{api}->{map}->{method}->{$method_id};
 
     return $self->write( [ 404, qq[API method "$method_id" was not found] ] ) if !$method_cfg;
 
     return $self->write( [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $self->{uid} != 1 && !exists $self->allowed_methods->{$method_id};
 
-    my $ctrl = $self->{api}->{_cache}->{$method_id} //= $method_cfg->{class_name}->new( { app => $self->{api}->{app} } );
+    my $obj = $self->{api}->{map}->{obj}->{ $method_cfg->{class_name} };
 
     my $method_name = $method_cfg->{method_name};
 
-    eval { $ctrl->$method_name( $self, $args ? $args->@* : undef ) };
+    eval { $obj->$method_name( $self, $args ? $args->@* : undef ) };
 
     $@->sendlog if $@;
 
