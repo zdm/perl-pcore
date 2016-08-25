@@ -16,6 +16,14 @@ has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg 
 has _ws_connect_cache => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has _ws_cid_cache     => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
+around BUILDARGS => sub ( $orig, $self, $uri, @ ) {
+    my %args = ( splice @_, 3 );
+
+    $args{uri} = $uri;
+
+    return $self->$orig( \%args );
+};
+
 sub _build__uri($self) {
     return P->uri( $self->uri );
 }
@@ -202,7 +210,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 31                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (24)                  |
+## |    3 | 39                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (24)                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
