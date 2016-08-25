@@ -52,8 +52,8 @@ sub _ddl_upgrade ($self) {
                 `id` BLOB PRIMARY KEY NOT NULL,
                 `app_id` BLOB NOT NULL,
                 `version` BLOB NOT NULL,
-                `class_name` BLOB NOT NULL,
-                `method_name` BLOB NOT NULL,
+                `class` BLOB NOT NULL,
+                `name` BLOB NOT NULL,
                 `desc` TEXT NOT NULL
             );
 
@@ -197,10 +197,10 @@ sub upload_api_map ( $self, $map ) {
     }
 
     if ($add_methods) {
-        my $q1 = $self->dbh->query('INSERT INTO api_method (id, app_id, version, class_name, method_name, desc) VALUES (?, ?, ?, ?, ?, ?)');
+        my $q1 = $self->dbh->query('INSERT INTO api_method (id, app_id, version, class, name, desc) VALUES (?, ?, ?, ?, ?, ?)');
 
         for my $method_id ( keys $add_methods->%* ) {
-            $q1->do( [ $method_id, $self->api->app_id, $local_methods->{$method_id}->{version}, $local_methods->{$method_id}->{class_name}, $local_methods->{$method_id}->{method_name}, $local_methods->{$method_id}->{desc} ] );
+            $q1->do( [ $method_id, $self->api->app_id, $local_methods->{$method_id}->{version}, $local_methods->{$method_id}->{class_path}, $local_methods->{$method_id}->{method_name}, $local_methods->{$method_id}->{desc} ] );
         }
     }
 
