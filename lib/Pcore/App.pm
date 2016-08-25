@@ -18,15 +18,23 @@ has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init
 has router      => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'],         init_arg => undef );
 
-# TODO
 sub _build_api ($self) {
+    my $ns = ( ( ref $self ) =~ s[::][/]smgr ) . '/API.pm';
 
-    # TODO find class manually
-    my $api_class = eval { P->class->load( 'API', ns => ref $self ) };
+    my $found;
 
-    $@->sendlog if $@;
+    # find API class in @INC
+    for my $inc ( grep { !ref } @INC ) {
+        if ( -f "$inc/$ns" ) {
+            $found = 1;
 
-    return if $@;
+            last;
+        }
+    }
+
+    return if !$found;
+
+    my $api_class = P->class->load( 'API', ns => ref $self );
 
     die qq[API class "$api_class" is not consumer of "Pcore::App::API"] if !$api_class->does('Pcore::App::API');
 

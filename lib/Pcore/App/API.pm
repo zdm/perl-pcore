@@ -35,7 +35,9 @@ sub _build_auth ($self) {
 }
 
 sub _build_map ($self) {
-    return Pcore::App::API::Map->new( { app => $self->app } );
+
+    # use class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
+    return "Pcore::App::API::Map"->new( { app => $self->app } );
 }
 
 # AUTH BACKEND METHODS
@@ -98,6 +100,16 @@ sub set_root_password ( $self, $password = undef ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 40                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

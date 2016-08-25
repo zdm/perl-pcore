@@ -5,7 +5,6 @@ use Pcore -class;
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 sub BUILD ( $self, $args ) {
-    say 'BUILD';
 
     #     my $map = {};
     #
