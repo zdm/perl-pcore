@@ -7,7 +7,7 @@ use Pcore::Util::List qw[pairs];
 use Pcore::Util::Random qw[random_bytes];
 use Pcore::AE::Handle;
 use Compress::Raw::Zlib;
-use Digest::SHA1 qw[];
+use Pcore::Util::Digest qw[sha1];
 
 # https://tools.ietf.org/html/rfc6455
 
@@ -294,7 +294,7 @@ sub disconnect ( $self, $status, $reason = undef ) {
 
 # UTILS
 sub challenge ( $self, $key ) {
-    return to_b64( Digest::SHA1::sha1( ($key) . $WEBSOCKET_GUID ), q[] );
+    return to_b64( sha1( ($key) . $WEBSOCKET_GUID ), q[] );
 }
 
 sub start_listen ($self) {
