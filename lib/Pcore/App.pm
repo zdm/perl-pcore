@@ -14,9 +14,13 @@ has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 )
 # API settings
 has auth => ( is => 'ro', isa => Maybe [ Str | ConsumerOf ['Pcore::DBH'] | ConsumerOf ['Pcore::App::API::Auth'] ] );
 
+has router => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
-has router      => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
-has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'],         init_arg => undef );
+has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
+
+sub _build_router ($self) {
+    return Pcore::App::Router->new( { app => $self } );
+}
 
 sub _build_api ($self) {
     my $ns = ( ( ref $self ) =~ s[::][/]smgr ) . '/API.pm';
@@ -41,10 +45,6 @@ sub _build_api ($self) {
     return $api_class->new( { app => $self } );
 }
 
-sub _build_router ($self) {
-    return Pcore::App::Router->new( { app => $self } );
-}
-
 sub _build_http_server ($self) {
     return Pcore::HTTP::Server->new(
         {   listen            => $self->listen,
@@ -54,7 +54,7 @@ sub _build_http_server ($self) {
     );
 }
 
-sub run ($self) {
+around run => sub ( $orig, $self ) {
 
     # scan router classes
     $self->router->map;
@@ -67,8 +67,15 @@ sub run ($self) {
         die q[API is required] if $self->router->api_class && !$self->api;
     }
 
+    $self->$orig;
+
     $self->http_server->run;
 
+    return;
+};
+
+# this method can be overloaded in subclasses
+sub run ($self) {
     return;
 }
 
