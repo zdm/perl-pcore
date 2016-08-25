@@ -68,6 +68,7 @@ on develop => sub {
 
 # Pcore::HTTP
 requires 'HTTP::Parser::XS';
+requires 'HTTP::Message';
 
 # Pcore::Src
 requires 'Perl::Tidy';
