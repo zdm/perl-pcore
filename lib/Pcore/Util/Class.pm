@@ -31,6 +31,37 @@ sub load ( $class, @ ) {
     return $class;
 }
 
+sub find ( $class, @ ) {
+    my %args = (
+        ns => undef,
+        splice @_, 1,
+    );
+
+    my $class_filename;
+
+    if ( $class =~ /[.]pm\z/sm ) {
+        $class_filename = $class;
+    }
+    else {
+        $class = resolve_class_name( $class, $args{ns} );
+
+        $class_filename = ( $class =~ s[::][/]smgr ) . q[.pm];
+    }
+
+    my $found;
+
+    # find class in @INC
+    for my $inc ( grep { !ref } @INC ) {
+        if ( -f "$inc/$args{ns}" ) {
+            $found = "$inc/$args{ns}";
+
+            last;
+        }
+    }
+
+    return $found;
+}
+
 sub resolve_class_name ( $class, $ns = undef ) {
     if ( $class =~ s/\A[+]//sm ) {
         return $class;

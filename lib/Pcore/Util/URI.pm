@@ -72,13 +72,14 @@ around new => sub ( $orig, $self, $uri, @ ) {
     };
 
     if ( !exists $scheme_cache->{$scheme} ) {
-        eval {
+        if ( P->class->find( $scheme, ns => 'Pcore::Util::URI' ) ) {
             $scheme_cache->{$scheme} = P->class->load( $scheme, ns => 'Pcore::Util::URI' );
 
             $scheme_cache->{$scheme} = undef if !$scheme_cache->{$scheme}->isa('Pcore::Util::URI');
-        };
-
-        $scheme_cache->{$scheme} = undef if $@;
+        }
+        else {
+            $scheme_cache->{$scheme} = undef;
+        }
     }
 
     $self = $scheme_cache->{$scheme} if $scheme_cache->{$scheme};
@@ -354,12 +355,10 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 111, 114, 121, 131,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |      | 142, 147, 150        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 110, 113, 120, 130,  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
-## |      | 141, 146, 149        |                                                                                                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 94                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 95                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

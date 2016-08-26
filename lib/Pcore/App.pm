@@ -23,20 +23,7 @@ sub _build_router ($self) {
 }
 
 sub _build_api ($self) {
-    my $ns = ( ( ref $self ) =~ s[::][/]smgr ) . '/API.pm';
-
-    my $found;
-
-    # find API class in @INC
-    for my $inc ( grep { !ref } @INC ) {
-        if ( -f "$inc/$ns" ) {
-            $found = 1;
-
-            last;
-        }
-    }
-
-    return if !$found;
+    return if !P->class->find( 'API', ns => ref $self );
 
     my $api_class = P->class->load( 'API', ns => ref $self );
 
