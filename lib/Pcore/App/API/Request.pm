@@ -58,7 +58,7 @@ sub api_call ( $self, $method_id, $args, $cb = undef ) {
 
     my $obj = $self->{api}->{map}->{obj}->{ $method_cfg->{class_name} };
 
-    my $method_name = $method_cfg->{method_name};
+    my $method_name = $method_cfg->{local_method_name};
 
     eval { $obj->$method_name( $self, $args ? $args->@* : undef ) };
 

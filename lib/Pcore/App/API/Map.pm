@@ -64,17 +64,20 @@ sub _build_method ($self) {
         for my $method_name ( sort keys $obj_map->%* ) {
             my $method_id = qq[/$class_path/$method_name];
 
+            my $local_method_name = "api_$method_name";
+
             $method->{$method_id} = {
                 $obj_map->{$method_name}->%*,
-                id          => $method_id,
-                version     => "v$version",
-                class_name  => $class_name,
-                class_path  => "/$class_path",
-                method_name => $method_name,
+                id                => $method_id,
+                version           => "v$version",
+                class_name        => $class_name,
+                class_path        => "/$class_path",
+                method_name       => $method_name,
+                local_method_name => $local_method_name,
             };
 
             # method should exists
-            die qq[API method "$method_id" is not exists] if !$obj->can($method_name);
+            die qq[API method "$local_method_name" is not exists. By convention api methods should be prefixed with "api_" prefix] if !$obj->can($local_method_name);
 
             # validate api method configuration
             die qq[API method "$method_id" requires description] if !$method->{$method_id}->{desc};
@@ -91,7 +94,7 @@ sub _build_method ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 45, 64, 68           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 45, 64, 70           | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
