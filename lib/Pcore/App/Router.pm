@@ -13,9 +13,12 @@ has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
 has _cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # HTTP controllers cache
 
 sub _perl_class_path_to_snake_case ($str) {
+
+    # convert aB -> a-b
     $str =~ s/([[:lower:]])([[:upper:]])/"$1-" . lc $2/smge;
 
-    $str =~ s/(.)([[:upper:]])([[:lower:]])/"$1-" . lc($2) . $3/smge;
+    # convert Ab -> -ab, if "A" is not first symbol and "A" if not after "/"
+    $str =~ s[([^/])([[:upper:]])([[:lower:]])]["$1-" . lc($2) . $3]smge;
 
     return lc $str;
 }
@@ -132,9 +135,9 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 58, 80               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 61, 83               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 33, 49, 86, 105      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 36, 52, 89, 108      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
