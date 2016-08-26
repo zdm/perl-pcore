@@ -52,8 +52,8 @@ sub find ( $class, @ ) {
 
     # find class in @INC
     for my $inc ( grep { !ref } @INC ) {
-        if ( -f "$inc/$args{ns}" ) {
-            $found = "$inc/$args{ns}";
+        if ( -f "$inc/$class_filename" ) {
+            $found = "$inc/$class_filename";
 
             last;
         }
