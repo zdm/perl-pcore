@@ -143,6 +143,10 @@ sub auth_token ( $self, $token_b64, $cb ) {
     return;
 }
 
+sub auth_method ( $self, $mid, $rid, $cb ) {
+    return 1;
+}
+
 # TODO - create user with uid = 1 if not exitst, return new password
 sub set_root_password ( $self, $password = undef ) {
     my $blocking_cv = AE::cv;
@@ -198,6 +202,18 @@ sub create_user ( $self, $username, $password, $cb ) {
         $cb->( Pcore::Util::Status->new( { status => [ '201', 'User already exists' ] } ) );
     }
 
+    return;
+}
+
+sub create_role ( $self, $rolename, $cb ) {
+    return;
+}
+
+sub set_user_password ( $self, $uid, $password, $cb ) {
+    return;
+}
+
+sub set_enable_user ( $self, $uid, $enabled, $cb ) {
     return;
 }
 
@@ -286,8 +302,8 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 212, 223, 232, 240,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 248                  |                                                                                                                |
+## |    3 | 228, 239, 248, 256,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 264                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

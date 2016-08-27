@@ -46,9 +46,9 @@ sub auth_password ( $self, $username, $password, $cb ) {
         sub ($uid) {
             if ($uid) {
                 my $api_request = bless {
-                    api     => $self,
-                    uid     => $uid,
-                    role_id => 1,
+                    api => $self,
+                    uid => $uid,
+                    rid => 1,
                   },
                   'Pcore::App::API::Request';
 
@@ -72,9 +72,9 @@ sub auth_token ( $self, $token_b64, $cb ) {
 
                 # if ($uid) {
                 my $api_request = bless {
-                    api     => $self,
-                    uid     => $uid // 1,
-                    role_id => 1,
+                    api => $self,
+                    uid => $uid // 1,
+                    rid => 1,
                   },
                   'Pcore::App::API::Request';
 

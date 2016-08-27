@@ -6,7 +6,7 @@ use Pcore::Util::Scalar qw[blessed];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {
-    return sub { return _write( $self, @_ ) };
+    return sub { return _respond( $self, @_ ) };
   },
   bool => sub {
     return 1;
@@ -14,10 +14,8 @@ use overload    #
   fallback => undef;
 
 has api => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'], required => 1 );
-has uid     => ( is => 'ro', isa => PositiveInt, required => 1 );
-has role_id => ( is => 'ro', isa => PositiveInt, required => 1 );
-
-has allowed_methods => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has uid => ( is => 'ro', isa => PositiveInt, required => 1 );    # user id
+has rid => ( is => 'ro', isa => PositiveInt, required => 1 );    # role id
 
 has _cb => ( is => 'ro', isa => Maybe [CodeRef], init_arg => undef );
 has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
@@ -28,18 +26,10 @@ sub DEMOLISH ( $self, $global ) {
     if ( !$global && !$self->{_responded} && $self->{_cb} ) {
 
         # API request object destroyed without return any result, this is possible run-time error in AE callback
-        _write( $self, 500 );
+        _respond( $self, 500 );
     }
 
     return;
-}
-
-# TODO resolve role_id -> methods
-# TODO move to the api->auth
-sub _build_allowed_methods ($self) {
-    my $methods->@{ keys $self->api->map->%* } = ();
-
-    return $methods;
 }
 
 sub is_root ($self) {
@@ -58,7 +48,7 @@ sub api_call ( $self, $method_id, @ ) {
         $args = [ splice @_, 2 ] if @_ > 2;
     }
 
-    $self->api_call_arrayref( $method_id, $args, $cb );
+    api_call_arrayref( $self, $method_id, $args, $cb );
 
     return;
 }
@@ -75,24 +65,48 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
     my $method_cfg = $self->{api}->{map}->{method}->{$method_id};
 
     # find method
-    return _write( $self, [ 404, qq[API method "$method_id" was not found] ] ) if !$method_cfg;
+    return _respond( $self, [ 404, qq[API method "$method_id" was not found] ] ) if !$method_cfg;
 
-    # check permissions
-    return _write( $self, [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $self->{uid} != 1 && !exists $self->allowed_methods->{$method_id};
+    my $api_call = sub {
+        my $obj = $self->{api}->{map}->{obj}->{ $method_cfg->{class_name} };
 
-    my $obj = $self->{api}->{map}->{obj}->{ $method_cfg->{class_name} };
+        my $method_name = $method_cfg->{local_method_name};
 
-    my $method_name = $method_cfg->{local_method_name};
+        # call method
+        eval { $obj->$method_name( $self, $args ? $args->@* : undef ) };
 
-    # call method
-    eval { $obj->$method_name( $self, $args ? $args->@* : undef ) };
+        $@->sendlog if $@;
 
-    $@->sendlog if $@;
+        return;
+    };
+
+    # user is root, method authentication is not required
+    if ( $self->{uid} == 1 ) {
+        $api_call->();
+    }
+
+    # user is not root, need to authenticate method
+    else {
+        $self->api->auth->auth_method(
+            $method_id,
+            $self->{rid},
+            sub ($access_allowed) {
+                if ($access_allowed) {
+                    $api_call->();
+                }
+                else {
+                    _respond( $self, [ 403, qq[Unauthorized access to API method "$method_id"] ] );
+                }
+
+                return;
+            }
+        );
+    }
 
     return;
 }
 
-sub _write ( $self, $status, @args ) {
+sub _respond ( $self, $status, @args ) {
     die q[Already responded] if $self->{_responded};
 
     $self->{_responded} = 1;
@@ -117,9 +131,9 @@ sub _write ( $self, $status, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 40, 69               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 59                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 88                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 76                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
