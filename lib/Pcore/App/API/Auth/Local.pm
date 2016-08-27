@@ -3,6 +3,7 @@ package Pcore::App::API::Auth::Local;
 use Pcore -class;
 use Pcore::App::API::RPC::Hash;
 use Pcore::Util::Hash::RandKey;
+use Pcore::Util::Status;
 
 with qw[Pcore::App::API::Auth];
 
@@ -171,6 +172,35 @@ sub set_root_password ( $self, $password = undef ) {
     return $blocking_cv->recv;
 }
 
+sub create_user ( $self, $username, $password, $cb ) {
+    state $q1 = $self->dbh->query(q[INSERT OR IGNORE INTO api_user (username, password, enabled) VALUES (?, '', 0)]);
+
+    state $q2 = $self->dbh->query('UPDATE api_user SET password = ?, enabled = 1 WHERE id = ?');
+
+    if ( $q1->do( [$username] ) ) {
+        $password //= P->random->bytes_hex(32);
+
+        my $uid = $self->dbh->last_insert_id;
+
+        $self->_hash_rpc->rpc_call(
+            'create_scrypt',
+            $password,
+            sub ( $status, $password_hash ) {
+                $q2->do( [ $password_hash, $uid ] );
+
+                $cb->( Pcore::Util::Status->new( { status => 200 } ), $uid, $password );
+
+                return;
+            }
+        );
+    }
+    else {
+        $cb->( Pcore::Util::Status->new( { status => [ '201', 'User already exists' ] } ) );
+    }
+
+    return;
+}
+
 # TODO update api methods in database, or upload api map to cluster
 sub upload_api_map ( $self, $map ) {
     my $local_methods = $map->method;
@@ -256,8 +286,8 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 182, 193, 202, 210,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 218                  |                                                                                                                |
+## |    3 | 212, 223, 232, 240,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 248                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

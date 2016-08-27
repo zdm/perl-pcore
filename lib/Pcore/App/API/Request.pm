@@ -1,12 +1,12 @@
 package Pcore::App::API::Request;
 
 use Pcore -class;
+use Pcore::Util::Status;
+use Pcore::Util::Scalar qw[blessed];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {
-    use subs qw[write];
-
-    return sub { return write( $self, @_ ) };
+    return sub { return _write( $self, @_ ) };
   },
   bool => sub {
     return 1;
@@ -20,21 +20,22 @@ has role_id => ( is => 'ro', isa => PositiveInt, required => 1 );
 has allowed_methods => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 has _cb => ( is => 'ro', isa => Maybe [CodeRef], init_arg => undef );
-has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
+has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
 
 P->init_demolish(__PACKAGE__);
 
 sub DEMOLISH ( $self, $global ) {
-    if ( !$global && !$self->{_response_status} && $self->{_cb} ) {
+    if ( !$global && !$self->{_responded} && $self->{_cb} ) {
 
         # API request object destroyed without return any result, this is possible run-time error in AE callback
-        $self->{_cb}->(500);
+        _write( $self, 500 );
     }
 
     return;
 }
 
 # TODO resolve role_id -> methods
+# TODO move to the api->auth
 sub _build_allowed_methods ($self) {
     my $methods->@{ keys $self->api->map->%* } = ();
 
@@ -45,21 +46,45 @@ sub is_root ($self) {
     return $self->{uid} == 1;
 }
 
-sub api_call ( $self, $method_id, $args, $cb = undef ) {
+sub api_call ( $self, $method_id, @ ) {
+    my ( $cb, $args );
 
-    # remember cb, if defined
+    if ( ref $_[-1] eq 'CODE' ) {
+        $cb = $_[-1];
+
+        $args = [ splice @_, 2, -1 ] if @_ > 3;
+    }
+    else {
+        $args = [ splice @_, 2 ] if @_ > 2;
+    }
+
+    $self->api_call_arrayref( $method_id, $args, $cb );
+
+    return;
+}
+
+sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
+
+    # get a clone
+    $self = bless { $self->%* }, __PACKAGE__;
+
+    $self->{_responded} = 0;
+
     $self->{_cb} = $cb;
 
     my $method_cfg = $self->{api}->{map}->{method}->{$method_id};
 
-    return $self->write( [ 404, qq[API method "$method_id" was not found] ] ) if !$method_cfg;
+    # find method
+    return _write( $self, [ 404, qq[API method "$method_id" was not found] ] ) if !$method_cfg;
 
-    return $self->write( [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $self->{uid} != 1 && !exists $self->allowed_methods->{$method_id};
+    # check permissions
+    return _write( $self, [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $self->{uid} != 1 && !exists $self->allowed_methods->{$method_id};
 
     my $obj = $self->{api}->{map}->{obj}->{ $method_cfg->{class_name} };
 
     my $method_name = $method_cfg->{local_method_name};
 
+    # call method
     eval { $obj->$method_name( $self, $args ? $args->@* : undef ) };
 
     $@->sendlog if $@;
@@ -67,16 +92,20 @@ sub api_call ( $self, $method_id, $args, $cb = undef ) {
     return;
 }
 
-sub write ( $self, $status, $data = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    die q[Already responded] if $self->{_response_status};
+sub _write ( $self, $status, @args ) {
+    die q[Already responded] if $self->{_responded};
 
-    $self->{_response_status} = 1;
+    $self->{_responded} = 1;
 
     # remove callback
     my $cb = delete $self->{_cb};
 
     # return response, if callback is defined
-    $cb->( $status, $data ) if $cb;
+    if ($cb) {
+        $status = Pcore::Util::Status->new( { status => $status } ) if !blessed $status;
+
+        $cb->( $status, @args );
+    }
 
     return;
 }
@@ -88,11 +117,9 @@ sub write ( $self, $status, $data = undef ) {    ## no critic qw[Subroutines::Pr
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 39                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 40, 69               | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 63                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 9                    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    3 | 88                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
