@@ -36,6 +36,7 @@ sub _build__is_http ($self) {
     return $self->_uri->is_http;
 }
 
+# TODO make blocking call
 sub api_call ( $self, $method, @ ) {
     my ( $cb, $args );
 
@@ -64,15 +65,17 @@ sub api_call ( $self, $method, @ ) {
                 }
             ),
             on_finish => sub ($res) {
-                my $api_res = Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
+                my $status = Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
 
-                if ( $res->is_success ) {
+                # HTTP protocol or API call error
+                if ( !$status ) {
+                    $cb->($status) if $cb;
+                }
+                else {
                     my $response = from_cbor $res->body;
 
-                    $api_res->{result} = $response->{result};
+                    $cb->( $status, $response->{args} ? $response->{args}->@* : undef ) if $cb;
                 }
-
-                $cb->($api_res) if $cb;
 
                 return;
             },
@@ -106,9 +109,9 @@ sub api_call ( $self, $method, @ ) {
 
         if ( !$ws ) {
             my $on_error = sub ( $status, $reason ) {
-                my $api_res = Pcore::Util::Status->new( { status => $status, reason => $reason } );
+                $status = Pcore::Util::Status->new( { status => $status, reason => $reason } );
 
-                $cb->($api_res) if $cb;
+                $cb->($status) if $cb;
 
                 return;
             };
@@ -168,11 +171,14 @@ sub api_call ( $self, $method, @ ) {
                         # this is API callback
                         else {
                             if ( my $callback = delete $self->{_ws_cid_cache}->{ $data->{cid} } ) {
-                                my $api_res = Pcore::Util::Status->new( { status => $data->{status} } );
+                                my $status = Pcore::Util::Status->new( { status => $data->{status} } );
 
-                                $api_res->{result} = $data->{result} if $api_res->is_success;
-
-                                $callback->($api_res);
+                                if ( !$status ) {
+                                    $callback->($status) if $callback;
+                                }
+                                else {
+                                    $callback->( $status, $data->{args} ? $data->{args}->@* : undef ) if $callback;
+                                }
                             }
                         }
                     }
@@ -210,7 +216,9 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 39                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (24)                  |
+## |    3 | 40                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (31)                  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 176                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

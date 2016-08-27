@@ -46,7 +46,7 @@ sub run ( $self, $req ) {
         my $body = {
             cid    => $cid,
             status => $status,
-            result => @args ? \@args : undef,
+            args   => @args ? \@args : undef,
         };
 
         # write HTTP response
@@ -168,7 +168,7 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
                         my $body = {
                             cid    => $cid,
                             status => $status,
-                            result => @args ? \@args : undef,
+                            args   => @args ? \@args : undef,
                         };
 
                         # write response
