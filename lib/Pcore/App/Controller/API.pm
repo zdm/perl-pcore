@@ -3,6 +3,7 @@ package Pcore::App::Controller::API;
 use Pcore -const, -role;
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor];
 use Pcore::Util::Status;
+use Pcore::Util::Scalar qw[blessed];
 
 with qw[Pcore::App::Controller::WebSocket];
 
@@ -34,8 +35,8 @@ sub run ( $self, $req ) {
     my $cid;
 
     # create callback
-    my $cb = sub ( $status, $result = undef ) {
-        $status = Pcore::Util::Status->new( { status => $status } );
+    my $cb = sub ( $status, @args ) {
+        $status = Pcore::Util::Status->new( { status => $status } ) if !blessed $status;
 
         # create list of HTTP response headers
         my @headers = (    #
@@ -45,7 +46,7 @@ sub run ( $self, $req ) {
         my $body = {
             cid    => $cid,
             status => $status,
-            result => $result,
+            result => @args ? \@args : undef,
         };
 
         # write HTTP response
@@ -84,6 +85,9 @@ sub run ( $self, $req ) {
 
     # set request id
     $cid = $data->{cid};
+
+    # method is not specified, this is callback, not supported in API server
+    return $cb->( [ 400, q[Method is required] ] ) if !$data->{method};
 
     # get auth token
     my $token = $self->_get_token($env);
@@ -154,21 +158,17 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
             # token authentication error
             return $self->websocket_disconnect( $ws, 401, q[Unauthorized] ) if !$api_request;
 
-            # -------------------------------
-
             # method is specified, this is API call
             if ( my $method_id = $data->{method} ) {
                 my $cb;
 
                 # this is not void API call, create callback
                 if ( my $cid = $data->{cid} ) {
-                    $cb = sub ( $status, $result = undef ) {
-                        $status = Pcore::Util::Status->new( { status => $status } );
-
+                    $cb = sub ( $status, @args ) {
                         my $body = {
                             cid    => $cid,
                             status => $status,
-                            result => $result,
+                            result => @args ? \@args : undef,
                         };
 
                         # write response
@@ -255,7 +255,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 139                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 143                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
