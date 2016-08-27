@@ -120,7 +120,7 @@ around run => sub ( $orig, $self, $req ) {
         };
 
         my $decline = sub ( $status = 400, $headers = undef ) {
-            $req->write( $status, $headers )->finish;
+            $req->( $status, $headers )->finish;
 
             return;
         };

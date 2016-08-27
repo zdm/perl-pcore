@@ -14,14 +14,14 @@ sub return_static ( $self, $req ) {
 
             $path = P->path($path);
 
-            $req->write( 200, [ 'Content-Type' => $path->mime_type ], $data )->finish;
+            $req->( 200, [ 'Content-Type' => $path->mime_type ], $data )->finish;
         }
         else {
-            $req->write(404)->finish;    # not found
+            $req->(404)->finish;    # not found
         }
     }
     else {
-        $req->write(403)->finish;        # forbidden
+        $req->(403)->finish;        # forbidden
     }
 
     return;

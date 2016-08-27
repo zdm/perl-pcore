@@ -8,9 +8,7 @@ use Pcore::Util::Text qw[encode_utf8];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {
-    use subs qw[write];
-
-    return sub { return write( $self, @_ ) };
+    return sub { return _respond( $self, @_ ) };
   },
   fallback => undef;
 
@@ -75,7 +73,7 @@ sub body ($self) {
 }
 
 # TODO serialize body related to body ref type and content type
-sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub _respond ( $self, @ ) {
     die q[Unable to write, HTTP response is already finished] if $self->{_response_status} == $HTTP_SERVER_RESPONSE_FINISHED;
 
     my ( $buf, $body );
@@ -221,16 +219,6 @@ sub accept_websocket ( $self, $headers = undef ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 13                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

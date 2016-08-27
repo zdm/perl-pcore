@@ -49,7 +49,7 @@ sub run ( $self, $req ) {
         };
 
         # write HTTP response
-        $req->write( $status, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $body : to_cbor $body)->finish;
+        $req->( $status, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $body : to_cbor $body)->finish;
 
         # free HTTP request object
         undef $req;
@@ -101,7 +101,7 @@ sub run ( $self, $req ) {
 
             # method is specified, this is API call
             if ( my $method_id = $data->{method} ) {
-                $api_request->api_call( $method_id, $data->{args}, $cb );
+                $api_request->api_call_arrayref( $method_id, $data->{args}, $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
@@ -183,7 +183,7 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
                     };
                 }
 
-                $api_request->api_call( $method_id, $data->{args}, $cb );
+                $api_request->api_call_arrayref( $method_id, $data->{args}, $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
