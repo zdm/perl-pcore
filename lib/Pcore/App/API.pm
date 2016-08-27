@@ -38,7 +38,10 @@ sub _build_map ($self) {
     return "Pcore::App::API::Map"->new( { app => $self->app } );
 }
 
+# TODO combine token and password auth???
+
 # AUTH BACKEND METHODS
+# # TODO blocking / not blocking
 sub auth_password ( $self, $username, $password, $cb ) {
     return $self->auth->auth_password(
         $username,
@@ -63,6 +66,7 @@ sub auth_password ( $self, $username, $password, $cb ) {
     );
 }
 
+# TODO blocking / not blocking
 # TODO fix authentication
 sub auth_token ( $self, $token_b64, $cb ) {
     return $self->auth->auth_token(
@@ -93,6 +97,7 @@ sub upload_api_map ( $self ) {
     return $self->auth->upload_api_map( $self->map );
 }
 
+# TODO blocking / not blocking
 sub set_root_password ( $self, $password = undef ) {
     return $self->auth->set_root_password($password);
 }

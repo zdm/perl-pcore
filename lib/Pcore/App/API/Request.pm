@@ -48,11 +48,10 @@ sub api_call ( $self, $method_id, @ ) {
         $args = [ splice @_, 2 ] if @_ > 2;
     }
 
-    api_call_arrayref( $self, $method_id, $args, $cb );
-
-    return;
+    return api_call_arrayref( $self, $method_id, $args, $cb );
 }
 
+# TODO blocking call, return @arrs if wantarray
 sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 
     # get a clone
@@ -131,9 +130,9 @@ sub _respond ( $self, $status, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 58                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 76                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -12,6 +12,9 @@ has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
 has _hash_rpc => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::RPC'], init_arg => undef );
 has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], default => sub { Pcore::Util::Hash::RandKey->new }, init_arg => undef );
 
+# TODO all public method should be blocking / not blocking;
+# TODO don't use state, store quieries into query cache;
+
 sub BUILD ( $self, $args ) {
     $self->_ddl_upgrade;
 
@@ -302,8 +305,8 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 228, 239, 248, 256,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 264                  |                                                                                                                |
+## |    3 | 231, 242, 251, 259,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 267                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
