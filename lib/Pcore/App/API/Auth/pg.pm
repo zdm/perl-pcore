@@ -1,4 +1,4 @@
-package Pcore::App::API::Auth::Local;
+package Pcore::App::API::Auth::pg;
 
 use Pcore -class;
 use Pcore::App::API::RPC::Hash;
@@ -146,6 +146,7 @@ sub auth_token ( $self, $token_b64, $cb ) {
     return;
 }
 
+# TODO return status, auth, auth_cache_id
 sub auth_method ( $self, $mid, $rid, $cb ) {
     return 1;
 }
@@ -305,8 +306,11 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 231, 242, 251, 259,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 267                  |                                                                                                                |
+## |    3 | 232, 243, 252, 260,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 268                  |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::pg" does not start with a upper case       |
+## |      |                      | letter                                                                                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -317,7 +321,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::Local
+Pcore::App::API::Auth::pg
 
 =head1 SYNOPSIS
 

@@ -17,14 +17,23 @@ sub _build_app_id ($self) {
 sub _build_auth ($self) {
     my $auth;
 
+    # auth is a uri string
     if ( !ref $self->{app}->{auth} ) {
-        require Pcore::App::API::Auth::Local;
+        my $dbh = P->handle( $self->{app}->{auth} );
 
-        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => P->handle( $self->{app}->{auth} ) } );
+        my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Auth' );
+
+        $auth = $class->new( { app => $self->app, dbh => $dbh } );
     }
+
+    # auth is a handle object
     elsif ( $self->{app}->{auth}->does('Pcore::DBH') ) {
-        $auth = Pcore::App::API::Auth::Local->new( { api => $self, dbh => $self->{app}->{auth} } );
+        my $class = P->class->load( $self->{app}->{auth}->uri->scheme, ns => 'Pcore::App::API::Auth' );
+
+        $auth = $class->new( { app => $self->app, dbh => $self->{app}->{auth} } );
     }
+
+    # auth is a object (cluster client)
     else {
         $auth = $self->{app}->{auth};
     }
@@ -109,7 +118,7 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 38                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 47                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
