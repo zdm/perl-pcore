@@ -7,13 +7,20 @@ requires qw[auth_password auth_token auth_method set_root_password upload_api_ma
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has _auth_cache_id => ( is => 'ro', isa => PositiveInt, default => 0, init_arg => undef );
-has _auth_method_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _auth_method_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _auth_method_req_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around auth_method => sub ( $orig, $self, $mid, $rid, $cb ) {
-    if ( exists $self->{_auth_method_cache}->{$rid}->{$mid} ) {
-        $cb->( $self->{_auth_method_cache}->{$rid}->{$mid} );
+    my $id = "$rid\_$mid";
+
+    if ( exists $self->{_auth_method_cache}->{$id} ) {
+        $cb->( $self->{_auth_method_cache}->{$id} );
     }
     else {
+        push $self->{_auth_method_req_cache}->{$id}->@*, $cb;
+
+        return if $self->{_auth_method_req_cache}->{$id}->@* > 1;
+
         $self->$orig(
             $mid, $rid,
             sub ( $status, $auth, $auth_cache_id ) {
@@ -26,13 +33,17 @@ around auth_method => sub ( $orig, $self, $mid, $rid, $cb ) {
                         $self->{_auth_method_cache}->%* = ();
                     }
 
-                    $self->{_auth_method_cache}->{$rid}->{$mid} = $auth;
-
-                    $cb->($auth);
+                    $self->{_auth_method_cache}->{$id} = $auth;
                 }
                 else {
-                    $cb->(0);
+                    $auth = 0;
                 }
+
+                while ( my $cb = shift $self->{_auth_method_req_cache}->{$id}->@* ) {
+                    $cb->($auth);
+                }
+
+                delete $self->{_auth_method_req_cache}->{$id};
 
                 return;
             }
@@ -49,7 +60,7 @@ around auth_method => sub ( $orig, $self, $mid, $rid, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 26                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |    3 | 33                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
