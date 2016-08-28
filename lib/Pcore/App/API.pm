@@ -21,14 +21,14 @@ sub _build_auth ($self) {
     if ( !ref $self->{app}->{auth} ) {
         my $dbh = P->handle( $self->{app}->{auth} );
 
-        my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Auth' );
+        my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Auth::Local' );
 
         $auth = $class->new( { app => $self->app, dbh => $dbh } );
     }
 
     # auth is a handle object
     elsif ( $self->{app}->{auth}->does('Pcore::DBH') ) {
-        my $class = P->class->load( $self->{app}->{auth}->uri->scheme, ns => 'Pcore::App::API::Auth' );
+        my $class = P->class->load( $self->{app}->{auth}->uri->scheme, ns => 'Pcore::App::API::Auth::Local' );
 
         $auth = $class->new( { app => $self->app, dbh => $self->{app}->{auth} } );
     }

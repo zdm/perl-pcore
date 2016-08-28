@@ -1,23 +1,14 @@
-package Pcore::App::API::Auth::pg;
+package Pcore::App::API::Auth::Local::sqlite;
 
 use Pcore -class;
-use Pcore::App::API::RPC::Hash;
-use Pcore::Util::Hash::RandKey;
 use Pcore::Util::Status;
 
-with qw[Pcore::App::API::Auth];
-
-has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
-
-has _hash_rpc => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::PM::RPC'], init_arg => undef );
-has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], default => sub { Pcore::Util::Hash::RandKey->new }, init_arg => undef );
+with qw[Pcore::App::API::Auth::Local];
 
 # TODO all public method should be blocking / not blocking;
 # TODO don't use state, store quieries into query cache;
 
 sub BUILD ( $self, $args ) {
-    $self->_ddl_upgrade;
-
     return;
 }
 
@@ -29,6 +20,11 @@ sub _ddl_upgrade ($self) {
     $ddl->add_changeset(
         id  => 1,
         sql => <<"SQL"
+            CREATE TABLE IF NOT EXISTS `api_cache_id` (
+                `id` INTEGER PRIMARY KEY NOT NULL,
+                `auth_method` INTEGER NOT NULL DEFAULT 1
+            );
+
             CREATE TABLE IF NOT EXISTS `api_user` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `username` TEXT NOT NULL UNIQUE,
@@ -73,17 +69,77 @@ SQL
     return;
 }
 
-sub _build__hash_rpc($self) {
-    return P->pm->run_rpc(
-        'Pcore::App::API::RPC::Hash',
-        workers   => 1,
-        buildargs => {
-            scrypt_N   => 16_384,
-            scrypt_r   => 8,
-            scrypt_p   => 1,
-            scrypt_len => 32,
-        },
-    );
+# CACHE
+sub _build_local_cache_id ($self) {
+  REDO:
+    if ( my $res = $self->dbh->selectrow('SELECT * FROM api_cache_id WHERE id = 1') ) {
+        delete $res->{id};
+
+        return $res;
+    }
+    else {
+        $self->dbh->do('INSERT OR IGNORE INTO api_cache_id (id) VALUES (1)');
+
+        goto REDO;
+    }
+}
+
+sub update_local_cache_id ( $self, $cache_id, $val ) {
+    $self->dbh->do("UPDATE api_cache_id SET `$cache_id` = ? WHERE id = $val");
+
+    return;
+}
+
+# TODO update api methods in database, or upload api map to cluster
+sub upload_api_map ( $self, $map ) {
+    my $local_methods = $map->method;
+
+    my $remote_methods = $self->dbh->selectall_hashref( 'SELECT * FROM api_method WHERE app_id = ?', [ $self->app->app_id ], key_cols => 'id' );
+
+    my ( $add_methods, $remove_methods, $update_methods );
+
+    for my $method_id ( keys $local_methods->%* ) {
+        if ( !exists $remote_methods->{$method_id} ) {
+            $add_methods->{$method_id} = undef;
+        }
+        else {
+            if ( $remote_methods->{$method_id}->{desc} ne $local_methods->{$method_id}->{desc} ) {
+                $update_methods->{$method_id} = undef;
+            }
+        }
+    }
+
+    for my $method_id ( keys $remote_methods->%* ) {
+        if ( !exists $local_methods->{$method_id} ) {
+            $remove_methods->{$method_id} = undef;
+        }
+    }
+
+    if ($add_methods) {
+        my $q1 = $self->dbh->query('INSERT INTO api_method (id, app_id, version, class, name, desc) VALUES (?, ?, ?, ?, ?, ?)');
+
+        for my $method_id ( keys $add_methods->%* ) {
+            $q1->do( [ $method_id, $self->app->app_id, $local_methods->{$method_id}->{version}, $local_methods->{$method_id}->{class_path}, $local_methods->{$method_id}->{method_name}, $local_methods->{$method_id}->{desc} ] );
+        }
+    }
+
+    if ($update_methods) {
+        my $q1 = $self->dbh->query('UPDATE api_method SET desc = ? WHERE id = ?');
+
+        for my $method_id ( keys $update_methods->%* ) {
+            $q1->do( [ $local_methods->{$method_id}->{desc}, $method_id ] );
+        }
+    }
+
+    if ($remove_methods) {
+        my $q1 = $self->dbh->query('DELETE FROM api_method WHERE id = ?');
+
+        for my $method_id ( keys $remove_methods->%* ) {
+            $q1->do( [$method_id] );
+        }
+    }
+
+    return;
 }
 
 # TODO return authenticated api object on success
@@ -148,7 +204,9 @@ sub auth_token ( $self, $token_b64, $cb ) {
 
 # TODO return status, auth, auth_cache_id
 sub auth_method ( $self, $mid, $rid, $cb ) {
-    return 1;
+    $cb->( Pcore::Util::Status->new( { status => 200 } ), 1 );
+
+    return;
 }
 
 # TODO - create user with uid = 1 if not exitst, return new password
@@ -221,84 +279,6 @@ sub set_enable_user ( $self, $uid, $enabled, $cb ) {
     return;
 }
 
-# TODO update api methods in database, or upload api map to cluster
-sub upload_api_map ( $self, $map ) {
-    my $local_methods = $map->method;
-
-    my $remote_methods = $self->dbh->selectall_hashref( 'SELECT * FROM api_method WHERE app_id = ?', [ $self->api->app_id ], key_cols => 'id' );
-
-    my ( $add_methods, $remove_methods, $update_methods );
-
-    for my $method_id ( keys $local_methods->%* ) {
-        if ( !exists $remote_methods->{$method_id} ) {
-            $add_methods->{$method_id} = undef;
-        }
-        else {
-            if ( $remote_methods->{$method_id}->{desc} ne $local_methods->{$method_id}->{desc} ) {
-                $update_methods->{$method_id} = undef;
-            }
-        }
-    }
-
-    for my $method_id ( keys $remote_methods->%* ) {
-        if ( !exists $local_methods->{$method_id} ) {
-            $remove_methods->{$method_id} = undef;
-        }
-    }
-
-    if ($add_methods) {
-        my $q1 = $self->dbh->query('INSERT INTO api_method (id, app_id, version, class, name, desc) VALUES (?, ?, ?, ?, ?, ?)');
-
-        for my $method_id ( keys $add_methods->%* ) {
-            $q1->do( [ $method_id, $self->api->app_id, $local_methods->{$method_id}->{version}, $local_methods->{$method_id}->{class_path}, $local_methods->{$method_id}->{method_name}, $local_methods->{$method_id}->{desc} ] );
-        }
-    }
-
-    if ($update_methods) {
-        my $q1 = $self->dbh->query('UPDATE api_method SET desc = ? WHERE id = ?');
-
-        for my $method_id ( keys $update_methods->%* ) {
-            $q1->do( [ $local_methods->{$method_id}->{desc}, $method_id ] );
-        }
-    }
-
-    if ($remove_methods) {
-        my $q1 = $self->dbh->query('DELETE FROM api_method WHERE id = ?');
-
-        for my $method_id ( keys $remove_methods->%* ) {
-            $q1->do( [$method_id] );
-        }
-    }
-
-    return;
-}
-
-# TODO implement cache size
-sub _verify_hash ( $self, $str, $hash, $cb ) {
-    $str = P->text->encode_utf8($str);
-
-    my $id = $str . $hash;
-
-    if ( exists $self->{_hash_cache}->{$id} ) {
-        $cb->(1);
-    }
-    else {
-        $self->_hash_rpc->rpc_call(
-            'verify_scrypt',
-            $str, $hash,
-            sub ( $status, $match ) {
-                $self->{_hash_cache}->{$id} = undef;
-
-                $cb->($match);
-
-                return;
-            }
-        );
-    }
-
-    return;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -306,11 +286,13 @@ sub _verify_hash ( $self, $str, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 232, 243, 252, 260,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 268                  |                                                                                                                |
+## |    3 | 15                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_ddl_upgrade' declared but not used |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::pg" does not start with a upper case       |
-## |      |                      | letter                                                                                                         |
+## |    3 | 101, 112, 121, 129,  | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
+## |      | 137                  |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Local::sqlite" does not start with a upper |
+## |      |                      |  case letter                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -321,7 +303,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::pg
+Pcore::App::API::Auth::Local::sqlite
 
 =head1 SYNOPSIS
 
