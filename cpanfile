@@ -114,6 +114,7 @@ requires 'String::CRC32';
 requires 'Crypt::ScryptKDF';
 requires 'Digest::SHA1';
 requires 'Digest::SHA';
+requires 'Digest::SHA3';
 
 # Pcore::Util::File
 requires 'File::Copy::Recursive';
