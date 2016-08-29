@@ -131,11 +131,11 @@ sub _build__out_size ($self) {
 }
 
 sub _build__in_md5 ($self) {
-    return P->digest->md5_hex( $self->in_buffer );
+    return P->digest->md5_hex( $self->in_buffer->$* );
 }
 
 sub _build__out_md5 ($self) {
-    return P->digest->md5_hex( $self->out_buffer );
+    return P->digest->md5_hex( $self->out_buffer->$* );
 }
 
 sub _build_out_buffer ($self) {
