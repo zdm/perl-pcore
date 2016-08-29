@@ -111,7 +111,7 @@ around BUILDARGS => sub ( $orig, $self, $args ) {
         $args->{status} = $args->{status}->[0];
     }
     elsif ( !defined $args->{reason} ) {
-        $args->{reason} = get_reason->( undef, $args->{status}, $args->{status_reason} );
+        $args->{reason} = get_reason( undef, $args->{status}, $args->{status_reason} );
     }
 
     return $self->$orig($args);
@@ -136,7 +136,7 @@ sub set_status ( $self, $status, $reason = undef ) {
     else {
         $self->{status} = $status;
 
-        $self->{reason} = $reason // get_reason->( $self, $status, $self->{status_reason} );
+        $self->{reason} = $reason // get_reason( $self, $status, $self->{status_reason} );
     }
 
     return;
