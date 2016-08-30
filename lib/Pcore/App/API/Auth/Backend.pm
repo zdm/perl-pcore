@@ -11,10 +11,13 @@ requires(
     'connect_app_instance',
 
     # user
+    'get_user_by_id',
+    'get_user_by_name',
     'create_user',
     'set_user_password',
     'set_user_enabled',
     'set_user_role',
+    'create_user_token',
 
     # role
     'create_role',
@@ -28,7 +31,6 @@ requires(
 );
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
-has is_local => ( is => 'ro', isa => Bool, required => 1 );
 
 1;
 __END__

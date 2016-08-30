@@ -117,6 +117,7 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
     return;
 }
 
+# TODO set api methods
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
     $cb->( Pcore::Util::Status->new( { status => 200 } ) );
 
@@ -124,15 +125,104 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
 }
 
 # USER
+sub get_user_by_id ( $self, $user_id, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
+        $cb->( Pcore::Util::Status->new( { status => 200 } ), $user );
+    }
+    else {
+
+        # user not found
+        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+    }
+
+    return;
+}
+
+sub get_user_by_name ( $self, $username, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE username = ?], [$username] ) ) {
+        $cb->( Pcore::Util::Status->new( { status => 200 } ), $user );
+    }
+    else {
+
+        # user not found
+        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+    }
+
+    return;
+}
+
 sub create_user ( $self, $username, $password, $role_id, $cb ) {
+    my $dbh = $self->dbh;
+
+    $dbh->begin_work;
+
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (username, role_id, enabled) VALUES (?, ?, ?)], [ $username, $role_id, 0 ] ) ) {
+        my $user_id = $dbh->last_insert_id;
+
+        $self->create_token(
+            $user_id, $user_id,
+            sub ( $token, $hash ) {
+                $dbh->do( q[UPDATE api_user SET enabled = ?, hash = ? WHERE id = ?], [ 1, $hash, $user_id ] );
+
+                $dbh->commit;
+
+                # user created
+                $cb->( Pcore::Util::Status->new( { status => 201 } ), $user_id, $password );
+
+                return;
+            }
+        );
+    }
+    else {
+        $dbh->rollback;
+
+        # username already exists
+        $cb->( Pcore::Util::Status->new( { status => 409 } ) );
+    }
+
     return;
 }
 
 sub set_user_password ( $self, $user_id, $password, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $user = $dbh->selectrow( q[SELECT enabled FROM api_user WHERE id = ?], [$user_id] ) ) {
+
+    }
+    else {
+
+        # user not found
+        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+    }
+
     return;
 }
 
 sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $user = $dbh->selectrow( q[SELECT enabled FROM api_user WHERE id = ?], [$user_id] ) ) {
+        if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
+            $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
+
+            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+        }
+        else {
+
+            # not modified
+            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+        }
+    }
+    else {
+
+        # user not found
+        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+    }
+
     return;
 }
 
@@ -140,12 +230,49 @@ sub set_user_role ( $self, $user_id, $role_id, $cb ) {
     return;
 }
 
+sub create_user_token ( $self, $user_id, $role_id, $cb ) {
+    return;
+}
+
 # ROLE
 sub create_role ( $self, $name, $desc, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
+        my $role_id = $dbh->last_insert_id;
+
+        $cb->( Pcore::Util::Status->new( { status => 201 } ), $role_id );
+    }
+    else {
+
+        # role already exists
+        $cb->( Pcore::Util::Status->new( { status => 409 } ) );
+    }
+
     return;
 }
 
 sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $role = $dbh->selectrow( q[SELECT enabled FROM api_role WHERE id = ?], [$role_id] ) ) {
+        if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
+            $dbh->do( q[UPDATE api_role SET enabled = ? WHERE id = ?], [ $enabled, $role_id ] );
+
+            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+        }
+        else {
+
+            # not modified
+            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+        }
+    }
+    else {
+
+        # role not found
+        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+    }
+
     return;
 }
 
@@ -173,7 +300,8 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88, 120, 127, 139    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 121, 158, 229,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 233                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
 ## |      |                      | with a upper case letter                                                                                       |
