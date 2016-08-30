@@ -2,12 +2,13 @@ package Pcore::App::API;
 
 use Pcore -role;
 use Pcore::App::API::Map;
+use Pcore::App::API::Auth;
 use Pcore::App::API::Request;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has app_id => ( is => 'lazy', isa => Str, init_arg => undef );
-has auth => ( is => 'lazy', isa => ConsumerOf ['Pcore::App::API::Auth'], init_arg => undef );
+has auth => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Auth'], init_arg => undef );
 has map  => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'],  init_arg => undef );
 
 sub _build_app_id ($self) {
@@ -15,30 +16,7 @@ sub _build_app_id ($self) {
 }
 
 sub _build_auth ($self) {
-    my $auth;
-
-    # auth is a uri string
-    if ( !ref $self->{app}->{auth} ) {
-        my $dbh = P->handle( $self->{app}->{auth} );
-
-        my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Auth::Local' );
-
-        $auth = $class->new( { app => $self->app, dbh => $dbh } );
-    }
-
-    # auth is a handle object
-    elsif ( $self->{app}->{auth}->does('Pcore::DBH') ) {
-        my $class = P->class->load( $self->{app}->{auth}->uri->scheme, ns => 'Pcore::App::API::Auth::Local' );
-
-        $auth = $class->new( { app => $self->app, dbh => $self->{app}->{auth} } );
-    }
-
-    # auth is a object (cluster client)
-    else {
-        $auth = $self->{app}->{auth};
-    }
-
-    return $auth;
+    return Pcore::App::API::Auth->new( { app => $self->app } );
 }
 
 sub _build_map ($self) {
@@ -118,7 +96,7 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 47                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 25                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
