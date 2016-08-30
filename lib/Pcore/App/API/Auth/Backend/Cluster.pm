@@ -12,6 +12,21 @@ sub init ( $self, $cb ) {
     return;
 }
 
+# TODO register app
+# TODO upload api methods
+sub register_app ( $self, $cb ) {
+
+    # TODO if has instance token locally - create was connection and upload api methods
+    # TODO if no instance token - send registration request via https (app_id, host);
+    # - check for registration approval on timeout;
+    # - on register - store token locally;
+    # - upload api methods;
+
+    $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+
+    return;
+}
+
 1;
 __END__
 =pod

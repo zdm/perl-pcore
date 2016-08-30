@@ -1,11 +1,11 @@
 package Pcore::App::API::Auth::Backend;
 
 use Pcore -role;
-use Pcore::Util::Status;
 
-requires qw[init];
+requires qw[init register_app];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+has is_local => ( is => 'ro', isa => Bool, required => 1 );
 
 1;
 __END__

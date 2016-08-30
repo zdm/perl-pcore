@@ -7,13 +7,8 @@ use Pcore::App::API::Request;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has app_id => ( is => 'lazy', isa => Str, init_arg => undef );
 has auth => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Auth'], init_arg => undef );
 has map  => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'],  init_arg => undef );
-
-sub _build_app_id ($self) {
-    return $self->{app}->app_id;
-}
 
 sub _build_auth ($self) {
     return Pcore::App::API::Auth->new( { app => $self->app } );
@@ -96,7 +91,7 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 25                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 20                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

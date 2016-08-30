@@ -4,19 +4,34 @@ use Pcore -role;
 use Pcore::HTTP::Server;
 use Pcore::App::Router;
 
-has app_id => ( is => 'ro', isa => Str, required => 1 );
-has cluster => ( is => 'ro', isa => Maybe [Str] );    # cluster uri, https://host:port/api/
+has name => ( is => 'lazy', isa => Str );
+has desc => ( is => 'lazy', isa => Str );
+
+# API settings
+has auth => ( is => 'ro', isa => Maybe [ Str | ConsumerOf ['Pcore::DBH'] | ConsumerOf ['Pcore::App::API::Auth'] ], required => 1 );
 
 # HTTP server settings
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 
-# API settings
-has auth => ( is => 'ro', isa => Maybe [ Str | ConsumerOf ['Pcore::DBH'] | ConsumerOf ['Pcore::App::API::Auth'] ] );
-
+has version => ( is => 'lazy', isa => InstanceOf ['version'], init_arg => undef );
 has router => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
+
+sub _build_name ($self) {
+    return ref $self;
+}
+
+sub _build_desc ($self) {
+    return 'test application';
+}
+
+sub _build_version ($self) {
+    no strict qw[refs];
+
+    return ${ ref($self) . '::VERSION' };
+}
 
 sub _build_router ($self) {
     return Pcore::App::Router->new( { app => $self } );
