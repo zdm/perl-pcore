@@ -33,37 +33,79 @@ sub init ( $self, $cb ) {
         sub ($status) {
             die qq[Error initialising API auth backend: $status] if !$status;
 
-            # register app on backend, get and init message broker
-            $self->{backend}->register_app(
-                $self->app->name,
-                $self->app->desc,
-                "@{[$self->app->version]}",
-                P->sys->hostname,
-                {},    # handles
+            my ( $app_instance_id, $app_instance_token );
 
-                sub ( $status, $app_instance_id ) {
-                    die qq[Error registering app: $status] if !$status;
+            my $app_instance_file = ( $ENV->{DATA_DIR} // q[] ) . '.app-instance.txt';
 
-                    # approve immediately, if local backend
-                    if ( $self->{backend}->is_local ) {
-                        $self->{backend}->approve_app(
-                            $app_instance_id,
-                            sub ( $status, $token ) {
-                                die qq[Error approving app: $status] if !$status;
+            if ( !-f $app_instance_file ) {
+                P->file->touch($app_instance_file);
+            }
+            else {
+                my $data = P->file->read_bin($app_instance_file);
 
-                                $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+                ( $app_instance_id, $app_instance_token ) = split /:/sm, $data->$*;
+            }
 
-                                return;
-                            }
-                        );
-                    }
-                    else {
+            my $connect_app_instance = sub ( $app_instance_id, $app_instance_token ) {
+                $self->{backend}->connect_app_instance(
+                    $app_instance_id,
+                    $app_instance_token,
+                    sub ($status) {
+                        die qq[Error connecting app: $status] if !$status;
+
                         $cb->( Pcore::Util::Status->new( { status => 200 } ) );
-                    }
 
-                    return;
-                }
-            );
+                        return;
+                    }
+                );
+
+                return;
+            };
+
+            my $approve_app_instance = sub ($app_instance_id) {
+                $self->{backend}->approve_app_instance(
+                    $app_instance_id,
+                    sub ( $status, $app_instance_token ) {
+                        die qq[Error approving app: $status] if !$status;
+
+                        P->file->write_bin( $app_instance_file, "$app_instance_id:$app_instance_token" );
+
+                        $connect_app_instance->( $app_instance_id, $app_instance_token );
+
+                        return;
+                    }
+                );
+
+                return;
+            };
+
+            if ( !$app_instance_id ) {
+
+                # register app on backend, get and init message broker
+                $self->{backend}->register_app_instance(
+                    $self->app->name,
+                    $self->app->desc,
+                    "@{[$self->app->version]}",
+                    P->sys->hostname,
+                    {},    # handles
+
+                    sub ( $status, $app_instance_id ) {
+                        die qq[Error registering app: $status] if !$status;
+
+                        P->file->write_bin( $app_instance_file, "$app_instance_id:" );
+
+                        $approve_app_instance->($app_instance_id);
+
+                        return;
+                    }
+                );
+            }
+            elsif ( !$app_instance_token ) {
+                $approve_app_instance->($app_instance_id);
+            }
+            else {
+                $connect_app_instance->( $app_instance_id, $app_instance_token );
+            }
 
             return;
         }

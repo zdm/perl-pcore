@@ -85,7 +85,7 @@ SQL
 }
 
 # APP
-sub register_app ( $self, $name, $desc, $version, $host, $handles, $cb ) {
+sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb ) {
     $self->dbh->do( 'INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)', [ $name, $desc, 1 ] );
 
     my $app_id = $self->dbh->selectval( 'SELECT id FROM api_app WHERE name = ?', [$name] )->$*;
@@ -99,7 +99,7 @@ sub register_app ( $self, $name, $desc, $version, $host, $handles, $cb ) {
     return;
 }
 
-sub approve_app ( $self, $app_instance_id, $cb ) {
+sub approve_app_instance ( $self, $app_instance_id, $cb ) {
 
     # generate token
     $self->create_token(
@@ -117,6 +117,12 @@ sub approve_app ( $self, $app_instance_id, $cb ) {
     return;
 }
 
+sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
+    $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -124,7 +130,7 @@ sub approve_app ( $self, $app_instance_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 120              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
 ## |      |                      | with a upper case letter                                                                                       |
