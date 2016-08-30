@@ -123,6 +123,49 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
     return;
 }
 
+# USER
+sub create_user ( $self, $username, $password, $role_id, $cb ) {
+    return;
+}
+
+sub set_user_password ( $self, $user_id, $password, $cb ) {
+    return;
+}
+
+sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
+    return;
+}
+
+sub set_user_role ( $self, $user_id, $role_id, $cb ) {
+    return;
+}
+
+# ROLE
+sub create_role ( $self, $name, $desc, $cb ) {
+    return;
+}
+
+sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
+    return;
+}
+
+sub set_role_methods ( $self, $role_id, $methods, $cb ) {
+    return;
+}
+
+sub add_role_methods ( $self, $role_id, $methods, $cb ) {
+    return;
+}
+
+# TOKEN
+sub set_token_enabled ( $self, $token_id, $enabled, $cb ) {
+    return;
+}
+
+sub delete_token ( $self, $role_id, $cb ) {
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -130,7 +173,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88, 120              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 120, 127, 139    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
 ## |      |                      | with a upper case letter                                                                                       |

@@ -28,10 +28,7 @@ sub _build__hash_rpc($self) {
 sub create_token ( $self, $token_id, $salt, $cb ) {
 
     # generate public token
-    my $public_token = P->random->bytes(28);
-
-    # add $id to the public token
-    substr $public_token, 10, 0, pack( 'L', $token_id );
+    my $public_token = P->random->bytes(32) . pack( 'L', $token_id );
 
     # encode public token to the base64
     $public_token = to_b64_url $public_token;
@@ -55,7 +52,7 @@ sub create_token ( $self, $token_id, $salt, $cb ) {
 sub decode_token ( $self, $public_token_b64 ) {
     my $public_token_decoded = from_b64 $public_token_b64;
 
-    my $token_id = unpack 'L', substr $public_token_decoded, 10, 4;
+    my $token_id = unpack 'L', substr $public_token_decoded, -4;
 
     return $token_id;
 }
@@ -119,9 +116,9 @@ sub invalidate_token ( $self, $token_type, $token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 63                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 34                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 31                   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
