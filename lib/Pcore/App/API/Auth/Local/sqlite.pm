@@ -124,6 +124,55 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
     return;
 }
 
+sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $user = $dbh->selectrow( q[SELECT enabled FROM api_user WHERE id = ?], [$user_id] ) ) {
+        if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
+            $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
+
+            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+        }
+        else {
+
+            # not modified
+            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+        }
+    }
+    else {
+
+        # user not found
+        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+    }
+
+    return;
+}
+
+# APP INSTANCE
+sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $user = $dbh->selectrow( q[SELECT enabled FROM api_user WHERE id = ?], [$user_id] ) ) {
+        if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
+            $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
+
+            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+        }
+        else {
+
+            # not modified
+            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+        }
+    }
+    else {
+
+        # user not found
+        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+    }
+
+    return;
+}
+
 # USER
 sub get_user_by_id ( $self, $user_id, $cb ) {
     my $dbh = $self->dbh;
@@ -301,8 +350,8 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88, 121, 158, 230,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 234                  |                                                                                                                |
+## |    3 | 88, 121, 152, 207,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 279, 283             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Local::sqlite" does not start with a upper |
 ## |      |                      |  case letter                                                                                                   |
