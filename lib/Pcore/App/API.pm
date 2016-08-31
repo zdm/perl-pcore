@@ -7,11 +7,29 @@ use Pcore::App::API::Request;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has auth => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Auth'], init_arg => undef );
+has auth => ( is => 'lazy', isa => ConsumerOf ['Pcore::App::API::Auth'], init_arg => undef );
 has map  => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'],  init_arg => undef );
 
 sub _build_auth ($self) {
-    return Pcore::App::API::Auth->new( { app => $self->app } );
+
+    # create API auth backend
+    my $auth_uri = P->uri( $self->{app}->{auth} );
+
+    if ( $auth_uri->scheme eq 'sqlite' || $auth_uri->scheme eq 'pgsql' ) {
+        my $dbh = P->handle($auth_uri);
+
+        my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Auth::Local' );
+
+        return $class->new( { app => $self->app, dbh => $dbh } );
+    }
+    elsif ( $auth_uri->scheme eq 'http' || $auth_uri->scheme eq 'https' || $auth_uri->scheme eq 'ws' || $auth_uri->scheme eq 'wss' ) {
+        require Pcore::App::API::Auth::Cluster;
+
+        return Pcore::App::API::Auth::Cluster->new( { app => $self->app, uri => $auth_uri } );
+    }
+    else {
+        die q[Unknown API auth scheme];
+    }
 }
 
 sub _build_map ($self) {
@@ -91,7 +109,7 @@ sub set_root_password ( $self, $password = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 38                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

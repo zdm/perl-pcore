@@ -1,38 +1,45 @@
 package Pcore::App::API::Auth;
 
-use Pcore -class;
+use Pcore -role;
 use Pcore::Util::Status;
 
-has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+requires(
+    'init',
 
-has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Auth::Backend'], init_arg => undef );
+    # app
+    'register_app_instance',
+    'approve_app_instance',
+    'connect_app_instance',
+
+    # user
+    'get_user_by_id',
+    'get_user_by_name',
+    'create_user',
+    'set_user_password',
+    'set_user_enabled',
+    'set_user_role',
+    'create_user_token',
+
+    # role
+    'create_role',
+    'set_role_enabled',
+    'set_role_methods',
+    'add_role_methods',
+
+    # token
+    'set_token_enabled',
+    'delete_token',
+);
+
+has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has user_cache        => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has username_id_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-sub init ( $self, $cb ) {
-
-    # create API auth backend
-    my $auth_uri = P->uri( $self->{app}->{auth} );
-
-    if ( $auth_uri->scheme eq 'sqlite' || $auth_uri->scheme eq 'pgsql' ) {
-        my $dbh = P->handle($auth_uri);
-
-        my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Auth::Backend::Local' );
-
-        $self->{backend} = $class->new( { app => $self->app, dbh => $dbh } );
-    }
-    elsif ( $auth_uri->scheme eq 'http' || $auth_uri->scheme eq 'https' || $auth_uri->scheme eq 'ws' || $auth_uri->scheme eq 'wss' ) {
-        require Pcore::App::API::Auth::Backend::Cluster;
-
-        $self->{backend} = Pcore::App::API::Auth::Backend::Cluster->new( { app => $self->app, uri => $auth_uri } );
-    }
-    else {
-        die q[Unknown API auth scheme];
-    }
+around init => sub ( $orig, $self, $cb ) {
 
     # init auth backend, create DB schema
-    $self->{backend}->init(
+    $self->$orig(
         sub ($status) {
             die qq[Error initialising API auth backend: $status] if !$status;
 
@@ -50,7 +57,7 @@ sub init ( $self, $cb ) {
             }
 
             my $connect_app_instance = sub ( $app_instance_id, $app_instance_token ) {
-                $self->{backend}->connect_app_instance(
+                $self->connect_app_instance(
                     $app_instance_id,
                     $app_instance_token,
                     sub ($status) {
@@ -66,7 +73,7 @@ sub init ( $self, $cb ) {
             };
 
             my $approve_app_instance = sub ($app_instance_id) {
-                $self->{backend}->approve_app_instance(
+                $self->approve_app_instance(
                     $app_instance_id,
                     sub ( $status, $app_instance_token ) {
                         die qq[Error approving app: $status] if !$status;
@@ -85,7 +92,7 @@ sub init ( $self, $cb ) {
             if ( !$app_instance_id ) {
 
                 # register app on backend, get and init message broker
-                $self->{backend}->register_app_instance(
+                $self->register_app_instance(
                     $self->app->name,
                     $self->app->desc,
                     "@{[$self->app->version]}",
@@ -115,15 +122,15 @@ sub init ( $self, $cb ) {
     );
 
     return;
-}
+};
 
 # USER
-sub get_user_by_id ( $self, $user_id, $cb ) {
+around get_user_by_id => sub ( $orig, $self, $user_id, $cb ) {
     if ( $self->{user_cache}->{$user_id} ) {
         $cb->( Pcore::Util::Status->new( { status => 200 } ), $self->{user_cache}->{$user_id} );
     }
     else {
-        $self->{backend}->get_user_by_id(
+        $self->$orig(
             $user_id,
             sub ( $status, $user = undef ) {
                 if ($status) {
@@ -140,14 +147,14 @@ sub get_user_by_id ( $self, $user_id, $cb ) {
     }
 
     return;
-}
+};
 
-sub get_user_by_name ( $self, $username, $cb ) {
+around get_user_by_name => sub ( $orig, $self, $username, $cb ) {
     if ( my $user_id = $self->{username_id_cache}->{$username} ) {
         $self->get_user_by_id( $user_id, $cb );
     }
     else {
-        $self->{backend}->get_user_by_name(
+        $self->$orig(
             $username,
             sub ( $status, $user = undef ) {
                 if ($status) {
@@ -164,25 +171,15 @@ sub get_user_by_name ( $self, $username, $cb ) {
     }
 
     return;
-}
+};
 
-sub create_user ( $self, $username, $password, $role_id, $cb ) {
-    $self->{backend}->create_user( $username, $password, $role_id, $cb );
+around create_user => sub ( $orig, $self, $username, $password, $role_id, $cb ) {
+    $self->$orig( $username, $password, $role_id, $cb );
 
     return;
-}
+};
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 169                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
