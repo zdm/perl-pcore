@@ -187,6 +187,7 @@ sub create_user ( $self, $username, $password, $role_id, $cb ) {
     return;
 }
 
+# TODO generate user password
 sub set_user_password ( $self, $user_id, $password, $cb ) {
     my $dbh = $self->dbh;
 
@@ -300,8 +301,8 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88, 121, 158, 229,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 233                  |                                                                                                                |
+## |    3 | 88, 121, 158, 230,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 234                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
 ## |      |                      | with a upper case letter                                                                                       |
