@@ -1,6 +1,7 @@
 package Pcore::App::API::Auth::Local::sqlite;
 
 use Pcore -class;
+use Pcore::Util::Status::Keyword qw[status];
 
 with qw[Pcore::App::API::Auth::Local];
 
@@ -79,7 +80,7 @@ SQL
 
     $ddl->upgrade;
 
-    $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+    $cb->( status 200 );
 
     return;
 }
@@ -94,7 +95,7 @@ sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb 
 
     my $app_instance_id = $self->dbh->last_insert_id;
 
-    $cb->( Pcore::Util::Status->new( { status => 200 } ), $app_instance_id );
+    $cb->( status 200, $app_instance_id );
 
     return;
 }
@@ -108,7 +109,7 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
         sub ( $token, $hash ) {
             $self->dbh->do( 'UPDATE api_app_instance SET approved = 1, hash = ? WHERE id = ?', [ $hash, $app_instance_id ] );
 
-            $cb->( Pcore::Util::Status->new( { status => 200 } ), $token );
+            $cb->( status 200, $token );
 
             return;
         }
@@ -119,7 +120,7 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
 
 # TODO set api methods
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
-    $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+    $cb->( status 200 );
 
     return;
 }
@@ -131,18 +132,18 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
         if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
             $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
 
-            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+            $cb->( status 200 );
         }
         else {
 
             # not modified
-            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+            $cb->( status 304 );
         }
     }
     else {
 
         # user not found
-        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+        $cb->( status 404 );
     }
 
     return;
@@ -156,18 +157,18 @@ sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
         if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
             $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
 
-            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+            $cb->( status 200 );
         }
         else {
 
             # not modified
-            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+            $cb->( status 304 );
         }
     }
     else {
 
         # user not found
-        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+        $cb->( status 404 );
     }
 
     return;
@@ -178,12 +179,12 @@ sub get_user_by_id ( $self, $user_id, $cb ) {
     my $dbh = $self->dbh;
 
     if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
-        $cb->( Pcore::Util::Status->new( { status => 200 } ), $user );
+        $cb->( status 200, $user );
     }
     else {
 
         # user not found
-        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+        $cb->( status 404 );
     }
 
     return;
@@ -193,12 +194,12 @@ sub get_user_by_name ( $self, $username, $cb ) {
     my $dbh = $self->dbh;
 
     if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE username = ?], [$username] ) ) {
-        $cb->( Pcore::Util::Status->new( { status => 200 } ), $user );
+        $cb->( status 200, $user );
     }
     else {
 
         # user not found
-        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+        $cb->( status 404 );
     }
 
     return;
@@ -220,7 +221,7 @@ sub create_user ( $self, $username, $password, $role_id, $cb ) {
                 $dbh->commit;
 
                 # user created
-                $cb->( Pcore::Util::Status->new( { status => 201 } ), $user_id, $password );
+                $cb->( status 201, $user_id, $password );
 
                 return;
             }
@@ -230,7 +231,7 @@ sub create_user ( $self, $username, $password, $role_id, $cb ) {
         $dbh->rollback;
 
         # username already exists
-        $cb->( Pcore::Util::Status->new( { status => 409 } ) );
+        $cb->( status [ 409, 'Username already exists' ] );
     }
 
     return;
@@ -246,7 +247,7 @@ sub set_user_password ( $self, $user_id, $password, $cb ) {
     else {
 
         # user not found
-        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+        $cb->( status [ 404, 'User Not Found' ] );
     }
 
     return;
@@ -259,18 +260,18 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
         if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
             $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
 
-            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+            $cb->( status 200 );
         }
         else {
 
             # not modified
-            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+            $cb->( status 304 );
         }
     }
     else {
 
         # user not found
-        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+        $cb->( status 404 );
     }
 
     return;
@@ -291,12 +292,12 @@ sub create_role ( $self, $name, $desc, $cb ) {
     if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
         my $role_id = $dbh->last_insert_id;
 
-        $cb->( Pcore::Util::Status->new( { status => 201 } ), $role_id );
+        $cb->( status 201, $role_id );
     }
     else {
 
         # role already exists
-        $cb->( Pcore::Util::Status->new( { status => 409 } ) );
+        $cb->( status 409 );
     }
 
     return;
@@ -309,18 +310,18 @@ sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
         if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
             $dbh->do( q[UPDATE api_role SET enabled = ? WHERE id = ?], [ $enabled, $role_id ] );
 
-            $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+            $cb->( status 200 );
         }
         else {
 
             # not modified
-            $cb->( Pcore::Util::Status->new( { status => 304 } ) );
+            $cb->( status 304 );
         }
     }
     else {
 
         # role not found
-        $cb->( Pcore::Util::Status->new( { status => 404 } ) );
+        $cb->( status 404 );
     }
 
     return;
@@ -350,8 +351,8 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88, 121, 152, 207,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 279, 283             |                                                                                                                |
+## |    3 | 89, 122, 153, 208,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 280, 284             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Local::sqlite" does not start with a upper |
 ## |      |                      |  case letter                                                                                                   |

@@ -1,7 +1,7 @@
 package Pcore::App::API::Auth;
 
 use Pcore -role;
-use Pcore::Util::Status;
+use Pcore::Util::Status::Keyword qw[status];
 
 requires(
     'init',
@@ -70,7 +70,7 @@ around init => sub ( $orig, $self, $cb ) {
                     sub ($status) {
                         die qq[Error connecting app: $status] if !$status;
 
-                        $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+                        $cb->( status 200 );
 
                         return;
                     }
@@ -134,7 +134,7 @@ around init => sub ( $orig, $self, $cb ) {
 # APP
 around get_app_by_id => sub ( $orig, $self, $app_id, $cb ) {
     if ( my $app = $self->{app_cache}->{$app_id} ) {
-        $cb->( Pcore::Util::Status->new( { status => 200 } ), $app );
+        $cb->( status 200, $app );
     }
     else {
         $self->$orig(
@@ -157,7 +157,7 @@ around get_app_by_id => sub ( $orig, $self, $app_id, $cb ) {
 };
 
 around get_app_by_name => sub ( $orig, $self, $app_name, $cb ) {
-    return $self->$orig(@args);
+    return $self->$orig($app_name);
 };
 
 around set_app_enabled => sub ( $orig, $self, $app_id, $enabled, $cb ) {
@@ -180,7 +180,7 @@ around set_app_enabled => sub ( $orig, $self, $app_id, $enabled, $cb ) {
 # USER
 around get_user_by_id => sub ( $orig, $self, $user_id, $cb ) {
     if ( $self->{user_cache}->{$user_id} ) {
-        $cb->( Pcore::Util::Status->new( { status => 200 } ), $self->{user_cache}->{$user_id} );
+        $cb->( status 200, $self->{user_cache}->{$user_id} );
     }
     else {
         $self->$orig(
