@@ -144,21 +144,25 @@ sub create_role ( $self, $name, $desc, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_user ( $self, $username, $password, $role_id, $cb ) {
-    return;
+sub create_user ( $self, $username, $password, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->backend->create_user(
+        $username,
+        $password,
+        sub ( $status, $user_id ) {
+            $cb->( $status, $user_id ) if $cb;
+
+            $blocking_cv->( $status, $user_id ) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

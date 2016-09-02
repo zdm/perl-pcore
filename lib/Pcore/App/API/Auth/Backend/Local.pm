@@ -39,10 +39,8 @@ sub create_app_instance_token ( $self, $app_instance_id, $cb ) {
     # add token type, app instance id
     $token = to_b64_url pack( 'C', $TOKEN_TYPE_APP_INSTANCE ) . pack( 'L', $app_instance_id ) . $token;
 
-    my $private_token = $token . $app_instance_id;
-
     $self->create_hash(
-        $private_token,
+        $token,
         sub ($hash) {
             $cb->( $token, $hash );
 
@@ -67,6 +65,21 @@ sub create_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
         $private_token,
         sub ($hash) {
             $cb->( $private_token, $hash );
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub create_user_password_hash ( $self, $password, $user_id, $cb ) {
+    my $private_token = $password . $user_id;
+
+    $self->create_hash(
+        $private_token,
+        sub ($hash) {
+            $cb->($hash);
 
             return;
         }
@@ -121,7 +134,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 56                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 54                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

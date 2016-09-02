@@ -296,23 +296,24 @@ sub get_user_by_name ( $self, $username, $cb ) {
     return;
 }
 
-sub create_user ( $self, $username, $password, $role_id, $cb ) {
+sub create_user ( $self, $username, $password, $cb ) {
     my $dbh = $self->dbh;
 
     $dbh->begin_work;
 
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (username, role_id, enabled) VALUES (?, ?, ?)], [ $username, $role_id, 0 ] ) ) {
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (username, enabled) VALUES (?, ?)], [ $username, 0 ] ) ) {
         my $user_id = $dbh->last_insert_id;
 
-        $self->create_token(
-            $user_id, $user_id,
-            sub ( $token, $hash ) {
+        $self->create_user_password_hash(
+            $password,
+            $user_id,
+            sub ( $hash ) {
                 $dbh->do( q[UPDATE api_user SET enabled = ?, hash = ? WHERE id = ?], [ 1, $hash, $user_id ] );
 
                 $dbh->commit;
 
                 # user created
-                $cb->( status 201, $user_id, $password );
+                $cb->( status 201, $user_id );
 
                 return;
             }
@@ -321,8 +322,10 @@ sub create_user ( $self, $username, $password, $role_id, $cb ) {
     else {
         $dbh->rollback;
 
+        my $user_id = $dbh->selectval( 'SELECT id FROM api_user WHERE username = ?', [$username] )->$*;
+
         # username already exists
-        $cb->( status [ 409, 'Username already exists' ] );
+        $cb->( status [ 409, 'Username already exists' ], $user_id );
     }
 
     return;
@@ -386,9 +389,10 @@ sub create_role ( $self, $name, $desc, $cb ) {
         $cb->( status 201, $role_id );
     }
     else {
+        my $role_id = $dbh->selectval( 'SELECT id FROM api_role WHERE name = ?', [$name] )->$*;
 
         # role already exists
-        $cb->( status 409, undef );
+        $cb->( status 409, $role_id );
     }
 
     return;
@@ -444,8 +448,8 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 181, 263             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 187, 219, 238, 299,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 371, 375             |                                                                                                                |
+## |    3 | 187, 219, 238, 374,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 378                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
 ## |      |                      | with a upper case letter                                                                                       |
