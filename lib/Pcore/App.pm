@@ -8,11 +8,16 @@ has name => ( is => 'lazy', isa => Str );
 has desc => ( is => 'lazy', isa => Str );
 
 # API settings
-has auth => ( is => 'ro', isa => Maybe [ Str | ConsumerOf ['Pcore::DBH'] | ConsumerOf ['Pcore::App::API::Auth'] ], required => 1 );
+has auth => ( is => 'ro', isa => Str, required => 1 );    # db, http or was uri
 
 # HTTP server settings
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
+
+has cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
+has cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );
+
+has token => ( is => 'ro', isa => Str, init_arg => undef );
 
 has version => ( is => 'lazy', isa => InstanceOf ['version'], init_arg => undef );
 has router => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
@@ -26,6 +31,19 @@ sub _build_name ($self) {
 # TODO get description from POD abstract or die
 sub _build_desc ($self) {
     return 'test application';
+}
+
+sub _build_cfg_path ($self) {
+    return ( $ENV->{DATA_DIR} // q[] ) . ( $self->name =~ s/::/-/smgr ) . '.json';
+}
+
+sub _build_cfg ($self) {
+    if ( -f $self->cfg_path ) {
+        return P->cfg->load( $self->cfg_path );
+    }
+    else {
+        return {};
+    }
 }
 
 sub _build_version ($self) {
@@ -79,6 +97,12 @@ around run => sub ( $orig, $self ) {
 
 # this method can be overloaded in subclasses
 sub run ($self) {
+    return;
+}
+
+sub store_cfg ($self) {
+    P->cfg->store( $self->cfg_path, $self->cfg );
+
     return;
 }
 

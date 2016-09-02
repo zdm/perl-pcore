@@ -16,6 +16,10 @@ has _hash_cache_size => ( is => 'ro', isa => PositiveInt, default => 10_000 );
 const our $TOKEN_TYPE_APP_INSTANCE => 1;
 const our $TOKEN_TYPE_USER         => 2;
 
+sub _build_host ($self) {
+    return 'local';
+}
+
 around init => sub ( $orig, $self, $cb ) {
     $self->{_hash_rpc} = P->pm->run_rpc(
         'Pcore::App::API::RPC::Hash',
@@ -161,7 +165,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 62, 84, 108          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 66, 88, 112          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -6,6 +6,10 @@ with qw[Pcore::App::API::Auth::Backend];
 
 has uri => ( is => 'ro', isa => ConsumerOf ['Pcore::Util::URI'], required => 1 );
 
+sub _build_host ($self) {
+    return $self->uri->hostport;
+}
+
 sub init ( $self, $cb ) {
     $cb->( Pcore::Util::Status->new( { status => 200 } ) );
 

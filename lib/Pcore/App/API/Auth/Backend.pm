@@ -6,6 +6,7 @@ requires qw[];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
+has host => ( is => 'lazy', isa => Str, init_arg => undef );
 has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 1;

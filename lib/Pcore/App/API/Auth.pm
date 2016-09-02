@@ -17,6 +17,8 @@ sub init ( $self, $cb ) {
     # create API auth backend
     my $auth_uri = P->uri( $self->{app}->{auth} );
 
+    print q[Creating API backend ... ];
+
     if ( $auth_uri->scheme eq 'sqlite' || $auth_uri->scheme eq 'pgsql' ) {
         my $dbh = P->handle($auth_uri);
 
@@ -33,30 +35,35 @@ sub init ( $self, $cb ) {
         die q[Unknown API auth scheme];
     }
 
+    say 'done';
+
+    print q[Initialising API backend ... ];
+
     # init auth backend, create DB schema
     $self->backend->init(
         sub ($status) {
             die qq[Error initialising API auth backend: $status] if !$status;
 
-            my ( $app_instance_id, $app_instance_token );
+            say 'done';
 
-            my $app_instance_file = ( $ENV->{DATA_DIR} // q[] ) . '.app-instance.txt';
+            # get app instance credentials from local config
+            my $app_instance_id = $self->app->cfg->{auth}->{ $self->backend->host }->[0];
 
-            if ( !-f $app_instance_file ) {
-                P->file->touch($app_instance_file);
-            }
-            else {
-                my $data = P->file->read_bin($app_instance_file);
-
-                ( $app_instance_id, $app_instance_token ) = split /:/sm, $data->$*;
-            }
+            my $app_instance_token = $self->app->cfg->{auth}->{ $self->backend->host }->[1];
 
             my $connect_app_instance = sub ( $app_instance_id, $app_instance_token ) {
+                print q[Connecting app instance ... ];
+
                 $self->backend->connect_app_instance(
                     $app_instance_id,
                     $app_instance_token,
                     sub ($status) {
                         die qq[Error connecting app: $status] if !$status;
+
+                        say 'done';
+
+                        # set app instance token
+                        $self->app->{token} = $app_instance_token;
 
                         $cb->( status 200 );
 
@@ -68,13 +75,23 @@ sub init ( $self, $cb ) {
             };
 
             my $approve_app_instance = sub ($app_instance_id) {
+                print q[Waiting for app instance approval ... ];
+
                 $self->backend->approve_app_instance(
                     $app_instance_id,
                     sub ( $status, $app_instance_token ) {
                         die qq[Error approving app: $status] if !$status;
 
-                        P->file->write_bin( $app_instance_file, "$app_instance_id:$app_instance_token" );
+                        say 'done';
 
+                        # store app instance token
+                        {
+                            $self->app->cfg->{auth}->{ $self->backend->host }->[1] = $app_instance_token;
+
+                            $self->app->store_cfg;
+                        }
+
+                        # connecting app instance
                         $connect_app_instance->( $app_instance_id, $app_instance_token );
 
                         return;
@@ -84,7 +101,9 @@ sub init ( $self, $cb ) {
                 return;
             };
 
+            # sending app instance registration request
             if ( !$app_instance_id ) {
+                print q[Sending app instance registration request ... ];
 
                 # register app on backend, get and init message broker
                 $self->backend->register_app_instance(
@@ -97,17 +116,31 @@ sub init ( $self, $cb ) {
                     sub ( $status, $app_instance_id ) {
                         die qq[Error registering app: $status] if !$status;
 
-                        P->file->write_bin( $app_instance_file, "$app_instance_id:" );
+                        say 'done';
 
+                        # store app instance id
+                        {
+                            $self->app->cfg->{auth}->{ $self->backend->host }->[0] = $app_instance_id;
+
+                            $self->app->cfg->{auth}->{ $self->backend->host }->[1] = undef;
+
+                            $self->app->store_cfg;
+                        }
+
+                        # waiting for app instance approve
                         $approve_app_instance->($app_instance_id);
 
                         return;
                     }
                 );
             }
+
+            # waiting for app instance approve
             elsif ( !$app_instance_token ) {
                 $approve_app_instance->($app_instance_id);
             }
+
+            # connecting app instance
             else {
                 $connect_app_instance->( $app_instance_id, $app_instance_token );
             }
