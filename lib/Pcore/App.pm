@@ -23,6 +23,7 @@ sub _build_name ($self) {
     return ref $self;
 }
 
+# TODO get description from POD abstract or die
 sub _build_desc ($self) {
     return 'test application';
 }

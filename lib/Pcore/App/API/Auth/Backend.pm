@@ -4,6 +4,8 @@ use Pcore -role;
 
 requires qw[];
 
+has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+
 has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 1;

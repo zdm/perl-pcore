@@ -31,7 +31,7 @@ around init => sub ( $orig, $self, $cb ) {
     return $self->$orig($cb);
 };
 
-# TOKEN
+# APP TOKEN
 sub create_app_instance_token ( $self, $app_instance_id, $cb ) {
 
     # generate random token
@@ -58,6 +58,7 @@ sub validate_app_instance_token_hash ( $self, $token, $hash, $cb ) {
     return;
 }
 
+# USER TOKEN
 sub create_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
 
     # generate random token
@@ -88,6 +89,7 @@ sub validate_user_token_hash ( $self, $token, $hash, $user_id, $role_id, $cb ) {
     return;
 }
 
+# USER PASSWORD
 sub create_user_password_hash ( $self, $password, $user_id, $cb ) {
     my $private_token = $password . $user_id;
 
@@ -159,7 +161,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 61, 83, 106          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 62, 84, 108          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

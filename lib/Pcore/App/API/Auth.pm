@@ -119,6 +119,61 @@ sub init ( $self, $cb ) {
     return;
 }
 
+# AUTH
+sub auth_user_password ( $self, $username, $password, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->get_user_by_name(
+        $username,
+        sub ( $status, $user ) {
+            if ( !$status ) {
+                $cb->( $status, undef ) if $cb;
+
+                $blocking_cv->( $status, undef ) if $blocking_cv;
+            }
+            else {
+                if ( my $user_password = $self->{user_id_password_cache}->{ $user->{id} } ) {
+                    if ( $user_password eq $password ) {
+                        $cb->( status 200, $user ) if $cb;
+
+                        $blocking_cv->( status 200, $user ) if $blocking_cv;
+                    }
+                    else {
+                        $cb->( status [ 400, 'Invalid password' ], undef ) if $cb;
+
+                        $blocking_cv->( status [ 400, 'Invalid password' ], undef ) if $blocking_cv;
+                    }
+                }
+                else {
+                    $self->backend->auth_user_password(
+                        $username,
+                        $password,
+                        sub ( $status ) {
+                            if ($status) {
+                                $self->{user_id_password_cache}->{ $user->{id} } = $password;
+                            }
+                            else {
+                                undef $user;
+                            }
+
+                            $cb->( $status, $user ) if $cb;
+
+                            $blocking_cv->( $status, $user ) if $blocking_cv;
+
+                            return;
+                        }
+                    );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+# ROLE
 sub create_role ( $self, $name, $desc, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -136,30 +191,14 @@ sub create_role ( $self, $name, $desc, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+# USER
+# NOTE this method should be called, when user was changed
 sub invalidate_user_cache ( $self, $user_id ) {
     delete $self->{user_cache}->{$user_id};
 
     delete $self->{user_id_password_cache}->{$user_id};
 
     return;
-}
-
-sub create_user ( $self, $username, $password, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->backend->create_user(
-        $username,
-        $password,
-        sub ( $status, $user_id ) {
-            $cb->( $status, $user_id ) if $cb;
-
-            $blocking_cv->( $status, $user_id ) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 sub get_user_by_id ( $self, $user_id, $cb = undef ) {
@@ -226,51 +265,16 @@ sub get_user_by_name ( $self, $username, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub auth_user_password ( $self, $username, $password, $cb = undef ) {
+sub create_user ( $self, $username, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->get_user_by_name(
+    $self->backend->create_user(
         $username,
-        sub ( $status, $user ) {
-            if ( !$status ) {
-                $cb->( $status, undef ) if $cb;
+        $password,
+        sub ( $status, $user_id ) {
+            $cb->( $status, $user_id ) if $cb;
 
-                $blocking_cv->( $status, undef ) if $blocking_cv;
-            }
-            else {
-                if ( my $user_password = $self->{user_id_password_cache}->{ $user->{id} } ) {
-                    if ( $user_password eq $password ) {
-                        $cb->( status 200, $user ) if $cb;
-
-                        $blocking_cv->( status 200, $user ) if $blocking_cv;
-                    }
-                    else {
-                        $cb->( status [ 400, 'Invalid password' ], undef ) if $cb;
-
-                        $blocking_cv->( status [ 400, 'Invalid password' ], undef ) if $blocking_cv;
-                    }
-                }
-                else {
-                    $self->backend->auth_user_password(
-                        $username,
-                        $password,
-                        sub ( $status ) {
-                            if ($status) {
-                                $self->{user_id_password_cache}->{ $user->{id} } = $password;
-                            }
-                            else {
-                                undef $user;
-                            }
-
-                            $cb->( $status, $user ) if $cb;
-
-                            $blocking_cv->( $status, $user ) if $blocking_cv;
-
-                            return;
-                        }
-                    );
-                }
-            }
+            $blocking_cv->( $status, $user_id ) if $blocking_cv;
 
             return;
         }
