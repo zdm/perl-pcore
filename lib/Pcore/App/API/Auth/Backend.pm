@@ -2,7 +2,10 @@ package Pcore::App::API::Auth::Backend;
 
 use Pcore -role;
 
-requires qw[];
+requires qw[
+  _build_host
+  init
+];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 

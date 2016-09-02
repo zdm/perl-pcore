@@ -14,12 +14,12 @@ has auth => ( is => 'ro', isa => Str, required => 1 );    # db, http or was uri
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
 
-has cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
-has cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );    # app instance local config path
+has cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );    # app instance local config
 
-has token => ( is => 'ro', isa => Str, init_arg => undef );
+has token => ( is => 'ro', isa => Str, init_arg => undef );             # app instance token
 
-has version => ( is => 'lazy', isa => InstanceOf ['version'], init_arg => undef );
+has version => ( is => 'lazy', isa => InstanceOf ['version'], init_arg => undef );                      # app instance version
 has router => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
 has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
