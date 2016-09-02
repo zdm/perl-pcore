@@ -112,15 +112,18 @@ sub get_app_by_id ( $self, $app_id, $cb ) {
 sub create_app ( $self, $name, $desc, $cb ) {
     my $dbh = $self->dbh;
 
+    # app created
     if ( $dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
         my $app_id = $dbh->last_insert_id;
 
         $cb->( status 201, $app_id );
     }
+
+    # app creation error
     else {
         my $app_id = $dbh->selectval( 'SELECT id FROM api_app WHERE name = ?', [$name] )->$*;
 
-        # role already exists
+        # app already exists
         $cb->( status [ 409, 'App already exists' ], $app_id );
     }
 
@@ -179,6 +182,39 @@ sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
     return;
 }
 
+sub create_app_instance ( $self, $app_id, $host, $cb ) {
+    $self->get_app_by_id(
+        $app_id,
+        sub ( $status, $role ) {
+
+            # app not found
+            if ( !$status ) {
+                $cb->( $status, undef );
+            }
+
+            # app found
+            else {
+
+                # app instance created
+                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (app_id, host) VALUES (?, ?)], [ $app_id, $host ] ) ) {
+                    my $app_instance_id = $self->dbh->last_insert_id;
+
+                    $cb->( status 201, $app_instance_id );
+                }
+
+                # app instance creation error
+                else {
+                    $cb->( status [ 500, 'App instance creation error' ], undef );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
 # ROLE
 sub get_role_by_id ( $self, $role_id, $cb ) {
     if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_role WHERE id = ?], [$role_id] ) ) {
@@ -194,11 +230,14 @@ sub get_role_by_id ( $self, $role_id, $cb ) {
 sub create_role ( $self, $name, $desc, $cb ) {
     my $dbh = $self->dbh;
 
+    # role created
     if ( $dbh->do( q[INSERT OR IGNORE INTO api_role (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
         my $role_id = $dbh->last_insert_id;
 
         $cb->( status 201, $role_id );
     }
+
+    # role creation error
     else {
         my $role_id = $dbh->selectval( 'SELECT id FROM api_role WHERE name = ?', [$name] )->$*;
 
@@ -567,7 +606,7 @@ sub add_role_methods ( $self, $role_id, $methods, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 393, 417, 508, 548   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 432, 456, 547, 587   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
 ## |      |                      | upper case letter                                                                                              |

@@ -58,21 +58,21 @@ sub init ( $self, $cb ) {
     print q[Initialising API backend ... ];
 
     # init auth backend, create DB schema
-    $self->backend->init(
+    $self->{backend}->init(
         sub ($status) {
             die qq[Error initialising API auth backend: $status] if !$status;
 
             say 'done';
 
             # get app instance credentials from local config
-            my $app_instance_id = $self->app->cfg->{auth}->{ $self->backend->host }->[0];
+            my $app_instance_id = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0];
 
-            my $app_instance_token = $self->app->cfg->{auth}->{ $self->backend->host }->[1];
+            my $app_instance_token = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1];
 
             my $connect_app_instance = sub ( $app_instance_id, $app_instance_token ) {
                 print q[Connecting app instance ... ];
 
-                $self->backend->connect_app_instance(
+                $self->{backend}->connect_app_instance(
                     $app_instance_id,
                     $app_instance_token,
                     sub ($status) {
@@ -95,7 +95,7 @@ sub init ( $self, $cb ) {
             my $approve_app_instance = sub ($app_instance_id) {
                 print q[Waiting for app instance approval ... ];
 
-                $self->backend->approve_app_instance(
+                $self->{backend}->approve_app_instance(
                     $app_instance_id,
                     sub ( $status, $app_instance_token ) {
                         die qq[Error approving app: $status] if !$status;
@@ -104,7 +104,7 @@ sub init ( $self, $cb ) {
 
                         # store app instance token
                         {
-                            $self->app->cfg->{auth}->{ $self->backend->host }->[1] = $app_instance_token;
+                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $app_instance_token;
 
                             $self->app->store_cfg;
                         }
@@ -124,7 +124,7 @@ sub init ( $self, $cb ) {
                 print q[Sending app instance registration request ... ];
 
                 # register app on backend, get and init message broker
-                $self->backend->register_app_instance(
+                $self->{backend}->register_app_instance(
                     $self->app->name,
                     $self->app->desc,
                     "@{[$self->app->version]}",
@@ -138,9 +138,9 @@ sub init ( $self, $cb ) {
 
                         # store app instance id
                         {
-                            $self->app->cfg->{auth}->{ $self->backend->host }->[0] = $app_instance_id;
+                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $app_instance_id;
 
-                            $self->app->cfg->{auth}->{ $self->backend->host }->[1] = undef;
+                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = undef;
 
                             $self->app->store_cfg;
                         }
@@ -196,7 +196,7 @@ sub auth_user_password ( $self, $username, $password, $cb = undef ) {
                     }
                 }
                 else {
-                    $self->backend->auth_user_password(
+                    $self->{backend}->auth_user_password(
                         $username,
                         $password,
                         sub ( $status ) {
@@ -242,7 +242,7 @@ sub get_app_by_id ( $self, $app_id, $cb = undef ) {
         $blocking_cv->( status 200, $app ) if $blocking_cv;
     }
     else {
-        $self->backend->get_app_by_id(
+        $self->{backend}->get_app_by_id(
             $app_id,
             sub ( $status, $user ) {
                 if ($status) {
@@ -264,7 +264,7 @@ sub get_app_by_id ( $self, $app_id, $cb = undef ) {
 sub create_app ( $self, $name, $desc, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->backend->create_app(
+    $self->{backend}->create_app(
         $name, $desc,
         sub ( $status, $app_id ) {
             $cb->( $status, $app_id ) if $cb;
@@ -340,7 +340,7 @@ sub get_app_instance_by_id ( $self, $app_instance_id, $cb = undef ) {
         $blocking_cv->( status 200, $app_instance ) if $blocking_cv;
     }
     else {
-        $self->backend->get_app_instance_by_id(
+        $self->{backend}->get_app_instance_by_id(
             $app_instance_id,
             sub ( $status, $user ) {
                 if ($status) {
@@ -355,6 +355,23 @@ sub get_app_instance_by_id ( $self, $app_instance_id, $cb = undef ) {
             }
         );
     }
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub create_app_instance ( $self, $app_id, $host, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->create_app_instance(
+        $app_id, $host,
+        sub ( $status, $app_instance_id ) {
+            $cb->( $status, $app_instance_id ) if $cb;
+
+            $blocking_cv->( $status, $app_instance_id ) if $blocking_cv;
+
+            return;
+        }
+    );
 
     return $blocking_cv ? $blocking_cv->recv : ();
 }
@@ -375,7 +392,7 @@ sub get_role_by_id ( $self, $role_id, $cb = undef ) {
         $blocking_cv->( status 200, $role ) if $blocking_cv;
     }
     else {
-        $self->backend->get_role_by_id(
+        $self->{backend}->get_role_by_id(
             $role_id,
             sub ( $status, $role ) {
                 if ($status) {
@@ -397,7 +414,7 @@ sub get_role_by_id ( $self, $role_id, $cb = undef ) {
 sub create_role ( $self, $name, $desc, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->backend->create_role(
+    $self->{backend}->create_role(
         $name, $desc,
         sub ( $status, $role_id ) {
             $cb->( $status, $role_id ) if $cb;
@@ -452,7 +469,7 @@ sub get_user_by_id ( $self, $user_id, $cb = undef ) {
         $blocking_cv->( status 200, $user ) if $blocking_cv;
     }
     else {
-        $self->backend->get_user_by_id(
+        $self->{backend}->get_user_by_id(
             $user_id,
             sub ( $status, $user ) {
                 if ($status) {
@@ -486,7 +503,7 @@ sub get_user_by_name ( $self, $username, $cb = undef ) {
         );
     }
     else {
-        $self->backend->get_user_by_name(
+        $self->{backend}->get_user_by_name(
             $username,
             sub ( $status, $user ) {
                 if ($status) {
@@ -510,7 +527,7 @@ sub get_user_by_name ( $self, $username, $cb = undef ) {
 sub create_user ( $self, $username, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->backend->create_user(
+    $self->{backend}->create_user(
         $username,
         $password,
         sub ( $status, $user_id ) {
@@ -654,7 +671,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## |    3 | 328                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_invalidate_app_instance_cache'     |
 ## |      |                      | declared but not used                                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 575, 605             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 592, 622             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
