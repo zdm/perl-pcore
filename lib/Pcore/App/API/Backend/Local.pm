@@ -1,11 +1,11 @@
-package Pcore::App::API::Auth::Backend::Local;
+package Pcore::App::API::Backend::Local;
 
 use Pcore -role, -const;
 use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Hash::RandKey;
 use Pcore::Util::Data qw[to_b64_url from_b64];
 
-with qw[Pcore::App::API::Auth::Backend];
+with qw[Pcore::App::API::Backend];
 
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
 
@@ -176,7 +176,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::Backend::Local
+Pcore::App::API::Backend::Local
 
 =head1 SYNOPSIS
 

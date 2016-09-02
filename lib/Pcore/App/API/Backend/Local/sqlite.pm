@@ -1,9 +1,9 @@
-package Pcore::App::API::Auth::Backend::Local::sqlite;
+package Pcore::App::API::Backend::Local::sqlite;
 
 use Pcore -class;
 use Pcore::Util::Status::Keyword qw[status];
 
-with qw[Pcore::App::API::Auth::Backend::Local];
+with qw[Pcore::App::API::Backend::Local];
 
 # INIT AUTH BACKEND
 sub init ( $self, $cb ) {
@@ -455,8 +455,8 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## |    3 | 176, 208, 227, 378,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 382                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
-## |      |                      | with a upper case letter                                                                                       |
+## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
+## |      |                      | upper case letter                                                                                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -467,7 +467,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::Backend::Local::sqlite
+Pcore::App::API::Backend::Local::sqlite
 
 =head1 SYNOPSIS
 

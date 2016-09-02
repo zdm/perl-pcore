@@ -1,4 +1,4 @@
-package Pcore::App::API::Auth::Backend;
+package Pcore::App::API::Backend;
 
 use Pcore -role;
 
@@ -20,7 +20,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::Backend
+Pcore::App::API::Backend
 
 =head1 SYNOPSIS
 
