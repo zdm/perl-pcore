@@ -306,7 +306,7 @@ sub delete_app ( $self, $app_id, $cb = undef ) {
 
     $self->{backend}->delete_app(
         $app_id,
-        sub ( $status, $token ) {
+        sub ( $status ) {
 
             # invalidate app cache on success
             if ($status) {
@@ -385,6 +385,53 @@ sub approve_app_instance ( $self, $app_instance_id, $cb = undef ) {
             $cb->( $status, $token ) if $cb;
 
             $blocking_cv->( $status, $token ) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->set_app_instance_enabled(
+        $app_instance_id,
+        $enabled,
+        sub ($status) {
+
+            # invalidate app instance cache on success
+            if ($status) {
+                $self->_invalidate_app_instance_cache($app_instance_id);
+            }
+
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub delete_app_instance ( $self, $app_instance_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->delete_app_instance(
+        $app_instance_id,
+        sub ( $status ) {
+
+            # invalidate app instance cache on success
+            if ($status) {
+                $self->_invalidate_app_instance_cache($app_instance_id);
+            }
+
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
 
             return;
         }
@@ -685,10 +732,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 29                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 328                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_invalidate_app_instance_cache'     |
-## |      |                      | declared but not used                                                                                          |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 609, 639             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 396, 656, 686        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

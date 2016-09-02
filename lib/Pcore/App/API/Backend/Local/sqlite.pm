@@ -265,6 +265,44 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
     return;
 }
 
+sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
+    $self->get_app_instance_by_id(
+        $app_instance_id,
+        sub ( $status, $app_instance ) {
+            if ( !$status ) {
+                $cb->($status);
+            }
+            else {
+                if ( ( $enabled && !$app_instance->{enabled} ) || ( !$enabled && $app_instance->{enabled} ) ) {
+                    $self->dbh->do( q[UPDATE api_app_instance SET enabled = ? WHERE id = ?], [ $enabled, $app_instance_id ] );
+
+                    $cb->( status 200 );
+                }
+                else {
+
+                    # not modified
+                    $cb->( status 304 );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub delete_app_instance ( $self, $app_instance_id, $cb ) {
+    if ( $self->dbh->do( q[DELETE FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+        $cb->( status 200 );
+    }
+    else {
+        $cb->( status [ 404, 'App instance not found' ] );
+    }
+
+    return;
+}
+
 # ROLE
 sub get_role_by_id ( $self, $role_id, $cb ) {
     if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_role WHERE id = ?], [$role_id] ) ) {
@@ -631,7 +669,8 @@ sub add_role_methods ( $self, $role_id, $methods, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 482, 506, 597, 612   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 268, 520, 544, 635,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 650                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
 ## |      |                      | upper case letter                                                                                              |

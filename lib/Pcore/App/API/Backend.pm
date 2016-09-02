@@ -20,7 +20,7 @@ requires(
     'create_app_instance',
     'approve_app_instance',
     'set_app_instance_enabled',
-    # 'delete_app_instance',
+    'delete_app_instance',
 
     # ROLE
     'get_role_by_id',
