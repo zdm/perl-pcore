@@ -36,7 +36,7 @@ around init => sub ( $orig, $self, $cb ) {
 };
 
 # APP TOKEN
-sub create_app_instance_token ( $self, $app_instance_id, $cb ) {
+sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
     # generate random token
     my $token = P->random->bytes(48);
@@ -44,10 +44,11 @@ sub create_app_instance_token ( $self, $app_instance_id, $cb ) {
     # add token type, app instance id
     $token = to_b64_url pack( 'C', $TOKEN_TYPE_APP_INSTANCE ) . pack( 'L', $app_instance_id ) . $token;
 
-    $self->create_hash(
+    $self->_hash_rpc->rpc_call(
+        'create_scrypt',
         $token,
-        sub ($hash) {
-            $cb->( $token, $hash );
+        sub ( $status, $hash ) {
+            $cb->( $status, $token, $hash );
 
             return;
         }
@@ -63,7 +64,7 @@ sub validate_app_instance_token_hash ( $self, $token, $hash, $cb ) {
 }
 
 # USER TOKEN
-sub create_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
+sub generate_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
 
     # generate random token
     my $token = P->random->bytes(48);
@@ -73,10 +74,11 @@ sub create_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
 
     my $private_token = $token . $user_id . $role_id;
 
-    $self->create_hash(
+    $self->_hash_rpc->rpc_call(
+        'create_scrypt',
         $private_token,
-        sub ($hash) {
-            $cb->( $private_token, $hash );
+        sub ( $status, $hash ) {
+            $cb->( $status, $token, $hash );
 
             return;
         }
@@ -94,13 +96,14 @@ sub validate_user_token_hash ( $self, $token, $hash, $user_id, $role_id, $cb ) {
 }
 
 # USER PASSWORD
-sub create_user_password_hash ( $self, $password, $user_id, $cb ) {
+sub generate_user_password_hash ( $self, $password, $user_id, $cb ) {
     my $private_token = $password . $user_id;
 
-    $self->create_hash(
+    $self->_hash_rpc->rpc_call(
+        'create_scrypt',
         $private_token,
-        sub ($hash) {
-            $cb->($hash);
+        sub ( $status, $hash ) {
+            $cb->( $status, $hash );
 
             return;
         }
@@ -118,20 +121,6 @@ sub validate_user_password_hash ( $self, $password, $hash, $user_id, $cb ) {
 }
 
 # HASH
-sub create_hash ( $self, $token, $cb ) {
-    $self->_hash_rpc->rpc_call(
-        'create_scrypt',
-        $token,
-        sub ( $status, $hash ) {
-            $cb->($hash);
-
-            return;
-        }
-    );
-
-    return;
-}
-
 # TODO limit cache size
 sub verify_hash ( $self, $token, $hash, $cb ) {
     my $cache_id = "$hash-$token";
@@ -165,7 +154,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66, 88, 112          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 67, 90, 115          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

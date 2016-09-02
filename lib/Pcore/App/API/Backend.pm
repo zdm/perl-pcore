@@ -18,8 +18,8 @@ requires(
     'get_user_by_id',
     'get_user_by_name',
     'create_user',
-    'set_user_enabled',
     'set_user_password',
+    'set_user_enabled',
     'set_user_role',
 
     # USER TOKEN

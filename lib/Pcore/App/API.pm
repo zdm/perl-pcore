@@ -386,11 +386,12 @@ sub create_user ( $self, $username, $password, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
+sub set_user_password ( $self, $user_id, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->{backend}->set_user_enabled(
-        $user_id, $enabled,
+    $self->{backend}->set_user_password(
+        $user_id,
+        $password,
         sub ($status) {
 
             # invalidate user cache on success
@@ -409,12 +410,11 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub set_user_password ( $self, $user_id, $password, $cb = undef ) {
+sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->{backend}->set_user_password(
-        $user_id,
-        $password,
+    $self->{backend}->set_user_enabled(
+        $user_id, $enabled,
         sub ($status) {
 
             # invalidate user cache on success
