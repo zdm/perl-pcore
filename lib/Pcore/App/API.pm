@@ -376,6 +376,23 @@ sub create_app_instance ( $self, $app_id, $host, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub approve_app_instance ( $self, $app_instance_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->approve_app_instance(
+        $app_instance_id,
+        sub ( $status, $token ) {
+            $cb->( $status, $token ) if $cb;
+
+            $blocking_cv->( $status, $token ) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 # ROLE
 sub _invalidate_role_cache ( $self, $role_id ) {
     delete $self->{role_cache}->{$role_id};
@@ -671,7 +688,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## |    3 | 328                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_invalidate_app_instance_cache'     |
 ## |      |                      | declared but not used                                                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 592, 622             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 609, 639             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

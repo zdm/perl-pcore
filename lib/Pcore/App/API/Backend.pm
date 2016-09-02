@@ -18,9 +18,8 @@ requires(
     # APP INSTANCE
     'get_app_instance_by_id',
     'create_app_instance',
-
-    # 'approve_app_instance',
-    # 'set_app_instance_enabled',
+    'approve_app_instance',
+    'set_app_instance_enabled',
     # 'delete_app_instance',
 
     # ROLE

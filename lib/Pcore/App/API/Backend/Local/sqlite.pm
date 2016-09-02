@@ -215,6 +215,56 @@ sub create_app_instance ( $self, $app_id, $host, $cb ) {
     return;
 }
 
+sub approve_app_instance ( $self, $app_instance_id, $cb ) {
+    $self->get_app_instance_by_id(
+        $app_instance_id,
+        sub ( $status, $app_instance ) {
+            if ( !$status ) {
+                $cb->( $status, undef );
+            }
+            else {
+                if ( !$app_instance->{approved} ) {
+                    $self->generate_app_instance_token(
+                        $app_instance_id,
+                        sub ( $status, $token, $hash ) {
+
+                            # app instance token generation error
+                            if ( !$status ) {
+                                $cb->( $status, undef );
+                            }
+
+                            # app instance token generated
+                            else {
+
+                                # app instance approved
+                                if ( $self->dbh->do( q[UPDATE api_app_instance SET approved = 1, hash = ? WHERE id = ?], [ $hash, $app_instance_id ] ) ) {
+                                    $cb->( status 200, $token );
+                                }
+
+                                # app instance approveal error
+                                else {
+                                    $cb->( status [ 500, 'App instance approval error' ], undef );
+                                }
+                            }
+
+                            return;
+                        }
+                    );
+                }
+                else {
+
+                    # app instance already approved
+                    $cb->( status 304, undef );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
 # ROLE
 sub get_role_by_id ( $self, $role_id, $cb ) {
     if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_role WHERE id = ?], [$role_id] ) ) {
@@ -558,31 +608,6 @@ sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb 
     return;
 }
 
-sub approve_app_instance ( $self, $app_instance_id, $cb ) {
-
-    # generate token
-    $self->generate_app_instance_token(
-        $app_instance_id,
-        sub ( $status, $token, $hash ) {
-            if ( !$status ) {
-                $cb->( $status, undef );
-            }
-            else {
-                if ( $self->dbh->do( 'UPDATE api_app_instance SET approved = 1, hash = ? WHERE id = ?', [ $hash, $app_instance_id ] ) ) {
-                    $cb->( status 200, $token );
-                }
-                else {
-                    $cb->( status 500, undef );
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
 # TODO set api methods
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
     $cb->( status 200 );
@@ -606,7 +631,7 @@ sub add_role_methods ( $self, $role_id, $methods, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 432, 456, 547, 587   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 482, 506, 597, 612   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
 ## |      |                      | upper case letter                                                                                              |
