@@ -393,6 +393,24 @@ sub approve_app_instance ( $self, $app_instance_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub connect_app_instance ( $self, $app_instance_id, $version, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->connect_app_instance(
+        $app_instance_id,
+        $version,
+        sub ( $status ) {
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -732,7 +750,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 29                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 396, 656, 686        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 396, 414, 674, 704   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

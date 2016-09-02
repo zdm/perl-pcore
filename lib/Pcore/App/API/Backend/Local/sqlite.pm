@@ -28,10 +28,12 @@ sub init ( $self, $cb ) {
                 `app_id` NOT NULL REFERENCES `api_app` (`id`) ON DELETE RESTRICT,
                 `version` BLOB NOT NULL,
                 `host` BLOB NOT NULL,
+                `created_ts` INTEGER,
                 `approved` INTEGER NOT NULL DEFAULT 0,
+                `approved_ts` INTEGER,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
-                `hash` BLOB,
-                `role_id` INTEGER NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT
+                `last_connected_ts` INTEGER,
+                `hash` BLOB
             );
 
             --- METHOD
@@ -48,6 +50,7 @@ sub init ( $self, $cb ) {
             CREATE TABLE IF NOT EXISTS `api_user` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `name` TEXT NOT NULL UNIQUE,
+                `created_ts` INTEGER,
                 `hash` BLOB,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
                 `role_id` INTEGER NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT
@@ -56,6 +59,7 @@ sub init ( $self, $cb ) {
             --- USER TOKEN
             CREATE TABLE IF NOT EXISTS `api_user_token` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `created_ts` INTEGER,
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `role_id` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT,
                 `hash` BLOB UNIQUE
@@ -196,7 +200,7 @@ sub create_app_instance ( $self, $app_id, $host, $cb ) {
             else {
 
                 # app instance created
-                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (app_id, host) VALUES (?, ?)], [ $app_id, $host ] ) ) {
+                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (app_id, host, created_ts) VALUES (?, ?, ?)], [ $app_id, $host, time ] ) ) {
                     my $app_instance_id = $self->dbh->last_insert_id;
 
                     $cb->( status 201, $app_instance_id );
@@ -237,7 +241,7 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
                             else {
 
                                 # app instance approved
-                                if ( $self->dbh->do( q[UPDATE api_app_instance SET approved = 1, hash = ? WHERE id = ?], [ $hash, $app_instance_id ] ) ) {
+                                if ( $self->dbh->do( q[UPDATE api_app_instance SET approved = 1, approved_ts = ?, hash = ? WHERE id = ?], [ time, $hash, $app_instance_id ] ) ) {
                                     $cb->( status 200, $token );
                                 }
 
@@ -255,6 +259,33 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
 
                     # app instance already approved
                     $cb->( status 304, undef );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub connect_app_instance ( $self, $app_instance_id, $version, $cb ) {
+    $self->get_app_instance_by_id(
+        $app_instance_id,
+        sub ( $status, $app_instance ) {
+            if ( !$status ) {
+                $cb->($status);
+            }
+            else {
+
+                # connected
+                if ( $self->dbh->do( q[UPDATE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $version, time, $app_instance_id ] ) ) {
+                    $cb->( status 200 );
+                }
+
+                # connection error
+                else {
+                    $cb->( status [ 500, 'App instance connection error' ] );
                 }
             }
 
@@ -404,7 +435,7 @@ sub create_user ( $self, $name, $password, $cb ) {
     $dbh->begin_work;
 
     # user created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, enabled) VALUES (?, ?)], [ $name, 0 ] ) ) {
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, enabled, created_ts) VALUES (?, ?, ?)], [ $name, 0, time ] ) ) {
         my $user_id = $dbh->last_insert_id;
 
         $self->set_user_password(
@@ -568,7 +599,7 @@ sub create_user_token ( $self, $user_id, $role_id, $cb ) {
 
                             $dbh->begin_work;
 
-                            if ( $dbh->do( q[INSERT INTO api_user_token (user_id, role_id) VALUES (?, ?)], [ $user_id, $role_id ] ) ) {
+                            if ( $dbh->do( q[INSERT INTO api_user_token (user_id, role_id, created_ts) VALUES (?, ?, ?)], [ $user_id, $role_id, time ] ) ) {
                                 my $token_id = $dbh->last_insert_id;
 
                                 $self->generate_user_token(
@@ -646,13 +677,6 @@ sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb 
     return;
 }
 
-# TODO set api methods
-sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
-    $cb->( status 200 );
-
-    return;
-}
-
 # ROLE
 sub set_role_methods ( $self, $role_id, $methods, $cb ) {
     return;
@@ -669,8 +693,8 @@ sub add_role_methods ( $self, $role_id, $methods, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 268, 520, 544, 635,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 650                  |                                                                                                                |
+## |    3 | 272, 299, 551, 575,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 666                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
 ## |      |                      | upper case letter                                                                                              |
