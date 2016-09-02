@@ -2,15 +2,35 @@ package Pcore::App::API::Backend;
 
 use Pcore -role;
 
-requires qw[
-  _build_host
-  init
-];
+requires(
+    '_build_host',
+    'init',
+
+    # AUTH
+    'auth_user_password',
+
+    # ROLE
+    'get_role_by_id',
+    'create_role',
+    'set_role_enabled',
+
+    # USER
+    'get_user_by_id',
+    'get_user_by_name',
+    'create_user',
+    'set_user_enabled',
+    'set_user_password',
+    'set_user_role',
+
+    # USER TOKEN
+    'create_user_token',
+    'delete_user_token',
+);
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has host => ( is => 'lazy', isa => Str, init_arg => undef );
-has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has host => ( is => 'lazy', isa => Str, init_arg => undef );                         # backend host name
+has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # backend is connected
 
 1;
 __END__

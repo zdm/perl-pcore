@@ -11,9 +11,13 @@ has map => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'], init_arg 
 
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
 
+has role_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+
 has user_cache             => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has username_id_cache      => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has user_id_password_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+
+has user_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 sub _build_map ($self) {
 
@@ -217,6 +221,40 @@ sub auth_user_password ( $self, $username, $password, $cb = undef ) {
 }
 
 # ROLE
+sub _invalidate_role_cache ( $self, $role_id ) {
+    delete $self->{user_cache}->{$role_id};
+
+    return;
+}
+
+sub get_role_by_id ( $self, $role_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    if ( my $role = $self->{role_cache}->{$role_id} ) {
+        $cb->( status 200, $role ) if $cb;
+
+        $blocking_cv->( status 200, $role ) if $blocking_cv;
+    }
+    else {
+        $self->backend->get_role_by_id(
+            $role_id,
+            sub ( $status, $role ) {
+                if ($status) {
+                    $self->{role_cache}->{$role_id} = $role;
+                }
+
+                $cb->( $status, $role ) if $cb;
+
+                $blocking_cv->( $status, $role ) if $blocking_cv;
+
+                return;
+            }
+        );
+    }
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 sub create_role ( $self, $name, $desc, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -234,9 +272,31 @@ sub create_role ( $self, $name, $desc, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub set_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->set_role_enabled(
+        $role_id, $enabled,
+        sub ($status) {
+
+            # invalidate role cache on success
+            if ($status) {
+                $self->_invalidate_role_cache($role_id);
+            }
+
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 # USER
-# NOTE this method should be called, when user was changed
-sub invalidate_user_cache ( $self, $user_id ) {
+sub _invalidate_user_cache ( $self, $user_id ) {
     delete $self->{user_cache}->{$user_id};
 
     delete $self->{user_id_password_cache}->{$user_id};
@@ -326,6 +386,123 @@ sub create_user ( $self, $username, $password, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->set_user_enabled(
+        $user_id, $enabled,
+        sub ($status) {
+
+            # invalidate user cache on success
+            if ($status) {
+                $self->_invalidate_user_cache($user_id);
+            }
+
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub set_user_password ( $self, $user_id, $password, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->set_user_password(
+        $user_id,
+        $password,
+        sub ($status) {
+
+            # invalidate user cache on success
+            if ($status) {
+                $self->_invalidate_user_cache($user_id);
+            }
+
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub set_user_role ( $self, $user_id, $role_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->set_user_role(
+        $user_id, $role_id,
+        sub ($status) {
+
+            # invalidate user cache on success
+            if ($status) {
+                $self->_invalidate_user_cache($user_id);
+            }
+
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+# USER TOKEN
+sub _invalidate_user_token_cache ( $self, $token_id ) {
+    delete $self->{user_token_cache}->{$token_id};
+
+    return;
+}
+
+sub create_user_token ( $self, $user_id, $role_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->create_user_token(
+        $user_id, $role_id,
+        sub ( $status, $token ) {
+            $cb->( $status, $token ) if $cb;
+
+            $blocking_cv->( $status, $token ) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub delete_user_token ( $self, $token_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->delete_user_token(
+        $token_id,
+        sub ( $status, $token ) {
+
+            # invalidate user token cache on success
+            if ($status) {
+                $self->_invalidate_user_token($token_id);
+            }
+
+            $cb->($status) if $cb;
+
+            $blocking_cv->($status) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -333,7 +510,12 @@ sub create_user ( $self, $username, $password, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 21                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 25                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 436, 466             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 460                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_invalidate_user_token_cache'       |
+## |      |                      | declared but not used                                                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
