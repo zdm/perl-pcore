@@ -1,6 +1,7 @@
 package Pcore::App::API::Auth::Backend::Local;
 
 use Pcore -role, -const;
+use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Hash::RandKey;
 use Pcore::Util::Data qw[to_b64_url from_b64];
 
@@ -51,6 +52,12 @@ sub create_app_instance_token ( $self, $app_instance_id, $cb ) {
     return;
 }
 
+sub validate_app_instance_token_hash ( $self, $token, $hash, $cb ) {
+    $self->verify_hash( $token, $hash, $cb );
+
+    return;
+}
+
 sub create_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
 
     # generate random token
@@ -73,6 +80,14 @@ sub create_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
     return;
 }
 
+sub validate_user_token_hash ( $self, $token, $hash, $user_id, $role_id, $cb ) {
+    my $private_token = $token . $user_id . $role_id;
+
+    $self->verify_hash( $private_token, $hash, $cb );
+
+    return;
+}
+
 sub create_user_password_hash ( $self, $password, $user_id, $cb ) {
     my $private_token = $password . $user_id;
 
@@ -84,6 +99,14 @@ sub create_user_password_hash ( $self, $password, $user_id, $cb ) {
             return;
         }
     );
+
+    return;
+}
+
+sub validate_user_password_hash ( $self, $password, $hash, $user_id, $cb ) {
+    my $private_token = $password . $user_id;
+
+    $self->verify_hash( $private_token, $hash, $cb );
 
     return;
 }
@@ -114,10 +137,12 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
         $self->_hash_rpc->rpc_call(
             'verify_scrypt',
             $token, $hash,
-            sub ( $status, $match ) {
-                $self->{_hash_cache}->{$cache_id} = $match;
+            sub ( $rpc_status, $match ) {
+                my $status = $match ? status 200 : status 400;
 
-                $cb->($match);
+                $self->{_hash_cache}->{$cache_id} = $status;
+
+                $cb->($status);
 
                 return;
             }
@@ -134,7 +159,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 54                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 61, 83, 106          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -7,17 +7,9 @@ has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Auth::Backend'], init_arg => undef );
 
-has user_password_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has app_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has appname_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has app_instance_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has user_cache        => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has username_id_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has role_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has user_cache             => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has username_id_cache      => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has user_id_password_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 # INIT AUTH BACKEND
 sub init ( $self, $cb ) {
@@ -144,6 +136,14 @@ sub create_role ( $self, $name, $desc, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub invalidate_user_cache ( $self, $user_id ) {
+    delete $self->{user_cache}->{$user_id};
+
+    delete $self->{user_id_password_cache}->{$user_id};
+
+    return;
+}
+
 sub create_user ( $self, $username, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -162,6 +162,123 @@ sub create_user ( $self, $username, $password, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub get_user_by_id ( $self, $user_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    if ( my $user = $self->{user_cache}->{$user_id} ) {
+        $cb->( status 200, $user ) if $cb;
+
+        $blocking_cv->( status 200, $user ) if $blocking_cv;
+    }
+    else {
+        $self->backend->get_user_by_id(
+            $user_id,
+            sub ( $status, $user ) {
+                if ($status) {
+                    $self->{user_cache}->{$user_id} = $user;
+                }
+
+                $cb->( $status, $user ) if $cb;
+
+                $blocking_cv->( $status, $user ) if $blocking_cv;
+
+                return;
+            }
+        );
+    }
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub get_user_by_name ( $self, $username, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    # username -> id is cached
+    if ( my $user_id = $self->{username_id_cache}->{$username} ) {
+        $self->get_user_by_id(
+            $user_id,
+            sub ( $status, $user ) {
+                $cb->( $status, $user ) if $cb;
+
+                $blocking_cv->( $status, $user ) if $blocking_cv;
+            }
+        );
+    }
+    else {
+        $self->backend->get_user_by_name(
+            $username,
+            sub ( $status, $user ) {
+                if ($status) {
+                    $self->{user_cache}->{ $user->{id} } = $user;
+
+                    $self->{username_id_cache}->{$username} = $user->{id};
+                }
+
+                $cb->( $status, $user ) if $cb;
+
+                $blocking_cv->( $status, $user ) if $blocking_cv;
+
+                return;
+            }
+        );
+    }
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub auth_user_password ( $self, $username, $password, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->get_user_by_name(
+        $username,
+        sub ( $status, $user ) {
+            if ( !$status ) {
+                $cb->( $status, undef ) if $cb;
+
+                $blocking_cv->( $status, undef ) if $blocking_cv;
+            }
+            else {
+                if ( my $user_password = $self->{user_id_password_cache}->{ $user->{id} } ) {
+                    if ( $user_password eq $password ) {
+                        $cb->( status 200, $user ) if $cb;
+
+                        $blocking_cv->( status 200, $user ) if $blocking_cv;
+                    }
+                    else {
+                        $cb->( status [ 400, 'Invalid password' ], undef ) if $cb;
+
+                        $blocking_cv->( status [ 400, 'Invalid password' ], undef ) if $blocking_cv;
+                    }
+                }
+                else {
+                    $self->backend->auth_user_password(
+                        $username,
+                        $password,
+                        sub ( $status ) {
+                            if ($status) {
+                                $self->{user_id_password_cache}->{ $user->{id} } = $password;
+                            }
+                            else {
+                                undef $user;
+                            }
+
+                            $cb->( $status, $user ) if $cb;
+
+                            $blocking_cv->( $status, $user ) if $blocking_cv;
+
+                            return;
+                        }
+                    );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 1;
 __END__
 =pod
@@ -170,7 +287,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth
+Pcore::App::API::Auth - application API authentication frontend
 
 =head1 SYNOPSIS
 

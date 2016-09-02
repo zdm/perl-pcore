@@ -87,17 +87,6 @@ SQL
 }
 
 # AUTH
-sub auth_user_password ( $self, $username, $password, $cb ) {
-    if ( my $hash = $self->dbh->selectval( q[SELECT hash FROM api_user WHERE name = ?], [$username] ) ) {
-        $self->verify_hash( $password, $hash->$*, $cb );
-    }
-    else {
-        $cb->( status 500 );
-    }
-
-    return;
-}
-
 sub auth_user_token ( $self, $token, $cb ) {
 
     # unpack token, get token id
@@ -270,6 +259,8 @@ sub get_user_by_id ( $self, $user_id, $cb ) {
     my $dbh = $self->dbh;
 
     if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
+        delete $user->{hash};
+
         $cb->( status 200, $user );
     }
     else {
@@ -285,11 +276,24 @@ sub get_user_by_name ( $self, $username, $cb ) {
     my $dbh = $self->dbh;
 
     if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE username = ?], [$username] ) ) {
+        delete $user->{hash};
+
         $cb->( status 200, $user );
     }
     else {
 
         # user not found
+        $cb->( status 404 );
+    }
+
+    return;
+}
+
+sub auth_user_password ( $self, $username, $password, $cb ) {
+    if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE username = ?], [$username] ) ) {
+        $self->validate_user_password_hash( $password, $user->{hash}, $user->{id}, $cb );
+    }
+    else {
         $cb->( status 404 );
     }
 
@@ -446,10 +450,10 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 181, 263             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 170, 252             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 187, 219, 238, 374,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 378                  |                                                                                                                |
+## |    3 | 176, 208, 227, 378,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 382                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
 ## |      |                      | with a upper case letter                                                                                       |
