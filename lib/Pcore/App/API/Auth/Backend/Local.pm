@@ -34,7 +34,7 @@ around init => sub ( $orig, $self, $cb ) {
 sub create_app_instance_token ( $self, $app_instance_id, $cb ) {
 
     # generate random token
-    my $token = P->random->bytes(27);
+    my $token = P->random->bytes(48);
 
     # add token type, app instance id
     $token = to_b64_url pack( 'C', $TOKEN_TYPE_APP_INSTANCE ) . pack( 'L', $app_instance_id ) . $token;
@@ -54,7 +54,7 @@ sub create_app_instance_token ( $self, $app_instance_id, $cb ) {
 sub create_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
 
     # generate random token
-    my $token = P->random->bytes(27);
+    my $token = P->random->bytes(48);
 
     # add token type, app instance id
     $token = to_b64_url pack( 'C', $TOKEN_TYPE_USER ) . pack( 'L', $token_id ) . $token;
