@@ -660,32 +660,6 @@ sub delete_user_token ( $self, $token_id, $cb ) {
     return;
 }
 
-# ============================================
-
-# APP INSTANCE
-sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb ) {
-    $self->dbh->do( 'INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)', [ $name, $desc, 1 ] );
-
-    my $app_id = $self->dbh->selectval( 'SELECT id FROM api_app WHERE name = ?', [$name] )->$*;
-
-    $self->dbh->do( 'INSERT INTO api_app_instance (app_id, version, host, approved, enabled) VALUES (?, ?, ?, ?, ?)', [ $app_id, $version, $host, 0, 0 ] );
-
-    my $app_instance_id = $self->dbh->last_insert_id;
-
-    $cb->( status 200, $app_instance_id );
-
-    return;
-}
-
-# ROLE
-sub set_role_methods ( $self, $role_id, $methods, $cb ) {
-    return;
-}
-
-sub add_role_methods ( $self, $role_id, $methods, $cb ) {
-    return;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -693,11 +667,7 @@ sub add_role_methods ( $self, $role_id, $methods, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 272, 299, 551, 575,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 666                  |                                                                                                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
-## |      |                      | upper case letter                                                                                              |
+## |    3 | 272, 299, 551, 575   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

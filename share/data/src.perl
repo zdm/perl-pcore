@@ -95,20 +95,14 @@
 
             __defaults__ => { severity => 1 },
 
+            # BuiltinFunctions
+            'BuiltinFunctions::ProhibitUselessTopic' => { severity => 4 },
+
+            # ClassHierarchies
+            'ClassHierarchies::ProhibitAutoloading' => { severity => 5 },
+
             # CodeLayout
             'CodeLayout::RequireTidyCode' => undef,    # covered by running perltidy separately
-
-            # Documentation
-            'Documentation::RequirePodSections' => undef,
-
-            # TestingAndDebugging
-            'TestingAndDebugging::RequireUseStrict'   => { equivalent_modules              => 'common::header Pcore' },
-            'TestingAndDebugging::RequireUseWarnings' => { equivalent_modules              => 'common::header Pcore' },
-            'TestingAndDebugging::ProhibitNoStrict'   => { allow                           => 'subs refs' },
-            'TestingAndDebugging::ProhibitNoWarnings' => { allow_with_category_restriction => 1 },
-
-            # InputOutput
-            'InputOutput::ProhibitBacktickOperators' => { only_in_void_context => 1 },
 
             # ControlStructures
             'ControlStructures::ProhibitCascadingIfElse' => { max_elsif => 5 },
@@ -116,8 +110,11 @@
             'ControlStructures::ProhibitUnlessBlocks'    => undef,
             'ControlStructures::ProhibitYadaOperator'    => { severity  => 3 },
 
-            # ClassHierarchies
-            'ClassHierarchies::ProhibitAutoloading' => { severity => 5 },
+            # Documentation
+            'Documentation::RequirePodSections' => undef,
+
+            # InputOutput
+            'InputOutput::ProhibitBacktickOperators' => { only_in_void_context => 1 },
 
             # Modules
             'Modules::RequireNoMatchVarsWithUseEnglish' => undef,
@@ -134,25 +131,12 @@
             # Miscellanea
             'Miscellanea::ProhibitUselessNoCritic' => { severity => 4 },
 
-            # Subroutines
-            'Subroutines::ProhibitAmpersandSigils'          => { severity           => 4 },
-            'Subroutines::ProhibitUnusedPrivateSubroutines' => { private_name_regex => '_(?!_?build_)\w+', },
-            'Subroutines::RequireArgUnpacking'              => undef,
-            'Subroutines::ProhibitSubroutinePrototypes'     => undef,               # TODO [PCORE-27] - remove this policy, https://github.com/Perl-Critic/Perl-Critic/issues/591
+            # NamingConventions
+            'NamingConventions::Capitalization' => undef,
 
             # References
-            'References::ProhibitDoubleSigils' => { severity => 3 },    # TODO update to 4, when bug with ->%* will be fixed, https://github.com/adamkennedy/PPI/issues/88
-
-            # Variables
-            'Variables::ProhibitUnusedVariables' => { severity => 4 },
-            'Variables::ProhibitReusedNames'     => { severity => 4 },
-
-            # ValuesAndExpressions
-            'ValuesAndExpressions::ProhibitInterpolationOfLiterals' => { severity => 3 },
-            'Variables::ProhibitPackageVars'                        => undef,
-            'Variables::ProhibitPunctuationVars'                    => undef,
-            'ValuesAndExpressions::ProhibitVersionStrings'          => undef,
-            'ValuesAndExpressions::ProhibitMagicNumbers'            => undef,
+            # TODO enable, when bug with ->%* will be fixed, https://github.com/adamkennedy/PPI/issues/88
+            'References::ProhibitDoubleSigils' => undef,    # { severity => 4 },
 
             # RegularExpressions
             'RegularExpressions::RequireDotMatchAnything'       => { severity           => 4 },
@@ -163,8 +147,28 @@
             'RegularExpressions::ProhibitUnusualDelimiters'     => { allow_all_brackets => 1 },
             'RegularExpressions::RequireBracesForMultiline'     => { allow_all_brackets => 1 },
 
-            # BuiltinFunctions
-            'BuiltinFunctions::ProhibitUselessTopic' => { severity => 4 },
+            # Subroutines
+            'Subroutines::ProhibitAmpersandSigils'          => { severity           => 4 },
+            'Subroutines::ProhibitUnusedPrivateSubroutines' => { private_name_regex => '_(?!_?build_)\w+', },
+            'Subroutines::RequireArgUnpacking'              => undef,
+            'Subroutines::ProhibitSubroutinePrototypes'     => undef,               # TODO [PCORE-27] - remove this policy, https://github.com/Perl-Critic/Perl-Critic/issues/591
+
+            # TestingAndDebugging
+            'TestingAndDebugging::RequireUseStrict'   => { equivalent_modules              => 'common::header Pcore' },
+            'TestingAndDebugging::RequireUseWarnings' => { equivalent_modules              => 'common::header Pcore' },
+            'TestingAndDebugging::ProhibitNoStrict'   => { allow                           => 'subs refs' },
+            'TestingAndDebugging::ProhibitNoWarnings' => { allow_with_category_restriction => 1 },
+
+            # ValuesAndExpressions
+            'ValuesAndExpressions::ProhibitInterpolationOfLiterals' => { severity => 3 },
+            'Variables::ProhibitPackageVars'                        => undef,
+            'Variables::ProhibitPunctuationVars'                    => undef,
+            'ValuesAndExpressions::ProhibitVersionStrings'          => undef,
+            'ValuesAndExpressions::ProhibitMagicNumbers'            => undef,
+
+            # Variables
+            'Variables::ProhibitUnusedVariables' => { severity => 4 },
+            'Variables::ProhibitReusedNames'     => { severity => 4 },
         },
         'pcore-script' => {
             __parent__ => 'common',
@@ -172,6 +176,18 @@
             __autodetect__ => sub {
                 return $_[0] =~ /^use\s+Pcore(?:\s|;)/sm;
             },
+
+            # ErrorHandling
+            'ErrorHandling::RequireCarping' => undef,
+
+            # InputOutput
+            'InputOutput::RequireCheckedSyscalls' => {
+                severity          => 4,
+                functions         => ':builtins',
+                exclude_functions => 'print say sleep',
+            },
+            'InputOutput::RequireCheckedOpen'  => { severity => 4, },
+            'InputOutput::RequireCheckedClose' => { severity => 4, },
 
             # Modules
             'Modules::ProhibitEvilModules' => {
@@ -233,29 +249,17 @@
             },
             'Modules::RequireVersionVar'        => undef,
             'Modules::ProhibitMultiplePackages' => undef,
-
-            # ErrorHandling
-            'ErrorHandling::RequireCarping' => undef,
-
-            # InputOutput
-            'InputOutput::RequireCheckedSyscalls' => {
-                severity          => 4,
-                functions         => ':builtins',
-                exclude_functions => 'print say sleep',
-            },
-            'InputOutput::RequireCheckedOpen'  => { severity => 4, },
-            'InputOutput::RequireCheckedClose' => { severity => 4, },
         },
         'pcore-config' => {
             __parent__ => 'pcore-script',
 
-            # TestingAndDebugging
-            'TestingAndDebugging::RequireUseStrict'   => undef,
-            'TestingAndDebugging::RequireUseWarnings' => undef,
-
             # Modules
             'Modules::RequireExplicitPackage' => undef,
             'Modules::RequireEndWithOne'      => undef,
+
+            # TestingAndDebugging
+            'TestingAndDebugging::RequireUseStrict'   => undef,
+            'TestingAndDebugging::RequireUseWarnings' => undef,
 
             # ValuesAndExpressions
             'ValuesAndExpressions::RequireInterpolationOfMetachars' => undef,
