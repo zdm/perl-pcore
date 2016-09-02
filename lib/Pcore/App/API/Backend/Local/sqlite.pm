@@ -97,9 +97,79 @@ sub auth_user_password ( $self, $name, $password, $cb ) {
     return;
 }
 
+# APP
+sub get_app_by_id ( $self, $app_id, $cb ) {
+    if ( my $app = $self->dbh->selectrow( q[SELECT * FROM app_role WHERE id = ?], [$app_id] ) ) {
+        $cb->( status 200, $app );
+    }
+    else {
+        $cb->( status [ 404, 'App not found' ], undef );
+    }
+
+    return;
+}
+
+sub create_app ( $self, $name, $desc, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
+        my $app_id = $dbh->last_insert_id;
+
+        $cb->( status 201, $app_id );
+    }
+    else {
+        my $app_id = $dbh->selectval( 'SELECT id FROM api_app WHERE name = ?', [$name] )->$*;
+
+        # role already exists
+        $cb->( status [ 409, 'App already exists' ], $app_id );
+    }
+
+    return;
+}
+
+sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
+    $self->get_app_by_id(
+        $app_id,
+        sub ( $status, $app ) {
+            if ( !$status ) {
+                $cb->($status);
+            }
+            else {
+                if ( ( $enabled && !$app->{enabled} ) || ( !$enabled && $app->{enabled} ) ) {
+                    $self->dbh->do( q[UPDATE api_app SET enabled = ? WHERE id = ?], [ $enabled, $app_id ] );
+
+                    $cb->( status 200 );
+                }
+                else {
+
+                    # not modified
+                    $cb->( status 304 );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub delete_app ( $self, $app_id, $cb ) {
+    if ( $self->dbh->do( q[DELETE FROM api_app WHERE id = ?], [$app_id] ) ) {
+        $cb->( status 200 );
+    }
+    else {
+        $cb->( status [ 404, 'App not found' ] );
+    }
+
+    return;
+}
+
+# APP INSTANCE
+
 # ROLE
 sub get_role_by_id ( $self, $role_id, $cb ) {
-    if ( my $role = $self->dbh->selectrow( q[SELECT enabled FROM api_role WHERE id = ?], [$role_id] ) ) {
+    if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_role WHERE id = ?], [$role_id] ) ) {
         $cb->( status 200, $role );
     }
     else {
@@ -422,63 +492,6 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 
 # ============================================
 
-# APP
-sub get_app_by_id ( $self, $app_id, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
-        $cb->( status 200, $app );
-    }
-    else {
-        $cb->( status 404, undef );
-    }
-
-    return;
-}
-
-sub get_app_by_name ( $self, $appname, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$appname] ) ) {
-        $cb->( status 200, $app );
-    }
-    else {
-        $cb->( status 404, undef );
-    }
-
-    return;
-}
-
-sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $app = $dbh->selectrow( q[SELECT enabled FROM api_app WHERE id = ?], [$app_id] ) ) {
-        if ( ( $enabled && !$app->{enabled} ) || ( !$enabled && $app->{enabled} ) ) {
-            $dbh->do( q[UPDATE api_app SET enabled = ? WHERE id = ?], [ $enabled, $app_id ] );
-
-            $cb->( status 200 );
-        }
-        else {
-
-            # not modified
-            $cb->( status 304 );
-        }
-    }
-    else {
-
-        # app not found
-        $cb->( status 404 );
-    }
-
-    return;
-}
-
-sub remove_app ( $self, $app_id, $cb ) {
-    ...;
-
-    return;
-}
-
 # APP INSTANCE
 sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb ) {
     $self->dbh->do( 'INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)', [ $name, $desc, 1 ] );
@@ -569,20 +582,12 @@ sub remove_app_instance ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-# USER
-
 # ROLE
-
 sub set_role_methods ( $self, $role_id, $methods, $cb ) {
     return;
 }
 
 sub add_role_methods ( $self, $role_id, $methods, $cb ) {
-    return;
-}
-
-# TOKEN
-sub set_token_enabled ( $self, $token_id, $enabled, $cb ) {
     return;
 }
 
@@ -593,10 +598,10 @@ sub set_token_enabled ( $self, $token_id, $enabled, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 311, 335, 483, 523,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 542                  |                                                                                                                |
+## |    3 | 381, 405, 496, 536,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 555                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 477, 567             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 580                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
 ## |      |                      | upper case letter                                                                                              |

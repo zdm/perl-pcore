@@ -9,6 +9,14 @@ requires(
     # AUTH
     'auth_user_password',
 
+    # APP
+    'get_app_by_id',
+    'create_app',
+    'set_app_enabled',
+    'delete_app',
+
+    # APP INSTANCE
+
     # ROLE
     'get_role_by_id',
     'create_role',
