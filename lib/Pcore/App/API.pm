@@ -13,6 +13,8 @@ has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], ini
 
 has app_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
+has app_instance_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+
 has role_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has user_cache             => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -322,7 +324,40 @@ sub delete_app ( $self, $app_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-# TODO APP INSTANCE
+# APP INSTANCE
+sub _invalidate_app_instance_cache ( $self, $app_instance_id ) {
+    delete $self->{app_instance_cache}->{$app_instance_id};
+
+    return;
+}
+
+sub get_app_instance_by_id ( $self, $app_instance_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    if ( my $app_instance = $self->{app_instance_cache}->{$app_instance_id} ) {
+        $cb->( status 200, $app_instance ) if $cb;
+
+        $blocking_cv->( status 200, $app_instance ) if $blocking_cv;
+    }
+    else {
+        $self->backend->get_app_instance_by_id(
+            $app_instance_id,
+            sub ( $status, $user ) {
+                if ($status) {
+                    $self->{app_instance_cache}->{$app_instance_id} = $app_instance;
+                }
+
+                $cb->( $status, $app_instance ) if $cb;
+
+                $blocking_cv->( $status, $app_instance ) if $blocking_cv;
+
+                return;
+            }
+        );
+    }
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
 
 # ROLE
 sub _invalidate_role_cache ( $self, $role_id ) {
@@ -614,9 +649,12 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 29                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 540, 570             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 328                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_invalidate_app_instance_cache'     |
+## |      |                      | declared but not used                                                                                          |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 575, 605             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

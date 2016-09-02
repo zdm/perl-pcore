@@ -99,7 +99,7 @@ sub auth_user_password ( $self, $name, $password, $cb ) {
 
 # APP
 sub get_app_by_id ( $self, $app_id, $cb ) {
-    if ( my $app = $self->dbh->selectrow( q[SELECT * FROM app_role WHERE id = ?], [$app_id] ) ) {
+    if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
         $cb->( status 200, $app );
     }
     else {
@@ -166,6 +166,18 @@ sub delete_app ( $self, $app_id, $cb ) {
 }
 
 # APP INSTANCE
+sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
+    if ( my $app_instance = $self->dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+        delete $app_instance->{hash};
+
+        $cb->( status 200, $app_instance );
+    }
+    else {
+        $cb->( status [ 404, 'App instance not found' ], undef );
+    }
+
+    return;
+}
 
 # ROLE
 sub get_role_by_id ( $self, $role_id, $cb ) {
@@ -539,49 +551,6 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
     return;
 }
 
-sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $app_instance = $dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
-        $cb->( status 200, $app_instance );
-    }
-    else {
-        $cb->( status 404, undef );
-    }
-
-    return;
-}
-
-sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $app_instance = $dbh->selectrow( q[SELECT enabled FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
-        if ( ( $enabled && !$app_instance->{enabled} ) || ( !$enabled && $app_instance->{enabled} ) ) {
-            $dbh->do( q[UPDATE api_app_instance SET enabled = ? WHERE id = ?], [ $enabled, $app_instance_id ] );
-
-            $cb->( status 200 );
-        }
-        else {
-
-            # not modified
-            $cb->( status 304 );
-        }
-    }
-    else {
-
-        # app instance not found
-        $cb->( status 404 );
-    }
-
-    return;
-}
-
-sub remove_app_instance ( $self, $app_instance_id, $cb ) {
-    ...;
-
-    return;
-}
-
 # ROLE
 sub set_role_methods ( $self, $role_id, $methods, $cb ) {
     return;
@@ -598,10 +567,7 @@ sub add_role_methods ( $self, $role_id, $methods, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 381, 405, 496, 536,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 555                  |                                                                                                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 580                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 393, 417, 508, 548   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Backend::Local::sqlite" does not start with a    |
 ## |      |                      | upper case letter                                                                                              |

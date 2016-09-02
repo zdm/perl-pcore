@@ -16,6 +16,7 @@ requires(
     'delete_app',
 
     # APP INSTANCE
+    'get_app_instance_by_id',
 
     # ROLE
     'get_role_by_id',
