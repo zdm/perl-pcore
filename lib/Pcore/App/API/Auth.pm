@@ -1,37 +1,13 @@
 package Pcore::App::API::Auth;
 
-use Pcore -role;
+use Pcore -class;
 use Pcore::Util::Status::Keyword qw[status];
 
-requires(
-    'init',
-
-    # app
-    'register_app_instance',
-    'approve_app_instance',
-    'connect_app_instance',
-
-    # user
-    'get_user_by_id',
-    'get_user_by_name',
-    'create_user',
-    'set_user_password',
-    'set_user_enabled',
-    'set_user_role',
-    'create_user_token',
-
-    # role
-    'create_role',
-    'set_role_enabled',
-    'set_role_methods',
-    'add_role_methods',
-
-    # token
-    'set_token_enabled',
-    'delete_token',
-);
-
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+
+has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Auth::Backend'], init_arg => undef );
+
+has user_password_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has app_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has appname_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -43,10 +19,30 @@ has username_id_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, in
 
 has role_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-around init => sub ( $orig, $self, $cb ) {
+# INIT AUTH BACKEND
+sub init ( $self, $cb ) {
+
+    # create API auth backend
+    my $auth_uri = P->uri( $self->{app}->{auth} );
+
+    if ( $auth_uri->scheme eq 'sqlite' || $auth_uri->scheme eq 'pgsql' ) {
+        my $dbh = P->handle($auth_uri);
+
+        my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Auth::Backend::Local' );
+
+        $self->{backend} = $class->new( { app => $self->app, dbh => $dbh } );
+    }
+    elsif ( $auth_uri->scheme eq 'http' || $auth_uri->scheme eq 'https' || $auth_uri->scheme eq 'ws' || $auth_uri->scheme eq 'wss' ) {
+        require Pcore::App::API::Auth::Backend::Cluster;
+
+        $self->{backend} = Pcore::App::API::Auth::Backend::Cluster->new( { app => $self->app, uri => $auth_uri } );
+    }
+    else {
+        die q[Unknown API auth scheme];
+    }
 
     # init auth backend, create DB schema
-    $self->$orig(
+    $self->backend->init(
         sub ($status) {
             die qq[Error initialising API auth backend: $status] if !$status;
 
@@ -64,7 +60,7 @@ around init => sub ( $orig, $self, $cb ) {
             }
 
             my $connect_app_instance = sub ( $app_instance_id, $app_instance_token ) {
-                $self->connect_app_instance(
+                $self->backend->connect_app_instance(
                     $app_instance_id,
                     $app_instance_token,
                     sub ($status) {
@@ -80,7 +76,7 @@ around init => sub ( $orig, $self, $cb ) {
             };
 
             my $approve_app_instance = sub ($app_instance_id) {
-                $self->approve_app_instance(
+                $self->backend->approve_app_instance(
                     $app_instance_id,
                     sub ( $status, $app_instance_token ) {
                         die qq[Error approving app: $status] if !$status;
@@ -99,7 +95,7 @@ around init => sub ( $orig, $self, $cb ) {
             if ( !$app_instance_id ) {
 
                 # register app on backend, get and init message broker
-                $self->register_app_instance(
+                $self->backend->register_app_instance(
                     $self->app->name,
                     $self->app->desc,
                     "@{[$self->app->version]}",
@@ -129,133 +125,28 @@ around init => sub ( $orig, $self, $cb ) {
     );
 
     return;
-};
+}
 
-# APP
-around get_app_by_id => sub ( $orig, $self, $app_id, $cb ) {
-    if ( my $app = $self->{app_cache}->{$app_id} ) {
-        $cb->( status 200, $app );
-    }
-    else {
-        $self->$orig(
-            $app_id,
-            sub ( $status, $app = undef ) {
-                if ($status) {
-                    $self->{app_cache}->{$app_id} = $app;
+sub create_role ( $self, $name, $desc, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-                    $self->{appname_cache}->{ $app->{name} } = $app->{id};
-                }
+    $self->backend->create_role(
+        $name, $desc,
+        sub ( $status, $role_id ) {
+            $cb->( $status, $role_id ) if $cb;
 
-                $cb->( $status, $app );
-
-                return;
-            }
-        );
-    }
-
-    return;
-};
-
-around get_app_by_name => sub ( $orig, $self, $app_name, $cb ) {
-    return $self->$orig($app_name);
-};
-
-around set_app_enabled => sub ( $orig, $self, $app_id, $enabled, $cb ) {
-    $self->$orig(
-        $app_id, $enabled,
-        sub ($status) {
-
-            # invalidate app cache, if app was modified
-            delete $self->{app_cache}->{$app_id} if $status;
-
-            $cb->($status);
+            $blocking_cv->( $status, $role_id ) if $blocking_cv;
 
             return;
         }
     );
-};
 
-# APP INSTANCE
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
 
-# USER
-around get_user_by_id => sub ( $orig, $self, $user_id, $cb ) {
-    if ( $self->{user_cache}->{$user_id} ) {
-        $cb->( status 200, $self->{user_cache}->{$user_id} );
-    }
-    else {
-        $self->$orig(
-            $user_id,
-            sub ( $status, $user = undef ) {
-                if ($status) {
-                    $self->{user_cache}->{$user_id} = $user;
-
-                    $self->{username_id_cache}->{ $user->{username} } = $user_id;
-                }
-
-                $cb->( $status, $user );
-
-                return;
-            }
-        );
-    }
-
+sub create_user ( $self, $username, $password, $role_id, $cb ) {
     return;
-};
-
-around get_user_by_name => sub ( $orig, $self, $username, $cb ) {
-    if ( my $user_id = $self->{username_id_cache}->{$username} ) {
-        $self->get_user_by_id( $user_id, $cb );
-    }
-    else {
-        $self->$orig(
-            $username,
-            sub ( $status, $user = undef ) {
-                if ($status) {
-                    $self->{user_cache}->{ $user->{id} } = $user;
-
-                    $self->{username_id_cache}->{$username} = $user->{id};
-                }
-
-                $cb->( $status, $user );
-
-                return;
-            }
-        );
-    }
-
-    return;
-};
-
-around set_user_enabled => sub ( $orig, $self, $user_id, $enabled, $cb ) {
-    $self->$orig(
-        $user_id, $enabled,
-        sub ($status) {
-
-            # invalidate user cache, if user was modified
-            delete $self->{user_cache}->{$user_id} if $status;
-
-            $cb->($status);
-
-            return;
-        }
-    );
-};
-
-# ROLE
-around set_role_enabled => sub ( $orig, $self, $role_id, $enabled, $cb ) {
-    $self->$orig(
-        $role_id, $enabled,
-        sub ($status) {
-
-            # invalidate role cache, if role was modified
-            delete $self->{role_cache}->{$role_id} if $status;
-
-            $cb->($status);
-
-            return;
-        }
-    );
-};
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -264,7 +155,7 @@ around set_role_enabled => sub ( $orig, $self, $role_id, $enabled, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (22)                               |
+## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

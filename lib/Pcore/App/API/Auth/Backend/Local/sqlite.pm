@@ -1,10 +1,11 @@
-package Pcore::App::API::Auth::Local::sqlite;
+package Pcore::App::API::Auth::Backend::Local::sqlite;
 
 use Pcore -class;
 use Pcore::Util::Status::Keyword qw[status];
 
-with qw[Pcore::App::API::Auth::Local];
+with qw[Pcore::App::API::Auth::Backend::Local];
 
+# INIT AUTH BACKEND
 sub init ( $self, $cb ) {
 
     # create db
@@ -51,7 +52,7 @@ sub init ( $self, $cb ) {
                 `rid` INTEGER NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT
             );
 
-            --- TOKEN
+            --- USER TOKEN
             CREATE TABLE IF NOT EXISTS `api_token` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `hash` BLOB UNIQUE,
@@ -64,7 +65,7 @@ sub init ( $self, $cb ) {
             --- ROLE
             CREATE TABLE IF NOT EXISTS `api_role` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `rolename` TEXT NOT NULL UNIQUE,
+                `name` TEXT NOT NULL UNIQUE,
                 `desc` TEXT NOT NULL,
                 `enabled` INTEGER NOT NULL DEFAULT 0
             );
@@ -85,7 +86,104 @@ SQL
     return;
 }
 
+# AUTH
+sub auth_user_password ( $self, $username, $password, $cb ) {
+    if ( my $hash = $self->dbh->selectval( q[SELECT hash FROM api_user WHERE name = ?], [$username] ) ) {
+        $self->verify_hash( $password, $hash->$*, $cb );
+    }
+    else {
+        $cb->( status 500 );
+    }
+
+    return;
+}
+
+sub auth_user_token ( $self, $token, $cb ) {
+
+    # unpack token, get token id
+    my $token_id = 1;
+
+    if ( my $db_token = $self->dbh->selectrow( q[SELECT * FROM api_user_token WHERE id = ?], [$token_id] ) ) {
+        $self->verify_hash(
+            $token,
+            $db_token->{hash},
+            sub ($status) {
+                if ($status) {
+                    $cb->( $status, $db_token->{user_id}, $db_token->{role_id}, $db_token->{enabled} );
+                }
+                else {
+                    $cb->( $status, undef, undef, undef );
+                }
+
+                return;
+            }
+        );
+    }
+    else {
+        $cb->( status 500 );
+    }
+
+    return;
+}
+
 # APP
+sub get_app_by_id ( $self, $app_id, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
+        $cb->( status 200, $app );
+    }
+    else {
+        $cb->( status 404, undef );
+    }
+
+    return;
+}
+
+sub get_app_by_name ( $self, $appname, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$appname] ) ) {
+        $cb->( status 200, $app );
+    }
+    else {
+        $cb->( status 404, undef );
+    }
+
+    return;
+}
+
+sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $app = $dbh->selectrow( q[SELECT enabled FROM api_app WHERE id = ?], [$app_id] ) ) {
+        if ( ( $enabled && !$app->{enabled} ) || ( !$enabled && $app->{enabled} ) ) {
+            $dbh->do( q[UPDATE api_app SET enabled = ? WHERE id = ?], [ $enabled, $app_id ] );
+
+            $cb->( status 200 );
+        }
+        else {
+
+            # not modified
+            $cb->( status 304 );
+        }
+    }
+    else {
+
+        # app not found
+        $cb->( status 404 );
+    }
+
+    return;
+}
+
+sub remove_app ( $self, $app_id, $cb ) {
+    ...;
+
+    return;
+}
+
+# APP INSTANCE
 sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb ) {
     $self->dbh->do( 'INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)', [ $name, $desc, 1 ] );
 
@@ -103,8 +201,7 @@ sub register_app_instance ( $self, $name, $desc, $version, $host, $handles, $cb 
 sub approve_app_instance ( $self, $app_instance_id, $cb ) {
 
     # generate token
-    $self->create_token(
-        $app_instance_id,
+    $self->create_app_instance_token(
         $app_instance_id,
         sub ( $token, $hash ) {
             $self->dbh->do( 'UPDATE api_app_instance SET approved = 1, hash = ? WHERE id = ?', [ $hash, $app_instance_id ] );
@@ -125,12 +222,25 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $cb ) {
     return;
 }
 
-sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
+sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
     my $dbh = $self->dbh;
 
-    if ( my $user = $dbh->selectrow( q[SELECT enabled FROM api_user WHERE id = ?], [$user_id] ) ) {
-        if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
-            $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
+    if ( my $app_instance = $dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+        $cb->( status 200, $app_instance );
+    }
+    else {
+        $cb->( status 404, undef );
+    }
+
+    return;
+}
+
+sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $app_instance = $dbh->selectrow( q[SELECT enabled FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+        if ( ( $enabled && !$app_instance->{enabled} ) || ( !$enabled && $app_instance->{enabled} ) ) {
+            $dbh->do( q[UPDATE api_app_instance SET enabled = ? WHERE id = ?], [ $enabled, $app_instance_id ] );
 
             $cb->( status 200 );
         }
@@ -142,34 +252,15 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
     }
     else {
 
-        # user not found
+        # app instance not found
         $cb->( status 404 );
     }
 
     return;
 }
 
-# APP INSTANCE
-sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $user = $dbh->selectrow( q[SELECT enabled FROM api_user WHERE id = ?], [$user_id] ) ) {
-        if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
-            $dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
-
-            $cb->( status 200 );
-        }
-        else {
-
-            # not modified
-            $cb->( status 304 );
-        }
-    }
-    else {
-
-        # user not found
-        $cb->( status 404 );
-    }
+sub remove_app_instance ( $self, $app_instance_id, $cb ) {
+    ...;
 
     return;
 }
@@ -289,7 +380,7 @@ sub create_user_token ( $self, $user_id, $role_id, $cb ) {
 sub create_role ( $self, $name, $desc, $cb ) {
     my $dbh = $self->dbh;
 
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_role (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
         my $role_id = $dbh->last_insert_id;
 
         $cb->( status 201, $role_id );
@@ -297,7 +388,7 @@ sub create_role ( $self, $name, $desc, $cb ) {
     else {
 
         # role already exists
-        $cb->( status 409 );
+        $cb->( status 409, undef );
     }
 
     return;
@@ -351,11 +442,13 @@ sub delete_token ( $self, $role_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 89, 122, 153, 208,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 280, 284             |                                                                                                                |
+## |    3 | 181, 263             | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Local::sqlite" does not start with a upper |
-## |      |                      |  case letter                                                                                                   |
+## |    3 | 187, 219, 238, 299,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 371, 375             |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 1                    | NamingConventions::Capitalization - Package "Pcore::App::API::Auth::Backend::Local::sqlite" does not start     |
+## |      |                      | with a upper case letter                                                                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -366,7 +459,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::Local::sqlite
+Pcore::App::API::Auth::Backend::Local::sqlite
 
 =head1 SYNOPSIS
 

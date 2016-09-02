@@ -1,8 +1,8 @@
-package Pcore::App::API::Auth::Cluster;
+package Pcore::App::API::Auth::Backend::Cluster;
 
 use Pcore -class;
 
-with qw[Pcore::App::API::Auth];
+with qw[Pcore::App::API::Auth::Backend];
 
 has uri => ( is => 'ro', isa => ConsumerOf ['Pcore::Util::URI'], required => 1 );
 
@@ -35,7 +35,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Auth::Cluster
+Pcore::App::API::Auth::Backend::Cluster
 
 =head1 SYNOPSIS
 

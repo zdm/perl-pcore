@@ -110,9 +110,11 @@
             # InputOutput
             'InputOutput::ProhibitBacktickOperators' => { only_in_void_context => 1 },
 
+            # ControlStructures
             'ControlStructures::ProhibitCascadingIfElse' => { max_elsif => 5 },
             'ControlStructures::ProhibitPostfixControls' => { allow     => 'if unless' },
             'ControlStructures::ProhibitUnlessBlocks'    => undef,
+            'ControlStructures::ProhibitYadaOperator'    => { severity  => 3 },
 
             # ClassHierarchies
             'ClassHierarchies::ProhibitAutoloading' => { severity => 5 },
