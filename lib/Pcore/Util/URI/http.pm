@@ -1,4 +1,4 @@
-package Pcore::Util::URI::http;    ## no critic qw[NamingConventions::Capitalization]
+package Pcore::Util::URI::http;
 
 use Pcore -class;
 

@@ -653,8 +653,6 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |      | 300                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
 ## |      | 413                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 96                   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 261, 267, 521        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 459                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |

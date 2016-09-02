@@ -1,4 +1,4 @@
-package Pcore::Core::Log::Pipe::file;    ## no critic qw[NamingConventions::Capitalization]
+package Pcore::Core::Log::Pipe::file;
 
 use Pcore -class;
 use Fcntl qw[:flock];

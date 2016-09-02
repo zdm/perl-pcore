@@ -994,8 +994,6 @@ sub get_connect ($connect) {
 ## |      | 624                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
 ## |      | 750                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 162, 424             | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 282, 660, 661        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 57, 469, 506, 509,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
@@ -1004,13 +1002,13 @@ sub get_connect ($connect) {
 ## |    2 | 697                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 1021                 | * Link L<AnyEvent::Handle> on line 1027 does not specify text                                                  |
-## |      | 1021                 | * Link L<AnyEvent::Handle> on line 1035 does not specify text                                                  |
-## |      | 1021                 | * Link L<AnyEvent::Handle> on line 1063 does not specify text                                                  |
-## |      | 1021                 | * Link L<AnyEvent::Handle> on line 1079 does not specify text                                                  |
-## |      | 1021                 | * Link L<AnyEvent::Socket> on line 1079 does not specify text                                                  |
-## |      | 1021, 1021           | * Link L<Pcore::Proxy> on line 1045 does not specify text                                                      |
-## |      | 1021                 | * Link L<Pcore::Proxy> on line 1079 does not specify text                                                      |
+## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1025 does not specify text                                                  |
+## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1033 does not specify text                                                  |
+## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1061 does not specify text                                                  |
+## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1077 does not specify text                                                  |
+## |      | 1019                 | * Link L<AnyEvent::Socket> on line 1077 does not specify text                                                  |
+## |      | 1019, 1019           | * Link L<Pcore::Proxy> on line 1043 does not specify text                                                      |
+## |      | 1019                 | * Link L<Pcore::Proxy> on line 1077 does not specify text                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 53, 58, 474, 559,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## |      | 562, 565, 571        |                                                                                                                |

@@ -1,4 +1,4 @@
-package Pcore::Util::URI::ftp;    ## no critic qw[NamingConventions::Capitalization]
+package Pcore::Util::URI::ftp;
 
 use Pcore -class;
 

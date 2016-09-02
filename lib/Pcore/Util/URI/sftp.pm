@@ -1,4 +1,4 @@
-package Pcore::Util::URI::sftp;    ## no critic qw[NamingConventions::Capitalization]
+package Pcore::Util::URI::sftp;
 
 use Pcore -class;
 

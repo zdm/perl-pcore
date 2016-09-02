@@ -1,4 +1,4 @@
-package Pcore::Util::URI::ssh;    ## no critic qw[NamingConventions::Capitalization]
+package Pcore::Util::URI::ssh;
 
 use Pcore -class;
 

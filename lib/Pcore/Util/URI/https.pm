@@ -1,4 +1,4 @@
-package Pcore::Util::URI::https;    ## no critic qw[NamingConventions::Capitalization]
+package Pcore::Util::URI::https;
 
 use Pcore -class;
 

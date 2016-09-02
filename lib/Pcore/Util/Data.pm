@@ -746,9 +746,6 @@ sub to_xor ( $buf, $mask ) {
 ## |      | 50                   | * Subroutine "encode_data" with high complexity score (35)                                                     |
 ## |      | 255                  | * Subroutine "decode_data" with high complexity score (33)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 78, 126, 173, 175,   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |      | 363, 403, 594        |                                                                                                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 631, 683, 691        | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 589                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |

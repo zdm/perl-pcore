@@ -653,8 +653,6 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |      | 244                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
 ## |      | 379                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 106, 120, 122, 203   | References::ProhibitDoubleSigils - Double-sigil dereference                                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 359                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 591                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
