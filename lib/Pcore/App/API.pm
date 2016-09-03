@@ -87,9 +87,9 @@ sub init ( $self, $cb ) {
             say 'done';
 
             # get app instance credentials from local config
-            my $app_instance_id = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0];
+            my ( $app_instance_id, $app_instance_token );
 
-            my $app_instance_token = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1];
+            ( $app_instance_id, $app_instance_token ) = $self->app->cfg->{auth}->{ $self->{backend}->host }->@* if $self->app->cfg->{auth}->{ $self->{backend}->host };
 
             my $connect_app_instance = sub ( $app_instance_id, $app_instance_token ) {
                 print q[Connecting app instance ... ];
@@ -97,6 +97,10 @@ sub init ( $self, $cb ) {
                 $self->{backend}->connect_app_instance(
                     $app_instance_id,
                     $app_instance_token,
+                    "@{[$self->app->version]}",
+                    $self->map->method,
+                    $self->roles,
+                    $self->permissions,
                     sub ($status) {
                         die qq[Error connecting app: $status] if !$status;
 
@@ -151,8 +155,9 @@ sub init ( $self, $cb ) {
                     $self->app->desc,
                     "@{[$self->app->version]}",
                     P->sys->hostname,
-                    {},    # handles
-
+                    $self->map->method,
+                    $self->roles,
+                    $self->permissions,
                     sub ( $status, $app_instance_id ) {
                         die qq[Error registering app: $status] if !$status;
 
@@ -772,7 +777,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 419, 437, 698, 728   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 424, 442, 703, 733   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

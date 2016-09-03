@@ -5,6 +5,51 @@ use Pcore::Util::Status::Keyword qw[status];
 
 with qw[Pcore::App::API::Backend::Local];
 
+sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $instance_host, $methods, $roles, $permissions, $cb ) {
+    my $dbh = $self->dbh;
+
+    $dbh->begin_work;
+
+    my $new_app;
+
+    my $app_id;
+
+    # app already exists
+    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_name] ) ) {
+        $app_id = $app->{id};
+    }
+
+    # create new app
+    else {
+        $dbh->do( q[INSERT INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $app_name, $app_desc, 1 ] );
+
+        $app_id = $dbh->last_insert_id;
+
+        $new_app = 1;
+    }
+
+    $dbh->do( q[INSERT INTO api_app_instance (app_id, version, host, created_ts, approved, enabled) VALUES (?, ?, ?, ?, ?, ?)], [ $app_id, $instance_version, $instance_host, time, 0, 0 ] );
+
+    my $app_instance_id = $dbh->last_insert_id;
+
+    # TODO store methods, roles, permissions
+    if ($new_app) {
+
+        # store app methods
+        for my $method ( keys $methods->%* ) {
+            $dbh->do( q[INSERT INTO api_app_method (id, app_id, version, desc) VALUES (?, ?, ?, ?)], [ $method, $app_id, $methods->{$method}->{version}, $methods->{$method}->{desc} ] );
+        }
+    }
+
+    $dbh->commit;
+
+    $cb->( status 200, $app_instance_id );
+
+    return;
+}
+
+# ==================================================================
+
 # INIT AUTH BACKEND
 sub init ( $self, $cb ) {
 
@@ -37,13 +82,12 @@ sub init ( $self, $cb ) {
             );
 
             --- METHOD
-            CREATE TABLE IF NOT EXISTS `api_method` (
-                `id` BLOB PRIMARY KEY NOT NULL,
-                `app_id` BLOB NOT NULL,
+            CREATE TABLE IF NOT EXISTS `api_app_method` (
+                `id` BLOB NOT NULL,
+                `app_id` INTEGER NOT NULL,
                 `version` BLOB NOT NULL,
-                `class` BLOB NOT NULL,
-                `name` BLOB NOT NULL,
-                `desc` TEXT NOT NULL
+                `desc` TEXT NOT NULL,
+                PRIMARY KEY (`id`, `app_id`)
             );
 
             --- USER
@@ -73,12 +117,12 @@ sub init ( $self, $cb ) {
                 `enabled` INTEGER NOT NULL DEFAULT 0
             );
 
-            CREATE TABLE IF NOT EXISTS `api_role_has_method` (
-                `role_id` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE CASCADE,
-                `method_id` BLOB NOT NULL REFERENCES `api_method` (`id`) ON DELETE CASCADE
-            );
-
-            CREATE UNIQUE INDEX `idx_uniq_api_role_has_method` ON `api_role_has_method` (`role_id`, `method_id`);
+            -- CREATE TABLE IF NOT EXISTS `api_role_has_method` (
+            --     `role_id` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE CASCADE,
+            --     `method_id` BLOB NOT NULL REFERENCES `api_method` (`id`) ON DELETE CASCADE
+            -- );
+            --
+            -- CREATE UNIQUE INDEX `idx_uniq_api_role_has_method` ON `api_role_has_method` (`role_id`, `method_id`);
 SQL
     );
 
@@ -269,7 +313,7 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-sub connect_app_instance ( $self, $app_instance_id, $version, $cb ) {
+sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $version, $methods, $roles, $permissions, $cb ) {
     $self->get_app_instance_by_id(
         $app_instance_id,
         sub ( $status, $app_instance ) {
@@ -667,7 +711,8 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 272, 299, 551, 575   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 8, 316, 343, 595,    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 619                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
