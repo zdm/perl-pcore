@@ -90,8 +90,8 @@ SQL
 }
 
 # AUTH
-sub auth_user_password ( $self, $name, $password, $cb ) {
-    if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$name] ) ) {
+sub auth_user_password ( $self, $user_name, $password, $cb ) {
+    if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$user_name] ) ) {
         $self->validate_user_password_hash( $password, $user->{hash}, $user->{id}, $cb );
     }
     else {
@@ -113,11 +113,11 @@ sub get_app_by_id ( $self, $app_id, $cb ) {
     return;
 }
 
-sub create_app ( $self, $name, $desc, $cb ) {
+sub create_app ( $self, $app_name, $desc, $cb ) {
     my $dbh = $self->dbh;
 
     # app created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $app_name, $desc, 1 ] ) ) {
         my $app_id = $dbh->last_insert_id;
 
         $cb->( status 201, $app_id );
@@ -125,7 +125,7 @@ sub create_app ( $self, $name, $desc, $cb ) {
 
     # app creation error
     else {
-        my $app_id = $dbh->selectval( 'SELECT id FROM api_app WHERE name = ?', [$name] )->$*;
+        my $app_id = $dbh->selectval( 'SELECT id FROM api_app WHERE name = ?', [$app_name] )->$*;
 
         # app already exists
         $cb->( status [ 409, 'App already exists' ], $app_id );
@@ -346,11 +346,11 @@ sub get_role_by_id ( $self, $role_id, $cb ) {
     return;
 }
 
-sub create_role ( $self, $name, $desc, $cb ) {
+sub create_role ( $self, $role_name, $desc, $cb ) {
     my $dbh = $self->dbh;
 
     # role created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_role (name, desc, enabled) VALUES (?, ?, ?)], [ $name, $desc, 1 ] ) ) {
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_role (name, desc, enabled) VALUES (?, ?, ?)], [ $role_name, $desc, 1 ] ) ) {
         my $role_id = $dbh->last_insert_id;
 
         $cb->( status 201, $role_id );
@@ -358,7 +358,7 @@ sub create_role ( $self, $name, $desc, $cb ) {
 
     # role creation error
     else {
-        my $role_id = $dbh->selectval( 'SELECT id FROM api_role WHERE name = ?', [$name] )->$*;
+        my $role_id = $dbh->selectval( 'SELECT id FROM api_role WHERE name = ?', [$role_name] )->$*;
 
         # role already exists
         $cb->( status [ 409, 'Role already exists' ], $role_id );
@@ -412,10 +412,10 @@ sub get_user_by_id ( $self, $user_id, $cb ) {
     return;
 }
 
-sub get_user_by_name ( $self, $name, $cb ) {
+sub get_user_by_name ( $self, $user_name, $cb ) {
     my $dbh = $self->dbh;
 
-    if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$name] ) ) {
+    if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_name] ) ) {
         delete $user->{hash};
 
         $cb->( status 200, $user );
@@ -429,13 +429,13 @@ sub get_user_by_name ( $self, $name, $cb ) {
     return;
 }
 
-sub create_user ( $self, $name, $password, $cb ) {
+sub create_user ( $self, $user_name, $password, $cb ) {
     my $dbh = $self->dbh;
 
     $dbh->begin_work;
 
     # user created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, enabled, created_ts) VALUES (?, ?, ?)], [ $name, 0, time ] ) ) {
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, enabled, created_ts) VALUES (?, ?, ?)], [ $user_name, 0, time ] ) ) {
         my $user_id = $dbh->last_insert_id;
 
         $self->set_user_password(
@@ -476,7 +476,7 @@ sub create_user ( $self, $name, $password, $cb ) {
     else {
         $dbh->rollback;
 
-        my $user_id = $dbh->selectval( 'SELECT id FROM api_user WHERE name = ?', [$name] )->$*;
+        my $user_id = $dbh->selectval( 'SELECT id FROM api_user WHERE name = ?', [$user_name] )->$*;
 
         # name already exists
         $cb->( status [ 409, 'User already exists' ], $user_id );

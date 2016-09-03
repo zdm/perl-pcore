@@ -26,7 +26,7 @@ has user_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, ini
 sub _build_map ($self) {
 
     # use class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
-    return "Pcore::App::API::Map"->new( { app => $self->app } );
+    return 'Pcore::App::API::Map'->new( { app => $self->app } );
 }
 
 # INIT AUTH BACKEND
@@ -171,11 +171,11 @@ sub init ( $self, $cb ) {
 }
 
 # AUTH
-sub auth_user_password ( $self, $name, $password, $cb = undef ) {
+sub auth_user_password ( $self, $user_name, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->get_user_by_name(
-        $name,
+        $user_name,
         sub ( $status, $user ) {
             if ( !$status ) {
                 $cb->( $status, undef ) if $cb;
@@ -197,7 +197,7 @@ sub auth_user_password ( $self, $name, $password, $cb = undef ) {
                 }
                 else {
                     $self->{backend}->auth_user_password(
-                        $name,
+                        $user_name,
                         $password,
                         sub ( $status ) {
                             if ($status) {
@@ -261,11 +261,12 @@ sub get_app_by_id ( $self, $app_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_app ( $self, $name, $desc, $cb = undef ) {
+sub create_app ( $self, $app_name, $desc, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_app(
-        $name, $desc,
+        $app_name,
+        $desc,
         sub ( $status, $app_id ) {
             $cb->( $status, $app_id ) if $cb;
 
@@ -493,11 +494,12 @@ sub get_role_by_id ( $self, $role_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_role ( $self, $name, $desc, $cb = undef ) {
+sub create_role ( $self, $role_name, $desc, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_role(
-        $name, $desc,
+        $role_name,
+        $desc,
         sub ( $status, $role_id ) {
             $cb->( $status, $role_id ) if $cb;
 
@@ -570,11 +572,11 @@ sub get_user_by_id ( $self, $user_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub get_user_by_name ( $self, $name, $cb = undef ) {
+sub get_user_by_name ( $self, $user_name, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     # user_name -> user_id is cached
-    if ( my $user_id = $self->{user_name_id_cache}->{$name} ) {
+    if ( my $user_id = $self->{user_name_id_cache}->{$user_name} ) {
         $self->get_user_by_id(
             $user_id,
             sub ( $status, $user ) {
@@ -586,12 +588,12 @@ sub get_user_by_name ( $self, $name, $cb = undef ) {
     }
     else {
         $self->{backend}->get_user_by_name(
-            $name,
+            $user_name,
             sub ( $status, $user ) {
                 if ($status) {
                     $self->{user_cache}->{ $user->{id} } = $user;
 
-                    $self->{user_name_id_cache}->{$name} = $user->{id};
+                    $self->{user_name_id_cache}->{$user_name} = $user->{id};
                 }
 
                 $cb->( $status, $user ) if $cb;
@@ -606,11 +608,11 @@ sub get_user_by_name ( $self, $name, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_user ( $self, $name, $password, $cb = undef ) {
+sub create_user ( $self, $user_name, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_user(
-        $name,
+        $user_name,
         $password,
         sub ( $status, $user_id ) {
             $cb->( $status, $user_id ) if $cb;
@@ -748,9 +750,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 29                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 396, 414, 674, 704   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 397, 415, 676, 706   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
