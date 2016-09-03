@@ -18,7 +18,7 @@ has app_instance_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, i
 has role_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has user_cache             => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has username_id_cache      => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has user_name_id_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has user_id_password_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has user_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -171,11 +171,11 @@ sub init ( $self, $cb ) {
 }
 
 # AUTH
-sub auth_user_password ( $self, $username, $password, $cb = undef ) {
+sub auth_user_password ( $self, $name, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->get_user_by_name(
-        $username,
+        $name,
         sub ( $status, $user ) {
             if ( !$status ) {
                 $cb->( $status, undef ) if $cb;
@@ -197,7 +197,7 @@ sub auth_user_password ( $self, $username, $password, $cb = undef ) {
                 }
                 else {
                     $self->{backend}->auth_user_password(
-                        $username,
+                        $name,
                         $password,
                         sub ( $status ) {
                             if ($status) {
@@ -570,11 +570,11 @@ sub get_user_by_id ( $self, $user_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub get_user_by_name ( $self, $username, $cb = undef ) {
+sub get_user_by_name ( $self, $name, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    # username -> id is cached
-    if ( my $user_id = $self->{username_id_cache}->{$username} ) {
+    # user_name -> user_id is cached
+    if ( my $user_id = $self->{user_name_id_cache}->{$name} ) {
         $self->get_user_by_id(
             $user_id,
             sub ( $status, $user ) {
@@ -586,12 +586,12 @@ sub get_user_by_name ( $self, $username, $cb = undef ) {
     }
     else {
         $self->{backend}->get_user_by_name(
-            $username,
+            $name,
             sub ( $status, $user ) {
                 if ($status) {
                     $self->{user_cache}->{ $user->{id} } = $user;
 
-                    $self->{username_id_cache}->{$username} = $user->{id};
+                    $self->{user_name_id_cache}->{$name} = $user->{id};
                 }
 
                 $cb->( $status, $user ) if $cb;
@@ -606,11 +606,11 @@ sub get_user_by_name ( $self, $username, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_user ( $self, $username, $password, $cb = undef ) {
+sub create_user ( $self, $name, $password, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_user(
-        $username,
+        $name,
         $password,
         sub ( $status, $user_id ) {
             $cb->( $status, $user_id ) if $cb;
