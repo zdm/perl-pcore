@@ -84,7 +84,7 @@ sub init ( $self, $cb ) {
             --- METHOD
             CREATE TABLE IF NOT EXISTS `api_app_method` (
                 `id` BLOB NOT NULL,
-                `app_id` INTEGER NOT NULL,
+                `app_id` INTEGER NOT NULL REFERENCES `api_app` (`id`) ON DELETE CASCADE,
                 `version` BLOB NOT NULL,
                 `desc` TEXT NOT NULL,
                 PRIMARY KEY (`id`, `app_id`)
