@@ -79,8 +79,19 @@ sub _build_method ($self) {
             # method should exists
             die qq[API method "$local_method_name" is not exists. By convention api methods should be prefixed with "api_" prefix] if !$obj->can($local_method_name);
 
-            # validate api method configuration
+            # method description is required
             die qq[API method "$method_id" requires description] if !$method->{$method_id}->{desc};
+
+            # check method role
+            if ( $method->{$method_id}->{role} ) {
+
+                # convert method role to ArrayRef
+                $method->{$method_id}->{role} = [ $method->{$method_id}->{role} ] if !ref $method->{$method_id}->{role};
+
+                for my $role ( $method->{$method_id}->{role}->@* ) {
+                    die qq[Invalid API method role "$role" for method "$method_id"] if !exists $self->app->api->roles->{$role};
+                }
+            }
         }
     }
 
@@ -88,6 +99,16 @@ sub _build_method ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 92                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

@@ -5,6 +5,11 @@ use Pcore::App::API::Map;
 use Pcore::App::API::Request;
 use Pcore::Util::Status::Keyword qw[status];
 
+requires qw[_build_roles];
+
+has roles       => ( is => 'lazy', isa => HashRef, init_arg => undef );    # API roles, provided by this app
+has permissions => ( is => 'lazy', isa => HashRef, init_arg => undef );    # foreign roles, that this app can use
+
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has map => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
@@ -22,6 +27,23 @@ has user_name_id_cache     => ( is => 'ro', isa => HashRef, default => sub { {} 
 has user_id_password_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 has user_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+
+around _build_roles => sub ( $orig, $self ) {
+    my $roles = $self->$orig;
+
+    # validate roles
+    for my $role ( keys $roles->%* ) {
+
+        # check, that role has description
+        die qq[API role "$role" requires description] if !$roles->{$role};
+    }
+
+    return $roles;
+};
+
+sub _build_permissions ($self) {
+    return {};
+}
 
 sub _build_map ($self) {
 
@@ -750,7 +772,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 397, 415, 676, 706   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 419, 437, 698, 728   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
