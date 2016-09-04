@@ -5,7 +5,7 @@ use Pcore::Util::Status::Keyword qw[status];
 
 with qw[Pcore::App::API::Backend::Local];
 
-sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $instance_host, $methods, $roles, $permissions, $cb ) {
+sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $instance_host, $roles, $permissions, $cb ) {
     my $dbh = $self->dbh;
 
     $dbh->begin_work;
@@ -32,12 +32,12 @@ sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $ins
 
     my $app_instance_id = $dbh->last_insert_id;
 
-    # TODO store methods, roles, permissions
+    # TODO store roles, permissions
     if ($new_app) {
 
-        # store app methods
-        for my $method ( keys $methods->%* ) {
-            $dbh->do( q[INSERT INTO api_app_method (id, app_id, version, desc) VALUES (?, ?, ?, ?)], [ $method, $app_id, $methods->{$method}->{version}, $methods->{$method}->{desc} ] );
+        # add app roles
+        for my $role ( keys $roles->%* ) {
+            $dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc) VALUES (?, ?, ?)], [ $app_id, $role, $roles->{$role} ] );
         }
     }
 
@@ -68,6 +68,7 @@ sub init ( $self, $cb ) {
                 `enabled` INTEGER NOT NULL DEFAULT 0
             );
 
+            --- APP INSTANCE
             CREATE TABLE IF NOT EXISTS `api_app_instance` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `app_id` NOT NULL REFERENCES `api_app` (`id`) ON DELETE RESTRICT,
@@ -81,14 +82,15 @@ sub init ( $self, $cb ) {
                 `hash` BLOB
             );
 
-            --- METHOD
-            CREATE TABLE IF NOT EXISTS `api_app_method` (
-                `id` BLOB NOT NULL,
+            --- APP ROLE
+            CREATE TABLE IF NOT EXISTS `api_app_role` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `app_id` INTEGER NOT NULL REFERENCES `api_app` (`id`) ON DELETE CASCADE,
-                `version` BLOB NOT NULL,
-                `desc` TEXT NOT NULL,
-                PRIMARY KEY (`id`, `app_id`)
+                `name` BLOB NOT NULL,
+                `desc` TEXT NOT NULL
             );
+
+            CREATE UNIQUE INDEX `idx_uniq_api_app_role_app_id_name` ON `api_app_role` (`app_id`, `name`);
 
             --- USER
             CREATE TABLE IF NOT EXISTS `api_user` (
@@ -96,8 +98,14 @@ sub init ( $self, $cb ) {
                 `name` TEXT NOT NULL UNIQUE,
                 `created_ts` INTEGER,
                 `hash` BLOB,
-                `enabled` INTEGER NOT NULL DEFAULT 0,
-                `role_id` INTEGER NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT
+                `enabled` INTEGER NOT NULL DEFAULT 0
+            );
+
+            --- USER ROLE
+            CREATE TABLE IF NOT EXISTS `api_user_has_role` (
+                `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,      --- remove role assoc., on user delete
+                `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned users
+                PRIMARY KEY (`user_id`, `role_id`)
             );
 
             --- USER TOKEN
@@ -105,24 +113,8 @@ sub init ( $self, $cb ) {
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `created_ts` INTEGER,
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
-                `role_id` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE RESTRICT,
                 `hash` BLOB UNIQUE
             );
-
-            --- ROLE
-            CREATE TABLE IF NOT EXISTS `api_role` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `name` TEXT NOT NULL UNIQUE,
-                `desc` TEXT NOT NULL,
-                `enabled` INTEGER NOT NULL DEFAULT 0
-            );
-
-            -- CREATE TABLE IF NOT EXISTS `api_role_has_method` (
-            --     `role_id` INTEGER NOT NULL REFERENCES `api_role` (`id`) ON DELETE CASCADE,
-            --     `method_id` BLOB NOT NULL REFERENCES `api_method` (`id`) ON DELETE CASCADE
-            -- );
-            --
-            -- CREATE UNIQUE INDEX `idx_uniq_api_role_has_method` ON `api_role_has_method` (`role_id`, `method_id`);
 SQL
     );
 
@@ -313,7 +305,7 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $version, $methods, $roles, $permissions, $cb ) {
+sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $version, $roles, $permissions, $cb ) {
     $self->get_app_instance_by_id(
         $app_instance_id,
         sub ( $status, $app_instance ) {
@@ -385,27 +377,6 @@ sub get_role_by_id ( $self, $role_id, $cb ) {
     }
     else {
         $cb->( status [ 404, 'Role not found' ], undef );
-    }
-
-    return;
-}
-
-sub create_role ( $self, $role_name, $desc, $cb ) {
-    my $dbh = $self->dbh;
-
-    # role created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_role (name, desc, enabled) VALUES (?, ?, ?)], [ $role_name, $desc, 1 ] ) ) {
-        my $role_id = $dbh->last_insert_id;
-
-        $cb->( status 201, $role_id );
-    }
-
-    # role creation error
-    else {
-        my $role_id = $dbh->selectval( 'SELECT id FROM api_role WHERE name = ?', [$role_name] )->$*;
-
-        # role already exists
-        $cb->( status [ 409, 'Role already exists' ], $role_id );
     }
 
     return;
@@ -711,8 +682,8 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8, 316, 343, 595,    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 619                  |                                                                                                                |
+## |    3 | 8, 308, 335, 566,    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 590                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

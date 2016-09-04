@@ -98,7 +98,6 @@ sub init ( $self, $cb ) {
                     $app_instance_id,
                     $app_instance_token,
                     "@{[$self->app->version]}",
-                    $self->map->method,
                     $self->roles,
                     $self->permissions,
                     sub ($status) {
@@ -155,7 +154,6 @@ sub init ( $self, $cb ) {
                     $self->app->desc,
                     "@{[$self->app->version]}",
                     P->sys->hostname,
-                    $self->map->method,
                     $self->roles,
                     $self->permissions,
                     sub ( $status, $app_instance_id ) {
@@ -521,24 +519,6 @@ sub get_role_by_id ( $self, $role_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_role ( $self, $role_name, $desc, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->create_role(
-        $role_name,
-        $desc,
-        sub ( $status, $role_id ) {
-            $cb->( $status, $role_id ) if $cb;
-
-            $blocking_cv->( $status, $role_id ) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 sub set_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -777,7 +757,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 424, 442, 703, 733   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 422, 440, 683, 713   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

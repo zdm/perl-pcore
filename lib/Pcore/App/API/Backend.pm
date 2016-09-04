@@ -25,7 +25,6 @@ requires(
 
     # ROLE
     'get_role_by_id',
-    'create_role',
     'set_role_enabled',
 
     # USER

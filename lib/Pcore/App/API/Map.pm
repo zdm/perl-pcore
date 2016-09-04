@@ -89,7 +89,14 @@ sub _build_method ($self) {
                 $method->{$method_id}->{role} = [ $method->{$method_id}->{role} ] if !ref $method->{$method_id}->{role};
 
                 for my $role ( $method->{$method_id}->{role}->@* ) {
-                    die qq[Invalid API method role "$role" for method "$method_id"] if !exists $self->app->api->roles->{$role};
+                    if ( !exists $self->app->api->roles->{$role} ) {
+                        die qq[Invalid API method role "$role" for method "$method_id"];
+                    }
+
+                    # adding method description to role description
+                    else {
+                        $self->app->api->roles->{$role} .= qq[, $method->{$method_id}->{desc}];
+                    }
                 }
             }
         }
@@ -105,7 +112,7 @@ sub _build_method ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 92                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 92, 98               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
