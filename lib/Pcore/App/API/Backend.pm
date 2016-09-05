@@ -4,6 +4,7 @@ use Pcore -role;
 
 requires(
     '_build_host',
+    '_build_is_local',
     'init',
 
     # AUTH
@@ -42,8 +43,9 @@ requires(
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has host => ( is => 'lazy', isa => Str, init_arg => undef );                         # backend host name
-has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # backend is connected
+has is_local     => ( is => 'lazy', isa => Bool, init_arg => undef );                   # backend is local or remote
+has host         => ( is => 'lazy', isa => Str,  init_arg => undef );                   # backend host name
+has is_connected => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );    # backend is connected
 
 1;
 __END__

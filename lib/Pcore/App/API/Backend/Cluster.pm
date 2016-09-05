@@ -6,6 +6,10 @@ with qw[Pcore::App::API::Backend];
 
 has uri => ( is => 'ro', isa => ConsumerOf ['Pcore::Util::URI'], required => 1 );
 
+sub _build_is_local ($self) {
+    return 0;
+}
+
 sub _build_host ($self) {
     return $self->uri->hostport;
 }
