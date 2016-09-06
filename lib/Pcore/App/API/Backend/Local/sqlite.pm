@@ -5,51 +5,6 @@ use Pcore::Util::Status::Keyword qw[status];
 
 with qw[Pcore::App::API::Backend::Local];
 
-sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $instance_host, $roles, $permissions, $cb ) {
-    my $dbh = $self->dbh;
-
-    $dbh->begin_work;
-
-    my $new_app;
-
-    my $app_id;
-
-    # app already exists
-    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_name] ) ) {
-        $app_id = $app->{id};
-    }
-
-    # create new app
-    else {
-        $dbh->do( q[INSERT INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $app_name, $app_desc, 1 ] );
-
-        $app_id = $dbh->last_insert_id;
-
-        $new_app = 1;
-    }
-
-    $dbh->do( q[INSERT INTO api_app_instance (app_id, version, host, created_ts, approved, enabled) VALUES (?, ?, ?, ?, ?, ?)], [ $app_id, $instance_version, $instance_host, time, 0, 0 ] );
-
-    my $app_instance_id = $dbh->last_insert_id;
-
-    # TODO store roles, permissions
-    if ($new_app) {
-
-        # add app roles
-        for my $role ( keys $roles->%* ) {
-            $dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc) VALUES (?, ?, ?)], [ $app_id, $role, $roles->{$role} ] );
-        }
-    }
-
-    $dbh->commit;
-
-    $cb->( status 200, $app_instance_id );
-
-    return;
-}
-
-# ==================================================================
-
 # INIT AUTH BACKEND
 sub init ( $self, $cb ) {
 
@@ -133,6 +88,11 @@ SQL
 }
 
 # AUTH
+# TODO
+sub auth_app_token ( $self, $app_token, $cb ) {
+    return;
+}
+
 sub auth_user_password ( $self, $user_name, $password, $cb ) {
     if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$user_name] ) ) {
         $self->validate_user_password_hash( $password, $user->{hash}, $user->{id}, $cb );
@@ -141,6 +101,11 @@ sub auth_user_password ( $self, $user_name, $password, $cb ) {
         $cb->( status 404 );
     }
 
+    return;
+}
+
+# TODO
+sub auth_user_token ( $self, $user_token, $cb ) {
     return;
 }
 
@@ -829,9 +794,8 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8, 332, 359, 409,    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 424, 459, 486, 712,  |                                                                                                                |
-## |      | 737                  |                                                                                                                |
+## |    3 | 297, 324, 374, 389,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 424, 451, 677, 702   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
