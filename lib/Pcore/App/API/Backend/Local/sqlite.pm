@@ -335,6 +335,17 @@ sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_vers
     return;
 }
 
+sub update_app_instance ( $self, $app_instance_id, $app_instance_version, $cb ) {
+    if ( $self->dbh->do( q[UPDATE OR IGNORE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $app_instance_version, time, $app_instance_id ] ) ) {
+        $cb->( status 200 );
+    }
+    else {
+        $cb->( status [ 404, 'App instance not found' ] );
+    }
+
+    return;
+}
+
 sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
     $self->generate_app_instance_token(
         $app_instance_id,
@@ -427,6 +438,29 @@ sub get_role_by_name ( $self, $app_id, $role_name, $cb ) {
         # role not found
         $cb->( status [ 404, 'Role not found' ], undef );
     }
+
+    return;
+}
+
+sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
+    my $modified;
+
+    my $cv = AE::cv sub {
+        if   ($modified) { $cb->( status 200 ) }
+        else             { $cb->( status 304 ) }
+
+        return;
+    };
+
+    $cv->begin;
+
+    for my $role_name ( keys $app_roles->%* ) {
+        if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc, enabled) VALUES (?, ?, ?, 1)], [ $app_id, $role_name, $app_roles->{$role_name} ] ) ) {
+            $modified = 1;
+        }
+    }
+
+    $cv->end;
 
     return;
 }
@@ -839,9 +873,9 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 159, 230, 305, 369,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 419, 434, 469, 496,  |                                                                                                                |
-## |      | 722, 747             |                                                                                                                |
+## |    3 | 159, 230, 305, 338,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 380, 430, 445, 468,  |                                                                                                                |
+## |      | 503, 530, 756, 781   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

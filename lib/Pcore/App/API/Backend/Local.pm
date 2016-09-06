@@ -113,31 +113,65 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
 }
 
 # CONNECT APP INSTANCE
-# TODO
-# check if app enabled
-# check if app instance enabled
-#     if disabled - return;
-# add app permissions
-# add app roles;
-# if has not enabled permissions - return;
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
     $self->get_app_instance_by_id(
         $app_instance_id,
         sub ( $status, $app_instance ) {
+
+            # app instance was not found
             if ( !$status ) {
                 $cb->($status);
             }
             else {
 
-                # connected
-                if ( $self->dbh->do( q[UPDATE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $app_instance_version, time, $app_instance_id ] ) ) {
-                    $cb->( status 200 );
-                }
+                # update app version, host, last_connected_ts
+                $self->update_app_instance(
+                    $app_instance_id,
+                    $app_instance_version,
+                    sub ($status) {
 
-                # connection error
-                else {
-                    $cb->( status [ 500, 'App instance connection error' ] );
-                }
+                        # add new permissions
+                        $self->add_app_permissions(
+                            $app_instance->{app_id},
+                            $app_permissions,
+                            sub ($status) {
+
+                                # check, that all app permissions are enabled
+                                $self->get_app_germissions(
+                                    $app_instance->{app_id},
+                                    sub ( $status, $permissions ) {
+                                        for my $permission ( $permissions->@* ) {
+                                            if ( !$permission->{enabled} ) {
+                                                $cb->( status [ 400, 'Not all required app permissions asr enabled' ] );
+
+                                                return;
+                                            }
+                                        }
+
+                                        # app app roles
+                                        $self->add_app_roles(
+                                            $app_instance->{app_id},
+                                            $app_roles,
+                                            sub($status) {
+
+                                                # connection allowed
+                                                $cb->( status 200 );
+
+                                                return;
+                                            }
+                                        );
+
+                                        return;
+                                    }
+                                );
+
+                                return;
+                            }
+                        );
+
+                        return;
+                    }
+                );
             }
 
             return;
@@ -266,8 +300,8 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43, 123, 179, 202,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 227                  |                                                                                                                |
+## |    3 | 43, 116, 213, 236,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 261                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

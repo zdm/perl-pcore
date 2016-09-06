@@ -96,7 +96,6 @@ sub init ( $self, $cb ) {
 
                 $self->{backend}->connect_app_instance(
                     $app_instance_id,
-                    $app_instance_token,
                     "@{[$self->app->version]}",
                     $self->roles,
                     $self->permissions,
@@ -109,33 +108,6 @@ sub init ( $self, $cb ) {
                         $self->app->{token} = $app_instance_token;
 
                         $cb->( status 200 );
-
-                        return;
-                    }
-                );
-
-                return;
-            };
-
-            my $approve_app_instance = sub ($app_instance_id) {
-                print q[Waiting for app instance approval ... ];
-
-                $self->{backend}->approve_app_instance(
-                    $app_instance_id,
-                    sub ( $status, $app_instance_token ) {
-                        die qq[Error approving app: $status] if !$status;
-
-                        say 'done';
-
-                        # store app instance token
-                        {
-                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $app_instance_token;
-
-                            $self->app->store_cfg;
-                        }
-
-                        # connecting app instance
-                        $connect_app_instance->( $app_instance_id, $app_instance_token );
 
                         return;
                     }
@@ -170,16 +142,11 @@ sub init ( $self, $cb ) {
                         }
 
                         # waiting for app instance approve
-                        $approve_app_instance->($app_instance_id);
+                        $connect_app_instance->( $app_instance_id, $app_instance_token );
 
                         return;
                     }
                 );
-            }
-
-            # waiting for app instance approve
-            elsif ( !$app_instance_token ) {
-                $approve_app_instance->($app_instance_id);
             }
 
             # connecting app instance
@@ -756,7 +723,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 421, 439, 682, 712   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 388, 406, 649, 679   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
