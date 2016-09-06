@@ -26,6 +26,7 @@ around new => sub ( $orig, $self, $class, @args ) {
         on_call   => undef,                                           # CodeRef($cb, $method, $data)
         workers   => undef,                                           # FALSE - max. CPUs, -n - CPUs - n || 1
         name      => $class,
+        on_ready  => undef,                                           # Maybe[CodeRef]
         splice( @_, 3 ),
         class => $class,
     );
@@ -43,20 +44,26 @@ around new => sub ( $orig, $self, $class, @args ) {
         $args{workers} = 1 if $args{workers} <= 0;
     }
 
-    my $blocking_cv = AE::cv;
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $blocking_cv->begin;
+    my $cv = AE::cv sub {
+        $args{on_ready}->($rpc) if $args{on_ready};
+
+        $blocking_cv->($rpc) if $blocking_cv;
+
+        return;
+    };
+
+    $cv->begin;
 
     # create workers
     for ( 1 .. $args{workers} ) {
-        $rpc->_create_worker($blocking_cv);
+        $rpc->_create_worker($cv);
     }
 
-    $blocking_cv->end;
+    $cv->end;
 
-    $blocking_cv->recv;
-
-    return $rpc;
+    return $blocking_cv ? $blocking_cv->recv : ();
 };
 
 sub _create_worker ( $self, $cv ) {
@@ -314,11 +321,11 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 170                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 177                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 203                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 210                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 118                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 125                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

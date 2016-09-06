@@ -79,7 +79,6 @@ sub init ( $self, $cb ) {
 
     print q[Initialising API backend ... ];
 
-    # init auth backend, create DB schema
     $self->{backend}->init(
         sub ($status) {
             die qq[Error initialising API auth backend: $status] if !$status;
@@ -252,24 +251,6 @@ sub get_app_by_id ( $self, $app_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_app ( $self, $app_name, $desc, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->create_app(
-        $app_name,
-        $desc,
-        sub ( $status, $app_id ) {
-            $cb->( $status, $app_id ) if $cb;
-
-            $blocking_cv->( $status, $app_id ) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 sub set_app_enabled ( $self, $app_id, $enabled, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -351,58 +332,6 @@ sub get_app_instance_by_id ( $self, $app_instance_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_app_instance ( $self, $app_id, $host, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->create_app_instance(
-        $app_id, $host,
-        sub ( $status, $app_instance_id ) {
-            $cb->( $status, $app_instance_id ) if $cb;
-
-            $blocking_cv->( $status, $app_instance_id ) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
-sub approve_app_instance ( $self, $app_instance_id, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->approve_app_instance(
-        $app_instance_id,
-        sub ( $status, $token ) {
-            $cb->( $status, $token ) if $cb;
-
-            $blocking_cv->( $status, $token ) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
-sub connect_app_instance ( $self, $app_instance_id, $version, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->connect_app_instance(
-        $app_instance_id,
-        $version,
-        sub ( $status ) {
-            $cb->($status) if $cb;
-
-            $blocking_cv->($status) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -450,7 +379,7 @@ sub delete_app_instance ( $self, $app_instance_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-# ROLE
+# APP ROLE
 sub _invalidate_role_cache ( $self, $role_id ) {
     delete $self->{role_cache}->{$role_id};
 
@@ -723,7 +652,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 388, 406, 649, 679   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 335, 578, 608        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -6,7 +6,7 @@ use Pcore::Util::Status::Keyword qw[status];
 with qw[Pcore::App::API::Backend::Local];
 
 # INIT AUTH BACKEND
-sub init ( $self, $cb ) {
+sub init_db ( $self, $cb ) {
 
     # create db
     my $ddl = $self->dbh->ddl;
@@ -284,6 +284,21 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
     }
 
     $cv->end;
+
+    return;
+}
+
+sub app_permissions_enable_all ( $self, $app_id, $cb ) {
+    if ( $self->dbh->do( q[UPDATE api_app_permissions SET enabled = 1 WHERE app_id = ?], [$app_id] ) ) {
+
+        # updated
+        $cb->( status 200 );
+    }
+    else {
+
+        # not modified
+        $cb->( status 304 );
+    }
 
     return;
 }
@@ -873,9 +888,9 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 159, 230, 305, 338,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 380, 430, 445, 468,  |                                                                                                                |
-## |      | 503, 530, 756, 781   |                                                                                                                |
+## |    3 | 159, 230, 320, 353,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 395, 445, 460, 483,  |                                                                                                                |
+## |      | 518, 545, 771, 796   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

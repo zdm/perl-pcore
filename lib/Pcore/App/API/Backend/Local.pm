@@ -7,6 +7,8 @@ use Pcore::Util::Data qw[to_b64_url from_b64];
 
 with qw[Pcore::App::API::Backend];
 
+requires qw[init_db];
+
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
 
 has _hash_rpc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::RPC'], init_arg => undef );
@@ -24,20 +26,43 @@ sub _build_host ($self) {
     return 'local';
 }
 
-around init => sub ( $orig, $self, $cb ) {
-    $self->{_hash_rpc} = P->pm->run_rpc(
-        'Pcore::App::API::RPC::Hash',
-        workers   => undef,
-        buildargs => {
-            scrypt_n   => 16_384,
-            scrypt_r   => 8,
-            scrypt_p   => 1,
-            scrypt_len => 32,
-        },
+# CONNECT LOCAL APP INSTANCE
+# # TODO
+# if app is local - before connect:
+# - enable app;
+# - enable all app permissions;
+# - create root user, print root token;
+# - create and print app registration token;
+sub init ( $self, $cb ) {
+
+    $self->init_db(
+        sub {
+
+            # create hash RPC
+            P->pm->run_rpc(
+                'Pcore::App::API::RPC::Hash',
+                workers   => undef,
+                buildargs => {
+                    scrypt_n   => 16_384,
+                    scrypt_r   => 8,
+                    scrypt_p   => 1,
+                    scrypt_len => 32,
+                },
+                on_ready => sub ($rpc) {
+                    $self->{_hash_rpc} = $rpc;
+
+                    $cb->( status 200 );
+
+                    return;
+                },
+            );
+
+            return;
+        }
     );
 
-    return $self->$orig($cb);
-};
+    return;
+}
 
 # REGISTER APP INSTANCE
 sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_instance_host, $app_instance_version, $cb ) {
@@ -300,8 +325,8 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43, 116, 213, 236,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 261                  |                                                                                                                |
+## |    3 | 68, 141, 238, 261,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 286                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
