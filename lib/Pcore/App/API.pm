@@ -85,16 +85,11 @@ sub init ( $self, $cb ) {
 
             say 'done';
 
-            # get app instance credentials from local config
-            my ( $app_instance_id, $app_instance_token );
-
-            ( $app_instance_id, $app_instance_token ) = $self->app->cfg->{auth}->{ $self->{backend}->host }->@* if $self->app->cfg->{auth}->{ $self->{backend}->host };
-
-            my $connect_app_instance = sub ( $app_instance_id, $app_instance_token ) {
+            my $connect_app_instance = sub {
                 print q[Connecting app instance ... ];
 
                 $self->{backend}->connect_app_instance(
-                    $app_instance_id,
+                    $self->app->{instance_id},
                     "@{[$self->app->version]}",
                     $self->roles,
                     $self->permissions,
@@ -102,9 +97,6 @@ sub init ( $self, $cb ) {
                         die qq[Error connecting app: $status] if !$status;
 
                         say 'done';
-
-                        # set app instance token
-                        $self->app->{token} = $app_instance_token;
 
                         $cb->( status 200 );
 
@@ -115,8 +107,12 @@ sub init ( $self, $cb ) {
                 return;
             };
 
+            # get app instance credentials from local config
+            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0];
+            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1];
+
             # sending app instance registration request
-            if ( !$app_instance_token ) {
+            if ( !$self->app->{instance_token} ) {
                 print q[Sending app instance registration request ... ];
 
                 # register app on backend, get and init message broker
@@ -141,7 +137,7 @@ sub init ( $self, $cb ) {
                         }
 
                         # waiting for app instance approve
-                        $connect_app_instance->( $app_instance_id, $app_instance_token );
+                        $connect_app_instance->();
 
                         return;
                     }
@@ -150,7 +146,7 @@ sub init ( $self, $cb ) {
 
             # connecting app instance
             else {
-                $connect_app_instance->( $app_instance_id, $app_instance_token );
+                $connect_app_instance->();
             }
 
             return;
@@ -652,7 +648,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 335, 578, 608        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 331, 574, 604        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -161,6 +161,11 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
                             $app_permissions,
                             sub ($status) {
 
+                                # local app
+                                if ( $app_instance_id == $self->app->instance_id ) {
+                                    say 'LOCAL APP';
+                                }
+
                                 # check, that all app permissions are enabled
                                 $self->get_app_germissions(
                                     $app_instance->{app_id},
@@ -173,7 +178,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
                                             }
                                         }
 
-                                        # app app roles
+                                        # add app roles
                                         $self->add_app_roles(
                                             $app_instance->{app_id},
                                             $app_roles,
@@ -325,8 +330,8 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 68, 141, 238, 261,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 286                  |                                                                                                                |
+## |    3 | 68, 141, 243, 266,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 291                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
