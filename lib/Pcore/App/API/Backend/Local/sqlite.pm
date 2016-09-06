@@ -229,7 +229,7 @@ sub get_app_germissions ( $self, $app_id, $cb ) {
 
 sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
     if ( !$app_permissions || !keys $app_permissions->%* ) {
-        $cb->( status 200 );
+        $cb->( status 304 );
 
         return;
     }
@@ -238,7 +238,7 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
 
     my $cv = AE::cv sub {
         if ($error) {
-            $cb->( status [ 200, join q[, ], $error->@* ] );
+            $cb->( status [ 400, join q[, ], $error->@* ] );
         }
         else {
             $cb->( status 200 );

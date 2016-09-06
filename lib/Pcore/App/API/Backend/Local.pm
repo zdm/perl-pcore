@@ -28,7 +28,7 @@ sub _build_host ($self) {
     return 'local';
 }
 
-# CONNECT LOCAL APP INSTANCE
+# INIT
 sub init ( $self, $cb ) {
 
     $self->init_db(
@@ -231,7 +231,7 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
                 1,
                 sub ($tatus) {
 
-                    # enable all permissions
+                    # enable all app permissions
                     $self->app_permissions_enable_all(
                         $self->app->{instance_id},
                         sub($status) {
