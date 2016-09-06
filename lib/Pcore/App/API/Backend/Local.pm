@@ -39,48 +39,66 @@ around init => sub ( $orig, $self, $cb ) {
     return $self->$orig($cb);
 };
 
-sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $instance_host, $roles, $permissions, $cb ) {
+# REGISTER APP INSTANCE
+sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_instance_host, $app_instance_version, $cb ) {
     my $dbh = $self->dbh;
 
-    $dbh->begin_work;
-
+    # create app
     $self->create_app(
         $app_name,
         $app_desc,
         sub ( $status, $app_id ) {
-            $self->create_app_instance(
+
+            # get app, check, that app created and enabled
+            $self->get_app_by_id(
                 $app_id,
-                $instance_host,
-                sub ( $status, $instance_id ) {
+                sub ( $status, $app ) {
 
-                    # app instance creation error
-                    if ( !$status ) {
-                        $dbh->rollback;
-
-                        $cb->( $status, undef );
+                    # can't register new app instance if app is disabled
+                    if ( !$app->{enabled} ) {
+                        $cb->( status [ 400, 'App is disabled' ], undef, undef );
                     }
-
-                    # app instance created
                     else {
-                        my $cv = AE::cv sub {
-                            return;
-                        };
 
-                        # store app roles
-                        for my $role_name ( keys $roles->%* ) {
-                            $cv->begin;
+                        # create disabled app instance
+                        $self->create_app_instance(
+                            $app_id,
+                            $app_instance_host,
+                            $app_instance_version,
+                            sub ( $status, $app_instance_id ) {
 
-                            $self->create_app_role(
-                                $app_id,
-                                $role_name,
-                                $roles->{$role_name},
-                                sub ( $status, $role_id ) {
-                                    $cv->end;
+                                # add app permissions;
+                                $self->add_app_permissions(
+                                    $app_id,
+                                    $app_permissions,
+                                    sub($status) {
 
-                                    return;
-                                }
-                            );
-                        }
+                                        # return error, if permission can't be stored
+                                        if ( !$status ) {
+                                            $cb->( $status, undef, undef );
+                                        }
+
+                                        # permissions stored
+                                        else {
+
+                                            # set app instance token
+                                            $self->set_app_instance_token(
+                                                $app_instance_id,
+                                                sub ( $status, $token ) {
+                                                    $cb->( $status, $app_instance_id, $token );
+
+                                                    return;
+                                                }
+                                            );
+                                        }
+
+                                        return;
+                                    }
+                                );
+
+                                return;
+                            }
+                        );
                     }
 
                     return;
@@ -91,40 +109,40 @@ sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $ins
         }
     );
 
-    my $new_app;
+    return;
+}
 
-    my $app_id;
+# CONNECT APP INSTANCE
+# TODO
+# check if app enabled
+# check if app instance enabled
+#     if disabled - return;
+# add app permissions
+# add app roles;
+# if has not enabled permissions - return;
+sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
+    $self->get_app_instance_by_id(
+        $app_instance_id,
+        sub ( $status, $app_instance ) {
+            if ( !$status ) {
+                $cb->($status);
+            }
+            else {
 
-    # app already exists
-    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_name] ) ) {
-        $app_id = $app->{id};
-    }
+                # connected
+                if ( $self->dbh->do( q[UPDATE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $app_instance_version, time, $app_instance_id ] ) ) {
+                    $cb->( status 200 );
+                }
 
-    # create new app
-    else {
-        $dbh->do( q[INSERT INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $app_name, $app_desc, 1 ] );
+                # connection error
+                else {
+                    $cb->( status [ 500, 'App instance connection error' ] );
+                }
+            }
 
-        $app_id = $dbh->last_insert_id;
-
-        $new_app = 1;
-    }
-
-    $dbh->do( q[INSERT INTO api_app_instance (app_id, version, host, created_ts, approved, enabled) VALUES (?, ?, ?, ?, ?, ?)], [ $app_id, $instance_version, $instance_host, time, 0, 0 ] );
-
-    my $app_instance_id = $dbh->last_insert_id;
-
-    # TODO store roles, permissions
-    if ($new_app) {
-
-        # add app roles
-        for my $role ( keys $roles->%* ) {
-            $dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc) VALUES (?, ?, ?)], [ $app_id, $role, $roles->{$role} ] );
+            return;
         }
-    }
-
-    $dbh->commit;
-
-    $cb->( status 200, $app_instance_id );
+    );
 
     return;
 }
@@ -248,7 +266,8 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42, 161, 184, 209    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 43, 123, 179, 202,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 227                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

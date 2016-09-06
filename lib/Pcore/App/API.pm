@@ -145,27 +145,26 @@ sub init ( $self, $cb ) {
             };
 
             # sending app instance registration request
-            if ( !$app_instance_id ) {
+            if ( !$app_instance_token ) {
                 print q[Sending app instance registration request ... ];
 
                 # register app on backend, get and init message broker
                 $self->{backend}->register_app_instance(
                     $self->app->name,
                     $self->app->desc,
-                    "@{[$self->app->version]}",
-                    P->sys->hostname,
-                    $self->roles,
                     $self->permissions,
-                    sub ( $status, $app_instance_id ) {
+                    P->sys->hostname,
+                    "@{[$self->app->version]}",
+                    sub ( $status, $app_instance_id, $app_instance_token ) {
                         die qq[Error registering app: $status] if !$status;
 
                         say 'done';
 
-                        # store app instance id
+                        # store app instance credentials
                         {
                             $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $app_instance_id;
 
-                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = undef;
+                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $app_instance_token;
 
                             $self->app->store_cfg;
                         }
@@ -757,7 +756,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 422, 440, 683, 713   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 421, 439, 682, 712   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

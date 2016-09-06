@@ -20,6 +20,7 @@ sub init ( $self, $cb ) {
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `name` BLOB NOT NULL UNIQUE,
                 `desc` TEXT NOT NULL,
+                `created_ts` INTEGER,
                 `enabled` INTEGER NOT NULL DEFAULT 0
             );
 
@@ -30,8 +31,6 @@ sub init ( $self, $cb ) {
                 `version` BLOB NOT NULL,
                 `host` BLOB NOT NULL,
                 `created_ts` INTEGER,
-                `approved` INTEGER NOT NULL DEFAULT 0,
-                `approved_ts` INTEGER,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
                 `last_connected_ts` INTEGER,
                 `hash` BLOB
@@ -48,6 +47,14 @@ sub init ( $self, $cb ) {
 
             CREATE UNIQUE INDEX `idx_uniq_api_app_role_app_id_name` ON `api_app_role` (`app_id`, `name`);
 
+            --- APP PERMISSIONS
+            CREATE TABLE IF NOT EXISTS `api_app_permissions` (
+                `app_id` INTEGER NOT NULL REFERENCES `api_app` (`id`) ON DELETE CASCADE, --- remove role assoc., on app delete
+                `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned apps
+                `enabled` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (`app_id`, `role_id`)
+            );
+
             --- USER
             CREATE TABLE IF NOT EXISTS `api_user` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -57,10 +64,11 @@ sub init ( $self, $cb ) {
                 `enabled` INTEGER NOT NULL DEFAULT 0
             );
 
-            --- USER ROLE
-            CREATE TABLE IF NOT EXISTS `api_user_has_role` (
-                `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,      --- remove role assoc., on user delete
+            --- USER PERMISSIONS
+            CREATE TABLE IF NOT EXISTS `api_user_permissions` (
+                `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE, --- remove role assoc., on user delete
                 `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned users
+                `enabled` INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (`user_id`, `role_id`)
             );
 
@@ -72,9 +80,10 @@ sub init ( $self, $cb ) {
                 `hash` BLOB UNIQUE
             );
 
-            CREATE TABLE IF NOT EXISTS `api_user_token_has_role` (
+            CREATE TABLE IF NOT EXISTS `api_user_token_permissions` (
                 `user_token_id` INTEGER NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE, --- remove role assoc., on user token delete
                 `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned users
+                `enabled` INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (`user_token_id`, `role_id`)
             );
 SQL
@@ -110,6 +119,17 @@ sub auth_user_token ( $self, $user_token, $cb ) {
 }
 
 # APP
+sub get_apps ( $self, $cb ) {
+    if ( my $apps = $self->dbh->selectall(q[SELECT * FROM api_app]) ) {
+        $cb->( status 200, $apps );
+    }
+    else {
+        $cb->( status 200, [] );
+    }
+
+    return;
+}
+
 sub get_app_by_id ( $self, $app_id, $cb ) {
     if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
         $cb->( status 200, $app );
@@ -136,11 +156,11 @@ sub get_app_by_name ( $self, $app_name, $cb ) {
     return;
 }
 
-sub create_app ( $self, $app_name, $desc, $cb ) {
+sub create_app ( $self, $app_name, $app_desc, $cb ) {
     my $dbh = $self->dbh;
 
     # app created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled) VALUES (?, ?, ?)], [ $app_name, $desc, 1 ] ) ) {
+    if ( $dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled, created_ts) VALUES (?, ?, ?, ?)], [ $app_name, $app_desc, 1, time ] ) ) {
         my $app_id = $dbh->last_insert_id;
 
         $cb->( status 201, $app_id );
@@ -195,6 +215,79 @@ sub delete_app ( $self, $app_id, $cb ) {
     return;
 }
 
+# APP PERMISSIONS
+sub get_app_germissions ( $self, $app_id, $cb ) {
+    if ( my $permissions = $self->dbh->selectall( q[SELECT * FROM api_app_permissions WHERE app_id = ?], [$app_id] ) ) {
+        $cb->( status 200, $permissions );
+    }
+    else {
+        $cb->( status 200, [] );
+    }
+
+    return;
+}
+
+sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
+    if ( !$app_permissions || !keys $app_permissions->%* ) {
+        $cb->( status 200 );
+
+        return;
+    }
+
+    my $error;
+
+    my $cv = AE::cv sub {
+        if ($error) {
+            $cb->( status [ 200, join q[, ], $error->@* ] );
+        }
+        else {
+            $cb->( status 200 );
+        }
+
+        return;
+    };
+
+    $cv->begin;
+
+    for my $app_name ( keys $app_permissions->%* ) {
+        $cv->begin;
+
+        # resolve role id
+        $self->get_app_by_name(
+            $app_name,
+            sub ( $status, $app ) {
+                if ( !$status ) {
+                    push $error->@*, $app_name;
+                }
+                else {
+                    $self->get_role_by_name(
+                        $app->{id},
+                        'app',
+                        sub ( $status, $role ) {
+                            if ( !$status ) {
+                                push $error->@*, $app_name;
+                            }
+                            else {
+
+                                # create new disabled permisison record
+                                $self->dbh->do( q[INSERT OR IGNORE INTO api_app_permissions (app_id, role_id, enabled) VALUES (?, ?, 0)], [ $app_id, $role->{id} ] );
+
+                                $cv->end;
+                            }
+
+                            return;
+                        }
+                    );
+                }
+            }
+        );
+    }
+
+    $cv->end;
+
+    return;
+}
+
 # APP INSTANCE
 sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
     if ( my $app_instance = $self->dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
@@ -209,7 +302,7 @@ sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-sub create_app_instance ( $self, $app_id, $host, $cb ) {
+sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_version, $cb ) {
     $self->get_app_by_id(
         $app_id,
         sub ( $status, $role ) {
@@ -223,7 +316,7 @@ sub create_app_instance ( $self, $app_id, $host, $cb ) {
             else {
 
                 # app instance created
-                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (app_id, host, created_ts) VALUES (?, ?, ?)], [ $app_id, $host, time ] ) ) {
+                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (app_id, host, version, enabled, created_ts) VALUES (?, ?, ?, 0, ?)], [ $app_id, $app_instance_host, $app_instance_version, time ] ) ) {
                     my $app_instance_id = $self->dbh->last_insert_id;
 
                     $cb->( status 201, $app_instance_id );
@@ -242,75 +335,27 @@ sub create_app_instance ( $self, $app_id, $host, $cb ) {
     return;
 }
 
-# TODO
-sub approve_app_instance ( $self, $app_instance_id, $cb ) {
-    $self->get_app_instance_by_id(
+sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
+    $self->generate_app_instance_token(
         $app_instance_id,
-        sub ( $status, $app_instance ) {
+        sub ( $status, $token, $hash ) {
+
+            # app instance token generation error
             if ( !$status ) {
                 $cb->( $status, undef );
             }
-            else {
-                if ( !$app_instance->{approved} ) {
-                    $self->generate_app_instance_token(
-                        $app_instance_id,
-                        sub ( $status, $token, $hash ) {
 
-                            # app instance token generation error
-                            if ( !$status ) {
-                                $cb->( $status, undef );
-                            }
-
-                            # app instance token generated
-                            else {
-
-                                # app instance approved
-                                if ( $self->dbh->do( q[UPDATE api_app_instance SET approved = 1, approved_ts = ?, hash = ? WHERE id = ?], [ time, $hash, $app_instance_id ] ) ) {
-                                    $cb->( status 200, $token );
-                                }
-
-                                # app instance approveal error
-                                else {
-                                    $cb->( status [ 500, 'App instance approval error' ], undef );
-                                }
-                            }
-
-                            return;
-                        }
-                    );
-                }
-                else {
-
-                    # app instance already approved
-                    $cb->( status 304, undef );
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-# TODO
-sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $version, $roles, $permissions, $cb ) {
-    $self->get_app_instance_by_id(
-        $app_instance_id,
-        sub ( $status, $app_instance ) {
-            if ( !$status ) {
-                $cb->($status);
-            }
+            # app instance token generated
             else {
 
-                # connected
-                if ( $self->dbh->do( q[UPDATE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $version, time, $app_instance_id ] ) ) {
-                    $cb->( status 200 );
+                # app instance approved
+                if ( $self->dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $hash, $app_instance_id ] ) ) {
+                    $cb->( status 200, $token );
                 }
 
-                # connection error
+                # set token error
                 else {
-                    $cb->( status [ 500, 'App instance connection error' ] );
+                    $cb->( status [ 500, 'Error creation app instance token' ], undef );
                 }
             }
 
@@ -794,8 +839,9 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 297, 324, 374, 389,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 424, 451, 677, 702   |                                                                                                                |
+## |    3 | 159, 230, 305, 369,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 419, 434, 469, 496,  |                                                                                                                |
+## |      | 722, 747             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
