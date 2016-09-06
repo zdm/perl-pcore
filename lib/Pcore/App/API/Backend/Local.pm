@@ -161,7 +161,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
                             $app_permissions,
                             sub ($status) {
 
-                                # local app
+                                # TODO local app
                                 if ( $app_instance_id == $self->app->instance_id ) {
                                     say 'LOCAL APP';
                                 }

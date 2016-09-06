@@ -129,9 +129,8 @@ sub init ( $self, $cb ) {
 
                         # store app instance credentials
                         {
-                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $app_instance_id;
-
-                            $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $app_instance_token;
+                            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $app_instance_id;
+                            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $app_instance_token;
 
                             $self->app->store_cfg;
                         }
@@ -648,7 +647,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 331, 574, 604        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 330, 573, 603        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
