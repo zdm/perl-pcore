@@ -15,6 +15,8 @@ has _hash_rpc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::RPC'], init_
 has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], default => sub { Pcore::Util::Hash::RandKey->new }, init_arg => undef );
 has _hash_cache_size => ( is => 'ro', isa => PositiveInt, default => 10_000 );
 
+has _local_app_instance_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+
 const our $TOKEN_TYPE_APP_INSTANCE => 1;
 const our $TOKEN_TYPE_USER         => 2;
 
@@ -27,12 +29,6 @@ sub _build_host ($self) {
 }
 
 # CONNECT LOCAL APP INSTANCE
-# # TODO
-# if app is local - before connect:
-# - enable app;
-# - enable all app permissions;
-# - create root user, print root token;
-# - create and print app registration token;
 sub init ( $self, $cb ) {
 
     $self->init_db(
@@ -160,40 +156,49 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
                             $app_instance->{app_id},
                             $app_permissions,
                             sub ($status) {
+                                my $continue = sub {
 
-                                # TODO local app
-                                if ( $app_instance_id == $self->app->instance_id ) {
-                                    say 'LOCAL APP';
+                                    # check, that all app permissions are enabled
+                                    $self->get_app_germissions(
+                                        $app_instance->{app_id},
+                                        sub ( $status, $permissions ) {
+                                            for my $permission ( $permissions->@* ) {
+                                                if ( !$permission->{enabled} ) {
+                                                    $cb->( status [ 400, 'Not all required app permissions asr enabled' ] );
+
+                                                    return;
+                                                }
+                                            }
+
+                                            # add app roles
+                                            $self->add_app_roles(
+                                                $app_instance->{app_id},
+                                                $app_roles,
+                                                sub($status) {
+
+                                                    # connection allowed
+                                                    $cb->( status 200 );
+
+                                                    return;
+                                                }
+                                            );
+
+                                            return;
+                                        }
+                                    );
+
+                                    return;
+                                };
+
+                                # local app
+                                if ( $app_instance_id == $self->app->instance_id && !$self->{_local_app_instance_connected} ) {
+                                    $self->_connect_local_app_instance( $app_instance->{app_id}, $continue );
                                 }
 
-                                # check, that all app permissions are enabled
-                                $self->get_app_germissions(
-                                    $app_instance->{app_id},
-                                    sub ( $status, $permissions ) {
-                                        for my $permission ( $permissions->@* ) {
-                                            if ( !$permission->{enabled} ) {
-                                                $cb->( status [ 400, 'Not all required app permissions asr enabled' ] );
-
-                                                return;
-                                            }
-                                        }
-
-                                        # add app roles
-                                        $self->add_app_roles(
-                                            $app_instance->{app_id},
-                                            $app_roles,
-                                            sub($status) {
-
-                                                # connection allowed
-                                                $cb->( status 200 );
-
-                                                return;
-                                            }
-                                        );
-
-                                        return;
-                                    }
-                                );
+                                # remote app
+                                else {
+                                    $continue->();
+                                }
 
                                 return;
                             }
@@ -203,6 +208,83 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
                     }
                 );
             }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+# TODO create app registration token
+sub _connect_local_app_instance ( $self, $app_id, $cb ) {
+    $self->{_local_app_instance_connected} = 1;
+
+    # enable app
+    $self->set_app_enabled(
+        $app_id, 1,
+        sub ($tatus) {
+
+            # enable app instance
+            $self->set_app_instance_enabled(
+                $self->app->{instance_id},
+                1,
+                sub ($tatus) {
+
+                    # enable all permissions
+                    $self->app_permissions_enable_all(
+                        $self->app->{instance_id},
+                        sub($status) {
+
+                            # get root user
+                            $self->get_user_by_id(
+                                1,
+                                sub ( $status, $user ) {
+
+                                    # root user is not exists
+                                    if ( !$status ) {
+
+                                        # generate root user password
+                                        my $root_password = to_b64_url P->random->bytes(32);
+
+                                        # create root user
+                                        $self->create_user(
+                                            'root',
+                                            $root_password,
+                                            sub ( $status, $user_id ) {
+
+                                                # root user created
+                                                if ($status) {
+                                                    say qq[Root user created: $root_password];
+                                                }
+                                                else {
+                                                    say qq[Error creating root user: $status];
+                                                }
+
+                                                # continue
+                                                $cb->();
+
+                                                return;
+                                            }
+                                        );
+                                    }
+                                    else {
+
+                                        # continue
+                                        $cb->();
+                                    }
+
+                                    return;
+                                }
+                            );
+
+                            return;
+                        }
+                    );
+
+                    return;
+                }
+            );
 
             return;
         }
@@ -330,8 +412,8 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 68, 141, 243, 266,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 291                  |                                                                                                                |
+## |    3 | 64, 137, 325, 348,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 373                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
