@@ -44,6 +44,53 @@ sub register_app_instance ( $self, $app_name, $app_desc, $instance_version, $ins
 
     $dbh->begin_work;
 
+    $self->create_app(
+        $app_name,
+        $app_desc,
+        sub ( $status, $app_id ) {
+            $self->create_app_instance(
+                $app_id,
+                $instance_host,
+                sub ( $status, $instance_id ) {
+
+                    # app instance creation error
+                    if ( !$status ) {
+                        $dbh->rollback;
+
+                        $cb->( $status, undef );
+                    }
+
+                    # app instance created
+                    else {
+                        my $cv = AE::cv sub {
+                            return;
+                        };
+
+                        # store app roles
+                        for my $role_name ( keys $roles->%* ) {
+                            $cv->begin;
+
+                            $self->create_app_role(
+                                $app_id,
+                                $role_name,
+                                $roles->{$role_name},
+                                sub ( $status, $role_id ) {
+                                    $cv->end;
+
+                                    return;
+                                }
+                            );
+                        }
+                    }
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
+
     my $new_app;
 
     my $app_id;
@@ -201,7 +248,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42, 114, 137, 162    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 42, 161, 184, 209    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
