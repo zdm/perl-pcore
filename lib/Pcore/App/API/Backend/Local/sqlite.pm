@@ -87,7 +87,8 @@ sub init ( $self, $cb ) {
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `app_id` INTEGER NOT NULL REFERENCES `api_app` (`id`) ON DELETE CASCADE,
                 `name` BLOB NOT NULL,
-                `desc` TEXT NOT NULL
+                `desc` TEXT NOT NULL,
+                `enabled` INTEGER NOT NULL DEFAULT 0
             );
 
             CREATE UNIQUE INDEX `idx_uniq_api_app_role_app_id_name` ON `api_app_role` (`app_id`, `name`);
@@ -114,6 +115,12 @@ sub init ( $self, $cb ) {
                 `created_ts` INTEGER,
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `hash` BLOB UNIQUE
+            );
+
+            CREATE TABLE IF NOT EXISTS `api_user_token_has_role` (
+                `user_token_id` INTEGER NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE, --- remove role assoc., on user token delete
+                `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned users
+                PRIMARY KEY (`user_token_id`, `role_id`)
             );
 SQL
     );
@@ -143,6 +150,21 @@ sub get_app_by_id ( $self, $app_id, $cb ) {
         $cb->( status 200, $app );
     }
     else {
+        $cb->( status [ 404, 'App not found' ], undef );
+    }
+
+    return;
+}
+
+sub get_app_by_name ( $self, $app_name, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_name] ) ) {
+        $cb->( status 200, $app );
+    }
+    else {
+
+        # app not found
         $cb->( status [ 404, 'App not found' ], undef );
     }
 
@@ -255,6 +277,7 @@ sub create_app_instance ( $self, $app_id, $host, $cb ) {
     return;
 }
 
+# TODO
 sub approve_app_instance ( $self, $app_instance_id, $cb ) {
     $self->get_app_instance_by_id(
         $app_instance_id,
@@ -305,6 +328,7 @@ sub approve_app_instance ( $self, $app_instance_id, $cb ) {
     return;
 }
 
+# TODO
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_token, $version, $roles, $permissions, $cb ) {
     $self->get_app_instance_by_id(
         $app_instance_id,
@@ -370,9 +394,9 @@ sub delete_app_instance ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-# ROLE
+# APP ROLE
 sub get_role_by_id ( $self, $role_id, $cb ) {
-    if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_role WHERE id = ?], [$role_id] ) ) {
+    if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE id = ?], [$role_id] ) ) {
         $cb->( status 200, $role );
     }
     else {
@@ -382,7 +406,57 @@ sub get_role_by_id ( $self, $role_id, $cb ) {
     return;
 }
 
-sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
+sub get_role_by_name ( $self, $app_id, $role_name, $cb ) {
+    my $dbh = $self->dbh;
+
+    if ( my $role = $dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
+        $cb->( status 200, $role );
+    }
+    else {
+
+        # role not found
+        $cb->( status [ 404, 'Role not found' ], undef );
+    }
+
+    return;
+}
+
+sub create_app_role ( $self, $app_id, $role_name, $role_desc, $cb ) {
+    $self->get_app_by_id(
+        $app_id,
+        sub ( $status, $role ) {
+
+            # app not found
+            if ( !$status ) {
+                $cb->( $status, undef );
+            }
+
+            # app found
+            else {
+
+                # app role created
+                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc) VALUES (?, ?, ?)], [ $app_id, $role_name, $role_desc ] ) ) {
+                    my $role_id = $self->dbh->last_insert_id;
+
+                    $cb->( status 201, $role_id );
+                }
+
+                # role already exists
+                else {
+                    my $role_id = $self->dbh->selectval( 'SELECT id FROM api_app_role WHERE app_id = ? AND name = ?', [ $app_id, $role_name ] )->$*;
+
+                    $cb->( status [ 409, 'Role already exists' ], $role_id );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub set_role_desc ( $self, $role_id, $role_desc, $cb ) {
     $self->get_role_by_id(
         $role_id,
         sub ( $status, $role ) {
@@ -390,8 +464,8 @@ sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
                 $cb->($status);
             }
             else {
-                if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
-                    $self->dbh->do( q[UPDATE api_role SET enabled = ? WHERE id = ?], [ $enabled, $role_id ] );
+                if ( $role->{desc} ne $role_desc ) {
+                    $self->dbh->do( q[UPDATE api_app_role SET desc = ? WHERE id = ?], [ $role_desc, $role_id ] );
 
                     $cb->( status 200 );
                 }
@@ -405,6 +479,78 @@ sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
             return;
         }
     );
+
+    return;
+}
+
+sub set_role_name ( $self, $role_id, $role_name, $cb ) {
+    $self->get_role_by_id(
+        $role_id,
+        sub ( $status, $role ) {
+            if ( !$status ) {
+                $cb->($status);
+            }
+            else {
+                if ( $role->{name} ne $role_name ) {
+
+                    # role renamed
+                    if ( $self->dbh->do( q[UPDATE api_app_role SET name = ? WHERE id = ?], [ $role_name, $role_id ] ) ) {
+                        $cb->( status 200 );
+                    }
+
+                    # error renaming role
+                    else {
+                        $cb->( status [ 409, 'Role renaming error' ] );
+                    }
+                }
+                else {
+
+                    # not modified
+                    $cb->( status 304 );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
+    $self->get_role_by_id(
+        $role_id,
+        sub ( $status, $role ) {
+            if ( !$status ) {
+                $cb->($status);
+            }
+            else {
+                if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
+                    $self->dbh->do( q[UPDATE api_app_role SET enabled = ? WHERE id = ?], [ $enabled, $role_id ] );
+
+                    $cb->( status 200 );
+                }
+                else {
+
+                    # not modified
+                    $cb->( status 304 );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub delete_role ( $self, $role_id, $cb ) {
+    if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app_role WHERE id = ?], [$role_id] ) ) {
+        $cb->( status 200 );
+    }
+    else {
+        $cb->( status [ 400, 'Role deletion error' ] );
+    }
 
     return;
 }
@@ -487,7 +633,7 @@ sub create_user ( $self, $user_name, $password, $cb ) {
         );
     }
 
-    # user alreasy exists
+    # user already exists
     else {
         $dbh->rollback;
 
@@ -586,6 +732,7 @@ sub set_user_role ( $self, $user_id, $role_id, $cb ) {
     return;
 }
 
+# TODO
 # USER TOKEN
 sub create_user_token ( $self, $user_id, $role_id, $cb ) {
     $self->get_role_by_id(
@@ -682,8 +829,9 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8, 308, 335, 566,    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 590                  |                                                                                                                |
+## |    3 | 8, 332, 359, 409,    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 424, 459, 486, 712,  |                                                                                                                |
+## |      | 737                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
