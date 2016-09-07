@@ -293,6 +293,95 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
     return;
 }
 
+sub auth_token ( $self, $token, $cb ) {
+
+    # decode token
+    $token = from_b64 $token;
+
+    my $token_type = unpack 'C', substr $token, 0, 1;
+
+    if ( $token_type == $TOKEN_TYPE_APP_INSTANCE ) {
+        my $token_id = unpack 'C', substr $token, 1, 4;
+
+        $self->get_user_token(
+            $token_id,
+            sub ( $status, $user_token ) {
+
+                # token not found
+                if ( !$status ) {
+                    $cb->( $status, undef, undef );
+                }
+
+                # token found
+                else {
+                    my $private_token = $token . $token->{user_id};
+
+                    my $hash = delete $token->{hash};
+
+                    # verify token hash
+                    $self->verify_hash(
+                        $private_token,
+                        $hash,
+                        sub ($status) {
+                            if ( !$status ) {
+                                $cb->( $status, undef, undef );
+                            }
+                            else {
+                                $cb->( $status, $token_type, $user_id );
+                            }
+
+                            return;
+                        }
+                    );
+                }
+
+                return;
+            }
+        );
+    }
+    elsif ( $token_type == $TOKEN_TYPE_USER ) {
+        my $app_instance_id = unpack 'C', substr $token, 1, 4;
+
+        $self->get_app_instance_token(
+            $app_instance_id,
+            sub ( $status, $app_instance ) {
+
+                # app_instance not found
+                if ( !$status ) {
+                    $cb->( $status, undef, undef );
+                }
+
+                # app_instance found
+                else {
+                    my $hash = delete $app_instance->{hash};
+
+                    # verify token hash
+                    $self->verify_hash(
+                        $token, $hash,
+                        sub ($status) {
+                            if ( !$status ) {
+                                $cb->( $status, undef, undef );
+                            }
+                            else {
+                                $cb->( $status, $token_type, $app_instance_id );
+                            }
+
+                            return;
+                        }
+                    );
+                }
+
+                return;
+            }
+        );
+    }
+    else {
+        $cb->( status [ 400, 'Invalid token type' ], undef, undef );
+    }
+
+    return;
+}
+
 # APP TOKEN
 sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
@@ -311,12 +400,6 @@ sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
             return;
         }
     );
-
-    return;
-}
-
-sub validate_app_instance_token_hash ( $self, $token, $hash, $cb ) {
-    $self->verify_hash( $token, $hash, $cb );
 
     return;
 }
@@ -341,14 +424,6 @@ sub generate_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
             return;
         }
     );
-
-    return;
-}
-
-sub validate_user_token_hash ( $self, $token, $hash, $user_id, $role_id, $cb ) {
-    my $private_token = $token . $user_id . $role_id;
-
-    $self->verify_hash( $private_token, $hash, $cb );
 
     return;
 }
@@ -412,8 +487,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64, 137, 325, 348,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 373                  |                                                                                                                |
+## |    3 | 64, 137, 408, 448    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

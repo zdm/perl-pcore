@@ -209,7 +209,9 @@ sub auth_user_password ( $self, $user_name, $password, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-# TODO auth_user_token, auth_app_token
+# TODO auth_token
+# single auth token entry point
+# - decode token type
 
 # APP
 sub _invalidate_app_cache ( $self, $app_id ) {
@@ -647,7 +649,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 330, 573, 603        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 332, 575, 605        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

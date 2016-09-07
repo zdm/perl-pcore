@@ -77,6 +77,7 @@ sub init_db ( $self, $cb ) {
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `created_ts` INTEGER,
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
+                `enabled` INTEGER NOT NULL DEFAULT 0,
                 `hash` BLOB UNIQUE
             );
 
@@ -97,11 +98,6 @@ SQL
 }
 
 # AUTH
-# TODO
-sub auth_app_token ( $self, $app_token, $cb ) {
-    return;
-}
-
 sub auth_user_password ( $self, $user_name, $password, $cb ) {
     if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$user_name] ) ) {
         $self->validate_user_password_hash( $password, $user->{hash}, $user->{id}, $cb );
@@ -110,11 +106,6 @@ sub auth_user_password ( $self, $user_name, $password, $cb ) {
         $cb->( status 404 );
     }
 
-    return;
-}
-
-# TODO
-sub auth_user_token ( $self, $user_token, $cb ) {
     return;
 }
 
@@ -793,13 +784,13 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 159, 230, 320, 353,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 395, 445, 460, 676,  |                                                                                                                |
-## |      | 701                  |                                                                                                                |
+## |    3 | 150, 221, 311, 344,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 386, 436, 451, 667,  |                                                                                                                |
+## |      | 692                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 159                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 320                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 150                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 311                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
