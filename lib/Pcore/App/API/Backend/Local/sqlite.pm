@@ -204,7 +204,7 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
     return;
 }
 
-sub delete_app ( $self, $app_id, $cb ) {
+sub remove_app ( $self, $app_id, $cb ) {
     if ( $self->dbh->do( q[DELETE FROM api_app WHERE id = ?], [$app_id] ) ) {
         $cb->( status 200 );
     }
@@ -419,7 +419,7 @@ sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
     return;
 }
 
-sub delete_app_instance ( $self, $app_instance_id, $cb ) {
+sub remove_app_instance ( $self, $app_instance_id, $cb ) {
     if ( $self->dbh->do( q[DELETE FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
         $cb->( status 200 );
     }
@@ -603,7 +603,7 @@ sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
     return;
 }
 
-sub delete_role ( $self, $role_id, $cb ) {
+sub remove_role ( $self, $role_id, $cb ) {
     if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app_role WHERE id = ?], [$role_id] ) ) {
         $cb->( status 200 );
     }
@@ -768,6 +768,7 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
     return;
 }
 
+# TODO
 sub set_user_role ( $self, $user_id, $role_id, $cb ) {
     $self->get_role_by_id(
         $role_id,
@@ -870,7 +871,7 @@ sub create_user_token ( $self, $user_id, $role_id, $cb ) {
     return;
 }
 
-sub delete_user_token ( $self, $token_id, $cb ) {
+sub remove_user_token ( $self, $token_id, $cb ) {
     if ( $self->dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$token_id] ) ) {
         $cb->( status 200 );
     }
@@ -890,7 +891,7 @@ sub delete_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 159, 230, 320, 353,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 395, 445, 460, 483,  |                                                                                                                |
-## |      | 518, 545, 771, 796   |                                                                                                                |
+## |      | 518, 545, 772, 797   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
