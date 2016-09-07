@@ -480,41 +480,6 @@ sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
     return;
 }
 
-sub create_app_role ( $self, $app_id, $role_name, $role_desc, $cb ) {
-    $self->get_app_by_id(
-        $app_id,
-        sub ( $status, $role ) {
-
-            # app not found
-            if ( !$status ) {
-                $cb->( $status, undef );
-            }
-
-            # app found
-            else {
-
-                # app role created
-                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc) VALUES (?, ?, ?)], [ $app_id, $role_name, $role_desc ] ) ) {
-                    my $role_id = $self->dbh->last_insert_id;
-
-                    $cb->( status 201, $role_id );
-                }
-
-                # role already exists
-                else {
-                    my $role_id = $self->dbh->selectval( 'SELECT id FROM api_app_role WHERE app_id = ? AND name = ?', [ $app_id, $role_name ] )->$*;
-
-                    $cb->( status [ 409, 'Role already exists' ], $role_id );
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
 sub set_role_desc ( $self, $role_id, $role_desc, $cb ) {
     $self->get_role_by_id(
         $role_id,
@@ -891,7 +856,7 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 159, 230, 320, 353,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 395, 445, 460, 483,  |                                                                                                                |
-## |      | 518, 545, 772, 797   |                                                                                                                |
+## |      | 510, 737, 762        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
