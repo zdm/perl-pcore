@@ -65,7 +65,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
     my $dbh = $self->dbh;
 
     # create app
-    $self->create_app(
+    $self->_create_app(
         $app_name,
         $app_desc,
         sub ( $status, $app_id ) {
@@ -82,7 +82,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
                     else {
 
                         # create disabled app instance
-                        $self->create_app_instance(
+                        $self->_create_app_instance(
                             $app_id,
                             $app_instance_host,
                             $app_instance_version,

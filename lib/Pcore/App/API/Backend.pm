@@ -12,16 +12,16 @@ requires(
 
     # APP
     'get_app_by_id',
-    'create_app',
+    '_create_app',
     'set_app_enabled',
-    'delete_app',
+    'remove_app',
 
     # APP INSTANCE
     'get_app_instance_by_id',
-    'create_app_instance',
+    '_create_app_instance',
     'connect_app_instance',
     'set_app_instance_enabled',
-    'delete_app_instance',
+    'remove_app_instance',
 
     # ROLE
     'get_role_by_id',
@@ -37,7 +37,7 @@ requires(
 
     # USER TOKEN
     'create_user_token',
-    'delete_user_token',
+    'remove_user_token',
 );
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );

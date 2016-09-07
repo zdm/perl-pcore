@@ -156,7 +156,7 @@ sub get_app_by_name ( $self, $app_name, $cb ) {
     return;
 }
 
-sub create_app ( $self, $app_name, $app_desc, $cb ) {
+sub _create_app ( $self, $app_name, $app_desc, $cb ) {
     my $dbh = $self->dbh;
 
     # app created
@@ -229,7 +229,7 @@ sub get_app_germissions ( $self, $app_id, $cb ) {
 
 sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
     if ( !$app_permissions || !keys $app_permissions->%* ) {
-        $cb->( status 304 );
+        $cb->( status 200 );
 
         return;
     }
@@ -317,7 +317,7 @@ sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_version, $cb ) {
+sub _create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_version, $cb ) {
     $self->get_app_by_id(
         $app_id,
         sub ( $status, $role ) {
@@ -476,67 +476,6 @@ sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
     }
 
     $cv->end;
-
-    return;
-}
-
-sub set_role_desc ( $self, $role_id, $role_desc, $cb ) {
-    $self->get_role_by_id(
-        $role_id,
-        sub ( $status, $role ) {
-            if ( !$status ) {
-                $cb->($status);
-            }
-            else {
-                if ( $role->{desc} ne $role_desc ) {
-                    $self->dbh->do( q[UPDATE api_app_role SET desc = ? WHERE id = ?], [ $role_desc, $role_id ] );
-
-                    $cb->( status 200 );
-                }
-                else {
-
-                    # not modified
-                    $cb->( status 304 );
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub set_role_name ( $self, $role_id, $role_name, $cb ) {
-    $self->get_role_by_id(
-        $role_id,
-        sub ( $status, $role ) {
-            if ( !$status ) {
-                $cb->($status);
-            }
-            else {
-                if ( $role->{name} ne $role_name ) {
-
-                    # role renamed
-                    if ( $self->dbh->do( q[UPDATE api_app_role SET name = ? WHERE id = ?], [ $role_name, $role_id ] ) ) {
-                        $cb->( status 200 );
-                    }
-
-                    # error renaming role
-                    else {
-                        $cb->( status [ 409, 'Role renaming error' ] );
-                    }
-                }
-                else {
-
-                    # not modified
-                    $cb->( status 304 );
-                }
-            }
-
-            return;
-        }
-    );
 
     return;
 }
@@ -855,8 +794,12 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 159, 230, 320, 353,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 395, 445, 460, 483,  |                                                                                                                |
-## |      | 510, 737, 762        |                                                                                                                |
+## |      | 395, 445, 460, 676,  |                                                                                                                |
+## |      | 701                  |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
+## |      | 159                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 320                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
