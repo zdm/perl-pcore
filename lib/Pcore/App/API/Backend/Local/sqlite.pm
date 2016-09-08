@@ -81,6 +81,7 @@ sub init_db ( $self, $cb ) {
                 `hash` BLOB UNIQUE
             );
 
+            --- USER TOKEN PERMISSIONS
             CREATE TABLE IF NOT EXISTS `api_user_token_permissions` (
                 `user_token_id` INTEGER NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE, --- remove role assoc., on user token delete
                 `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned users
@@ -784,13 +785,13 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 150, 221, 311, 344,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 386, 436, 451, 667,  |                                                                                                                |
-## |      | 692                  |                                                                                                                |
+## |    3 | 151, 222, 312, 345,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 387, 437, 452, 668,  |                                                                                                                |
+## |      | 693                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 150                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 311                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 151                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 312                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
