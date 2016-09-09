@@ -66,11 +66,13 @@ sub init_db ( $self, $cb ) {
 
             --- USER PERMISSIONS
             CREATE TABLE IF NOT EXISTS `api_user_permissions` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE, --- remove role assoc., on user delete
                 `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned users
-                `enabled` INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (`user_id`, `role_id`)
+                `enabled` INTEGER NOT NULL DEFAULT 0
             );
+
+            CREATE UNIQUE INDEX `idx_uniq_api_user_permissions` ON `api_user_permissions` (`user_id`, `role_id`);
 
             --- USER TOKEN
             CREATE TABLE IF NOT EXISTS `api_user_token` (
@@ -83,11 +85,12 @@ sub init_db ( $self, $cb ) {
 
             --- USER TOKEN PERMISSIONS
             CREATE TABLE IF NOT EXISTS `api_user_token_permissions` (
-                `user_token_id` INTEGER NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE, --- remove role assoc., on user token delete
-                `role_id` INTEGER NOT NULL REFERENCES `api_app_role` (`id`) ON DELETE RESTRICT, --- prevent deleting role, if has assigned users
-                `enabled` INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (`user_token_id`, `role_id`)
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `user_token_id` INTEGER NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE,
+                `user_permissions_id` INTEGER NOT NULL REFERENCES `api_user_permissions` (`id`) ON DELETE CASCADE
             );
+
+            CREATE UNIQUE INDEX `idx_uniq_api_user_token_permissions` ON `api_user_token_permissions` (`user_token_id`, `user_permissions_id`);
 SQL
     );
 
@@ -839,13 +842,13 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 102, 124, 149, 211,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 282, 372, 405, 447,  |                                                                                                                |
-## |      | 497, 510, 722, 747   |                                                                                                                |
+## |    3 | 105, 127, 152, 214,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 285, 375, 408, 450,  |                                                                                                                |
+## |      | 500, 513, 725, 750   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 211                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 372                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 214                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 375                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
