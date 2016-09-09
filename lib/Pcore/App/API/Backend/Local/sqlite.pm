@@ -174,9 +174,7 @@ sub get_app_by_id ( $self, $app_id, $cb ) {
 }
 
 sub get_app_by_name ( $self, $app_name, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $app = $dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_name] ) ) {
+    if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_name] ) ) {
         $cb->( status 200, $app );
     }
     else {
@@ -406,7 +404,7 @@ sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
             # app instance token generated
             else {
 
-                # app instance approved
+                # set app instance token
                 if ( $self->dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $hash, $app_instance_id ] ) ) {
                     $cb->( status 200, $token );
                 }
@@ -456,7 +454,7 @@ sub remove_app_instance ( $self, $app_instance_id, $cb ) {
         $cb->( status 200 );
     }
     else {
-        $cb->( status [ 404, 'App instance not found' ] );
+        $cb->( status [ 404, 'Error remmoving app instance' ] );
     }
 
     return;
@@ -475,9 +473,7 @@ sub get_role_by_id ( $self, $role_id, $cb ) {
 }
 
 sub get_role_by_name ( $self, $app_id, $role_name, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $role = $dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
+    if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
         $cb->( status 200, $role );
     }
     else {
@@ -544,7 +540,7 @@ sub remove_role ( $self, $role_id, $cb ) {
         $cb->( status 200 );
     }
     else {
-        $cb->( status [ 400, 'Role deletion error' ] );
+        $cb->( status [ 400, 'Error removing app role' ] );
     }
 
     return;
@@ -552,9 +548,7 @@ sub remove_role ( $self, $role_id, $cb ) {
 
 # USER
 sub get_user_by_id ( $self, $user_id, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
+    if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
         delete $user->{hash};
 
         $cb->( status 200, $user );
@@ -569,9 +563,7 @@ sub get_user_by_id ( $self, $user_id, $cb ) {
 }
 
 sub get_user_by_name ( $self, $user_name, $cb ) {
-    my $dbh = $self->dbh;
-
-    if ( my $user = $dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_name] ) ) {
+    if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_name] ) ) {
         delete $user->{hash};
 
         $cb->( status 200, $user );
@@ -825,13 +817,13 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 102, 122, 133, 191,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 262, 352, 385, 427,  |                                                                                                                |
-## |      | 477, 492, 708, 733   |                                                                                                                |
+## |    3 | 102, 122, 133, 189,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 260, 350, 383, 425,  |                                                                                                                |
+## |      | 475, 488, 700, 725   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 191                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 352                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 189                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 350                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
