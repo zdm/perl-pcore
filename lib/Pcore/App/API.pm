@@ -10,14 +10,19 @@ with qw[Pcore::App::API::Auth];
 
 requires qw[_build_roles];
 
-has roles       => ( is => 'lazy', isa => HashRef, init_arg => undef );    # API roles, provided by this app
-has permissions => ( is => 'lazy', isa => HashRef, init_arg => undef );    # foreign roles, that this app can use
-
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
+# TODO rename map -> methods
 has map => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
-
+has roles       => ( is => 'lazy', isa => HashRef, init_arg => undef );    # API roles, provided by this app
+has permissions => ( is => 'lazy', isa => HashRef, init_arg => undef );    # foreign roles, that this app can use
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
+
+sub _build_map ($self) {
+
+    # use class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
+    return 'Pcore::App::API::Map'->new( { app => $self->app } );
+}
 
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
@@ -32,14 +37,9 @@ around _build_roles => sub ( $orig, $self ) {
     return $roles;
 };
 
+# NOTE this method can be redefined in app instance
 sub _build_permissions ($self) {
     return {};
-}
-
-sub _build_map ($self) {
-
-    # use class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
-    return 'Pcore::App::API::Map'->new( { app => $self->app } );
 }
 
 # INIT AUTH BACKEND
