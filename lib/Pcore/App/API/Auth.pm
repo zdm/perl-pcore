@@ -91,7 +91,14 @@ sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
 sub auth_token ( $self, $token, $cb ) {
 
     # decode token
-    my ( $token_type, $token_id ) = unpack 'CL', from_b64 $token;
+    my ( $token_type, $token_id ) = eval { unpack 'CL', from_b64 $token };
+
+    # error decoding token
+    if ($@) {
+        $cb->(undef);
+
+        return;
+    }
 
     # app instance token
     if ( $token_type == $TOKEN_TYPE_APP_INSTANCE ) {
@@ -360,12 +367,24 @@ sub on_app_instance_token_change ( $self, $app_instance_id ) {
     return;
 }
 
-# NOTE call on: remove_user_token
+# NOTE call on: enable / disale user token
 sub on_user_token_change ( $self, $user_token_id ) {
 
     # resolve user id by user token id
     if ( my $user_id = $self->{_auth_cache}->{user_token_id_user_id}->{$user_token_id} ) {
-        delete $self->{_auth_cache}->{user}->{$user_id}->{token}->{$user_token_id}->{valid_token};
+        delete $self->{_auth_cache}->{user}->{$user_id}->{token}->{$user_token_id}->{_};
+    }
+
+    return;
+}
+
+sub on_user_token_remove ( $self, $user_token_id ) {
+
+    # resolve user id by user token id
+    if ( my $user_id = $self->{_auth_cache}->{user_token_id_user_id}->{$user_token_id} ) {
+        delete $self->{_auth_cache}->{user_token_id_user_id}->{$user_token_id};
+
+        delete $self->{_auth_cache}->{user}->{$user_id}->{token}->{$user_token_id};
     }
 
     return;
@@ -380,9 +399,9 @@ sub on_user_token_change ( $self, $user_token_id ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 32                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 211                  | Subroutines::ProhibitExcessComplexity - Subroutine "auth_method" with high complexity score (21)               |
+## |    3 | 218                  | Subroutines::ProhibitExcessComplexity - Subroutine "auth_method" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 342                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 349                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 14                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
