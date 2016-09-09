@@ -5,7 +5,7 @@ use Pcore::Util::Status::Keyword qw[status];
 
 with qw[Pcore::App::API::Backend::Local];
 
-# INIT AUTH BACKEND
+# INIT DB
 sub init_db ( $self, $cb ) {
 
     # create db
@@ -99,12 +99,52 @@ SQL
 }
 
 # AUTH
-sub auth_user_password ( $self, $user_name, $password, $cb ) {
+sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
     if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$user_name] ) ) {
-        $self->validate_user_password_hash( $password, $user->{hash}, $user->{id}, $cb );
+        $self->validate_user_password_hash(
+            $user->{hash},
+            $user_password,
+            $user->{id},
+            sub ($status) {
+                $cb->( $status, $user->{id} );
+
+                return;
+            }
+        );
     }
     else {
-        $cb->( status 404 );
+        $cb->( status [ 404, 'User not found' ], undef );
+    }
+
+    return;
+}
+
+sub auth_app_instance_token ( $self, $app_instance_id, $token, $cb ) {
+    if ( my $app_instance = $self->dbh->selectrow( q[SELECT hash FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+        $self->verify_hash( $app_instance->{hash}, $token, $cb );
+    }
+    else {
+        $cb->( status [ 404, 'App instance not found' ] );
+    }
+
+    return;
+}
+
+sub auth_user_token ( $self, $user_token_id, $token, $cb ) {
+    if ( my $user_token = $self->dbh->selectrow( q[SELECT user_id, hash FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
+        $self->validate_user_token_hash(
+            $user_token->{hash},
+            $token,
+            $user_token->{user_id},
+            sub ($status) {
+                $cb->($status);
+
+                return;
+            }
+        );
+    }
+    else {
+        $cb->( status [ 404, 'User token not found' ] );
     }
 
     return;
@@ -688,8 +728,8 @@ sub set_user_role ( $self, $user_id, $role_id, $cb ) {
     return;
 }
 
-# TODO
 # USER TOKEN
+# TODO, token roles can't be more, than user assigned roles, by default inherit all current user roles
 sub create_user_token ( $self, $user_id, $role_id, $cb ) {
     $self->get_role_by_id(
         $role_id,
@@ -785,13 +825,13 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 151, 222, 312, 345,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 387, 437, 452, 668,  |                                                                                                                |
-## |      | 693                  |                                                                                                                |
+## |    3 | 102, 122, 133, 191,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 262, 352, 385, 427,  |                                                                                                                |
+## |      | 477, 492, 708, 733   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 151                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 312                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 191                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 352                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

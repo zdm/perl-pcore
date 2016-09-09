@@ -4,6 +4,9 @@ use Pcore -role;
 use Pcore::App::API::Map;
 use Pcore::App::API::Request;
 use Pcore::Util::Status::Keyword qw[status];
+use Pcore::Util::Data qw[from_b64];
+
+with qw[Pcore::App::API::Auth];
 
 requires qw[_build_roles];
 
@@ -15,18 +18,6 @@ has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 has map => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
 
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
-
-has app_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has app_instance_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has role_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has user_cache             => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has user_name_id_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has user_id_password_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
-has user_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
@@ -155,71 +146,7 @@ sub init ( $self, $cb ) {
     return;
 }
 
-# AUTH
-sub auth_user_password ( $self, $user_name, $password, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->get_user_by_name(
-        $user_name,
-        sub ( $status, $user ) {
-            if ( !$status ) {
-                $cb->( $status, undef ) if $cb;
-
-                $blocking_cv->( $status, undef ) if $blocking_cv;
-            }
-            else {
-                if ( my $user_password = $self->{user_id_password_cache}->{ $user->{id} } ) {
-                    if ( $user_password eq $password ) {
-                        $cb->( status 200, $user ) if $cb;
-
-                        $blocking_cv->( status 200, $user ) if $blocking_cv;
-                    }
-                    else {
-                        $cb->( status [ 400, 'Invalid password' ], undef ) if $cb;
-
-                        $blocking_cv->( status [ 400, 'Invalid password' ], undef ) if $blocking_cv;
-                    }
-                }
-                else {
-                    $self->{backend}->auth_user_password(
-                        $user_name,
-                        $password,
-                        sub ( $status ) {
-                            if ($status) {
-                                $self->{user_id_password_cache}->{ $user->{id} } = $password;
-                            }
-                            else {
-                                undef $user;
-                            }
-
-                            $cb->( $status, $user ) if $cb;
-
-                            $blocking_cv->( $status, $user ) if $blocking_cv;
-
-                            return;
-                        }
-                    );
-                }
-            }
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
-# TODO auth_token
-# single auth token entry point
-# - decode token type
-
 # APP
-sub _invalidate_app_cache ( $self, $app_id ) {
-    delete $self->{app_cache}->{$app_id};
-
-    return;
-}
-
 sub get_app_by_id ( $self, $app_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -295,12 +222,6 @@ sub delete_app ( $self, $app_id, $cb = undef ) {
 }
 
 # APP INSTANCE
-sub _invalidate_app_instance_cache ( $self, $app_instance_id ) {
-    delete $self->{app_instance_cache}->{$app_instance_id};
-
-    return;
-}
-
 sub get_app_instance_by_id ( $self, $app_instance_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -377,12 +298,6 @@ sub delete_app_instance ( $self, $app_instance_id, $cb = undef ) {
 }
 
 # APP ROLE
-sub _invalidate_role_cache ( $self, $role_id ) {
-    delete $self->{role_cache}->{$role_id};
-
-    return;
-}
-
 sub get_role_by_id ( $self, $role_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -435,14 +350,6 @@ sub set_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
 }
 
 # USER
-sub _invalidate_user_cache ( $self, $user_id ) {
-    delete $self->{user_cache}->{$user_id};
-
-    delete $self->{user_id_password_cache}->{$user_id};
-
-    return;
-}
-
 sub get_user_by_id ( $self, $user_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -535,7 +442,7 @@ sub set_user_password ( $self, $user_id, $password, $cb = undef ) {
 
             # invalidate user cache on success
             if ($status) {
-                $self->_invalidate_user_cache($user_id);
+                $self->on_user_password_change($user_id);
             }
 
             $cb->($status) if $cb;
@@ -596,12 +503,6 @@ sub set_user_role ( $self, $user_id, $role_id, $cb = undef ) {
 }
 
 # USER TOKEN
-sub _invalidate_user_token_cache ( $self, $token_id ) {
-    delete $self->{user_token_cache}->{$token_id};
-
-    return;
-}
-
 sub create_user_token ( $self, $user_id, $role_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -649,7 +550,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 332, 575, 605        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 253, 482, 506        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

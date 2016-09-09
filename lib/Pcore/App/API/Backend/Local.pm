@@ -1,9 +1,10 @@
 package Pcore::App::API::Backend::Local;
 
-use Pcore -role, -const;
+use Pcore -role;
 use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Hash::RandKey;
 use Pcore::Util::Data qw[to_b64_url from_b64];
+use Pcore::App::API::Auth qw[:CONST];
 
 with qw[Pcore::App::API::Backend];
 
@@ -16,9 +17,6 @@ has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'
 has _hash_cache_size => ( is => 'ro', isa => PositiveInt, default => 10_000 );
 
 has _local_app_instance_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
-
-const our $TOKEN_TYPE_APP_INSTANCE => 1;
-const our $TOKEN_TYPE_USER         => 2;
 
 sub _build_is_local ($self) {
     return 1;
@@ -216,7 +214,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
     return;
 }
 
-# TODO create app registration token
+# TODO create app registration token, call app local_init hook
 sub _connect_local_app_instance ( $self, $app_id, $cb ) {
     $self->{_local_app_instance_connected} = 1;
 
@@ -293,90 +291,20 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
     return;
 }
 
+# AUTH
 sub auth_token ( $self, $token, $cb ) {
 
     # decode token
-    $token = from_b64 $token;
-
-    my $token_type = unpack 'C', substr $token, 0, 1;
+    my ( $token_type, $token_id ) = unpack 'CL', from_b64 $token;
 
     if ( $token_type == $TOKEN_TYPE_APP_INSTANCE ) {
-        my $token_id = unpack 'C', substr $token, 1, 4;
-
-        $self->get_user_token(
-            $token_id,
-            sub ( $status, $user_token ) {
-
-                # token not found
-                if ( !$status ) {
-                    $cb->( $status, undef, undef );
-                }
-
-                # token found
-                else {
-                    my $private_token = $token . $token->{user_id};
-
-                    my $hash = delete $token->{hash};
-
-                    # verify token hash
-                    $self->verify_hash(
-                        $private_token,
-                        $hash,
-                        sub ($status) {
-                            if ( !$status ) {
-                                $cb->( $status, undef, undef );
-                            }
-                            else {
-                                $cb->( $status, $token_type, $user_id );
-                            }
-
-                            return;
-                        }
-                    );
-                }
-
-                return;
-            }
-        );
+        $self->auth_app_instance_token( $token_id, $token, $cb );
     }
     elsif ( $token_type == $TOKEN_TYPE_USER ) {
-        my $app_instance_id = unpack 'C', substr $token, 1, 4;
-
-        $self->get_app_instance_token(
-            $app_instance_id,
-            sub ( $status, $app_instance ) {
-
-                # app_instance not found
-                if ( !$status ) {
-                    $cb->( $status, undef, undef );
-                }
-
-                # app_instance found
-                else {
-                    my $hash = delete $app_instance->{hash};
-
-                    # verify token hash
-                    $self->verify_hash(
-                        $token, $hash,
-                        sub ($status) {
-                            if ( !$status ) {
-                                $cb->( $status, undef, undef );
-                            }
-                            else {
-                                $cb->( $status, $token_type, $app_instance_id );
-                            }
-
-                            return;
-                        }
-                    );
-                }
-
-                return;
-            }
-        );
+        $self->auth_user_token( $token_id, $token, $cb );
     }
     else {
-        $cb->( status [ 400, 'Invalid token type' ], undef, undef );
+        $cb->( status [ 400, 'Invalid token type' ] );
     }
 
     return;
@@ -405,15 +333,15 @@ sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 }
 
 # USER TOKEN
-sub generate_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
+sub generate_user_token ( $self, $user_token_id, $user_id, $cb ) {
 
     # generate random token
     my $token = P->random->bytes(48);
 
-    # add token type, app instance id
-    $token = to_b64_url pack( 'C', $TOKEN_TYPE_USER ) . pack( 'L', $token_id ) . $token;
+    # add token type, user token id
+    $token = to_b64_url pack( 'C', $TOKEN_TYPE_USER ) . pack( 'L', $user_token_id ) . $token;
 
-    my $private_token = $token . $user_id . $role_id;
+    my $private_token = $token . $user_id;
 
     $self->_hash_rpc->rpc_call(
         'create_scrypt',
@@ -428,9 +356,17 @@ sub generate_user_token ( $self, $token_id, $user_id, $role_id, $cb ) {
     return;
 }
 
+sub validate_user_token_hash ( $self, $hash, $token, $user_id, $cb ) {
+    my $private_token = $token . $user_id;
+
+    $self->verify_hash( $hash, $private_token, $cb );
+
+    return;
+}
+
 # USER PASSWORD
-sub generate_user_password_hash ( $self, $password, $user_id, $cb ) {
-    my $private_token = $password . $user_id;
+sub generate_user_password_hash ( $self, $user_password, $user_id, $cb ) {
+    my $private_token = $user_password . $user_id;
 
     $self->_hash_rpc->rpc_call(
         'create_scrypt',
@@ -445,17 +381,17 @@ sub generate_user_password_hash ( $self, $password, $user_id, $cb ) {
     return;
 }
 
-sub validate_user_password_hash ( $self, $password, $hash, $user_id, $cb ) {
-    my $private_token = $password . $user_id;
+sub validate_user_password_hash ( $self, $hash, $user_password, $user_id, $cb ) {
+    my $private_token = $user_password . $user_id;
 
-    $self->verify_hash( $private_token, $hash, $cb );
+    $self->verify_hash( $hash, $private_token, $cb );
 
     return;
 }
 
 # HASH
 # TODO limit cache size
-sub verify_hash ( $self, $token, $hash, $cb ) {
+sub verify_hash ( $self, $hash, $token, $cb ) {
     my $cache_id = "$hash-$token";
 
     if ( exists $self->{_hash_cache}->{$cache_id} ) {
@@ -466,7 +402,7 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
             'verify_scrypt',
             $token, $hash,
             sub ( $rpc_status, $match ) {
-                my $status = $match ? status 200 : status 400;
+                my $status = $match ? status 200 : status [ 400, 'Invalid token' ];
 
                 $self->{_hash_cache}->{$cache_id} = $status;
 
@@ -487,7 +423,8 @@ sub verify_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64, 137, 408, 448    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 62, 135, 336, 359,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 368, 384             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
