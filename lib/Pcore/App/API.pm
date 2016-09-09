@@ -503,6 +503,19 @@ sub set_user_role ( $self, $user_id, $role_id, $cb = undef ) {
 }
 
 # USER TOKEN
+sub get_user_token_by_id ( $self, $user_token_id, $cb ) {
+    $self->{backend}->get_user_token_by_id(
+        $user_token_id,
+        sub ( $status, $user_token ) {
+            $cb->( $status, $user_token ) if $cb;
+
+            return;
+        }
+    );
+
+    return;
+}
+
 sub create_user_token ( $self, $user_id, $role_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -550,7 +563,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 253, 482, 506        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 253, 482, 519        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

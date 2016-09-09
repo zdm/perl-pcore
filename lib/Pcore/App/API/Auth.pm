@@ -3,23 +3,33 @@ package Pcore::App::API::Auth;
 use Pcore -const, -role, -export => { CONST => [qw[$TOKEN_TYPE_APP_INSTANCE $TOKEN_TYPE_USER]] };
 use Pcore::Util::Data qw[from_b64];
 
-has _auth_cache => ( is => 'lazy', isa => HashRef, init_arg => undef );
+requires qw[
+  backend
+  get_user_token_by_id
+  get_user_by_id
+  get_app_by_id
+  get_app_instance_by_id
+];
+
+has _auth_cache => (
+    is      => 'lazy',
+    isa     => HashRef,
+    default => sub {
+        {   user_name_id          => {},    # user_name -> user_id cache
+            user_id_password      => {},    # valid user password cache
+            app_instance_id_token => {},    # valid app instancee token cache
+            user_token_id         => {},    # valid user token cache
+            user_token            => {},    # user token cache by user_token_id
+            user                  => {},    # user cache by user_id
+            app                   => {},    # app cache by app_id
+            app_instance          => {},    # app instance cache by app_instance_id
+        };
+    },
+    init_arg => undef
+);
 
 const our $TOKEN_TYPE_APP_INSTANCE => 1;
 const our $TOKEN_TYPE_USER         => 2;
-
-sub _buid__auth_cache ($self) {
-    return {
-        user_name_id          => {},    # user_name -> user_id cache
-        user_id_password      => {},    # valid user password cache
-        app_instance_id_token => {},    # valid app instancee token cache
-        user_token_id         => {},    # valid user token cache
-        user_token            => {},    # user token cache by user_token_id
-        user                  => {},    # user cache by user_id
-        app                   => {},    # app cache by app_id
-        app_instance          => {},    # app instance cache by app_instance_id
-    };
-}
 
 # AUTHENTICATION
 sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
@@ -355,14 +365,13 @@ sub on_user_token_change ( $self, $token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 11                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_buid__auth_cache' declared but not |
-## |      |                      |  used                                                                                                          |
+## |    3 | 35                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 25                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 204                  | Subroutines::ProhibitExcessComplexity - Subroutine "auth_method" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 194                  | Subroutines::ProhibitExcessComplexity - Subroutine "auth_method" with high complexity score (21)               |
+## |    3 | 333                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 323                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    1 | 14                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
