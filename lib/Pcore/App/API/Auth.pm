@@ -15,14 +15,11 @@ has _auth_cache => (
     is      => 'lazy',
     isa     => HashRef,
     default => sub {
-        {   user_name_id          => {},    # user_name -> user_id cache
-            user_id_password      => {},    # valid user password cache
-            app_instance_id_token => {},    # valid app instancee token cache
-            user_token_id         => {},    # valid user token cache
-            user_token            => {},    # user token cache by user_token_id
+        {   user_name_user_id     => {},    # user_name -> user_id cache
             user                  => {},    # user cache by user_id
+            app_instance          => {},    # app_instance cache by app_instance_id
+            user_token_id_user_id => {},    # user_token_id -> user_id cache
             app                   => {},    # app cache by app_id
-            app_instance          => {},    # app instance cache by app_instance_id
         };
     },
     init_arg => undef
@@ -36,58 +33,108 @@ sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
     my $cache = $self->{_auth_cache};
 
     # user name -> user id assoc. is cached
-    if ( my $user_id = $cache->{user_name_id}->{$user_name} ) {
+    if ( my $user_id = $cache->{user_name_user_id}->{$user_name} ) {
 
-        # valid user password is cached
-        if ( my $valid_password = $cache->{user_id_password}->{$user_id} ) {
+        # user is cached
+        if ( my $user = $cache->{user}->{$user_id} ) {
 
-            # password is match valid password
-            if ( $valid_password eq $user_password ) {
-                $cb->( { user_id => $user_id } );
-            }
+            # valid user password is cached
+            if ( defined( my $valid_password = $user->{valid_password} ) ) {
 
-            # password is not match
-            else {
-                $cb->(undef);
-            }
-        }
-
-        # valid user password is not cached
-        else {
-            $self->{backend}->auth_user_password(
-                $user_name,
-                $user_password,
-                sub ( $status, $user_id ) {
-                    if ($status) {
-                        $cache->{user_id_password}->{$user_id} = $user_password;
-
-                        $cb->( { user_id => $user_id } );
-                    }
-                    else {
-                        $cb->(undef);
-                    }
+                # password is match valid password
+                if ( $user_password eq $valid_password ) {
+                    $cb->( { user_id => $user_id } );
 
                     return;
                 }
-            );
+
+                # password is not match
+                else {
+                    $cb->(undef);
+
+                    return;
+                }
+            }
         }
     }
 
-    # user name -> user id is not cached
-    else {
-        $self->{backend}->auth_user_password(
-            $user_name,
-            $user_password,
-            sub ( $status, $user_id ) {
+    # validate user password on backend
+    $self->{backend}->auth_user_password(
+        $user_name,
+        $user_password,
+        sub ( $status, $user ) {
+            if ($status) {
+                my $user_id = $user->{id};
 
-                # store user name -> user id assoc.
-                $cache->{user_name_id}->{$user_name} = $user_id if $user_id;
+                # cache user_name -> user_id
+                $cache->{user_name_user_id}->{$user_name} = $user_id;
 
+                # cache valid user password
+                $cache->{user}->{$user_id}->{valid_password} = $user_password;
+
+                # cache user
+                $cache->{user}->{$user_id}->{_} = $user;
+
+                $cb->( { user_id => $user_id } );
+            }
+            else {
+                $cb->(undef);
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub auth_token ( $self, $token, $cb ) {
+
+    # decode token
+    my ( $token_type, $token_id ) = unpack 'CL', from_b64 $token;
+
+    # app instance token
+    if ( $token_type == $TOKEN_TYPE_APP_INSTANCE ) {
+        my $app_instance_id = $token_id;
+
+        my $cache = $self->{_auth_cache}->{app_instance};
+
+        # valid app instance token cached
+        if ( defined( my $valid_token = $cache->{$app_instance_id}->{valid_token} ) ) {
+
+            # token is match
+            if ( $token eq $valid_token ) {
+                $cb->( { app_instance_id => $app_instance_id } );
+
+                return;
+            }
+
+            # token is not match
+            else {
+                $cb->(undef);
+
+                return;
+            }
+        }
+
+        # app instance valid token is not cached
+        $self->{backend}->auth_token(
+            $token,
+            sub ( $status, $app_instance ) {
+
+                # token is valid
                 if ($status) {
-                    $cache->{user_id_password}->{$user_id} = $user_password;
 
-                    $cb->( { user_id => $user_id } );
+                    # cache valid token
+                    $cache->{$app_instance_id}->{valid_token} = $token;
+
+                    # cache app instance
+                    $cache->{$app_instance_id}->{_} = $app_instance;
+
+                    $cb->( { app_instance_id => $app_instance_id } );
                 }
+
+                # token is not valid
                 else {
                     $cb->(undef);
                 }
@@ -97,99 +144,59 @@ sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
         );
     }
 
-    return;
-}
-
-sub auth_token ( $self, $token, $cb ) {
-    my $cache = $self->{_auth_cache};
-
-    # decode token
-    my ( $token_type, $token_id ) = unpack 'CL', from_b64 $token;
-
-    # app token
-    if ( $token_type == $TOKEN_TYPE_APP_INSTANCE ) {
-
-        # valid app instance token is cached
-        if ( my $cached_token = $cache->{app_instance_id_token}->{$token_id} ) {
-
-            # token is match
-            if ( $token eq $cached_token->[0] ) {
-                $cb->( { app_id => $cached_token->[1], app_instance_id => $token_id } );
-            }
-
-            # token is not match
-            else {
-                $cb->(undef);
-            }
-        }
-
-        # app instance token is not cached
-        else {
-            $self->{backend}->auth_token(
-                $token,
-                sub ( $status, $app_id ) {
-
-                    # token is valid
-                    if ($status) {
-
-                        # cache valid token
-                        $cache->{app_instance_id_token}->{$token_id} = [ $token, $app_id ];
-
-                        $cb->( { app_id => $app_id, app_instance_id => $token_id } );
-                    }
-
-                    # token is not valid
-                    else {
-                        $cb->(undef);
-                    }
-
-                    return;
-                }
-            );
-        }
-    }
-
     # user token
     elsif ( $token_type == $TOKEN_TYPE_USER ) {
+        my $user_token_id = $token_id;
 
-        # valid user token is cached
-        if ( my $cached_token = $cache->{user_token_id}->{$token_id} ) {
+        my $cache = $self->{_auth_cache};
 
-            # token is match
-            if ( $token eq $cached_token->[0] ) {
-                $cb->( { user_id => $cached_token->[1], user_token_id => $token_id } );
-            }
+        # user token id -> user id assoc. is cached
+        if ( my $user_id = $cache->{user_token_id_user_id}->{$user_token_id} ) {
 
-            # token is not match
-            else {
-                $cb->(undef);
+            # valid token is cached
+            if ( defined( my $valid_token = $cache->{user}->{$user_id}->{token}->{$user_token_id}->{valid_token} ) ) {
+
+                # token is match
+                if ( $token eq $valid_token ) {
+                    $cb->( { user_token_id => $user_token_id } );
+                }
+
+                # token is not match
+                else {
+                    $cb->(undef);
+                }
             }
         }
 
         # user token is not cached
-        else {
-            $self->{backend}->auth_token(
-                $token,
-                sub ( $status, $user_id ) {
+        $self->{backend}->auth_token(
+            $token,
+            sub ( $status, $user_token ) {
 
-                    # token is valid
-                    if ($status) {
+                # token is valid
+                if ($status) {
+                    my $user_id = $user_token->{user_id};
 
-                        # cache valid token
-                        $cache->{user_token_id}->{$token_id} = [ $token, $user_id ];
+                    # cache user token id -> user id assoc.
+                    $cache->{user_token_id_user_id}->{$user_token_id} = $user_id;
 
-                        $cb->( { user_id => $user_id, user_token_id => $token_id } );
-                    }
+                    # cache valid token
+                    $cache->{user}->{$user_id}->{token}->{$user_token_id}->{valid_token} = $token;
 
-                    # token is not valid
-                    else {
-                        $cb->(undef);
-                    }
+                    # cache user token
+                    $cache->{user}->{$user_id}->{token}->{$user_token_id}->{_} = $user_token;
 
-                    return;
+                    $cb->( { user_token_id => $user_token_id } );
                 }
-            );
-        }
+
+                # token is not valid
+                else {
+                    $cb->(undef);
+                }
+
+                return;
+            }
+        );
     }
 
     # invalid token type
@@ -232,7 +239,7 @@ sub auth_method ( $self, $req, $roles, $cb ) {
     state $check_user_enabled = sub ( $self, $user_id, $cb ) {
         my $cache = $self->{_auth_cache}->{user};
 
-        if ( my $user = $cache->{$user_id} ) {
+        if ( my $user = $cache->{$user_id}->{user} ) {
             $cb->( $user->{enabled} );
         }
         else {
@@ -243,7 +250,9 @@ sub auth_method ( $self, $req, $roles, $cb ) {
                         $cb->(0);
                     }
                     else {
-                        $cache->{$user_id} = $user;
+
+                        # cache user
+                        $cache->{$user_id}->{user} = $user;
 
                         $cb->( $user->{enabled} );
                     }
@@ -339,21 +348,25 @@ sub auth_method ( $self, $req, $roles, $cb ) {
 # EVENTS
 # NOTE call on: set_user_password
 sub on_user_password_change ( $self, $user_id ) {
-    delete $self->{_auth_cache}->{user_id_password}->{$user_id};
+    delete $self->{_auth_cache}->{user}->{$user_id}->{valid_password};
 
     return;
 }
 
 # NOTE call on: set_app_instance_token
 sub on_app_instance_token_change ( $self, $app_instance_id ) {
-    delete $self->{_auth_cache}->{app_instance_id_token}->{$app_instance_id};
+    delete $self->{_auth_cache}->{app_instance}->{$app_instance_id}->{valid_token};
 
     return;
 }
 
 # NOTE call on: remove_user_token
-sub on_user_token_change ( $self, $token_id ) {
-    delete $self->{_auth_cache}->{user_token}->{$token_id};
+sub on_user_token_change ( $self, $user_token_id ) {
+
+    # resolve user id by user token id
+    if ( my $user_id = $self->{_auth_cache}->{user_token_id_user_id}->{$user_token_id} ) {
+        delete $self->{_auth_cache}->{user}->{$user_id}->{token}->{$user_token_id}->{valid_token};
+    }
 
     return;
 }
@@ -365,11 +378,11 @@ sub on_user_token_change ( $self, $token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 35                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 32                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 204                  | Subroutines::ProhibitExcessComplexity - Subroutine "auth_method" with high complexity score (21)               |
+## |    3 | 211                  | Subroutines::ProhibitExcessComplexity - Subroutine "auth_method" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 333                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 342                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 14                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
