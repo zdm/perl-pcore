@@ -292,6 +292,7 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
 }
 
 # AUTH
+# NOTE this method should be accessible only for applications
 sub auth_token ( $self, $token, $cb ) {
 
     # decode token
@@ -423,8 +424,8 @@ sub verify_hash ( $self, $hash, $token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 62, 135, 336, 359,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 368, 384             |                                                                                                                |
+## |    3 | 62, 135, 337, 360,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 369, 385             |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -120,11 +120,24 @@ sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
 }
 
 sub auth_app_instance_token ( $self, $app_instance_id, $token, $cb ) {
-    if ( my $app_instance = $self->dbh->selectrow( q[SELECT hash FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
-        $self->verify_hash( $app_instance->{hash}, $token, $cb );
+    if ( my $app_instance = $self->dbh->selectrow( q[SELECT app_id, hash FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+        $self->verify_hash(
+            $app_instance->{hash},
+            $token,
+            sub ($status) {
+                if ($status) {
+                    $cb->( $status, $app_instance->{app_id} );
+                }
+                else {
+                    $cb->( $status, undef );
+                }
+
+                return;
+            }
+        );
     }
     else {
-        $cb->( status [ 404, 'App instance not found' ] );
+        $cb->( status [ 404, 'App instance not found' ], undef );
     }
 
     return;
@@ -137,14 +150,19 @@ sub auth_user_token ( $self, $user_token_id, $token, $cb ) {
             $token,
             $user_token->{user_id},
             sub ($status) {
-                $cb->($status);
+                if ($status) {
+                    $cb->( $status, $user_token->{user_id} );
+                }
+                else {
+                    $cb->( $status, undef );
+                }
 
                 return;
             }
         );
     }
     else {
-        $cb->( status [ 404, 'User token not found' ] );
+        $cb->( status [ 404, 'User token not found' ], undef );
     }
 
     return;
@@ -817,13 +835,13 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 102, 122, 133, 189,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 260, 350, 383, 425,  |                                                                                                                |
-## |      | 475, 488, 700, 725   |                                                                                                                |
+## |    3 | 102, 122, 146, 207,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 278, 368, 401, 443,  |                                                                                                                |
+## |      | 493, 506, 718, 743   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 189                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 350                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 207                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 368                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
