@@ -10,10 +10,10 @@ const our $TOKEN_TYPE_USER         => 2;
 
 sub _buid__auth_cache ($self) {
     return {
-        user_name_id          => {},
-        user_id_password      => {},
-        app_instance_id_token => {},
-        user_token_id         => {},
+        user_name_id          => {},    # user name to user id cache
+        user_id_password      => {},    # valid user password cache
+        app_instance_id_token => {},    # valid app instancee token cache
+        user_token_id         => {},    # valid user token cache
     };
 }
 
