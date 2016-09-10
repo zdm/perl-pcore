@@ -102,21 +102,27 @@ SQL
 }
 
 # AUTH
-sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
-    if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_name] ) ) {
-        my $hash = delete $user->{hash};
+sub auth_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
 
-        $self->validate_user_password_hash(
-            $hash,
-            $user_password,
-            $user->{id},
+    # get user
+    if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$user_name_utf8] ) ) {
+        $self->verify_token_hash(
+            $private_token,
+            $user->{hash},
             sub ($status) {
-                $cb->( $status, $user );
+                if ($status) {
+                    $cb->( $status, { user_id => $user->{id} } );
+                }
+                else {
+                    $cb->( $status, undef );
+                }
 
                 return;
             }
         );
     }
+
+    # get user error
     else {
         $cb->( status [ 404, 'User not found' ], undef );
     }
@@ -124,15 +130,14 @@ sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
     return;
 }
 
-sub auth_app_instance_token ( $self, $app_instance_id, $token, $cb ) {
-    if ( my $app_instance = $self->dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
-        my $hash = delete $app_instance->{hash};
-
-        $self->verify_hash(
-            $hash, $token,
+sub auth_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
+    if ( my $app_instance = $self->dbh->selectrow( q[SELECT app_id, hash FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+        $self->verify_token_hash(
+            $private_token,
+            $app_instance->{hash},
             sub ($status) {
                 if ($status) {
-                    $cb->( $status, $app_instance );
+                    $cb->( $status, { app_id => $app_instance->{app_id}, app_instance_id => $app_instance_id } );
                 }
                 else {
                     $cb->( $status, undef );
@@ -149,16 +154,14 @@ sub auth_app_instance_token ( $self, $app_instance_id, $token, $cb ) {
     return;
 }
 
-sub auth_user_token ( $self, $user_token_id, $token, $cb ) {
-    if ( my $user_token = $self->dbh->selectrow( q[SELECT * FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
-        my $hash = delete $user_token->{hash};
-
-        $self->validate_user_token_hash(
-            $hash, $token,
-            $user_token->{user_id},
+sub auth_user_token ( $self, $user_token_id, $private_token, $cb ) {
+    if ( my $user_token = $self->dbh->selectrow( q[SELECT user_id, hash FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
+        $self->verify_token_hash(
+            $private_token,
+            $user_token->{hash},
             sub ($status) {
                 if ($status) {
-                    $cb->( $status, $user_token );
+                    $cb->( $status, { user_id => $user_token->{user_id}, user_token_id => $user_token_id } );
                 }
                 else {
                     $cb->( $status, undef );
@@ -669,7 +672,7 @@ sub create_user ( $self, $user_name, $password, $cb ) {
     return;
 }
 
-sub set_user_password ( $self, $user_id, $password, $cb ) {
+sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
     $self->get_user_by_id(
         $user_id,
         sub ( $status, $user ) {
@@ -678,8 +681,8 @@ sub set_user_password ( $self, $user_id, $password, $cb ) {
             }
             else {
                 $self->generate_user_password_hash(
-                    $password,
-                    $user_id,
+                    $user->{name},
+                    $user_password_utf8,
                     sub ( $status, $hash ) {
                         if ( !$status ) {
                             $cb->($status);
@@ -798,22 +801,21 @@ sub create_user_token ( $self, $user_id, $role_id, $cb ) {
                             $dbh->begin_work;
 
                             if ( $dbh->do( q[INSERT INTO api_user_token (user_id, role_id, created_ts) VALUES (?, ?, ?)], [ $user_id, $role_id, time ] ) ) {
-                                my $token_id = $dbh->last_insert_id;
+                                my $user_token_id = $dbh->last_insert_id;
 
                                 $self->generate_user_token(
-                                    $token_id,
-                                    $user_id, $role_id,
-                                    sub ( $status, $token, $hash ) {
+                                    $user_token_id,
+                                    sub ( $status, $user_token, $hash ) {
                                         if ( !$status ) {
                                             $dbh->rollback;
 
                                             $cb->( status [ 500, 'User token creation error' ], undef );
                                         }
                                         else {
-                                            if ( $dbh->do( q[UPDATE api_user_token SET hash = ? WHERE id = ?], [ $hash, $token_id ] ) ) {
+                                            if ( $dbh->do( q[UPDATE api_user_token SET hash = ? WHERE id = ?], [ $hash, $user_token_id ] ) ) {
                                                 $dbh->commit;
 
-                                                $cb->( status 201, $token );
+                                                $cb->( status 201, $user_token );
                                             }
                                             else {
                                                 $dbh->rollback;
@@ -865,14 +867,14 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105, 127, 152, 214,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 285, 375, 408, 450,  |                                                                                                                |
-## |      | 500, 513, 736, 760,  |                                                                                                                |
-## |      | 773                  |                                                                                                                |
+## |    3 | 105, 133, 157, 217,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 288, 378, 411, 453,  |                                                                                                                |
+## |      | 503, 516, 675, 739,  |                                                                                                                |
+## |      | 763, 776             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 214                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 375                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 217                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 378                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

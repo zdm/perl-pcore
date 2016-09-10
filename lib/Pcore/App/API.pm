@@ -5,6 +5,7 @@ use Pcore::App::API::Map;
 use Pcore::App::API::Request;
 use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Data qw[from_b64];
+use Pcore::Util::Text qw[encode_utf8];
 
 with qw[Pcore::App::API::Auth];
 
@@ -432,17 +433,20 @@ sub create_user ( $self, $user_name, $password, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub set_user_password ( $self, $user_id, $password, $cb = undef ) {
+sub set_user_password ( $self, $user_id, $user_password_utf8, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    encode_utf8 $user_password_utf8;
 
     $self->{backend}->set_user_password(
         $user_id,
-        $password,
+        $user_password_utf8,
         sub ($status) {
 
             # invalidate user cache on success
             if ($status) {
-                $self->on_user_password_change($user_id);
+
+                # $self->on_user_password_change($user_id);
             }
 
             $cb->($status) if $cb;
@@ -563,7 +567,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 253, 482, 519        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 254, 436, 486, 523   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

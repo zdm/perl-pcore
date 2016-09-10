@@ -4,7 +4,9 @@ use Pcore -role;
 use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Hash::RandKey;
 use Pcore::Util::Data qw[to_b64_url from_b64];
+use Pcore::Util::Digest qw[sha1];
 use Pcore::App::API::Auth qw[:CONST];
+use Pcore::Util::Text qw[encode_utf8];
 
 with qw[Pcore::App::API::Backend];
 
@@ -293,56 +295,30 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
 
 # AUTH
 # NOTE this method should be accessible only for applications
-sub auth_token ( $self, $token, $cb ) {
-
-    # decode token
-    my ( $token_type, $token_id ) = unpack 'CL', from_b64 $token;
-
-    if ( $token_type == $TOKEN_TYPE_APP_INSTANCE ) {
+sub authenticate ( $self, $token_type, $token_id, $token, $cb ) {
+    if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
+        $self->auth_user_password( $token_id, $token, $cb );
+    }
+    elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
         $self->auth_app_instance_token( $token_id, $token, $cb );
     }
-    elsif ( $token_type == $TOKEN_TYPE_USER ) {
+    elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
         $self->auth_user_token( $token_id, $token, $cb );
     }
     else {
-        $cb->( status [ 400, 'Invalid token type' ] );
+        $cb->( status [ 400, 'Invalid token type' ], undef );
     }
 
     return;
 }
 
-# APP TOKEN
+# TOKEN
 sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
     # generate random token
-    my $token = P->random->bytes(48);
+    my $token = to_b64_url pack( 'CL', $TOKEN_TYPE_APP_INSTANCE_TOKEN, $app_instance_id ) . P->random->bytes(48);
 
-    # add token type, app instance id
-    $token = to_b64_url pack( 'C', $TOKEN_TYPE_APP_INSTANCE ) . pack( 'L', $app_instance_id ) . $token;
-
-    $self->_hash_rpc->rpc_call(
-        'create_scrypt',
-        $token,
-        sub ( $status, $hash ) {
-            $cb->( $status, $token, $hash );
-
-            return;
-        }
-    );
-
-    return;
-}
-
-# USER TOKEN
-sub generate_user_token ( $self, $user_token_id, $user_id, $cb ) {
-
-    # generate random token
-    my $token = P->random->bytes(48);
-
-    # add token type, user token id
-    $token = to_b64_url pack( 'C', $TOKEN_TYPE_USER ) . pack( 'L', $user_token_id ) . $token;
-
-    my $private_token = $token . $user_id;
+    my $private_token = sha1 $token . $app_instance_id;
 
     $self->_hash_rpc->rpc_call(
         'create_scrypt',
@@ -357,17 +333,29 @@ sub generate_user_token ( $self, $user_token_id, $user_id, $cb ) {
     return;
 }
 
-sub validate_user_token_hash ( $self, $hash, $token, $user_id, $cb ) {
-    my $private_token = $token . $user_id;
+sub generate_user_token ( $self, $user_token_id, $cb ) {
 
-    $self->verify_hash( $hash, $private_token, $cb );
+    # generate random token
+    my $token = to_b64_url pack( 'CL', $TOKEN_TYPE_USER_TOKEN, $user_token_id ) . P->random->bytes(48);
+
+    my $private_token = sha1 $token . $user_token_id;
+
+    $self->_hash_rpc->rpc_call(
+        'create_scrypt',
+        $private_token,
+        sub ( $status, $hash ) {
+            $cb->( $status, $token, $hash );
+
+            return;
+        }
+    );
 
     return;
 }
 
 # USER PASSWORD
-sub generate_user_password_hash ( $self, $user_password, $user_id, $cb ) {
-    my $private_token = $user_password . $user_id;
+sub generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
+    my $private_token = sha1 encode_utf8 $user_password_utf8 . $user_name_utf8;
 
     $self->_hash_rpc->rpc_call(
         'create_scrypt',
@@ -382,17 +370,9 @@ sub generate_user_password_hash ( $self, $user_password, $user_id, $cb ) {
     return;
 }
 
-sub validate_user_password_hash ( $self, $hash, $user_password, $user_id, $cb ) {
-    my $private_token = $user_password . $user_id;
-
-    $self->verify_hash( $hash, $private_token, $cb );
-
-    return;
-}
-
 # HASH
 # TODO limit cache size
-sub verify_hash ( $self, $hash, $token, $cb ) {
+sub verify_token_hash ( $self, $token, $hash, $cb ) {
     my $cache_id = "$hash-$token";
 
     if ( exists $self->{_hash_cache}->{$cache_id} ) {
@@ -424,8 +404,7 @@ sub verify_hash ( $self, $hash, $token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 62, 135, 337, 360,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 369, 385             |                                                                                                                |
+## |    3 | 64, 137, 298, 357    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
