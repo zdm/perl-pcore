@@ -293,7 +293,7 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
     return;
 }
 
-# AUTH
+# AUTHENTICATE
 # NOTE this method should be accessible only for applications
 sub authenticate ( $self, $token_type, $token_id, $token, $cb ) {
     if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
@@ -312,7 +312,7 @@ sub authenticate ( $self, $token_type, $token_id, $token, $cb ) {
     return;
 }
 
-# TOKEN
+# TOKEN / HASH GENERATORS
 sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
     # generate random token
@@ -353,7 +353,6 @@ sub generate_user_token ( $self, $user_token_id, $cb ) {
     return;
 }
 
-# USER PASSWORD
 sub generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
     my $private_token = sha1 encode_utf8 $user_password_utf8 . $user_name_utf8;
 
@@ -370,7 +369,6 @@ sub generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $
     return;
 }
 
-# HASH
 # TODO limit cache size
 sub verify_token_hash ( $self, $token, $hash, $cb ) {
     my $cache_id = "$hash-$token";
@@ -404,7 +402,7 @@ sub verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64, 137, 298, 357    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 64, 137, 298, 356    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -101,7 +101,7 @@ SQL
     return;
 }
 
-# AUTH
+# AUTHENTICATE
 sub authenticate_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
 
     # get user

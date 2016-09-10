@@ -121,7 +121,11 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     return;
 }
 
-sub authorize ( $self, $roles, $cb ) {
+sub authorize ( $self, $auth_id, $roles, $cb ) {
+    if (1) {
+
+    }
+
     return;
 }
 
