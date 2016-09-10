@@ -102,7 +102,7 @@ SQL
 }
 
 # AUTH
-sub auth_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
+sub authenticate_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
 
     # get user
     if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$user_name_utf8] ) ) {
@@ -130,7 +130,7 @@ sub auth_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
     return;
 }
 
-sub auth_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
+sub authenticate_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
     if ( my $app_instance = $self->dbh->selectrow( q[SELECT app_id, hash FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
         $self->verify_token_hash(
             $private_token,
@@ -154,7 +154,7 @@ sub auth_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
     return;
 }
 
-sub auth_user_token ( $self, $user_token_id, $private_token, $cb ) {
+sub authenticate_user_token ( $self, $user_token_id, $private_token, $cb ) {
     if ( my $user_token = $self->dbh->selectrow( q[SELECT user_id, hash FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
         $self->verify_token_hash(
             $private_token,
