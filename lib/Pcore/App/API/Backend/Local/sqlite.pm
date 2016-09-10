@@ -571,6 +571,17 @@ sub remove_role ( $self, $role_id, $cb ) {
     return;
 }
 
+sub get_app_instance_roles ( $self, $app_id, $cb ) {
+    if ( my $roles = $self->dbh->selectall( q[SELECT id, name, enabled FROM api_app_role WHERE app_id = ?], [$app_id] ) ) {
+        $cb->( status 200, $roles );
+    }
+    else {
+        $cb->( status 200, [] );
+    }
+
+    return;
+}
+
 # USER
 sub get_user_by_id ( $self, $user_id, $cb ) {
     if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
@@ -745,6 +756,18 @@ sub set_user_role ( $self, $user_id, $role_id, $cb ) {
     return;
 }
 
+# USER PERMISSIONS
+sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
+    if ( my $permissions = $self->dbh->selectall( q[SELECT api_user_permissions.user_id, api_user_permissions.role_id, api_user_permissions.enabled, api_app_role.name FROM api_user_permissions LEFT JOIN api_app_role ON api_app_role.app_id = ? AND api_user_permissions.role_id = api_app_role.id WHERE api_user_permissions.user_id = ?], [ $app_id, $user_id ] ) ) {
+        $cb->( status 200, $permissions );
+    }
+    else {
+        $cb->( status 200, [] );
+    }
+
+    return;
+}
+
 # USER TOKEN
 # TODO, token roles can't be more, than user assigned roles, by default inherit all current user roles
 sub create_user_token ( $self, $user_id, $role_id, $cb ) {
@@ -844,7 +867,8 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 127, 152, 214,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 285, 375, 408, 450,  |                                                                                                                |
-## |      | 500, 513, 725, 750   |                                                                                                                |
+## |      | 500, 513, 736, 760,  |                                                                                                                |
+## |      | 773                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 214                  | * Private subroutine/method '_create_app' declared but not used                                                |

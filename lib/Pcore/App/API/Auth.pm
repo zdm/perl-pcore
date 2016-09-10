@@ -29,7 +29,7 @@ const our $TOKEN_TYPE_APP_INSTANCE => 1;
 const our $TOKEN_TYPE_USER         => 2;
 
 # AUTHENTICATION
-sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
+sub authenticate_user_password ( $self, $user_name, $user_password, $cb ) {
     my $cache = $self->{_auth_cache};
 
     # user name -> user id assoc. is cached
@@ -88,7 +88,7 @@ sub auth_user_password ( $self, $user_name, $user_password, $cb ) {
     return;
 }
 
-sub auth_token ( $self, $token, $cb ) {
+sub authenticate_token ( $self, $token, $cb ) {
 
     # decode token
     my ( $token_type, $token_id ) = eval { unpack 'CL', from_b64 $token };
@@ -215,67 +215,116 @@ sub auth_token ( $self, $token, $cb ) {
 }
 
 # TODO
-sub auth_method ( $self, $req, $roles, $cb ) {
-    state $check_user_token_enabled = sub ( $self, $user_token_id, $cb ) {
-        my $cache = $self->{_auth_cache}->{user_token};
+sub authorize_method ( $self, $req, $roles, $cb ) {
+    if ( $req->{app_instance_id} ) {
+        $self->_check_app_instance_enabled(
+            $req->{app_instance_id},
+            sub ($status) {
+                return;
+            }
+        );
+    }
+    elsif ( $req->{user_token_id} ) {
+        $self->_check_user_token_enabled(
+            $req->{user_token_id},
+            sub ($status) {
+                return;
+            }
+        );
+    }
+    elsif ( $req->{user_id} ) {
+        $self->_check_user_enabled(
+            $req->{user_id},
+            sub ($status) {
+                return;
+            }
+        );
+    }
+    else {
+        ...;
+    }
 
-        if ( my $user_token = $cache->{$user_token_id} ) {
-            $cb->( $user_token->{enabled} );
+    return;
+}
+
+sub _check_user_enabled ( $self, $user_id, $cb ) {
+    my $cache = $self->{_auth_cache}->{user};
+
+    if ( my $user = $cache->{$user_id}->{_} ) {
+        $cb->( $user->{enabled} );
+    }
+    else {
+        $self->get_user_by_id(
+            $user_id,
+            sub ( $status, $user ) {
+                if ( !$status ) {
+                    $cb->(undef);
+                }
+                else {
+
+                    # cache user
+                    $cache->{$user_id}->{_} = $user;
+
+                    $cb->( $user->{enabled} );
+                }
+
+                return;
+            }
+        );
+    }
+
+    return;
+}
+
+sub _check_user_token_enabled ( $self, $user_token_id, $cb ) {
+    my $cache = $self->{_auth_cache};
+
+    state $check_user_token_enabled = sub ( $self, $user_id, $user_token_id, $cb ) {
+        if ( !$cache->{user}->{$user_id}->{token}->{$user_token_id}->{_}->{enabled} ) {
+            $cb->(0);
         }
         else {
-            $self->get_user_token_by_id(
-                $user_token_id,
-                sub ( $status, $user_token ) {
-                    if ( !$status ) {
-                        $cb->(0);
-                    }
-                    else {
-                        $cache->{$user_token_id} = $user_token;
-
-                        $cb->( $user_token->{enabled} );
-                    }
-
-                    return;
-                }
-            );
+            $self->_check_user_enabled( $user_id, $cb );
         }
 
         return;
     };
 
-    state $check_user_enabled = sub ( $self, $user_id, $cb ) {
-        my $cache = $self->{_auth_cache}->{user};
-
-        if ( my $user = $cache->{$user_id}->{user} ) {
-            $cb->( $user->{enabled} );
-        }
-        else {
-            $self->get_user_by_id(
-                $user_id,
-                sub ( $status, $user ) {
-                    if ( !$status ) {
-                        $cb->(0);
-                    }
-                    else {
-
-                        # cache user
-                        $cache->{$user_id}->{user} = $user;
-
-                        $cb->( $user->{enabled} );
-                    }
-
-                    return;
+    if ( my $user_id = $cache->{user_token_id_user_id}->{$user_token_id} ) {
+        $check_user_token_enabled->( $self, $user_id, $user_token_id, $cb );
+    }
+    else {
+        $self->get_user_token_by_id(
+            $user_token_id,
+            sub ( $status, $user_token ) {
+                if ( !$status ) {
+                    $cb->(undef);
                 }
-            );
-        }
+                else {
+                    $user_id = $user_token->{user_id};
 
-        return;
-    };
+                    # cache user_token_id
+                    $cache->{user_token_id_user_id}->{$user_token_id} = $user_id;
+
+                    # cache user token
+                    $cache->{user}->{$user_id}->{token}->{$user_token_id}->{_} = $user_token;
+
+                    $check_user_token_enabled->( $self, $user_id, $user_token_id, $cb );
+                }
+
+                return;
+            }
+        );
+    }
+
+    return;
+}
+
+sub _check_app_instance_enabled ( $self, $app_instance_id, $cb ) {
+    my $cache = $self->{_auth_cache};
 
     state $check_app_enabled = sub ( $self, $app_id, $cb ) {
-        my $cache = $self->{_auth_cache}->{app};
-
-        if ( my $app = $cache->{$app_id} ) {
+        if ( my $app = $cache->{app}->{$app_id}->{_} ) {
             $cb->( $app->{enabled} );
         }
         else {
@@ -283,10 +332,10 @@ sub auth_method ( $self, $req, $roles, $cb ) {
                 $app_id,
                 sub ( $status, $app ) {
                     if ( !$status ) {
-                        $cb->(0);
+                        $cb->(undef);
                     }
                     else {
-                        $cache->{$app_id} = $app;
+                        $cache->{app}->{$app_id}->{_} = $app;
 
                         $cb->( $app->{enabled} );
                     }
@@ -299,58 +348,120 @@ sub auth_method ( $self, $req, $roles, $cb ) {
         return;
     };
 
-    state $check_app_instance_enabled = sub ( $self, $app_instance_id, $cb ) {
-        my $cache = $self->{_auth_cache}->{app_instance};
-
-        if ( my $app_instance = $cache->{$app_instance_id} ) {
-            $cb->( $app_instance->{enabled} );
+    if ( my $app_instance = $cache->{app_instance}->{$app_instance_id}->{_} ) {
+        if ( !$app_instance->{enabled} ) {
+            $cb->(0);
         }
         else {
-            $self->get_app_instance_by_id(
-                $app_instance_id,
-                sub ( $status, $app_instance ) {
-                    if ( !$status ) {
+            $check_app_enabled->( $self, $app_instance->{app_id}, $cb );
+        }
+    }
+    else {
+        $self->get_app_instance_by_id(
+            $app_instance_id,
+            sub ( $status, $app_instance ) {
+                if ( !$status ) {
+                    $cb->(undef);
+                }
+                else {
+                    $cache->{app_instance}->{$app_instance_id}->{_} = $app_instance;
+
+                    if ( !$app_instance->{enabled} ) {
                         $cb->(0);
                     }
                     else {
-                        $cache->{$app_instance_id} = $app_instance;
-
-                        $cb->( $app_instance->{enabled} );
+                        $check_app_enabled->( $self, $app_instance->{app_id}, $cb );
                     }
-
-                    return;
                 }
-            );
-        }
 
-        return;
-    };
-
-    if ( $req->{user_token_id} ) {
-
-        # TODO check, that user token is enabled
-        # TODO store user_id in sec
-    }
-
-    if ( $req->{app_instance_id} ) {
-
-        # TODO check, that app is enabled
-        # TODO check, that app instance is enabled
-        # TODO get enabled app roles
-        # TODO get enabled app permissions
-    }
-    elsif ( $req->{user_id} ) {
-
-        # TODO check, that user is enabled
-        # TODO if user_token_id -> get enabled token roles
-        # TODO if user password -> get enabled user roles
-    }
-    else {
-        ...;
+                return;
+            }
+        );
     }
 
     return;
 }
+
+# sub _get_self_enabled_roles ( $self, $cb ) {
+#     if ( my $roles = $self->{_auth_cache}->{self_enabled_roles} ) {
+#         $cb->($roles);
+#     }
+#     else {
+#         $self->get_app_instance_roles(
+#             $self->app->id,
+#             sub ( $status, $roles ) {
+#                 if ( !$status ) {
+#                     $cb->(undef);
+#                 }
+#                 else {
+#                     my %roles = map { $_->{id} => $_->{name} if $_->{enabled} } $roles->@*;
+#
+#                     $cache->{$app_id}->{roles} = \%roles;
+#
+#                     $cb->($roles);
+#                 }
+#
+#                 return;
+#             }
+#         );
+#     }
+#
+#     return;
+# }
+
+sub _get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
+    my $cache = $self->{_auth_cache}->{user};
+
+    if ( my $permissions = $cache->{$user_id}->{permissions} ) {
+        $cb->($permissions);
+    }
+    else {
+        $self->get_user_app_permissions(
+            $user_id, $app_id,
+            sub ( $status, $permissions ) {
+                if ( !$status ) {
+                    $cb->(undef);
+                }
+                else {
+                    $cache->{$user_id}->{permissions} = $permissions;
+
+                    $cb->($permissions);
+                }
+
+                return;
+            }
+        );
+    }
+
+    return;
+}
+
+# sub _get_app_app_permissions ( $self, $app_id, $cb ) {
+#     my $cache = $self->{_auth_cache}->{app};
+#
+#     if ( my $permissions = $cache->{$user_id}->{permissions} ) {
+#         $cb->($permissions);
+#     }
+#     else {
+#         $self->get_user_app_permissions(
+#             $user_id, $app_id,
+#             sub ( $status, $permissions ) {
+#                 if ( !$status ) {
+#                     $cb->(undef);
+#                 }
+#                 else {
+#                     $cache->{$user_id}->{permissions} = $permissions;
+#
+#                     $cb->($permissions);
+#                 }
+#
+#                 return;
+#             }
+#         );
+#     }
+#
+#     return;
+# }
 
 # EVENTS
 # NOTE call on: set_user_password
@@ -397,11 +508,12 @@ sub on_user_token_remove ( $self, $user_token_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 32                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 32, 412              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 218                  | Subroutines::ProhibitExcessComplexity - Subroutine "auth_method" with high complexity score (21)               |
+## |    3 | 244                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 349                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 412                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_user_app_permissions' declared |
+## |      |                      |  but not used                                                                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 14                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
