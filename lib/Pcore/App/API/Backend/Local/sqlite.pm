@@ -179,6 +179,7 @@ sub authenticate_user_token ( $self, $user_token_id, $private_token, $cb ) {
 }
 
 # AUTHORIZE
+# TODO tags???
 sub authorize_user ( $self, $auth_app_instance_id, $user_name, $cb ) {
 
     # user must be enabled
@@ -223,6 +224,8 @@ SQL
 
     return;
 }
+
+# TODO
 
 =pod
 sub authorize_app_instance ( $self, $auth_app_instance_id, $app_instance_id, $cb ) {
@@ -1007,16 +1010,16 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105, 133, 157, 182,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 357, 428, 518, 551,  |                                                                                                                |
-## |      | 593, 643, 656, 815,  |                                                                                                                |
-## |      | 879, 903, 916        |                                                                                                                |
+## |    3 | 105, 133, 157, 183,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 360, 431, 521, 554,  |                                                                                                                |
+## |      | 596, 646, 659, 818,  |                                                                                                                |
+## |      | 882, 906, 919        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 357                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 518                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 360                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 521                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 227                  | Documentation::RequirePodAtEnd - POD before __END__                                                            |
+## |    1 | 230                  | Documentation::RequirePodAtEnd - POD before __END__                                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
