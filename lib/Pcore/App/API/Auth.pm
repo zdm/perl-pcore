@@ -9,11 +9,11 @@ requires qw[
 ];
 
 has _auth_cache => (
-    is      => 'lazy',
+    is      => 'ro',
     isa     => HashRef,
     default => sub {
-        {   token => {},
-            tag   => {},
+        {   auth => {},
+            tag  => {},
         };
     },
     init_arg => undef
@@ -24,11 +24,11 @@ const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
 const our $TOKEN_TYPE_USER_TOKEN         => 3;
 
 sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
-    my ( $token_type, $token_id, $token_id_utf8 );
+    my ( $token_type, $token_id, $token_id_encoded );
 
     # detect auth type
     if ($user_name_utf8) {
-        $token_id = eval {
+        $token_id_encoded = eval {
             encode_utf8 $token;
             encode_utf8 $user_name_utf8;
         };
@@ -42,7 +42,7 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
 
         $token_type = $TOKEN_TYPE_USER_PASSWORD;
 
-        \$token_id_utf8 = \$user_name_utf8;
+        \$token_id = \$user_name_utf8;
     }
     else {
 
@@ -66,22 +66,24 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
             return;
         }
 
-        \$token_id_utf8 = \$token_id;
+        \$token_id_encoded = \$token_id;
     }
 
-    $token = sha1 $token . $token_id;
+    # convert token to private token
+    $token = sha1 $token . $token_id_encoded;
 
-    my $auth_id = "$token_type-$token_id-$token";
+    # create auth key
+    my $auth_id = "$token_type-$token_id_encoded-$token";
 
     my $cache = $self->{_auth_cache};
 
-    # cached
-    if ( my $valid_token = $cache->{token}->{$auth_id}->{valid_token} ) {
+    # valid private token is cached
+    if ( my $valid_token = $cache->{auth}->{$auth_id}->{valid_token} ) {
         if ( $token eq $valid_token ) {
-            $cb->(1);
+            $cb->($auth_id);
         }
         else {
-            $cb->(0);
+            $cb->(undef);
         }
     }
 
@@ -89,28 +91,29 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     else {
         $self->{backend}->authenticate(
             $token_type,
-            $token_id_utf8,
+            $token_id,
             $token,
             sub ( $status, $tags ) {
 
                 # not authenticated
                 if ( !$status ) {
-                    $cb->(0);
+                    $cb->(undef);
                 }
 
                 # authenticated
                 else {
+
                     # store authenticated token
-                    $cache->{token}->{$auth_id}->{token_type}  = $token_type;
-                    $cache->{token}->{$auth_id}->{token_id}    = $token_id;
-                    $cache->{token}->{$auth_id}->{valid_token} = $token;
+                    $cache->{auth}->{$auth_id}->{token_type}  = $token_type;
+                    $cache->{auth}->{$auth_id}->{token_id}    = $token_id;
+                    $cache->{auth}->{$auth_id}->{valid_token} = $token;
 
                     # store authentication tags
                     for my $tag ( keys $tags->%* ) {
                         $cache->{tag}->{$tag}->{ $tags->{$tag} }->{$auth_id} = undef;
                     }
 
-                    $cb->(1);
+                    $cb->($auth_id);
                 }
 
                 return;
@@ -121,9 +124,37 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     return;
 }
 
-sub authorize ( $self, $auth_id, $roles, $cb ) {
-    if (1) {
+sub authorize ( $self, $auth_id, $cb ) {
+    my $auth = $self->{_auth_cache}->{auth}->{$auth_id};
 
+    # token is not authenticated
+    if ( !$auth ) {
+        $cb->(undef);
+
+        return;
+    }
+
+    # permissions are cached
+    if ( exists $auth->{permissions} ) {
+        $cb->( $auth->{permissions} );
+
+        return;
+    }
+
+    # get permissions from backend
+    else {
+        $self->{backend}->authorize(
+            $self->app->instance_id,
+            $auth->{token_type},
+            $auth->{token_id},
+            sub ( $status, $names, $tags ) {
+                say dump \@_;
+
+                $cb->($names);
+
+                return;
+            }
+        );
     }
 
     return;
@@ -133,7 +164,7 @@ sub invalidate_cache ( $self, $tags ) {
     my $cache = $self->{_auth_cache};
 
     for my $tag ( keys $tags->%* ) {
-        delete $cache->{token}->@{ keys $cache->{tag}->{$tag}->{ $tags->{$tag} }->%* };
+        delete $cache->{auth}->@{ keys $cache->{tag}->{$tag}->{ $tags->{$tag} }->%* };
 
         delete $cache->{tag}->{$tag}->{ $tags->{$tag} };
     }

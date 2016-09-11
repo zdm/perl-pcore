@@ -312,6 +312,24 @@ sub authenticate ( $self, $token_type, $token_id, $token, $cb ) {
     return;
 }
 
+# AUTHORIZE
+sub authorize ( $self, $app_instance_id, $token_type, $token_id, $cb ) {
+    if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
+        $self->authorize_user( $app_instance_id, $token_id, $cb );
+    }
+    elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
+        $self->authorize_app_instance( $app_instance_id, $token_id, $cb );
+    }
+    elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
+        $self->authorize_user_token( $app_instance_id, $token_id, $cb );
+    }
+    else {
+        $cb->( status [ 400, 'Invalid token type' ], undef );
+    }
+
+    return;
+}
+
 # TOKEN / HASH GENERATORS
 sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
@@ -402,7 +420,8 @@ sub verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64, 137, 298, 356    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 64, 137, 298, 316,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 374                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

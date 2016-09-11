@@ -8,7 +8,6 @@ requires(
     'init',
 
     # AUTH
-    'auth_user_password',
 
     # APP
     'get_app_by_id',
