@@ -307,15 +307,15 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
 
 # AUTHENTICATE
 # NOTE this method should be accessible only for applications
-sub authenticate ( $self, $token_type, $token_id, $token, $cb ) {
+sub authenticate ( $self, $token_type, $token_id, $private_token, $cb ) {
     if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
-        $self->_authenticate_user_password( $token_id, $token, $cb );
+        $self->_authenticate_user_password( $token_id, $private_token, $cb );
     }
     elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
-        $self->_authenticate_app_instance_token( $token_id, $token, $cb );
+        $self->_authenticate_app_instance_token( $token_id, $private_token, $cb );
     }
     elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
-        $self->_authenticate_user_token( $token_id, $token, $cb );
+        $self->_authenticate_user_token( $token_id, $private_token, $cb );
     }
     else {
         $cb->( status [ 400, 'Invalid token type' ], undef );

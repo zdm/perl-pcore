@@ -70,16 +70,18 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     }
 
     # convert token to private token
-    $token = sha1 $token . $token_id_encoded;
+    my $private_token = sha1 $token . $token_id_encoded;
+
+    undef $token;
 
     # create auth key
-    my $auth_id = "$token_type-$token_id_encoded-$token";
+    my $auth_id = "$token_type-$token_id_encoded-$private_token";
 
     my $cache = $self->{_auth_cache};
 
     # valid private token is cached
-    if ( my $valid_token = $cache->{auth}->{$auth_id}->{valid_token} ) {
-        if ( $token eq $valid_token ) {
+    if ( my $valid_private_token = $cache->{auth}->{$auth_id}->{valid_private_token} ) {
+        if ( $private_token eq $valid_private_token ) {
             $cb->(
                 bless {
                     api     => $self,
@@ -98,7 +100,7 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
         $self->{backend}->authenticate(
             $token_type,
             $token_id,
-            $token,
+            $private_token,
             sub ( $status, $tags ) {
 
                 # not authenticated
@@ -110,9 +112,9 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
                 else {
 
                     # store authenticated token
-                    $cache->{auth}->{$auth_id}->{token_type}  = $token_type;
-                    $cache->{auth}->{$auth_id}->{token_id}    = $token_id;
-                    $cache->{auth}->{$auth_id}->{valid_token} = $token;
+                    $cache->{auth}->{$auth_id}->{token_type}          = $token_type;
+                    $cache->{auth}->{$auth_id}->{token_id}            = $token_id;
+                    $cache->{auth}->{$auth_id}->{valid_private_token} = $private_token;
 
                     # store authentication tags
                     for my $tag ( keys $tags->%* ) {
