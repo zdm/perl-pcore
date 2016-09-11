@@ -2,7 +2,6 @@ package Pcore::App::API;
 
 use Pcore -role;
 use Pcore::App::API::Map;
-use Pcore::App::API::Request;
 use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Data qw[from_b64];
 use Pcore::Util::Text qw[encode_utf8];
@@ -567,7 +566,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 254, 436, 486, 523   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 253, 435, 485, 522   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

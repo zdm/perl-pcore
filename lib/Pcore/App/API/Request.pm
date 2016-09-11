@@ -14,8 +14,7 @@ use overload    #
   fallback => undef;
 
 has api => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'], required => 1 );
-has uid => ( is => 'ro', isa => PositiveInt, required => 1 );    # user id
-has rid => ( is => 'ro', isa => PositiveInt, required => 1 );    # role id
+has auth_id => ( is => 'ro', isa => Str, required => 1 );    # user id
 
 has _cb => ( is => 'ro', isa => Maybe [CodeRef], init_arg => undef );
 has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
@@ -84,17 +83,42 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         $api_call->();
     }
 
-    # user is not root, need to authenticate method
+    # user is not root, need to authorize method
     else {
-        $self->api->auth->auth_method(
-            $method_id,
-            $self->{rid},
-            sub ($access_allowed) {
-                if ($access_allowed) {
-                    $api_call->();
+        $self->{api}->authorize(
+            $self->{auth_id},
+            sub ($permissions) {
+                if ( !$permissions ) {
+                    _respond( $self, [ 403, qq[Unauthorized access] ] );
                 }
                 else {
-                    _respond( $self, [ 403, qq[Unauthorized access to API method "$method_id"] ] );
+                    my $allowed;
+
+                    # method has permissions
+                    if ( $method_cfg->{role} ) {
+                        for my $role ( $method_cfg->{role}->@* ) {
+                            if ( exists $permissions->{$role} ) {
+                                $allowed = 1;
+
+                                last;
+                            }
+                        }
+                    }
+
+                    # method has no permissions, api call is allowed for any authenticated user
+                    else {
+                        $allowed = 1;
+                    }
+
+                    # call is allowed
+                    if ($allowed) {
+                        $api_call->();
+                    }
+
+                    # api call is permitted
+                    else {
+                        _respond( $self, [ 403, qq[Unauthorized access to API method "$method_id"] ] );
+                    }
                 }
 
                 return;
@@ -130,7 +154,9 @@ sub _respond ( $self, $status, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 74                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 92                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

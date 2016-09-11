@@ -4,6 +4,7 @@ use Pcore -const, -role, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TO
 use Pcore::Util::Data qw[to_b64_url from_b64];
 use Pcore::Util::Digest qw[sha1];
 use Pcore::Util::Text qw[encode_utf8];
+use Pcore::App::API::Request;
 
 requires qw[
 ];
@@ -80,7 +81,13 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     # valid private token is cached
     if ( my $valid_token = $cache->{auth}->{$auth_id}->{valid_token} ) {
         if ( $token eq $valid_token ) {
-            $cb->($auth_id);
+            $cb->(
+                bless {
+                    api     => $self,
+                    auth_id => $auth_id
+                },
+                'Pcore::App::API::Request'
+            );
         }
         else {
             $cb->(undef);
@@ -113,7 +120,13 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
                         $cache->{tag}->{$tag}->{ $tags->{$tag} }->{$auth_id} = undef;
                     }
 
-                    $cb->($auth_id);
+                    $cb->(
+                        bless {
+                            api     => $self,
+                            auth_id => $auth_id
+                        },
+                        'Pcore::App::API::Request'
+                    );
                 }
 
                 return;
@@ -185,9 +198,9 @@ sub invalidate_cache ( $self, $tags ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 26                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 27                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 11                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 12                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
