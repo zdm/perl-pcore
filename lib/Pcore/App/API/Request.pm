@@ -79,12 +79,15 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
     };
 
     # user is root, method authentication is not required
+    # TODO detect root user
     if ( $self->{uid} == 1 ) {
         $api_call->();
     }
 
     # user is not root, need to authorize method
     else {
+
+        # perform authorization
         $self->{api}->authorize(
             $self->{auth_id},
             sub ($permissions) {
@@ -94,9 +97,9 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
                 else {
                     my $allowed;
 
-                    # method has permissions
-                    if ( $method_cfg->{role} ) {
-                        for my $role ( $method_cfg->{role}->@* ) {
+                    # method has permissions, compare method roles with authorized roles
+                    if ( $method_cfg->{permissions} ) {
+                        for my $role ( $method_cfg->{permissions}->@* ) {
                             if ( exists $permissions->{$role} ) {
                                 $allowed = 1;
 
@@ -156,7 +159,7 @@ sub _respond ( $self, $status, @args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 74                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 92                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 95                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

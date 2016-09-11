@@ -82,20 +82,28 @@ sub _build_method ($self) {
             # method description is required
             die qq[API method "$method_id" requires description] if !$method->{$method_id}->{desc};
 
-            # check method role
-            if ( $method->{$method_id}->{role} ) {
+            # check method permissions
+            if ( $method->{$method_id}->{permissions} ) {
 
                 # convert method role to ArrayRef
-                $method->{$method_id}->{role} = [ $method->{$method_id}->{role} ] if !ref $method->{$method_id}->{role};
+                $method->{$method_id}->{permissions} = [ $method->{$method_id}->{permissions} ] if !ref $method->{$method_id}->{permissions};
 
-                for my $role ( $method->{$method_id}->{role}->@* ) {
-                    if ( !exists $self->app->api->roles->{$role} ) {
-                        die qq[Invalid API method role "$role" for method "$method_id"];
-                    }
+                # methods permissions are empty
+                if ( !$method->{$method_id}->{permissions}->@* ) {
+                    $method->{$method_id}->{permissions} = undef;
+                }
 
-                    # adding method description to role description
-                    else {
-                        $self->app->api->roles->{$role} .= qq[, $method->{$method_id}->{desc}];
+                # check permissions
+                else {
+                    for my $role ( $method->{$method_id}->{permisisons}->@* ) {
+                        if ( !exists $self->app->api->roles->{$role} ) {
+                            die qq[Invalid API method permission "$role" for method "$method_id"];
+                        }
+
+                        # adding method description to the role description
+                        else {
+                            $self->app->api->roles->{$role} .= qq[, $method->{$method_id}->{desc}];
+                        }
                     }
                 }
             }
@@ -112,7 +120,9 @@ sub _build_method ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 92, 98               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    3 | 99                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 99, 105              | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

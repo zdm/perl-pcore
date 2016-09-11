@@ -14,8 +14,8 @@ has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 # TODO rename map -> methods
 has map => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
-has roles       => ( is => 'lazy', isa => HashRef, init_arg => undef );    # API roles, provided by this app
-has permissions => ( is => 'lazy', isa => HashRef, init_arg => undef );    # foreign roles, that this app can use
+has roles => ( is => 'lazy', isa => HashRef, init_arg => undef );    # API roles, provided by this app
+has permissions => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );    # foreign roles, that this app can use
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
 
 sub _build_map ($self) {
@@ -26,6 +26,8 @@ sub _build_map ($self) {
 
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
+
+    die q[App must provide roles] if !keys $roles->%*;
 
     # validate roles
     for my $role ( keys $roles->%* ) {
@@ -39,7 +41,7 @@ around _build_roles => sub ( $orig, $self ) {
 
 # NOTE this method can be redefined in app instance
 sub _build_permissions ($self) {
-    return {};
+    return;
 }
 
 # INIT AUTH BACKEND
@@ -566,7 +568,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 253, 435, 485, 522   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 255, 437, 487, 524   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
