@@ -330,6 +330,7 @@ sub authorize ( $self, $app_instance_id, $token_type, $token_id, $cb ) {
     return;
 }
 
+# INTERNAL METHODS
 # TOKEN / HASH GENERATORS
 sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
@@ -421,7 +422,7 @@ sub verify_token_hash ( $self, $token, $hash, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 64, 137, 298, 316,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 374                  |                                                                                                                |
+## |      | 375                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

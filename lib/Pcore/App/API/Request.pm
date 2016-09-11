@@ -91,30 +91,32 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         $self->{api}->authorize(
             $self->{auth_id},
             sub ($permissions) {
+
+                # user is disabled or has no permissions to access this appication methods
                 if ( !$permissions ) {
                     _respond( $self, [ 403, qq[Unauthorized access] ] );
                 }
                 else {
-                    my $allowed;
+                    my $api_call_is_allowed;
+
+                    # method has no permissions, api call is allowed for any authenticated and authorized user
+                    if ( !$method_cfg->{permissions} ) {
+                        $api_call_is_allowed = 1;
+                    }
 
                     # method has permissions, compare method roles with authorized roles
-                    if ( $method_cfg->{permissions} ) {
+                    else {
                         for my $role ( $method_cfg->{permissions}->@* ) {
                             if ( exists $permissions->{$role} ) {
-                                $allowed = 1;
+                                $api_call_is_allowed = 1;
 
                                 last;
                             }
                         }
                     }
 
-                    # method has no permissions, api call is allowed for any authenticated user
-                    else {
-                        $allowed = 1;
-                    }
-
                     # call is allowed
-                    if ($allowed) {
+                    if ($api_call_is_allowed) {
                         $api_call->();
                     }
 
@@ -159,7 +161,7 @@ sub _respond ( $self, $status, @args ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 74                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 95                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 97                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
