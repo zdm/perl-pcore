@@ -95,7 +95,7 @@ sub _build_method ($self) {
 
                 # check permissions
                 else {
-                    for my $role ( $method->{$method_id}->{permisisons}->@* ) {
+                    for my $role ( $method->{$method_id}->{permissions}->@* ) {
                         if ( !exists $self->app->api->roles->{$role} ) {
                             die qq[Invalid API method permission "$role" for method "$method_id"];
                         }

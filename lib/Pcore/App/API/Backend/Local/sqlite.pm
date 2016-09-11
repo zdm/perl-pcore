@@ -102,11 +102,11 @@ SQL
 }
 
 # AUTHENTICATE
-sub authenticate_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
+sub _authenticate_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
 
     # get user
     if ( my $user = $self->dbh->selectrow( q[SELECT id, hash FROM api_user WHERE name = ?], [$user_name_utf8] ) ) {
-        $self->verify_token_hash(
+        $self->_verify_token_hash(
             $private_token,
             $user->{hash},
             sub ($status) {
@@ -130,9 +130,9 @@ sub authenticate_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
     return;
 }
 
-sub authenticate_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
+sub _authenticate_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
     if ( my $app_instance = $self->dbh->selectrow( q[SELECT app_id, hash FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
-        $self->verify_token_hash(
+        $self->_verify_token_hash(
             $private_token,
             $app_instance->{hash},
             sub ($status) {
@@ -154,9 +154,9 @@ sub authenticate_app_instance_token ( $self, $app_instance_id, $private_token, $
     return;
 }
 
-sub authenticate_user_token ( $self, $user_token_id, $private_token, $cb ) {
+sub _authenticate_user_token ( $self, $user_token_id, $private_token, $cb ) {
     if ( my $user_token = $self->dbh->selectrow( q[SELECT user_id, hash FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
-        $self->verify_token_hash(
+        $self->_verify_token_hash(
             $private_token,
             $user_token->{hash},
             sub ($status) {
@@ -180,7 +180,7 @@ sub authenticate_user_token ( $self, $user_token_id, $private_token, $cb ) {
 
 # AUTHORIZE
 # TODO tags???
-sub authorize_user ( $self, $auth_app_instance_id, $user_name, $cb ) {
+sub _authorize_user ( $self, $auth_app_instance_id, $user_name, $cb ) {
 
     # user must be enabled
     # auth app role must be enabled
@@ -226,100 +226,14 @@ SQL
 }
 
 # TODO
-
-=pod
-sub authorize_app_instance ( $self, $auth_app_instance_id, $app_instance_id, $cb ) {
-
-    # app must be enabled
-    # app instance must be enabled
-    # auth app role must be enabled
-    # app permission must be enabled
-    state $sql = <<'SQL';
-        SELECT
-            api_app_role.name AS app_role_name
-        FROM
-            api_user,
-            api_user_permissions,
-            api_app_role,
-            api_app_instance
-        WHERE
-            api_user.id = api_user_permissions.user_id
-            AND api_user_permissions.role_id = api_app_role.id
-            AND api_app_role.app_id = api_app_instance.app_id
-            AND api_app_instance.id = ?
-            AND api_user.enabled = 1
-            AND api_user.name = ?
-            AND api_user_permissions.enabled = 1
-            AND api_app_role.enabled = 1
-SQL
-
-    if ( my $roles = $self->dbh->selectall( $sql, [ $app_instance_id, $user_name ] ) ) {
-        my ( $names, $tags );
-
-        for my $row ( $roles->@* ) {
-            $names->{ $row->{app_role_name} } = undef;
-
-            # $tags->{app_role_id}->{ $row->{app_role_id} }                 = undef;
-            # $tags->{user_permissions_id}->{ $row->{user_permissions_id} } = undef;
-        }
-
-        $cb->( status 200, $names, $tags );
-    }
-
-    # no enabled roles
-    else {
-        $cb->( status 400, undef, undef );
-    }
-
+sub _authorize_app_instance ( $self, $auth_app_instance_id, $app_instance_id, $cb ) {
     return;
 }
 
-sub authorize_user_token ( $self, $auth_app_instance_id, $user_token_id, $cb ) {
-
-    # user must be enabled
-    # user token must be enabled
-    # auth app role must be enabled
-    # user permission must be enabled
-    state $sql = <<'SQL';
-        SELECT
-            api_app_role.name AS app_role_name
-        FROM
-            api_user,
-            api_user_permissions,
-            api_app_role,
-            api_app_instance
-        WHERE
-            api_user.id = api_user_permissions.user_id
-            AND api_user_permissions.role_id = api_app_role.id
-            AND api_app_role.app_id = api_app_instance.app_id
-            AND api_app_instance.id = ?
-            AND api_user.enabled = 1
-            AND api_user.name = ?
-            AND api_user_permissions.enabled = 1
-            AND api_app_role.enabled = 1
-SQL
-
-    if ( my $roles = $self->dbh->selectall( $sql, [ $app_instance_id, $user_name ] ) ) {
-        my ( $names, $tags );
-
-        for my $row ( $roles->@* ) {
-            $names->{ $row->{app_role_name} } = undef;
-
-            # $tags->{app_role_id}->{ $row->{app_role_id} }                 = undef;
-            # $tags->{user_permissions_id}->{ $row->{user_permissions_id} } = undef;
-        }
-
-        $cb->( status 200, $names, $tags );
-    }
-
-    # no enabled roles
-    else {
-        $cb->( status 400, undef, undef );
-    }
-
+# TODO
+sub _authorize_user_token ( $self, $auth_app_instance_id, $user_token_id, $cb ) {
     return;
 }
-=cut
 
 # APP
 sub get_apps ( $self, $cb ) {
@@ -563,7 +477,7 @@ sub update_app_instance ( $self, $app_instance_id, $app_instance_version, $cb ) 
 }
 
 sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
-    $self->generate_app_instance_token(
+    $self->_generate_app_instance_token(
         $app_instance_id,
         sub ( $status, $token, $hash ) {
 
@@ -823,7 +737,7 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
                 $cb->($status);
             }
             else {
-                $self->generate_user_password_hash(
+                $self->_generate_user_password_hash(
                     $user->{name},
                     $user_password_utf8,
                     sub ( $status, $hash ) {
@@ -946,7 +860,7 @@ sub create_user_token ( $self, $user_id, $role_id, $cb ) {
                             if ( $dbh->do( q[INSERT INTO api_user_token (user_id, role_id, created_ts) VALUES (?, ?, ?)], [ $user_id, $role_id, time ] ) ) {
                                 my $user_token_id = $dbh->last_insert_id;
 
-                                $self->generate_user_token(
+                                $self->_generate_user_token(
                                     $user_token_id,
                                     sub ( $status, $user_token, $hash ) {
                                         if ( !$status ) {
@@ -1011,15 +925,20 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 133, 157, 183,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 360, 431, 521, 554,  |                                                                                                                |
-## |      | 596, 646, 659, 818,  |                                                                                                                |
-## |      | 882, 906, 919        |                                                                                                                |
+## |      | 229, 234, 274, 345,  |                                                                                                                |
+## |      | 435, 468, 510, 560,  |                                                                                                                |
+## |      | 573, 732, 796, 820,  |                                                                                                                |
+## |      | 833                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 360                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 521                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 230                  | Documentation::RequirePodAtEnd - POD before __END__                                                            |
+## |      | 105                  | * Private subroutine/method '_authenticate_user_password' declared but not used                                |
+## |      | 133                  | * Private subroutine/method '_authenticate_app_instance_token' declared but not used                           |
+## |      | 157                  | * Private subroutine/method '_authenticate_user_token' declared but not used                                   |
+## |      | 183                  | * Private subroutine/method '_authorize_user' declared but not used                                            |
+## |      | 229                  | * Private subroutine/method '_authorize_app_instance' declared but not used                                    |
+## |      | 234                  | * Private subroutine/method '_authorize_user_token' declared but not used                                      |
+## |      | 274                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 435                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

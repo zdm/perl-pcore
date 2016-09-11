@@ -12,17 +12,10 @@ requires qw[_build_roles];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-# TODO rename map -> methods
-has map => ( is => 'lazy', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
-has roles => ( is => 'lazy', isa => HashRef, init_arg => undef );    # API roles, provided by this app
-has permissions => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );    # foreign roles, that this app can use
+has map => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
+has roles => ( is => 'ro', isa => HashRef, init_arg => undef );    # API roles, provided by this app
+has permissions => ( is => 'ro', isa => Maybe [HashRef], init_arg => undef );    # foreign app roles, that this app can use
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
-
-sub _build_map ($self) {
-
-    # use class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
-    return 'Pcore::App::API::Map'->new( { app => $self->app } );
-}
 
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
@@ -44,10 +37,23 @@ sub _build_permissions ($self) {
     return;
 }
 
-# INIT AUTH BACKEND
+# INIT API
 sub init ( $self, $cb ) {
 
-    # create API auth backend
+    # build roles
+    $self->{roles} = $self->_build_roles;
+
+    # build permissions
+    $self->{permissions} = $self->_build_permissions;
+
+    # build map
+    # use class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
+    $self->{map} = 'Pcore::App::API::Map'->new( { app => $self->app } );
+
+    # init map
+    $self->{map}->method;
+
+    # build API auth backend
     my $auth_uri = P->uri( $self->{app}->{auth} );
 
     print q[Creating API backend ... ];
@@ -568,7 +574,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 255, 437, 487, 524   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 261, 443, 493, 530   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

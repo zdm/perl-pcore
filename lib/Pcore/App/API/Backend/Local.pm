@@ -10,7 +10,19 @@ use Pcore::Util::Text qw[encode_utf8];
 
 with qw[Pcore::App::API::Backend];
 
-requires qw[init_db];
+requires(
+
+    # GENERAL METHODS
+    'init_db',
+
+    # AUTH
+    '_authenticate_user_password',
+    '_authenticate_app_instance_token',
+    '_authenticate_user_token',
+    '_authorize_user',
+    '_authorize_app_instance',
+    '_authorize_user_token',
+);
 
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
 
@@ -297,13 +309,13 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
 # NOTE this method should be accessible only for applications
 sub authenticate ( $self, $token_type, $token_id, $token, $cb ) {
     if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
-        $self->authenticate_user_password( $token_id, $token, $cb );
+        $self->_authenticate_user_password( $token_id, $token, $cb );
     }
     elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
-        $self->authenticate_app_instance_token( $token_id, $token, $cb );
+        $self->_authenticate_app_instance_token( $token_id, $token, $cb );
     }
     elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
-        $self->authenticate_user_token( $token_id, $token, $cb );
+        $self->_authenticate_user_token( $token_id, $token, $cb );
     }
     else {
         $cb->( status [ 400, 'Invalid token type' ], undef );
@@ -315,13 +327,13 @@ sub authenticate ( $self, $token_type, $token_id, $token, $cb ) {
 # AUTHORIZE
 sub authorize ( $self, $app_instance_id, $token_type, $token_id, $cb ) {
     if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
-        $self->authorize_user( $app_instance_id, $token_id, $cb );
+        $self->_authorize_user( $app_instance_id, $token_id, $cb );
     }
     elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
-        $self->authorize_app_instance( $app_instance_id, $token_id, $cb );
+        $self->_authorize_app_instance( $app_instance_id, $token_id, $cb );
     }
     elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
-        $self->authorize_user_token( $app_instance_id, $token_id, $cb );
+        $self->_authorize_user_token( $app_instance_id, $token_id, $cb );
     }
     else {
         $cb->( status [ 400, 'Invalid token type' ], undef );
@@ -332,7 +344,7 @@ sub authorize ( $self, $app_instance_id, $token_type, $token_id, $cb ) {
 
 # INTERNAL METHODS
 # TOKEN / HASH GENERATORS
-sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
+sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
     # generate random token
     my $token = to_b64_url pack( 'CL', $TOKEN_TYPE_APP_INSTANCE_TOKEN, $app_instance_id ) . P->random->bytes(48);
@@ -352,7 +364,7 @@ sub generate_app_instance_token ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-sub generate_user_token ( $self, $user_token_id, $cb ) {
+sub _generate_user_token ( $self, $user_token_id, $cb ) {
 
     # generate random token
     my $token = to_b64_url pack( 'CL', $TOKEN_TYPE_USER_TOKEN, $user_token_id ) . P->random->bytes(48);
@@ -372,7 +384,7 @@ sub generate_user_token ( $self, $user_token_id, $cb ) {
     return;
 }
 
-sub generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
+sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
     my $private_token = sha1 encode_utf8 $user_password_utf8 . $user_name_utf8;
 
     $self->_hash_rpc->rpc_call(
@@ -389,7 +401,7 @@ sub generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $
 }
 
 # TODO limit cache size
-sub verify_token_hash ( $self, $token, $hash, $cb ) {
+sub _verify_token_hash ( $self, $token, $hash, $cb ) {
     my $cache_id = "$hash-$token";
 
     if ( exists $self->{_hash_cache}->{$cache_id} ) {
@@ -421,8 +433,14 @@ sub verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64, 137, 298, 316,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 375                  |                                                                                                                |
+## |    3 | 76, 149, 310, 328,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 387                  |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
+## |      | 347                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 367                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 387                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 404                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

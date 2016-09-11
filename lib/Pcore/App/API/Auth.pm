@@ -6,8 +6,7 @@ use Pcore::Util::Digest qw[sha1];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::App::API::Request;
 
-requires qw[
-];
+requires qw[app backend];
 
 has _auth_cache => (
     is      => 'ro',
@@ -179,6 +178,7 @@ sub authorize ( $self, $auth_id, $cb ) {
     return;
 }
 
+# TODO how to work with cache tags
 sub invalidate_cache ( $self, $tags ) {
     my $cache = $self->{_auth_cache};
 
@@ -198,9 +198,9 @@ sub invalidate_cache ( $self, $tags ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 26                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 12                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 11                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

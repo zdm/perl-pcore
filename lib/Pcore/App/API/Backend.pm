@@ -3,40 +3,17 @@ package Pcore::App::API::Backend;
 use Pcore -role;
 
 requires(
+
+    # GENERAL METHODS
     '_build_host',
     '_build_is_local',
     'init',
+    'register_app_instance',
+    'connect_app_instance',
 
     # AUTH
-
-    # APP
-    'get_app_by_id',
-    '_create_app',
-    'set_app_enabled',
-    'remove_app',
-
-    # APP INSTANCE
-    'get_app_instance_by_id',
-    '_create_app_instance',
-    'connect_app_instance',
-    'set_app_instance_enabled',
-    'remove_app_instance',
-
-    # ROLE
-    'get_role_by_id',
-    'set_role_enabled',
-
-    # USER
-    'get_user_by_id',
-    'get_user_by_name',
-    'create_user',
-    'set_user_password',
-    'set_user_enabled',
-    'set_user_role',
-
-    # USER TOKEN
-    'create_user_token',
-    'remove_user_token',
+    'authenticate',
+    'authorize',
 );
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
