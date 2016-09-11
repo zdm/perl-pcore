@@ -76,6 +76,7 @@ sub _build_http_server ($self) {
     );
 }
 
+# TODO init appliacation
 around run => sub ( $orig, $self ) {
 
     # scan router classes
