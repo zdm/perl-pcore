@@ -147,10 +147,16 @@ sub authorize ( $self, $auth_id, $cb ) {
             $self->app->instance_id,
             $auth->{token_type},
             $auth->{token_id},
-            sub ( $status, $names, $tags ) {
-                say dump \@_;
+            sub ( $status, $permissions, $tags ) {
+                if ( !$status ) {
+                    $cb->(undef);
+                }
+                else {
+                    # cache permissions
+                    $auth->{permissions} = $permissions;
 
-                $cb->($names);
+                    $cb->($permissions);
+                }
 
                 return;
             }
