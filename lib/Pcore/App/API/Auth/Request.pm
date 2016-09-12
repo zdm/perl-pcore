@@ -10,10 +10,10 @@ use overload    #
   },
   fallback => undef;
 
-has auth => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );    # user id
+has auth => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );
 has _cb => ( is => 'ro', isa => Maybe [CodeRef] );
 
-has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );            # already responded
+has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
 
 P->init_demolish(__PACKAGE__);
 
@@ -32,7 +32,7 @@ sub is_root ($self) {
 }
 
 sub wantarray ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return $self->{_cb};
+    return !!$self->{_cb};
 }
 
 sub api_call ( $self, $method_id, @args ) {
