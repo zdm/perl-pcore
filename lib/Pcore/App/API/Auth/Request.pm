@@ -1,0 +1,79 @@
+package Pcore::App::API::Auth::Request;
+
+use Pcore -class;
+use Pcore::Util::Scalar qw[blessed];
+use Pcore::Util::Status::Keyword qw[status];
+
+use overload    #
+  q[&{}] => sub ( $self, @ ) {
+    return sub { return _respond( $self, @_ ) };
+  },
+  fallback => undef;
+
+has api  => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'],       required => 1 );
+has auth => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );    # user id
+has _cb  => ( is => 'ro', isa => Maybe      [CodeRef] );
+
+has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );            # already responded
+
+P->init_demolish(__PACKAGE__);
+
+sub DEMOLISH ( $self, $global ) {
+    if ( !$global && !$self->{_responded} && $self->{_cb} ) {
+
+        # API request object destroyed without return any result, this is possible run-time error in AE callback
+        _respond( $self, 500 );
+    }
+
+    return;
+}
+
+sub is_root ($self) {
+    return $self->{auth}->is_root;
+}
+
+sub api_call ( $self, $method_id, @args ) {
+    $self->{auth}->api_call( $method_id, @args );
+
+    return;
+}
+
+sub _respond ( $self, $status, @args ) {
+    die q[Already responded] if $self->{_responded};
+
+    $self->{_responded} = 1;
+
+    # remove callback
+    my $cb = delete $self->{_cb};
+
+    # return response, if callback is defined
+    if ($cb) {
+        $status = status $status if !blessed $status;
+
+        $cb->( $status, @args );
+    }
+
+    return;
+}
+
+1;
+__END__
+=pod
+
+=encoding utf8
+
+=head1 NAME
+
+Pcore::App::API::Auth::Request
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=head1 ATTRIBUTES
+
+=head1 METHODS
+
+=head1 SEE ALSO
+
+=cut

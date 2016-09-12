@@ -5,7 +5,7 @@ use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Hash::RandKey;
 use Pcore::Util::Data qw[to_b64_url from_b64];
 use Pcore::Util::Digest qw[sha1];
-use Pcore::App::API::Auth qw[:CONST];
+use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];
 
 with qw[Pcore::App::API::Backend];

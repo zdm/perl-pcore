@@ -1,12 +1,17 @@
 package Pcore::App::API;
 
-use Pcore -role;
+use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN]] };
 use Pcore::App::API::Map;
 use Pcore::Util::Status::Keyword qw[status];
 use Pcore::Util::Data qw[from_b64];
+use Pcore::Util::Digest qw[sha1];
 use Pcore::Util::Text qw[encode_utf8];
 
-with qw[Pcore::App::API::Auth];
+const our $TOKEN_TYPE_USER_PASSWORD      => 1;
+const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
+const our $TOKEN_TYPE_USER_TOKEN         => 3;
+
+require Pcore::App::API::Auth;
 
 requires qw[_build_roles];
 
@@ -16,6 +21,8 @@ has map => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Map'], init_arg =>
 has roles => ( is => 'ro', isa => HashRef, init_arg => undef );    # API roles, provided by this app
 has permissions => ( is => 'ro', isa => Maybe [HashRef], init_arg => undef );    # foreign app roles, that this app can use
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
+
+has _auth_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
@@ -32,6 +39,13 @@ around _build_roles => sub ( $orig, $self ) {
     return $roles;
 };
 
+# TODO
+# events:
+#     - on token authenticate - put token descriptor to cache, if authenticated;
+#     - on token remove - remove descriptor from cache, drop all descriptor - related connections;
+#     - on token change - remove descriptor from cache
+#     - on token disable / enable - set enabled attribute, if disabled - drop all descriptor - related connections;
+#     - on token permission change - undef descriptor permissions;
 # NOTE this method can be redefined in app instance
 sub _build_permissions ($self) {
     return;
@@ -153,6 +167,142 @@ sub init ( $self, $cb ) {
 
     return;
 }
+
+# AUTH
+sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
+    my ( $token_type, $token_id, $token_id_encoded );
+
+    # token is user password
+    if ($user_name_utf8) {
+        $token_id_encoded = eval {
+            encode_utf8 $token;
+            encode_utf8 $user_name_utf8;
+        };
+
+        # error decoding token
+        if ($@) {
+            $cb->(undef);
+
+            return;
+        }
+
+        $token_type = $TOKEN_TYPE_USER_PASSWORD;
+
+        \$token_id = \$user_name_utf8;
+    }
+    else {
+
+        # decode token
+        ( $token_type, $token_id ) = eval {
+            encode_utf8 $token;
+            unpack 'CL', from_b64 $token;
+        };
+
+        # error decoding token
+        if ($@) {
+            $cb->(undef);
+
+            return;
+        }
+
+        # token is invalid
+        if ( $token_type != $TOKEN_TYPE_APP_INSTANCE_TOKEN || $token_type != $TOKEN_TYPE_USER_TOKEN ) {
+            $cb->(undef);
+
+            return;
+        }
+
+        \$token_id_encoded = \$token_id;
+    }
+
+    # convert token to private token
+    my $private_token = sha1 $token . $token_id_encoded;
+
+    undef $token;
+
+    # create auth descriptor  key
+    my $auth_id = "$token_type-$token_id_encoded-$private_token";
+
+    my $auth = $self->{_auth_cache}->{$auth_id};
+
+    if ($auth) {
+
+        # auth enabled status is defined
+        if ( defined $auth->{enabled} ) {
+
+            # auth is disabled
+            if ( !$auth->{enabled} ) {
+                $cb->(undef);
+
+                return;
+            }
+
+            # auth is enabled and has permissions
+            elsif ( defined $auth->{permissions} ) {
+                $cb->($auth);
+
+                return;
+            }
+        }
+    }
+
+    $self->{backend}->auth_token(
+        $self->app->instance_id,
+        $token_type,
+        $token_id,
+        $auth ? undef : $private_token,    # validate token
+        sub ( $status, $auth, $tags ) {
+            my $cache = $self->{_auth_cache};
+
+            if ( !$status ) {
+                delete $cache->{$auth_id};
+
+                $cb->(undef);
+            }
+            else {
+
+                # auth is not cached, create new auth
+                if ( !$cache->{$auth_id} ) {
+                    $cache->{$auth_id} = bless {
+                        app        => $self->app,
+                        id         => $auth_id,
+                        token_type => $token_type,
+                        token_id   => $token_id,
+                      },
+                      'Pcore::App::API::Auth';
+                }
+
+                $cache->{$auth_id}->@{ keys $auth->%* } = values $auth->%*;
+
+                $auth = $cache->{$auth_id};
+
+                if ( $auth->{enabled} ) {
+                    $cb->($auth);
+                }
+                else {
+                    $cb->(undef);
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+# TODO how to work with cache tags
+# sub invalidate_cache ( $self, $event, $tags ) {
+#     my $cache = $self->{_auth_cache};
+#
+#     for my $tag ( keys $tags->%* ) {
+#         delete $cache->{auth}->@{ keys $cache->{tag}->{$tag}->{ $tags->{$tag} }->%* };
+#
+#         delete $cache->{tag}->{$tag}->{ $tags->{$tag} };
+#     }
+#
+#     return;
+# }
 
 # APP
 sub get_app_by_id ( $self, $app_id, $cb = undef ) {
@@ -574,7 +724,8 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 261, 443, 493, 530   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172, 411, 593, 643,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 680                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
