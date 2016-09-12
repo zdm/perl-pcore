@@ -4,24 +4,23 @@ use Pcore -const, -role, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TO
 use Pcore::Util::Data qw[to_b64_url from_b64];
 use Pcore::Util::Digest qw[sha1];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::App::API::Request;
+use Pcore::App::API::Auth::Descriptor;
 
 requires qw[app backend];
 
-has _auth_cache => (
-    is      => 'ro',
-    isa     => HashRef,
-    default => sub {
-        {   auth => {},
-            tag  => {},
-        };
-    },
-    init_arg => undef
-);
+has _auth_descriptor_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # authenticated descriptors
 
 const our $TOKEN_TYPE_USER_PASSWORD      => 1;
 const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
 const our $TOKEN_TYPE_USER_TOKEN         => 3;
+
+# TODO
+# events:
+#     - on token authenticate - put token descriptor to cache, if authenticated;
+#     - on token remove - remove descriptor from cache, drop all descriptor - related connections;
+#     - on token change - remove descriptor from cache
+#     - on token disable / enable - set enabled attribute, if disabled - drop all descriptor - related connections;
+#     - on token permission change - undef descriptor permissions;
 
 sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     my ( $token_type, $token_id, $token_id_encoded );
@@ -260,11 +259,9 @@ sub invalidate_cache ( $self, $tags ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 26                   | Subroutines::ProhibitExcessComplexity - Subroutine "authenticate" with high complexity score (24)              |
+## |    3 | 25                   | Subroutines::ProhibitExcessComplexity - Subroutine "authenticate" with high complexity score (24)              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 26                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 11                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    3 | 25                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
