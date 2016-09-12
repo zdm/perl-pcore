@@ -14,6 +14,7 @@ requires(
     # AUTH
     'authenticate',
     'authorize',
+    'check_token_enabled',
 );
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );

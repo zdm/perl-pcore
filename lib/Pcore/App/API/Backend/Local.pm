@@ -22,6 +22,9 @@ requires(
     '_authorize_user',
     '_authorize_app_instance',
     '_authorize_user_token',
+    '_check_user_enabled',
+    '_check_app_instance_enabled',
+    '_check_user_token_enabled',
 );
 
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
@@ -342,6 +345,23 @@ sub authorize ( $self, $app_instance_id, $token_type, $token_id, $cb ) {
     return;
 }
 
+sub check_token_enabled ( $self, $token_type, $token_id, $cb ) {
+    if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
+        $self->_check_user_enabled( $token_id, $cb );
+    }
+    elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
+        $self->_check_app_instance_enabled( $token_id, $cb );
+    }
+    elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
+        $self->_check_user_token_enabled( $token_id, $cb );
+    }
+    else {
+        $cb->( status [ 400, 'Invalid token type' ], undef );
+    }
+
+    return;
+}
+
 # INTERNAL METHODS
 # TOKEN / HASH GENERATORS
 sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
@@ -433,14 +453,14 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 76, 149, 310, 328,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 387                  |                                                                                                                |
+## |    3 | 79, 152, 313, 331,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 348, 407             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 347                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 367                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 387                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 404                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 367                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 387                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 407                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 424                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

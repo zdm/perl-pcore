@@ -77,19 +77,67 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     # create auth key
     my $auth_id = "$token_type-$token_id_encoded-$private_token";
 
-    my $cache = $self->{_auth_cache};
-
     # valid private token is cached
-    if ( my $valid_private_token = $cache->{auth}->{$auth_id}->{valid_private_token} ) {
+    if ( my $valid_private_token = $self->{_auth_cache}->{auth}->{$auth_id}->{valid_private_token} ) {
+
+        # token is valid
         if ( $private_token eq $valid_private_token ) {
-            $cb->(
-                bless {
-                    api     => $self,
-                    auth_id => $auth_id
-                },
-                'Pcore::App::API::Request'
-            );
+            if ( defined( my $enabled = $self->{_auth_cache}->{auth}->{$auth_id}->{enabled} ) ) {
+
+                # token is enabled
+                if ($enabled) {
+                    $cb->(
+                        bless {
+                            api     => $self,
+                            auth_id => $auth_id
+                        },
+                        'Pcore::App::API::Request'
+                    );
+                }
+
+                # token is disabled
+                else {
+                    $cb->(undef);
+                }
+            }
+
+            # need to check token enabled property
+            else {
+                $self->{backend}->check_token_enabled(
+                    $token_type,
+                    $token_id,
+                    sub ( $status, $enabled ) {
+
+                        # result is unknown
+                        if ( !$status ) {
+                            $cb->(undef);
+                        }
+                        else {
+
+                            # store enabled property
+                            $self->{_auth_cache}->{auth}->{$auth_id}->{enabled} = $enabled;
+
+                            if ($enabled) {
+                                $cb->(
+                                    bless {
+                                        api     => $self,
+                                        auth_id => $auth_id
+                                    },
+                                    'Pcore::App::API::Request'
+                                );
+                            }
+                            else {
+                                $cb->(undef);
+                            }
+                        }
+
+                        return;
+                    }
+                );
+            }
         }
+
+        # token is invalid
         else {
             $cb->(undef);
         }
@@ -101,7 +149,7 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
             $token_type,
             $token_id,
             $private_token,
-            sub ( $status, $tags ) {
+            sub ( $status, $enabled, $tags ) {
 
                 # not authenticated
                 if ( !$status ) {
@@ -110,24 +158,36 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
 
                 # authenticated
                 else {
+                    my $cache = $self->{_auth_cache}->{auth}->{$auth_id};
 
                     # store authenticated token
-                    $cache->{auth}->{$auth_id}->{token_type}          = $token_type;
-                    $cache->{auth}->{$auth_id}->{token_id}            = $token_id;
-                    $cache->{auth}->{$auth_id}->{valid_private_token} = $private_token;
+                    $cache->{token_type}          = $token_type;
+                    $cache->{token_id}            = $token_id;
+                    $cache->{valid_private_token} = $private_token;
+                    $cache->{enabled}             = $enabled;
 
                     # store authentication tags
                     for my $tag ( keys $tags->%* ) {
+                        $cache->{$tag} = $tags->{$tag};
+
                         $cache->{tag}->{$tag}->{ $tags->{$tag} }->{$auth_id} = undef;
                     }
 
-                    $cb->(
-                        bless {
-                            api     => $self,
-                            auth_id => $auth_id
-                        },
-                        'Pcore::App::API::Request'
-                    );
+                    # token is enabled
+                    if ($enabled) {
+                        $cb->(
+                            bless {
+                                api     => $self,
+                                auth_id => $auth_id
+                            },
+                            'Pcore::App::API::Request'
+                        );
+                    }
+
+                    # token is disabled
+                    else {
+                        $cb->(undef);
+                    }
                 }
 
                 return;
@@ -200,6 +260,8 @@ sub invalidate_cache ( $self, $tags ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
+## |    3 | 26                   | Subroutines::ProhibitExcessComplexity - Subroutine "authenticate" with high complexity score (24)              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 26                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 11                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
