@@ -102,18 +102,80 @@ SQL
 }
 
 # AUTHENTICATE
-sub _authenticate_user_password ( $self, $user_name_utf8, $private_token, $cb ) {
-    state $sql = q[SELECT id, hash, enabled FROM api_user WHERE name = ?];
+sub _auth_user_password ( $self, $app_instance_id, $user_name_utf8, $private_token, $cb ) {
+    state $sql1 = q[SELECT id, hash, enabled FROM api_user WHERE name = ?];
+
+    state $sql2 = <<'SQL';
+        SELECT
+            api_app_role.name AS app_role_name
+        FROM
+            api_user_permissions,
+            api_app_role,
+            api_app_instance
+        WHERE
+            api_user_permissions.role_id = api_app_role.id
+            AND api_app_role.app_id = api_app_instance.app_id
+            AND api_app_role.enabled = 1
+            AND api_user_permissions.enabled = 1
+            AND api_app_instance.id = ?
+            AND api_user_permissions.user_id = ?
+SQL
 
     # get user
-    if ( my $res = $self->dbh->selectrow( $sql, [$user_name_utf8] ) ) {
+    my $res = $self->dbh->selectrow( $sql1, [$user_name_utf8] );
+
+    # user not found
+    if ( !$res ) {
+        $cb->( status [ 404, 'User not found' ], undef, undef );
+
+        return;
+    }
+
+    my $continue = sub {
+        my $auth = {
+            user_id   => $res->{id},
+            user_name => $user_name_utf8,
+            enabled   => $res->{enabled},
+        };
+
+        my $tags = {    #
+            user_id => $res->{id},
+        };
+
+        # get permissions
+        if ( my $roles = $self->dbh->selectall( $sql2, [ $app_instance_id, $res->{id} ] ) ) {
+            my $permissions = {};
+
+            for my $row ( $roles->@* ) {
+                $permissions->{ $row->{app_role_name} } = 1;
+
+                # $tags->{app_role_id}->{ $row->{app_role_id} }                 = undef;
+                # $tags->{user_permissions_id}->{ $row->{user_permissions_id} } = undef;
+            }
+        }
+        else {
+            $auth->{permissions} = {};
+        }
+
+        $cb->( status 200, $auth, $tags );
+
+        return;
+    };
+
+    if ($private_token) {
+
+        # verify token
         $self->_verify_token_hash(
             $private_token,
             $res->{hash},
             sub ($status) {
+
+                # token valid
                 if ($status) {
-                    $cb->( $status, $res->{enabled}, { user_id => $res->{id} } );
+                    $continue->();
                 }
+
+                # token is invalid
                 else {
                     $cb->( $status, undef, undef );
                 }
@@ -122,16 +184,14 @@ sub _authenticate_user_password ( $self, $user_name_utf8, $private_token, $cb ) 
             }
         );
     }
-
-    # get user error
     else {
-        $cb->( status [ 404, 'User not found' ], undef, undef );
+        $continue->();
     }
 
     return;
 }
 
-sub _authenticate_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
+sub _auth_app_instance_token ( $self, $app_instance_id, $private_token, $cb ) {
     state $sql = <<'SQL';
                 SELECT
                     api_app_instance.app_id,
@@ -175,7 +235,7 @@ SQL
     return;
 }
 
-sub _authenticate_user_token ( $self, $user_token_id, $private_token, $cb ) {
+sub _auth_user_token ( $self, $user_token_id, $private_token, $cb ) {
     state $sql = <<'SQL';
                 SELECT
                     api_user_token.user_id,
@@ -1023,24 +1083,24 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105, 134, 178, 224,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 270, 275, 373, 444,  |                                                                                                                |
-## |      | 534, 567, 609, 659,  |                                                                                                                |
-## |      | 672, 831, 895, 919,  |                                                                                                                |
-## |      | 932                  |                                                                                                                |
+## |    3 | 105, 194, 238, 284,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 330, 335, 433, 504,  |                                                                                                                |
+## |      | 594, 627, 669, 719,  |                                                                                                                |
+## |      | 732, 891, 955, 979,  |                                                                                                                |
+## |      | 992                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 105                  | * Private subroutine/method '_authenticate_user_password' declared but not used                                |
-## |      | 134                  | * Private subroutine/method '_authenticate_app_instance_token' declared but not used                           |
-## |      | 178                  | * Private subroutine/method '_authenticate_user_token' declared but not used                                   |
-## |      | 224                  | * Private subroutine/method '_authorize_user' declared but not used                                            |
-## |      | 270                  | * Private subroutine/method '_authorize_app_instance' declared but not used                                    |
-## |      | 275                  | * Private subroutine/method '_authorize_user_token' declared but not used                                      |
-## |      | 280                  | * Private subroutine/method '_check_user_enabled' declared but not used                                        |
-## |      | 291                  | * Private subroutine/method '_check_app_instance_enabled' declared but not used                                |
-## |      | 314                  | * Private subroutine/method '_check_user_token_enabled' declared but not used                                  |
-## |      | 373                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 534                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
+## |      | 194                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 238                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 284                  | * Private subroutine/method '_authorize_user' declared but not used                                            |
+## |      | 330                  | * Private subroutine/method '_authorize_app_instance' declared but not used                                    |
+## |      | 335                  | * Private subroutine/method '_authorize_user_token' declared but not used                                      |
+## |      | 340                  | * Private subroutine/method '_check_user_enabled' declared but not used                                        |
+## |      | 351                  | * Private subroutine/method '_check_app_instance_enabled' declared but not used                                |
+## |      | 374                  | * Private subroutine/method '_check_user_token_enabled' declared but not used                                  |
+## |      | 433                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 594                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

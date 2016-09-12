@@ -4,11 +4,10 @@ use Pcore -const, -role, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TO
 use Pcore::Util::Data qw[to_b64_url from_b64];
 use Pcore::Util::Digest qw[sha1];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::App::API::Auth::Descriptor;
 
 requires qw[app backend];
 
-has _auth_descriptor_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # authenticated descriptors
+has _auth_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 const our $TOKEN_TYPE_USER_PASSWORD      => 1;
 const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
@@ -25,7 +24,7 @@ const our $TOKEN_TYPE_USER_TOKEN         => 3;
 sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     my ( $token_type, $token_id, $token_id_encoded );
 
-    # detect auth type
+    # token is user password
     if ($user_name_utf8) {
         $token_id_encoded = eval {
             encode_utf8 $token;
@@ -76,171 +75,124 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
     # create auth key
     my $auth_id = "$token_type-$token_id_encoded-$private_token";
 
-    # valid private token is cached
-    if ( my $valid_private_token = $self->{_auth_cache}->{auth}->{$auth_id}->{valid_private_token} ) {
+    my $auth = $self->{_auth_cache}->{$auth_id};
 
-        # token is valid
-        if ( $private_token eq $valid_private_token ) {
-            if ( defined( my $enabled = $self->{_auth_cache}->{auth}->{$auth_id}->{enabled} ) ) {
-
-                # token is enabled
-                if ($enabled) {
-                    $cb->(
-                        bless {
-                            api     => $self,
-                            auth_id => $auth_id
-                        },
-                        'Pcore::App::API::Request'
-                    );
-                }
-
-                # token is disabled
-                else {
-                    $cb->(undef);
-                }
+    if ($auth) {
+        if ( defined $auth->{enabled} && defined $auth->{permissions} ) {
+            if ( $auth->{enabled} ) {
+                $cb->($auth);
             }
-
-            # need to check token enabled property
             else {
-                $self->{backend}->check_token_enabled(
-                    $token_type,
-                    $token_id,
-                    sub ( $status, $enabled ) {
-
-                        # result is unknown
-                        if ( !$status ) {
-                            $cb->(undef);
-                        }
-                        else {
-
-                            # store enabled property
-                            $self->{_auth_cache}->{auth}->{$auth_id}->{enabled} = $enabled;
-
-                            if ($enabled) {
-                                $cb->(
-                                    bless {
-                                        api     => $self,
-                                        auth_id => $auth_id
-                                    },
-                                    'Pcore::App::API::Request'
-                                );
-                            }
-                            else {
-                                $cb->(undef);
-                            }
-                        }
-
-                        return;
-                    }
-                );
+                $cb->(undef);
             }
-        }
 
-        # token is invalid
-        else {
-            $cb->(undef);
+            return;
         }
     }
 
-    # not cached, unknown authentication
-    else {
-        $self->{backend}->authenticate(
-            $token_type,
-            $token_id,
-            $private_token,
-            sub ( $status, $enabled, $tags ) {
+    $self->{backend}->auth_token(
+        $self->app->instance_id,
+        $token_type,
+        $token_id,
+        $auth ? undef : $private_token,    # validate token
+        sub ( $status, $auth, $tags ) {
+            my $cache = $self->{_auth_cache};
 
-                # not authenticated
-                if ( !$status ) {
+            if ( !$status ) {
+                delete $cache->{$auth_id};
+
+                $cb->(undef);
+            }
+            else {
+                if ( !$cache->{$auth_id} ) {
+                    $cache->{$auth_id} = {
+                        id         => $auth_id,
+                        token_type => $token_type,
+                        token_id   => $token_id,
+                    };
+                }
+
+                $cache->{$auth_id}->@{ keys $auth->%* } = values $auth->%*;
+
+                $auth = $cache->{$auth_id};
+
+                if ( $auth->{enabled} ) {
+                    $cb->($auth);
+                }
+                else {
                     $cb->(undef);
                 }
-
-                # authenticated
-                else {
-                    my $cache = $self->{_auth_cache}->{auth}->{$auth_id};
-
-                    # store authenticated token
-                    $cache->{token_type}          = $token_type;
-                    $cache->{token_id}            = $token_id;
-                    $cache->{valid_private_token} = $private_token;
-                    $cache->{enabled}             = $enabled;
-
-                    # store authentication tags
-                    for my $tag ( keys $tags->%* ) {
-                        $cache->{$tag} = $tags->{$tag};
-
-                        $cache->{tag}->{$tag}->{ $tags->{$tag} }->{$auth_id} = undef;
-                    }
-
-                    # token is enabled
-                    if ($enabled) {
-                        $cb->(
-                            bless {
-                                api     => $self,
-                                auth_id => $auth_id
-                            },
-                            'Pcore::App::API::Request'
-                        );
-                    }
-
-                    # token is disabled
-                    else {
-                        $cb->(undef);
-                    }
-                }
-
-                return;
             }
-        );
-    }
+
+            return;
+        }
+    );
 
     return;
 }
 
-sub authorize ( $self, $auth_id, $cb ) {
-    my $auth = $self->{_auth_cache}->{auth}->{$auth_id};
+sub authorize ( $self, $auth, $cb ) {
 
-    # token is not authenticated
-    if ( !$auth ) {
-        $cb->(undef);
+    # check, that user token exists in cache, if not exists - token was removed from db
+    if ( $auth->{token_type} == $TOKEN_TYPE_USER_TOKEN ) {
+        if ( !exists $self->{_auth_cache}->{ $auth->{id} } ) {
+            $cb->(undef);
+
+            return;
+        }
+    }
+
+    # check, that auth is complete
+    if ( defined $auth->{enabled} && defined $auth->{permissions} ) {
+        if ( $auth->{enabled} ) {
+            $cb->( $auth->{permissions} );
+        }
+        else {
+            $cb->(undef);
+        }
 
         return;
     }
 
-    # permissions are cached
-    if ( exists $auth->{permissions} ) {
-        $cb->( $auth->{permissions} );
+    # authenticate token on backend
+    $self->{backend}->auth_token(
+        $self->app->instance_id,
+        $auth->{token_type},
+        $auth->{token_id},
+        undef,    # do not validate token
+        sub ( $status, $new_auth, $tags ) {
+            if ( !$status ) {
+                $cb->(undef);
+            }
+            else {
+                my $cache = $self->{_auth_cache};
 
-        return;
-    }
-
-    # get permissions from backend
-    else {
-        $self->{backend}->authorize(
-            $self->app->instance_id,
-            $auth->{token_type},
-            $auth->{token_id},
-            sub ( $status, $permissions, $tags ) {
-                if ( !$status ) {
+                # token was removed from cache
+                if ( !$cache->{ $auth->{id} } ) {
                     $cb->(undef);
+
+                    return;
+                }
+
+                $auth->@{ keys $new_auth->%* } = values $new_auth->%*;
+
+                if ( $auth->{enabled} ) {
+                    $cb->( $auth->{permissions} );
                 }
                 else {
-                    # cache permissions
-                    $auth->{permissions} = $permissions;
-
-                    $cb->($permissions);
+                    $cb->(undef);
                 }
-
-                return;
             }
-        );
-    }
+
+            return;
+        }
+    );
 
     return;
 }
 
 # TODO how to work with cache tags
-sub invalidate_cache ( $self, $tags ) {
+sub invalidate_cache ( $self, $event, $tags ) {
     my $cache = $self->{_auth_cache};
 
     for my $tag ( keys $tags->%* ) {
@@ -259,9 +211,7 @@ sub invalidate_cache ( $self, $tags ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 25                   | Subroutines::ProhibitExcessComplexity - Subroutine "authenticate" with high complexity score (24)              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 25                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 24                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

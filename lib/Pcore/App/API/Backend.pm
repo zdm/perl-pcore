@@ -12,9 +12,7 @@ requires(
     'connect_app_instance',
 
     # AUTH
-    'authenticate',
-    'authorize',
-    'check_token_enabled',
+    'auth_token',
 );
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
