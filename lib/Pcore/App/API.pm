@@ -169,10 +169,10 @@ sub init ( $self, $cb ) {
 }
 
 # AUTH
-sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
+sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
     my ( $token_type, $token_id, $token_id_encoded );
 
-    # token is user password
+    # token is user_password
     if ($user_name_utf8) {
         $token_id_encoded = eval {
             encode_utf8 $token;
@@ -215,12 +215,10 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
         \$token_id_encoded = \$token_id;
     }
 
-    # convert token to private token
+    # create private token
     my $private_token = sha1 $token . $token_id_encoded;
 
-    undef $token;
-
-    # create auth descriptor  key
+    # create auth id
     my $auth_id = "$token_type-$token_id_encoded-$private_token";
 
     my $auth = $self->{_auth_cache}->{$auth_id};
@@ -246,42 +244,44 @@ sub authenticate ( $self, $token, $user_name_utf8, $cb ) {
         }
     }
 
+    # authenticate on backend
     $self->{backend}->auth_token(
-        $self->app->instance_id,
+        $self->{app}->{instance_id},
         $token_type,
         $token_id,
-        $auth ? undef : $private_token,    # validate token
-        sub ( $status, $auth, $tags ) {
+        $auth ? undef : $private_token,    # validate token, if auth is new
+        sub ( $status, $auth_attrs, $tags ) {
             my $cache = $self->{_auth_cache};
 
             if ( !$status ) {
                 delete $cache->{$auth_id};
 
                 $cb->(undef);
+
+                return;
+            }
+
+            $auth = $cache->{$auth_id};
+
+            # auth is not cached, create new auth
+            if ( !$auth ) {
+                $auth = $cache->{$auth_id} = bless $auth_attrs, 'Pcore::App::API::Auth';
+
+                $auth->{app}        = $self->{app};
+                $auth->{id}         = $auth_id;
+                $auth->{token_type} = $token_type;
+                $auth->{token_id}   = $token_id;
             }
             else {
+                $auth->{enabled}     = $auth_attrs->{enabled};
+                $auth->{permissions} = $auth_attrs->{permissions};
+            }
 
-                # auth is not cached, create new auth
-                if ( !$cache->{$auth_id} ) {
-                    $cache->{$auth_id} = bless {
-                        app        => $self->app,
-                        id         => $auth_id,
-                        token_type => $token_type,
-                        token_id   => $token_id,
-                      },
-                      'Pcore::App::API::Auth';
-                }
-
-                $cache->{$auth_id}->@{ keys $auth->%* } = values $auth->%*;
-
-                $auth = $cache->{$auth_id};
-
-                if ( $auth->{enabled} ) {
-                    $cb->($auth);
-                }
-                else {
-                    $cb->(undef);
-                }
+            if ( $auth->{enabled} ) {
+                $cb->($auth);
+            }
+            else {
+                $cb->(undef);
             }
 
             return;

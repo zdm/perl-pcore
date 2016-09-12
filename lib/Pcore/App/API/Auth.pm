@@ -149,13 +149,13 @@ sub _authorize ( $self, $cb ) {
         }
     }
 
-    # authenticate token on backend
+    # authorize on backend
     $self->{backend}->auth_token(
         $self->{app}->{instance_id},
         $self->{token_type},
         $self->{token_id},
         undef,    # do not validate token
-        sub ( $status, $auth, $tags ) {
+        sub ( $status, $auth_attrs, $tags ) {
             if ( !$status ) {
                 $cb->(undef);
             }
@@ -168,8 +168,8 @@ sub _authorize ( $self, $cb ) {
                     return;
                 }
 
-                $self->{enabled}     = $auth->{enabled};
-                $self->{permissions} = $auth->{permissions};
+                $self->{enabled}     = $auth_attrs->{enabled};
+                $self->{permissions} = $auth_attrs->{permissions};
 
                 if ( $self->{enabled} ) {
                     $cb->( $self->{permissions} );
