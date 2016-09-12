@@ -130,7 +130,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 sub _authorize ( $self, $cb ) {
     my $cache = $self->{app}->{api}->{_auth_cache};
 
-    # check, that user token exists in cache, if not exists - token was removed from db
+    # user token was removed, token is not authenticated
     if ( $self->{token_type} == $TOKEN_TYPE_USER_TOKEN ) {
         if ( !exists $cache->{ $self->{id} } ) {
             $cb->(undef);
@@ -139,17 +139,17 @@ sub _authorize ( $self, $cb ) {
         }
     }
 
-    # descriptor enabled status is defined
+    # auth enabled status is defined
     if ( defined $self->{enabled} ) {
 
-        # descriptor is disabled
+        # auth is disabled
         if ( !$self->{enabled} ) {
             $cb->(undef);
 
             return;
         }
 
-        # descriptor is enabled and has permissions
+        # auth is enabled and has permissions defined
         elsif ( defined $self->{permissions} ) {
             $cb->( $self->{permissions} );
 
@@ -159,24 +159,25 @@ sub _authorize ( $self, $cb ) {
 
     # authenticate token on backend
     $self->{backend}->auth_token(
-        $self->app->instance_id,
+        $self->{app}->{instance_id},
         $self->{token_type},
         $self->{token_id},
         undef,    # do not validate token
-        sub ( $status, $descriptor, $tags ) {
+        sub ( $status, $auth, $tags ) {
             if ( !$status ) {
                 $cb->(undef);
             }
             else {
 
-                # token was removed from cache
-                if ( !$cache->{ $self->{id} } ) {
+                # user token was removed, token is not authenticated
+                if ( $self->{token_type} == $TOKEN_TYPE_USER_TOKEN && !$cache->{ $self->{id} } ) {
                     $cb->(undef);
 
                     return;
                 }
 
-                $self->@{ keys $descriptor->%* } = values $descriptor->%*;
+                $self->{enabled}     = $auth->{enabled};
+                $self->{permissions} = $auth->{permissions};
 
                 if ( $self->{enabled} ) {
                     $cb->( $self->{permissions} );
