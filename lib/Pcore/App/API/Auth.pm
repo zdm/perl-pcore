@@ -78,46 +78,38 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         $api_call->();
     }
 
-    # user is not root, need to authorize method
+    # user is not root, need to perform authorization
     else {
 
         # perform authorization
         $self->_authorize(
             sub ($permissions) {
 
-                # user is disabled or other error
+                # user is disabled or permisisons error
                 if ( !$permissions ) {
                     $cb->( status [ 403, q[Unauthorized access] ] ) if $cb;
+
+                    return;
                 }
-                else {
-                    my $api_call_is_allowed;
 
-                    # method has no permissions, api call is allowed for any authenticated and authorized user
-                    if ( !$method_cfg->{permissions} ) {
-                        $api_call_is_allowed = 1;
-                    }
+                # method has no permissions, api call is allowed for any authenticated and authorized user
+                if ( !$method_cfg->{permissions} ) {
+                    $api_call->();
 
-                    # method has permissions, compare method roles with authorized roles
-                    else {
-                        for my $role ( $method_cfg->{permissions}->@* ) {
-                            if ( exists $permissions->{$role} ) {
-                                $api_call_is_allowed = 1;
+                    return;
+                }
 
-                                last;
-                            }
-                        }
-                    }
-
-                    # call is allowed
-                    if ($api_call_is_allowed) {
+                # method has permissions, compare method roles with authorized roles
+                for my $role ( $method_cfg->{permissions}->@* ) {
+                    if ( exists $permissions->{$role} ) {
                         $api_call->();
-                    }
 
-                    # api call is permitted
-                    else {
-                        $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $cb;
+                        return;
                     }
                 }
+
+                # api call is permitted
+                $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $cb;
 
                 return;
             }
