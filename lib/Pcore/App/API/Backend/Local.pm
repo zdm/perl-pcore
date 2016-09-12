@@ -302,7 +302,7 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
     return;
 }
 
-# AUTHENTICATE TOKEN
+# AUTH
 # NOTE this method should be accessible only for applications
 sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token, $cb ) {
     if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {

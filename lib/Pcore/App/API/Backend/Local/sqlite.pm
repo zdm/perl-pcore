@@ -101,28 +101,38 @@ SQL
     return;
 }
 
-# AUTHENTICATE
+# AUTH
 sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $private_token, $cb ) {
 
-    # source app role should be enabled
+    # source app role must be enabled
     #
-    # user should be enabled
+    # user must be enabled
 
-    state $sql1 = q[SELECT id, hash, enabled FROM api_user WHERE name = ?];
+    state $sql1 = <<'SQL';
+        SELECT
+            id,
+            hash,
+            enabled
+        FROM
+            api_user
+        WHERE
+            name = ?
+SQL
 
     state $sql2 = <<'SQL';
         SELECT
             api_app_role.name AS source_app_role_name
         FROM
-            api_user_permissions,
+            api_app_instance,
             api_app_role,
-            api_app_instance
+            api_user_permissions
         WHERE
-            api_user_permissions.role_id = api_app_role.id
-            AND api_app_role.app_id = api_app_instance.app_id
-            AND api_app_role.enabled = 1
-            AND api_user_permissions.enabled = 1
-            AND api_app_instance.id = ?
+            api_app_instance.id = ?                                                      --- source app_instance_id
+            AND api_app_role.app_id = api_app_instance.app_id                            --- link source_app_instance_role to source_app
+            AND api_app_role.enabled = 1                                                 --- source_app_role must be enabled
+
+            AND api_app_role.id = api_user_permissions.role_id                           --- link app_role to user_permissions
+            AND api_user_permissions.enabled = 1                                         --- user permission must be enabled
             AND api_user_permissions.user_id = ?
 SQL
 
@@ -195,10 +205,10 @@ SQL
 
 sub _auth_app_instance_token ( $self, $source_app_instance_id, $app_instance_id, $private_token, $cb ) {
 
-    # source app role should be enabled
+    # source app role must be enabled
     #
-    # target app should be enabled
-    # target app instance should be enabled
+    # target app must be enabled
+    # target app instance must be enabled
 
     state $sql1 = <<'SQL';
         SELECT
@@ -225,6 +235,7 @@ SQL
             api_app_instance.id = ?                              --- source app_instance_id
             AND api_app_role.app_id = api_app_instance.app_id    --- link source_app_instance_role to source_app
             AND api_app_role.enabled = 1                         --- source_app_role must be enabled
+
             AND api_app_permissions.role_id = api_app_role.id    --- link permission to role
             AND api_app_permissions.enabled = 1                  --- permission must be enabled
             AND api_app_permissions.app_id = ?                   --- link permission to target app id
@@ -257,7 +268,7 @@ SQL
         # get permissions
         if ( my $roles = $self->dbh->selectall( $sql2, [ $source_app_instance_id, $app_id ] ) ) {
             for my $row ( $roles->@* ) {
-                $auth->{permissions}->{ $row->{app_role_name} } = 1;
+                $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
             }
         }
         else {
@@ -300,39 +311,100 @@ SQL
 
 sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
 
-    # source app role should be enabled
+    # source app role must be enabled
     #
-    # user should be enabled
-    # user token should be enabled
+    # user must be enabled
+    # user token must be enabled
 
-    state $sql = <<'SQL';
-                SELECT
-                    api_user_token.user_id,
-                    api_user_token.hash,
-                    api_user.enabled AS user_enabled,
-                    api_user_token.enabled AS user_token_enabled
-                FROM
-                    api_user,
-                    api_user_token
-                WHERE
-                    api_user.id = api_user_token.user_id,
-                    AND api_user_token.id = ?
+    state $sql1 = <<'SQL';
+        SELECT
+            api_user.id AS user_id
+            api_user.name AS user_name,
+            api_user.enabled AS user_enabled,
+            api_user_token.hash,
+            api_user_token.enabled AS user_token_enabled
+        FROM
+            api_user,
+            api_user_token
+        WHERE
+            api_user_token.id = ?
+            AND api_user_token.user_id = api_user.id
 SQL
 
-    if ( my $res = $self->dbh->selectrow( $sql, [$user_token_id] ) ) {
+    state $sql2 = <<'SQL';
+        SELECT
+            api_app_role.name AS source_app_role_name
+        FROM
+            api_app_instance,
+            api_app_role,
+            api_user_permissions
+            api_user_token_permissions
+        WHERE
+            api_app_instance.id = ?                                                      --- source app_instance_id
+            AND api_app_role.app_id = api_app_instance.app_id                            --- link source_app_instance_role to source_app
+            AND api_app_role.enabled = 1                                                 --- source_app_role must be enabled
+
+            AND api_app_role.id = api_user_permissions.role_id                           --- link app_role to user_permissions
+            AND api_user_permissions.enabled = 1                                         --- user permission must be enabled
+
+            AND user_permissions.id = api_user_token_permissions.user_permissions_id     --- link user_token_permissions to user_permissions
+            AND api_user_token_permissions.user_token_id = ?                             --- link user_token_permissions to user_token
+SQL
+
+    # get user token instance
+    my $res = $self->dbh->selectrow( $sql1, [$user_token_id] );
+
+    # user token not found
+    if ( !$res ) {
+        $cb->( status [ 404, 'User token not found' ], undef, undef );
+
+        return;
+    }
+
+    my $continue = sub {
+        my $user_id = $res->{user_id};
+
+        my $auth = {
+            user_id       => $user_id,
+            user_name     => $res->{user_name},
+            user_token_id => $user_token_id,
+            enabled       => $res->{user_enabled} && $res->{user_token_enabled},
+        };
+
+        my $tags = {
+            user_id       => $user_id,
+            user_token_id => $user_token_id,
+        };
+
+        # get permissions
+        if ( my $roles = $self->dbh->selectall( $sql2, [ $source_app_instance_id, $user_token_id ] ) ) {
+            for my $row ( $roles->@* ) {
+                $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
+            }
+        }
+        else {
+            $auth->{permissions} = {};
+        }
+
+        $cb->( status 200, $auth, $tags );
+
+        return;
+    };
+
+    if ($private_token) {
+
+        # verify token
         $self->_verify_token_hash(
             $private_token,
             $res->{hash},
             sub ($status) {
+
+                # token valid
                 if ($status) {
-                    $cb->(
-                        $status,
-                        $res->{user_enabled} && $res->{user_token_enabled},
-                        {   user_id       => $res->{user_id},
-                            user_token_id => $user_token_id
-                        }
-                    );
+                    $continue->();
                 }
+
+                # token is invalid
                 else {
                     $cb->( $status, undef, undef );
                 }
@@ -342,7 +414,7 @@ SQL
         );
     }
     else {
-        $cb->( status [ 404, 'User token not found' ], undef, undef );
+        $continue->();
     }
 
     return;
@@ -1037,17 +1109,17 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105, 196, 301, 387,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 458, 548, 581, 623,  |                                                                                                                |
-## |      | 673, 686, 845, 909,  |                                                                                                                |
-## |      | 933, 946             |                                                                                                                |
+## |    3 | 105, 206, 312, 459,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 530, 620, 653, 695,  |                                                                                                                |
+## |      | 745, 758, 917, 981,  |                                                                                                                |
+## |      | 1005, 1018           |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 196                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 301                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 387                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 548                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 206                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 312                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 459                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 620                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
