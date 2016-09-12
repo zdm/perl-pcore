@@ -59,7 +59,6 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 
         # create API request
         my $req = bless {
-            api        => $self->{app}->{api},
             auth       => $self,
             _cb        => $cb,
             _responded => 0,
@@ -201,7 +200,7 @@ sub _authorize ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 70                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 69                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

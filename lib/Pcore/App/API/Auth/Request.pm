@@ -10,9 +10,8 @@ use overload    #
   },
   fallback => undef;
 
-has api  => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API'],       required => 1 );
 has auth => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );    # user id
-has _cb  => ( is => 'ro', isa => Maybe      [CodeRef] );
+has _cb => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );            # already responded
 
@@ -30,6 +29,10 @@ sub DEMOLISH ( $self, $global ) {
 
 sub is_root ($self) {
     return $self->{auth}->is_root;
+}
+
+sub wantarray ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    return $self->{_cb};
 }
 
 sub api_call ( $self, $method_id, @args ) {
