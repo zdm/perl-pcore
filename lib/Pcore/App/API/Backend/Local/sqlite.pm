@@ -103,11 +103,6 @@ SQL
 
 # AUTH
 sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $private_token, $cb ) {
-
-    # source app role must be enabled
-    #
-    # user must be enabled
-
     state $sql1 = <<'SQL';
         SELECT
             id,
@@ -204,12 +199,6 @@ SQL
 }
 
 sub _auth_app_instance_token ( $self, $source_app_instance_id, $app_instance_id, $private_token, $cb ) {
-
-    # source app role must be enabled
-    #
-    # target app must be enabled
-    # target app instance must be enabled
-
     state $sql1 = <<'SQL';
         SELECT
             api_app_instance.app_id,
@@ -310,12 +299,6 @@ SQL
 }
 
 sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
-
-    # source app role must be enabled
-    #
-    # user must be enabled
-    # user token must be enabled
-
     state $sql1 = <<'SQL';
         SELECT
             api_user.id AS user_id
@@ -1109,17 +1092,17 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105, 206, 312, 459,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 530, 620, 653, 695,  |                                                                                                                |
-## |      | 745, 758, 917, 981,  |                                                                                                                |
-## |      | 1005, 1018           |                                                                                                                |
+## |    3 | 105, 201, 301, 442,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 513, 603, 636, 678,  |                                                                                                                |
+## |      | 728, 741, 900, 964,  |                                                                                                                |
+## |      | 988, 1001            |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 206                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 312                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 459                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 620                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 201                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 301                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 442                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 603                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
