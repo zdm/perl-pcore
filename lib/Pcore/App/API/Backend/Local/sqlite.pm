@@ -80,6 +80,7 @@ sub init_db ( $self, $cb ) {
                 `created_ts` INTEGER,
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
+                `desc` TEXT,
                 `hash` BLOB UNIQUE
             );
 
@@ -1091,8 +1092,7 @@ sub get_user_token ( $self, $user_token_id, $cb ) {
     return;
 }
 
-# TODO set permissions
-sub create_user_token ( $self, $user_id, $permissions, $cb ) {
+sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
     $self->get_user(
         $user_id,
         sub ( $status, $user ) {
@@ -1107,7 +1107,7 @@ sub create_user_token ( $self, $user_id, $permissions, $cb ) {
             $dbh->begin_work;
 
             # create blank user token
-            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_id, created_ts, enabled) VALUES (?, ?, 0)], [ $user_id, time ] ) ) {
+            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_id, desc, created_ts, enabled) VALUES (?, ?, ?, 0)], [ $user->{id}, $desc // q[], time ] ) ) {
                 $dbh->rollback;
 
                 $cb->( status [ 500, 'User token creation error' ], undef );
@@ -1118,61 +1118,86 @@ sub create_user_token ( $self, $user_id, $permissions, $cb ) {
             # get user token id
             my $user_token_id = $dbh->last_insert_id;
 
-            # create user token permissions
-            for my $user_permission_id ( $permissions->@* ) {
+            my $error;
 
-                # symbolic permission (app_name/role_name)
-                if ( $user_permission_id !~ /\A\d+\z/sm ) {
-                    my ( $app_name, $role_name ) = split m[/]sm, $user_permission_id;
-
-                    unless ( my $row = $dbh->selectrow( q[SELECT api_user_permissions.id FROM api_app, api_app_role, api_user_permissions WHERE api_app.name = ? AND api_app_role.name = ? AND api_app_role.app_id = api_app.id AND api_app_role.id = api_user_permissions.role_id AND api_user_permissions.user_id = ?], [ $app_name, $role_name, $user_id ] ) ) {
-                        $dbh->rollback;
-
-                        $cb->( status [ 500, 'User token creation error' ], undef );
-
-                        return;
-                    }
-                    else {
-                        $user_permission_id = $row->{id};
-                    }
-                }
-
-                if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token_permissions (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $user_permission_id ] ) ) {
+            my $cv = AE::cv sub {
+                if ($error) {
                     $dbh->rollback;
 
                     $cb->( status [ 500, 'User token creation error' ], undef );
 
                     return;
                 }
+
+                # generate user token hash
+                $self->_generate_user_token(
+                    $user_token_id,
+                    sub ( $status, $token, $hash ) {
+                        if ( !$status ) {
+                            $dbh->rollback;
+
+                            $cb->( status [ 500, 'User token creation error' ], undef );
+
+                            return;
+                        }
+
+                        if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 1 WHERE id = ?], [ $hash, $user_token_id ] ) ) {
+                            $dbh->rollback;
+
+                            $cb->( status [ 500, 'User token creation error' ], undef );
+
+                            return;
+                        }
+
+                        $dbh->commit;
+
+                        $cb->( status 201, $token );
+
+                        return;
+                    }
+                );
+
+                return;
+            };
+
+            $cv->begin;
+
+            # create user token permissions
+            for my $role_id ( $permissions->@* ) {
+
+                $cv->begin;
+
+                $self->get_app_role(
+                    $role_id,
+                    sub ( $status, $role ) {
+
+                        # app role not exists
+                        if ( !$status ) {
+                            $error = 1;
+                        }
+
+                        # user permission exists
+                        elsif ( my $user_permission = $dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $role->{id} ] ) ) {
+
+                            # error creating user token permission
+                            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token_permissions (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $user_permission->{id} ] ) ) {
+                                $error = 1;
+                            }
+                        }
+
+                        # user permission not exists
+                        else {
+                            $error = 1;
+                        }
+
+                        $cv->end;
+
+                        return;
+                    }
+                );
             }
 
-            # generate user token hash
-            $self->_generate_user_token(
-                $user_token_id,
-                sub ( $status, $token, $hash ) {
-                    if ( !$status ) {
-                        $dbh->rollback;
-
-                        $cb->( status [ 500, 'User token creation error' ], undef );
-
-                        return;
-                    }
-
-                    if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 1 WHERE id = ?], [ $hash, $user_token_id ] ) ) {
-                        $dbh->rollback;
-
-                        $cb->( status [ 500, 'User token creation error' ], undef );
-
-                        return;
-                    }
-
-                    $dbh->commit;
-
-                    $cb->( status 201, $token );
-
-                    return;
-                }
-            );
+            $cv->end;
 
             return;
         }
@@ -1229,16 +1254,17 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105, 201, 301, 443,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 554, 621, 710, 743,  |                                                                                                                |
-## |      | 785, 924, 994, 1184  |                                                                                                                |
+## |    3 | 106, 202, 302, 444,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 555, 622, 711, 744,  |                                                                                                                |
+## |      | 786, 925, 995, 1095, |                                                                                                                |
+## |      |  1209                |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 201                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 301                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 443                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 710                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 106                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
+## |      | 202                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 302                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 444                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 711                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

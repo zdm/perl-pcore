@@ -566,11 +566,11 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb = undef ) {
 }
 
 # USER TOKEN
-sub create_user_token ( $self, $user_id, $permissions, $cb = undef ) {
+sub create_user_token ( $self, $user_id, $desc, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_user_token(
-        $user_id,
+        $user_id, $desc,
         $permissions,
         sub ( $status, $token ) {
             $cb->( $status, $token ) if $cb;
@@ -615,7 +615,7 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 390, 499        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172, 390, 499, 569   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
