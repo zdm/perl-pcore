@@ -550,6 +550,7 @@ sub get_app_role ( $self, $role_id, $cb ) {
     return;
 }
 
+# TODO merge with create_app
 sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
     my $modified;
 
@@ -616,6 +617,7 @@ sub get_app_germissions ( $self, $app_id, $cb ) {
     return;
 }
 
+# TODO merge with create_app
 sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
     if ( !$app_permissions || !keys $app_permissions->%* ) {
         $cb->( status 200 );
@@ -1165,15 +1167,15 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 443,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 553, 619, 708, 741,  |                                                                                                                |
-## |      | 783, 918, 1048       |                                                                                                                |
+## |      | 554, 621, 710, 743,  |                                                                                                                |
+## |      | 785, 920, 1050       |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
 ## |      | 201                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
 ## |      | 301                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
 ## |      | 443                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 708                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 710                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
