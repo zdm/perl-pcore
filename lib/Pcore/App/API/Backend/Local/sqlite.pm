@@ -405,18 +405,6 @@ SQL
 }
 
 # APP
-# TODO
-sub get_apps ( $self, $cb ) {
-    if ( my $apps = $self->dbh->selectall(q[SELECT * FROM api_app]) ) {
-        $cb->( status 200, $apps );
-    }
-    else {
-        $cb->( status 200, [] );
-    }
-
-    return;
-}
-
 sub get_app ( $self, $app_id, $cb ) {
     if ( $app_id =~ /\A\d+\z/sm ) {
         if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
@@ -1257,17 +1245,17 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106, 202, 302, 445,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 556, 624, 714, 747,  |                                                                                                                |
-## |      | 789, 928, 998, 1098, |                                                                                                                |
-## |      |  1212                |                                                                                                                |
+## |    3 | 106, 202, 302, 433,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 544, 612, 702, 735,  |                                                                                                                |
+## |      | 777, 916, 986, 1086, |                                                                                                                |
+## |      |  1200                |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 106                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
 ## |      | 202                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
 ## |      | 302                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 445                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 714                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 433                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 702                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
