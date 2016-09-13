@@ -181,7 +181,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->(undef);
+            $cb->( status [ 400, 'Error decoding user token' ], undef );
 
             return;
         }
@@ -200,14 +200,14 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->(undef);
+            $cb->( status [ 400, 'Error decoding user token' ], undef );
 
             return;
         }
 
         # token is invalid
-        if ( $token_type != $TOKEN_TYPE_APP_INSTANCE_TOKEN || $token_type != $TOKEN_TYPE_USER_TOKEN ) {
-            $cb->(undef);
+        if ( $token_type != $TOKEN_TYPE_APP_INSTANCE_TOKEN && $token_type != $TOKEN_TYPE_USER_TOKEN ) {
+            $cb->( status [ 400, 'Invalid token type' ], undef );
 
             return;
         }
@@ -230,7 +230,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
             # auth is disabled
             if ( !$auth->{enabled} ) {
-                $cb->(undef);
+                $cb->( status [ 400, 'Token is disabled' ], undef );
 
                 return;
             }
@@ -256,7 +256,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             if ( !$status ) {
                 delete $cache->{$auth_id};
 
-                $cb->(undef);
+                $cb->( $status, undef );
 
                 return;
             }
@@ -278,10 +278,10 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             }
 
             if ( $auth->{enabled} ) {
-                $cb->($auth);
+                $cb->( status 200, $auth );
             }
             else {
-                $cb->(undef);
+                $cb->( status [ 400, 'Token is disabled' ], undef );
             }
 
             return;

@@ -301,7 +301,7 @@ SQL
 sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
     state $sql1 = <<'SQL';
         SELECT
-            api_user.id AS user_id
+            api_user.id AS user_id,
             api_user.name AS user_name,
             api_user.enabled AS user_enabled,
             api_user_token.hash,
@@ -320,18 +320,18 @@ SQL
         FROM
             api_app_instance,
             api_app_role,
-            api_user_permissions
+            api_user_permissions,
             api_user_token_permissions
         WHERE
-            api_app_instance.id = ?                                                      --- source app_instance_id
-            AND api_app_role.app_id = api_app_instance.app_id                            --- link source_app_instance_role to source_app
-            AND api_app_role.enabled = 1                                                 --- source_app_role must be enabled
+            api_app_instance.id = ?                                                         --- source app_instance_id
+            AND api_app_role.app_id = api_app_instance.app_id                               --- link source_app_instance_role to source_app
+            AND api_app_role.enabled = 1                                                    --- source_app_role must be enabled
 
-            AND api_app_role.id = api_user_permissions.role_id                           --- link app_role to user_permissions
-            AND api_user_permissions.enabled = 1                                         --- user permission must be enabled
+            AND api_app_role.id = api_user_permissions.role_id                              --- link app_role to user_permissions
+            AND api_user_permissions.enabled = 1                                            --- user permission must be enabled
 
-            AND user_permissions.id = api_user_token_permissions.user_permissions_id     --- link user_token_permissions to user_permissions
-            AND api_user_token_permissions.user_token_id = ?                             --- link user_token_permissions to user_token
+            AND api_user_permissions.id = api_user_token_permissions.user_permissions_id    --- link user_token_permissions to user_permissions
+            AND api_user_token_permissions.user_token_id = ?                                --- link user_token_permissions to user_token
 SQL
 
     # get user token instance
