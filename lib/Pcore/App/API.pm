@@ -529,12 +529,6 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
     $self->{backend}->set_user_enabled(
         $user_id, $enabled,
         sub ($status) {
-
-            # invalidate user cache on success
-            if ($status) {
-                $self->_invalidate_user_cache($user_id);
-            }
-
             $cb->($status) if $cb;
 
             $blocking_cv->($status) if $blocking_cv;

@@ -472,7 +472,7 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
             }
 
             if ( ( $enabled && !$app->{enabled} ) || ( !$enabled && $app->{enabled} ) ) {
-                if ( $self->dbh->do( q[UPDATE OR IGNORE api_app SET enabled = ? WHERE id = ?], [ $enabled, $app->{id} ] ) ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE api_app SET enabled = ? WHERE id = ?], [ !!$enabled, $app->{id} ] ) ) {
                     $cb->( status 200 );
                 }
                 else {
@@ -585,7 +585,7 @@ sub set_app_role_enabled ( $self, $role_id, $enabled, $cb ) {
             }
 
             if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
-                if ( $self->dbh->do( q[UPDATE OR IGNORE api_app_role SET enabled = ? WHERE id = ?], [ $enabled, $role->{id} ] ) ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE api_app_role SET enabled = ? WHERE id = ?], [ !!$enabled, $role->{id} ] ) ) {
                     $cb->( status 200 );
                 }
                 else {
@@ -788,18 +788,22 @@ sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
         sub ( $status, $app_instance ) {
             if ( !$status ) {
                 $cb->($status);
-            }
-            else {
-                if ( ( $enabled && !$app_instance->{enabled} ) || ( !$enabled && $app_instance->{enabled} ) ) {
-                    $self->dbh->do( q[UPDATE api_app_instance SET enabled = ? WHERE id = ?], [ $enabled, $app_instance_id ] );
 
+                return;
+            }
+
+            if ( ( $enabled && !$app_instance->{enabled} ) || ( !$enabled && $app_instance->{enabled} ) ) {
+                if ( $self->dbh->do( q[UPDATE api_app_instance SET enabled = ? WHERE id = ?], [ !!$enabled, $app_instance_id ] ) ) {
                     $cb->( status 200 );
                 }
                 else {
-
-                    # not modified
-                    $cb->( status 304 );
+                    $cb->( status [ 500, 'Error set app instance enabled' ] );
                 }
+            }
+            else {
+
+                # not modified
+                $cb->( status 304 );
             }
 
             return;
@@ -965,9 +969,12 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
             }
             else {
                 if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
-                    $self->dbh->do( q[UPDATE api_user SET enabled = ? WHERE id = ?], [ $enabled, $user_id ] );
-
-                    $cb->( status 200 );
+                    if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $user->{id} ] ) ) {
+                        $cb->( status 200 );
+                    }
+                    else {
+                        $cb->( status [ 500, 'Error set user enabled' ] );
+                    }
                 }
                 else {
 
@@ -1059,6 +1066,21 @@ sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
 }
 
 # USER TOKEN
+sub get_user_token ( $self, $user_token_id, $cb ) {
+    if ( my $user_token = $self->dbh->selectrow( q[SELECT * FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
+        delete $user_token->{hash};
+
+        $cb->( status 200, $user_token );
+    }
+    else {
+
+        # user token not found
+        $cb->( status [ 404, 'User token not found' ], undef );
+    }
+
+    return;
+}
+
 sub create_user_token ( $self, $user_id, $permissions, $cb ) {
     $self->get_user(
         $user_id,
@@ -1148,6 +1170,36 @@ sub create_user_token ( $self, $user_id, $permissions, $cb ) {
     return;
 }
 
+sub set_user_token_enabled ( $self, $user_token_id, $enabled, $cb ) {
+    $self->get_user_token(
+        $user_token_id,
+        sub ( $status, $user_token ) {
+            if ( !$status ) {
+                $cb->($status);
+            }
+            else {
+                if ( ( $enabled && !$user_token->{enabled} ) || ( !$enabled && $user_token->{enabled} ) ) {
+                    if ( $self->dbh->do( q[UPDATE OR IGNORE api_user_token SET enabled = ? WHERE id = ?], [ !!$enabled, $user_token->{id} ] ) ) {
+                        $cb->( status 200 );
+                    }
+                    else {
+                        $cb->( status [ 500, 'Error set user token enabled' ] );
+                    }
+                }
+                else {
+
+                    # not modified
+                    $cb->( status 304 );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
 sub remove_user_token ( $self, $token_id, $cb ) {
     if ( $self->dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$token_id] ) ) {
         $cb->( status 200 );
@@ -1168,7 +1220,7 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 443,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 554, 621, 710, 743,  |                                                                                                                |
-## |      | 785, 920, 1050       |                                                                                                                |
+## |      | 785, 924, 1057, 1173 |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
