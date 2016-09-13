@@ -1236,8 +1236,8 @@ sub set_user_token_enabled ( $self, $user_token_id, $enabled, $cb ) {
     return;
 }
 
-sub remove_user_token ( $self, $token_id, $cb ) {
-    if ( $self->dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$token_id] ) ) {
+sub remove_user_token ( $self, $user_token_id, $cb ) {
+    if ( $self->dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
         $cb->( status 200 );
     }
     else {
