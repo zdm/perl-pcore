@@ -903,28 +903,31 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
         sub ( $status, $user ) {
             if ( !$status ) {
                 $cb->($status);
+
+                return;
             }
-            else {
-                $self->_generate_user_password_hash(
-                    $user->{name},
-                    $user_password_utf8,
-                    sub ( $status, $hash ) {
-                        if ( !$status ) {
-                            $cb->($status);
-                        }
-                        else {
-                            if ( $self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $hash, $user_id ] ) ) {
-                                $cb->( status 200 );
-                            }
-                            else {
-                                $cb->( status 500 );
-                            }
-                        }
+
+            $self->_generate_user_password_hash(
+                $user->{name},
+                $user_password_utf8,
+                sub ( $status, $hash ) {
+                    if ( !$status ) {
+                        $cb->($status);
 
                         return;
                     }
-                );
-            }
+
+                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $hash, $user_id ] ) ) {
+                        $cb->( status [ 500, 'Error setting user password' ] );
+
+                        return;
+                    }
+
+                    $cb->( status 200 );
+
+                    return;
+                }
+            );
 
             return;
         }
@@ -960,22 +963,51 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
     return;
 }
 
-# TODO
-sub set_user_role ( $self, $user_id, $role_id, $cb ) {
-    $self->get_role_by_id(
-        $role_id,
-        sub ( $status, $role ) {
+sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
+    $self->get_user_by_id(
+        $user_id,
+        sub ( $status, $user ) {
             if ( !$status ) {
                 $cb->($status);
+
+                return;
             }
-            else {
-                if ( $self->dbh->do( q[UPDATE api_user SET role_id = ? WHERE id = ?], [ $role_id, $user_id ] ) ) {
-                    $cb->( status 200 );
+
+            my $dbh = $self->dbh;
+
+            $dbh->begin_work;
+
+            # create user token permissions
+            for my $role_id ( $permissions->@* ) {
+
+                # symbolic permission (app_name/role_name)
+                if ( $role_id !~ /\A\d+\z/sm ) {
+                    my ( $app_name, $role_name ) = split m[/]sm, $role_id;
+
+                    unless ( my $row = $dbh->selectrow( q[SELECT api_app_role.id FROM api_app, api_app_role WHERE api_app.name = ? AND api_app_role.name = ? AND api_app_role.app_id = api_app.id], [ $app_name, $role_name ] ) ) {
+                        $dbh->rollback;
+
+                        $cb->( status [ 500, 'Set user permissions error' ] );
+
+                        return;
+                    }
+                    else {
+                        $role_id = $row->{id};
+                    }
                 }
-                else {
-                    $cb->( status [ 404, 'User not found' ] );
+
+                if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user_id, $role_id ] ) ) {
+                    $dbh->rollback;
+
+                    $cb->( status [ 500, 'Set user permissions error' ] );
+
+                    return;
                 }
             }
+
+            $dbh->commit;
+
+            $cb->( status 200 );
 
             return;
         }
@@ -997,75 +1029,87 @@ sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
 }
 
 # USER TOKEN
-# TODO, token roles can't be more, than user assigned roles, by default inherit all current user roles
-sub create_user_token ( $self, $user_id, $role_id, $cb ) {
-    $self->get_role_by_id(
-        $role_id,
-        sub ( $status, $role ) {
-
-            # role not found
+sub create_user_token ( $self, $user_id, $permissions, $cb ) {
+    $self->get_user_by_id(
+        $user_id,
+        sub ( $status, $user ) {
             if ( !$status ) {
                 $cb->( $status, undef );
+
+                return;
             }
 
-            # role found
-            else {
-                $self->get_user_by_id(
-                    $user_id,
-                    sub ( $status, $user ) {
+            my $dbh = $self->dbh;
 
-                        # user not found
-                        if ( !$status ) {
-                            $cb->( $status, undef );
-                        }
+            $dbh->begin_work;
 
-                        # user found
-                        else {
-                            my $dbh = $self->dbh;
+            # create blank user token
+            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_id, created_ts, enabled) VALUES (?, ?, 0)], [ $user_id, time ] ) ) {
+                $dbh->rollback;
 
-                            $dbh->begin_work;
+                $cb->( status [ 500, 'User token creation error' ], undef );
 
-                            if ( $dbh->do( q[INSERT INTO api_user_token (user_id, role_id, created_ts) VALUES (?, ?, ?)], [ $user_id, $role_id, time ] ) ) {
-                                my $user_token_id = $dbh->last_insert_id;
+                return;
+            }
 
-                                $self->_generate_user_token(
-                                    $user_token_id,
-                                    sub ( $status, $user_token, $hash ) {
-                                        if ( !$status ) {
-                                            $dbh->rollback;
+            # get user token id
+            my $user_token_id = $dbh->last_insert_id;
 
-                                            $cb->( status [ 500, 'User token creation error' ], undef );
-                                        }
-                                        else {
-                                            if ( $dbh->do( q[UPDATE api_user_token SET hash = ? WHERE id = ?], [ $hash, $user_token_id ] ) ) {
-                                                $dbh->commit;
+            # create user token permissions
+            for my $user_permission_id ( $permissions->@* ) {
 
-                                                $cb->( status 201, $user_token );
-                                            }
-                                            else {
-                                                $dbh->rollback;
+                # symbolic permission (app_name/role_name)
+                if ( $user_permission_id !~ /\A\d+\z/sm ) {
+                    my ( $app_name, $role_name ) = split m[/]sm, $user_permission_id;
 
-                                                $cb->( status [ 500, 'User token creation error' ], undef );
-                                            }
-                                        }
+                    unless ( my $row = $dbh->selectrow( q[SELECT api_user_permissions.id FROM api_app, api_app_role, api_user_permissions WHERE api_app.name = ? AND api_app_role.name = ? AND api_app_role.app_id = api_app.id AND api_app_role.id = api_user_permissions.role_id AND api_user_permissions.user_id = ?], [ $app_name, $role_name, $user_id ] ) ) {
+                        $dbh->rollback;
 
-                                        return;
-                                    }
-                                );
-                            }
-
-                            # token creation error
-                            else {
-                                $dbh->rollback;
-
-                                $cb->( status [ 500, 'User token creation error' ], undef );
-                            }
-                        }
+                        $cb->( status [ 500, 'User token creation error' ], undef );
 
                         return;
                     }
-                );
+                    else {
+                        $user_permission_id = $row->{id};
+                    }
+                }
+
+                if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token_permissions (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $user_permission_id ] ) ) {
+                    $dbh->rollback;
+
+                    $cb->( status [ 500, 'User token creation error' ], undef );
+
+                    return;
+                }
             }
+
+            # generate user token hash
+            $self->_generate_user_token(
+                $user_token_id,
+                sub ( $status, $token, $hash ) {
+                    if ( !$status ) {
+                        $dbh->rollback;
+
+                        $cb->( status [ 500, 'User token creation error' ], undef );
+
+                        return;
+                    }
+
+                    if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 1 WHERE id = ?], [ $hash, $user_token_id ] ) ) {
+                        $dbh->rollback;
+
+                        $cb->( status [ 500, 'User token creation error' ], undef );
+
+                        return;
+                    }
+
+                    $dbh->commit;
+
+                    $cb->( status 201, $token );
+
+                    return;
+                }
+            );
 
             return;
         }
@@ -1094,8 +1138,7 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 442,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 513, 603, 636, 678,  |                                                                                                                |
-## |      | 728, 741, 900, 964,  |                                                                                                                |
-## |      | 988, 1001            |                                                                                                                |
+## |      | 728, 741, 900, 1020  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |

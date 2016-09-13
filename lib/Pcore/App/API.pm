@@ -640,16 +640,18 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub set_user_role ( $self, $user_id, $role_id, $cb = undef ) {
+sub add_user_permissions ( $self, $user_id, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->{backend}->set_user_role(
-        $user_id, $role_id,
+    $self->{backend}->add_user_permissions(
+        $user_id,
+        $permissions,
         sub ($status) {
 
             # invalidate user cache on success
             if ($status) {
-                $self->_invalidate_user_cache($user_id);
+
+                # $self->_invalidate_user_cache($user_id);
             }
 
             $cb->($status) if $cb;
@@ -677,11 +679,12 @@ sub get_user_token_by_id ( $self, $user_token_id, $cb ) {
     return;
 }
 
-sub create_user_token ( $self, $user_id, $role_id, $cb = undef ) {
+sub create_user_token ( $self, $user_id, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_user_token(
-        $user_id, $role_id,
+        $user_id,
+        $permissions,
         sub ( $status, $token ) {
             $cb->( $status, $token ) if $cb;
 
@@ -724,8 +727,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 411, 593, 643,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 680                  |                                                                                                                |
+## |    3 | 172, 411, 593        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
