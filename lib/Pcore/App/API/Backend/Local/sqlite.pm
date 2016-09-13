@@ -990,6 +990,18 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
     return;
 }
 
+# USER PERMISSIONS
+sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
+    if ( my $permissions = $self->dbh->selectall( q[SELECT api_user_permissions.user_id, api_user_permissions.role_id, api_user_permissions.enabled, api_app_role.name FROM api_user_permissions LEFT JOIN api_app_role ON api_app_role.app_id = ? AND api_user_permissions.role_id = api_app_role.id WHERE api_user_permissions.user_id = ?], [ $app_id, $user_id ] ) ) {
+        $cb->( status 200, $permissions );
+    }
+    else {
+        $cb->( status 200, [] );
+    }
+
+    return;
+}
+
 sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
     $self->get_user(
         $user_id,
@@ -1049,18 +1061,6 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
             return;
         }
     );
-
-    return;
-}
-
-# USER PERMISSIONS
-sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
-    if ( my $permissions = $self->dbh->selectall( q[SELECT api_user_permissions.user_id, api_user_permissions.role_id, api_user_permissions.enabled, api_app_role.name FROM api_user_permissions LEFT JOIN api_app_role ON api_app_role.app_id = ? AND api_user_permissions.role_id = api_app_role.id WHERE api_user_permissions.user_id = ?], [ $app_id, $user_id ] ) ) {
-        $cb->( status 200, $permissions );
-    }
-    else {
-        $cb->( status 200, [] );
-    }
 
     return;
 }
@@ -1220,7 +1220,7 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 443,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 554, 621, 710, 743,  |                                                                                                                |
-## |      | 785, 924, 1057, 1173 |                                                                                                                |
+## |      | 785, 924, 994, 1173  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
