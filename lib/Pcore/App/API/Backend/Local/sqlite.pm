@@ -942,7 +942,7 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
                         return;
                     }
 
-                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $hash, $user_id ] ) ) {
+                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $hash, $user->{id} ] ) ) {
                         $cb->( status [ 500, 'Error setting user password' ] );
 
                         return;
