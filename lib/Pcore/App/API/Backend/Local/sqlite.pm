@@ -1016,13 +1016,18 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
 
             $dbh->begin_work;
 
-            my $error;
+            my ( $error, $modified );
 
             my $cv = AE::cv sub {
                 if ($error) {
                     $dbh->rollback;
 
                     $cb->( status [ 500, 'Set user permissions error' ] );
+                }
+                elsif ( !$modified ) {
+                    $dbh->commit;
+
+                    $cb->( status 304 );
                 }
                 else {
                     $dbh->commit;
@@ -1045,8 +1050,13 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
                         if ( !$status ) {
                             $error = 1;
                         }
-                        elsif ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user_id, $role->{id} ] ) ) {
-                            $error = 1;
+                        elsif ( !$self->dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user_id, $role->{id} ] ) ) {
+                            if ( $dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user_id, $role->{id} ] ) ) {
+                                $modified = 1;
+                            }
+                            else {
+                                $error = 1;
+                            }
                         }
 
                         $cv->end;
@@ -1081,6 +1091,7 @@ sub get_user_token ( $self, $user_token_id, $cb ) {
     return;
 }
 
+# TODO set permissions
 sub create_user_token ( $self, $user_id, $permissions, $cb ) {
     $self->get_user(
         $user_id,
@@ -1220,7 +1231,7 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 443,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 554, 621, 710, 743,  |                                                                                                                |
-## |      | 785, 924, 994, 1173  |                                                                                                                |
+## |      | 785, 924, 994, 1184  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
