@@ -305,30 +305,19 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 # }
 
 # APP
-sub get_app_by_id ( $self, $app_id, $cb = undef ) {
+sub get_app ( $self, $app_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    if ( my $app = $self->{app_cache}->{$app_id} ) {
-        $cb->( status 200, $app ) if $cb;
+    $self->{backend}->get_app(
+        $app_id,
+        sub ( $status, $app ) {
+            $cb->( $status, $app ) if $cb;
 
-        $blocking_cv->( status 200, $app ) if $blocking_cv;
-    }
-    else {
-        $self->{backend}->get_app_by_id(
-            $app_id,
-            sub ( $status, $user ) {
-                if ($status) {
-                    $self->{app_cache}->{$app_id} = $app;
-                }
+            $blocking_cv->( $status, $app ) if $blocking_cv;
 
-                $cb->( $status, $app ) if $cb;
-
-                $blocking_cv->( $status, $app ) if $blocking_cv;
-
-                return;
-            }
-        );
-    }
+            return;
+        }
+    );
 
     return $blocking_cv ? $blocking_cv->recv : ();
 }
@@ -483,7 +472,7 @@ sub set_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
 sub get_user ( $self, $user_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->{backend}->get_user_by_id(
+    $self->{backend}->get_user(
         $user_id,
         sub ( $status, $user ) {
             $cb->( $status, $user ) if $cb;
@@ -652,7 +641,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 411, 518        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172, 400, 507        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

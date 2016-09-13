@@ -80,7 +80,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
         sub ( $status, $app_id ) {
 
             # get app, check, that app created and enabled
-            $self->get_app_by_id(
+            $self->get_app(
                 $app_id,
                 sub ( $status, $app ) {
 

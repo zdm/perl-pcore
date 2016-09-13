@@ -415,25 +415,26 @@ sub get_apps ( $self, $cb ) {
     return;
 }
 
-sub get_app_by_id ( $self, $app_id, $cb ) {
-    if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
-        $cb->( status 200, $app );
+sub get_app ( $self, $app_id, $cb ) {
+    if ( $app_id =~ /\A\d+\z/sm ) {
+        if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
+            $cb->( status 200, $app );
+        }
+        else {
+
+            # app not found
+            $cb->( status [ 404, 'App not found' ], undef );
+        }
     }
     else {
-        $cb->( status [ 404, 'App not found' ], undef );
-    }
+        if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_id] ) ) {
+            $cb->( status 200, $app );
+        }
+        else {
 
-    return;
-}
-
-sub get_app_by_name ( $self, $app_name, $cb ) {
-    if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_name] ) ) {
-        $cb->( status 200, $app );
-    }
-    else {
-
-        # app not found
-        $cb->( status [ 404, 'App not found' ], undef );
+            # app not found
+            $cb->( status [ 404, 'App not found' ], undef );
+        }
     }
 
     return;
@@ -461,7 +462,7 @@ sub _create_app ( $self, $app_name, $app_desc, $cb ) {
 }
 
 sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
-    $self->get_app_by_id(
+    $self->get_app(
         $app_id,
         sub ( $status, $app ) {
             if ( !$status ) {
@@ -536,7 +537,7 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
         $cv->begin;
 
         # resolve role id
-        $self->get_app_by_name(
+        $self->get_app(
             $app_name,
             sub ( $status, $app ) {
                 if ( !$status ) {
@@ -600,7 +601,7 @@ sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
 }
 
 sub _create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_version, $cb ) {
-    $self->get_app_by_id(
+    $self->get_app(
         $app_id,
         sub ( $status, $role ) {
 
@@ -1153,16 +1154,16 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105, 201, 301, 442,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 513, 602, 635, 677,  |                                                                                                                |
-## |      | 749, 907, 1037       |                                                                                                                |
+## |    3 | 105, 201, 301, 443,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 514, 603, 636, 678,  |                                                                                                                |
+## |      | 750, 908, 1038       |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
 ## |      | 201                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
 ## |      | 301                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 442                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 602                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 443                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 603                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
