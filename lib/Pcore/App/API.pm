@@ -445,7 +445,7 @@ sub delete_app_instance ( $self, $app_instance_id, $cb = undef ) {
 }
 
 # APP ROLE
-sub set_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
+sub set_app_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->set_role_enabled(
