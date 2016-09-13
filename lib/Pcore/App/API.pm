@@ -480,66 +480,19 @@ sub set_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
 }
 
 # USER
-sub get_user_by_id ( $self, $user_id, $cb = undef ) {
+sub get_user ( $self, $user_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    if ( my $user = $self->{user_cache}->{$user_id} ) {
-        $cb->( status 200, $user ) if $cb;
+    $self->{backend}->get_user_by_id(
+        $user_id,
+        sub ( $status, $user ) {
+            $cb->( $status, $user ) if $cb;
 
-        $blocking_cv->( status 200, $user ) if $blocking_cv;
-    }
-    else {
-        $self->{backend}->get_user_by_id(
-            $user_id,
-            sub ( $status, $user ) {
-                if ($status) {
-                    $self->{user_cache}->{$user_id} = $user;
-                }
+            $blocking_cv->( $status, $user ) if $blocking_cv;
 
-                $cb->( $status, $user ) if $cb;
-
-                $blocking_cv->( $status, $user ) if $blocking_cv;
-
-                return;
-            }
-        );
-    }
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
-sub get_user_by_name ( $self, $user_name, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    # user_name -> user_id is cached
-    if ( my $user_id = $self->{user_name_id_cache}->{$user_name} ) {
-        $self->get_user_by_id(
-            $user_id,
-            sub ( $status, $user ) {
-                $cb->( $status, $user ) if $cb;
-
-                $blocking_cv->( $status, $user ) if $blocking_cv;
-            }
-        );
-    }
-    else {
-        $self->{backend}->get_user_by_name(
-            $user_name,
-            sub ( $status, $user ) {
-                if ($status) {
-                    $self->{user_cache}->{ $user->{id} } = $user;
-
-                    $self->{user_name_id_cache}->{$user_name} = $user->{id};
-                }
-
-                $cb->( $status, $user ) if $cb;
-
-                $blocking_cv->( $status, $user ) if $blocking_cv;
-
-                return;
-            }
-        );
-    }
+            return;
+        }
+    );
 
     return $blocking_cv ? $blocking_cv->recv : ();
 }
@@ -699,7 +652,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 411, 565        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172, 411, 518        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

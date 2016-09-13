@@ -246,7 +246,7 @@ sub _connect_local_app_instance ( $self, $app_id, $cb ) {
                         sub($status) {
 
                             # get root user
-                            $self->get_user_by_id(
+                            $self->get_user(
                                 1,
                                 sub ( $status, $user ) {
 

@@ -819,31 +819,30 @@ sub get_app_instance_roles ( $self, $app_id, $cb ) {
 }
 
 # USER
-sub get_user_by_id ( $self, $user_id, $cb ) {
-    if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
-        delete $user->{hash};
+sub get_user ( $self, $user_id, $cb ) {
+    if ( $user_id =~ /\A\d+\z/sm ) {
+        if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
+            delete $user->{hash};
 
-        $cb->( status 200, $user );
+            $cb->( status 200, $user );
+        }
+        else {
+
+            # user not found
+            $cb->( status [ 404, 'User not found' ], undef );
+        }
     }
     else {
+        if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_id] ) ) {
+            delete $user->{hash};
 
-        # user not found
-        $cb->( status [ 404, 'User not found' ], undef );
-    }
+            $cb->( status 200, $user );
+        }
+        else {
 
-    return;
-}
-
-sub get_user_by_name ( $self, $user_name, $cb ) {
-    if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_name] ) ) {
-        delete $user->{hash};
-
-        $cb->( status 200, $user );
-    }
-    else {
-
-        # user not found
-        $cb->( status [ 404, 'User not found' ], undef );
+            # user not found
+            $cb->( status [ 404, 'User not found' ], undef );
+        }
     }
 
     return;
@@ -906,7 +905,7 @@ sub create_user ( $self, $user_name, $password, $cb ) {
 }
 
 sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
-    $self->get_user_by_id(
+    $self->get_user(
         $user_id,
         sub ( $status, $user ) {
             if ( !$status ) {
@@ -945,7 +944,7 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
 }
 
 sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
-    $self->get_user_by_id(
+    $self->get_user(
         $user_id,
         sub ( $status, $user ) {
             if ( !$status ) {
@@ -972,7 +971,7 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 }
 
 sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
-    $self->get_user_by_id(
+    $self->get_user(
         $user_id,
         sub ( $status, $user ) {
             if ( !$status ) {
@@ -1048,7 +1047,7 @@ sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
 
 # USER TOKEN
 sub create_user_token ( $self, $user_id, $permissions, $cb ) {
-    $self->get_user_by_id(
+    $self->get_user(
         $user_id,
         sub ( $status, $user ) {
             if ( !$status ) {
@@ -1156,7 +1155,7 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 442,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 513, 602, 635, 677,  |                                                                                                                |
-## |      | 749, 908, 1038       |                                                                                                                |
+## |      | 749, 907, 1037       |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
