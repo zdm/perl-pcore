@@ -543,9 +543,8 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
                     push $error->@*, $app_name;
                 }
                 else {
-                    $self->get_role_by_name(
-                        $app->{id},
-                        'app',
+                    $self->get_app_role(
+                        "$app->{id}/app",
                         sub ( $status, $role ) {
                             if ( !$status ) {
                                 push $error->@*, $app_name;
@@ -714,25 +713,34 @@ sub remove_app_instance ( $self, $app_instance_id, $cb ) {
 }
 
 # APP ROLE
-sub get_role_by_id ( $self, $role_id, $cb ) {
-    if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE id = ?], [$role_id] ) ) {
-        $cb->( status 200, $role );
+sub get_app_role ( $self, $role_id, $cb ) {
+    if ( $role_id =~ /\A\d+\z/sm ) {
+        if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE id = ?], [$role_id] ) ) {
+            $cb->( status 200, $role );
+        }
+        else {
+            $cb->( status 404, undef );
+        }
     }
     else {
-        $cb->( status [ 404, 'Role not found' ], undef );
-    }
+        my ( $app_id, $role_name ) = split m[/]sm, $role_id;
 
-    return;
-}
-
-sub get_role_by_name ( $self, $app_id, $role_name, $cb ) {
-    if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
-        $cb->( status 200, $role );
-    }
-    else {
-
-        # role not found
-        $cb->( status [ 404, 'Role not found' ], undef );
+        if ( $app_id =~ /\A\d+\z/sm ) {
+            if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
+                $cb->( status 200, $role );
+            }
+            else {
+                $cb->( status 404, undef );
+            }
+        }
+        else {
+            if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app, api_app_role WHERE api_app.name = ? AND api_app.id = api_app_role.app_id AND api_app_role.name = ?], [ $app_id, $role_name ] ) ) {
+                $cb->( status 200, $role );
+            }
+            else {
+                $cb->( status 404, undef );
+            }
+        }
     }
 
     return;
@@ -762,7 +770,7 @@ sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
 }
 
 sub set_role_enabled ( $self, $role_id, $enabled, $cb ) {
-    $self->get_role_by_id(
+    $self->get_app_role(
         $role_id,
         sub ( $status, $role ) {
             if ( !$status ) {
@@ -977,37 +985,47 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
 
             $dbh->begin_work;
 
-            # create user token permissions
-            for my $role_id ( $permissions->@* ) {
+            my $error;
 
-                # symbolic permission (app_name/role_name)
-                if ( $role_id !~ /\A\d+\z/sm ) {
-                    my ( $app_name, $role_name ) = split m[/]sm, $role_id;
-
-                    unless ( my $row = $dbh->selectrow( q[SELECT api_app_role.id FROM api_app, api_app_role WHERE api_app.name = ? AND api_app_role.name = ? AND api_app_role.app_id = api_app.id], [ $app_name, $role_name ] ) ) {
-                        $dbh->rollback;
-
-                        $cb->( status [ 500, 'Set user permissions error' ] );
-
-                        return;
-                    }
-                    else {
-                        $role_id = $row->{id};
-                    }
-                }
-
-                if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user_id, $role_id ] ) ) {
+            my $cv = AE::cv sub {
+                if ($error) {
                     $dbh->rollback;
 
                     $cb->( status [ 500, 'Set user permissions error' ] );
-
-                    return;
                 }
+                else {
+                    $dbh->commit;
+
+                    $cb->( status 200 );
+                }
+
+                return;
+            };
+
+            $cv->begin;
+
+            # create user token permissions
+            for my $role_id ( $permissions->@* ) {
+                $cv->begin;
+
+                $self->get_app_role(
+                    $role_id,
+                    sub ( $status, $role ) {
+                        if ( !$status ) {
+                            $error = 1;
+                        }
+                        elsif ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user_id, $role->{id} ] ) ) {
+                            $error = 1;
+                        }
+
+                        $cv->end;
+
+                        return;
+                    }
+                );
             }
 
-            $dbh->commit;
-
-            $cb->( status 200 );
+            $cv->end;
 
             return;
         }
@@ -1137,15 +1155,15 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 442,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 513, 603, 636, 678,  |                                                                                                                |
-## |      | 728, 741, 900, 1020  |                                                                                                                |
+## |      | 513, 602, 635, 677,  |                                                                                                                |
+## |      | 749, 908, 1038       |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
 ## |      | 201                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
 ## |      | 301                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
 ## |      | 442                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 603                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 602                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

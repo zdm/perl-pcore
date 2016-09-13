@@ -456,34 +456,6 @@ sub delete_app_instance ( $self, $app_instance_id, $cb = undef ) {
 }
 
 # APP ROLE
-sub get_role_by_id ( $self, $role_id, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    if ( my $role = $self->{role_cache}->{$role_id} ) {
-        $cb->( status 200, $role ) if $cb;
-
-        $blocking_cv->( status 200, $role ) if $blocking_cv;
-    }
-    else {
-        $self->{backend}->get_role_by_id(
-            $role_id,
-            sub ( $status, $role ) {
-                if ($status) {
-                    $self->{role_cache}->{$role_id} = $role;
-                }
-
-                $cb->( $status, $role ) if $cb;
-
-                $blocking_cv->( $status, $role ) if $blocking_cv;
-
-                return;
-            }
-        );
-    }
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 sub set_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -727,7 +699,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 411, 593        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172, 411, 565        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
