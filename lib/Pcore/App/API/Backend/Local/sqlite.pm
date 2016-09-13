@@ -405,6 +405,7 @@ SQL
 }
 
 # APP
+# TODO
 sub get_apps ( $self, $cb ) {
     if ( my $apps = $self->dbh->selectall(q[SELECT * FROM api_app]) ) {
         $cb->( status 200, $apps );
@@ -607,6 +608,7 @@ sub set_app_role_enabled ( $self, $role_id, $enabled, $cb ) {
 }
 
 # APP PERMISSIONS
+# TODO
 sub get_app_germissions ( $self, $app_id, $cb ) {
     if ( my $permissions = $self->dbh->selectall( q[SELECT * FROM api_app_permissions WHERE app_id = ?], [$app_id] ) ) {
         $cb->( status 200, $permissions );
@@ -679,6 +681,7 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
     return;
 }
 
+# TODO
 sub app_permissions_enable_all ( $self, $app_id, $cb ) {
     if ( $self->dbh->do( q[UPDATE api_app_permissions SET enabled = 1 WHERE app_id = ?], [$app_id] ) ) {
 
@@ -1254,17 +1257,17 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106, 202, 302, 444,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 555, 622, 711, 744,  |                                                                                                                |
-## |      | 786, 925, 995, 1095, |                                                                                                                |
-## |      |  1209                |                                                                                                                |
+## |    3 | 106, 202, 302, 445,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 556, 624, 714, 747,  |                                                                                                                |
+## |      | 789, 928, 998, 1098, |                                                                                                                |
+## |      |  1212                |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 106                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
 ## |      | 202                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
 ## |      | 302                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 444                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 711                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 445                  | * Private subroutine/method '_create_app' declared but not used                                                |
+## |      | 714                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
