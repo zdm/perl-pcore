@@ -144,7 +144,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
 
 # CONNECT APP INSTANCE
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
-    $self->get_app_instance_by_id(
+    $self->get_app_instance(
         $app_instance_id,
         sub ( $status, $app_instance ) {
 

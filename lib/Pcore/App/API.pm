@@ -345,16 +345,17 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub delete_app ( $self, $app_id, $cb = undef ) {
+sub remove_app ( $self, $app_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->{backend}->delete_app(
+    $self->{backend}->remove_app(
         $app_id,
         sub ( $status ) {
 
             # invalidate app cache on success
             if ($status) {
-                $self->_invalidate_app_cache($app_id);
+
+                # $self->_invalidate_app_cache($app_id);
             }
 
             $cb->($status) if $cb;
@@ -369,30 +370,19 @@ sub delete_app ( $self, $app_id, $cb = undef ) {
 }
 
 # APP INSTANCE
-sub get_app_instance_by_id ( $self, $app_instance_id, $cb = undef ) {
+sub get_app_instance ( $self, $app_instance_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    if ( my $app_instance = $self->{app_instance_cache}->{$app_instance_id} ) {
-        $cb->( status 200, $app_instance ) if $cb;
+    $self->{backend}->get_app_instance(
+        $app_instance_id,
+        sub ( $status, $app_instance ) {
+            $cb->( $status, $app_instance ) if $cb;
 
-        $blocking_cv->( status 200, $app_instance ) if $blocking_cv;
-    }
-    else {
-        $self->{backend}->get_app_instance_by_id(
-            $app_instance_id,
-            sub ( $status, $user ) {
-                if ($status) {
-                    $self->{app_instance_cache}->{$app_instance_id} = $app_instance;
-                }
+            $blocking_cv->( $status, $app_instance ) if $blocking_cv;
 
-                $cb->( $status, $app_instance ) if $cb;
-
-                $blocking_cv->( $status, $app_instance ) if $blocking_cv;
-
-                return;
-            }
-        );
-    }
+            return;
+        }
+    );
 
     return $blocking_cv ? $blocking_cv->recv : ();
 }
@@ -407,7 +397,8 @@ sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb = undef ) 
 
             # invalidate app instance cache on success
             if ($status) {
-                $self->_invalidate_app_instance_cache($app_instance_id);
+
+                # $self->_invalidate_app_instance_cache($app_instance_id);
             }
 
             $cb->($status) if $cb;
@@ -421,16 +412,17 @@ sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb = undef ) 
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub delete_app_instance ( $self, $app_instance_id, $cb = undef ) {
+sub remove_app_instance ( $self, $app_instance_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->{backend}->delete_app_instance(
+    $self->{backend}->remove_app_instance(
         $app_instance_id,
         sub ( $status ) {
 
             # invalidate app instance cache on success
             if ($status) {
-                $self->_invalidate_app_instance_cache($app_instance_id);
+
+                # $self->_invalidate_app_instance_cache($app_instance_id);
             }
 
             $cb->($status) if $cb;
@@ -580,19 +572,6 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb = undef ) {
 }
 
 # USER TOKEN
-sub get_user_token_by_id ( $self, $user_token_id, $cb ) {
-    $self->{backend}->get_user_token_by_id(
-        $user_token_id,
-        sub ( $status, $user_token ) {
-            $cb->( $status, $user_token ) if $cb;
-
-            return;
-        }
-    );
-
-    return;
-}
-
 sub create_user_token ( $self, $user_id, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -611,16 +590,17 @@ sub create_user_token ( $self, $user_id, $permissions, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub delete_user_token ( $self, $token_id, $cb = undef ) {
+sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    $self->{backend}->delete_user_token(
-        $token_id,
+    $self->{backend}->remove_user_token(
+        $user_token_id,
         sub ( $status, $token ) {
 
             # invalidate user token cache on success
             if ($status) {
-                $self->_invalidate_user_token_cache($token_id);
+
+                # $self->_invalidate_user_token_cache($token_id);
             }
 
             $cb->($status) if $cb;
@@ -641,7 +621,7 @@ sub delete_user_token ( $self, $token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 400, 507        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172, 390, 499        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -716,7 +716,7 @@ sub app_permissions_enable_all ( $self, $app_id, $cb ) {
 }
 
 # APP INSTANCE
-sub get_app_instance_by_id ( $self, $app_instance_id, $cb ) {
+sub get_app_instance ( $self, $app_instance_id, $cb ) {
     if ( my $app_instance = $self->dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
         delete $app_instance->{hash};
 
@@ -805,7 +805,7 @@ sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
 }
 
 sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
-    $self->get_app_instance_by_id(
+    $self->get_app_instance(
         $app_instance_id,
         sub ( $status, $app_instance ) {
             if ( !$status ) {
