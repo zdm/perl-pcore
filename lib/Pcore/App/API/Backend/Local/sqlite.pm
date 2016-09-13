@@ -467,18 +467,22 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
         sub ( $status, $app ) {
             if ( !$status ) {
                 $cb->($status);
-            }
-            else {
-                if ( ( $enabled && !$app->{enabled} ) || ( !$enabled && $app->{enabled} ) ) {
-                    $self->dbh->do( q[UPDATE api_app SET enabled = ? WHERE id = ?], [ $enabled, $app_id ] );
 
+                return;
+            }
+
+            if ( ( $enabled && !$app->{enabled} ) || ( !$enabled && $app->{enabled} ) ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE api_app SET enabled = ? WHERE id = ?], [ $enabled, $app->{id} ] ) ) {
                     $cb->( status 200 );
                 }
                 else {
-
-                    # not modified
-                    $cb->( status 304 );
+                    $cb->( status [ 500, 'Error set app enabled' ] );
                 }
+            }
+            else {
+
+                # not modified
+                $cb->( status 304 );
             }
 
             return;
@@ -489,12 +493,25 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
 }
 
 sub remove_app ( $self, $app_id, $cb ) {
-    if ( $self->dbh->do( q[DELETE FROM api_app WHERE id = ?], [$app_id] ) ) {
-        $cb->( status 200 );
-    }
-    else {
-        $cb->( status [ 404, 'App not found' ] );
-    }
+    $self->get_app(
+        $app_id,
+        sub ( $status, $app ) {
+            if ( !$status ) {
+                $cb->($status);
+
+                return;
+            }
+
+            if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app WHERE id = ?], [ $app->{id} ] ) ) {
+                $cb->( status 200 );
+            }
+            else {
+                $cb->( status [ 404, 'Error removing app' ] );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -562,18 +579,22 @@ sub set_app_role_enabled ( $self, $role_id, $enabled, $cb ) {
         sub ( $status, $role ) {
             if ( !$status ) {
                 $cb->($status);
-            }
-            else {
-                if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
-                    $self->dbh->do( q[UPDATE api_app_role SET enabled = ? WHERE id = ?], [ $enabled, $role_id ] );
 
+                return;
+            }
+
+            if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE api_app_role SET enabled = ? WHERE id = ?], [ $enabled, $role->{id} ] ) ) {
                     $cb->( status 200 );
                 }
                 else {
-
-                    # not modified
-                    $cb->( status 304 );
+                    $cb->( status [ 500, 'Error set app role enabled' ] );
                 }
+            }
+            else {
+
+                # not modified
+                $cb->( status 304 );
             }
 
             return;
@@ -584,12 +605,25 @@ sub set_app_role_enabled ( $self, $role_id, $enabled, $cb ) {
 }
 
 sub remove_app_role ( $self, $role_id, $cb ) {
-    if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app_role WHERE id = ?], [$role_id] ) ) {
-        $cb->( status 200 );
-    }
-    else {
-        $cb->( status [ 400, 'Error removing app role' ] );
-    }
+    $self->get_app_role(
+        $role_id,
+        sub ( $status, $role ) {
+            if ( !$status ) {
+                $cb->($status);
+
+                return;
+            }
+
+            if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app_role WHERE id = ?], [ $role->{id} ] ) ) {
+                $cb->( status 200 );
+            }
+            else {
+                $cb->( status [ 400, 'Error removing app role' ] );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -1155,15 +1189,15 @@ sub remove_user_token ( $self, $token_id, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 105, 201, 301, 443,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 536, 609, 698, 731,  |                                                                                                                |
-## |      | 773, 908, 1038       |                                                                                                                |
+## |      | 553, 643, 732, 765,  |                                                                                                                |
+## |      | 807, 942, 1072       |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 105                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
 ## |      | 201                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
 ## |      | 301                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
 ## |      | 443                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 698                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 732                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
