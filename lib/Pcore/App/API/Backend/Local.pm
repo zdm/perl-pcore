@@ -12,8 +12,9 @@ with qw[Pcore::App::API::Backend];
 
 requires(
 
-    # GENERAL METHODS
+    # INIT
     'init_db',
+    '_connect_app_instance',
 
     # AUTH
     '_auth_user_password',
@@ -63,6 +64,18 @@ sub init ( $self, $cb ) {
             return;
         }
     );
+
+    return;
+}
+
+sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
+    $self->_connect_app_instance( 0, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb );
+
+    return;
+}
+
+sub connect_local_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
+    $self->_connect_app_instance( 1, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb );
 
     return;
 }
@@ -177,13 +190,13 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 72, 131              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 71, 77, 85, 144      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 91                   | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 111                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 131                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 148                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 104                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 124                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 144                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 161                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

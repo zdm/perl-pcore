@@ -101,7 +101,9 @@ sub init ( $self, $cb ) {
             my $connect_app_instance = sub {
                 print q[Connecting app instance ... ];
 
-                $self->{backend}->connect_app_instance(
+                my $method = $self->{backend}->is_local ? 'connect_local_app_instance' : 'connect_app_instance';
+
+                $self->{backend}->$method(
                     $self->app->{instance_id},
                     "@{[$self->app->version]}",
                     $self->roles,
@@ -621,7 +623,7 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 178, 396, 505, 575   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 180, 398, 507, 577   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -215,7 +215,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
     return;
 }
 
-sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
+sub _connect_app_instance ( $self, $local, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
     $self->get_app_instance(
         $app_instance_id,
         sub ( $status, $app_instance ) {
@@ -246,49 +246,26 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
                         return;
                     }
 
-                    # connect local app instance
-                    $self->_connect_local_app_instance(
-                        $app_instance->{app_id},
-                        $app_instance_id,
-                        sub ($status) {
-                            if ( !$status ) {
-                                $cb->($status);
-
-                                return;
-                            }
-
-                            # check, that all app permissions are enabled
-                            if ( my $permissions = $self->dbh->selectall( q[SELECT enabled FROM api_app WHERE id = ?], [ $app_instance->{app_id} ] ) ) {
-                                for ( $permissions->@* ) {
-                                    if ( !$_->{enabled} ) {
-                                        $cb->( status [ 400, 'App permisisons are disabled' ] );
-
-                                        return;
-                                    }
-                                }
-                            }
-
-                            # add app roles
-                            $self->_add_app_roles(
-                                $app_instance->{app_id},
-                                $app_roles,
-                                sub ($status) {
-                                    if ( !$status && $status != 304 ) {
-                                        $cb->($status);
-
-                                        return;
-                                    }
-
-                                    # app instance connected
-                                    $cb->( status 200 );
+                    if ($local) {
+                        $self->_connect_local_app_instance(
+                            $app_instance->{app_id},
+                            $app_instance_id,
+                            sub ($status) {
+                                if ( !$status ) {
+                                    $cb->($status);
 
                                     return;
                                 }
-                            );
 
-                            return;
-                        }
-                    );
+                                $self->_connect_app_instance1( $app_instance->{app_id}, $app_roles, $cb );
+
+                                return;
+                            }
+                        );
+                    }
+                    else {
+                        $self->_connect_app_instance1( $app_instance->{app_id}, $app_roles, $cb );
+                    }
 
                     return;
                 }
@@ -301,12 +278,41 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
     return;
 }
 
-sub _connect_local_app_instance ( $self, $app_id, $app_instance_id, $cb ) {
-    if ( $app_instance_id != $self->{app}->{instance_id} ) {
-        $cb->( status 200 );
+sub _connect_app_instance1 ( $self, $app_id, $app_roles, $cb ) {
 
-        return;
+    # check, that all app permissions are enabled
+    if ( my $permissions = $self->dbh->selectall( q[SELECT enabled FROM api_app WHERE id = ?], [$app_id] ) ) {
+        for ( $permissions->@* ) {
+            if ( !$_->{enabled} ) {
+                $cb->( status [ 400, 'App permisisons are disabled' ] );
+
+                return;
+            }
+        }
     }
+
+    # add app roles
+    $self->_add_app_roles(
+        $app_id,
+        $app_roles,
+        sub ($status) {
+            if ( !$status && $status != 304 ) {
+                $cb->($status);
+
+                return;
+            }
+
+            # app instance connected
+            $cb->( status 200 );
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub _connect_local_app_instance ( $self, $app_id, $app_instance_id, $cb ) {
 
     # enabled app
     $self->dbh->do( q[UPDATE api_app SET enabled = 1 WHERE id = ?], [$app_id] );
@@ -1432,15 +1438,16 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106, 218, 304, 348,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 403, 470, 566, 666,  |                                                                                                                |
-## |      | 964, 1103, 1173,     |                                                                                                                |
-## |      | 1273, 1387           |                                                                                                                |
+## |    3 | 106, 218, 281, 315,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 354, 409, 476, 572,  |                                                                                                                |
+## |      | 672, 970, 1109,      |                                                                                                                |
+## |      | 1179, 1279, 1393     |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 470                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 566                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 666                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 218                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
+## |      | 476                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
+## |      | 572                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 672                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

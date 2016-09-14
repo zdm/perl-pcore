@@ -4,7 +4,7 @@ use Pcore -role;
 
 requires(
 
-    # GENERAL METHODS
+    # INIT
     '_build_host',
     '_build_is_local',
     'init',
