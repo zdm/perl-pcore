@@ -19,7 +19,7 @@ has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has map => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
 has roles => ( is => 'ro', isa => HashRef, init_arg => undef );    # API roles, provided by this app
-has permissions => ( is => 'ro', isa => Maybe [HashRef], init_arg => undef );    # foreign app roles, that this app can use
+has permissions => ( is => 'ro', isa => Maybe [ArrayRef], init_arg => undef );    # foreign app roles, that this app can use
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
 
 has _auth_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -164,6 +164,12 @@ sub init ( $self, $cb ) {
             return;
         }
     );
+
+    return;
+}
+
+sub connect_local_app_instance ( $self, $cb ) {
+    $cb->( status 200 );
 
     return;
 }
@@ -615,7 +621,7 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172, 390, 499, 569   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 178, 396, 505, 575   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -102,6 +102,370 @@ SQL
     return;
 }
 
+# REGISTER APP INSTANCE
+sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_instance_host, $app_instance_version, $cb ) {
+    $self->get_app(
+        $app_name,
+        sub ( $status, $app ) {
+            my $dbh = $self->dbh;
+
+            $dbh->begin_work;
+
+            my $app_id;
+
+            # app exists
+            if ($status) {
+
+                # app is disabled, registration is disallowed
+                if ( !$app->{enabled} ) {
+                    $dbh->rollback;
+
+                    $cb->( status [ 400, 'App is disabled' ], undef, undef );
+
+                    return;
+                }
+
+                $app_id = $app->{id};
+            }
+
+            # app is not exists, create app
+            else {
+
+                # app creation error
+                if ( !$dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled, created_ts) VALUES (?, ?, 0, ?)], [ $app_name, $app_desc, time ] ) ) {
+                    $dbh->rollback;
+
+                    $cb->( status [ 500, 'Error creation app' ], undef, undef );
+
+                    return;
+                }
+
+                # get app id
+                $app_id = $dbh->last_insert_id;
+            }
+
+            # add app permissions;
+            $self->_add_app_permissions(
+                $dbh, $app_id,
+                $app_permissions,
+                sub ($status) {
+
+                    # error creation app permissions
+                    if ( !$status && $status != 304 ) {
+                        $dbh->rollback;
+
+                        $cb->( $status, undef, undef );
+
+                        return;
+                    }
+
+                    # create disabled app instance
+                    if ( !$dbh->do( q[INSERT OR IGNORE INTO api_app_instance (app_id, host, version, enabled, created_ts) VALUES (?, ?, ?, 0, ?)], [ $app_id, $app_instance_host, $app_instance_version, time ] ) ) {
+
+                        # app instance creation error
+                        $dbh->rollback;
+
+                        $cb->( status [ 500, 'App instance creation error' ], undef, undef );
+
+                        return;
+                    }
+
+                    my $app_instance_id = $dbh->last_insert_id;
+
+                    # set app instance token
+                    $self->_generate_app_instance_token(
+                        $app_instance_id,
+                        sub ( $status, $app_instance_token, $hash ) {
+
+                            # app instance token generation error
+                            if ( !$status ) {
+                                $dbh->rollback;
+
+                                $cb->( $status, undef );
+
+                                return;
+                            }
+
+                            # store app instance token
+                            if ( !$dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $hash, $app_instance_id ] ) ) {
+                                $dbh->rollback;
+
+                                $cb->( status [ 500, 'Error creation app instance token' ], undef, undef );
+
+                                return;
+                            }
+
+                            # registration process finished successfully
+                            $dbh->commit;
+
+                            $cb->( status 201, $app_instance_id, $app_instance_token );
+
+                            return;
+                        }
+                    );
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
+    $self->get_app_instance(
+        $app_instance_id,
+        sub ( $status, $app_instance ) {
+            if ( !$status ) {
+                $cb->($status);
+
+                return;
+            }
+
+            # update add instance
+            if ( !$self->dbh->do( q[UPDATE OR IGNORE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $app_instance_version, time, $app_instance_id ] ) ) {
+                $cb->( status [ 500, 'Update app instance error' ] );
+
+                return;
+            }
+
+            # add app permissions;
+            $self->_add_app_permissions(
+                $self->dbh,
+                $app_instance->{app_id},
+                $app_permissions,
+                sub ($status) {
+
+                    # error adding permissions
+                    if ( !$status && $status != 304 ) {
+                        $cb->($status);
+
+                        return;
+                    }
+
+                    # connect local app instance
+                    $self->_connect_local_app_instance(
+                        $app_instance->{app_id},
+                        $app_instance_id,
+                        sub ($status) {
+                            if ( !$status ) {
+                                $cb->($status);
+
+                                return;
+                            }
+
+                            # check, that all app permissions are enabled
+                            if ( my $permissions = $self->dbh->selectall( q[SELECT enabled FROM api_app WHERE id = ?], [ $app_instance->{app_id} ] ) ) {
+                                for ( $permissions->@* ) {
+                                    if ( !$_->{enabled} ) {
+                                        $cb->( status [ 400, 'App permisisons are disabled' ] );
+
+                                        return;
+                                    }
+                                }
+                            }
+
+                            # add app roles
+                            $self->_add_app_roles(
+                                $app_instance->{app_id},
+                                $app_roles,
+                                sub ($status) {
+                                    if ( !$status && $status != 304 ) {
+                                        $cb->($status);
+
+                                        return;
+                                    }
+
+                                    # app instance connected
+                                    $cb->( status 200 );
+
+                                    return;
+                                }
+                            );
+
+                            return;
+                        }
+                    );
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub _connect_local_app_instance ( $self, $app_id, $app_instance_id, $cb ) {
+    if ( $app_instance_id != $self->{app}->{instance_id} ) {
+        $cb->( status 200 );
+
+        return;
+    }
+
+    # enabled app
+    $self->dbh->do( q[UPDATE api_app SET enabled = 1 WHERE id = ?], [$app_id] );
+
+    # enabled app instance
+    $self->dbh->do( q[UPDATE api_app_instance SET enabled = 1 WHERE id = ?], [$app_instance_id] );
+
+    # enabled all app permissions
+    $self->dbh->do( q[UPDATE api_app_permissions SET enabled = 1 WHERE app_id = ?], [$app_id] );
+
+    # create root user
+    $self->_create_root_user(
+        sub ( $status, $root_password ) {
+            if ( !$status && $status != 304 ) {
+                $cb->($status);
+
+                return;
+            }
+
+            if ($root_password) {
+                say "Root user created: root / $root_password";
+            }
+
+            $self->{app}->{api}->connect_local_app_instance(
+                sub ($status) {
+                    $cb->($status);
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub _add_app_permissions ( $self, $dbh, $app_id, $permissions, $cb ) {
+    my ( $error, $modified );
+
+    my $cv = AE::cv sub {
+        if ($error) { $cb->( status [ 400, join q[, ], $error->@* ] ) }
+        elsif ( !$modified ) { $cb->( status 304 ) }
+        else                 { $cb->( status 201 ) }
+
+        return;
+    };
+
+    $cv->begin;
+
+    if ( !$permissions ) {
+        $cv->end;
+
+        return;
+    }
+
+    for my $permission ( $permissions->@* ) {
+        $cv->begin;
+
+        $self->get_app_role(
+            $permission,
+            sub ( $status, $role ) {
+                if ( !$status ) {
+                    push $error->@*, $permission;
+                }
+                else {
+
+                    # permission is not exists
+                    if ( !$dbh->selectrow( q[SELECT FROM api_app_permission WHERE app_id = ? AND role_id = ?], [ $app_id, $role->{id} ] ) ) {
+
+                        # create new disabled app permisison record
+                        if ( $dbh->do( q[INSERT OR IGNORE INTO api_app_permissions (app_id, role_id, enabled) VALUES (?, ?, 0)], [ $app_id, $role->{id} ] ) ) {
+                            $modified = 1;
+                        }
+                        else {
+                            push $error->@*, $permission;
+                        }
+                    }
+                }
+
+                $cv->end;
+
+                return;
+            }
+        );
+    }
+
+    $cv->end;
+
+    return;
+}
+
+sub _add_app_roles ( $self, $app_id, $app_roles, $cb ) {
+    my ( $error, $modified );
+
+    my $cv = AE::cv sub {
+        if    ($error)       { $cb->( status 500 ) }
+        elsif ( !$modified ) { $cb->( status 304 ) }
+        else                 { $cb->( status 201 ) }
+
+        return;
+    };
+
+    $cv->begin;
+
+    for my $role_name ( keys $app_roles->%* ) {
+        if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc, enabled) VALUES (?, ?, ?, 1)], [ $app_id, $role_name, $app_roles->{$role_name} ] ) ) {
+            $modified = 1;
+        }
+    }
+
+    $cv->end;
+
+    return;
+}
+
+sub _create_root_user ( $self, $cb ) {
+    $self->get_user(
+        1,
+        sub ( $status, $user ) {
+
+            # user_id 1 already exists
+            if ( $status != 404 ) {
+                $cb->( status 304, undef );
+
+                return;
+            }
+
+            my $root_password = P->data->to_b64_url( P->random->bytes(32) );
+
+            $self->_generate_user_password_hash(
+                'root',
+                $root_password,
+                sub ( $status, $hash ) {
+                    if ( !$status ) {
+                        $cb->( $status, undef );
+
+                        return;
+                    }
+
+                    if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, hash, enabled, created_ts) VALUES (1, ?, ?, 1, ?)], [ 'root', $hash, time ] ) ) {
+                        $cb->( status 200, $root_password );
+                    }
+                    else {
+                        $cb->( status [ 500, 'Error creating root' ], undef );
+                    }
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
+
+    return;
+}
+
 # AUTH
 sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $private_token, $cb ) {
     state $sql1 = <<'SQL';
@@ -430,27 +794,6 @@ sub get_app ( $self, $app_id, $cb ) {
     return;
 }
 
-sub _create_app ( $self, $app_name, $app_desc, $cb ) {
-    my $dbh = $self->dbh;
-
-    # app created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled, created_ts) VALUES (?, ?, ?, ?)], [ $app_name, $app_desc, 1, time ] ) ) {
-        my $app_id = $dbh->last_insert_id;
-
-        $cb->( status 201, $app_id );
-    }
-
-    # app creation error
-    else {
-        my $app_id = $dbh->selectval( 'SELECT id FROM api_app WHERE name = ?', [$app_name] )->$*;
-
-        # app already exists
-        $cb->( status [ 409, 'App already exists' ], $app_id );
-    }
-
-    return;
-}
-
 sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
     $self->get_app(
         $app_id,
@@ -540,30 +883,6 @@ sub get_app_role ( $self, $role_id, $cb ) {
     return;
 }
 
-# TODO merge with create_app
-sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
-    my $modified;
-
-    my $cv = AE::cv sub {
-        if   ($modified) { $cb->( status 200 ) }
-        else             { $cb->( status 304 ) }
-
-        return;
-    };
-
-    $cv->begin;
-
-    for my $role_name ( keys $app_roles->%* ) {
-        if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (app_id, name, desc, enabled) VALUES (?, ?, ?, 1)], [ $app_id, $role_name, $app_roles->{$role_name} ] ) ) {
-            $modified = 1;
-        }
-    }
-
-    $cv->end;
-
-    return;
-}
-
 sub set_app_role_enabled ( $self, $role_id, $enabled, $cb ) {
     $self->get_app_role(
         $role_id,
@@ -596,94 +915,6 @@ sub set_app_role_enabled ( $self, $role_id, $enabled, $cb ) {
 }
 
 # APP PERMISSIONS
-# TODO
-sub get_app_germissions ( $self, $app_id, $cb ) {
-    if ( my $permissions = $self->dbh->selectall( q[SELECT * FROM api_app_permissions WHERE app_id = ?], [$app_id] ) ) {
-        $cb->( status 200, $permissions );
-    }
-    else {
-        $cb->( status 200, [] );
-    }
-
-    return;
-}
-
-# TODO merge with create_app
-sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
-    if ( !$app_permissions || !keys $app_permissions->%* ) {
-        $cb->( status 200 );
-
-        return;
-    }
-
-    my $error;
-
-    my $cv = AE::cv sub {
-        if ($error) {
-            $cb->( status [ 400, join q[, ], $error->@* ] );
-        }
-        else {
-            $cb->( status 200 );
-        }
-
-        return;
-    };
-
-    $cv->begin;
-
-    for my $app_name ( keys $app_permissions->%* ) {
-        $cv->begin;
-
-        # resolve role id
-        $self->get_app(
-            $app_name,
-            sub ( $status, $app ) {
-                if ( !$status ) {
-                    push $error->@*, $app_name;
-                }
-                else {
-                    $self->get_app_role(
-                        "$app->{id}/app",
-                        sub ( $status, $role ) {
-                            if ( !$status ) {
-                                push $error->@*, $app_name;
-                            }
-                            else {
-
-                                # create new disabled permisison record
-                                $self->dbh->do( q[INSERT OR IGNORE INTO api_app_permissions (app_id, role_id, enabled) VALUES (?, ?, 0)], [ $app_id, $role->{id} ] );
-
-                                $cv->end;
-                            }
-
-                            return;
-                        }
-                    );
-                }
-            }
-        );
-    }
-
-    $cv->end;
-
-    return;
-}
-
-# TODO
-sub app_permissions_enable_all ( $self, $app_id, $cb ) {
-    if ( $self->dbh->do( q[UPDATE api_app_permissions SET enabled = 1 WHERE app_id = ?], [$app_id] ) ) {
-
-        # updated
-        $cb->( status 200 );
-    }
-    else {
-
-        # not modified
-        $cb->( status 304 );
-    }
-
-    return;
-}
 
 # APP INSTANCE
 sub get_app_instance ( $self, $app_instance_id, $cb ) {
@@ -694,50 +925,6 @@ sub get_app_instance ( $self, $app_instance_id, $cb ) {
     }
     else {
         $cb->( status [ 404, 'App instance not found' ], undef );
-    }
-
-    return;
-}
-
-sub _create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_version, $cb ) {
-    $self->get_app(
-        $app_id,
-        sub ( $status, $role ) {
-
-            # app not found
-            if ( !$status ) {
-                $cb->( $status, undef );
-            }
-
-            # app found
-            else {
-
-                # app instance created
-                if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (app_id, host, version, enabled, created_ts) VALUES (?, ?, ?, 0, ?)], [ $app_id, $app_instance_host, $app_instance_version, time ] ) ) {
-                    my $app_instance_id = $self->dbh->last_insert_id;
-
-                    $cb->( status 201, $app_instance_id );
-                }
-
-                # app instance creation error
-                else {
-                    $cb->( status [ 500, 'App instance creation error' ], undef );
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub update_app_instance ( $self, $app_instance_id, $app_instance_version, $cb ) {
-    if ( $self->dbh->do( q[UPDATE OR IGNORE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $app_instance_version, time, $app_instance_id ] ) ) {
-        $cb->( status 200 );
-    }
-    else {
-        $cb->( status [ 404, 'App instance not found' ] );
     }
 
     return;
@@ -1245,17 +1432,15 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106, 202, 302, 433,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 544, 612, 702, 735,  |                                                                                                                |
-## |      | 777, 916, 986, 1086, |                                                                                                                |
-## |      |  1200                |                                                                                                                |
+## |    3 | 106, 218, 304, 348,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 403, 470, 566, 666,  |                                                                                                                |
+## |      | 964, 1103, 1173,     |                                                                                                                |
+## |      | 1273, 1387           |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 106                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 202                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 302                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 433                  | * Private subroutine/method '_create_app' declared but not used                                                |
-## |      | 702                  | * Private subroutine/method '_create_app_instance' declared but not used                                       |
+## |      | 470                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
+## |      | 566                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 666                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
