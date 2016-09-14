@@ -96,21 +96,25 @@ sub run ( $self, $req ) {
     return $cb->( [ 401, q[Authentication token wasn't provided] ] ) if !$token;
 
     # authenticate token
-    $self->{app}->{api}->auth_token(
-        $token,
-        sub ($api_request) {
+    $self->{app}->{api}->authenticate(
+        undef, $token,
+        sub ( $status, $auth ) {
 
             # token authentication error
-            return $cb->( [ 401, q[Unauthorized] ] ) if !$api_request;
+            if ( !$status ) {
+                $cb->($status);
+
+                return;
+            }
 
             # method is specified, this is API call
             if ( my $method_id = $data->{method} ) {
-                $api_request->api_call_arrayref( $method_id, $data->{args}, $cb );
+                $auth->api_call_arrayref( $method_id, $data->{args}, $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
             else {
-                return $cb->( [ 400, q[Method is required] ] );
+                $cb->( [ 400, q[Method is required] ] );
             }
 
             return;
@@ -255,7 +259,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 143                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

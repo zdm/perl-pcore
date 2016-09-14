@@ -245,7 +245,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
             # auth is enabled and has permissions
             elsif ( defined $auth->{permissions} ) {
-                $cb->($auth);
+                $cb->( status 200, $auth );
 
                 return;
             }

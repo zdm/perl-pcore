@@ -83,7 +83,19 @@ around run => sub ( $orig, $self ) {
     $self->router->map;
 
     if ( $self->api ) {
-        $self->api->upload_api_map;
+        my $cv = AE::cv;
+
+        $self->api->init(
+            sub ($status) {
+                say $status;
+
+                $cv->send;
+
+                return;
+            }
+        );
+
+        $cv->recv;
     }
     else {
         # die if API controller found, but no API server provided
