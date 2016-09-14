@@ -99,7 +99,6 @@ sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token
     return;
 }
 
-# INTERNAL METHODS
 # TOKEN / HASH GENERATORS
 sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
@@ -190,13 +189,13 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 71, 77, 85, 144      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 71, 77, 85, 143      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 104                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 124                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 144                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 161                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 103                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 123                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 143                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 160                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

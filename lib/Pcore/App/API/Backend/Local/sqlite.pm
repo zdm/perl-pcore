@@ -458,7 +458,7 @@ sub _create_root_user ( $self, $cb ) {
                         $cb->( status 200, $root_password );
                     }
                     else {
-                        $cb->( status [ 500, 'Error creating root' ], undef );
+                        $cb->( status [ 500, 'Error creating root user' ], undef );
                     }
 
                     return;
