@@ -33,9 +33,10 @@ around new => sub ( $orig, $self, %args ) {
         syntax      => 'Kolon',                                                             # Kolon, TTerse
         module      => [ 'Text::Xslate::Bridge::TT2Like', 'Text::Xslate::Bridge::Star' ],
         function    => {
-            i18n => sub {
-                return i18n( \@_ );
-            },
+
+            # i18n => sub {
+            #     return i18n( \@_ );
+            # },
         },
     };
 
