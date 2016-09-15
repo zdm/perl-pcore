@@ -112,6 +112,8 @@ sub run ( $self, $req ) {
             # this is app connection, disabled
             if ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
                 $cb->( [ 403, q[App must connect via WebSocket interface] ] );
+
+                return;
             }
 
             # method is specified, this is API call
@@ -334,7 +336,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 159                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 161                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
