@@ -1349,14 +1349,10 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                     }
 
                     # create user token permissions
-                    $dbh->begin_work;
-
                     for my $user_permission_id ( values $user_permissions->%* ) {
-                        if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $user_permission_id ] ) ) {
+                        if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token_permissions (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $user_permission_id ] ) ) {
 
                             # rollback
-                            $dbh->rollback;
-
                             $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
 
                             $cb->( status [ 500, 'User token creation error' ], undef );
@@ -1364,8 +1360,6 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                             return;
                         }
                     }
-
-                    $dbh->commit;
 
                     # enable user token
                     $dbh->do( q[UPDATE api_user_token SET enabled = 1 WHERE id = ?], [$user_token_id] );
@@ -1434,7 +1428,7 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## |    3 | 106, 218, 281, 315,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 354, 409, 476, 572,  |                                                                                                                |
 ## |      | 672, 977, 1112,      |                                                                                                                |
-## |      | 1182, 1277, 1386     |                                                                                                                |
+## |      | 1182, 1277, 1380     |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 218                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
