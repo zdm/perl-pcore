@@ -1053,8 +1053,6 @@ sub get_user ( $self, $user_id, $cb ) {
 sub create_user ( $self, $user_name, $password, $cb ) {
     my $dbh = $self->dbh;
 
-    $dbh->begin_work;
-
     # user created
     if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, enabled, created_ts) VALUES (?, ?, ?)], [ $user_name, 0, time ] ) ) {
         my $user_id = $dbh->last_insert_id;
@@ -1068,12 +1066,11 @@ sub create_user ( $self, $user_name, $password, $cb ) {
                         $user_id, 1,
                         sub ($status) {
                             if ($status) {
-                                $dbh->commit;
-
                                 $cb->( status 201, $user_id );
                             }
                             else {
-                                $dbh->rollback;
+                                # rollback
+                                $dbh->do( q[DELETE OR IGNORE FROM api_user WHERE id = ?], [$user_id] );
 
                                 $cb->( $status, undef );
                             }
@@ -1083,7 +1080,8 @@ sub create_user ( $self, $user_name, $password, $cb ) {
                     );
                 }
                 else {
-                    $dbh->rollback;
+                    # rollback
+                    $dbh->do( q[DELETE OR IGNORE FROM api_user WHERE id = ?], [$user_id] );
 
                     $cb->( $status, undef );
                 }
@@ -1095,8 +1093,6 @@ sub create_user ( $self, $user_name, $password, $cb ) {
 
     # user already exists
     else {
-        $dbh->rollback;
-
         my $user_id = $dbh->selectval( 'SELECT id FROM api_user WHERE name = ?', [$user_name] )->$*;
 
         # name already exists
@@ -1440,8 +1436,8 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 106, 218, 281, 315,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 354, 409, 476, 572,  |                                                                                                                |
-## |      | 672, 970, 1109,      |                                                                                                                |
-## |      | 1179, 1279, 1393     |                                                                                                                |
+## |      | 672, 970, 1105,      |                                                                                                                |
+## |      | 1175, 1275, 1389     |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 218                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
