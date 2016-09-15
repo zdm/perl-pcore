@@ -857,6 +857,8 @@ sub remove_app ( $self, $app_id, $cb ) {
 
 # APP ROLE
 sub get_app_role ( $self, $role_id, $cb ) {
+
+    # role_id is role id
     if ( $role_id =~ /\A\d+\z/sm ) {
         if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE id = ?], [$role_id] ) ) {
             $cb->( status 200, $role );
@@ -865,9 +867,12 @@ sub get_app_role ( $self, $role_id, $cb ) {
             $cb->( status 404, undef );
         }
     }
+
+    # role id is app_id/role_name
     else {
         my ( $app_id, $role_name ) = split m[/]sm, $role_id;
 
+        # $app_id is app id
         if ( $app_id =~ /\A\d+\z/sm ) {
             if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
                 $cb->( status 200, $role );
@@ -876,6 +881,8 @@ sub get_app_role ( $self, $role_id, $cb ) {
                 $cb->( status 404, undef );
             }
         }
+
+        # $app_id is app name
         else {
             if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app, api_app_role WHERE api_app.name = ? AND api_app.id = api_app_role.app_id AND api_app_role.name = ?], [ $app_id, $role_name ] ) ) {
                 $cb->( status 200, $role );
@@ -1221,7 +1228,7 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
 
             $cv->begin;
 
-            # create user token permissions
+            # create user permissions
             for my $role_id ( $permissions->@* ) {
                 $cv->begin;
 
@@ -1231,8 +1238,8 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
                         if ( !$status ) {
                             $error = 1;
                         }
-                        elsif ( !$self->dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user_id, $role->{id} ] ) ) {
-                            if ( $dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user_id, $role->{id} ] ) ) {
+                        elsif ( !$self->dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $role->{id} ] ) ) {
+                            if ( $dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user->{id}, $role->{id} ] ) ) {
                                 $modified = 1;
                             }
                             else {
@@ -1436,8 +1443,8 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 106, 218, 281, 315,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 354, 409, 476, 572,  |                                                                                                                |
-## |      | 672, 970, 1105,      |                                                                                                                |
-## |      | 1175, 1275, 1389     |                                                                                                                |
+## |      | 672, 977, 1112,      |                                                                                                                |
+## |      | 1182, 1282, 1396     |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 218                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
