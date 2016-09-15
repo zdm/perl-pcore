@@ -864,7 +864,7 @@ sub get_app_role ( $self, $role_id, $cb ) {
             $cb->( status 200, $role );
         }
         else {
-            $cb->( status 404, undef );
+            $cb->( status [ 404, qq[App role "$role_id" not found] ], undef );
         }
     }
 
@@ -878,7 +878,7 @@ sub get_app_role ( $self, $role_id, $cb ) {
                 $cb->( status 200, $role );
             }
             else {
-                $cb->( status 404, undef );
+                $cb->( status [ 404, qq[App role "$role_id" not found] ], undef );
             }
         }
 
@@ -888,7 +888,7 @@ sub get_app_role ( $self, $role_id, $cb ) {
                 $cb->( status 200, $role );
             }
             else {
-                $cb->( status 404, undef );
+                $cb->( status [ 404, qq[App role "$role_id" not found] ], undef );
             }
         }
     }
@@ -1200,61 +1200,56 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
                 return;
             }
 
-            my $dbh = $self->dbh;
+            # get app roles
+            my $roles;
 
-            $dbh->begin_work;
-
-            my ( $error, $modified );
-
-            my $cv = AE::cv sub {
-                if ($error) {
-                    $dbh->rollback;
-
-                    $cb->( status [ 500, 'Set user permissions error' ] );
-                }
-                elsif ( !$modified ) {
-                    $dbh->commit;
-
-                    $cb->( status 304 );
-                }
-                else {
-                    $dbh->commit;
-
-                    $cb->( status 200 );
-                }
-
-                return;
-            };
-
-            $cv->begin;
-
-            # create user permissions
             for my $role_id ( $permissions->@* ) {
-                $cv->begin;
+                next if exists $roles->{$role_id};
 
                 $self->get_app_role(
                     $role_id,
                     sub ( $status, $role ) {
                         if ( !$status ) {
-                            $error = 1;
-                        }
-                        elsif ( !$self->dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $role->{id} ] ) ) {
-                            if ( $dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user->{id}, $role->{id} ] ) ) {
-                                $modified = 1;
-                            }
-                            else {
-                                $error = 1;
-                            }
+                            $cb->($status);
+
+                            return;
                         }
 
-                        $cv->end;
-
-                        return;
+                        $roles->{$role_id} = $role;
                     }
                 );
             }
 
-            $cv->end;
+            # create user permissions
+            my $dbh = $self->dbh;
+
+            $dbh->begin_work;
+
+            my $modified;
+
+            for my $role ( values $roles->%* ) {
+                if ( !$dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $role->{id} ] ) ) {
+                    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1)], [ $user->{id}, $role->{id} ] ) ) {
+                        $modified = 1;
+                    }
+                    else {
+                        $dbh->rollback;
+
+                        $cb->( status [ 500, 'Set user permissions error' ] );
+
+                        return;
+                    }
+                }
+            }
+
+            $dbh->commit;
+
+            if ($modified) {
+                $cb->( status 200 );
+            }
+            else {
+                $cb->( status 304 );
+            }
 
             return;
         }
@@ -1291,12 +1286,36 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 
             my $dbh = $self->dbh;
 
-            $dbh->begin_work;
+            # get app roles
+            my $user_permissions;
+
+            for my $role_id ( $permissions->@* ) {
+                next if exists $user_permissions->{$role_id};
+
+                $self->get_app_role(
+                    $role_id,
+                    sub ( $status, $role ) {
+                        if ( !$status ) {
+                            $cb->($status);
+
+                            return;
+                        }
+
+                        # get user_permission for role
+                        my $user_permission = $self->dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $role->{id} ] );
+                        if ( !$user_permission ) {
+                            $cb->( 400, qq[User permission "$role_id" not exists] );
+
+                            return;
+                        }
+
+                        $user_permissions->{$role_id} = $user_permission->{id};
+                    }
+                );
+            }
 
             # create blank user token
             if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_id, desc, created_ts, enabled) VALUES (?, ?, ?, 0)], [ $user->{id}, $desc // q[], time ] ) ) {
-                $dbh->rollback;
-
                 $cb->( status [ 500, 'User token creation error' ], undef );
 
                 return;
@@ -1305,86 +1324,57 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
             # get user token id
             my $user_token_id = $dbh->last_insert_id;
 
-            my $error;
+            # generate user token hash
+            $self->_generate_user_token(
+                $user_token_id,
+                sub ( $status, $token, $hash ) {
+                    if ( !$status ) {
 
-            my $cv = AE::cv sub {
-                if ($error) {
-                    $dbh->rollback;
+                        # rollback
+                        $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
 
-                    $cb->( status [ 500, 'User token creation error' ], undef );
+                        $cb->( status [ 500, 'User token creation error' ], undef );
+
+                        return;
+                    }
+
+                    if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 0 WHERE id = ?], [ $hash, $user_token_id ] ) ) {
+
+                        # rollback
+                        $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
+
+                        $cb->( status [ 500, 'User token creation error' ], undef );
+
+                        return;
+                    }
+
+                    # create user token permissions
+                    $dbh->begin_work;
+
+                    for my $user_permission_id ( values $user_permissions->%* ) {
+                        if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $user_permission_id ] ) ) {
+
+                            # rollback
+                            $dbh->rollback;
+
+                            $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
+
+                            $cb->( status [ 500, 'User token creation error' ], undef );
+
+                            return;
+                        }
+                    }
+
+                    $dbh->commit;
+
+                    # enable user token
+                    $dbh->do( q[UPDATE api_user_token SET enabled = 1 WHERE id = ?], [$user_token_id] );
+
+                    $cb->( status 201, $token );
 
                     return;
                 }
-
-                # generate user token hash
-                $self->_generate_user_token(
-                    $user_token_id,
-                    sub ( $status, $token, $hash ) {
-                        if ( !$status ) {
-                            $dbh->rollback;
-
-                            $cb->( status [ 500, 'User token creation error' ], undef );
-
-                            return;
-                        }
-
-                        if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 1 WHERE id = ?], [ $hash, $user_token_id ] ) ) {
-                            $dbh->rollback;
-
-                            $cb->( status [ 500, 'User token creation error' ], undef );
-
-                            return;
-                        }
-
-                        $dbh->commit;
-
-                        $cb->( status 201, $token );
-
-                        return;
-                    }
-                );
-
-                return;
-            };
-
-            $cv->begin;
-
-            # create user token permissions
-            for my $role_id ( $permissions->@* ) {
-
-                $cv->begin;
-
-                $self->get_app_role(
-                    $role_id,
-                    sub ( $status, $role ) {
-
-                        # app role not exists
-                        if ( !$status ) {
-                            $error = 1;
-                        }
-
-                        # user permission exists
-                        elsif ( my $user_permission = $dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $role->{id} ] ) ) {
-
-                            # error creating user token permission
-                            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token_permissions (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $user_permission->{id} ] ) ) {
-                                $error = 1;
-                            }
-                        }
-
-                        # user permission not exists
-                        else {
-                            $error = 1;
-                        }
-
-                        $cv->end;
-
-                        return;
-                    }
-                );
-            }
-
-            $cv->end;
+            );
 
             return;
         }
@@ -1444,7 +1434,7 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## |    3 | 106, 218, 281, 315,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 354, 409, 476, 572,  |                                                                                                                |
 ## |      | 672, 977, 1112,      |                                                                                                                |
-## |      | 1182, 1282, 1396     |                                                                                                                |
+## |      | 1182, 1277, 1386     |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 218                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
