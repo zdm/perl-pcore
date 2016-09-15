@@ -8,6 +8,9 @@ use overload    #
   q[&{}] => sub ( $self, @ ) {
     return sub { return _respond( $self, @_ ) };
   },
+  q[bool] => sub {
+    return 1;
+  },
   fallback => undef;
 
 has auth => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );
