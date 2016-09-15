@@ -105,19 +105,15 @@ sub run ( $self, $req ) {
             # token authentication error
             if ( !$status ) {
                 $cb->($status);
-
-                return;
             }
 
             # this is app connection, disabled
-            if ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
+            elsif ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
                 $cb->( [ 403, q[App must connect via WebSocket interface] ] );
-
-                return;
             }
 
             # method is specified, this is API call
-            if ( my $method_id = $data->{method} ) {
+            elsif ( my $method_id = $data->{method} ) {
                 $auth->api_call_arrayref( $method_id, $data->{args}, $cb );
             }
 
@@ -336,7 +332,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 161                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 157                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
