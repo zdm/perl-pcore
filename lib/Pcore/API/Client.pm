@@ -7,8 +7,10 @@ use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::Status;
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
-has token => ( is => 'lazy', isa => Str );
-has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
+has token             => ( is => 'lazy', isa => Str );
+has keepalive_timeout => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
+has http_timeout      => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
+has http_tls_ctx      => ( is => 'ro',   isa => Maybe [HashRef] );
 
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -54,7 +56,9 @@ sub api_call ( $self, $method, @ ) {
         P->http->get(
             $self->_uri,
             keepalive_timeout => $self->keepalive_timeout,
-            headers           => {
+            ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
+            ( $self->http_tls_ctx ? ( tls_ctx => $self->http_tls_ctx ) : () ),
+            headers => {
                 REFERER       => undef,
                 AUTHORIZATION => 'token ' . $self->token,
                 CONTENT_TYPE  => 'application/cbor',
@@ -122,9 +126,11 @@ sub api_call ( $self, $method, @ ) {
 
             Pcore::HTTP::WebSocket->connect(
                 $self->_uri,
-                subprotocol            => 'pcore-api',
-                headers                => [ 'Authorization' => 'token ' . $self->token, ],
-                connect_timeout        => 10,
+                subprotocol     => 'pcore-api',
+                headers         => [ 'Authorization' => 'token ' . $self->token, ],
+                connect_timeout => 10,
+                ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
+                ( $self->http_tls_ctx ? ( tls_ctx => $self->http_tls_ctx ) : () ),
                 on_proxy_connect_error => sub ( $status, $reason ) {
                     while ( my $callback = shift $self->{_ws_connect_cache}->@* ) {
                         $callback->[0]->( $status, $reason );
@@ -216,9 +222,9 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 40                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (31)                  |
+## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (35)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 176                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 182                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
