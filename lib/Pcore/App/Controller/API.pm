@@ -1,7 +1,8 @@
 package Pcore::App::Controller::API;
 
 use Pcore -const, -role;
-use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor];
+use Pcore::App::API qw[:CONST];
+use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_b64];
 use Pcore::Util::Status;
 use Pcore::Util::Scalar qw[blessed];
 
@@ -90,14 +91,15 @@ sub run ( $self, $req ) {
     return $cb->( [ 400, q[Method is required] ] ) if !$data->{method};
 
     # get auth token
-    my $token = $self->_get_token($env);
+    my ( $user_name, $token ) = $self->_get_token($env);
 
     # no auth token provided
     return $cb->( [ 401, q[Authentication token wasn't provided] ] ) if !$token;
 
     # authenticate token
     $self->{app}->{api}->authenticate(
-        undef, $token,
+        $user_name,
+        $token,
         sub ( $status, $auth ) {
 
             # token authentication error
@@ -105,6 +107,11 @@ sub run ( $self, $req ) {
                 $cb->($status);
 
                 return;
+            }
+
+            # this is app connection, disabled
+            if ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
+                $cb->( [ 403, q[App must connect via WebSocket interface] ] );
             }
 
             # method is specified, this is API call
@@ -128,7 +135,7 @@ sub run ( $self, $req ) {
 sub _get_token ( $self, $env ) {
 
     # get auth token from query param, header, cookie
-    my $token;
+    my ( $user_name, $token );
 
     if ( $env->{QUERY_STRING} && $env->{QUERY_STRING} =~ /\baccess_token=([^&]+)/sm ) {
         $token = $1;
@@ -136,11 +143,16 @@ sub _get_token ( $self, $env ) {
     elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Token\s+(.+)\b/smi ) {
         $token = $1;
     }
+    elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Basic\s+(.+)\b/smi ) {
+        $token = eval { from_b64 $1};
+
+        ( $user_name, $token ) = split /:/sm, $token if $token;
+    }
     elsif ( $env->{HTTP_COOKIE} && $env->{HTTP_COOKIE} =~ /\btoken=([^;]+)\b/sm ) {
         $token = $1;
     }
 
-    return $token;
+    return $user_name, $token;
 }
 
 # WEBSOCKET INTERFACE
@@ -152,74 +164,137 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
     # content decode error
     return $self->websocket_disconnect( $ws, 400, q[Error decoding request body] ) if $@;
 
-    my $token = $ws->{token};
+    my $auth = $ws->{auth};
 
-    # authenticate token
-    $self->{app}->{api}->auth_token(
-        $token,
-        sub ($api_request) {
+    # method is specified, this is API call
+    if ( my $method_id = $data->{method} ) {
+        my $cb;
 
-            # token authentication error
-            return $self->websocket_disconnect( $ws, 401, q[Unauthorized] ) if !$api_request;
+        # this is not void API call, create callback
+        if ( my $cid = $data->{cid} ) {
+            $cb = sub ( $status, @args ) {
+                my $body = {
+                    cid    => $cid,
+                    status => $status,
+                    args   => @args ? \@args : undef,
+                };
 
-            # method is specified, this is API call
-            if ( my $method_id = $data->{method} ) {
-                my $cb;
-
-                # this is not void API call, create callback
-                if ( my $cid = $data->{cid} ) {
-                    $cb = sub ( $status, @args ) {
-                        my $body = {
-                            cid    => $cid,
-                            status => $status,
-                            args   => @args ? \@args : undef,
-                        };
-
-                        # write response
-                        if ( $content_type eq $CONTENT_TYPE_JSON ) {
-                            $ws->send_text( to_json($body)->$* );
-                        }
-                        else {
-                            $ws->send_binary( to_cbor($body)->$* );
-                        }
-
-                        return;
-                    };
+                # write response
+                if ( $content_type eq $CONTENT_TYPE_JSON ) {
+                    $ws->send_text( to_json($body)->$* );
+                }
+                else {
+                    $ws->send_binary( to_cbor($body)->$* );
                 }
 
-                $api_request->api_call_arrayref( $method_id, $data->{args}, $cb );
-            }
-
-            # method is not specified, this is callback, not supported in API server
-            else {
-                return $self->websocket_disconnect( $ws, 400, q[Method is required] );
-            }
-
-            return;
+                return;
+            };
         }
-    );
+
+        $auth->api_call_arrayref( $method_id, $data->{args}, $cb );
+    }
+
+    # method is not specified, this is callback, not supported in API server
+    else {
+        return $self->websocket_disconnect( $ws, 400, q[Method is required] );
+    }
 
     return;
 }
 
 sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
-    my $token = $self->_get_token( $req->{env} );
+    my ( $user_name, $token ) = $self->_get_token( $req->{env} );
 
     # no auth token provided
     return $decline->(401) if !$token;
 
-    $self->{app}->{api}->auth_token(
+    $self->{app}->{api}->authenticate(
+        $user_name,
         $token,
-        sub ($api_request) {
+        sub ( $status, $auth ) {
 
             # token authentication error
-            return $decline->(401) if !$api_request;
+            if ( !$status ) {
+                $decline->($status);
 
-            # token authenticated successfully, store token in websocket connection object
-            $ws->{token} = $token;
+                return;
+            }
 
-            # accept websocket connection
-            $accept->();
+            # this is app connection request
+            if ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN && $self->{app}->{api}->{backend}->is_local ) {
+
+                # decode app connection request
+                my $data;
+
+                # JSON content type
+                if ( !$req->{env}->{CONTENT_TYPE} || $req->{env}->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
+                    $data = eval { from_json $req->body } if $req->body;
+
+                    # content decode error
+                    if ($@) {
+                        $decline->( [ 400, q[Error decoding JSON request body] ] );
+
+                        return;
+                    }
+                }
+
+                # CBOR content type
+                elsif ( $req->{env}->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
+                    $data = eval { from_cbor $req->body } if $req->body;
+
+                    # content decode error
+                    if ($@) {
+                        $decline->( [ 400, q[Error decoding CBOR request body] ] );
+
+                        return;
+                    }
+                }
+
+                # invalid content type
+                else {
+                    $decline->( [ 400, q[Content type is invalid] ] );
+
+                    return;
+                }
+
+                if ( !$data ) {
+                    $decline->( [ 400, q[App connect request is invalid] ] );
+
+                    return;
+                }
+
+                $self->{app}->{api}->{backend}->connect_app_instance(
+                    $auth->{app_instance_id},
+                    $data->{version},
+                    $data->{roles},
+                    $data->{permissions},
+                    sub ($status) {
+
+                        # app connection is allowed
+                        if ($status) {
+                            $ws->{auth} = $auth;
+
+                            # accept websocket connection
+                            $accept->();
+                        }
+
+                        # decline
+                        else {
+                            $decline->($status);
+                        }
+
+                        return;
+                    }
+                );
+            }
+            else {
+
+                # token authenticated successfully, store token in websocket connection object
+                $ws->{auth} = $auth;
+
+                # accept websocket connection
+                $accept->();
+            }
 
             return;
         }
@@ -259,7 +334,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 159                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
