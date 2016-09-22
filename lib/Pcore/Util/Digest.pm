@@ -30,8 +30,6 @@ use Digest::SHA1 qw[sha1 sha1_hex];
 use Digest::SHA qw[hmac_sha1 hmac_sha1_hex];
 use Digest::SHA3 qw[sha3_224 sha3_224_hex sha3_256 sha3_256_hex sha3_384 sha3_384_hex sha3_512 sha3_512_hex];
 
-my $BCRYPT_COST_DEFAULT = 10;
-
 *sha1_b64     = \&Digest::SHA1::sha1_base64;
 *sha3_224_b64 = \&Digest::SHA3::sha3_224_base64;
 *sha3_256_b64 = \&Digest::SHA3::sha3_256_base64;

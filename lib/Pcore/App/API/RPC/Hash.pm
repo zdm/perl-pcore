@@ -1,31 +1,29 @@
 package Pcore::App::API::RPC::Hash;
 
 use Pcore -class;
-use Crypt::ScryptKDF qw[];
+use Crypt::Argon2;
 
 with qw[Pcore::Util::PM::RPC::Worker];
 
-has scrypt_N   => ( is => 'ro', isa => PositiveInt, default => 16_384 );
-has scrypt_r   => ( is => 'ro', isa => PositiveInt, default => 8 );
-has scrypt_p   => ( is => 'ro', isa => PositiveInt, default => 1 );
-has scrypt_len => ( is => 'ro', isa => PositiveInt, default => 32 );
+# http://argon2-cffi.readthedocs.io/en/stable/parameters.html
+# https://pthree.org/2016/06/29/further-investigation-into-scrypt-and-argon2-password-hashing/
 
-# TODO try to use Argon2 instead of Scrypt:
-# https://github.com/Leont/crypt-argon2
-# https://github.com/skinkade/p6-crypt-argon2
+has argon2_time        => ( is => 'ro', isa => PositiveInt, default => 1 );
+has argon2_memory      => ( is => 'ro', isa => Str,         default => '64M' );
+has argon2_parallelism => ( is => 'ro', isa => PositiveInt, default => 1 );
 
-sub create_scrypt ( $self, $cb, $str ) {
+sub create_hash ( $self, $cb, $str ) {
     my $salt = P->random->bytes(32);
 
-    my $hash = Crypt::ScryptKDF::scrypt_hash( P->text->encode_utf8($str), $salt, $self->{scrypt_N}, $self->{scrypt_r}, $self->{scrypt_p}, $self->{scrypt_len} );
+    my $hash = Crypt::Argon2::argon2i_pass( P->text->encode_utf8($str), $salt, $self->{argon2_time}, $self->{argon2_memory}, $self->{argon2_parallelism}, 32 );
 
     $cb->($hash);
 
     return;
 }
 
-sub verify_scrypt ( $self, $cb, $str, $hash ) {
-    $cb->( Crypt::ScryptKDF::scrypt_hash_verify( P->text->encode_utf8($str), $hash ) ? 1 : 0 );
+sub verify_hash ( $self, $cb, $str, $hash ) {
+    $cb->( Crypt::Argon2::argon2i_verify( $hash, P->text->encode_utf8($str) ) ? 1 : 0 );
 
     return;
 }

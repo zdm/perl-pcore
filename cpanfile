@@ -45,6 +45,9 @@ requires 'Inline::C';
 # Handle
 requires 'BerkeleyDB';
 
+# Pcore::App
+requires 'Crypt::Argon2';
+
 # Pcore::Dist
 requires 'Pod::Markdown';
 requires 'Software::License';
@@ -109,9 +112,8 @@ requires 'Time::Zone';
 
 # Pcore::Util::Digest
 requires 'Digest';
-requires 'Digest::MD5';
 requires 'String::CRC32';
-requires 'Crypt::ScryptKDF';
+requires 'Digest::MD5';
 requires 'Digest::SHA1';
 requires 'Digest::SHA';
 requires 'Digest::SHA3';
