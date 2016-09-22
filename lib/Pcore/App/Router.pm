@@ -65,6 +65,15 @@ sub _build_map ($self) {
             die qq["$class" is not a consumer of "Pcore::App::Controller"];
         }
         else {
+            my $path = $controllers->{$class};
+
+            # create and cache controller object
+            $self->{_cache}->{$path} = $class->new(
+                {   app  => $self->{app},
+                    path => $path,
+                }
+            );
+
             if ( $class->does('Pcore::App::Controller::Index') ) {
 
                 # index controller
@@ -117,13 +126,7 @@ sub run ( $self, $req ) {
 
     $req->@{qw[path path_tail]} = ( $path, P->path($path_tail) );
 
-    my $ctrl = $self->{_cache}->{$path} //= $class->new(
-        {   app  => $self->{app},
-            path => $path,
-        }
-    );
-
-    $ctrl->run($req);
+    $self->{_cache}->{$path}->run($req);
 
     return;
 }
@@ -135,7 +138,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 36, 52, 89, 108      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 36, 52, 98, 117      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
