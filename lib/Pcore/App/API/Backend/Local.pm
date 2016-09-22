@@ -38,7 +38,6 @@ sub _build_host ($self) {
 
 # INIT
 sub init ( $self, $cb ) {
-
     $self->init_db(
         sub {
 
@@ -47,7 +46,7 @@ sub init ( $self, $cb ) {
                 'Pcore::App::API::RPC::Hash',
                 workers   => undef,
                 buildargs => {
-                    argon2_time        => 1,
+                    argon2_time        => 3,
                     argon2_memory      => '64M',
                     argon2_parallelism => 1,
                 },
@@ -188,13 +187,13 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 70, 76, 84, 142      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 69, 75, 83, 141      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 102                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 122                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 142                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 159                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 101                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 121                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 141                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 158                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
