@@ -10,7 +10,8 @@ has map         => ( is => 'lazy', isa => HashRef, init_arg => undef );
 has index_class => ( is => 'ro',   isa => Str,     init_arg => undef );
 has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
 
-has _cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # HTTP controllers cache
+has _path_class_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # router path -> sigleton cache
+has _class_instance_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # class name -> sigleton cache
 
 sub _perl_class_path_to_snake_case ($str) {
 
@@ -68,7 +69,7 @@ sub _build_map ($self) {
             my $path = $controllers->{$class};
 
             # create and cache controller object
-            $self->{_cache}->{$path} = $class->new(
+            $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$path} = $class->new(
                 {   app  => $self->{app},
                     path => $path,
                 }
@@ -126,9 +127,13 @@ sub run ( $self, $req ) {
 
     $req->@{qw[path path_tail]} = ( $path, P->path($path_tail) );
 
-    $self->{_cache}->{$path}->run($req);
+    $self->{_path_class_cache}->{$path}->run($req);
 
     return;
+}
+
+sub get_instance ( $self, $class_name ) {
+    return $self->{_class_instance_cache}->{$class_name};
 }
 
 1;
@@ -138,7 +143,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 36, 52, 98, 117      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 37, 53, 99, 118      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
