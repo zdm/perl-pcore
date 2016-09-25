@@ -66,7 +66,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
           'Pcore::App::API::Auth::Request';
 
         # call method
-        eval { $obj->$method_name( $req, $args ? $args->@* : undef ) };
+        eval { $obj->$method_name( $req, $args ? $args->@* : () ) };
 
         $@->sendlog if $@;
 

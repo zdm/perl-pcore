@@ -1028,6 +1028,21 @@ sub get_app_instance_roles ( $self, $app_id, $cb ) {
 }
 
 # USER
+sub get_users ( $self, $cb ) {
+    if ( my $users = $self->dbh->selectall(q[SELECT * FROM api_user]) ) {
+        for my $row ( $users->@* ) {
+            delete $row->{hash};
+        }
+
+        $cb->( status 200, $users );
+    }
+    else {
+        $cb->( status 500, undef );
+    }
+
+    return;
+}
+
 sub get_user ( $self, $user_id, $cb ) {
     if ( $user_id =~ /\A\d+\z/sm ) {
         if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
@@ -1427,8 +1442,8 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 106, 218, 281, 315,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 354, 409, 476, 572,  |                                                                                                                |
-## |      | 672, 977, 1112,      |                                                                                                                |
-## |      | 1182, 1277, 1380     |                                                                                                                |
+## |      | 672, 977, 1127,      |                                                                                                                |
+## |      | 1197, 1292, 1395     |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 218                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |

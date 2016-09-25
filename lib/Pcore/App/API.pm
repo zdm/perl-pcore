@@ -469,6 +469,22 @@ sub set_app_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
 }
 
 # USER
+sub get_users ( $self, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->get_users(
+        sub ( $status, $users ) {
+            $cb->( $status, $users ) if $cb;
+
+            $blocking_cv->( $status, $users ) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 sub get_user ( $self, $user_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -623,7 +639,7 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 180, 398, 507, 577   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 180, 398, 523, 593   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
