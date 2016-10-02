@@ -102,6 +102,18 @@ sub TO_DUMP ( $self, $dumper, @ ) {
     return $res, $tags;
 }
 
+package Pcore::Util::Hash::Limited::_ELEMENT;
+
+use Pcore;
+
+Pcore::Util::Hash::Limited::_CONST->import(qw[:CONST]);
+
+sub DESTROY ($self) {
+    say "DESTROY $self->[$KEY]";
+
+    return;
+}
+
 package Pcore::Util::Hash::Limited::_HASH;
 
 use Pcore;
@@ -183,7 +195,7 @@ sub STORE {
         }
 
         # create new element on top
-        my $el = $data->[$HASH]->{ $_[1] } = [ $_[1], $_[2], undef, $data->[$FIRST] ];
+        my $el = $data->[$HASH]->{ $_[1] } = bless [ $_[1], $_[2], undef, $data->[$FIRST] ], 'Pcore::Util::Hash::Limited::_ELEMENT';
 
         $el->[$NEXT]->[$PREV] = $el if $el->[$NEXT];
 
