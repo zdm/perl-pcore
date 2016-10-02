@@ -2,7 +2,6 @@ package Pcore::App::API::Backend::Local;
 
 use Pcore -role;
 use Pcore::Util::Status::Keyword qw[status];
-use Pcore::Util::Hash::RandKey;
 use Pcore::Util::Data qw[to_b64_url from_b64];
 use Pcore::Util::Digest qw[sha1];
 use Pcore::App::API qw[:CONST];
@@ -24,8 +23,8 @@ requires(
 
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
 
-has _hash_rpc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::RPC'], init_arg => undef );
-has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], default => sub { Pcore::Util::Hash::RandKey->new }, init_arg => undef );
+has _hash_rpc   => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::RPC'],       init_arg => undef );
+has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], init_arg => undef );
 has _hash_cache_size => ( is => 'ro', isa => PositiveInt, default => 10_000 );
 
 sub _build_is_local ($self) {
@@ -38,6 +37,8 @@ sub _build_host ($self) {
 
 # INIT
 sub init ( $self, $cb ) {
+    $self->{_hash_cache} = P->hash->limited( $self->{_hash_cache_size} );
+
     $self->init_db(
         sub {
 
@@ -154,7 +155,6 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
     return;
 }
 
-# TODO limit cache size
 sub _verify_token_hash ( $self, $token, $hash, $cb ) {
     my $cache_id = "$hash-$token";
 
@@ -187,12 +187,12 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 69, 75, 83, 141      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 70, 76, 84, 142      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 101                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 121                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 141                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 102                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 122                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 142                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
 ## |      | 158                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

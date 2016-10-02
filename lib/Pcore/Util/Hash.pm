@@ -52,6 +52,12 @@ sub randkey {
     return Pcore::Util::Hash::RandKey->new;
 }
 
+sub limited ($max_size) {
+    state $init = !!require Pcore::Util::Hash::Limited;
+
+    return Pcore::Util::Hash::Limited->new($max_size);
+}
+
 1;
 __END__
 =pod

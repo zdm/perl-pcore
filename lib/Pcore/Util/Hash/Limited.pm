@@ -33,7 +33,7 @@ sub DESTROY ($self) {
     return;
 }
 
-sub new ( $self, $max_size = 1_000 ) {
+sub new ( $self, $max_size ) {
     die q[Max. size is required] if !$max_size;
 
     my $obj;
