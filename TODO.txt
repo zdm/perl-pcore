@@ -5,6 +5,7 @@
 
 - SQL:
     - SQL - always get new connection for transaction;
+    - limit max. possible connections;
     - do not use state in reusable classes;
     - check, that SQLite clone, clone also attached databases;
 

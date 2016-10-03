@@ -1,7 +1,7 @@
 package Pcore::Core::Dump;
 
 use Pcore -export => {
-    CORE    => [qw[dump filedump ffiledump]],
+    CORE    => [qw[dump]],
     DEFAULT => [qw[dump]],
 };
 use Pcore::Core::Dump::Dumper;
@@ -15,18 +15,6 @@ sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     );
 
     return q[$VAR = ] . Pcore::Core::Dump::Dumper->new( \%args )->run( $_[0] );
-}
-
-sub filedump {
-    my $self = shift;
-
-    return $self->ffiledump( 'default.log', @_ );
-}
-
-sub ffiledump ( $self, $filename, @ ) {
-    P->file->append_text( $ENV->{LOG_DIR} . $filename, Pcore::Core::Dump::dump( @_, color => 0 ), $LF );
-
-    return;
 }
 
 1;
