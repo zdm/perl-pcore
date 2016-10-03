@@ -16,11 +16,8 @@ around new => sub ( $orig, $self, $args ) {
 
         $args->{path} = $args->{uri}->path;
     }
-    elsif ( $ENV->{LOG_DIR} ) {
-        $args->{path} = P->path( $ENV->{LOG_DIR} . $args->{uri}->path );
-    }
     else {
-        return;
+        $args->{path} = P->path( $ENV->{DATA_DIR} . $args->{uri}->path );
     }
 
     return $self->$orig($args);

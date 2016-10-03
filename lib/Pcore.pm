@@ -512,9 +512,18 @@ sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
         my $obj = Pcore::Core::Log->new;
 
         # set default log channels
-        $obj->add( 'fatal', 'stderr:', 'file:fatal.log' );
-        $obj->add( 'error', 'stderr:', 'file:error.log' );
-        $obj->add( 'warn',  'stderr:', 'file:warn.log' );
+        if ( $ENV->dist ) {
+            $obj->add( 'fatal', 'stderr:', 'file:fatal.log' );
+            $obj->add( 'error', 'stderr:', 'file:error.log' );
+            $obj->add( 'warn',  'stderr:', 'file:warn.log' );
+        }
+
+        # file logs are disabled bby default for particular scripts
+        else {
+            $obj->add( 'fatal', 'stderr:' );
+            $obj->add( 'error', 'stderr:' );
+            $obj->add( 'warn',  'stderr:' );
+        }
 
         $obj;
     };
@@ -575,7 +584,7 @@ sub init_demolish ( $self, $class ) {
 ## |      | 402, 405, 410, 413,  |                                                                                                                |
 ## |      | 438, 457             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 544                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 553                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 234                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

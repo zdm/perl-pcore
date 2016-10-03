@@ -163,17 +163,14 @@ sub _INIT ($self) {
     # load dist.perl
     if ( my $dist = $self->dist ) {
         if ( $self->is_par ) {
-            $self->{DATA_DIR} = undef;
-            $self->{LOG_DIR} = P->path( $ENV{PAR_TEMP} . '/log/', is_dir => 1, lazy => 1 );
+            $self->{DATA_DIR} = $self->{SCRIPT_DIR};
         }
         else {
             $self->{DATA_DIR} = P->path( $dist->root . 'data/', is_dir => 1, lazy => 1 );
-            $self->{LOG_DIR}  = P->path( $dist->root . 'log/',  is_dir => 1, lazy => 1 );
         }
     }
     else {
-        $self->{DATA_DIR} = undef;
-        $self->{LOG_DIR}  = undef;
+        $self->{DATA_DIR} = $self->{START_DIR};
     }
 
     # init pcore dist, needed to register pcore resources during bootstrap
@@ -359,17 +356,17 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 304                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 301                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 327                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 324                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 134                  | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 329, 347             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 326, 344             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 103                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 336                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 333                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
