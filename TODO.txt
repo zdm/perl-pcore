@@ -1,10 +1,7 @@
-- remove wiki from .hgignore;
-- remove logs from .hgignore;
-    - check under git;
-
 - LOG SUBSYSTEM:
     - write logs to socket;
     - pcore - store file logs in data dir by default, how to disable file logs in handy way?;
+        - remove /log/ from .hgignore;
 
 - SQL:
     - SQL - always get new connection for transaction;
