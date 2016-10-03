@@ -1,7 +1,6 @@
 # pcore
 re:^data/
 re:^log/
-re:^wiki/
 
 re:^share/data/tld.dat$
 re:^share/data/pub_suffix.dat$

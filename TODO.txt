@@ -1,0 +1,39 @@
+- remove wiki from .hgignore;
+- remove logs from .hgignore;
+    - check under git;
+
+- LOG SUBSYSTEM:
+    - write logs to socket;
+    - pcore - store file logs in data dir by default, how to disable file logs in handy way?;
+
+- SQL:
+    - SQL - always get new connection for transaction;
+    - do not use state in reusable classes;
+    - check, that SQLite clone, clone also attached databases;
+
+- STATUS
+    - get rid of the old status class;
+    - all API's should response with $status, @args;
+    - detect status_reason by ref eq HASH;
+
+- APP & APP API:
+    - move roles and permissions from API to App;
+    - auth tags;
+    - stack similar requests everywhere;
+
+    - blocking api call;
+    - api client - blocking call;
+    - blocking api auth methods;
+
+
+- RPC
+    - combine RPC + WebSocket;
+        - bidirectional API protocol;
+        - WebSocket message broker;
+
+- HANDLE and PROXY refactoring
+    - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
+
+    - pcore::ae::handle - use reason instead of message in error callbacks;
+    - http - do not use header object, use direct cache;
+    - persistent -> keepalive_timeout in HTTP client;
