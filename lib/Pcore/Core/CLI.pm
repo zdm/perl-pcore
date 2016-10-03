@@ -349,7 +349,7 @@ sub _parse_opt ( $self, $argv ) {
     }
 
     # store results globally
-    $ENV->cli->%* = $res->%*;
+    $ENV->{cli} = $res;
 
     # run
     if ( $class->can('CLI_RUN') ) {

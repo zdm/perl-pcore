@@ -12,7 +12,7 @@ has _main_dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], i
 has pcore => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],             init_arg => undef );       # pcore dist
 has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init_arg => undef );       # share object
 has _dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # registered dists. index
-has cli       => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # parsed CLI data
+has cli           => ( is => 'ro',   isa => HashRef, init_arg => undef );                              # parsed CLI data
 has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                              # $HOME/.pcore/pcore.perl config
 
