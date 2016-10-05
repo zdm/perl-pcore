@@ -10,8 +10,10 @@ ADD . $DIST_PATH
 
 WORKDIR $DIST_PATH
 
-RUN pcore deploy --recommends --suggests \
+RUN /bin/bash -c ' \
+    pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
-    && rm -rf ~/.cpanm
+    && rm -rf ~/.cpanm \
+'
 
 ENTRYPOINT ["bin/main.pl"]

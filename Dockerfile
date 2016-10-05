@@ -14,8 +14,10 @@ ADD . $DIST_PATH
 WORKDIR $DIST_PATH
 
 # --develop
-RUN cpan-outdated | cpanm \
+RUN /bin/bash -c ' \
+    cpan-outdated | cpanm \
     && cpanm --with-feature linux --with-recommends --with-suggests --installdeps . \
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
-    && rm -rf ~/.cpanm
+    && rm -rf ~/.cpanm \
+'
