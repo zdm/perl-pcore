@@ -91,7 +91,7 @@ sub run ( $self, $req ) {
     return $cb->( [ 400, q[Method is required] ] ) if !$data->{method};
 
     # get auth token
-    my ( $user_name, $token ) = $self->_get_token($env);
+    my ( $user_name, $token ) = $req->get_token;
 
     # no auth token provided
     return $cb->( [ 401, q[Authentication token wasn't provided] ] ) if !$token;
@@ -127,30 +127,6 @@ sub run ( $self, $req ) {
     );
 
     return;
-}
-
-# parse and return token from HTTP request
-sub _get_token ( $self, $env ) {
-
-    # get auth token from query param, header, cookie
-    my ( $user_name, $token );
-
-    if ( $env->{QUERY_STRING} && $env->{QUERY_STRING} =~ /\baccess_token=([^&]+)/sm ) {
-        $token = $1;
-    }
-    elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Token\s+(.+)\b/smi ) {
-        $token = $1;
-    }
-    elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Basic\s+(.+)\b/smi ) {
-        $token = eval { from_b64 $1};
-
-        ( $user_name, $token ) = split /:/sm, $token if $token;
-    }
-    elsif ( $env->{HTTP_COOKIE} && $env->{HTTP_COOKIE} =~ /\btoken=([^;]+)\b/sm ) {
-        $token = $1;
-    }
-
-    return $user_name, $token;
 }
 
 # WEBSOCKET INTERFACE
@@ -201,7 +177,7 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 }
 
 sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
-    my ( $user_name, $token ) = $self->_get_token( $req->{env} );
+    my ( $user_name, $token ) = $req->get_token;
 
     # no auth token provided
     return $decline->(401) if !$token;
@@ -332,7 +308,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 157                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 133                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
