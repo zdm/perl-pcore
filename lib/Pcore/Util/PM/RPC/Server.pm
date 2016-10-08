@@ -33,7 +33,7 @@ use if $MSWIN, 'Win32API::File';
 use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
-use Pcore::Util::Status;
+use Pcore::Util::Status::API;
 
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
@@ -194,9 +194,7 @@ sub _on_data ($data) {
     # RPC callback
     else {
         if ( my $cb = delete $QUEUE->{ $data->{cid} } ) {
-            my $status = Pcore::Util::Status->new( { status => $data->{status} } );
-
-            $cb->( $status, $data->{args} ? $data->{args}->@* : () );
+            $cb->( bless $data, 'Pcore::Util::Status::API' );
         }
     }
 
@@ -211,17 +209,12 @@ sub _on_method_call ( $cid, $method, $args ) {
         my $cb;
 
         if ( defined $cid ) {
-            $cb = sub ( $status, $args = undef ) {
-                $status = Pcore::Util::Status->new( { status => $status } );
+            $cb = sub ($status) {
+                $status->{pid}  = $$;
+                $status->{cid}  = $cid;
+                $status->{deps} = $BOOT_ARGS->[2] ? _get_new_deps() : undef;
 
-                my $cbor = P->data->to_cbor(
-                    {   pid    => $$,
-                        cid    => $cid,
-                        status => $status,
-                        args   => $args,
-                        deps   => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
-                    }
-                );
+                my $cbor = P->data->to_cbor($status);
 
                 $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
@@ -284,7 +277,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 238                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 231                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 100, 110             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

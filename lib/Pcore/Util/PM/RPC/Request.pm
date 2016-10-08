@@ -1,12 +1,11 @@
 package Pcore::Util::PM::RPC::Request;
 
 use Pcore -class;
+use Pcore::Util::Status::API::Keyword qw[status];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {
-    use subs qw[write];
-
-    return sub { return write( $self, @_ ) };
+    return sub { return _respond( $self, @_ ) };
   },
   fallback => undef;
 
@@ -20,37 +19,29 @@ sub DEMOLISH ( $self, $global ) {
     if ( !$global && !$self->{_response_status} && $self->{cb} ) {
 
         # RPC request object destroyed without return any result, this is possible run-time error in AE callback
-        $self->{cb}->(500);
+        $self->{cb}->( status 500 );
     }
 
     return;
 }
 
-sub write ( $self, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub _respond ( $self, @ ) {
     die q[Already responded] if $self->{_response_status};
 
     $self->{_response_status} = 1;
 
     # remove callback
-    my $cb = delete $self->{cb};
+    if ( my $cb = delete $self->{cb} ) {
+        my $status = blessed $_[1] ? $_[1] : status splice @_, 1;
 
-    # return response, if callback is defined
-    $cb->( 200, @_ > 1 ? [ splice @_, 1 ] : () ) if $cb;
+        # return response, if callback is defined
+        $cb->( 200, $status );
+    }
 
     return;
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 9                    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

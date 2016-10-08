@@ -6,7 +6,7 @@ use Config;
 use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
-use Pcore::Util::Status;
+use Pcore::Util::Status::API;
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
@@ -165,9 +165,7 @@ sub _on_data ( $self, $data ) {
     # RPC callback
     else {
         if ( my $cb = delete $self->_queue->{ $data->{cid} } ) {
-            my $status = Pcore::Util::Status->new( { status => $data->{status} } );
-
-            $cb->( $status, $data->{args} ? $data->{args}->@* : () );
+            $cb->( bless $data, 'Pcore::Util::Status::API' );
         }
     }
 
@@ -182,15 +180,10 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
         my $cb;
 
         if ( defined $cid ) {
-            $cb = sub ( $status, $args = undef ) {
-                $status = Pcore::Util::Status->new( { status => $status } );
+            $cb = sub ($status) {
+                $status->{cid} = $cid;
 
-                my $cbor = P->data->to_cbor(
-                    {   cid    => $cid,
-                        status => $status,
-                        args   => $args,
-                    }
-                );
+                my $cbor = P->data->to_cbor($status);
 
                 my $worker = $self->{_workers_idx}->{$worker_pid};
 
@@ -321,9 +314,9 @@ sub rpc_term ( $self, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 177                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 175                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 210                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 203                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 125                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
