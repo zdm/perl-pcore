@@ -3,7 +3,7 @@ package Pcore::API::SCM::Server::Git;
 use Pcore -class;
 use Pcore::API::SCM qw[:CONST];
 use Pcore::API::SCM::Upstream;
-use Pcore::Util::Status;
+Pcore::Util::Status::API::Keyword qw[status];
 
 with qw[Pcore::API::SCM::Server];
 
@@ -33,12 +33,10 @@ sub scm_cmd ( $self, $root, $cb, $cmd ) {
             my $api_res;
 
             if ( $proc->is_success ) {
-                $api_res = Pcore::Util::Status->new( { status => 200 } );
-
-                $api_res->{result} = [ split /\x00/sm, $proc->stdout ] if $proc->stdout;
+                $api_res = status 200, $proc->stdout ? [ split /\x00/sm, $proc->stdout ] : undef;
             }
             else {
-                $api_res = Pcore::Util::Status->new( { status => 500, $proc->stderr ? ( reason => ( $proc->stderr =~ /\A(.+?)\n/sm )[0] ) : () } );
+                $api_res = status [ 500, $proc->stderr ? ( $proc->stderr =~ /\A(.+?)\n/sm )[0] : () ];
             }
 
             $cb->($api_res);

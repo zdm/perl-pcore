@@ -1,7 +1,7 @@
 package Pcore::API::GitHub;
 
 use Pcore -class;
-use Pcore::Util::Status;
+Pcore::Util::Status::API::Keyword qw[status];
 
 has api_username => ( is => 'ro', isa => Str, required => 1 );
 has api_token    => ( is => 'ro', isa => Str, required => 1 );
@@ -117,16 +117,16 @@ sub create_repo ( $self, @ ) {
             my $api_res;
 
             if ( $res->status != 200 ) {
-                $api_res = Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
+                $api_res = status [ $res->status, $res->reason ];
             }
             else {
                 my $json = P->data->from_json( $res->body );
 
                 if ( $json->{error} ) {
-                    $api_res = Pcore::Util::Status->new( { status => 480, reason => $json->{message} } );
+                    $api_res = status [ 200, $json->{message} ];
                 }
                 else {
-                    $api_res = Pcore::Util::Status->new( { status => 200 } );
+                    $api_res = status 200;
                 }
             }
 

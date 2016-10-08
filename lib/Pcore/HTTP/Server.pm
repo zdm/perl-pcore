@@ -3,7 +3,7 @@ package Pcore::HTTP::Server;
 use Pcore -class, -const;
 use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
-use Pcore::Util::Status;
+use Pcore::Util::Status::API::Keyword qw[status];
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::HTTP::Server::Request;
 
@@ -277,7 +277,7 @@ sub wait_headers ( $self, $h ) {
 }
 
 sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
-    $status = Pcore::Util::Status->new( { status => $status } ) if !blessed $status;
+    $status = status $status if !blessed $status;
 
     my $buf = "HTTP/1.1 $status->{status} $status->{reason}\r\nContent-Length:0\r\n";
 

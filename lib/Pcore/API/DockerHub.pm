@@ -1,7 +1,7 @@
 package Pcore::API::DockerHub;
 
 use Pcore -const, -class, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TAG $DOCKERHUB_SOURCE_BRANCH]] };
-use Pcore::Util::Status;
+Pcore::Util::Status::API::Keyword qw[status];
 require Pcore::API::DockerHub::Repository;
 
 # https://github.com/RyanTheAllmighty/Docker-Hub-API
@@ -377,9 +377,7 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
             },
             body => $data ? P->data->to_json($data) : undef,
             on_finish => sub ($res) {
-                my $api_res = Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
-
-                $api_res->{result} = P->data->from_json( $res->body ) if $res->body && $res->body->$*;
+                my $api_res = status [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
 
                 $cb->($api_res) if $cb;
 

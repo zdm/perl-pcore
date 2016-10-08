@@ -4,7 +4,7 @@ use Pcore -export => [qw[status]];
 use Pcore::Util::Status::API;
 
 sub status ( $status, @ ) : prototype($;@) {
-    my %args = splice @_, 1;
+    my %args = @_ == 2 ? ( result => $_[1] ) : splice @_, 1;
 
     if ( ref $status eq 'ARRAY' ) {
         $args{status} = $status->[0];

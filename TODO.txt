@@ -1,8 +1,24 @@
-- STATUS
-    - all API's should response with $status, @args;
+API classes:
+    use Pcore::Util::Status::API::Keyword qw[status];
 
-    - detect status_reason by ref eq HASH;
+    return status [], result => {};
+------------------------------------------------
+
+Pcore::API::Client;
+
+api response - hash, incapsulated status, reason and results hash;
+api call - args - ArrayRef, expand;
+api callback - status object;
+
+
+
+
+
+- STATUS
     - get rid of the old status class;
+
+
+
 
 - LOG SUBSYSTEM:
     - write logs to socket;

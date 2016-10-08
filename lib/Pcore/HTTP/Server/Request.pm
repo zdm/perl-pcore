@@ -1,7 +1,7 @@
 package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const;
-use Pcore::Util::Status;
+use Pcore::Util::Status::API::Keyword qw[status];
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
@@ -83,7 +83,7 @@ sub _respond ( $self, @ ) {
         # compose headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
         $buf = do {
-            my $status = blessed $_[1] ? $_[1] : Pcore::Util::Status->new( { status => $_[1] } );
+            my $status = blessed $_[1] ? $_[1] : status $_[1];
 
             "HTTP/1.1 $status->{status} $status->{reason}$CRLF";
         };
@@ -197,7 +197,7 @@ sub _build_is_websocket_connect_request ( $self ) {
 }
 
 sub accept_websocket ( $self, $headers = undef ) {
-    state $reason = Pcore::Util::Status->get_reason(101);
+    state $reason = Pcore::Util::Status::Role->get_reason(101);
 
     die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
