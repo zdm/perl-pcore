@@ -1,3 +1,9 @@
+- STATUS
+    - all API's should response with $status, @args;
+
+    - detect status_reason by ref eq HASH;
+    - get rid of the old status class;
+
 - LOG SUBSYSTEM:
     - write logs to socket;
 
@@ -6,11 +12,6 @@
     - limit max. possible connections;
     - do not use state in reusable classes;
     - check, that SQLite clone, clone also attached databases;
-
-- STATUS
-    - get rid of the old status class;
-    - all API's should response with $status, @args;
-    - detect status_reason by ref eq HASH;
 
 - APP & APP API:
     - move roles and permissions from API to App;

@@ -106,7 +106,16 @@ const our $STATUS_REASON => {
 
 around BUILDARGS => sub ( $orig, $self, $args ) {
     if ( ref $args->{status} eq 'ARRAY' ) {
-        $args->{reason} = $args->{status}->[1] if !defined $args->{reason};
+        if ( ref $args->{status}->[1] eq 'HASH' ) {
+            $args->{status_reason} //= $args->{status}->[1];
+
+            $args->{reason} //= get_reason( undef, $args->{status}->[0], $args->{status_reason} );
+        }
+        else {
+            $args->{reason} //= $args->{status}->[1];
+
+            $args->{status_reason} //= $args->{status}->[2];
+        }
 
         $args->{status} = $args->{status}->[0];
     }
@@ -165,10 +174,6 @@ sub is_client_error ($self) {
 
 sub is_server_error ($self) {
     return $self->{status} >= 500;
-}
-
-sub TO_DATA ($self) {
-    return [ $self->{status}, $self->{reason} ];
 }
 
 1;

@@ -1,8 +1,16 @@
-package Pcore::Util::Status;
+package Pcore::Util::Status::API;
 
 use Pcore -class;
 
 with qw[Pcore::Util::Status::Role];
+
+sub TO_DATA ($self) {
+    my $dump = { $self->%* };
+
+    delete $dump->{status_reason};
+
+    return $dump;
+}
 
 1;
 __END__
@@ -12,7 +20,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Status
+Pcore::Util::Status::API
 
 =head1 SYNOPSIS
 
