@@ -11,31 +11,30 @@ use overload    #
 
 has cb => ( is => 'ro', isa => Maybe [CodeRef] );
 
-has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
 
 P->init_demolish(__PACKAGE__);
 
 sub DEMOLISH ( $self, $global ) {
-    if ( !$global && !$self->{_response_status} && $self->{cb} ) {
+    if ( !$global && !$self->{_responded} && $self->{cb} ) {
 
         # RPC request object destroyed without return any result, this is possible run-time error in AE callback
-        $self->{cb}->( status 500 );
+        _respond( $self, 500 );
     }
 
     return;
 }
 
 sub _respond ( $self, @ ) {
-    die q[Already responded] if $self->{_response_status};
+    die q[Already responded] if $self->{_responded};
 
-    $self->{_response_status} = 1;
+    $self->{_responded} = 1;
 
     # remove callback
     if ( my $cb = delete $self->{cb} ) {
-        my $status = blessed $_[1] ? $_[1] : status splice @_, 1;
 
         # return response, if callback is defined
-        $cb->( 200, $status );
+        $cb->( blessed $_[1] ? $_[1] : status splice @_, 1 );
     }
 
     return;
