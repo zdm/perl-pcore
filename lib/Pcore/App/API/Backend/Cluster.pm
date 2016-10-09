@@ -1,6 +1,7 @@
 package Pcore::App::API::Backend::Cluster;
 
 use Pcore -class;
+use Pcore::Util::Status::API::Keyword qw[status];
 
 with qw[Pcore::App::API::Backend];
 
@@ -15,7 +16,7 @@ sub _build_host ($self) {
 }
 
 sub init ( $self, $cb ) {
-    $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+    $cb->( status 200 );
 
     return;
 }
@@ -30,7 +31,7 @@ sub register_app ( $self, $cb ) {
     # - on register - store token locally;
     # - upload api methods;
 
-    $cb->( Pcore::Util::Status->new( { status => 200 } ) );
+    $cb->( status 200 );
 
     return;
 }

@@ -2,7 +2,7 @@ package Pcore::API::DockerHub::Repository::Collaborator;
 
 use Pcore -class;
 
-extends qw[Pcore::Util::Status];
+with qw[Pcore::Util::Status::Role];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
 

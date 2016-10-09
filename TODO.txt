@@ -1,16 +1,15 @@
+- check Pcore::Util::Status;
+- check Lazarus RPC;
+- Pcore::Util::Status::API::Keyword -> Pcore::Util::Status;
 - whois, google, captcha - check api response;
-- API client;
 
 - ExtJS fields error - status 200, success FALSE;
-
 
 API classes:
     use Pcore::Util::Status::API::Keyword qw[status];
 
     return status [], result => {};
 ------------------------------------------------
-
-Pcore::API::Client;
 
 api response - hash, incapsulated status, reason and results hash;
 api call - args - ArrayRef, expand;
@@ -25,11 +24,8 @@ API callback - get status, $status->{result};
 
 API call always called via API router, so, API router MUST always return status object;
 
-- STATUS
-    - get rid of the old status class;
 
-
-
+-----------------------------------------------------------------------------------------------
 
 - LOG SUBSYSTEM:
     - write logs to socket;
