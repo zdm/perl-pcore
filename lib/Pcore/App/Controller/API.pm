@@ -3,7 +3,7 @@ package Pcore::App::Controller::API;
 use Pcore -const, -role;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_b64];
-use Pcore::Util::Status;
+use Pcore::Util::Status::API::Keyword qw[status];
 use Pcore::Util::Scalar qw[blessed];
 
 with qw[Pcore::App::Controller::WebSocket];
@@ -36,22 +36,16 @@ sub run ( $self, $req ) {
     my $cid;
 
     # create callback
-    my $cb = sub ( $status, @args ) {
-        $status = Pcore::Util::Status->new( { status => $status } ) if !blessed $status;
+    my $cb = sub ( $status ) {
+        $status->{cid} = $cid;
 
         # create list of HTTP response headers
         my @headers = (    #
             'Content-Type' => $content_type == $CONTENT_TYPE_JSON ? 'application/json' : 'application/cbor',
         );
 
-        my $body = {
-            cid    => $cid,
-            status => $status,
-            args   => @args ? \@args : undef,
-        };
-
         # write HTTP response
-        $req->( $status, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $body : to_cbor $body)->finish;
+        $req->( $status, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $status : to_cbor $status)->finish;
 
         # free HTTP request object
         undef $req;
@@ -66,7 +60,7 @@ sub run ( $self, $req ) {
         $data = eval { from_json $req->body };
 
         # content decode error
-        return $cb->( [ 400, q[Error decoding JSON request body] ] ) if $@;
+        return $cb->( status [ 400, q[Error decoding JSON request body] ] ) if $@;
     }
 
     # CBOR content type
@@ -76,25 +70,25 @@ sub run ( $self, $req ) {
         $data = eval { from_cbor $req->body };
 
         # content decode error
-        return $cb->( [ 400, q[Error decoding CBOR request body] ] ) if $@;
+        return $cb->( status [ 400, q[Error decoding CBOR request body] ] ) if $@;
     }
 
     # invalid content type
     else {
-        return $cb->( [ 400, q[Content type is invalid] ] );
+        return $cb->( status [ 400, q[Content type is invalid] ] );
     }
 
     # set request id
     $cid = $data->{cid};
 
     # method is not specified, this is callback, not supported in API server
-    return $cb->( [ 400, q[Method is required] ] ) if !$data->{method};
+    return $cb->( status [ 400, q[Method is required] ] ) if !$data->{method};
 
     # get auth token
     my ( $user_name, $token ) = $req->get_token;
 
     # no auth token provided
-    return $cb->( [ 401, q[Authentication token wasn't provided] ] ) if !$token;
+    return $cb->( status [ 401, q[Authentication token wasn't provided] ] ) if !$token;
 
     # authenticate token
     $self->{app}->{api}->authenticate(
@@ -109,7 +103,7 @@ sub run ( $self, $req ) {
 
             # this is app connection, disabled
             elsif ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
-                $cb->( [ 403, q[App must connect via WebSocket interface] ] );
+                $cb->( status [ 403, q[App must connect via WebSocket interface] ] );
             }
 
             # method is specified, this is API call
@@ -119,7 +113,7 @@ sub run ( $self, $req ) {
 
             # method is not specified, this is callback, not supported in API server
             else {
-                $cb->( [ 400, q[Method is required] ] );
+                $cb->( status [ 400, q[Method is required] ] );
             }
 
             return;
@@ -146,19 +140,15 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 
         # this is not void API call, create callback
         if ( my $cid = $data->{cid} ) {
-            $cb = sub ( $status, @args ) {
-                my $body = {
-                    cid    => $cid,
-                    status => $status,
-                    args   => @args ? \@args : undef,
-                };
+            $cb = sub ( $status ) {
+                $status->{cid} = $cid;
 
                 # write response
                 if ( $content_type eq $CONTENT_TYPE_JSON ) {
-                    $ws->send_text( to_json($body)->$* );
+                    $ws->send_text( to_json($status)->$* );
                 }
                 else {
-                    $ws->send_binary( to_cbor($body)->$* );
+                    $ws->send_binary( to_cbor($status)->$* );
                 }
 
                 return;
@@ -308,7 +298,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 133                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 127                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

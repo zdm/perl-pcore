@@ -4,7 +4,7 @@ use Pcore -class;
 use Pcore::HTTP::WebSocket;
 use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
-use Pcore::Util::Status;
+use Pcore::Util::Status::API::Keyword qw[status];
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
 has token             => ( is => 'lazy', isa => Str );
@@ -42,6 +42,7 @@ sub _build__is_http ($self) {
 sub api_call ( $self, $method, @ ) {
     my ( $cb, $args );
 
+    # parse callback
     if ( ref $_[-1] eq 'CODE' ) {
         $cb = $_[-1];
 
@@ -69,16 +70,15 @@ sub api_call ( $self, $method, @ ) {
                 }
             ),
             on_finish => sub ($res) {
-                my $status = Pcore::Util::Status->new( { status => $res->status, reason => $res->reason } );
 
                 # HTTP protocol or API call error
                 if ( !$status ) {
-                    $cb->($status) if $cb;
+                    $cb->( status [ $res->status, $res->reason ] ) if $cb;
                 }
                 else {
                     my $response = from_cbor $res->body;
 
-                    $cb->( $status, $response->{args} ? $response->{args}->@* : undef ) if $cb;
+                    $cb->( bless $response, 'Pcore::Util::Status::API' ) if $cb;
                 }
 
                 return;
@@ -113,9 +113,7 @@ sub api_call ( $self, $method, @ ) {
 
         if ( !$ws ) {
             my $on_error = sub ( $status, $reason ) {
-                $status = Pcore::Util::Status->new( { status => $status, reason => $reason } );
-
-                $cb->($status) if $cb;
+                $cb->( status [ $status, $reason ] ) if $cb;
 
                 return;
             };
@@ -177,14 +175,7 @@ sub api_call ( $self, $method, @ ) {
                         # this is API callback
                         else {
                             if ( my $callback = delete $self->{_ws_cid_cache}->{ $data->{cid} } ) {
-                                my $status = Pcore::Util::Status->new( { status => $data->{status} } );
-
-                                if ( !$status ) {
-                                    $callback->($status) if $callback;
-                                }
-                                else {
-                                    $callback->( $status, $data->{args} ? $data->{args}->@* : undef ) if $callback;
-                                }
+                                $callback->( bless $data, 'Pcore::Util::Status::API' ) if $callback;
                             }
                         }
                     }
@@ -222,9 +213,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (35)                  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 182                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (30)                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,14 +2,11 @@ package Pcore::App::API::Auth::Request;
 
 use Pcore -class;
 use Pcore::Util::Scalar qw[blessed];
-use Pcore::Util::Status::Keyword qw[status];
+use Pcore::Util::Status::API::Keyword qw[status];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {
     return sub { return _respond( $self, @_ ) };
-  },
-  q[bool] => sub {
-    return 1;
   },
   fallback => undef;
 
@@ -64,19 +61,16 @@ sub api_call ( $self, $method_id, @args ) {
     return;
 }
 
-sub _respond ( $self, $status, @args ) {
+sub _respond ( $self, @ ) {
     die q[Already responded] if $self->{_responded};
 
     $self->{_responded} = 1;
 
     # remove callback
-    my $cb = delete $self->{_cb};
+    if ( my $cb = delete $self->{_cb} ) {
 
-    # return response, if callback is defined
-    if ($cb) {
-        $status = status $status if !blessed $status;
-
-        $cb->( $status, @args );
+        # return response, if callback is defined
+        $cb->( blessed $_[1] ? $_[1] : status splice @_, 1 );
     }
 
     return;
