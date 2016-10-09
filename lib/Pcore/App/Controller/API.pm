@@ -3,7 +3,7 @@ package Pcore::App::Controller::API;
 use Pcore -const, -role;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_b64];
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 use Pcore::Util::Scalar qw[blessed];
 
 with qw[Pcore::App::Controller::WebSocket];

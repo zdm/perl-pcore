@@ -1,7 +1,7 @@
 package Pcore::API::PAUSE;
 
 use Pcore -class;
-Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 use Pcore::Util::Text qw[encode_utf8];
 
 has username => ( is => 'ro', isa => Str, required => 1 );

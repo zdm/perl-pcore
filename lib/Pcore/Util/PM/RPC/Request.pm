@@ -1,7 +1,7 @@
 package Pcore::Util::PM::RPC::Request;
 
 use Pcore -class;
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {

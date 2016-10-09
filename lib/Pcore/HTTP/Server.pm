@@ -3,7 +3,7 @@ package Pcore::HTTP::Server;
 use Pcore -class, -const;
 use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::HTTP::Server::Request;
 

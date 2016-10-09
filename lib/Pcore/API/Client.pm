@@ -4,7 +4,7 @@ use Pcore -class;
 use Pcore::HTTP::WebSocket;
 use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
 has token             => ( is => 'lazy', isa => Str );
@@ -78,7 +78,7 @@ sub api_call ( $self, $method, @ ) {
                 else {
                     my $response = from_cbor $res->body;
 
-                    $cb->( bless $response, 'Pcore::Util::Status::API' ) if $cb;
+                    $cb->( bless $response, 'Pcore::Util::Response::Status' ) if $cb;
                 }
 
                 return;
@@ -175,7 +175,7 @@ sub api_call ( $self, $method, @ ) {
                         # this is API callback
                         else {
                             if ( my $callback = delete $self->{_ws_cid_cache}->{ $data->{cid} } ) {
-                                $callback->( bless $data, 'Pcore::Util::Status::API' ) if $callback;
+                                $callback->( bless $data, 'Pcore::Util::Response::Status' ) if $callback;
                             }
                         }
                     }

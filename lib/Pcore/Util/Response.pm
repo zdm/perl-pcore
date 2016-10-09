@@ -1,7 +1,7 @@
-package Pcore::Util::Status::API::Keyword;
+package Pcore::Util::Response;
 
-use Pcore -export => [qw[status]];
-use Pcore::Util::Status::API;
+use Pcore -class, -export => [qw[status]];
+use Pcore::Util::Response::Status;
 
 sub status ( $status, @ ) : prototype($;@) {
     my %args = @_ == 2 ? ( result => $_[1] ) : splice @_, 1;
@@ -10,12 +10,12 @@ sub status ( $status, @ ) : prototype($;@) {
         $args{status} = $status->[0];
 
         if ( ref $status->[1] eq 'HASH' ) {
-            $args{reason} = Pcore::Util::Status::Role::get_reason( undef, $status->[0], $status->[1] );
+            $args{reason} = Pcore::Util::Response::Status::get_reason( undef, $status->[0], $status->[1] );
 
             $args{status_reason} = $status->[1];
         }
         else {
-            $args{reason} = $status->[1] // Pcore::Util::Status::Role::get_reason( undef, $status->[0], $status->[2] );
+            $args{reason} = $status->[1] // Pcore::Util::Response::Status::get_reason( undef, $status->[0], $status->[2] );
 
             $args{status_reason} = $status->[2];
         }
@@ -23,10 +23,10 @@ sub status ( $status, @ ) : prototype($;@) {
     else {
         $args{status} = $status;
 
-        $args{reason} = Pcore::Util::Status::Role::get_reason( undef, $status, undef );
+        $args{reason} = Pcore::Util::Response::Status::get_reason( undef, $status, undef );
     }
 
-    return bless \%args, 'Pcore::Util::Status::API';
+    return bless \%args, 'Pcore::Util::Response::Status';
 }
 
 1;
@@ -37,7 +37,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Status::API::Keyword
+Pcore::Util::Response
 
 =head1 SYNOPSIS
 

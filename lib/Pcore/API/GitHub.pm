@@ -1,7 +1,7 @@
 package Pcore::API::GitHub;
 
 use Pcore -class;
-Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 
 has api_username => ( is => 'ro', isa => Str, required => 1 );
 has api_token    => ( is => 'ro', isa => Str, required => 1 );

@@ -1,7 +1,7 @@
 package Pcore::App::API::Backend::Cluster;
 
 use Pcore -class;
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 
 with qw[Pcore::App::API::Backend];
 

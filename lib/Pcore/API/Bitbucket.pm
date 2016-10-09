@@ -1,7 +1,7 @@
 package Pcore::API::Bitbucket;
 
 use Pcore -class;
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 use Pcore::API::Bitbucket::Issue;
 use Pcore::API::SCM qw[:CONST];
 

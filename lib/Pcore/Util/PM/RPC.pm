@@ -6,7 +6,7 @@ use Config;
 use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
-use Pcore::Util::Status::API;
+use Pcore::Util::Response::Status;
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
@@ -165,7 +165,7 @@ sub _on_data ( $self, $data ) {
     # RPC callback
     else {
         if ( my $cb = delete $self->_queue->{ $data->{cid} } ) {
-            $cb->( bless $data, 'Pcore::Util::Status::API' );
+            $cb->( bless $data, 'Pcore::Util::Response::Status' );
         }
     }
 

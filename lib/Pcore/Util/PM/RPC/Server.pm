@@ -33,7 +33,7 @@ use if $MSWIN, 'Win32API::File';
 use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
-use Pcore::Util::Status::API;
+use Pcore::Util::Response::Status;
 
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
@@ -194,7 +194,7 @@ sub _on_data ($data) {
     # RPC callback
     else {
         if ( my $cb = delete $QUEUE->{ $data->{cid} } ) {
-            $cb->( bless $data, 'Pcore::Util::Status::API' );
+            $cb->( bless $data, 'Pcore::Util::Response::Status' );
         }
     }
 

@@ -4,7 +4,7 @@ use Pcore -class;
 use Pcore::API::SCM qw[:CONST];
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::API::SCM::Upstream;
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 use Pcore::Util::Scalar qw[weaken];
 
 with qw[Pcore::API::SCM::Server];

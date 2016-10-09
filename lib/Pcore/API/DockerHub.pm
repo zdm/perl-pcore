@@ -1,7 +1,7 @@
 package Pcore::API::DockerHub;
 
 use Pcore -const, -class, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TAG $DOCKERHUB_SOURCE_BRANCH]] };
-Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 require Pcore::API::DockerHub::Repository;
 
 # https://github.com/RyanTheAllmighty/Docker-Hub-API

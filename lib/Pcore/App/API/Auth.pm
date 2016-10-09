@@ -3,7 +3,7 @@ package Pcore::App::API::Auth;
 use Pcore -class;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
-use Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 

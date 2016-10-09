@@ -3,7 +3,7 @@ package Pcore::API::SCM::Server::Git;
 use Pcore -class;
 use Pcore::API::SCM qw[:CONST];
 use Pcore::API::SCM::Upstream;
-Pcore::Util::Status::API::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 
 with qw[Pcore::API::SCM::Server];
 

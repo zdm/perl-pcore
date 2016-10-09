@@ -1,4 +1,4 @@
-package Pcore::Util::Status::API;
+package Pcore::Util::Response::Status;
 
 use Pcore -class;
 
@@ -20,7 +20,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Status::API
+Pcore::Util::Response::Status
 
 =head1 SYNOPSIS
 
