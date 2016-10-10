@@ -1,7 +1,7 @@
 package Pcore::App::API::Backend::Local;
 
 use Pcore -role;
-use Pcore::Util::Status::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 use Pcore::Util::Data qw[to_b64_url from_b64];
 use Pcore::Util::Digest qw[sha1];
 use Pcore::App::API qw[:CONST];
@@ -92,7 +92,7 @@ sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token
         $self->_auth_user_token( $app_instance_id, $token_id, $private_token, $cb );
     }
     else {
-        $cb->( status [ 400, 'Invalid token type' ], undef );
+        $cb->( status [ 400, 'Invalid token type' ] );
     }
 
     return;
@@ -109,8 +109,13 @@ sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
     $self->_hash_rpc->rpc_call(
         'create_hash',
         $private_token,
-        sub ( $status, $hash ) {
-            $cb->( $status, $token, $hash );
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
+            }
+            else {
+                $cb->( status 200, token => $token, hash => $res->{result} );
+            }
 
             return;
         }
@@ -129,8 +134,13 @@ sub _generate_user_token ( $self, $user_token_id, $cb ) {
     $self->_hash_rpc->rpc_call(
         'create_hash',
         $private_token,
-        sub ( $status, $hash ) {
-            $cb->( $status, $token, $hash );
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
+            }
+            else {
+                $cb->( status 200, token => $token, hash => $res->{result} );
+            }
 
             return;
         }
@@ -145,8 +155,13 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
     $self->_hash_rpc->rpc_call(
         'create_hash',
         $private_token,
-        sub ( $status, $hash ) {
-            $cb->( $status, $hash );
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
+            }
+            else {
+                $cb->( status 200, hash => $res->{result} );
+            }
 
             return;
         }
@@ -165,10 +180,8 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
         $self->_hash_rpc->rpc_call(
             'verify_hash',
             $token, $hash,
-            sub ( $rpc_status, $match ) {
-                my $status = $match ? status 200 : status [ 400, 'Invalid token' ];
-
-                $self->{_hash_cache}->{$cache_id} = $status;
+            sub ( $res ) {
+                my $status = $self->{_hash_cache}->{$cache_id} = $res->{result} ? status 200 : status [ 400, 'Invalid token' ];
 
                 $cb->($status);
 
@@ -187,13 +200,13 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 70, 76, 84, 142      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 70, 76, 84, 152      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 102                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 122                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 142                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 158                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 127                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 152                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 173                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

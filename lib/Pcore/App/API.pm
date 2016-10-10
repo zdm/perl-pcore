@@ -2,7 +2,7 @@ package Pcore::App::API;
 
 use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN]] };
 use Pcore::App::API::Map;
-use Pcore::Util::Status::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 use Pcore::Util::Data qw[from_b64];
 use Pcore::Util::Digest qw[sha1];
 use Pcore::Util::Text qw[encode_utf8];

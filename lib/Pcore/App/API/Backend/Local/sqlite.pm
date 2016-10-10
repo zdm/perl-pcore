@@ -1,7 +1,7 @@
 package Pcore::App::API::Backend::Local::sqlite;
 
 use Pcore -class;
-use Pcore::Util::Status::Keyword qw[status];
+use Pcore::Util::Response qw[status];
 
 with qw[Pcore::App::API::Backend::Local];
 
