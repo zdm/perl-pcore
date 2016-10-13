@@ -19,6 +19,7 @@ requires(
     '_auth_user_password',
     '_auth_app_instance_token',
     '_auth_user_token',
+    '_auth_user_session',
 );
 
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::DBH'], required => 1 );
@@ -91,6 +92,9 @@ sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token
     elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
         $self->_auth_user_token( $app_instance_id, $token_id, $private_token, $cb );
     }
+    elsif ( $token_type == $TOKEN_TYPE_USER_SESSION ) {
+        $self->_auth_user_session( $app_instance_id, $token_id, $private_token, $cb );
+    }
     else {
         $cb->( status [ 400, 'Invalid token type' ] );
     }
@@ -114,7 +118,7 @@ sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token => $token, hash => $res->{result} );
+                $cb->( status 200, token => $token, hash => $res->{hash} );
             }
 
             return;
@@ -139,7 +143,7 @@ sub _generate_user_token ( $self, $user_token_id, $cb ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token => $token, hash => $res->{result} );
+                $cb->( status 200, token => $token, hash => $res->{hash} );
             }
 
             return;
@@ -160,7 +164,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
                 $cb->($res);
             }
             else {
-                $cb->( status 200, hash => $res->{result} );
+                $cb->( status 200, hash => $res->{hash} );
             }
 
             return;
@@ -181,9 +185,7 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
             'verify_hash',
             $token, $hash,
             sub ( $res ) {
-                my $status = $self->{_hash_cache}->{$cache_id} = $res->{result} ? status 200 : status [ 400, 'Invalid token' ];
-
-                $cb->($status);
+                $cb->( $self->{_hash_cache}->{$cache_id} = $res->{match} ? status 200 : status [ 400, 'Invalid token' ] );
 
                 return;
             }
@@ -200,13 +202,13 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 70, 76, 84, 152      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 71, 77, 85, 156      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 102                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 127                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 152                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 173                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 106                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 131                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 156                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 177                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

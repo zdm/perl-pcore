@@ -1,6 +1,6 @@
 package Pcore::App::API;
 
-use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN]] };
+use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 use Pcore::App::API::Map;
 use Pcore::Util::Response qw[status];
 use Pcore::Util::Data qw[from_b64];
@@ -10,6 +10,7 @@ use Pcore::Util::Text qw[encode_utf8];
 const our $TOKEN_TYPE_USER_PASSWORD      => 1;
 const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
 const our $TOKEN_TYPE_USER_TOKEN         => 3;
+const our $TOKEN_TYPE_USER_SESSION       => 4;
 
 require Pcore::App::API::Auth;
 
@@ -93,8 +94,8 @@ sub init ( $self, $cb ) {
     print q[Initialising API backend ... ];
 
     $self->{backend}->init(
-        sub ($status) {
-            die qq[Error initialising API auth backend: $status] if !$status;
+        sub ($res) {
+            die qq[Error initialising API auth backend: $res] if !$res;
 
             say 'done';
 
@@ -108,8 +109,8 @@ sub init ( $self, $cb ) {
                     "@{[$self->app->version]}",
                     $self->roles,
                     $self->permissions,
-                    sub ($status) {
-                        die qq[Error connecting app: $status] if !$status;
+                    sub ($res) {
+                        die qq[Error connecting app: $res] if !$res;
 
                         say 'done';
 
@@ -137,15 +138,15 @@ sub init ( $self, $cb ) {
                     $self->permissions,
                     P->sys->hostname,
                     "@{[$self->app->version]}",
-                    sub ( $status, $app_instance_id, $app_instance_token ) {
-                        die qq[Error registering app: $status] if !$status;
+                    sub ( $res ) {
+                        die qq[Error registering app: $res] if !$res;
 
                         say 'done';
 
                         # store app instance credentials
                         {
-                            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $app_instance_id;
-                            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $app_instance_token;
+                            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $res->{app_instance_id};
+                            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $res->{app_instance_token};
 
                             $self->app->store_cfg;
                         }
@@ -189,7 +190,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->( status [ 400, 'Error decoding user token' ], undef );
+            $cb->( status [ 400, 'Error decoding user token' ] );
 
             return;
         }
@@ -208,14 +209,14 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->( status [ 400, 'Error decoding user token' ], undef );
+            $cb->( status [ 400, 'Error decoding user token' ] );
 
             return;
         }
 
         # token is invalid
-        if ( $token_type != $TOKEN_TYPE_APP_INSTANCE_TOKEN && $token_type != $TOKEN_TYPE_USER_TOKEN ) {
-            $cb->( status [ 400, 'Invalid token type' ], undef );
+        if ( $token_type != $TOKEN_TYPE_APP_INSTANCE_TOKEN && $token_type != $TOKEN_TYPE_USER_TOKEN && $token_type != $TOKEN_TYPE_USER_SESSION ) {
+            $cb->( status [ 400, 'Invalid token type' ] );
 
             return;
         }
@@ -238,14 +239,14 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
             # auth is disabled
             if ( !$auth->{enabled} ) {
-                $cb->( status [ 400, 'Token is disabled' ], undef );
+                $cb->( status [ 400, 'Token is disabled' ] );
 
                 return;
             }
 
             # auth is enabled and has permissions
             elsif ( defined $auth->{permissions} ) {
-                $cb->( status 200, $auth );
+                $cb->( status 200, auth => $auth );
 
                 return;
             }
@@ -258,18 +259,23 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         $token_type,
         $token_id,
         $auth ? undef : $private_token,    # validate token, if auth is new
-        sub ( $status, $auth_attrs, $tags ) {
+
+        sub ( $res ) {
             my $cache = $self->{_auth_cache};
 
-            if ( !$status ) {
+            if ( !$res ) {
                 delete $cache->{$auth_id};
 
-                $cb->( $status, undef );
+                $cb->($res);
 
                 return;
             }
 
             $auth = $cache->{$auth_id};
+
+            my $auth_attrs = $res->{auth};
+
+            my $tags = $res->{tags};
 
             # auth is not cached, create new auth
             if ( !$auth ) {
@@ -286,10 +292,10 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             }
 
             if ( $auth->{enabled} ) {
-                $cb->( status 200, $auth );
+                $cb->( status 200, auth => $auth );
             }
             else {
-                $cb->( status [ 400, 'Token is disabled' ], undef );
+                $cb->( status [ 400, 'Token is disabled' ] );
             }
 
             return;
@@ -318,10 +324,10 @@ sub get_app ( $self, $app_id, $cb = undef ) {
 
     $self->{backend}->get_app(
         $app_id,
-        sub ( $status, $app ) {
-            $cb->( $status, $app ) if $cb;
+        sub ( $res ) {
+            $cb->($res) if $cb;
 
-            $blocking_cv->( $status, $app ) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -335,16 +341,17 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb = undef ) {
 
     $self->{backend}->set_app_enabled(
         $app_id, $enabled,
-        sub ($status) {
+        sub ($res) {
 
             # invalidate app cache on success
-            if ($status) {
-                $self->_invalidate_app_cache($app_id);
+            if ($res) {
+
+                # $self->_invalidate_app_cache($app_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -358,17 +365,17 @@ sub remove_app ( $self, $app_id, $cb = undef ) {
 
     $self->{backend}->remove_app(
         $app_id,
-        sub ( $status ) {
+        sub ( $res ) {
 
             # invalidate app cache on success
-            if ($status) {
+            if ($res) {
 
                 # $self->_invalidate_app_cache($app_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -383,10 +390,10 @@ sub get_app_instance ( $self, $app_instance_id, $cb = undef ) {
 
     $self->{backend}->get_app_instance(
         $app_instance_id,
-        sub ( $status, $app_instance ) {
-            $cb->( $status, $app_instance ) if $cb;
+        sub ( $res ) {
+            $cb->($res) if $cb;
 
-            $blocking_cv->( $status, $app_instance ) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -401,17 +408,17 @@ sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb = undef ) 
     $self->{backend}->set_app_instance_enabled(
         $app_instance_id,
         $enabled,
-        sub ($status) {
+        sub ($res) {
 
             # invalidate app instance cache on success
-            if ($status) {
+            if ($res) {
 
                 # $self->_invalidate_app_instance_cache($app_instance_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -425,17 +432,17 @@ sub remove_app_instance ( $self, $app_instance_id, $cb = undef ) {
 
     $self->{backend}->remove_app_instance(
         $app_instance_id,
-        sub ( $status ) {
+        sub ( $res ) {
 
             # invalidate app instance cache on success
-            if ($status) {
+            if ($res) {
 
                 # $self->_invalidate_app_instance_cache($app_instance_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -450,16 +457,17 @@ sub set_app_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
 
     $self->{backend}->set_role_enabled(
         $role_id, $enabled,
-        sub ($status) {
+        sub ($res) {
 
             # invalidate role cache on success
-            if ($status) {
-                $self->_invalidate_role_cache($role_id);
+            if ($res) {
+
+                # $self->_invalidate_role_cache($role_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -473,10 +481,10 @@ sub get_users ( $self, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->get_users(
-        sub ( $status, $users ) {
-            $cb->( $status, $users ) if $cb;
+        sub ( $res ) {
+            $cb->($res) if $cb;
 
-            $blocking_cv->( $status, $users ) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -490,10 +498,10 @@ sub get_user ( $self, $user_id, $cb = undef ) {
 
     $self->{backend}->get_user(
         $user_id,
-        sub ( $status, $user ) {
-            $cb->( $status, $user ) if $cb;
+        sub ( $res ) {
+            $cb->($res) if $cb;
 
-            $blocking_cv->( $status, $user ) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -508,10 +516,10 @@ sub create_user ( $self, $user_name, $password, $cb = undef ) {
     $self->{backend}->create_user(
         $user_name,
         $password,
-        sub ( $status, $user_id ) {
-            $cb->( $status, $user_id ) if $cb;
+        sub ( $res ) {
+            $cb->($res) if $cb;
 
-            $blocking_cv->( $status, $user_id ) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -528,17 +536,17 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb = undef ) {
     $self->{backend}->set_user_password(
         $user_id,
         $user_password_utf8,
-        sub ($status) {
+        sub ($res) {
 
             # invalidate user cache on success
-            if ($status) {
+            if ($res) {
 
                 # $self->on_user_password_change($user_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -552,10 +560,10 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
 
     $self->{backend}->set_user_enabled(
         $user_id, $enabled,
-        sub ($status) {
-            $cb->($status) if $cb;
+        sub ($res) {
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -570,17 +578,17 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb = undef ) {
     $self->{backend}->add_user_permissions(
         $user_id,
         $permissions,
-        sub ($status) {
+        sub ($res) {
 
             # invalidate user cache on success
-            if ($status) {
+            if ($res) {
 
                 # $self->_invalidate_user_cache($user_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -596,10 +604,10 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb = undef ) {
     $self->{backend}->create_user_token(
         $user_id, $desc,
         $permissions,
-        sub ( $status, $token ) {
-            $cb->( $status, $token ) if $cb;
+        sub ( $res ) {
+            $cb->($res) if $cb;
 
-            $blocking_cv->( $status, $token ) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -613,17 +621,17 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 
     $self->{backend}->remove_user_token(
         $user_token_id,
-        sub ( $status, $token ) {
+        sub ( $res ) {
 
             # invalidate user token cache on success
-            if ($status) {
+            if ($res) {
 
                 # $self->_invalidate_user_token_cache($token_id);
             }
 
-            $cb->($status) if $cb;
+            $cb->($res) if $cb;
 
-            $blocking_cv->($status) if $blocking_cv;
+            $blocking_cv->($res) if $blocking_cv;
 
             return;
         }
@@ -639,7 +647,7 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 180, 398, 523, 593   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 181, 405, 531, 601   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

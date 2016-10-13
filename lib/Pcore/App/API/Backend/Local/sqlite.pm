@@ -77,10 +77,10 @@ sub init_db ( $self, $cb ) {
             --- USER TOKEN
             CREATE TABLE IF NOT EXISTS `api_user_token` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `created_ts` INTEGER,
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
                 `desc` TEXT,
+                `created_ts` INTEGER,
                 `hash` BLOB UNIQUE
             );
 
@@ -92,6 +92,17 @@ sub init_db ( $self, $cb ) {
             );
 
             CREATE UNIQUE INDEX `idx_uniq_api_user_token_permissions` ON `api_user_token_permissions` (`user_token_id`, `user_permissions_id`);
+
+            --- USER SESSION
+            CREATE TABLE IF NOT EXISTS `api_user_session` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
+                `created_ts` INTEGER,
+                `remote_ip` BLOB NOT NULL,
+                `remote_ip_geo` BLOB NOT NULL,
+                `user_agent` TEXT NOT NULL,
+                `hash` BLOB UNIQUE
+            );
 SQL
     );
 
@@ -106,7 +117,7 @@ SQL
 sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_instance_host, $app_instance_version, $cb ) {
     $self->get_app(
         $app_name,
-        sub ( $status, $app ) {
+        sub ( $res ) {
             my $dbh = $self->dbh;
 
             $dbh->begin_work;
@@ -114,18 +125,18 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
             my $app_id;
 
             # app exists
-            if ($status) {
+            if ($res) {
 
                 # app is disabled, registration is disallowed
-                if ( !$app->{enabled} ) {
+                if ( !$res->{app}->{enabled} ) {
                     $dbh->rollback;
 
-                    $cb->( status [ 400, 'App is disabled' ], undef, undef );
+                    $cb->( status [ 400, 'App is disabled' ] );
 
                     return;
                 }
 
-                $app_id = $app->{id};
+                $app_id = $res->{app}->{id};
             }
 
             # app is not exists, create app
@@ -135,7 +146,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
                 if ( !$dbh->do( q[INSERT OR IGNORE INTO api_app (name, desc, enabled, created_ts) VALUES (?, ?, 0, ?)], [ $app_name, $app_desc, time ] ) ) {
                     $dbh->rollback;
 
-                    $cb->( status [ 500, 'Error creation app' ], undef, undef );
+                    $cb->( status [ 500, 'Error creation app' ] );
 
                     return;
                 }
@@ -154,7 +165,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
                     if ( !$status && $status != 304 ) {
                         $dbh->rollback;
 
-                        $cb->( $status, undef, undef );
+                        $cb->($status);
 
                         return;
                     }
@@ -165,7 +176,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
                         # app instance creation error
                         $dbh->rollback;
 
-                        $cb->( status [ 500, 'App instance creation error' ], undef, undef );
+                        $cb->( status [ 500, 'App instance creation error' ] );
 
                         return;
                     }
@@ -175,22 +186,22 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
                     # set app instance token
                     $self->_generate_app_instance_token(
                         $app_instance_id,
-                        sub ( $status, $app_instance_token, $hash ) {
+                        sub ( $res ) {
 
                             # app instance token generation error
-                            if ( !$status ) {
+                            if ( !$res ) {
                                 $dbh->rollback;
 
-                                $cb->( $status, undef );
+                                $cb->($res);
 
                                 return;
                             }
 
                             # store app instance token
-                            if ( !$dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $hash, $app_instance_id ] ) ) {
+                            if ( !$dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $res->{hash}, $app_instance_id ] ) ) {
                                 $dbh->rollback;
 
-                                $cb->( status [ 500, 'Error creation app instance token' ], undef, undef );
+                                $cb->( status [ 500, 'Error creation app instance token' ] );
 
                                 return;
                             }
@@ -198,7 +209,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
                             # registration process finished successfully
                             $dbh->commit;
 
-                            $cb->( status 201, $app_instance_id, $app_instance_token );
+                            $cb->( status 201, app_instance_id => $app_instance_id, app_instance_token => $res->{token} );
 
                             return;
                         }
@@ -218,12 +229,14 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
 sub _connect_app_instance ( $self, $local, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
     $self->get_app_instance(
         $app_instance_id,
-        sub ( $status, $app_instance ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
+
+            my $app_instance = $res->{app_instance};
 
             # update add instance
             if ( !$self->dbh->do( q[UPDATE OR IGNORE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $app_instance_version, time, $app_instance_id ] ) ) {
@@ -325,20 +338,20 @@ sub _connect_local_app_instance ( $self, $app_id, $app_instance_id, $cb ) {
 
     # create root user
     $self->_create_root_user(
-        sub ( $status, $root_password ) {
-            if ( !$status && $status != 304 ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res && $res != 304 ) {
+                $cb->($res);
 
                 return;
             }
 
-            if ($root_password) {
-                say "Root user created: root / $root_password";
+            if ( $res->{password} ) {
+                say "Root user created: root / $res->{password}";
             }
 
             $self->{app}->{api}->connect_local_app_instance(
-                sub ($status) {
-                    $cb->($status);
+                sub ($res) {
+                    $cb->($res);
 
                     return;
                 }
@@ -433,32 +446,36 @@ sub _add_app_roles ( $self, $app_id, $app_roles, $cb ) {
 sub _create_root_user ( $self, $cb ) {
     $self->get_user(
         1,
-        sub ( $status, $user ) {
+        sub ( $res ) {
 
             # user_id 1 already exists
-            if ( $status != 404 ) {
-                $cb->( status 304, undef );
+            if ( $res != 404 ) {
+                $cb->( status 304 );
 
                 return;
             }
 
+            my $user = $res->{user};
+
+            # generate random root password
             my $root_password = P->data->to_b64_url( P->random->bytes(32) );
 
+            # generate root password hash
             $self->_generate_user_password_hash(
                 'root',
                 $root_password,
-                sub ( $status, $hash ) {
-                    if ( !$status ) {
-                        $cb->( $status, undef );
+                sub ( $res ) {
+                    if ( !$res ) {
+                        $cb->($res);
 
                         return;
                     }
 
-                    if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, hash, enabled, created_ts) VALUES (1, ?, ?, 1, ?)], [ 'root', $hash, time ] ) ) {
-                        $cb->( status 200, $root_password );
+                    if ( $self->dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, hash, enabled, created_ts) VALUES (1, ?, ?, 1, ?)], [ 'root', $res->{hash}, time ] ) ) {
+                        $cb->( status 200, password => $root_password );
                     }
                     else {
-                        $cb->( status [ 500, 'Error creating root user' ], undef );
+                        $cb->( status [ 500, 'Error creating root user' ] );
                     }
 
                     return;
@@ -507,7 +524,7 @@ SQL
 
     # user not found
     if ( !$res ) {
-        $cb->( status [ 404, 'User not found' ], undef, undef );
+        $cb->( status [ 404, 'User not found' ] );
 
         return;
     }
@@ -535,7 +552,7 @@ SQL
             $auth->{permissions} = {};
         }
 
-        $cb->( status 200, $auth, $tags );
+        $cb->( status 200, auth => $auth, tags => $tags );
 
         return;
     };
@@ -555,7 +572,7 @@ SQL
 
                 # token is invalid
                 else {
-                    $cb->( $status, undef, undef );
+                    $cb->($status);
                 }
 
                 return;
@@ -606,7 +623,7 @@ SQL
 
     # app instance not found
     if ( !$res ) {
-        $cb->( status [ 404, 'App instance not found' ], undef, undef );
+        $cb->( status [ 404, 'App instance not found' ] );
 
         return;
     }
@@ -635,7 +652,7 @@ SQL
             $auth->{permissions} = {};
         }
 
-        $cb->( status 200, $auth, $tags );
+        $cb->( status 200, auth => $auth, tags => $tags );
 
         return;
     };
@@ -655,7 +672,7 @@ SQL
 
                 # token is invalid
                 else {
-                    $cb->( $status, undef, undef );
+                    $cb->($status);
                 }
 
                 return;
@@ -710,7 +727,7 @@ SQL
 
     # user token not found
     if ( !$res ) {
-        $cb->( status [ 404, 'User token not found' ], undef, undef );
+        $cb->( status [ 404, 'User token not found' ] );
 
         return;
     }
@@ -740,7 +757,7 @@ SQL
             $auth->{permissions} = {};
         }
 
-        $cb->( status 200, $auth, $tags );
+        $cb->( status 200, auth => $auth, tags => $tags );
 
         return;
     };
@@ -760,7 +777,113 @@ SQL
 
                 # token is invalid
                 else {
-                    $cb->( $status, undef, undef );
+                    $cb->($status);
+                }
+
+                return;
+            }
+        );
+    }
+    else {
+        $continue->();
+    }
+
+    return;
+}
+
+# TODO
+sub _auth_user_session ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
+    state $sql1 = <<'SQL';
+        SELECT
+            api_user.id AS user_id,
+            api_user.name AS user_name,
+            api_user.enabled AS user_enabled,
+            api_user_token.hash,
+            api_user_token.enabled AS user_token_enabled
+        FROM
+            api_user,
+            api_user_token
+        WHERE
+            api_user_token.id = ?
+            AND api_user_token.user_id = api_user.id
+SQL
+
+    state $sql2 = <<'SQL';
+        SELECT
+            api_app_role.name AS source_app_role_name
+        FROM
+            api_app_instance,
+            api_app_role,
+            api_user_permissions,
+            api_user_token_permissions
+        WHERE
+            api_app_instance.id = ?                                                         --- source app_instance_id
+            AND api_app_role.app_id = api_app_instance.app_id                               --- link source_app_instance_role to source_app
+            AND api_app_role.enabled = 1                                                    --- source_app_role must be enabled
+
+            AND api_app_role.id = api_user_permissions.role_id                              --- link app_role to user_permissions
+            AND api_user_permissions.enabled = 1                                            --- user permission must be enabled
+
+            AND api_user_permissions.id = api_user_token_permissions.user_permissions_id    --- link user_token_permissions to user_permissions
+            AND api_user_token_permissions.user_token_id = ?                                --- link user_token_permissions to user_token
+SQL
+
+    # get user token instance
+    my $res = $self->dbh->selectrow( $sql1, [$user_token_id] );
+
+    # user token not found
+    if ( !$res ) {
+        $cb->( status [ 404, 'User token not found' ] );
+
+        return;
+    }
+
+    my $continue = sub {
+        my $user_id = $res->{user_id};
+
+        my $auth = {
+            user_id       => $user_id,
+            user_name     => $res->{user_name},
+            user_token_id => $user_token_id,
+            enabled       => $res->{user_enabled} && $res->{user_token_enabled},
+        };
+
+        my $tags = {
+            user_id       => $user_id,
+            user_token_id => $user_token_id,
+        };
+
+        # get permissions
+        if ( my $roles = $self->dbh->selectall( $sql2, [ $source_app_instance_id, $user_token_id ] ) ) {
+            for my $row ( $roles->@* ) {
+                $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
+            }
+        }
+        else {
+            $auth->{permissions} = {};
+        }
+
+        $cb->( status 200, auth => $auth, tags => $tags );
+
+        return;
+    };
+
+    if ($private_token) {
+
+        # verify token
+        $self->_verify_token_hash(
+            $private_token,
+            $res->{hash},
+            sub ($status) {
+
+                # token valid
+                if ($status) {
+                    $continue->();
+                }
+
+                # token is invalid
+                else {
+                    $cb->($status);
                 }
 
                 return;
@@ -778,22 +901,22 @@ SQL
 sub get_app ( $self, $app_id, $cb ) {
     if ( $app_id =~ /\A\d+\z/sm ) {
         if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
-            $cb->( status 200, $app );
+            $cb->( status 200, app => $app );
         }
         else {
 
             # app not found
-            $cb->( status [ 404, 'App not found' ], undef );
+            $cb->( status [ 404, 'App not found' ] );
         }
     }
     else {
         if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_id] ) ) {
-            $cb->( status 200, $app );
+            $cb->( status 200, app => $app );
         }
         else {
 
             # app not found
-            $cb->( status [ 404, 'App not found' ], undef );
+            $cb->( status [ 404, 'App not found' ] );
         }
     }
 
@@ -803,12 +926,14 @@ sub get_app ( $self, $app_id, $cb ) {
 sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
     $self->get_app(
         $app_id,
-        sub ( $status, $app ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
+
+            my $app = $res->{app};
 
             if ( ( $enabled && !$app->{enabled} ) || ( !$enabled && $app->{enabled} ) ) {
                 if ( $self->dbh->do( q[UPDATE OR IGNORE api_app SET enabled = ? WHERE id = ?], [ !!$enabled, $app->{id} ] ) ) {
@@ -834,14 +959,14 @@ sub set_app_enabled ( $self, $app_id, $enabled, $cb ) {
 sub remove_app ( $self, $app_id, $cb ) {
     $self->get_app(
         $app_id,
-        sub ( $status, $app ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
 
-            if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app WHERE id = ?], [ $app->{id} ] ) ) {
+            if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app WHERE id = ?], [ $res->{app}->{id} ] ) ) {
                 $cb->( status 200 );
             }
             else {
@@ -934,10 +1059,10 @@ sub get_app_instance ( $self, $app_instance_id, $cb ) {
     if ( my $app_instance = $self->dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
         delete $app_instance->{hash};
 
-        $cb->( status 200, $app_instance );
+        $cb->( status 200, app_instance => $app_instance );
     }
     else {
-        $cb->( status [ 404, 'App instance not found' ], undef );
+        $cb->( status [ 404, 'App instance not found' ] );
     }
 
     return;
@@ -946,24 +1071,24 @@ sub get_app_instance ( $self, $app_instance_id, $cb ) {
 sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
     $self->_generate_app_instance_token(
         $app_instance_id,
-        sub ( $status, $token, $hash ) {
+        sub ( $res ) {
 
             # app instance token generation error
-            if ( !$status ) {
-                $cb->( $status, undef );
+            if ( !$res ) {
+                $cb->($res);
             }
 
             # app instance token generated
             else {
 
                 # set app instance token
-                if ( $self->dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $hash, $app_instance_id ] ) ) {
-                    $cb->( status 200, $token );
+                if ( $self->dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $res->{hash}, $app_instance_id ] ) ) {
+                    $cb->( status 200, token => $res->{token} );
                 }
 
                 # set token error
                 else {
-                    $cb->( status [ 500, 'Error creation app instance token' ], undef );
+                    $cb->( status [ 500, 'Error creation app instance token' ] );
                 }
             }
 
@@ -977,14 +1102,14 @@ sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
 sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
     $self->get_app_instance(
         $app_instance_id,
-        sub ( $status, $app_instance ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
 
-            if ( ( $enabled && !$app_instance->{enabled} ) || ( !$enabled && $app_instance->{enabled} ) ) {
+            if ( ( $enabled && !$res->{app_instance}->{enabled} ) || ( !$enabled && $res->{app_instance}->{enabled} ) ) {
                 if ( $self->dbh->do( q[UPDATE api_app_instance SET enabled = ? WHERE id = ?], [ !!$enabled, $app_instance_id ] ) ) {
                     $cb->( status 200 );
                 }
@@ -1018,10 +1143,10 @@ sub remove_app_instance ( $self, $app_instance_id, $cb ) {
 
 sub get_app_instance_roles ( $self, $app_id, $cb ) {
     if ( my $roles = $self->dbh->selectall( q[SELECT id, name, enabled FROM api_app_role WHERE app_id = ?], [$app_id] ) ) {
-        $cb->( status 200, $roles );
+        $cb->( status 200, roles => $roles );
     }
     else {
-        $cb->( status 200, [] );
+        $cb->( status 200, roles => [] );
     }
 
     return;
@@ -1034,10 +1159,10 @@ sub get_users ( $self, $cb ) {
             delete $row->{hash};
         }
 
-        $cb->( status 200, $users );
+        $cb->( status 200, users => $users );
     }
     else {
-        $cb->( status 500, undef );
+        $cb->( status 500 );
     }
 
     return;
@@ -1048,24 +1173,24 @@ sub get_user ( $self, $user_id, $cb ) {
         if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
             delete $user->{hash};
 
-            $cb->( status 200, $user );
+            $cb->( status 200, user => $user );
         }
         else {
 
             # user not found
-            $cb->( status [ 404, 'User not found' ], undef );
+            $cb->( status [ 404, 'User not found' ] );
         }
     }
     else {
         if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_id] ) ) {
             delete $user->{hash};
 
-            $cb->( status 200, $user );
+            $cb->( status 200, user => $user );
         }
         else {
 
             # user not found
-            $cb->( status [ 404, 'User not found' ], undef );
+            $cb->( status [ 404, 'User not found' ] );
         }
     }
 
@@ -1079,22 +1204,25 @@ sub create_user ( $self, $user_name, $password, $cb ) {
     if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, enabled, created_ts) VALUES (?, ?, ?)], [ $user_name, 0, time ] ) ) {
         my $user_id = $dbh->last_insert_id;
 
+        # set password
         $self->set_user_password(
             $user_id,
             $password,
             sub ($status) {
                 if ($status) {
+
+                    # enable user
                     $self->set_user_enabled(
                         $user_id, 1,
                         sub ($status) {
                             if ($status) {
-                                $cb->( status 201, $user_id );
+                                $cb->( status 201, user_id => $user_id );
                             }
                             else {
                                 # rollback
                                 $dbh->do( q[DELETE OR IGNORE FROM api_user WHERE id = ?], [$user_id] );
 
-                                $cb->( $status, undef );
+                                $cb->($status);
                             }
 
                             return;
@@ -1102,10 +1230,11 @@ sub create_user ( $self, $user_name, $password, $cb ) {
                     );
                 }
                 else {
+
                     # rollback
                     $dbh->do( q[DELETE OR IGNORE FROM api_user WHERE id = ?], [$user_id] );
 
-                    $cb->( $status, undef );
+                    $cb->($status);
                 }
 
                 return;
@@ -1118,7 +1247,7 @@ sub create_user ( $self, $user_name, $password, $cb ) {
         my $user_id = $dbh->selectval( 'SELECT id FROM api_user WHERE name = ?', [$user_name] )->$*;
 
         # name already exists
-        $cb->( status [ 409, 'User already exists' ], $user_id );
+        $cb->( status [ 409, 'User already exists' ], user_id => $user_id );
     }
 
     return;
@@ -1127,24 +1256,26 @@ sub create_user ( $self, $user_name, $password, $cb ) {
 sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
     $self->get_user(
         $user_id,
-        sub ( $status, $user ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
 
+            my $user = $res->{user};
+
             $self->_generate_user_password_hash(
                 $user->{name},
                 $user_password_utf8,
-                sub ( $status, $hash ) {
-                    if ( !$status ) {
-                        $cb->($status);
+                sub ( $res ) {
+                    if ( !$res ) {
+                        $cb->($res);
 
                         return;
                     }
 
-                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $hash, $user->{id} ] ) ) {
+                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $res->{hash}, $user->{id} ] ) ) {
                         $cb->( status [ 500, 'Error setting user password' ] );
 
                         return;
@@ -1166,13 +1297,13 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
 sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
     $self->get_user(
         $user_id,
-        sub ( $status, $user ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
             }
             else {
-                if ( ( $enabled && !$user->{enabled} ) || ( !$enabled && $user->{enabled} ) ) {
-                    if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $user->{id} ] ) ) {
+                if ( ( $enabled && !$res->{user}->{enabled} ) || ( !$enabled && $res->{user}->{enabled} ) ) {
+                    if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $res->{user}->{id} ] ) ) {
                         $cb->( status 200 );
                     }
                     else {
@@ -1196,10 +1327,10 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 # USER PERMISSIONS
 sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
     if ( my $permissions = $self->dbh->selectall( q[SELECT api_user_permissions.user_id, api_user_permissions.role_id, api_user_permissions.enabled, api_app_role.name FROM api_user_permissions LEFT JOIN api_app_role ON api_app_role.app_id = ? AND api_user_permissions.role_id = api_app_role.id WHERE api_user_permissions.user_id = ?], [ $app_id, $user_id ] ) ) {
-        $cb->( status 200, $permissions );
+        $cb->( status 200, permissions => $permissions );
     }
     else {
-        $cb->( status 200, [] );
+        $cb->( status 200, permissions => [] );
     }
 
     return;
@@ -1208,12 +1339,14 @@ sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
 sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
     $self->get_user(
         $user_id,
-        sub ( $status, $user ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
+
+            my $user = $res->{user};
 
             # get app roles
             my $roles;
@@ -1278,12 +1411,12 @@ sub get_user_token ( $self, $user_token_id, $cb ) {
     if ( my $user_token = $self->dbh->selectrow( q[SELECT * FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
         delete $user_token->{hash};
 
-        $cb->( status 200, $user_token );
+        $cb->( status 200, user_token => $user_token );
     }
     else {
 
         # user token not found
-        $cb->( status [ 404, 'User token not found' ], undef );
+        $cb->( status [ 404, 'User token not found' ] );
     }
 
     return;
@@ -1292,12 +1425,14 @@ sub get_user_token ( $self, $user_token_id, $cb ) {
 sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
     $self->get_user(
         $user_id,
-        sub ( $status, $user ) {
-            if ( !$status ) {
-                $cb->( $status, undef );
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
+
+            my $user = $res->{user};
 
             my $dbh = $self->dbh;
 
@@ -1395,11 +1530,13 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 sub set_user_token_enabled ( $self, $user_token_id, $enabled, $cb ) {
     $self->get_user_token(
         $user_token_id,
-        sub ( $status, $user_token ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
             }
             else {
+                my $user_token = $res->{user_token};
+
                 if ( ( $enabled && !$user_token->{enabled} ) || ( !$enabled && $user_token->{enabled} ) ) {
                     if ( $self->dbh->do( q[UPDATE OR IGNORE api_user_token SET enabled = ? WHERE id = ?], [ !!$enabled, $user_token->{id} ] ) ) {
                         $cb->( status 200 );
@@ -1433,6 +1570,9 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
     return;
 }
 
+# USER SESSION
+# TODO
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -1440,16 +1580,18 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106, 218, 281, 315,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 354, 409, 476, 572,  |                                                                                                                |
-## |      | 672, 977, 1127,      |                                                                                                                |
-## |      | 1197, 1292, 1395     |                                                                                                                |
+## |    3 | 117, 229, 294, 328,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 367, 422, 493, 589,  |                                                                                                                |
+## |      | 689, 795, 1102,      |                                                                                                                |
+## |      | 1256, 1328, 1425,    |                                                                                                                |
+## |      | 1530                 |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 218                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
-## |      | 476                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 572                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 672                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 229                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
+## |      | 493                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
+## |      | 589                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 689                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 795                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

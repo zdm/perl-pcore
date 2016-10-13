@@ -3,7 +3,7 @@ package Pcore::Util::Response;
 use Pcore -class, -export => [qw[status]];
 use Pcore::Util::Response::Status;
 
-sub status ( $status, @ ) : prototype($;@) {
+sub status ( $status, @ ) {
     my %args = @_ == 2 ? ( result => $_[1] ) : splice @_, 1;
 
     if ( ref $status eq 'ARRAY' ) {
