@@ -94,11 +94,12 @@ sub run ( $self, $req ) {
     $self->{app}->{api}->authenticate(
         $user_name,
         $token,
-        sub ( $status, $auth ) {
+        sub ( $res ) {
+            my $auth = $res->{auth};
 
             # token authentication error
-            if ( !$status ) {
-                $cb->($status);
+            if ( !$res ) {
+                $cb->($res);
             }
 
             # this is app connection, disabled
@@ -175,14 +176,16 @@ sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
     $self->{app}->{api}->authenticate(
         $user_name,
         $token,
-        sub ( $status, $auth ) {
+        sub ( $res ) {
 
             # token authentication error
-            if ( !$status ) {
-                $decline->($status);
+            if ( !$res ) {
+                $decline->($res);
 
                 return;
             }
+
+            my $auth = $res->{auth};
 
             # this is app connection request
             if ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN && $self->{app}->{api}->{backend}->is_local ) {
@@ -298,7 +301,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 127                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 128                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
