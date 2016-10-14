@@ -388,11 +388,12 @@ sub _add_app_permissions ( $self, $dbh, $app_id, $permissions, $cb ) {
 
         $self->get_app_role(
             $permission,
-            sub ( $status, $role ) {
-                if ( !$status ) {
+            sub ( $res ) {
+                if ( !$res ) {
                     push $error->@*, $permission;
                 }
                 else {
+                    my $role = $res->{role};
 
                     # permission is not exists
                     if ( !$dbh->selectrow( q[SELECT FROM api_app_permission WHERE app_id = ? AND role_id = ?], [ $app_id, $role->{id} ] ) ) {
@@ -986,10 +987,10 @@ sub get_app_role ( $self, $role_id, $cb ) {
     # role_id is role id
     if ( $role_id =~ /\A\d+\z/sm ) {
         if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE id = ?], [$role_id] ) ) {
-            $cb->( status 200, $role );
+            $cb->( status 200, role => $role );
         }
         else {
-            $cb->( status [ 404, qq[App role "$role_id" not found] ], undef );
+            $cb->( status [ 404, qq[App role "$role_id" not found] ] );
         }
     }
 
@@ -1000,20 +1001,20 @@ sub get_app_role ( $self, $role_id, $cb ) {
         # $app_id is app id
         if ( $app_id =~ /\A\d+\z/sm ) {
             if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
-                $cb->( status 200, $role );
+                $cb->( status 200, role => $role );
             }
             else {
-                $cb->( status [ 404, qq[App role "$role_id" not found] ], undef );
+                $cb->( status [ 404, qq[App role "$role_id" not found] ] );
             }
         }
 
         # $app_id is app name
         else {
             if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app, api_app_role WHERE api_app.name = ? AND api_app.id = api_app_role.app_id AND api_app_role.name = ?], [ $app_id, $role_name ] ) ) {
-                $cb->( status 200, $role );
+                $cb->( status 200, role => $role );
             }
             else {
-                $cb->( status [ 404, qq[App role "$role_id" not found] ], undef );
+                $cb->( status [ 404, qq[App role "$role_id" not found] ] );
             }
         }
     }
@@ -1024,12 +1025,14 @@ sub get_app_role ( $self, $role_id, $cb ) {
 sub set_app_role_enabled ( $self, $role_id, $enabled, $cb ) {
     $self->get_app_role(
         $role_id,
-        sub ( $status, $role ) {
-            if ( !$status ) {
-                $cb->($status);
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
 
                 return;
             }
+
+            my $role = $res->{role};
 
             if ( ( $enabled && !$role->{enabled} ) || ( !$enabled && $role->{enabled} ) ) {
                 if ( $self->dbh->do( q[UPDATE OR IGNORE api_app_role SET enabled = ? WHERE id = ?], [ !!$enabled, $role->{id} ] ) ) {
@@ -1300,21 +1303,22 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
+
+                return;
             }
-            else {
-                if ( ( $enabled && !$res->{user}->{enabled} ) || ( !$enabled && $res->{user}->{enabled} ) ) {
-                    if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $res->{user}->{id} ] ) ) {
-                        $cb->( status 200 );
-                    }
-                    else {
-                        $cb->( status [ 500, 'Error set user enabled' ] );
-                    }
+
+            if ( ( $enabled && !$res->{user}->{enabled} ) || ( !$enabled && $res->{user}->{enabled} ) ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $res->{user}->{id} ] ) ) {
+                    $cb->( status 200 );
                 }
                 else {
-
-                    # not modified
-                    $cb->( status 304 );
+                    $cb->( status [ 500, 'Error set user enabled' ] );
                 }
+            }
+            else {
+
+                # not modified
+                $cb->( status 304 );
             }
 
             return;
@@ -1356,14 +1360,14 @@ sub add_user_permissions ( $self, $user_id, $permissions, $cb ) {
 
                 $self->get_app_role(
                     $role_id,
-                    sub ( $status, $role ) {
-                        if ( !$status ) {
-                            $cb->($status);
+                    sub ( $res ) {
+                        if ( !$res ) {
+                            $cb->($res);
 
                             return;
                         }
 
-                        $roles->{$role_id} = $role;
+                        $roles->{$role_id} = $res->{role};
                     }
                 );
             }
@@ -1444,15 +1448,15 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 
                 $self->get_app_role(
                     $role_id,
-                    sub ( $status, $role ) {
-                        if ( !$status ) {
-                            $cb->($status);
+                    sub ( $res ) {
+                        if ( !$res ) {
+                            $cb->($res);
 
                             return;
                         }
 
                         # get user_permission for role
-                        my $user_permission = $self->dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $role->{id} ] );
+                        my $user_permission = $self->dbh->selectrow( q[SELECT id FROM api_user_permissions WHERE user_id = ? AND role_id = ?], [ $user->{id}, $res->{role}->{id} ] );
                         if ( !$user_permission ) {
                             $cb->( 400, qq[User permission "$role_id" not exists] );
 
@@ -1466,7 +1470,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 
             # create blank user token
             if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_id, desc, created_ts, enabled) VALUES (?, ?, ?, 0)], [ $user->{id}, $desc // q[], time ] ) ) {
-                $cb->( status [ 500, 'User token creation error' ], undef );
+                $cb->( status [ 500, 'User token creation error' ] );
 
                 return;
             }
@@ -1477,23 +1481,23 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
             # generate user token hash
             $self->_generate_user_token(
                 $user_token_id,
-                sub ( $status, $token, $hash ) {
-                    if ( !$status ) {
+                sub ( $res ) {
+                    if ( !$res ) {
 
                         # rollback
                         $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
 
-                        $cb->( status [ 500, 'User token creation error' ], undef );
+                        $cb->( status [ 500, 'User token creation error' ] );
 
                         return;
                     }
 
-                    if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 0 WHERE id = ?], [ $hash, $user_token_id ] ) ) {
+                    if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 0 WHERE id = ?], [ $res->{hash}, $user_token_id ] ) ) {
 
                         # rollback
                         $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
 
-                        $cb->( status [ 500, 'User token creation error' ], undef );
+                        $cb->( status [ 500, 'User token creation error' ] );
 
                         return;
                     }
@@ -1505,7 +1509,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                             # rollback
                             $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
 
-                            $cb->( status [ 500, 'User token creation error' ], undef );
+                            $cb->( status [ 500, 'User token creation error' ] );
 
                             return;
                         }
@@ -1514,7 +1518,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                     # enable user token
                     $dbh->do( q[UPDATE api_user_token SET enabled = 1 WHERE id = ?], [$user_token_id] );
 
-                    $cb->( status 201, $token );
+                    $cb->( status 201, token => $res->{token} );
 
                     return;
                 }
@@ -1581,17 +1585,17 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 117, 229, 294, 328,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 367, 422, 493, 589,  |                                                                                                                |
-## |      | 689, 795, 1102,      |                                                                                                                |
-## |      | 1256, 1328, 1425,    |                                                                                                                |
-## |      | 1530                 |                                                                                                                |
+## |      | 367, 423, 494, 590,  |                                                                                                                |
+## |      | 690, 796, 1105,      |                                                                                                                |
+## |      | 1259, 1332, 1429,    |                                                                                                                |
+## |      | 1534                 |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 229                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
-## |      | 493                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 589                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 689                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 795                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
+## |      | 494                  | * Private subroutine/method '_auth_user_password' declared but not used                                        |
+## |      | 590                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 690                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 796                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
