@@ -3,7 +3,7 @@ package Pcore::App::API;
 use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 use Pcore::App::API::Map;
 use Pcore::Util::Response qw[status];
-use Pcore::Util::Data qw[from_b64];
+use Pcore::Util::Data qw[from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 
@@ -208,7 +208,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         # decode token
         my $token_bin = eval {
             encode_utf8 $token;
-            from_b64 $token;
+            from_b64_url $token;
         };
 
         # error decoding token

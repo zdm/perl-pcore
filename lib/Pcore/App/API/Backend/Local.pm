@@ -2,7 +2,7 @@ package Pcore::App::API::Backend::Local;
 
 use Pcore -role;
 use Pcore::Util::Response qw[status];
-use Pcore::Util::Data qw[to_b64_url from_b64];
+use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];

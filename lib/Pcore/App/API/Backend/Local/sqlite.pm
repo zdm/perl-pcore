@@ -1483,7 +1483,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                     my $user_token_id = $res->{token_id};
 
                     # insert user token
-                    if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (id, user_id, desc, created_ts, enabled) VALUES (?, ?, ?, ?, 0)], [ $user_token_id, $user->{id}, $desc // q[], time ] ) ) {
+                    if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (id, user_id, desc, created_ts, enabled, hash) VALUES (?, ?, ?, ?, 0, ?)], [ $user_token_id, $user->{id}, $desc // q[], time, $res->{hash} ] ) ) {
                         $cb->( status [ 500, 'User token creation error' ] );
 
                         return;
