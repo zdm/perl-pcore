@@ -153,6 +153,31 @@ sub _generate_user_token ( $self, $user_token_id, $cb ) {
     return;
 }
 
+sub _generate_user_session ( $self, $user_session_id, $cb ) {
+
+    # generate random session
+    my $session = to_b64_url pack( 'CL', $TOKEN_TYPE_USER_SESSION, $user_session_id ) . P->random->bytes(48);
+
+    my $private_token = sha1 $session . $user_session_id;
+
+    $self->_hash_rpc->rpc_call(
+        'create_hash',
+        $private_token,
+        sub ( $res ) {
+            if ( !$res ) {
+                $cb->($res);
+            }
+            else {
+                $cb->( status 200, session => $session, hash => $res->{hash} );
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
 sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
     my $private_token = sha1 encode_utf8 $user_password_utf8 . $user_name_utf8;
 
@@ -202,13 +227,14 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 71, 77, 85, 156      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 71, 77, 85, 181      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 106                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
 ## |      | 131                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 156                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 177                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 156                  | * Private subroutine/method '_generate_user_session' declared but not used                                     |
+## |      | 181                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 202                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

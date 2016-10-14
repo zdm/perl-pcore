@@ -1,20 +1,7 @@
 - user session token;
+- user token, user session - user 16 bytes instead of autoincrement id;
 
 - ExtJS fields error - status 200, success FALSE;
-
-api response - hash, incapsulated status, reason and results hash;
-api call - args - ArrayRef, expand;
-api callback - status object;
-
-
-RPC func - get array, return status XXX, $result;
-RPC callback - get status, $status->{result};
-
-API func - get array, return status XXX, $result;
-API callback - get status, $status->{result};
-
-API call always called via API router, so, API router MUST always return status object;
-
 
 -----------------------------------------------------------------------------------------------
 

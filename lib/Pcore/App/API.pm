@@ -640,6 +640,29 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+# USER SESSION
+sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my $remote_ip_geo = P->geoip->country_code_by_addr($remote_ip);
+
+    $self->{backend}->create_user_session(
+        $user_id,
+        $user_agent,
+        $remote_ip,
+        $remote_ip_geo,
+        sub ( $res ) {
+            $cb->($res) if $cb;
+
+            $blocking_cv->($res) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -647,7 +670,8 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 181, 405, 531, 601   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 181, 405, 531, 601,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 644                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
