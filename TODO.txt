@@ -1,5 +1,3 @@
-- check Lazarus RPC;
-
 - user session token;
 
 - ExtJS fields error - status 200, success FALSE;
