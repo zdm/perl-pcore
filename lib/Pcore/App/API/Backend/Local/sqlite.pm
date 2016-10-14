@@ -1562,6 +1562,7 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 }
 
 # USER SESSION
+# TODO
 sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $remote_ip_geo, $cb ) {
     $self->get_user(
         $user_id,
@@ -1634,7 +1635,7 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $remote_ip_g
 ## |      | 367, 423, 494, 590,  |                                                                                                                |
 ## |      | 690, 796, 1105,      |                                                                                                                |
 ## |      | 1259, 1332, 1429,    |                                                                                                                |
-## |      | 1521, 1565           |                                                                                                                |
+## |      | 1521, 1566           |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 229                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
