@@ -3,9 +3,10 @@ package Pcore::App::API::Backend::Local;
 use Pcore -role;
 use Pcore::Util::Response qw[status];
 use Pcore::Util::Data qw[to_b64_url from_b64];
-use Pcore::Util::Digest qw[sha1];
+use Pcore::Util::Digest qw[sha3_512];
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];
+use Pcore::Util::UUID qw[uuid_bin];
 
 with qw[Pcore::App::API::Backend];
 
@@ -106,19 +107,17 @@ sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token
 sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 
     # generate random token
-    my $token = to_b64_url pack( 'CL', $TOKEN_TYPE_APP_INSTANCE_TOKEN, $app_instance_id ) . P->random->bytes(48);
-
-    my $private_token = sha1 $token . $app_instance_id;
+    my $token_bin = pack( 'CL', $TOKEN_TYPE_APP_INSTANCE_TOKEN, $app_instance_id ) . P->random->bytes(27);
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
-        $private_token,
+        sha3_512($token_bin),
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token => $token, hash => $res->{hash} );
+                $cb->( status 200, token => to_b64_url($token_bin), hash => $res->{hash} );
             }
 
             return;
@@ -128,22 +127,23 @@ sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-sub _generate_user_token ( $self, $user_token_id, $cb ) {
+sub _generate_user_token ( $self, $user_id, $cb ) {
 
-    # generate random token
-    my $token = to_b64_url pack( 'CL', $TOKEN_TYPE_USER_TOKEN, $user_token_id ) . P->random->bytes(48);
+    # generate token id
+    my $token_id_bin = uuid_bin;    # 16 bytes
 
-    my $private_token = sha1 $token . $user_token_id;
+    # create token
+    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_TOKEN ) . $token_id_bin . P->random->bytes(31);
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
-        $private_token,
+        sha3_512($token_bin) . $user_id,
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token => $token, hash => $res->{hash} );
+                $cb->( status 200, token_id => unpack( 'H*', $token_id_bin ), token => to_b64_url($token_bin), hash => $res->{hash} );
             }
 
             return;
@@ -153,22 +153,23 @@ sub _generate_user_token ( $self, $user_token_id, $cb ) {
     return;
 }
 
-sub _generate_user_session ( $self, $user_session_id, $cb ) {
+sub _generate_user_session ( $self, $user_id, $cb ) {
 
-    # generate random session
-    my $session = to_b64_url pack( 'CL', $TOKEN_TYPE_USER_SESSION, $user_session_id ) . P->random->bytes(48);
+    # generate token id
+    my $token_id_bin = uuid_bin;    # 16 bytes
 
-    my $private_token = sha1 $session . $user_session_id;
+    # create token
+    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_SESSION ) . $token_id_bin . P->random->bytes(31);
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
-        $private_token,
+        sha3_512($token_bin) . $user_id,
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, session => $session, hash => $res->{hash} );
+                $cb->( status 200, token_id => unpack( 'H*', $token_id_bin ), token => to_b64_url($token_bin), hash => $res->{hash} );
             }
 
             return;
@@ -179,11 +180,13 @@ sub _generate_user_session ( $self, $user_session_id, $cb ) {
 }
 
 sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
-    my $private_token = sha1 encode_utf8 $user_password_utf8 . $user_name_utf8;
+    my $user_name_bin = encode_utf8 $user_name_utf8;
+
+    my $token_bin = $user_name_bin . encode_utf8($user_password_utf8) . $user_name_bin;
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
-        $private_token,
+        sha3_512($token_bin),
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
@@ -199,8 +202,8 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
     return;
 }
 
-sub _verify_token_hash ( $self, $token, $hash, $cb ) {
-    my $cache_id = "$hash-$token";
+sub _verify_token_hash ( $self, $private_token, $hash, $cb ) {
+    my $cache_id = "$hash-$private_token";
 
     if ( exists $self->{_hash_cache}->{$cache_id} ) {
         $cb->( $self->{_hash_cache}->{$cache_id} );
@@ -208,7 +211,8 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
     else {
         $self->_hash_rpc->rpc_call(
             'verify_hash',
-            $token, $hash,
+            $private_token,
+            $hash,
             sub ( $res ) {
                 $cb->( $self->{_hash_cache}->{$cache_id} = $res->{match} ? status 200 : status [ 400, 'Invalid token' ] );
 
@@ -227,14 +231,14 @@ sub _verify_token_hash ( $self, $token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 71, 77, 85, 181      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 72, 78, 86, 182      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 106                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 131                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 107                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 130                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
 ## |      | 156                  | * Private subroutine/method '_generate_user_session' declared but not used                                     |
-## |      | 181                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 202                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 182                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 205                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

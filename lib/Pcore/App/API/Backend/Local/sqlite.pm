@@ -76,7 +76,7 @@ sub init_db ( $self, $cb ) {
 
             --- USER TOKEN
             CREATE TABLE IF NOT EXISTS `api_user_token` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `id` BLOB PRIMARY KEY NOT NULL, --- UUID hex
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
                 `desc` TEXT,
@@ -87,7 +87,7 @@ sub init_db ( $self, $cb ) {
             --- USER TOKEN PERMISSIONS
             CREATE TABLE IF NOT EXISTS `api_user_token_permissions` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `user_token_id` INTEGER NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE,
+                `user_token_id` BLOB NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE,
                 `user_permissions_id` INTEGER NOT NULL REFERENCES `api_user_permissions` (`id`) ON DELETE CASCADE
             );
 
@@ -95,7 +95,7 @@ sub init_db ( $self, $cb ) {
 
             --- USER SESSION
             CREATE TABLE IF NOT EXISTS `api_user_session` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `id` BLOB PRIMARY KEY NOT NULL, --- UUID hex
                 `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `created_ts` INTEGER,
                 `user_agent` TEXT NOT NULL,
@@ -723,7 +723,7 @@ SQL
             AND api_user_token_permissions.user_token_id = ?                                --- link user_token_permissions to user_token
 SQL
 
-    # get user token instance
+    # get user token by token id
     my $res = $self->dbh->selectrow( $sql1, [$user_token_id] );
 
     # user token not found
@@ -733,9 +733,9 @@ SQL
         return;
     }
 
-    my $continue = sub {
-        my $user_id = $res->{user_id};
+    my $user_id = $res->{user_id};
 
+    my $continue = sub {
         my $auth = {
             user_id       => $user_id,
             user_name     => $res->{user_name},
@@ -767,7 +767,7 @@ SQL
 
         # verify token
         $self->_verify_token_hash(
-            $private_token,
+            $private_token . $user_id,
             $res->{hash},
             sub ($status) {
 
@@ -1427,6 +1427,8 @@ sub get_user_token ( $self, $user_token_id, $cb ) {
 }
 
 sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
+
+    # resolve user_id, get user
     $self->get_user(
         $user_id,
         sub ( $res ) {
@@ -1468,35 +1470,20 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                 );
             }
 
-            # create blank user token
-            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (user_id, desc, created_ts, enabled) VALUES (?, ?, ?, 0)], [ $user->{id}, $desc // q[], time ] ) ) {
-                $cb->( status [ 500, 'User token creation error' ] );
-
-                return;
-            }
-
-            # get user token id
-            my $user_token_id = $dbh->last_insert_id;
-
             # generate user token hash
             $self->_generate_user_token(
-                $user_token_id,
+                $user->{id},
                 sub ( $res ) {
                     if ( !$res ) {
-
-                        # rollback
-                        $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
-
                         $cb->( status [ 500, 'User token creation error' ] );
 
                         return;
                     }
 
-                    if ( !$dbh->do( q[UPDATE OR IGNORE api_user_token SET hash = ?, enabled = 0 WHERE id = ?], [ $res->{hash}, $user_token_id ] ) ) {
+                    my $user_token_id = $res->{token_id};
 
-                        # rollback
-                        $dbh->do( q[DELETE FROM api_user_token WHERE id = ?], [$user_token_id] );
-
+                    # insert user token
+                    if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (id, user_id, desc, created_ts, enabled) VALUES (?, ?, ?, ?, 0)], [ $user_token_id, $user->{id}, $desc // q[], time ] ) ) {
                         $cb->( status [ 500, 'User token creation error' ] );
 
                         return;
@@ -1647,7 +1634,7 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $remote_ip_g
 ## |      | 367, 423, 494, 590,  |                                                                                                                |
 ## |      | 690, 796, 1105,      |                                                                                                                |
 ## |      | 1259, 1332, 1429,    |                                                                                                                |
-## |      | 1534, 1578           |                                                                                                                |
+## |      | 1521, 1565           |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 229                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |

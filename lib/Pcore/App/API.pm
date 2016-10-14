@@ -4,7 +4,7 @@ use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TO
 use Pcore::App::API::Map;
 use Pcore::Util::Response qw[status];
 use Pcore::Util::Data qw[from_b64];
-use Pcore::Util::Digest qw[sha1];
+use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 
 const our $TOKEN_TYPE_USER_PASSWORD      => 1;
@@ -179,11 +179,13 @@ sub connect_local_app_instance ( $self, $cb ) {
 
 # AUTH
 sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
-    my ( $token_type, $token_id, $token_id_encoded );
+    my ( $token_type, $token_id, $private_token );
 
     # token is user_password
     if ($user_name_utf8) {
-        $token_id_encoded = eval {
+
+        # decode token and token id
+        my $token_id_bin = eval {
             encode_utf8 $token;
             encode_utf8 $user_name_utf8;
         };
@@ -198,13 +200,15 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         $token_type = $TOKEN_TYPE_USER_PASSWORD;
 
         \$token_id = \$user_name_utf8;
+
+        $private_token = sha3_512 $token_id_bin . $token . $token_id_bin;
     }
     else {
 
         # decode token
-        ( $token_type, $token_id ) = eval {
+        my $token_bin = eval {
             encode_utf8 $token;
-            unpack 'CL', from_b64 $token;
+            from_b64 $token;
         };
 
         # error decoding token
@@ -214,23 +218,34 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             return;
         }
 
-        # token is invalid
-        if ( $token_type != $TOKEN_TYPE_APP_INSTANCE_TOKEN && $token_type != $TOKEN_TYPE_USER_TOKEN && $token_type != $TOKEN_TYPE_USER_SESSION ) {
+        # unpack token type
+        $token_type = unpack 'C', $token_bin;
+
+        # user tokens
+        if ( $token_type == $TOKEN_TYPE_USER_TOKEN || $token_type == $TOKEN_TYPE_USER_SESSION ) {
+
+            # unpack token id
+            $token_id = unpack 'H*', substr $token_bin, 1, 16;
+
+            $private_token = sha3_512 $token_bin;
+        }
+
+        # app instance tokens
+        elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
+
+            # unpack token id
+            $token_id = unpack 'L', substr $token_bin, 1, 4;
+
+            $private_token = sha3_512 $token_bin;
+        }
+        else {
             $cb->( status [ 400, 'Invalid token type' ] );
 
             return;
         }
-
-        \$token_id_encoded = \$token_id;
     }
 
-    # create private token
-    my $private_token = sha1 $token . $token_id_encoded;
-
-    # create auth id
-    my $auth_id = "$token_type-$token_id_encoded-$private_token";
-
-    my $auth = $self->{_auth_cache}->{$auth_id};
+    my $auth = $self->{_auth_cache}->{$private_token};
 
     if ($auth) {
 
@@ -264,14 +279,14 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             my $cache = $self->{_auth_cache};
 
             if ( !$res ) {
-                delete $cache->{$auth_id};
+                delete $cache->{$private_token};
 
                 $cb->($res);
 
                 return;
             }
 
-            $auth = $cache->{$auth_id};
+            $auth = $cache->{$private_token};
 
             my $auth_attrs = $res->{auth};
 
@@ -279,10 +294,10 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
             # auth is not cached, create new auth
             if ( !$auth ) {
-                $auth = $cache->{$auth_id} = bless $auth_attrs, 'Pcore::App::API::Auth';
+                $auth = $cache->{$private_token} = bless $auth_attrs, 'Pcore::App::API::Auth';
 
                 $auth->{app}        = $self->{app};
-                $auth->{id}         = $auth_id;
+                $auth->{id}         = $private_token;
                 $auth->{token_type} = $token_type;
                 $auth->{token_id}   = $token_id;
             }
@@ -670,8 +685,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 181, 405, 531, 601,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 644                  |                                                                                                                |
+## |    3 | 181, 420, 546, 616,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 659                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
