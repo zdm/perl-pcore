@@ -1,5 +1,27 @@
+- app id - uuid;
 - user session token;
 - user token, user session - user 16 bytes instead of autoincrement id;
+- hide token type;
+
+user token:
+    - public - token_type(1 byte) + token_id(16 bytes) + token(16 bytes);
+    - private:
+        - get token id;
+        - get token hash by id;
+        - validate token hash;
+
+    - database - token_id;
+
+
+
+
+
+
+
+
+
+
+
 
 - ExtJS fields error - status 200, success FALSE;
 
