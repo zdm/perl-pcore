@@ -72,7 +72,7 @@ sub api_call ( $self, $method, @ ) {
             on_finish => sub ($res) {
 
                 # HTTP protocol or API call error
-                if ( !$status ) {
+                if ( !$res ) {
                     $cb->( status [ $res->status, $res->reason ] ) if $cb;
                 }
                 else {
