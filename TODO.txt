@@ -1,4 +1,21 @@
+- SQL:
+    - SQL - always get new connection for transaction;
+    - limit max. possible connections;
+    - do not use state in reusable classes;
+    - check, that SQLite clone, clone also attached databases;
+
+    - check cached sth speed for sqlite???;
+
+    - query is not required;
+
+
+
+
+
+
 - use transactions;
+
+- rename auth.sqlite -> api.sqlite;
 
 - app id, user id - uuid;
     - implement user name, app name, role name, user password restrictions;
@@ -12,15 +29,6 @@
 - ExtJS fields error - status 200, success FALSE;
 
 -----------------------------------------------------------------------------------------------
-
-- LOG SUBSYSTEM:
-    - write logs to socket;
-
-- SQL:
-    - SQL - always get new connection for transaction;
-    - limit max. possible connections;
-    - do not use state in reusable classes;
-    - check, that SQLite clone, clone also attached databases;
 
 - APP & APP API:
     - move roles and permissions from API to App;
@@ -36,6 +44,9 @@
     - combine RPC + WebSocket;
         - bidirectional API protocol;
         - WebSocket message broker;
+
+- LOG SUBSYSTEM:
+    - write logs to socket;
 
 - HANDLE and PROXY refactoring
     - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
