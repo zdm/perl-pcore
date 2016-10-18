@@ -1,13 +1,14 @@
-- use transactions;
-
-- rename auth.sqlite -> api.sqlite;
+- optimize api sqlite functions;
+- add permissions methods;
+- use transactions, where possible;
 
 - app id, user id - uuid;
     - implement user name, app name, role name, user password restrictions;
     - how to separate user name from user id if id will be a uuid???;
-    - how to identify root user?
-        - store root in the separate table?;
-        - root can't have tokens? - NO;
+    - how to identify root user:
+        - user_id == 1;
+        - user name eq 'root';
+        - 'root' is reserved user name;
 
 - user session token;
 

@@ -1329,13 +1329,258 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 }
 
 # USER PERMISSIONS
-sub get_user_app_permissions ( $self, $user_id, $app_id, $cb ) {
-    if ( my $permissions = $self->dbh->selectall( q[SELECT api_user_permissions.user_id, api_user_permissions.role_id, api_user_permissions.enabled, api_app_role.name FROM api_user_permissions LEFT JOIN api_app_role ON api_app_role.app_id = ? AND api_user_permissions.role_id = api_app_role.id WHERE api_user_permissions.user_id = ?], [ $app_id, $user_id ] ) ) {
-        $cb->( status 200, permissions => $permissions );
+sub get_user_permissions ( $self, $user_id, $cb ) {
+    $self->get_user(
+        $user_id,
+        sub ( $res ) {
+
+            # get user error
+            if ( !$res ) {
+                $cb->($res);
+
+                return;
+            }
+
+            my $permissions;
+
+            # root user
+            if ( $res->{user}->{id} == 1 || $res->{user}->{name} eq 'root' ) {
+                $permissions = $self->dbh->selectall(
+                    <<'SQL',
+                    SELECT
+                        NULL AS id,
+                        1 AS enabled,
+                        api_app_role.id AS role_id,
+                        api_app_role.name AS role_name,
+                        api_app_role.[desc] AS role_desc,
+                        api_app_role.enabled AS role_enabled,
+                        api_app.id AS app_id,
+                        api_app.name AS app_name,
+                        api_app.enabled AS app_enabled
+                    FROM
+                        api_app_role,
+                        api_app
+                    WHERE
+                        api_app_role.app_id = api_app.id
+                        AND api_app_role.enabled = 1
+SQL
+                    [ $res->{user}->{id} ]
+                );
+            }
+
+            # not root user
+            else {
+                $permissions = $self->dbh->selectall(
+                    <<'SQL',
+                    SELECT
+                        api_user_permissions.id,
+                        api_user_permissions.enabled,
+                        api_app_role.id AS role_id,
+                        api_app_role.name AS role_name,
+                        api_app_role.[desc] AS role_desc,
+                        api_app_role.enabled AS role_enabled,
+                        api_app.id AS app_id,
+                        api_app.name AS app_name,
+                        api_app.enabled AS app_enabled
+                    FROM
+                        api_user_permissions,
+                        api_app_role,
+                        api_app
+                    WHERE
+                        api_user_permissions.user_id = ?
+                        AND api_user_permissions.role_id = api_app_role.id
+                        AND api_app_role.app_id = api_app.id
+                        AND api_app_role.enabled = 1
+SQL
+                    [ $res->{user}->{id} ]
+                );
+            }
+
+            if ($permissions) {
+                $cb->( status 200, user_permissions => $permissions );
+            }
+            else {
+                $cb->( status 200, user_permissions => [] );
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub set_user_permissions ( $self, $creator_user_id, $user_id, $permissions, $cb ) {
+
+    # root user
+    if ( $user_id =~ /\A(1|root)\z/sm ) {
+        $cb->( status 304 );
+
+        return;
     }
-    else {
-        $cb->( status 200, permissions => [] );
-    }
+
+    # not root user, get creator permissions
+    $self->get_user_permissions(
+        $creator_user_id,
+        sub ( $res ) {
+
+            # get permissions error
+            if ( !$res ) {
+                $cb->($res);
+
+                return;
+            }
+
+            # creator permissions, indexed by role_id
+            my $creator_permissions = { map { $_->{role_id} => $_ } $res->{permissions}->@* };
+
+            # get user permissions
+            $self->get_user_permissions(
+                $user_id,
+                sub ($res) {
+
+                    # get permissions error
+                    if ( !$res ) {
+                        $cb->($res);
+
+                        return;
+                    }
+
+                    # user permissions, indexed by role_id
+                    my $user_permissions = { map { $_->{role_id} => $_ } $res->{permissions}->@* };
+
+                    my ( $role_error, $roles );
+
+                    my $cv = AE::cv sub {
+                        if ($role_error) {
+                            $cb->( status [ 400, 'Invalid permissions: ' . join q[, ], $role_error->@* ] );
+
+                            return;
+                        }
+
+                        my $add_roles;
+
+                        for my $role_id ( keys $roles->%* ) {
+
+                            # role doesn't exists in the base creator user permissions
+                            if ( !exists $creator_permissions->{$role_id} ) {
+                                $cb->( status [ 400, qq[Invalid permission: $role_id] ] );
+
+                                return;
+                            }
+
+                            # role should be added
+                            if ( !exists $user_permissions->{$role_id} ) {
+                                push $add_roles->@*, $role_id;
+
+                                return;
+                            }
+                        }
+
+                        my $remove_roles;
+
+                        for my $role_id ( keys $user_permissions->%* ) {
+
+                            # role should be removed
+                            push $remove_roles->@*, $role_id if !exists $roles->{$role_id};
+                        }
+
+                        if ( $add_roles || $remove_roles ) {
+                            my $dbh = $self->dbh;
+
+                            $dbh->begin_work;
+
+                            if ($remove_roles) {
+                                my $res = eval { $dbh->do( [ q[DELETE FROM api_user_permissions WHERE id IN], $remove_roles ] ) };
+
+                                if ($@) {
+                                    $dbh->rollback;
+
+                                    $cb->( status 400 );
+                                }
+                            }
+
+                            if ($add_roles) {
+
+                                # resolve user id
+                                $self->get_user(
+                                    $user_id,
+                                    sub ($res) {
+                                        if ( !$res ) {
+                                            $dbh->rollback;
+
+                                            $cb->($res);
+
+                                            return;
+                                        }
+
+                                        for my $role_id ( $add_roles->@* ) {
+                                            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_permissions (user_id, role_id, enabled) VALUES (?, ?, 1) ], [ $res->{user}->{id}, $role_id ] ) ) {
+                                                $dbh->rollback;
+
+                                                $cb->( status 400 );
+
+                                                return;
+                                            }
+                                        }
+
+                                        $dbh->commit;
+
+                                        $cb->( status 200 );
+
+                                        return;
+                                    }
+                                );
+                            }
+                            else {
+                                $dbh->commit;
+
+                                $cb->( status 200 );
+                            }
+                        }
+
+                        # nothing to do
+                        else {
+
+                            # not modified
+                            $cb->( status 304 );
+                        }
+
+                        return;
+                    };
+
+                    $cv->begin;
+
+                    # resolve permissions
+                    for my $permission ( $permissions->@* ) {
+                        $cv->begin;
+
+                        $self->get_app_role(
+                            $permission,
+                            sub ($res) {
+                                if ( !$res ) {
+                                    push $role_error->@*, $permission;
+                                }
+                                else {
+                                    $roles->{ $res->{role}->{id} } = $res->{role};
+                                }
+
+                                $cv->end;
+
+                                return;
+                            }
+                        );
+                    }
+
+                    $cv->end;
+
+                    return;
+                }
+            );
+
+            return;
+        }
+    );
 
     return;
 }
@@ -1428,7 +1673,14 @@ sub get_user_token ( $self, $user_token_id, $cb ) {
 
 sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 
-    # resolve user_id, get user
+    # root user
+    if ( $user_id =~ /\A(1|root)\z/sm ) {
+        $cb->( status [ 400, 'Root user token creation error' ] );
+
+        return;
+    }
+
+    # not root user, resolve user_id, get user
     $self->get_user(
         $user_id,
         sub ( $res ) {
@@ -1634,8 +1886,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $remote_ip_g
 ## |    3 | 117, 229, 294, 328,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 367, 423, 494, 590,  |                                                                                                                |
 ## |      | 690, 796, 1105,      |                                                                                                                |
-## |      | 1259, 1332, 1429,    |                                                                                                                |
-## |      | 1521, 1566           |                                                                                                                |
+## |      | 1259, 1413, 1674,    |                                                                                                                |
+## |      | 1773, 1818           |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 229                  | * Private subroutine/method '_connect_app_instance' declared but not used                                      |
@@ -1643,6 +1895,10 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $remote_ip_g
 ## |      | 590                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
 ## |      | 690                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
 ## |      | 796                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 1413                 | Subroutines::ProhibitExcessComplexity - Subroutine "set_user_permissions" with high complexity score (23)      |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 1416, 1677           | RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
