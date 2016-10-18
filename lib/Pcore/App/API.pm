@@ -587,10 +587,37 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub add_user_permissions ( $self, $user_id, $permissions, $cb = undef ) {
+sub set_user_permissions ( $self, $creator_user_id, $user_id, $permissions, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->set_user_permissions(
+        $creator_user_id,
+        $user_id,
+        $permissions,
+        sub ($res) {
+
+            # invalidate user cache on success
+            if ($res) {
+
+                # $self->_invalidate_user_cache($user_id);
+            }
+
+            $cb->($res) if $cb;
+
+            $blocking_cv->($res) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub add_user_permissions ( $self, $creator_user_id, $user_id, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->add_user_permissions(
+        $creator_user_id,
         $user_id,
         $permissions,
         sub ($res) {
@@ -685,8 +712,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 181, 420, 546, 616,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 659                  |                                                                                                                |
+## |    3 | 181, 420, 546, 590,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 616, 643, 686        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
