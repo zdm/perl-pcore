@@ -1,18 +1,3 @@
-- SQL:
-    - SQL - always get new connection for transaction;
-    - limit max. possible connections;
-    - do not use state in reusable classes;
-    - check, that SQLite clone, clone also attached databases;
-
-    - check cached sth speed for sqlite???;
-
-    - query is not required;
-
-
-
-
-
-
 - use transactions;
 
 - rename auth.sqlite -> api.sqlite;
@@ -39,11 +24,14 @@
     - api client - blocking call;
     - blocking api auth methods;
 
-
 - RPC
     - combine RPC + WebSocket;
         - bidirectional API protocol;
         - WebSocket message broker;
+
+- SQL:
+    - error handling;
+    - return API response;
 
 - LOG SUBSYSTEM:
     - write logs to socket;
