@@ -27,7 +27,7 @@ sub init_db ( $self, $cb ) {
             --- APP INSTANCE
             CREATE TABLE IF NOT EXISTS `api_app_instance` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `app_id` NOT NULL REFERENCES `api_app` (`id`) ON DELETE RESTRICT,
+                `app_id` INTEGER NOT NULL REFERENCES `api_app` (`id`) ON DELETE RESTRICT,
                 `version` BLOB NOT NULL,
                 `host` BLOB NOT NULL,
                 `created_ts` INTEGER,
