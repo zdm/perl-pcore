@@ -2,6 +2,8 @@
 - add permissions methods;
 - use transactions, where possible;
 
+- API auth - CRUD methods;
+
 - app permissions -> enabled -> accepted;
 - app role - leave enabled, remove enabled from user_permissions, user_token_permissions, user_session;
 

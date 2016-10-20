@@ -6,6 +6,7 @@ use Pcore::Util::Response qw[status];
 use Pcore::Util::Data qw[from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
+use Pcore::Util::UUID qw[create_uuid_from_bin];
 
 const our $TOKEN_TYPE_USER_PASSWORD      => 1;
 const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
@@ -225,7 +226,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         if ( $token_type == $TOKEN_TYPE_USER_TOKEN || $token_type == $TOKEN_TYPE_USER_SESSION ) {
 
             # unpack token id
-            $token_id = unpack 'H*', substr $token_bin, 1, 16;
+            $token_id = create_uuid_from_bin( substr $token_bin, 1, 16 )->str;
 
             $private_token = sha3_512 $token_bin;
         }
@@ -712,8 +713,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 181, 420, 546, 590,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 616, 643, 686        |                                                                                                                |
+## |    3 | 182, 421, 547, 591,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 617, 644, 687        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

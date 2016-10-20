@@ -6,7 +6,7 @@ use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::Util::UUID qw[uuid_bin];
+use Pcore::Util::UUID qw[create_uuid];
 
 with qw[Pcore::App::API::Backend];
 
@@ -130,10 +130,10 @@ sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
 sub _generate_user_token ( $self, $user_id, $cb ) {
 
     # generate token id
-    my $token_id_bin = uuid_bin;    # 16 bytes
+    my $token_id = create_uuid;
 
     # create token
-    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_TOKEN ) . $token_id_bin . P->random->bytes(31);
+    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_TOKEN ) . $token_id->bin . P->random->bytes(31);
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
@@ -143,7 +143,7 @@ sub _generate_user_token ( $self, $user_id, $cb ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token_id => unpack( 'H*', $token_id_bin ), token => to_b64_url($token_bin), hash => $res->{hash} );
+                $cb->( status 200, token_id => $token_id->str, token => to_b64_url($token_bin), hash => $res->{hash} );
             }
 
             return;
@@ -156,10 +156,10 @@ sub _generate_user_token ( $self, $user_id, $cb ) {
 sub _generate_user_session ( $self, $user_id, $cb ) {
 
     # generate token id
-    my $token_id_bin = uuid_bin;    # 16 bytes
+    my $token_id = create_uuid;
 
     # create token
-    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_SESSION ) . $token_id_bin . P->random->bytes(31);
+    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_SESSION ) . $token_id->bin . P->random->bytes(31);
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
@@ -169,7 +169,7 @@ sub _generate_user_session ( $self, $user_id, $cb ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token_id => unpack( 'H*', $token_id_bin ), token => to_b64_url($token_bin), hash => $res->{hash} );
+                $cb->( status 200, token_id => $token_id->str, token => to_b64_url($token_bin), hash => $res->{hash} );
             }
 
             return;
