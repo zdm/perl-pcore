@@ -1,3 +1,9 @@
+- status, promise - pcore pragmas;
+- make try / catch export on demand;
+
+- rename docker repos to docker-repo_name;
+- sqlite github issues;
+
 - optimize api sqlite functions;
 - add permissions methods;
 - use transactions, where possible;
