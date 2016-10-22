@@ -1,7 +1,6 @@
 package Pcore::API::GitHub;
 
-use Pcore -class;
-use Pcore::Util::Response qw[status];
+use Pcore -class, -status;
 
 has api_username => ( is => 'ro', isa => Str, required => 1 );
 has api_token    => ( is => 'ro', isa => Str, required => 1 );
@@ -148,9 +147,9 @@ sub create_repo ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 107                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 106                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 93                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 92                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

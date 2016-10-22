@@ -1,7 +1,6 @@
 package Pcore::API::DockerHub;
 
-use Pcore -const, -class, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TAG $DOCKERHUB_SOURCE_BRANCH]] };
-use Pcore::Util::Response qw[status];
+use Pcore -const, -class, -status, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TAG $DOCKERHUB_SOURCE_BRANCH]] };
 require Pcore::API::DockerHub::Repository;
 
 # https://github.com/RyanTheAllmighty/Docker-Hub-API
@@ -421,7 +420,7 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 293, 368             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 292, 367             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

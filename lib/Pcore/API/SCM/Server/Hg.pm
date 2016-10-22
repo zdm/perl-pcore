@@ -1,10 +1,9 @@
 package Pcore::API::SCM::Server::Hg;
 
-use Pcore -class;
+use Pcore -class, -status;
 use Pcore::API::SCM qw[:CONST];
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::API::SCM::Upstream;
-use Pcore::Util::Response qw[status];
 use Pcore::Util::Scalar qw[weaken];
 
 with qw[Pcore::API::SCM::Server];
@@ -289,9 +288,9 @@ sub scm_set_tag ( $self, $root, $cb, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 105, 107, 113        | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 104, 106, 112        | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 186                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 185                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

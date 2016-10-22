@@ -1,7 +1,6 @@
 package Pcore::API::Bitbucket;
 
-use Pcore -class;
-use Pcore::Util::Response qw[status];
+use Pcore -class, -status;
 use Pcore::API::Bitbucket::Issue;
 use Pcore::API::SCM qw[:CONST];
 
@@ -316,7 +315,7 @@ sub create_repo ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 255                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 254                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

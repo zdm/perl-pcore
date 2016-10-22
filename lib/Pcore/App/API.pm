@@ -1,8 +1,7 @@
 package Pcore::App::API;
 
-use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
+use Pcore -role, -const, -status, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 use Pcore::App::API::Map;
-use Pcore::Util::Response qw[status];
 use Pcore::Util::Data qw[from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
@@ -713,8 +712,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 182, 421, 547, 591,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 617, 644, 687        |                                                                                                                |
+## |    3 | 181, 420, 546, 590,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 616, 643, 686        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

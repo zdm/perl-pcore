@@ -17,8 +17,11 @@ our $EXPORT_PRAGMA = {
     export      => 1,    # install standart import method
     inline      => 0,    # package use Inline
     no_isa_attr => 0,    # do not check isa for class / role attributes
+    promise     => 0,    # export Pcore::Util::Promise qw[promise]
     role        => 0,    # package is a Moo role
     script_path => 1,    # specify script path for ENV, used in RPC
+    status      => 0,    # export Pcore::Util::Response qw[status]
+    try         => 0,    # export Pcore::Core::Exception qw[:TRY]
     types       => 0,    # export types
 };
 
@@ -128,10 +131,11 @@ sub import {
 
     # re-export core packages
     Pcore::Core::Const->import( -caller => $caller );
-    Pcore::Core::Dump->import( -caller => $caller );
-    Pcore::Core::Exception->import( -caller => $caller );
 
     if ( !$import->{pragma}->{config} ) {
+
+        # export "dump"
+        Pcore::Core::Dump->import( -caller => $caller );
 
         # process -export pragma
         Pcore::Core::Exporter->import( -caller => $caller, -export => $import->{pragma}->{export} ) if $import->{pragma}->{export};
@@ -152,6 +156,28 @@ sub import {
             state $ANSI_INIT = !!require Term::ANSIColor;
 
             Term::ANSIColor->export_to_level( 1, undef, ':constants' );
+        }
+
+        # process -try pragma
+        if ( $import->{pragma}->{try} ) {
+            Pcore::Core::Exception->import( -caller => $caller, qw[:DEFAULT :TRY] );
+        }
+        else {
+            Pcore::Core::Exception->import( -caller => $caller );
+        }
+
+        # process -status pragma
+        if ( $import->{pragma}->{status} ) {
+            state $STATUS_INIT = !!require Pcore::Util::Response;
+
+            Pcore::Util::Response->import( -caller => $caller, qw[status] );
+        }
+
+        # process -promise pragma
+        if ( $import->{pragma}->{promise} ) {
+            state $STATUS_INIT = !!require Pcore::Util::Promise;
+
+            Pcore::Util::Promise->import( -caller => $caller, qw[promise] );
         }
 
         # re-export Moo
@@ -570,25 +596,25 @@ sub init_demolish ( $self, $class ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 63                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (21)                    |
+## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 107                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 110                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 224                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 250                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 302                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 420                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 328                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 446                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 334, 363, 366, 370,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 402, 405, 410, 413,  |                                                                                                                |
-## |      | 438, 457             |                                                                                                                |
+## |    3 | 360, 389, 392, 396,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 428, 431, 436, 439,  |                                                                                                                |
+## |      | 464, 483             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 553                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 579                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 234                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 260                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 338                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 364                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

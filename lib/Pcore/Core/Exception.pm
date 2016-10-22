@@ -1,7 +1,8 @@
 package Pcore::Core::Exception;
 
 use Pcore -export => {    #
-    DEFAULT => [qw[croak cluck try catch]],
+    DEFAULT => [qw[croak cluck]],
+    TRY     => [qw[try catch]],
 };
 use Carp qw[];
 use Pcore::Core::Exception::Object;
@@ -212,9 +213,9 @@ sub catch ($code) : prototype(&) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 54, 67, 80, 99       | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 55, 68, 81, 100      | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 56, 69, 82           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 57, 70, 83           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

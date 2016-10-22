@@ -1,7 +1,6 @@
 package Pcore::Util::PM::RPC::Request;
 
-use Pcore -class;
-use Pcore::Util::Response qw[status];
+use Pcore -class, -status;
 use Pcore::Util::Scalar qw[blessed];
 
 use overload    #

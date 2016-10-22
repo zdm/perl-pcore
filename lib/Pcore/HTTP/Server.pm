@@ -1,9 +1,8 @@
 package Pcore::HTTP::Server;
 
-use Pcore -class, -const;
+use Pcore -class, -const, -status;
 use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
-use Pcore::Util::Response qw[status];
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::HTTP::Server::Request;
 
@@ -301,7 +300,7 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 258                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 257                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

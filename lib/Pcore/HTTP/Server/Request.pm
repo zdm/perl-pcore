@@ -1,7 +1,6 @@
 package Pcore::HTTP::Server::Request;
 
-use Pcore -class, -const;
-use Pcore::Util::Response qw[status];
+use Pcore -class, -const, -status;
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];

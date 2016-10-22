@@ -1,9 +1,8 @@
 package Pcore::API::SCM::Server::Git;
 
-use Pcore -class;
+use Pcore -class, -status;
 use Pcore::API::SCM qw[:CONST];
 use Pcore::API::SCM::Upstream;
-use Pcore::Util::Response qw[status];
 
 with qw[Pcore::API::SCM::Server];
 

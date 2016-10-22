@@ -1,10 +1,9 @@
 package Pcore::API::Client;
 
-use Pcore -class;
+use Pcore -class, -status;
 use Pcore::HTTP::WebSocket;
 use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
-use Pcore::Util::Response qw[status];
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
 has token             => ( is => 'lazy', isa => Str );
@@ -213,7 +212,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (30)                  |
+## |    3 | 41                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (30)                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,9 +1,8 @@
 package Pcore::App::Controller::API;
 
-use Pcore -const, -role;
+use Pcore -const, -role, -status;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_b64];
-use Pcore::Util::Response qw[status];
 use Pcore::Util::Scalar qw[blessed];
 
 with qw[Pcore::App::Controller::WebSocket];
@@ -301,7 +300,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 128                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 127                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

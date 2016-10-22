@@ -1,9 +1,8 @@
 package Pcore::App::API::Auth;
 
-use Pcore -class;
+use Pcore -class, -status;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
-use Pcore::Util::Response qw[status];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
@@ -192,7 +191,7 @@ sub _authorize ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 68                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 67                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

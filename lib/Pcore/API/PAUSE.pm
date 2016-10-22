@@ -1,7 +1,6 @@
 package Pcore::API::PAUSE;
 
-use Pcore -class;
-use Pcore::Util::Response qw[status];
+use Pcore -class, -status;
 use Pcore::Util::Text qw[encode_utf8];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -123,9 +122,9 @@ sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = unde
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 57                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 56                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 103                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 102                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

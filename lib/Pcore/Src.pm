@@ -1,6 +1,6 @@
 package Pcore::Src;
 
-use Pcore -class, -ansi;
+use Pcore -class, -ansi, -try;
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::Src::File;
 
