@@ -30,8 +30,8 @@ has _self => ( is => 'ro', isa => Object );
 
 has response => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Response'], init_arg => undef );
 
-has _then_idx => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
-has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
+has _then_idx  => ( is => 'ro', isa => PositiveInt, default => 1, init_arg => undef );
+has _responded => ( is => 'ro', isa => Bool,        default => 0, init_arg => undef );    # already responded
 
 P->init_demolish(__PACKAGE__);
 
