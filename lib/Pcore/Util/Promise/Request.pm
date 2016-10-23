@@ -26,6 +26,7 @@ use overload    #
 
 has _promise => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Promise'], required => 1 );
 has _cb => ( is => 'ro', isa => CodeRef, required => 1 );
+has _self => ( is => 'ro', isa => Object );
 
 has response => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Response'], init_arg => undef );
 
@@ -72,7 +73,7 @@ sub _respond ( $self, @ ) {
 
         $self->{_then_idx}++;
 
-        eval { $then->($self) };
+        eval { $then->( $self, $self->{_self} // () ) };
 
         if ($@) {
             $@->sendlog;
@@ -100,7 +101,7 @@ sub _respond ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 76                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

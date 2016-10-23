@@ -17,7 +17,7 @@ our $EXPORT_PRAGMA = {
     export      => 1,    # install standart import method
     inline      => 0,    # package use Inline
     no_isa_attr => 0,    # do not check isa for class / role attributes
-    promise     => 0,    # export Pcore::Util::Promise qw[promise then]
+    promise     => 0,    # export Pcore::Util::Promise qw[promise]
     role        => 0,    # package is a Moo role
     script_path => 1,    # specify script path for ENV, used in RPC
     status      => 0,    # export Pcore::Util::Response qw[status]
@@ -177,7 +177,7 @@ sub import {
         if ( $import->{pragma}->{promise} ) {
             state $STATUS_INIT = !!require Pcore::Util::Promise;
 
-            Pcore::Util::Promise->import( -caller => $caller, qw[promise then] );
+            Pcore::Util::Promise->import( -caller => $caller, qw[promise] );
         }
 
         # re-export Moo

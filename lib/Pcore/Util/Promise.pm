@@ -1,6 +1,6 @@
 package Pcore::Util::Promise;
 
-use Pcore -class, -export => { PROMISE => [qw[promise then]] };
+use Pcore -class, -export => { PROMISE => [qw[promise]] };
 use Pcore::Util::Promise::Request;
 use overload    #
   q[&{}] => sub ( $self, @ ) {
@@ -8,19 +8,39 @@ use overload    #
   },
   fallback => 1;
 
-has _promise => ( is => 'ro', isa => CodeRef, required => 1 );
+has _method_name => ( is => 'ro', isa => Str );
 has _then => ( is => 'ro', isa => Maybe [ ArrayRef [CodeRef] ], default => sub { [] } );
 
-sub promise ( $code, @then ) : prototype(&@) {
-    return bless {
-        _promise => $code,
-        _then    => \@then,
+sub promise (@) : prototype(@) {
+    my ( $method_name, @code );
+
+    if ( !ref $_[0] ) {
+        $method_name = $_[0];
+
+        @code = $_[1]->();
+    }
+    else {
+        @code = @_;
+    }
+
+    my $promise = bless {
+        _method_name => $method_name,
+        _then        => \@code,
       },
       __PACKAGE__;
-}
 
-sub then ( $code, @then ) : prototype(&@) {
-    return @_;
+    if ($method_name) {
+        my $caller = scalar caller;
+
+        no strict qw[refs];
+
+        *{"$caller\::$method_name"} = sub { return $promise->_run(@_) };
+
+        return;
+    }
+    else {
+        return $promise;
+    }
 }
 
 sub _run ( $self, @ ) {
@@ -29,12 +49,14 @@ sub _run ( $self, @ ) {
     my $req = bless {
         _promise   => $self,
         _cb        => $cb,
-        _then_idx  => 0,
+        _then_idx  => 1,
         _responded => 0,
       },
       'Pcore::Util::Promise::Request';
 
-    eval { $self->{_promise}->( $req, splice @_, 1, -1 ) };
+    $req->{_self} = $_[1] if $self->{_method_name};
+
+    eval { $self->{_then}->[0]->( $req, splice @_, 1, -1 ) };
 
     if ($@) {
         $@->sendlog;
@@ -52,7 +74,7 @@ sub _run ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 59                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
