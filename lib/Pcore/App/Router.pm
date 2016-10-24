@@ -31,24 +31,47 @@ sub _build_map ($self) {
 
     my $ns_path = $index_class =~ s[::][/]smgr;
 
-    # scan namespace, find and preload controllers
-    for my $path ( grep { !ref } @INC ) {
-        if ( -f "$path/$ns_path.pm" ) {
+    # scan %INC
+    for my $class ( keys %INC ) {
+
+        # remove .pm suffix
+        $class =~ s/[.]pm\z//sm;
+
+        # index controller
+        if ( $class eq $ns_path ) {
             $controllers->{$index_class} = '/';
         }
 
-        if ( -d "$path/$ns_path" ) {
-            my $guard = P->file->chdir("$path/$ns_path");
+        # non-index controller
+        elsif ( $class =~ m[\A$ns_path/]sm ) {
+            my $route = $class;
+
+            $class =~ s[/][::]smg;
+
+            $controllers->{$class} = '/' . _perl_class_path_to_snake_case($route) . '/';
+        }
+    }
+
+    # scan filesystem, find and preload controllers
+    for my $path ( grep { !ref } @INC ) {
+
+        # index controller
+        if ( -f "$path/$ns_path . pm " ) {
+            $controllers->{$index_class} = '/';
+        }
+
+        if ( -d "$path / $ns_path " ) {
+            my $guard = P->file->chdir("$path / $ns_path ");
 
             P->file->find(
-                "$path/$ns_path",
+                "$path / $ns_path ",
                 abs => 0,
                 dir => 0,
                 sub ($path) {
                     if ( $path->suffix eq 'pm' ) {
                         my $route = $path->dirname . $path->filename_base;
 
-                        my $class = "$ns_path/$route" =~ s[/][::]smgr;
+                        my $class = "$ns_path/$route " =~ s[/][::]smgr;
 
                         $controllers->{$class} = '/' . _perl_class_path_to_snake_case($route) . '/';
                     }
@@ -63,7 +86,7 @@ sub _build_map ($self) {
         P->class->load($class);
 
         if ( !$class->does('Pcore::App::Controller') ) {
-            die qq["$class" is not a consumer of "Pcore::App::Controller"];
+            die qq["$class " is not a consumer of " Pcore::App::Controller "];
         }
         else {
             my $path = $controllers->{$class};
@@ -88,7 +111,7 @@ sub _build_map ($self) {
         }
     }
 
-    die qq[Index controller "$index_class" was not found or nor a consumer of "Pcore::App::Controller::Index"] if !$self->{index_class};
+    die qq[Index controller "$index_class " was not found or nor a consumer of " Pcore::App::Controller::Index "] if !$self->{index_class};
 
     return { reverse $controllers->%* };
 }
@@ -113,7 +136,7 @@ sub run ( $self, $req ) {
         my @labels = split /\//sm, $path;
 
         while (@labels) {
-            $path_tail = pop(@labels) . "/$path_tail";
+            $path_tail = pop(@labels) . " / $path_tail ";
 
             $path = join( '/', @labels ) . '/';
 
@@ -143,7 +166,8 @@ sub get_instance ( $self, $class_name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 37, 53, 99, 118      | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 42, 51, 60, 76, 122, | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |      |  141                 |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
