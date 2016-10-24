@@ -6,6 +6,7 @@ with qw[Pcore::App::API::Backend::Local::sqlite::Auth];
 
 with qw[Pcore::App::API::Backend::Local::sqlite::App];
 with qw[Pcore::App::API::Backend::Local::sqlite::AppRole];
+with qw[Pcore::App::API::Backend::Local::sqlite::AppPermission];
 
 with qw[Pcore::App::API::Backend::Local::sqlite::AppInstance];
 
@@ -360,7 +361,7 @@ sub _connect_local_app_instance ( $self, $app_id, $app_instance_id, $cb ) {
                 say "Root user created: root / $res->{password}";
             }
 
-            $self->{app}->{api}->connect_local_app_instance(
+            $self->{app}->{api}->on_local_app_instance_connect(
                 sub ($res) {
                     $cb->($res);
 
@@ -508,10 +509,10 @@ sub _create_root_user ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 128, 240, 305, 339,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 378, 434             |                                                                                                                |
+## |    3 | 129, 241, 306, 340,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 379, 435             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 240                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_connect_app_instance' declared but |
+## |    3 | 241                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_connect_app_instance' declared but |
 ## |      |                      |  not used                                                                                                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

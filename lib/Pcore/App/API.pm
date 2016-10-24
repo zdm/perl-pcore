@@ -171,7 +171,8 @@ sub init ( $self, $cb ) {
     return;
 }
 
-sub connect_local_app_instance ( $self, $cb ) {
+# this method is called automatically on local app instance connect, can be redefined in subclass
+sub on_local_app_instance_connect ( $self, $cb ) {
     $cb->( status 200 );
 
     return;
@@ -712,8 +713,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 181, 420, 546, 590,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 616, 643, 686        |                                                                                                                |
+## |    3 | 182, 421, 547, 591,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 617, 644, 687        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
