@@ -53,8 +53,7 @@ sub init_db ( $self, $cb ) {
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `app_id` INTEGER NOT NULL REFERENCES `api_app` (`id`) ON DELETE CASCADE,
                 `name` BLOB NOT NULL,
-                `desc` TEXT NOT NULL,
-                `enabled` INTEGER NOT NULL DEFAULT 0
+                `desc` TEXT NOT NULL
             );
 
             CREATE UNIQUE INDEX `idx_uniq_api_app_role_app_id_name` ON `api_app_role` (`app_id`, `name`);
@@ -509,10 +508,10 @@ sub _create_root_user ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 129, 241, 306, 340,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 379, 435             |                                                                                                                |
+## |    3 | 128, 240, 305, 339,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 378, 434             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 241                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_connect_app_instance' declared but |
+## |    3 | 240                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_connect_app_instance' declared but |
 ## |      |                      |  not used                                                                                                      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
