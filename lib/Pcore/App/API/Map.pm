@@ -16,7 +16,21 @@ sub _build_method ($self) {
 
     my $class;
 
-    # scan namespace, find and preload controllers
+    # scan %INC
+    for my $class_path ( keys %INC ) {
+
+        # API class must be located in V\d+ directory
+        next if $class_path !~ m[\A$ns_path/V\d+/]sm;
+
+        # remove .pm suffix
+        my $class_name = $class_path =~ s/[.]pm\z//smr;
+
+        $class_name =~ s[/][::]smg;
+
+        $class->{$class_path} = $class_name;
+    }
+
+    # scan filesystem namespace, find and preload controllers
     for my $inc ( grep { !ref } @INC ) {
         if ( -d "$inc/$ns_path" ) {
             my $guard = P->file->chdir("$inc/$ns_path");
@@ -31,7 +45,7 @@ sub _build_method ($self) {
                     if ( $path->suffix eq 'pm' ) {
 
                         # API class must be located in V\d+ directory
-                        return if $path !~ /\AV\d+/sm;
+                        return if $path !~ m[\AV\d+/]sm;
 
                         my $route = $path->dirname . $path->filename_base;
 
@@ -122,9 +136,9 @@ sub _build_method ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 101                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 115                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 101, 107             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 115, 121             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

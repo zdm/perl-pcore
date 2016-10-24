@@ -58,9 +58,13 @@ sub _build_router ($self) {
 }
 
 sub _build_api ($self) {
-    return if !P->class->find( 'API', ns => ref $self );
+    my $api_class = ref($self) . '::API';
 
-    my $api_class = P->class->load( 'API', ns => ref $self );
+    if ( !exists $INC{ $api_class =~ s[::][/]smgr . '.pm' } ) {
+        return if !P->class->find($api_class);
+
+        P->class->load($api_class);
+    }
 
     die qq[API class "$api_class" is not consumer of "Pcore::App::API"] if !$api_class->does('Pcore::App::API');
 
