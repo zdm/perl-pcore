@@ -20,7 +20,7 @@ use overload    #
     return [ $_[0]->{response}->{status}, $_[0]->{response}->{reason} ];
   },
   q[&{}] => sub ( $self, @ ) {
-    return sub { return _respond( $self, @_ ) };
+    return sub { return _respond( $self, blessed $_[0] ? $_[0] : &Pcore::Util::Response::status ) };    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
   },
   fallback => 1;
 
@@ -31,7 +31,7 @@ has _self => ( is => 'ro', isa => Object );
 has response => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Response'], init_arg => undef );
 
 has _then_idx  => ( is => 'ro', isa => PositiveInt, default => 1, init_arg => undef );
-has _responded => ( is => 'ro', isa => Bool,        default => 0, init_arg => undef );    # already responded
+has _responded => ( is => 'ro', isa => Bool,        default => 0, init_arg => undef );                  # already responded
 
 P->init_demolish(__PACKAGE__);
 
@@ -39,7 +39,7 @@ sub DEMOLISH ( $self, $global ) {
     if ( !$global && !$self->{_responded} ) {
 
         # request object destroyed without return any result, this is possible run-time error in AE callback
-        _respond( $self, 500 );
+        _respond( $self, Pcore::Util::Response::status 500 );
     }
 
     return;
@@ -63,10 +63,8 @@ sub done ( $self, @ ) {
     return;
 }
 
-sub _respond ( $self, @ ) {
+sub _respond ( $self, $res ) {
     die q[Already responded] if $self->{_responded};
-
-    my $res = blessed $_[1] ? $_[1] : Pcore::Util::Response::status splice @_, 1;
 
     if ( my $then = $self->{_promise}->{_then}->[ $self->{_then_idx} ] ) {
         $self->{response} = $res;
@@ -81,7 +79,7 @@ sub _respond ( $self, @ ) {
             if ( !$self->{_responded} ) {
                 $self->{_responded} = 1;
 
-                $self->{_cb}->( status 500 );
+                $self->{_cb}->( Pcore::Util::Response::status 500 );
             }
         }
     }
@@ -101,7 +99,7 @@ sub _respond ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 76                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 74                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
