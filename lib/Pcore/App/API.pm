@@ -52,6 +52,14 @@ sub _build_permissions ($self) {
     return;
 }
 
+sub validate_name ( $self, $name ) {
+
+    # name looks like UUID string
+    return if $name =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm;
+
+    return 1;
+}
+
 # INIT API
 sub init ( $self, $cb ) {
 
@@ -62,7 +70,7 @@ sub init ( $self, $cb ) {
     $self->{permissions} = $self->_build_permissions;
 
     # build map
-    # use class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
+    # using class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
     $self->{map} = 'Pcore::App::API::Map'->new( { app => $self->app } );
 
     # init map
@@ -135,7 +143,6 @@ sub init ( $self, $cb ) {
                 $self->{backend}->register_app_instance(
                     $self->app->name,
                     $self->app->desc,
-                    $self->permissions,
                     P->sys->hostname,
                     "@{[$self->app->version]}",
                     sub ( $res ) {
@@ -151,7 +158,7 @@ sub init ( $self, $cb ) {
                             $self->app->store_cfg;
                         }
 
-                        # waiting for app instance approve
+                        # connect app instance
                         $connect_app_instance->();
 
                         return;
@@ -713,8 +720,10 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 182, 421, 547, 591,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 617, 644, 687        |                                                                                                                |
+## |    3 | 58                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 189, 428, 554, 598,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 624, 651, 694        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

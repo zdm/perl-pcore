@@ -5,7 +5,7 @@ use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::Util::UUID qw[create_uuid];
+use Pcore::Util::UUID qw[create_uuid create_uuid_from_str];
 
 with qw[Pcore::App::API::Backend];
 
@@ -68,6 +68,63 @@ sub init ( $self, $cb ) {
     return;
 }
 
+# REGISTER
+sub register_app_instance ( $self, $app_name, $app_desc, $app_instance_host, $app_instance_version, $cb ) {
+    $self->create_app(
+        $app_name,
+        $app_desc,
+        sub ($app) {
+
+            # app creation error
+            if ( !$app && $app != 304 ) {
+                $cb->($app);
+            }
+
+            # create app instalnce
+            else {
+                $self->create_app_instance(
+                    $app->{result}->{id},
+                    $app_instance_host,
+                    $app_instance_version,
+                    sub ($app_instance) {
+
+                        # app instance creation error
+                        if ( !$app_instance ) {
+                            $cb->($app_instance);
+                        }
+
+                        # app instance created
+                        else {
+
+                            # set app instance token
+                            $self->set_app_instance_token(
+                                $app_instance->{result}->{id},
+                                sub ($app_instance_token) {
+                                    if ( !$app_instance_token ) {
+                                        $cb->($app_instance_token);
+                                    }
+                                    else {
+                                        $cb->( status 200, app_instance_id => $app_instance->{result}->{id}, app_instance_token => $app_instance_token->{result} );
+                                    }
+
+                                    return;
+                                }
+                            );
+                        }
+
+                        return;
+                    }
+                );
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+# CONNECT
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
     $self->_connect_app_instance( 0, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb );
 
@@ -104,9 +161,10 @@ sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token
 
 # TOKEN / HASH GENERATORS
 sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
+    my $uuid = create_uuid_from_str $app_instance_id;
 
     # generate random token
-    my $token_bin = pack( 'CL', $TOKEN_TYPE_APP_INSTANCE_TOKEN, $app_instance_id ) . P->random->bytes(27);
+    my $token_bin = pack( 'C', $TOKEN_TYPE_APP_INSTANCE_TOKEN ) . $uuid->bin . P->random->bytes(32);
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
@@ -230,14 +288,15 @@ sub _verify_token_hash ( $self, $private_token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 71, 77, 85, 181      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 72, 128, 134, 142,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 239                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 106                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 129                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 155                  | * Private subroutine/method '_generate_user_session' declared but not used                                     |
-## |      | 181                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 204                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 163                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 187                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 213                  | * Private subroutine/method '_generate_user_session' declared but not used                                     |
+## |      | 239                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 262                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

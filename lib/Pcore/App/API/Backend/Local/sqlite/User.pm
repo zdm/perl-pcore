@@ -18,11 +18,13 @@ sub get_users ( $self, $cb ) {
 }
 
 sub get_user ( $self, $user_id, $cb ) {
-    if ( $user_id =~ /\A\d+\z/sm ) {
+
+    # $user_id is id
+    if ( $user_id =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm ) {
         if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
             delete $user->{hash};
 
-            $cb->( status 200, user => $user );
+            $cb->( status 200, $user );
         }
         else {
 
@@ -30,11 +32,13 @@ sub get_user ( $self, $user_id, $cb ) {
             $cb->( status [ 404, 'User not found' ] );
         }
     }
+
+    # $user_id is name
     else {
         if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_id] ) ) {
             delete $user->{hash};
 
-            $cb->( status 200, user => $user );
+            $cb->( status 200, $user );
         }
         else {
 
@@ -48,6 +52,14 @@ sub get_user ( $self, $user_id, $cb ) {
 
 # TODO permissions, enabled
 sub create_user ( $self, $user_name, $password, $cb ) {
+
+    # validate user name
+    if ( !$self->{app}->{api}->validate_name($user_name) || $user_name eq 'root' ) {
+        $cb->( status [ 400, 'User name is not valid' ] );
+
+        return;
+    }
+
     my $dbh = $self->dbh;
 
     # user created
@@ -182,7 +194,9 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 23                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 118                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

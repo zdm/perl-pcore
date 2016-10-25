@@ -2,6 +2,7 @@ package Pcore::App::API::Backend::Local::sqlite::UserPermission;
 
 use Pcore -role, -promise, -status;
 
+# TODO root user
 sub set_user_permissions ( $self, $creator_user_id, $user_id, $permissions, $cb ) {
 
     # root user
@@ -331,11 +332,11 @@ sub add_user_permissions ( $self, $creator_user_id, $user_id, $permissions, $cb 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 5                    | Subroutines::ProhibitExcessComplexity - Subroutine "set_user_permissions" with high complexity score (23)      |
+## |    3 | 6                    | Subroutines::ProhibitExcessComplexity - Subroutine "set_user_permissions" with high complexity score (23)      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 5, 178               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 6, 179               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 8, 181               | RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             |
+## |    2 | 9, 182               | RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,16 +1,51 @@
 package Pcore::App::API::Backend::Local::sqlite::AppInstance;
 
 use Pcore -role, -promise, -status;
+use Pcore::Util::UUID qw[uuid_str];
 
 sub get_app_instance ( $self, $app_instance_id, $cb ) {
     if ( my $app_instance = $self->dbh->selectrow( q[SELECT * FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
         delete $app_instance->{hash};
 
-        $cb->( status 200, app_instance => $app_instance );
+        $cb->( status 200, $app_instance );
     }
     else {
         $cb->( status [ 404, 'App instance not found' ] );
     }
+
+    return;
+}
+
+sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_version, $cb ) {
+    $self->get_app(
+        $app_id,
+        sub ($app) {
+            if ( !$app ) {
+                $cb->($app);
+            }
+            else {
+                my $app_instance_id = uuid_str;
+
+                my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (id, app_id, version, host, created_ts) VALUES (?, ?, ?, ?, ?)], [ $app_instance_id, $app->{result}->{id}, $app_instance_version, $app_instance_host, time ] );
+
+                if ( !$created ) {
+                    $cb->( status [ 400, 'App instance creation error' ] );
+                }
+                else {
+                    $self->get_app_instance(
+                        $app_instance_id,
+                        sub ($app_instance) {
+                            $cb->($app_instance);
+
+                            return;
+                        }
+                    );
+                }
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -30,7 +65,7 @@ sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
 
                 # set app instance token
                 if ( $self->dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $res->{hash}, $app_instance_id ] ) ) {
-                    $cb->( status 200, token => $res->{token} );
+                    $cb->( status 200, $res->{token} );
                 }
 
                 # set token error
@@ -46,36 +81,7 @@ sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb ) {
-    $self->get_app_instance(
-        $app_instance_id,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
-
-                return;
-            }
-
-            if ( ( $enabled && !$res->{app_instance}->{enabled} ) || ( !$enabled && $res->{app_instance}->{enabled} ) ) {
-                if ( $self->dbh->do( q[UPDATE api_app_instance SET enabled = ? WHERE id = ?], [ !!$enabled, $app_instance_id ] ) ) {
-                    $cb->( status 200 );
-                }
-                else {
-                    $cb->( status [ 500, 'Error set app instance enabled' ] );
-                }
-            }
-            else {
-
-                # not modified
-                $cb->( status 304 );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
+# TODO
 
 sub remove_app_instance ( $self, $app_instance_id, $cb ) {
     if ( $self->dbh->do( q[DELETE FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
@@ -106,7 +112,7 @@ sub get_app_instance_roles ( $self, $app_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 49                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 19                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
