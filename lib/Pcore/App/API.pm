@@ -57,6 +57,8 @@ sub validate_name ( $self, $name ) {
     # name looks like UUID string
     return if $name =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm;
 
+    return if $name =~ /[^[:alnum:]_@.-]/smi;
+
     return 1;
 }
 
@@ -554,12 +556,14 @@ sub get_user ( $self, $user_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_user ( $self, $user_name, $password, $cb = undef ) {
+sub create_user ( $self, $base_user, $user_name, $password, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_user(
+        $base_user,
         $user_name,
         $password,
+        $permissions,
         sub ( $res ) {
             $cb->($res) if $cb;
 
@@ -743,8 +747,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## |======+======================+================================================================================================================|
 ## |    3 | 58                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 210, 449, 575, 619,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 645, 672, 715        |                                                                                                                |
+## |    3 | 212, 451, 559, 579,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 623, 649, 676, 719   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

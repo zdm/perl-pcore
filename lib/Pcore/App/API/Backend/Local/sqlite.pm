@@ -5,13 +5,10 @@ use Pcore -class, -status;
 with qw[Pcore::App::API::Backend::Local::sqlite::Auth];
 
 with qw[Pcore::App::API::Backend::Local::sqlite::App];
-with qw[Pcore::App::API::Backend::Local::sqlite::AppRole];
-with qw[Pcore::App::API::Backend::Local::sqlite::AppPermission];
 
 with qw[Pcore::App::API::Backend::Local::sqlite::AppInstance];
 
 with qw[Pcore::App::API::Backend::Local::sqlite::User];
-with qw[Pcore::App::API::Backend::Local::sqlite::UserPermission];
 with qw[Pcore::App::API::Backend::Local::sqlite::UserToken];
 with qw[Pcore::App::API::Backend::Local::sqlite::UserSession];
 
@@ -72,7 +69,7 @@ sub init_db ( $self, $cb ) {
                 `name` TEXT NOT NULL UNIQUE,
                 `created_ts` INTEGER,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
-                `hash` BLOB
+                `hash` BLOB NOT NULL
             );
 
             --- USER PERMISSION

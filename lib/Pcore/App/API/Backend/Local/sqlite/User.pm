@@ -94,8 +94,17 @@ sub create_root_user ( $self, $cb ) {
     return;
 }
 
-# TODO permissions, enabled
-sub create_user ( $self, $user_name, $password, $cb ) {
+# TODO
+sub set_root_password ( $self, $cb ) {
+    return;
+}
+
+sub create_user ( $self, $base_user_id, $user_name, $password, $permissions, $cb ) {
+    if ( $user_name eq 'root' ) {
+        $cb->( status [ 400, 'User name is not valid' ] );
+
+        return;
+    }
 
     # validate user name
     if ( !$self->{app}->{api}->validate_name($user_name) || $user_name eq 'root' ) {
@@ -104,57 +113,154 @@ sub create_user ( $self, $user_name, $password, $cb ) {
         return;
     }
 
-    my $dbh = $self->dbh;
+    if ( $self->dbh->selectrow( q[SELECT id FROM api_user WHERE name = ?], [$user_name] ) ) {
+        $cb->( status [ 400, 'User name already exists' ] );
 
-    # user created
-    if ( $dbh->do( q[INSERT OR IGNORE INTO api_user (name, enabled, created_ts) VALUES (?, ?, ?)], [ $user_name, 0, time ] ) ) {
-        my $user_id = $dbh->last_insert_id;
+        return;
+    }
 
-        # set password
-        $self->set_user_password(
-            $user_id,
-            $password,
-            sub ($status) {
-                if ($status) {
-
-                    # enable user
-                    $self->set_user_enabled(
-                        $user_id, 1,
-                        sub ($status) {
-                            if ($status) {
-                                $cb->( status 201, user_id => $user_id );
-                            }
-                            else {
-                                # rollback
-                                $dbh->do( q[DELETE OR IGNORE FROM api_user WHERE id = ?], [$user_id] );
-
-                                $cb->($status);
-                            }
-
-                            return;
-                        }
-                    );
-                }
-                else {
-
-                    # rollback
-                    $dbh->do( q[DELETE OR IGNORE FROM api_user WHERE id = ?], [$user_id] );
-
-                    $cb->($status);
-                }
-
-                return;
+    # resolve permissions
+    $self->resolve_app_roles(
+        $permissions,
+        sub ($roles) {
+            if ( !$roles ) {
+                $cb->($roles);
             }
-        );
-    }
+            else {
 
-    # user already exists
-    else {
-        my $user_id = $dbh->selectval( 'SELECT id FROM api_user WHERE name = ?', [$user_name] )->$*;
+                # get base user
+                $self->get_user(
+                    $base_user_id,
+                    sub ($base_user) {
 
-        # name already exists
-        $cb->( status [ 409, 'User already exists' ], user_id => $user_id );
-    }
+                        # base user get error
+                        if ( !$base_user ) {
+                            $cb->($base_user_id);
+                        }
+
+                        # base user found
+                        else {
+
+                            my $create_user = sub {
+
+                                # generate user password hash
+                                $self->_generate_user_password_hash(
+                                    $user_name,
+                                    $password,
+                                    sub ( $password_hash ) {
+
+                                        # password hash generation error
+                                        if ( !$password_hash ) {
+                                            $cb->($password_hash);
+                                        }
+
+                                        # password hash generated
+                                        else {
+                                            my $dbh = $self->dbh;
+
+                                            $dbh->begin_work;
+
+                                            my $user_id = uuid_str;
+
+                                            my $created = $dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, 1, ?, ?)], [ $user_id, $user_name, time, $password_hash->{result}->{hash} ] );
+
+                                            # user creation error
+                                            if ( !$created ) {
+                                                $dbh->rollback;
+
+                                                $cb->( status [ 500, 'User creation error' ] );
+                                            }
+
+                                            # user created
+                                            else {
+
+                                                # add user permissions
+                                                for my $role_id ( keys $roles->{result}->%* ) {
+                                                    my $user_permission_id = uuid_str;
+
+                                                    # create permission
+                                                    my $permission_created = $dbh->do( q[INSERT OR IGNORE INTO api_user_permission (id, user_id, app_role_id) VALUES (?, ?, ?)], [ $user_permission_id, $user_id, $role_id ] );
+
+                                                    # permisison create error
+                                                    if ( !$permission_created ) {
+                                                        $dbh->rollback;
+
+                                                        $cb->( status [ 500, 'User creation error' ] );
+
+                                                        return;
+                                                    }
+                                                }
+
+                                                # permissions created
+                                                $dbh->commit;
+
+                                                $self->get_user(
+                                                    $user_id,
+                                                    sub ($user) {
+                                                        $cb->($user);
+
+                                                        return;
+                                                    }
+                                                );
+                                            }
+                                        }
+
+                                        return;
+                                    }
+                                );
+
+                                return;
+                            };
+
+                            # base user is root
+                            if ( $base_user->{result}->{name} eq 'root' ) {
+                                $create_user->();
+                            }
+
+                            # base user is not root
+                            else {
+
+                                # get base user permissions
+                                $self->get_user_permissions(
+                                    $base_user->{result}->{id},
+                                    sub ($base_user_permissions) {
+
+                                        # base user permissions get error
+                                        if ( !$base_user_permissions ) {
+                                            $cb->($base_user_permissions);
+                                        }
+
+                                        # base user permissions get ok
+                                        else {
+
+                                            # compare base user permissions
+                                            for my $role_id ( keys $roles->{result}->%* ) {
+
+                                                # base user permission not exists
+                                                if ( !$base_user_permissions->{result}->{$role_id}->{user_permission_id} ) {
+                                                    $cb->( status [ 400, 'Permissions error' ] );
+
+                                                    return;
+                                                }
+                                            }
+
+                                            $create_user->();
+                                        }
+
+                                        return;
+                                    }
+                                );
+                            }
+                        }
+
+                        return;
+                    }
+                );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -231,6 +337,41 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
     return;
 }
 
+# USER PERMISSIONS
+sub get_user_permissions ( $self, $user_id, $cb ) {
+    my $permissions = $self->dbh->selectall(
+        <<'SQL',
+            SELECT
+                api_user_permission.id AS user_permission_id,
+                api_app_role.id AS app_role_id,
+                api_app_role.name AS app_role_name,
+                api_app_role.desc AS app_role_desc,
+                api_app.name AS app_name,
+                api_app.desc AS app_desc
+            FROM
+                api_app,
+                api_app_role LEFT JOIN api_user_permission ON api_user_permission.app_role_id = api_app_role.id
+            WHERE
+                api_app.id = api_app_role.app_id
+                AND ( api_user_permission.user_id IS NULL OR api_user_permission.user_id = ? )
+SQL
+        [$user_id]
+    );
+
+    if ( !$permissions ) {
+        $cb->( status 200, {} );
+    }
+    else {
+
+        # index permissions by app_role_id
+        $permissions = { map { $_->{app_role_id} => $_ } $permissions->@* };
+
+        $cb->( status 200, $permissions );
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -240,7 +381,11 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 24                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 162                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 102                  | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 102, 268             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 185, 240             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

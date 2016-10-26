@@ -1,3 +1,8 @@
+- create user + permisisons;
+- update user + permissions;
+- remove user;
+
+
 - sqlite github issues;
 
 - optimize api sqlite functions;
