@@ -3,68 +3,64 @@ package Pcore::App::API::Backend::Local::sqlite::Auth;
 use Pcore -role, -promise, -status;
 
 sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $private_token, $cb ) {
-    state $sql1 = <<'SQL';
-        SELECT
-            id,
-            hash,
-            enabled
-        FROM
-            api_user
-        WHERE
-            name = ?
-SQL
-
-    state $sql2 = <<'SQL';
+    state $q1 = <<'SQL';
         SELECT
             api_app_role.name AS source_app_role_name
         FROM
             api_app_instance,
             api_app_role,
-            api_user_permissions
+            api_user_permission
         WHERE
             api_app_instance.id = ?                                                      --- source app_instance_id
             AND api_app_role.app_id = api_app_instance.app_id                            --- link source_app_instance_role to source_app
-            AND api_app_role.enabled = 1                                                 --- source_app_role must be enabled
 
-            AND api_app_role.id = api_user_permissions.role_id                           --- link app_role to user_permissions
-            AND api_user_permissions.enabled = 1                                         --- user permission must be enabled
-            AND api_user_permissions.user_id = ?
+            AND api_app_role.id = api_user_permission.app_role_id                           --- link app_role to user_permissions
+            AND api_user_permission.user_id = ?
 SQL
 
     # get user
-    my $res = $self->dbh->selectrow( $sql1, [$user_name_utf8] );
+    my $user = $self->dbh->selectrow( q[SELECT id, hash, enabled FROM api_user WHERE name = ?], [$user_name_utf8] );
 
     # user not found
-    if ( !$res ) {
+    if ( !$user ) {
         $cb->( status [ 404, 'User not found' ] );
 
         return;
     }
 
-    my $continue = sub {
-        my $user_id = $res->{id};
+    my $get_permissions = sub {
+        my $user_id = $user->{id};
 
         my $auth = {
             user_id   => $user_id,
             user_name => $user_name_utf8,
-            enabled   => $res->{enabled},
+            enabled   => $user->{enabled},
         };
 
         my $tags = {    #
             user_id => $user_id,
         };
 
-        # get permissions
-        if ( my $roles = $self->dbh->selectall( $sql2, [ $source_app_instance_id, $user_id ] ) ) {
-            for my $row ( $roles->@* ) {
-                $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
-            }
-        }
-        else {
+        # root user
+        if ( $user_name_utf8 eq 'root' ) {
             $auth->{permissions} = {};
         }
 
-        $cb->( status 200, auth => $auth, tags => $tags );
+        # non-root user
+        else {
+
+            # get permissions
+            if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_id ] ) ) {
+                for my $row ( $roles->@* ) {
+                    $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
+                }
+            }
+            else {
+                $auth->{permissions} = {};
+            }
+        }
+
+        $cb->( status 200, { auth => $auth, tags => $tags } );
 
         return;
     };
@@ -74,12 +70,12 @@ SQL
         # verify token
         $self->_verify_token_hash(
             $private_token,
-            $res->{hash},
+            $user->{hash},
             sub ($status) {
 
-                # token valid
+                # token is valid
                 if ($status) {
-                    $continue->();
+                    $get_permissions->();
                 }
 
                 # token is invalid
@@ -92,7 +88,7 @@ SQL
         );
     }
     else {
-        $continue->();
+        $get_permissions->();
     }
 
     return;
@@ -416,13 +412,13 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 5, 101, 201, 307     | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 5, 97, 197, 303      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 5                    | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 101                  | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 201                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 307                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
+## |      | 97                   | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 197                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 303                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

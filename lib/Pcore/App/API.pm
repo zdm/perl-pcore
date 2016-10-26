@@ -317,9 +317,9 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
             $auth = $cache->{$private_token};
 
-            my $auth_attrs = $res->{auth};
+            my $auth_attrs = $res->{result}->{auth};
 
-            my $tags = $res->{tags};
+            my $tags = $res->{result}->{tags};
 
             # auth is not cached, create new auth
             if ( !$auth ) {
