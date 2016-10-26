@@ -17,8 +17,9 @@ has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 )
 has cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );    # app instance local config path
 has cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );    # app instance local config
 
-has instance_id    => ( is => 'ro', isa => PositiveInt, init_arg => undef );    # app instance id
-has instance_token => ( is => 'ro', isa => Str,         init_arg => undef );    # app instance token
+has id             => ( is => 'ro', isa => Str, init_arg => undef );    # app id
+has instance_id    => ( is => 'ro', isa => Str, init_arg => undef );    # app instance id
+has instance_token => ( is => 'ro', isa => Str, init_arg => undef );    # app instance token
 
 has version => ( is => 'lazy', isa => InstanceOf ['version'], init_arg => undef );                      # app instance version
 has router => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
@@ -91,7 +92,7 @@ around run => sub ( $orig, $self ) {
 
         $self->api->init(
             sub ($status) {
-                say $status;
+                exit if !$status;
 
                 $cv->send;
 

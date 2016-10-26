@@ -32,7 +32,7 @@ sub get_app ( $self, $app_id, $cb ) {
     return;
 }
 
-sub create_app ( $self, $name, $desc, $cb ) {
+sub create_app ( $self, $name, $desc, $permissions, $cb ) {
 
     # validate app name
     if ( !$self->{app}->{api}->validate_name($name) ) {
@@ -41,17 +41,40 @@ sub create_app ( $self, $name, $desc, $cb ) {
         return;
     }
 
+    my $dbh = $self->dbh;
+
+    $dbh->begin_work;
+
     # create app
-    my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_app (id, name, desc, created_ts) VALUES (?, ?, ?, ?)], [ uuid_str, $name, $desc, time ] );
+    my $created = $dbh->do( q[INSERT OR IGNORE INTO api_app (id, name, desc, created_ts) VALUES (?, ?, ?, ?)], [ uuid_str, $name, $desc, time ] );
 
     $self->get_app(
         $name,
-        sub ($res) {
-            if ($res) {
-                $cb->( status $created ? 201 : 304, $res->{result} );
+        sub ($app) {
+            if ( !$app ) {
+                $dbh->rollback;
+
+                $cb->( status [ 400, 'Error creating app' ] );
             }
             else {
-                $cb->( status [ 400, 'Error creating app' ] );
+                $self->add_app_permissions(
+                    $app->{result}->{id},
+                    $permissions,
+                    sub ($res) {
+                        if ( !$res && $res != 304 ) {
+                            $dbh->rollback;
+
+                            $cb->($res);
+                        }
+                        else {
+                            $dbh->commit;
+
+                            $cb->( status $created ? 201 : 304, $app->{result} );
+                        }
+
+                        return;
+                    }
+                );
             }
 
             return;
@@ -61,21 +84,82 @@ sub create_app ( $self, $name, $desc, $cb ) {
     return;
 }
 
-sub remove_app ( $self, $app_id, $cb ) {
-    $self->get_app(
-        $app_id,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
+sub check_app_permissions_approved ( $self, $app_id, $cb ) {
 
-                return;
-            }
+    # app is root
+    if ( $app_id eq $self->{app}->{id} ) {
+        $cb->( status 200 );
 
-            if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_app WHERE id = ?], [ $res->{app}->{id} ] ) ) {
-                $cb->( status 200 );
+        return;
+    }
+
+    if ( $self->dbh->selectall( q[SELECT * FROM api_app_permission WHERE app_id = ? AND approved = 0], [$app_id] ) ) {
+        $cb->( status [ 400, 'App permissions are not approved' ] );
+    }
+    else {
+        $cb->( status 200 );
+    }
+
+    return;
+}
+
+sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
+    $self->resolve_app_roles(
+        $app_permissions,
+        sub ($roles) {
+            if ( !$roles ) {
+                $cb->($roles);
             }
             else {
-                $cb->( status [ 404, 'Error removing app' ] );
+
+                # index roles by role_id
+                $roles = { map { $_->{id} => $_ } values $roles->{result}->%* };
+
+                my $modified;
+
+                # add app permissions
+                for my $role_id ( keys $roles->%* ) {
+                    $modified = 1 if $self->dbh->do( q[INSERT OR IGNORE INTO api_app_permissions (id, app_id, app_role_id, approved) VALUE (?, ?, ?, 0)], [ uuid_str, $app_id, $role_id ] );
+                }
+
+                $cb->( status $modified ? 200 : 304 );
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
+
+    # validate identifiers
+    for my $role_name ( keys $app_roles->%* ) {
+
+        # validate app name
+        if ( !$self->{app}->{api}->validate_name($role_name) ) {
+            $cb->( status [ 400, 'Role name is not valid' ] );
+
+            return;
+        }
+    }
+
+    $self->get_app(
+        $app_id,
+        sub ($app) {
+            if ( !$app ) {
+                $cb->($app);
+            }
+            else {
+                my $modified;
+
+                for my $role_name ( keys $app_roles->%* ) {
+                    $modified = 1 if $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (id, app_id, name, desc) VALUES (?, ?, ?, ?)], [ uuid_str, $app->{result}->{id}, $role_name, $app_roles->{$role_name} ] );
+                }
+
+                $cb->( status $modified ? 200 : 304 );
+
             }
 
             return;
@@ -93,6 +177,8 @@ sub remove_app ( $self, $app_id, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 9                    | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 106, 135             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

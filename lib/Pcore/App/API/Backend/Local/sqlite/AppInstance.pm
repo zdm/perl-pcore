@@ -26,21 +26,42 @@ sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_vers
             else {
                 my $app_instance_id = uuid_str;
 
-                my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (id, app_id, version, host, created_ts) VALUES (?, ?, ?, ?, ?)], [ $app_instance_id, $app->{result}->{id}, $app_instance_version, $app_instance_host, time ] );
+                $self->_generate_app_instance_token(
+                    $app_instance_id,
+                    sub ( $token ) {
 
-                if ( !$created ) {
-                    $cb->( status [ 400, 'App instance creation error' ] );
-                }
-                else {
-                    $self->get_app_instance(
-                        $app_instance_id,
-                        sub ($app_instance) {
-                            $cb->($app_instance);
-
-                            return;
+                        # app instance token generation error
+                        if ( !$token ) {
+                            $cb->($token);
                         }
-                    );
-                }
+
+                        # app instance token generated
+                        else {
+
+                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (id, app_id, version, host, created_ts, hash) VALUES (?, ?, ?, ?, ?, ?)], [ $app_instance_id, $app->{result}->{id}, $app_instance_version, $app_instance_host, time, $token->{result}->{hash} ] );
+
+                            if ( !$created ) {
+                                $cb->( status [ 400, 'App instance creation error' ] );
+                            }
+                            else {
+                                $self->get_app_instance(
+                                    $app_instance_id,
+                                    sub ($app_instance) {
+                                        if ($app_instance) {
+                                            $app_instance->{result}->{token} = $token->{result}->{token};
+                                        }
+
+                                        $cb->($app_instance);
+
+                                        return;
+                                    }
+                                );
+                            }
+                        }
+
+                        return;
+                    }
+                );
             }
 
             return;
@@ -53,19 +74,19 @@ sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_vers
 sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
     $self->_generate_app_instance_token(
         $app_instance_id,
-        sub ( $res ) {
+        sub ( $token ) {
 
             # app instance token generation error
-            if ( !$res ) {
-                $cb->($res);
+            if ( !$token ) {
+                $cb->($token);
             }
 
             # app instance token generated
             else {
 
                 # set app instance token
-                if ( $self->dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $res->{hash}, $app_instance_id ] ) ) {
-                    $cb->( status 200, $res->{token} );
+                if ( $self->dbh->do( q[UPDATE api_app_instance SET hash = ? WHERE id = ?], [ $token->{result}->{hash}, $app_instance_id ] ) ) {
+                    $cb->( status 200, $token->{result}->{token} );
                 }
 
                 # set token error
@@ -81,25 +102,14 @@ sub set_app_instance_token ( $self, $app_instance_id, $cb ) {
     return;
 }
 
-# TODO
+sub update_app_instance ( $self, $app_instance_id, $app_instance_version, $cb ) {
+    my $updated = $self->dbh->do( q[UPDATE OR IGNORE api_app_instance SET version = ?, last_connected_ts = ? WHERE id = ?], [ $app_instance_version, time, $app_instance_id ] );
 
-sub remove_app_instance ( $self, $app_instance_id, $cb ) {
-    if ( $self->dbh->do( q[DELETE FROM api_app_instance WHERE id = ?], [$app_instance_id] ) ) {
+    if ( !$updated ) {
+        $cb->( status [ 400, 'App instance update error' ] );
+    }
+    else {
         $cb->( status 200 );
-    }
-    else {
-        $cb->( status [ 404, 'Error remmoving app instance' ] );
-    }
-
-    return;
-}
-
-sub get_app_instance_roles ( $self, $app_id, $cb ) {
-    if ( my $roles = $self->dbh->selectall( q[SELECT id, name, enabled FROM api_app_role WHERE app_id = ?], [$app_id] ) ) {
-        $cb->( status 200, roles => $roles );
-    }
-    else {
-        $cb->( status 200, roles => [] );
     }
 
     return;
@@ -112,7 +122,7 @@ sub get_app_instance_roles ( $self, $app_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 19                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 19, 105              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

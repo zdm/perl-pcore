@@ -13,7 +13,6 @@ requires(
 
     # INIT
     'init_db',
-    '_connect_app_instance',
 
     # AUTH
     '_auth_user_password',
@@ -68,11 +67,15 @@ sub init ( $self, $cb ) {
     return;
 }
 
-# REGISTER
-sub register_app_instance ( $self, $app_name, $app_desc, $app_instance_host, $app_instance_version, $cb ) {
+# REGISTER APP INSTANCE
+# create app, add app permissions, create app instance
+sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_instance_host, $app_instance_version, $cb ) {
+
+    # create app
     $self->create_app(
         $app_name,
         $app_desc,
+        $app_permissions,
         sub ($app) {
 
             # app creation error
@@ -80,8 +83,10 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_instance_host, $ap
                 $cb->($app);
             }
 
-            # create app instalnce
+            # app created
             else {
+
+                # create app instalnce
                 $self->create_app_instance(
                     $app->{result}->{id},
                     $app_instance_host,
@@ -95,21 +100,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_instance_host, $ap
 
                         # app instance created
                         else {
-
-                            # set app instance token
-                            $self->set_app_instance_token(
-                                $app_instance->{result}->{id},
-                                sub ($app_instance_token) {
-                                    if ( !$app_instance_token ) {
-                                        $cb->($app_instance_token);
-                                    }
-                                    else {
-                                        $cb->( status 200, app_instance_id => $app_instance->{result}->{id}, app_instance_token => $app_instance_token->{result} );
-                                    }
-
-                                    return;
-                                }
-                            );
+                            $cb->( status 200, app_id => $app->{result}->{id}, app_instance_id => $app_instance->{result}->{id}, app_instance_token => $app_instance->{result}->{token} );
                         }
 
                         return;
@@ -124,15 +115,121 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_instance_host, $ap
     return;
 }
 
-# CONNECT
+# CONNECT APP INSTANCE
+# add app permissions, check, that all permissions are approved, update app instance, add app roles
 sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
-    $self->_connect_app_instance( 0, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb );
 
-    return;
-}
+    # get app instance
+    $self->get_app_instance(
+        $app_instance_id,
+        sub ($app_instance) {
 
-sub connect_local_app_instance ( $self, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb ) {
-    $self->_connect_app_instance( 1, $app_instance_id, $app_instance_version, $app_roles, $app_permissions, $cb );
+            # get app instance error
+            if ( !$app_instance ) {
+                $cb->($app_instance);
+            }
+
+            # get app instance ok
+            else {
+
+                # get app
+                $self->get_app(
+                    $app_instance->{result}->{app_id},
+                    sub ($app) {
+
+                        # get app error
+                        if ( !$app ) {
+                            $cb->($app);
+                        }
+
+                        # get app ok
+                        else {
+
+                            # add app permissions
+                            $self->add_app_permissions(
+                                $app->{result}->{id},
+                                $app_permissions,
+                                sub ($res) {
+
+                                    # add app permissions error
+                                    if ( !$res && $res != 304 ) {
+                                        $cb->($res);
+                                    }
+                                    else {
+
+                                        # check, that all app permissions are approved
+                                        $self->check_app_permissions_approved(
+                                            $app->{result}->{id},
+                                            sub ($res) {
+
+                                                # app permissions are not approved
+                                                if ( !$res ) {
+                                                    $cb->($res);
+                                                }
+
+                                                # app permisisons are approved
+                                                else {
+
+                                                    # updating app instance
+                                                    $self->update_app_instance(
+                                                        $app_instance_id,
+                                                        $app_instance_version,
+                                                        sub ($res) {
+
+                                                            # app instance update error
+                                                            if ( !$res ) {
+                                                                $cb->($res);
+                                                            }
+
+                                                            # app instance updated
+                                                            else {
+
+                                                                # add app roles
+                                                                $self->add_app_roles(
+                                                                    $app->{result}->{id},
+                                                                    $app_roles,
+                                                                    sub($res) {
+
+                                                                        # app roles error
+                                                                        if ( !$res && $res != 304 ) {
+                                                                            $cb->($res);
+                                                                        }
+
+                                                                        # app roles added
+                                                                        else {
+                                                                            $cb->( status 200 );
+                                                                        }
+
+                                                                        return;
+                                                                    }
+                                                                );
+                                                            }
+
+                                                            return;
+                                                        }
+                                                    );
+                                                }
+
+                                                return;
+                                            }
+                                        );
+                                    }
+
+                                    return;
+                                }
+                            );
+
+                            return;
+                        }
+
+                        return;
+                    }
+                );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -174,7 +271,7 @@ sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token => to_b64_url($token_bin), hash => $res->{hash} );
+                $cb->( status 200, { token => to_b64_url($token_bin), hash => $res->{hash} } );
             }
 
             return;
@@ -249,7 +346,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
                 $cb->($res);
             }
             else {
-                $cb->( status 200, hash => $res->{hash} );
+                $cb->( status 200, { hash => $res->{hash} } );
             }
 
             return;
@@ -288,15 +385,16 @@ sub _verify_token_hash ( $self, $private_token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 72, 128, 134, 142,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 239                  |                                                                                                                |
+## |    3 | 72, 120, 239, 336    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 194                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 163                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 187                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 213                  | * Private subroutine/method '_generate_user_session' declared but not used                                     |
-## |      | 239                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 262                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 260                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
+## |      | 284                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
+## |      | 310                  | * Private subroutine/method '_generate_user_session' declared but not used                                     |
+## |      | 336                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 359                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

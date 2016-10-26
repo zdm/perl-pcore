@@ -2,7 +2,6 @@ package Pcore::App::API::Backend::Local::sqlite;
 
 use Pcore -class, -status;
 
-with qw[Pcore::App::API::Backend::Local::sqlite::Register];
 with qw[Pcore::App::API::Backend::Local::sqlite::Auth];
 
 with qw[Pcore::App::API::Backend::Local::sqlite::App];
@@ -44,7 +43,7 @@ sub init_db ( $self, $cb ) {
                 `host` BLOB NOT NULL,
                 `created_ts` INTEGER NOT NULL,
                 `last_connected_ts` INTEGER,
-                `hash` BLOB
+                `hash` BLOB NOT NULL
             );
 
             --- APP ROLE
@@ -69,7 +68,7 @@ sub init_db ( $self, $cb ) {
 
             --- USER
             CREATE TABLE IF NOT EXISTS `api_user` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `id` BLOB PRIMARY KEY NOT NULL,
                 `name` TEXT NOT NULL UNIQUE,
                 `created_ts` INTEGER,
                 `enabled` INTEGER NOT NULL DEFAULT 0,
@@ -88,7 +87,7 @@ sub init_db ( $self, $cb ) {
             --- USER TOKEN
             CREATE TABLE IF NOT EXISTS `api_user_token` (
                 `id` BLOB PRIMARY KEY NOT NULL, --- UUID hex
-                `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
+                `user_id` BLOB NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `desc` TEXT,
                 `created_ts` INTEGER,
                 `hash` BLOB UNIQUE
@@ -106,7 +105,7 @@ sub init_db ( $self, $cb ) {
             --- USER SESSION
             CREATE TABLE IF NOT EXISTS `api_user_session` (
                 `id` BLOB PRIMARY KEY NOT NULL, --- UUID hex
-                `user_id` INTEGER NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
+                `user_id` BLOB NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `created_ts` INTEGER,
                 `removed` INTEGER NOT NULL DEFAULT 0,
                 `removed_ts` INTEGER,

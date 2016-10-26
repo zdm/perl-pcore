@@ -110,19 +110,44 @@ sub init ( $self, $cb ) {
             my $connect_app_instance = sub {
                 print q[Connecting app instance ... ];
 
-                my $method = $self->{backend}->is_local ? 'connect_local_app_instance' : 'connect_app_instance';
-
-                $self->{backend}->$method(
+                $self->{backend}->connect_app_instance(
                     $self->app->{instance_id},
                     "@{[$self->app->version]}",
                     $self->roles,
                     $self->permissions,
                     sub ($res) {
-                        die qq[Error connecting app: $res] if !$res;
+                        say $res;
 
-                        say 'done';
+                        if ( !$res ) {
+                            $cb->($res);
+                        }
+                        else {
+                            if ( $self->{backend}->is_local ) {
 
-                        $cb->( status 200 );
+                                # create root user
+                                $self->{backend}->create_root_user(
+                                    sub ($res) {
+
+                                        # root user creation error
+                                        if ( !$res && $res != 304 ) {
+                                            $cb->($res);
+                                        }
+
+                                        # root user created
+                                        else {
+                                            say qq[Root password: $res->{result}->{root_password}] if $res;
+
+                                            $cb->( status 200 );
+                                        }
+
+                                        return;
+                                    }
+                                );
+                            }
+                            else {
+                                $cb->($res);
+                            }
+                        }
 
                         return;
                     }
@@ -132,8 +157,9 @@ sub init ( $self, $cb ) {
             };
 
             # get app instance credentials from local config
-            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0];
-            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1];
+            $self->app->{id}             = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0];
+            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1];
+            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[2];
 
             # sending app instance registration request
             if ( !$self->app->{instance_token} ) {
@@ -143,6 +169,7 @@ sub init ( $self, $cb ) {
                 $self->{backend}->register_app_instance(
                     $self->app->name,
                     $self->app->desc,
+                    $self->permissions,
                     P->sys->hostname,
                     "@{[$self->app->version]}",
                     sub ( $res ) {
@@ -152,8 +179,9 @@ sub init ( $self, $cb ) {
 
                         # store app instance credentials
                         {
-                            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $res->{app_instance_id};
-                            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $res->{app_instance_token};
+                            $self->app->{id}             = $self->app->cfg->{auth}->{ $self->{backend}->host }->[0] = $res->{app_id};
+                            $self->app->{instance_id}    = $self->app->cfg->{auth}->{ $self->{backend}->host }->[1] = $res->{app_instance_id};
+                            $self->app->{instance_token} = $self->app->cfg->{auth}->{ $self->{backend}->host }->[2] = $res->{app_instance_token};
 
                             $self->app->store_cfg;
                         }
@@ -174,13 +202,6 @@ sub init ( $self, $cb ) {
             return;
         }
     );
-
-    return;
-}
-
-# this method is called automatically on local app instance connect, can be redefined in subclass
-sub on_local_app_instance_connect ( $self, $cb ) {
-    $cb->( status 200 );
 
     return;
 }
@@ -722,8 +743,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## |======+======================+================================================================================================================|
 ## |    3 | 58                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 189, 428, 554, 598,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 624, 651, 694        |                                                                                                                |
+## |    3 | 210, 449, 575, 619,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 645, 672, 715        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

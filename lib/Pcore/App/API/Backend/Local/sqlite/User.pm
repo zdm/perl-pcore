@@ -1,6 +1,7 @@
 package Pcore::App::API::Backend::Local::sqlite::User;
 
 use Pcore -role, -promise, -status;
+use Pcore::Util::UUID qw[uuid_str];
 
 sub get_users ( $self, $cb ) {
     if ( my $users = $self->dbh->selectall(q[SELECT * FROM api_user]) ) {
@@ -46,6 +47,49 @@ sub get_user ( $self, $user_id, $cb ) {
             $cb->( status [ 404, 'User not found' ] );
         }
     }
+
+    return;
+}
+
+sub create_root_user ( $self, $cb ) {
+    $self->get_user(
+        'root',
+        sub ($user) {
+
+            # root user already exists
+            if ($user) {
+                $cb->( status 304 );
+            }
+            else {
+                my $root_password = P->random->bytes_hex(16);
+
+                $self->_generate_user_password_hash(
+                    'root',
+                    $root_password,
+                    sub ( $password_hash ) {
+                        if ( !$password_hash ) {
+                            $cb->($password_hash);
+
+                            return;
+                        }
+
+                        my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, 1, ?, ?)], [ uuid_str, 'root', time, $password_hash->{result}->{hash} ] );
+
+                        if ( !$created ) {
+                            $cb->( status [ 500, 'Error creating root user' ] );
+                        }
+                        else {
+                            $cb->( status 200, { root_password => $root_password } );
+                        }
+
+                        return;
+                    }
+                );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -194,9 +238,9 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 23                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 24                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 118                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 162                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
