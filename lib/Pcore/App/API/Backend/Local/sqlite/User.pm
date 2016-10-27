@@ -94,7 +94,7 @@ sub create_root_user ( $self, $cb ) {
     return;
 }
 
-# TODO
+# TODO generate and set root user password
 sub set_root_password ( $self, $cb ) {
     return;
 }
@@ -265,6 +265,7 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $permissions, $cb
     return;
 }
 
+# TODO only root can update root user
 sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
     $self->get_user(
         $user_id,
@@ -287,7 +288,7 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
                         return;
                     }
 
-                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $res->{hash}, $user->{id} ] ) ) {
+                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $res->{result}->{hash}, $user->{id} ] ) ) {
                         $cb->( status [ 500, 'Error setting user password' ] );
 
                         return;
@@ -338,7 +339,6 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 }
 
 # USER PERMISSIONS
-# TODO optimize OR condiiton in SQL query
 sub get_user_permissions ( $self, $user_id, $cb ) {
     my $permissions = $self->dbh->selectall(
         <<'SQL',
@@ -351,10 +351,12 @@ sub get_user_permissions ( $self, $user_id, $cb ) {
                 api_app.desc AS app_desc
             FROM
                 api_app,
-                api_app_role LEFT JOIN api_user_permission ON api_user_permission.app_role_id = api_app_role.id
+                api_app_role
+                LEFT JOIN api_user_permission ON
+                    api_user_permission.app_role_id = api_app_role.id
+                    AND api_user_permission.user_id = ?
             WHERE
                 api_app.id = api_app_role.app_id
-                AND ( api_user_permission.user_id IS NULL OR api_user_permission.user_id = ? )
 SQL
         [$user_id]
     );
@@ -384,7 +386,7 @@ SQL
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 102                  | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 102, 268             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 102, 269             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 185, 240             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
