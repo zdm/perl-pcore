@@ -2,98 +2,6 @@ package Pcore::App::API::Backend::Local::sqlite::Auth;
 
 use Pcore -role, -promise, -status;
 
-sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $private_token, $cb ) {
-    state $q1 = <<'SQL';
-        SELECT
-            api_app_role.name AS source_app_role_name
-        FROM
-            api_app_instance,
-            api_app_role,
-            api_user_permission
-        WHERE
-            api_app_instance.id = ?                                                      --- source app_instance_id
-            AND api_app_role.app_id = api_app_instance.app_id                            --- link source_app_instance_role to source_app
-
-            AND api_app_role.id = api_user_permission.app_role_id                           --- link app_role to user_permissions
-            AND api_user_permission.user_id = ?
-SQL
-
-    # get user
-    my $user = $self->dbh->selectrow( q[SELECT id, hash, enabled FROM api_user WHERE name = ?], [$user_name_utf8] );
-
-    # user not found
-    if ( !$user ) {
-        $cb->( status [ 404, 'User not found' ] );
-
-        return;
-    }
-
-    my $get_permissions = sub {
-        my $user_id = $user->{id};
-
-        my $auth = {
-            user_id   => $user_id,
-            user_name => $user_name_utf8,
-            enabled   => $user->{enabled},
-        };
-
-        my $tags = {    #
-            user_id => $user_id,
-        };
-
-        # root user
-        if ( $user_name_utf8 eq 'root' ) {
-            $auth->{permissions} = {};
-        }
-
-        # non-root user
-        else {
-
-            # get permissions
-            if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_id ] ) ) {
-                for my $row ( $roles->@* ) {
-                    $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
-                }
-            }
-            else {
-                $auth->{permissions} = {};
-            }
-        }
-
-        $cb->( status 200, { auth => $auth, tags => $tags } );
-
-        return;
-    };
-
-    if ($private_token) {
-
-        # verify token
-        $self->_verify_token_hash(
-            $private_token,
-            $user->{hash},
-            sub ($status) {
-
-                # token is valid
-                if ($status) {
-                    $get_permissions->();
-                }
-
-                # token is invalid
-                else {
-                    $cb->($status);
-                }
-
-                return;
-            }
-        );
-    }
-    else {
-        $get_permissions->();
-    }
-
-    return;
-}
-
 sub _auth_app_instance_token ( $self, $source_app_instance_id, $app_instance_id, $private_token, $cb ) {
     state $sql1 = <<'SQL';
         SELECT
@@ -412,13 +320,12 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 5, 97, 197, 303      | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 5, 105, 211          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 5                    | * Private subroutine/method '_auth_user_password' declared but not used                                        |
-## |      | 97                   | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
-## |      | 197                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
-## |      | 303                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
+## |      | 5                    | * Private subroutine/method '_auth_app_instance_token' declared but not used                                   |
+## |      | 105                  | * Private subroutine/method '_auth_user_token' declared but not used                                           |
+## |      | 211                  | * Private subroutine/method '_auth_user_session' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
