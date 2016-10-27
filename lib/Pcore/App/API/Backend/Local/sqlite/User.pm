@@ -94,12 +94,7 @@ sub create_root_user ( $self, $cb ) {
     return;
 }
 
-# TODO generate and set root user password
-sub set_root_password ( $self, $cb ) {
-    return;
-}
-
-sub create_user ( $self, $base_user_id, $user_name, $password, $permissions, $cb ) {
+sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permissions, $cb ) {
     if ( $user_name eq 'root' ) {
         $cb->( status [ 400, 'User name is not valid' ] );
 
@@ -162,7 +157,7 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $permissions, $cb
 
                                             my $user_id = uuid_str;
 
-                                            my $created = $dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, 1, ?, ?)], [ $user_id, $user_name, time, $password_hash->{result}->{hash} ] );
+                                            my $created = $dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, ?, ?, ?)], [ $user_id, $user_name, $enabled, time, $password_hash->{result}->{hash} ] );
 
                                             # user creation error
                                             if ( !$created ) {
@@ -265,30 +260,27 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $permissions, $cb
     return;
 }
 
-# TODO only root can update root user
 sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
     $self->get_user(
         $user_id,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
+        sub ( $user ) {
+            if ( !$user ) {
+                $cb->($user);
 
                 return;
             }
 
-            my $user = $res->{user};
-
             $self->_generate_user_password_hash(
-                $user->{name},
+                $user->{result}->{name},
                 $user_password_utf8,
-                sub ( $res ) {
-                    if ( !$res ) {
-                        $cb->($res);
+                sub ( $password_hash ) {
+                    if ( !$password_hash ) {
+                        $cb->($password_hash);
 
                         return;
                     }
 
-                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $res->{result}->{hash}, $user->{id} ] ) ) {
+                    if ( !$self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $password_hash->{result}->{hash}, $user->{result}->{id} ] ) ) {
                         $cb->( status [ 500, 'Error setting user password' ] );
 
                         return;
@@ -310,15 +302,15 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
 sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
     $self->get_user(
         $user_id,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
+        sub ( $user ) {
+            if ( !$user ) {
+                $cb->($user);
 
                 return;
             }
 
-            if ( ( $enabled && !$res->{user}->{enabled} ) || ( !$enabled && $res->{user}->{enabled} ) ) {
-                if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $res->{user}->{id} ] ) ) {
+            if ( !!$enabled ^ $user->{result}->{enabled} ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $user->{result}->{id} ] ) ) {
                     $cb->( status 200 );
                 }
                 else {
@@ -384,11 +376,11 @@ SQL
 ## |======+======================+================================================================================================================|
 ## |    3 | 24                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 102                  | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
+## |    3 | 97                   | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 102, 269             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 97, 263              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 185, 240             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 180, 235             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
