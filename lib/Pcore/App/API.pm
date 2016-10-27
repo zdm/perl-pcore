@@ -556,13 +556,14 @@ sub get_user ( $self, $user_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub create_user ( $self, $base_user, $user_name, $password, $permissions, $cb = undef ) {
+sub create_user ( $self, $base_user, $user_name, $password, $enabled, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     $self->{backend}->create_user(
         $base_user,
         $user_name,
         $password,
+        $enabled,
         $permissions,
         sub ( $res ) {
             $cb->($res) if $cb;
@@ -747,8 +748,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## |======+======================+================================================================================================================|
 ## |    3 | 58                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 212, 451, 559, 579,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 623, 649, 676, 719   |                                                                                                                |
+## |    3 | 212, 451, 559, 580,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 624, 650, 677, 720   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
