@@ -91,9 +91,9 @@ sub init ( $self, $cb ) {
         $self->{backend} = $class->new( { app => $self->app, dbh => $dbh } );
     }
     elsif ( $auth_uri->scheme eq 'http' || $auth_uri->scheme eq 'https' || $auth_uri->scheme eq 'ws' || $auth_uri->scheme eq 'wss' ) {
-        require Pcore::App::API::Backend::Cluster;
+        require Pcore::App::API::Backend::Remote;
 
-        $self->{backend} = Pcore::App::API::Backend::Cluster->new( { app => $self->app, uri => $auth_uri } );
+        $self->{backend} = Pcore::App::API::Backend::Remote->new( { app => $self->app, uri => $auth_uri } );
     }
     else {
         die q[Unknown API auth scheme];

@@ -1,4 +1,4 @@
-package Pcore::App::API::Backend::Cluster;
+package Pcore::App::API::Backend::Remote;
 
 use Pcore -class, -status;
 
@@ -43,7 +43,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Backend::Cluster
+Pcore::App::API::Backend::Remote
 
 =head1 SYNOPSIS
 
