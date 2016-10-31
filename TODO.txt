@@ -1,4 +1,4 @@
-- !!! authentication is passed if token contains extra chars at the end;
+- !!! authentication is passed if token contains extra chars at the end - A7zO5Io-bBQQv439OiEe-ZwHT2iOsC_JPOSrBrXx_obVpCi-MkB7ySu6oVNdhXvm;
 
 
 - create user + permisisons;

@@ -212,7 +212,7 @@ sub init ( $self, $cb ) {
 sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
     my ( $token_type, $token_id, $private_token );
 
-    # token is user_password
+    # authenticate user password
     if ($user_name_utf8) {
 
         # decode token and token id
@@ -234,13 +234,12 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         $private_token = sha3_512 $token_id_bin . $token . $token_id_bin;
     }
+
+    # authenticate token
     else {
 
         # decode token
-        my $token_bin = eval {
-            encode_utf8 $token;
-            from_b64_url $token;
-        };
+        my $token_bin = eval { from_b64_url $token };
 
         # error decoding token
         if ($@) {
@@ -252,8 +251,8 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         # unpack token type
         $token_type = unpack 'C', $token_bin;
 
-        # user tokens
-        if ( $token_type == $TOKEN_TYPE_USER_TOKEN || $token_type == $TOKEN_TYPE_USER_SESSION ) {
+        # valid token type
+        if ( $token_type == $TOKEN_TYPE_USER_TOKEN || $token_type == $TOKEN_TYPE_USER_SESSION || $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
 
             # unpack token id
             $token_id = create_uuid_from_bin( substr $token_bin, 1, 16 )->str;
@@ -261,14 +260,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             $private_token = sha3_512 $token_bin;
         }
 
-        # app instance tokens
-        elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
-
-            # unpack token id
-            $token_id = unpack 'L', substr $token_bin, 1, 4;
-
-            $private_token = sha3_512 $token_bin;
-        }
+        # invalid token type
         else {
             $cb->( status [ 400, 'Invalid token type' ] );
 
@@ -748,8 +740,8 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## |======+======================+================================================================================================================|
 ## |    3 | 58                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 212, 451, 559, 580,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 624, 650, 677, 720   |                                                                                                                |
+## |    3 | 212, 443, 551, 572,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 616, 642, 669, 712   |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
