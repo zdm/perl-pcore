@@ -1,6 +1,7 @@
 package Pcore::App::API::Backend::Local::sqlite::UserToken;
 
 use Pcore -role, -promise, -status;
+use Pcore::Util::UUID qw[uuid_str];
 
 sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
     state $sql1 = <<'SQL';
@@ -124,138 +125,130 @@ sub get_user_token ( $self, $user_token_id, $cb ) {
 
 sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 
-    # root user
-    if ( $user_id =~ /\A(1|root)\z/sm ) {
-        $cb->( status [ 400, 'Root user token creation error' ] );
-
-        return;
-    }
-
-    # not root user, get user permissions
-    $self->get_user_permissions(
+    # get user
+    $self->get_user(
         $user_id,
-        sub ($res) {
+        sub ($user) {
 
-            # get user permissions error
-            if ( !$res ) {
-                $cb->($res);
-
-                return;
+            # get user error
+            if ( !$user ) {
+                $cb->($user);
             }
 
-            # creator permissions, indexed by role_id
-            my $user_permissions = { map { $_->{role_id} => $_ } $res->{user_permissions}->@* };
+            # get user ok
+            else {
 
-            # resolve roles
-            my ( $role_error, $roles );
-
-            my $cv = AE::cv sub {
-
-                # roles resolving error
-                if ($role_error) {
-                    $cb->( status [ 400, 'Invalid permissions: ' . join q[, ], $role_error->@* ] );
-
-                    return;
+                # root user can't have token
+                if ( $user->{result}->{name} eq 'root' ) {
+                    $cb->( status [ 400, 'Error creation token for root user' ] );
                 }
+                else {
 
-                # resolve user
-                $self->get_user(
-                    $user_id,
-                    sub ($res) {
+                    # resolve repmisisons
+                    $self->resolve_app_roles(
+                        $permissions,
+                        sub ($roles) {
 
-                        # get user error
-                        if ( !$res ) {
-                            $cb->($res);
+                            # error resolving permisions
+                            if ( !$roles ) {
+                                $cb->($roles);
+                            }
 
-                            return;
-                        }
+                            # permissions resolved
+                            else {
 
-                        my $user = $res->{user};
+                                # get user permissions
+                                $self->get_user_permissions(
+                                    $user->{result}->{id},
+                                    sub ($user_permissions) {
 
-                        # generate user token hash
-                        $self->_generate_user_token(
-                            $user->{id},
-                            sub ( $res ) {
+                                        # user permissions get error
+                                        if ( !$user_permissions ) {
+                                            $cb->($user_permissions);
+                                        }
 
-                                # token generation error
-                                if ( !$res ) {
-                                    $cb->( status [ 500, 'User token creation error' ] );
+                                        # user permissions ok
+                                        else {
 
-                                    return;
-                                }
+                                            # compare token and user permissions
+                                            for my $role_id ( keys $roles->{result}->%* ) {
 
-                                my $user_token_id = $res->{token_id};
+                                                # user permission is not set
+                                                if ( !$user_permissions->{result}->{$role_id}->{user_permission_id} ) {
+                                                    $cb->( status [ 400, q[Invalid user token permissions] ] );
 
-                                my $user_token_hash = $res->{hash};
+                                                    return;
+                                                }
+                                            }
 
-                                my $dbh = $self->dbh;
+                                            # generate user token
+                                            $self->_generate_user_token(
+                                                $user->{result}->{id},
+                                                sub ($user_token) {
 
-                                $dbh->begin_work;
+                                                    # user token generation error
+                                                    if ( !$user_token ) {
+                                                        $cb->($user_token);
+                                                    }
 
-                                # insert user token
-                                if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token (id, user_id, desc, created_ts, hash) VALUES (?, ?, ?, ?, ?)], [ $user_token_id, $user->{id}, $desc // q[], time, $user_token_hash ] ) ) {
-                                    $dbh->rollback;
+                                                    # user token generated
+                                                    else {
+                                                        my $dbh = $self->dbh;
 
-                                    $cb->( status [ 500, 'User token creation error' ] );
+                                                        $dbh->begin_work;
 
-                                    return;
-                                }
+                                                        # insert user token
+                                                        my $token_created = $dbh->do( q[INSERT OR IGNORE INTO api_user_token (id, user_id, desc, created_ts, hash) VALUES (?, ?, ?, ?, ?)], [ $user_token->{result}->{id}, $user->{result}->{id}, $desc // q[], time, $user_token->{result}->{hash} ] );
 
-                                # create user token permissions
-                                for my $role_id ( keys $roles->%* ) {
-                                    if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_token_permissions (user_token_id, user_permissions_id) VALUES (?, ?)], [ $user_token_id, $role_id ] ) ) {
-                                        $dbh->rollback;
+                                                        if ( !$token_created ) {
+                                                            $dbh->rollback;
 
-                                        $cb->( status [ 500, 'User token creation error' ] );
+                                                            $cb->( status [ 500, 'User token creation error' ] );
+                                                        }
+
+                                                        # create user token permissions
+                                                        else {
+                                                            for my $role_id ( keys $roles->{result}->%* ) {
+
+                                                                # create user permission
+                                                                my $permission_created = $dbh->do( q[INSERT INTO api_user_token_permission (id, user_token_id, user_permission_id) VALUES (?, ?, ?)], [ uuid_str, $user_token->{result}->{id}, $user_permissions->{result}->{$role_id}->{user_permission_id} ] );
+
+                                                                # user permission is not set
+                                                                if ( !$permission_created ) {
+                                                                    $dbh->rollback;
+
+                                                                    $cb->( status [ 500, q[Error creation user token permissions] ] );
+
+                                                                    return;
+                                                                }
+                                                            }
+
+                                                            $dbh->commit;
+
+                                                            $cb->(
+                                                                status 201,
+                                                                {   id    => $user_token->{result}->{id},
+                                                                    token => $user_token->{result}->{token},
+                                                                }
+                                                            );
+                                                        }
+                                                    }
+
+                                                    return;
+                                                }
+                                            );
+                                        }
 
                                         return;
                                     }
-                                }
-
-                                $dbh->commit;
-
-                                $cb->( status 201, token => $res->{token} );
-
-                                return;
+                                );
                             }
-                        );
 
-                        return;
-                    }
-                );
-
-                return;
-            };
-
-            $cv->begin;
-
-            # resolve permissions
-            for my $permission ( $permissions->@* ) {
-                $cv->begin;
-
-                $self->get_app_role(
-                    $permission,
-                    sub ($res) {
-                        if ( !$res ) {
-                            push $role_error->@*, $permission;
+                            return;
                         }
-                        else {
-                            if ( !exists $user_permissions->{ $res->{role}->{id} } ) {
-                                push $role_error->@*, $permission;
-                            }
-                            else {
-                                $roles->{ $res->{role}->{id} } = $res->{role};
-                            }
-                        }
-
-                        $cv->end;
-
-                        return;
-                    }
-                );
+                    );
+                }
             }
-
-            $cv->end;
 
             return;
         }
@@ -282,12 +275,12 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 5, 125               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 6, 126               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 5                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
+## |    3 | 6                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
 ## |      |                      | used                                                                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 128                  | RegularExpressions::ProhibitFixedStringMatches - Use 'eq' or hash instead of fixed-pattern regexps             |
+## |    3 | 177, 203, 211, 217   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

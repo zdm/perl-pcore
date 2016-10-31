@@ -297,7 +297,7 @@ sub _generate_user_token ( $self, $user_id, $cb ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, token_id => $token_id->str, token => to_b64_url($token_bin), hash => $res->{hash} );
+                $cb->( status 200, { id => $token_id->str, token => to_b64_url($token_bin), hash => $res->{hash} } );
             }
 
             return;

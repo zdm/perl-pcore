@@ -420,6 +420,7 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
 }
 
 # USER PERMISSIONS
+# return all user permissions, indexed by app role id
 sub get_user_permissions ( $self, $user_id, $cb ) {
     my $permissions = $self->dbh->selectall(
         <<'SQL',

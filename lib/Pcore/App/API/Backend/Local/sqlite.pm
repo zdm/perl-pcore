@@ -94,7 +94,7 @@ sub init_db ( $self, $cb ) {
             CREATE TABLE IF NOT EXISTS `api_user_token_permission` (
                 `id` BLOB PRIMARY KEY NOT NULL,
                 `user_token_id` BLOB NOT NULL REFERENCES `api_user_token` (`id`) ON DELETE CASCADE,
-                `user_permission_id` BLOB NOT NULL REFERENCES `api_user_permissions` (`id`) ON DELETE CASCADE
+                `user_permission_id` BLOB NOT NULL REFERENCES `api_user_permission` (`id`) ON DELETE CASCADE
             );
 
             CREATE UNIQUE INDEX `idx_uniq_api_user_token_permission` ON `api_user_token_permission` (`user_token_id`, `user_permission_id`);
