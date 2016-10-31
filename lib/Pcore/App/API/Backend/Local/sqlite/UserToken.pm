@@ -4,77 +4,68 @@ use Pcore -role, -promise, -status;
 use Pcore::Util::UUID qw[uuid_str];
 
 sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
-    state $sql1 = <<'SQL';
+    state $q1 = <<'SQL';
         SELECT
-            api_user.id AS user_id,
-            api_user.name AS user_name,
-            api_user.enabled AS user_enabled,
-            api_user_token.hash,
-            api_user_token.enabled AS user_token_enabled
-        FROM
-            api_user,
-            api_user_token
-        WHERE
-            api_user_token.id = ?
-            AND api_user_token.user_id = api_user.id
-SQL
-
-    state $sql2 = <<'SQL';
-        SELECT
-            api_app_role.name AS source_app_role_name
+            api_app_role.name AS app_role_name
         FROM
             api_app_instance,
             api_app_role,
-            api_user_permissions,
-            api_user_token_permissions
+            api_user_permission,
+            api_user_token_permission
         WHERE
-            api_app_instance.id = ?                                                         --- source app_instance_id
-            AND api_app_role.app_id = api_app_instance.app_id                               --- link source_app_instance_role to source_app
-            AND api_app_role.enabled = 1                                                    --- source_app_role must be enabled
-
-            AND api_app_role.id = api_user_permissions.role_id                              --- link app_role to user_permissions
-            AND api_user_permissions.enabled = 1                                            --- user permission must be enabled
-
-            AND api_user_permissions.id = api_user_token_permissions.user_permissions_id    --- link user_token_permissions to user_permissions
-            AND api_user_token_permissions.user_token_id = ?                                --- link user_token_permissions to user_token
+            api_app_instance.id = ?
+            AND api_app_role.app_id = api_app_instance.app_id
+            AND api_app_role.id = api_user_permission.app_role_id
+            AND api_user_permission.id = api_user_token_permission.user_permission_id
+            AND api_user_token_permission.user_token_id = ?
 SQL
 
-    # get user token by token id
-    my $res = $self->dbh->selectrow( $sql1, [$user_token_id] );
+    # get user token
+    my $user_token = $self->dbh->selectrow(
+        <<'SQL',
+            SELECT
+                api_user.id AS user_id,
+                api_user.name AS user_name,
+                api_user.enabled AS user_enabled,
+                api_user_token.hash AS user_token_hash
+            FROM
+                api_user,
+                api_user_token
+            WHERE
+                api_user.id = api_user_token.user_id
+                AND api_user_token.id = ?
+SQL
+        [$user_token_id]
+    );
 
-    # user token not found
-    if ( !$res ) {
+    # user not found
+    if ( !$user_token ) {
         $cb->( status [ 404, 'User token not found' ] );
 
         return;
     }
 
-    my $user_id = $res->{user_id};
-
-    my $continue = sub {
+    my $get_permissions = sub {
         my $auth = {
-            user_id       => $user_id,
-            user_name     => $res->{user_name},
-            user_token_id => $user_token_id,
-            enabled       => $res->{user_enabled} && $res->{user_token_enabled},
+            is_root   => 0,
+            user_id   => $user_token->{user_id},
+            user_name => $user_token->{user_name},
+            enabled   => $user_token->{user_enabled},
         };
 
-        my $tags = {
-            user_id       => $user_id,
-            user_token_id => $user_token_id,
+        my $tags = {    #
+            user_id => $user_token->{user_id},
         };
 
         # get permissions
-        if ( my $roles = $self->dbh->selectall( $sql2, [ $source_app_instance_id, $user_token_id ] ) ) {
-            for my $row ( $roles->@* ) {
-                $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
-            }
+        if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_token_id ] ) ) {
+            $auth->{permissions} = { map { $_->{app_role_name} => 1 } $roles->@* };
         }
         else {
             $auth->{permissions} = {};
         }
 
-        $cb->( status 200, auth => $auth, tags => $tags );
+        $cb->( status 200, { auth => $auth, tags => $tags } );
 
         return;
     };
@@ -83,13 +74,13 @@ SQL
 
         # verify token
         $self->_verify_token_hash(
-            $private_token . $user_id,
-            $res->{hash},
+            $private_token . $user_token->{user_id},
+            $user_token->{user_token_hash},
             sub ($status) {
 
-                # token valid
+                # token is valid
                 if ($status) {
-                    $continue->();
+                    $get_permissions->();
                 }
 
                 # token is invalid
@@ -102,22 +93,7 @@ SQL
         );
     }
     else {
-        $continue->();
-    }
-
-    return;
-}
-
-sub get_user_token ( $self, $user_token_id, $cb ) {
-    if ( my $user_token = $self->dbh->selectrow( q[SELECT * FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
-        delete $user_token->{hash};
-
-        $cb->( status 200, user_token => $user_token );
-    }
-    else {
-
-        # user token not found
-        $cb->( status [ 404, 'User token not found' ] );
+        $get_permissions->();
     }
 
     return;
@@ -275,12 +251,12 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 6, 126               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 6, 102               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 6                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
 ## |      |                      | used                                                                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 177, 203, 211, 217   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 153, 179, 187, 193   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

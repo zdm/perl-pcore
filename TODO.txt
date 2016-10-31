@@ -1,3 +1,6 @@
+- !!! authentication is passed if token contains extra chars at the end;
+
+
 - create user + permisisons;
 - update user + permissions;
 - remove user;

@@ -210,6 +210,7 @@ sub get_app_role ( $self, $role_id, $cb ) {
     return;
 }
 
+# return resolved app roles, indexed by role id
 sub resolve_app_roles ( $self, $roles, $cb ) {
     my ( $resolved_roles, $errors );
 
