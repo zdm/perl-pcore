@@ -83,7 +83,7 @@ sub init_db ( $self, $cb ) {
                 `user_id` BLOB NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `desc` TEXT,
                 `created_ts` INTEGER,
-                `hash` BLOB UNIQUE
+                `hash` BLOB NOT NULL
             );
 
             --- USER TOKEN PERMISSION
@@ -102,10 +102,7 @@ sub init_db ( $self, $cb ) {
                 `created_ts` INTEGER,
                 `removed` INTEGER NOT NULL DEFAULT 0,
                 `removed_ts` INTEGER,
-                `user_agent` TEXT NOT NULL,
-                `remote_ip` BLOB NOT NULL,
-                `remote_ip_geo` BLOB NOT NULL,
-                `hash` BLOB UNIQUE
+                `hash` BLOB NOT NULL
             );
 SQL
     );
