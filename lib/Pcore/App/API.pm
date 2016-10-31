@@ -709,16 +709,11 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
 }
 
 # USER SESSION
-sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef ) {
+sub create_user_session ( $self, $user_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    my $remote_ip_geo = P->geoip->country_code_by_addr($remote_ip);
 
     $self->{backend}->create_user_session(
         $user_id,
-        $user_agent,
-        $remote_ip,
-        $remote_ip_geo,
         sub ( $res ) {
             $cb->($res) if $cb;
 
@@ -741,7 +736,7 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $cb = undef 
 ## |    3 | 58                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 212, 443, 551, 572,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 616, 642, 669, 712   |                                                                                                                |
+## |      | 616, 642, 669        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

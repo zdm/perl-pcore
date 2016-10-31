@@ -108,59 +108,52 @@ SQL
     return;
 }
 
-sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $remote_ip_geo, $cb ) {
+sub create_user_session ( $self, $user_id, $cb ) {
+
+    # get user
     $self->get_user(
         $user_id,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
+        sub ($user) {
 
-                return;
+            # get user error
+            if ( !$user ) {
+                $cb->($user);
             }
 
-            my $user = $res->{user};
-
-            my $dbh = $self->dbh;
-
-            # create blank user token
-            if ( !$dbh->do( q[INSERT OR IGNORE INTO api_user_session (user_id, created_ts, user_agent, remote_ip, remote_ip_geo) VALUES (?, ?, ?, ?, ?)], [ $user->{id}, time, $user_agent, $remote_ip, $remote_ip_geo ] ) ) {
-                $cb->( status [ 500, 'User session creation error' ] );
-
-                return;
+            # user is disabled
+            elsif ( !$user->{result}->{enabled} ) {
+                $cb->( status [ 400, q[User is disabled] ] );
             }
 
-            # get user token id
-            my $user_session_id = $dbh->last_insert_id;
+            # user ok
+            else {
 
-            # generate user token hash
-            $self->_generate_user_session(
-                $user_session_id,
-                sub ( $res ) {
-                    if ( !$res ) {
+                # generate session token
+                $self->_generate_user_session(
+                    $user->{result}->{id},
+                    sub ($user_session_token) {
 
-                        # rollback
-                        $dbh->do( q[DELETE FROM api_user_session WHERE id = ?], [$user_session_id] );
+                        # token generation error
+                        if ( !$user_session_token ) {
+                            $cb->($user_session_token);
+                        }
 
-                        $cb->( status [ 500, 'User session creation error' ] );
+                        # token geneerated
+                        else {
+                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_user_session (id, user_id, created_ts, hash) VALUES (?, ?, ?, ?)], [ $user_session_token->{result}->{id}, $user->{result}->{id}, time, $user_session_token->{result}->{hash} ] );
+
+                            if ( !$created ) {
+                                $cb->( status [ 500, q[Session creation error] ] );
+                            }
+                            else {
+                                $cb->( status 201, { token => $user_session_token->{result}->{token} } );
+                            }
+                        }
 
                         return;
                     }
-
-                    if ( !$dbh->do( q[UPDATE OR IGNORE api_user_session SET hash = ? WHERE id = ?], [ $res->{hash}, $user_session_id ] ) ) {
-
-                        # rollback
-                        $dbh->do( q[DELETE FROM api_user_session WHERE id = ?], [$user_session_id] );
-
-                        $cb->( status [ 500, 'User session creation error' ] );
-
-                        return;
-                    }
-
-                    $cb->( status 201, session => $res->{session} );
-
-                    return;
-                }
-            );
+                );
+            }
 
             return;
         }
@@ -176,7 +169,7 @@ sub create_user_session ( $self, $user_id, $user_agent, $remote_ip, $remote_ip_g
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 6, 111               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 6                    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 6                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_session' declared but    |
 ## |      |                      | not used                                                                                                       |
