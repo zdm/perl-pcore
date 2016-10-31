@@ -2,12 +2,8 @@ package Pcore::App::API::Backend::Local::sqlite;
 
 use Pcore -class, -status;
 
-with qw[Pcore::App::API::Backend::Local::sqlite::Auth];
-
 with qw[Pcore::App::API::Backend::Local::sqlite::App];
-
 with qw[Pcore::App::API::Backend::Local::sqlite::AppInstance];
-
 with qw[Pcore::App::API::Backend::Local::sqlite::User];
 with qw[Pcore::App::API::Backend::Local::sqlite::UserToken];
 with qw[Pcore::App::API::Backend::Local::sqlite::UserSession];
