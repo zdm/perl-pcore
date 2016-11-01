@@ -1,8 +1,10 @@
 package Pcore::App::API::Backend::Local::sqlite::AppInstance;
 
 use Pcore -role, -promise, -status;
-use Pcore::Util::UUID qw[uuid_str];
+use Pcore::App::API qw[:CONST];
 
+# TODO salt = app_id
+# TODO return result hash
 sub _auth_app_instance_token ( $self, $source_app_instance_id, $app_instance_id, $private_token, $cb ) {
     state $sql1 = <<'SQL';
         SELECT
@@ -49,9 +51,18 @@ SQL
         my $app_id = $res->{app_id};
 
         my $auth = {
+            token_type => $TOKEN_TYPE_APP_INSTANCE_TOKEN,
+
+            is_user   => 0,
+            is_root   => undef,
+            user_id   => undef,
+            user_name => undef,
+
+            is_app          => 0,
             app_id          => $app_id,
             app_instance_id => $app_instance_id,
-            enabled         => $res->{app_enabled} && $res->{app_instance_enabled},
+
+            enabled => $res->{app_enabled} && $res->{app_instance_enabled},
         };
 
         my $tags = {
@@ -124,10 +135,9 @@ sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_vers
                 $cb->($app);
             }
             else {
-                my $app_instance_id = uuid_str;
-
-                $self->_generate_app_instance_token(
-                    $app_instance_id,
+                $self->_generate_token(
+                    $TOKEN_TYPE_APP_INSTANCE_TOKEN,
+                    $app->{result}->{id},
                     sub ( $token ) {
 
                         # app instance token generation error
@@ -138,14 +148,14 @@ sub create_app_instance ( $self, $app_id, $app_instance_host, $app_instance_vers
                         # app instance token generated
                         else {
 
-                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (id, app_id, version, host, created_ts, hash) VALUES (?, ?, ?, ?, ?, ?)], [ $app_instance_id, $app->{result}->{id}, $app_instance_version, $app_instance_host, time, $token->{result}->{hash} ] );
+                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_app_instance (id, app_id, version, host, created_ts, hash) VALUES (?, ?, ?, ?, ?, ?)], [ $token->{result}->{id}, $app->{result}->{id}, $app_instance_version, $app_instance_host, time, $token->{result}->{hash} ] );
 
                             if ( !$created ) {
                                 $cb->( status [ 400, 'App instance creation error' ] );
                             }
                             else {
                                 $self->get_app_instance(
-                                    $app_instance_id,
+                                    $token->{result}->{id},
                                     sub ($app_instance) {
                                         if ($app_instance) {
                                             $app_instance->{result}->{token} = $token->{result}->{token};
@@ -222,9 +232,9 @@ sub update_app_instance ( $self, $app_instance_id, $app_instance_version, $cb ) 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 6, 119, 205          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 8, 130, 215          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 6                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_app_instance_token' declared  |
+## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_app_instance_token' declared  |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

@@ -1,8 +1,10 @@
 package Pcore::App::API::Backend::Local::sqlite::UserToken;
 
 use Pcore -role, -promise, -status;
+use Pcore::App::API qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 
+# TODO tags
 sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
     state $q1 = <<'SQL';
         SELECT
@@ -38,24 +40,36 @@ SQL
         [$user_token_id]
     );
 
-    # user not found
+    # user token not found
     if ( !$user_token ) {
         $cb->( status [ 404, 'User token not found' ] );
 
         return;
     }
 
+    # user disabled
+    if ( !$user_token->{user_enabled} ) {
+        $cb->( status [ 404, 'User disabled' ] );
+
+        return;
+    }
+
     my $get_permissions = sub {
         my $auth = {
+            token_type => $TOKEN_TYPE_USER_TOKEN,
+            token_id   => $user_token_id,
+
+            is_user   => 1,
             is_root   => 0,
             user_id   => $user_token->{user_id},
             user_name => $user_token->{user_name},
-            enabled   => $user_token->{user_enabled},
+
+            is_app          => 0,
+            app_id          => undef,
+            app_instance_id => undef,
         };
 
-        my $tags = {    #
-            user_id => $user_token->{user_id},
-        };
+        my $tags = {};
 
         # get permissions
         if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_token_id ] ) ) {
@@ -74,7 +88,8 @@ SQL
 
         # verify token
         $self->_verify_token_hash(
-            $private_token . $user_token->{user_id},
+            $private_token,
+            $user_token->{user_id},
             $user_token->{user_token_hash},
             sub ($status) {
 
@@ -158,7 +173,8 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                                             }
 
                                             # generate user token
-                                            $self->_generate_user_token(
+                                            $self->_generate_token(
+                                                $TOKEN_TYPE_USER_TOKEN,
                                                 $user->{result}->{id},
                                                 sub ($user_token) {
 
@@ -251,12 +267,12 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 6, 102               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 8, 117               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 6                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
+## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
 ## |      |                      | used                                                                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 153, 179, 187, 193   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 168, 195, 203, 209   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

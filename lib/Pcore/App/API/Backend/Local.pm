@@ -257,47 +257,22 @@ sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token
 }
 
 # TOKEN / HASH GENERATORS
-sub _generate_app_instance_token ( $self, $app_instance_id, $cb ) {
-    my $uuid = create_uuid_from_str $app_instance_id;
-
-    # generate random token
-    my $token_bin = pack( 'C', $TOKEN_TYPE_APP_INSTANCE_TOKEN ) . $uuid->bin . P->random->bytes(32);
-
-    $self->_hash_rpc->rpc_call(
-        'create_hash',
-        sha3_512($token_bin),
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
-            }
-            else {
-                $cb->( status 200, { token => to_b64_url($token_bin), hash => $res->{hash} } );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _generate_user_token ( $self, $user_id, $cb ) {
-
-    # generate token id
+sub _generate_token ( $self, $token_type, $salt, $cb ) {
     my $token_id = create_uuid;
 
-    # create token
-    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_TOKEN ) . $token_id->bin . P->random->bytes(31);
+    my $public_token = to_b64_url pack( 'C', $token_type ) . $token_id->bin . P->random->bytes(32);
+
+    my $private_token = sha3_512 $public_token;
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
-        sha3_512($token_bin) . $user_id,
+        $private_token . $salt,
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, { id => $token_id->str, token => to_b64_url($token_bin), hash => $res->{hash} } );
+                $cb->( status 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} } );
             }
 
             return;
@@ -307,40 +282,16 @@ sub _generate_user_token ( $self, $user_id, $cb ) {
     return;
 }
 
-sub _generate_user_session ( $self, $user_id, $cb ) {
-
-    # generate token id
-    my $token_id = create_uuid;
-
-    # create token
-    my $token_bin = pack( 'C', $TOKEN_TYPE_USER_SESSION ) . $token_id->bin . P->random->bytes(31);
-
-    $self->_hash_rpc->rpc_call(
-        'create_hash',
-        sha3_512($token_bin) . $user_id,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
-            }
-            else {
-                $cb->( status 200, token_id => $token_id->str, token => to_b64_url($token_bin), hash => $res->{hash} );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
+sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $user_id, $cb ) {
     my $user_name_bin = encode_utf8 $user_name_utf8;
 
-    my $token_bin = $user_name_bin . encode_utf8($user_password_utf8) . $user_name_bin;
+    my $user_password_bin = encode_utf8 $user_password_utf8;
+
+    my $private_token = sha3_512 $user_password_bin . $user_name_bin;
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
-        sha3_512($token_bin),
+        $private_token . $user_id,
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
@@ -356,7 +307,8 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
     return;
 }
 
-sub _verify_token_hash ( $self, $private_token, $hash, $cb ) {
+# TODO add salt
+sub _verify_token_hash ( $self, $private_token, $salt, $hash, $cb ) {
     my $cache_id = "$hash-$private_token";
 
     if ( exists $self->{_hash_cache}->{$cache_id} ) {
@@ -385,16 +337,15 @@ sub _verify_token_hash ( $self, $private_token, $hash, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 72, 120, 239, 336    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 72, 120, 239, 285,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 311                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 194                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 260                  | * Private subroutine/method '_generate_app_instance_token' declared but not used                               |
-## |      | 284                  | * Private subroutine/method '_generate_user_token' declared but not used                                       |
-## |      | 310                  | * Private subroutine/method '_generate_user_session' declared but not used                                     |
-## |      | 336                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 359                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 260                  | * Private subroutine/method '_generate_token' declared but not used                                            |
+## |      | 285                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 311                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
