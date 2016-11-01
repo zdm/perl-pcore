@@ -307,9 +307,8 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
     return;
 }
 
-# TODO add salt
-sub _verify_token_hash ( $self, $private_token, $salt, $hash, $cb ) {
-    my $cache_id = "$hash-$private_token";
+sub _verify_token_hash ( $self, $private_token, $hash, $salt, $cb ) {
+    my $cache_id = "$salt/$hash/$private_token";
 
     if ( exists $self->{_hash_cache}->{$cache_id} ) {
         $cb->( $self->{_hash_cache}->{$cache_id} );
@@ -318,7 +317,7 @@ sub _verify_token_hash ( $self, $private_token, $salt, $hash, $cb ) {
         $self->_hash_rpc->rpc_call(
             'verify_hash',
             $private_token,
-            $hash,
+            $hash . $salt,
             sub ( $res ) {
                 $cb->( $self->{_hash_cache}->{$cache_id} = $res->{match} ? status 200 : status [ 400, 'Invalid token' ] );
 
@@ -338,14 +337,14 @@ sub _verify_token_hash ( $self, $private_token, $salt, $hash, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 72, 120, 239, 285,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 311                  |                                                                                                                |
+## |      | 310                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 194                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 260                  | * Private subroutine/method '_generate_token' declared but not used                                            |
 ## |      | 285                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 311                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 310                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

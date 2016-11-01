@@ -100,8 +100,6 @@ sub init_db ( $self, $cb ) {
                 `id` BLOB PRIMARY KEY NOT NULL, --- UUID hex
                 `user_id` BLOB NOT NULL REFERENCES `api_user` (`id`) ON DELETE CASCADE,
                 `created_ts` INTEGER,
-                `removed` INTEGER NOT NULL DEFAULT 0,
-                `removed_ts` INTEGER,
                 `hash` BLOB NOT NULL
             );
 SQL

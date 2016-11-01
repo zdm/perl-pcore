@@ -89,8 +89,8 @@ SQL
         # verify token
         $self->_verify_token_hash(
             $private_token,
-            $user_token->{user_id},
             $user_token->{user_token_hash},
+            $user_token->{user_id},
             sub ($status) {
 
                 # token is valid

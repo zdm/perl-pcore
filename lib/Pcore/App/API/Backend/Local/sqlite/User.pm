@@ -83,8 +83,8 @@ SQL
         # verify token
         $self->_verify_token_hash(
             $private_token,
-            $user->{id},
             $user->{hash},
+            $user->{id},
             sub ($status) {
 
                 # token is valid
