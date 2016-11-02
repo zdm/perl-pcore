@@ -301,25 +301,25 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
                     $cb->($res);
                 }
-                else {
-                    $auth_id = $self->{_private_token_cache}->{$private_token} = uuid_str if !$auth_id;
+            }
+            else {
+                $auth_id = $self->{_private_token_cache}->{$private_token} = uuid_str if !$auth_id;
 
-                    $auth = $self->{_auth_cache}->{$auth_id};
+                $auth = $self->{_auth_cache}->{$auth_id};
 
-                    if ($auth) {
-                        $auth->{permissions} = $res->{result}->{auth}->{permisions};
-                    }
-                    else {
-                        $auth = $self->{_auth_cache}->{$auth_id} = bless $res->{result}->{auth}, 'Pcore::App::API::Auth';
-
-                        $auth->{id} = $auth_id;
-
-                        # TODO tags
-                        # my $tags = $res->{result}->{tags};
-                    }
-
-                    $cb->( status 200, auth => $auth );
+                if ($auth) {
+                    $auth->{permissions} = $res->{result}->{auth}->{permisions};
                 }
+                else {
+                    $auth = $self->{_auth_cache}->{$auth_id} = bless $res->{result}->{auth}, 'Pcore::App::API::Auth';
+
+                    $auth->{id} = $auth_id;
+
+                    # TODO tags
+                    # my $tags = $res->{result}->{tags};
+                }
+
+                $cb->( status 200, auth => $auth );
             }
 
             return;
