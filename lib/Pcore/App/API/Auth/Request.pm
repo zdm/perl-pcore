@@ -26,30 +26,6 @@ sub DEMOLISH ( $self, $global ) {
     return;
 }
 
-sub user_id ($self) {
-    return $self->{auth}->{user_id};
-}
-
-sub user_name ($self) {
-    return $self->{auth}->{user_name};
-}
-
-sub user_token_id ($self) {
-    return $self->{auth}->{user_token_id};
-}
-
-sub app_id ($self) {
-    return $self->{auth}->{app_id};
-}
-
-sub app_instance_id ($self) {
-    return $self->{auth}->{app_instance_id};
-}
-
-sub is_root ($self) {
-    return $self->{auth}->is_root;
-}
-
 sub wantarray ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return !!$self->{_cb};
 }

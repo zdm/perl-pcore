@@ -1,16 +1,23 @@
 package Pcore::App::API;
 
-use Pcore -role, -const, -status, -export => { CONST => [qw[$TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
+use Pcore -role, -const, -status, -export => { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 use Pcore::App::API::Map;
 use Pcore::Util::Data qw[from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::Util::UUID qw[create_uuid_from_bin];
+use Pcore::Util::UUID qw[create_uuid_from_bin uuid_str];
 
 const our $TOKEN_TYPE_USER_PASSWORD      => 1;
 const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
 const our $TOKEN_TYPE_USER_TOKEN         => 3;
 const our $TOKEN_TYPE_USER_SESSION       => 4;
+
+const our $TOKEN_TYPE => {
+    $TOKEN_TYPE_USER_PASSWORD      => undef,
+    $TOKEN_TYPE_APP_INSTANCE_TOKEN => undef,
+    $TOKEN_TYPE_USER_TOKEN         => undef,
+    $TOKEN_TYPE_USER_SESSION       => undef,
+};
 
 require Pcore::App::API::Auth;
 
@@ -23,7 +30,8 @@ has roles => ( is => 'ro', isa => HashRef, init_arg => undef );    # API roles, 
 has permissions => ( is => 'ro', isa => Maybe [ArrayRef], init_arg => undef );    # foreign app roles, that this app can use
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
 
-has _auth_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _private_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _auth_cache          => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
@@ -40,13 +48,6 @@ around _build_roles => sub ( $orig, $self ) {
     return $roles;
 };
 
-# TODO
-# events:
-#     - on token authenticate - put token descriptor to cache, if authenticated;
-#     - on token remove - remove descriptor from cache, drop all descriptor - related connections;
-#     - on token change - remove descriptor from cache
-#     - on token disable / enable - set enabled attribute, if disabled - drop all descriptor - related connections;
-#     - on token permission change - undef descriptor permissions;
 # NOTE this method can be redefined in app instance
 sub _build_permissions ($self) {
     return;
@@ -208,18 +209,16 @@ sub init ( $self, $cb ) {
     return;
 }
 
-# AUTH
+# AUTHENTICATE
+# TODO link tags
 sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
     my ( $token_type, $token_id, $private_token );
 
     # authenticate user password
     if ($user_name_utf8) {
 
-        # decode token and token id
-        my $token_id_bin = eval {
-            encode_utf8 $token;
-            encode_utf8 $user_name_utf8;
-        };
+        # generate private token
+        $private_token = eval { sha3_512 encode_utf8($token) . encode_utf8 $user_name_utf8 };
 
         # error decoding token
         if ($@) {
@@ -231,15 +230,23 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         $token_type = $TOKEN_TYPE_USER_PASSWORD;
 
         \$token_id = \$user_name_utf8;
-
-        $private_token = sha3_512 $token_id_bin . $token . $token_id_bin;
     }
 
     # authenticate token
     else {
 
         # decode token
-        my $token_bin = eval { from_b64_url $token };
+        eval {
+            my $token_bin = from_b64_url $token;
+
+            # unpack token type
+            $token_type = unpack 'C', $token_bin;
+
+            # unpack token id
+            $token_id = create_uuid_from_bin( substr $token_bin, 1, 16 )->str;
+
+            $private_token = sha3_512 $token;
+        };
 
         # error decoding token
         if ($@) {
@@ -248,50 +255,32 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             return;
         }
 
-        # unpack token type
-        $token_type = unpack 'C', $token_bin;
-
-        # valid token type
-        if ( $token_type == $TOKEN_TYPE_USER_TOKEN || $token_type == $TOKEN_TYPE_USER_SESSION || $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
-
-            # unpack token id
-            $token_id = create_uuid_from_bin( substr $token_bin, 1, 16 )->str;
-
-            $private_token = sha3_512 $token_bin;
-        }
-
         # invalid token type
-        else {
+        if ( !exists $TOKEN_TYPE->{$token_type} ) {
             $cb->( status [ 400, 'Invalid token type' ] );
 
             return;
         }
     }
 
-    my $auth = $self->{_auth_cache}->{$private_token};
+    my $auth;
+
+    my $auth_id = $self->{_private_token_cache}->{$private_token};
+
+    $auth = $self->{_auth_cache}->{$auth_id} if $auth_id;
 
     if ($auth) {
 
-        # auth enabled status is defined
-        if ( defined $auth->{enabled} ) {
+        # auth is valid and auth permissions are defined
+        if ( defined $auth->{permissions} ) {
+            $cb->( status 200, auth => $auth );
 
-            # auth is disabled
-            if ( !$auth->{enabled} ) {
-                $cb->( status [ 400, 'Token is disabled' ] );
-
-                return;
-            }
-
-            # auth is enabled and has permissions
-            elsif ( defined $auth->{permissions} ) {
-                $cb->( status 200, auth => $auth );
-
-                return;
-            }
+            return;
         }
     }
 
     # authenticate on backend
+    # TODO stack calls
     $self->{backend}->auth_token(
         $self->{app}->{instance_id},
         $token_type,
@@ -299,41 +288,38 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         $auth ? undef : $private_token,    # validate token, if auth is new
 
         sub ( $res ) {
-            my $cache = $self->{_auth_cache};
+            $auth_id = $self->{_private_token_cache}->{$private_token};
 
             if ( !$res ) {
-                delete $cache->{$private_token};
+                if ($auth_id) {
 
-                $cb->($res);
+                    # remove private token
+                    delete $self->{_private_token_cache}->{$private_token};
 
-                return;
-            }
+                    # remove auth
+                    delete $self->{_auth_cache}->{$auth_id};
 
-            $auth = $cache->{$private_token};
+                    $cb->($res);
+                }
+                else {
+                    $auth_id = $self->{_private_token_cache}->{$private_token} = uuid_str if !$auth_id;
 
-            my $auth_attrs = $res->{result}->{auth};
+                    $auth = $self->{_auth_cache}->{$auth_id};
 
-            my $tags = $res->{result}->{tags};
+                    if ($auth) {
+                        $auth->{permissions} = $res->{result}->{auth}->{permisions};
+                    }
+                    else {
+                        $auth = $self->{_auth_cache}->{$auth_id} = bless $res->{result}->{auth}, 'Pcore::App::API::Auth';
 
-            # auth is not cached, create new auth
-            if ( !$auth ) {
-                $auth = $cache->{$private_token} = bless $auth_attrs, 'Pcore::App::API::Auth';
+                        $auth->{id} = $auth_id;
 
-                $auth->{app}        = $self->{app};
-                $auth->{id}         = $private_token;
-                $auth->{token_type} = $token_type;
-                $auth->{token_id}   = $token_id;
-            }
-            else {
-                $auth->{enabled}     = $auth_attrs->{enabled};
-                $auth->{permissions} = $auth_attrs->{permissions};
-            }
+                        # TODO tags
+                        # my $tags = $res->{result}->{tags};
+                    }
 
-            if ( $auth->{enabled} ) {
-                $cb->( status 200, auth => $auth );
-            }
-            else {
-                $cb->( status [ 400, 'Token is disabled' ] );
+                    $cb->( status 200, auth => $auth );
+                }
             }
 
             return;
@@ -342,19 +328,6 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
     return;
 }
-
-# TODO how to work with cache tags
-# sub invalidate_cache ( $self, $event, $tags ) {
-#     my $cache = $self->{_auth_cache};
-#
-#     for my $tag ( keys $tags->%* ) {
-#         delete $cache->{auth}->@{ keys $cache->{tag}->{$tag}->{ $tags->{$tag} }->%* };
-#
-#         delete $cache->{tag}->{$tag}->{ $tags->{$tag} };
-#     }
-#
-#     return;
-# }
 
 # APP
 sub get_app ( $self, $app_id, $cb = undef ) {
@@ -733,10 +706,12 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 58                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 212, 443, 551, 572,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 616, 642, 669        |                                                                                                                |
+## |    3 | 214, 416, 524, 545,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 589, 615, 642        |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 239                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

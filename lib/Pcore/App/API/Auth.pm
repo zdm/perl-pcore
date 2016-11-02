@@ -7,21 +7,19 @@ use Pcore::App::API::Auth::Request;
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has id => ( is => 'ro', isa => Str, required => 1 );
-has token_type => ( is => 'ro', isa => Enum [ $TOKEN_TYPE_USER_PASSWORD, $TOKEN_TYPE_APP_INSTANCE_TOKEN, $TOKEN_TYPE_USER_TOKEN ], required => 1 );
-has token_id => ( is => 'lazy', isa => Str, required => 1 );
+has token_type => ( is => 'ro', isa => Enum [ keys $TOKEN_TYPE->%* ], required => 1 );
+has token_id => ( is => 'ro', isa => Str, required => 1 );
 
-has enabled     => ( is => 'ro',   isa => Maybe [Bool],    required => 1 );
-has permissions => ( is => 'lazy', isa => Maybe [HashRef], required => 1 );
+has is_user => ( is => 'ro', isa => Bool, required => 1 );
+has is_root => ( is => 'ro', isa => Bool, required => 1 );
+has user_id   => ( is => 'ro', isa => Maybe [Str], required => 1 );
+has user_name => ( is => 'ro', isa => Maybe [Str], required => 1 );
 
-has user_id         => ( is => 'ro', isa => Maybe [PositiveInt] );
-has user_name       => ( is => 'ro', isa => Maybe [Str] );
-has user_token_id   => ( is => 'ro', isa => Maybe [PositiveInt] );
-has app_id          => ( is => 'ro', isa => Maybe [PositiveInt] );
-has app_instance_id => ( is => 'ro', isa => Maybe [PositiveInt] );
+has is_app => ( is => 'ro', isa => Bool, required => 1 );
+has app_id          => ( is => 'ro', isa => Maybe [Str], required => 1 );
+has app_instance_id => ( is => 'ro', isa => Maybe [Str], required => 1 );
 
-sub is_root ($self) {
-    return $self->{user_id} && $self->{user_id} == 1;
-}
+has permissions => ( is => 'ro', isa => Maybe [HashRef], required => 1 );
 
 sub api_call ( $self, $method_id, @ ) {
     my ( $cb, $args );
@@ -72,7 +70,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
     };
 
     # user is root, method authentication is not required
-    if ( $self->{user_id} && $self->{user_id} == 1 ) {
+    if ( $self->{is_root} ) {
         $api_call->();
     }
 
@@ -120,31 +118,18 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 sub _authorize ( $self, $cb ) {
     my $cache = $self->{app}->{api}->{_auth_cache};
 
-    # user token was removed, token is not authenticated
-    if ( $self->{token_type} == $TOKEN_TYPE_USER_TOKEN ) {
-        if ( !exists $cache->{ $self->{id} } ) {
-            $cb->(undef);
+    # token was removed, token is not authenticated
+    if ( !exists $cache->{ $self->{id} } ) {
+        $cb->(undef);
 
-            return;
-        }
+        return;
     }
 
-    # auth enabled status is defined
-    if ( defined $self->{enabled} ) {
+    # auth is enabled and has permissions defined
+    if ( defined $self->{permissions} ) {
+        $cb->( $self->{permissions} );
 
-        # auth is disabled
-        if ( !$self->{enabled} ) {
-            $cb->(undef);
-
-            return;
-        }
-
-        # auth is enabled and has permissions defined
-        elsif ( defined $self->{permissions} ) {
-            $cb->( $self->{permissions} );
-
-            return;
-        }
+        return;
     }
 
     # authorize on backend
@@ -153,27 +138,25 @@ sub _authorize ( $self, $cb ) {
         $self->{token_type},
         $self->{token_id},
         undef,    # do not validate token
-        sub ( $status, $auth_attrs, $tags ) {
-            if ( !$status ) {
+
+        sub ( $res ) {
+
+            # get permissions error
+            if ( !$res ) {
                 $cb->(undef);
             }
+
+            # permissions retrieved
             else {
 
-                # user token was removed, token is not authenticated
-                if ( $self->{token_type} == $TOKEN_TYPE_USER_TOKEN && !$cache->{ $self->{id} } ) {
+                # token was removed, token is not authenticated
+                if ( !exists $cache->{ $self->{id} } ) {
                     $cb->(undef);
-
-                    return;
-                }
-
-                $self->{enabled}     = $auth_attrs->{enabled};
-                $self->{permissions} = $auth_attrs->{permissions};
-
-                if ( $self->{enabled} ) {
-                    $cb->( $self->{permissions} );
                 }
                 else {
-                    $cb->(undef);
+                    $self->{permissions} = $res->{result}->{auth}->{permisions};
+
+                    $cb->( $self->{permissions} );
                 }
             }
 
@@ -191,7 +174,7 @@ sub _authorize ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 67                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 65                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
