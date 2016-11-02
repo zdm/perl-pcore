@@ -298,9 +298,9 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
                     # remove auth
                     delete $self->{_auth_cache}->{$auth_id};
-
-                    $cb->($res);
                 }
+
+                $cb->($res);
             }
             else {
                 $auth_id = $self->{_private_token_cache}->{$private_token} = uuid_str if !$auth_id;
