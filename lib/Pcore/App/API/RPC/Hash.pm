@@ -15,7 +15,7 @@ has argon2_parallelism => ( is => 'ro', isa => PositiveInt, default => 1 );
 sub create_hash ( $self, $cb, $str ) {
     my $salt = P->random->bytes(32);
 
-    my $hash = Crypt::Argon2::argon2i_pass( P->text->encode_utf8($str), $salt, $self->{argon2_time}, $self->{argon2_memory}, $self->{argon2_parallelism}, 32 );
+    my $hash = Crypt::Argon2::argon2i_pass( $str, $salt, $self->{argon2_time}, $self->{argon2_memory}, $self->{argon2_parallelism}, 32 );
 
     $cb->( 200, hash => $hash );
 
@@ -23,7 +23,7 @@ sub create_hash ( $self, $cb, $str ) {
 }
 
 sub verify_hash ( $self, $cb, $str, $hash ) {
-    $cb->( 200, match => Crypt::Argon2::argon2i_verify( $hash, P->text->encode_utf8($str) ) ? 1 : 0 );
+    $cb->( 200, match => Crypt::Argon2::argon2i_verify( $hash, $str ) ? 1 : 0 );
 
     return;
 }
