@@ -266,7 +266,7 @@ sub _generate_token ( $self, $token_type, $salt, $cb ) {
 
     $self->_hash_rpc->rpc_call(
         'create_hash',
-        $private_token . $salt,
+        $private_token . encode_utf8($salt),
         sub ( $res ) {
             if ( !$res ) {
                 $cb->($res);
