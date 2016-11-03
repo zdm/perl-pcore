@@ -2,7 +2,6 @@ package Pcore::App::API::RPC::Hash;
 
 use Pcore -class;
 use Crypt::Argon2;
-use Pcore::Util::Text qw[encode_utf8];
 
 with qw[Pcore::Util::PM::RPC::Worker];
 
@@ -24,7 +23,7 @@ sub create_hash ( $self, $cb, $str ) {
 }
 
 sub verify_hash ( $self, $cb, $str, $hash ) {
-    $cb->( 200, match => Crypt::Argon2::argon2i_verify( encode_utf8($hash), encode_utf8($str) ) ? 1 : 0 );
+    $cb->( 200, match => Crypt::Argon2::argon2i_verify( $hash, $str ) ? 1 : 0 );
 
     return;
 }

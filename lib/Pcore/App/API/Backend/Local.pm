@@ -5,7 +5,7 @@ use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::Util::UUID qw[create_uuid create_uuid_from_str];
+use Pcore::Util::UUID qw[create_uuid];
 
 with qw[Pcore::App::API::Backend];
 
@@ -316,7 +316,7 @@ sub _verify_token_hash ( $self, $private_token, $hash, $salt, $cb ) {
     else {
         $self->_hash_rpc->rpc_call(
             'verify_hash',
-            $private_token . $salt,
+            $private_token . encode_utf8($salt),
             $hash,
             sub ( $res ) {
                 $cb->( $self->{_hash_cache}->{$cache_id} = $res->{match} ? status 200 : status [ 400, 'Invalid token' ] );
