@@ -53,7 +53,7 @@ SQL
 
     my $get_permissions = sub {
         my $auth = {
-            token_type => $TOKEN_TYPE_USER_TOKEN,
+            token_type => $TOKEN_TYPE_USER_SESSION,
             token_id   => $user_session_id,
 
             is_user   => 1,

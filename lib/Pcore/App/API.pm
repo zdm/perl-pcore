@@ -345,30 +345,6 @@ sub get_app ( $self, $app_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub set_app_enabled ( $self, $app_id, $enabled, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->set_app_enabled(
-        $app_id, $enabled,
-        sub ($res) {
-
-            # invalidate app cache on success
-            if ($res) {
-
-                # $self->_invalidate_app_cache($app_id);
-            }
-
-            $cb->($res) if $cb;
-
-            $blocking_cv->($res) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 sub remove_app ( $self, $app_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -411,31 +387,6 @@ sub get_app_instance ( $self, $app_instance_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub set_app_instance_enabled ( $self, $app_instance_id, $enabled, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->set_app_instance_enabled(
-        $app_instance_id,
-        $enabled,
-        sub ($res) {
-
-            # invalidate app instance cache on success
-            if ($res) {
-
-                # $self->_invalidate_app_instance_cache($app_instance_id);
-            }
-
-            $cb->($res) if $cb;
-
-            $blocking_cv->($res) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 sub remove_app_instance ( $self, $app_instance_id, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -447,31 +398,6 @@ sub remove_app_instance ( $self, $app_instance_id, $cb = undef ) {
             if ($res) {
 
                 # $self->_invalidate_app_instance_cache($app_instance_id);
-            }
-
-            $cb->($res) if $cb;
-
-            $blocking_cv->($res) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
-# APP ROLE
-sub set_app_role_enabled ( $self, $role_id, $enabled, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->set_role_enabled(
-        $role_id, $enabled,
-        sub ($res) {
-
-            # invalidate role cache on success
-            if ($res) {
-
-                # $self->_invalidate_role_cache($role_id);
             }
 
             $cb->($res) if $cb;
@@ -706,8 +632,8 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 217, 414, 522, 543,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 587, 613, 640        |                                                                                                                |
+## |    3 | 217, 448, 469, 513,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 539, 566             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 242                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
