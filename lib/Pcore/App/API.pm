@@ -6,6 +6,7 @@ use Pcore::Util::Data qw[from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[create_uuid_from_bin uuid_str];
+use Pcore::App::API::Auth::Cache;
 
 const our $TOKEN_TYPE_USER_PASSWORD      => 1;
 const our $TOKEN_TYPE_APP_INSTANCE_TOKEN => 2;
@@ -29,6 +30,8 @@ has map => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Map'], init_arg =>
 has roles => ( is => 'ro', isa => HashRef, init_arg => undef );    # API roles, provided by this app
 has permissions => ( is => 'ro', isa => Maybe [ArrayRef], init_arg => undef );    # foreign app roles, that this app can use
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
+
+has auth_cache => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth::Cache'], init_arg => undef );
 
 has _private_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _auth_cache          => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -71,6 +74,9 @@ sub init ( $self, $cb ) {
 
     # build permissions
     $self->{permissions} = $self->_build_permissions;
+
+    # create auth cache object
+    $self->{auth_cache} = Pcore::App::API::Auth::Cache->new( { app => $self->{app} } );
 
     # build map
     # using class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
@@ -706,12 +712,12 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 62                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 214, 416, 524, 545,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 589, 615, 642        |                                                                                                                |
+## |    3 | 220, 422, 530, 551,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 595, 621, 648        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 239                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 245                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
