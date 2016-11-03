@@ -33,9 +33,6 @@ has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], ini
 
 has auth_cache => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth::Cache'], init_arg => undef );
 
-has _private_token_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has _auth_cache          => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
 
@@ -271,9 +268,9 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
     my $auth;
 
-    my $auth_id = $self->{_private_token_cache}->{$private_token};
+    my $auth_id = $self->{auth_cache}->{private_token}->{$private_token};
 
-    $auth = $self->{_auth_cache}->{$auth_id} if $auth_id;
+    $auth = $self->{auth_cache}->{auth}->{$auth_id} if $auth_id;
 
     if ($auth) {
 
@@ -294,32 +291,27 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         $auth ? undef : $private_token,    # validate token, if auth is new
 
         sub ( $res ) {
-            $auth_id = $self->{_private_token_cache}->{$private_token};
+            $auth_id = $self->{auth_cache}->{private_token}->{$private_token};
 
             if ( !$res ) {
-                if ($auth_id) {
-
-                    # remove private token
-                    delete $self->{_private_token_cache}->{$private_token};
-
-                    # remove auth
-                    delete $self->{_auth_cache}->{$auth_id};
-                }
+                $self->{auth_cache}->remove_auth($auth_id) if $auth_id;
 
                 $cb->($res);
             }
             else {
-                $auth_id = $self->{_private_token_cache}->{$private_token} = uuid_str if !$auth_id;
+                $auth_id = $self->{auth_cache}->{private_token}->{$private_token} = uuid_str if !$auth_id;
 
-                $auth = $self->{_auth_cache}->{$auth_id};
+                $auth = $self->{auth_cache}->{auth}->{$auth_id};
 
                 if ($auth) {
                     $auth->{permissions} = $res->{result}->{auth}->{permisions};
                 }
                 else {
-                    $auth = $self->{_auth_cache}->{$auth_id} = bless $res->{result}->{auth}, 'Pcore::App::API::Auth';
+                    $auth = $self->{auth_cache}->{auth}->{$auth_id} = bless $res->{result}->{auth}, 'Pcore::App::API::Auth';
 
                     $auth->{id} = $auth_id;
+
+                    $auth->{private_token} = $private_token;
 
                     # TODO tags
                     # my $tags = $res->{result}->{tags};
@@ -712,12 +704,12 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 62                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 220, 422, 530, 551,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 595, 621, 648        |                                                                                                                |
+## |    3 | 217, 414, 522, 543,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 587, 613, 640        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 245                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 242                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

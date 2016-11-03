@@ -116,7 +116,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 }
 
 sub _authorize ( $self, $cb ) {
-    my $cache = $self->{app}->{api}->{_auth_cache};
+    my $cache = $self->{app}->{api}->{auth_cache}->{auth};
 
     # token was removed, token is not authenticated
     if ( !exists $cache->{ $self->{id} } ) {
