@@ -136,7 +136,7 @@ sub run ( $self, $req ) {
         my @labels = split /\//sm, $path;
 
         while (@labels) {
-            $path_tail = pop(@labels) . " / $path_tail ";
+            $path_tail = pop(@labels) . "/$path_tail";
 
             $path = join( '/', @labels ) . '/';
 
