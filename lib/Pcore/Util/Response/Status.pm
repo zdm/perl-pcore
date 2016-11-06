@@ -7,7 +7,11 @@ with qw[Pcore::Util::Status::Role];
 sub TO_DATA ($self) {
     my $dump = { $self->%* };
 
+    # remove internal keys
     delete $dump->{status_reason};
+
+    # add "success" key
+    $dump->{success} = $self ? $TRUE : $FALSE if !exists $dump->{success};
 
     return $dump;
 }

@@ -5,8 +5,6 @@
 - app permissions, auth_app, etc...;
 - API auth - CRUD methods ???;
 
-- ExtJS fields error - status 200, success FALSE;
-
 -----------------------------------------------------------------------------------------------
 
 - APP & APP API:
@@ -26,6 +24,8 @@
 - SQL:
     - error handling;
     - return API response;
+    - handy way to specify bind param type for execeute;
+        - update SQLite BLOB fields;
 
 - LOG SUBSYSTEM:
     - write logs to socket;
