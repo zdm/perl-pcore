@@ -220,6 +220,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                                                             $cb->(
                                                                 status 201,
                                                                 {   id    => $user_token->{result}->{id},
+                                                                    type  => $TOKEN_TYPE_USER_TOKEN,
                                                                     token => $user_token->{result}->{token},
                                                                 }
                                                             );

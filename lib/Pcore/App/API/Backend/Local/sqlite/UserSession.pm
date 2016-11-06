@@ -153,6 +153,7 @@ sub create_user_session ( $self, $user_id, $cb ) {
                                 $cb->(
                                     status 201,
                                     {   id    => $token->{result}->{id},
+                                        type  => $TOKEN_TYPE_USER_SESSION,
                                         token => $token->{result}->{token},
                                     }
                                 );
