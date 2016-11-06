@@ -309,6 +309,8 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
                 else {
                     $auth = $self->{auth_cache}->{auth}->{$auth_id} = bless $res->{result}->{auth}, 'Pcore::App::API::Auth';
 
+                    $auth->{app} = $self->{app};
+
                     $auth->{id} = $auth_id;
 
                     $auth->{private_token} = $private_token;
@@ -578,7 +580,7 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 217, 448, 469, 512   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 217, 450, 471, 514   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 242                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
