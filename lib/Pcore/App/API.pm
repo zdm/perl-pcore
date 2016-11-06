@@ -213,7 +213,6 @@ sub init ( $self, $cb ) {
 }
 
 # AUTHENTICATE
-# TODO link tags
 sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
     my ( $token_type, $token_id, $private_token );
 
@@ -266,6 +265,13 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         }
     }
 
+    $self->authenticate_private( $token_type, $token_id, $private_token, $cb );
+
+    return;
+}
+
+# TODO link tags
+sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) {
     my $auth;
 
     my $auth_id = $self->{auth_cache}->{private_token}->{$private_token};
@@ -580,9 +586,10 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 217, 450, 471, 514   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 216, 274, 456, 477,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 520                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 242                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 241                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
