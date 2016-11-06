@@ -3,6 +3,7 @@ package Pcore::App::API::Backend::Local::sqlite::User;
 use Pcore -role, -promise, -status;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
+use Pcore::Util::Text qw[encode_utf8];
 
 # TODO tags
 sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $private_token, $cb ) {
@@ -84,7 +85,7 @@ SQL
         $self->_verify_token_hash(
             $private_token,
             $user->{hash},
-            $user->{id},
+            encode_utf8( $user->{id} ),
             sub ($status) {
 
                 # token is valid
@@ -371,7 +372,7 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permis
     return;
 }
 
-sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
+sub set_user_password ( $self, $user_id, $user_password_bin, $cb ) {
     $self->get_user(
         $user_id,
         sub ( $user ) {
@@ -385,8 +386,8 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb ) {
             else {
                 $self->_generate_user_password_hash(
                     $user->{result}->{name},
-                    $user_password_utf8,
-                    $user->{result}->{id},
+                    $user_password_bin,
+                    encode_utf8( $user->{result}->{id} ),
                     sub ( $password_hash ) {
 
                         # password hash genereation error
@@ -494,16 +495,16 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8, 208, 374          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 9, 209, 375          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_password' declared but   |
+## |    3 | 9                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_password' declared but   |
 ## |      |                      | not used                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 129                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 130                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 208                  | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
+## |    3 | 209                  | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 291, 346             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 292, 347             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

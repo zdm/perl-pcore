@@ -2,6 +2,7 @@ package Pcore::App::API::Backend::Local::sqlite::UserSession;
 
 use Pcore -role, -promise, -status;
 use Pcore::App::API qw[:CONST];
+use Pcore::Util::Text qw[encode_utf8];
 
 # TODO tags
 sub _auth_user_session ( $self, $source_app_instance_id, $user_session_id, $private_token, $cb ) {
@@ -87,7 +88,7 @@ SQL
         $self->_verify_token_hash(
             $private_token,
             $user_session->{user_session_hash},
-            $user_session->{user_id},
+            encode_utf8( $user_session->{user_id} ),
             sub ($status) {
 
                 # token is valid
@@ -179,9 +180,9 @@ sub create_user_session ( $self, $user_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 7                    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 8                    | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 7                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_session' declared but    |
+## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_session' declared but    |
 ## |      |                      | not used                                                                                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##

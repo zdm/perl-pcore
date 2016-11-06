@@ -316,7 +316,7 @@ sub _verify_token_hash ( $self, $private_token, $hash, $salt, $cb ) {
     else {
         $self->_hash_rpc->rpc_call(
             'verify_hash',
-            $private_token . encode_utf8($salt),
+            $private_token . $salt,
             $hash,
             sub ( $res ) {
                 $cb->( $self->{_hash_cache}->{$cache_id} = $res->{match} ? status 200 : status [ 400, 'Invalid token' ] );

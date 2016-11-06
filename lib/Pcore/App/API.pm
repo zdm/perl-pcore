@@ -469,11 +469,9 @@ sub create_user ( $self, $base_user, $user_name, $password, $enabled, $permissio
 sub set_user_password ( $self, $user_id, $user_password_utf8, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    encode_utf8 $user_password_utf8;
-
     $self->{backend}->set_user_password(
         $user_id,
-        $user_password_utf8,
+        encode_utf8($user_password_utf8),
         sub ($res) {
 
             # invalidate user cache on success
@@ -580,7 +578,7 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 217, 448, 469, 514   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 217, 448, 469, 512   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 242                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -3,6 +3,7 @@ package Pcore::App::API::Backend::Local::sqlite::UserToken;
 use Pcore -role, -promise, -status;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
+use Pcore::Util::Text qw[encode_utf8];
 
 # TODO tags
 sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
@@ -90,7 +91,7 @@ SQL
         $self->_verify_token_hash(
             $private_token,
             $user_token->{user_token_hash},
-            $user_token->{user_id},
+            encode_utf8( $user_token->{user_id} ),
             sub ($status) {
 
                 # token is valid
@@ -268,12 +269,12 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8, 117               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 9, 118               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
+## |    3 | 9                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
 ## |      |                      | used                                                                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 168, 195, 203, 209   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 169, 196, 204, 210   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

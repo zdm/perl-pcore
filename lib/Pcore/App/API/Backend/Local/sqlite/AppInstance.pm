@@ -2,6 +2,7 @@ package Pcore::App::API::Backend::Local::sqlite::AppInstance;
 
 use Pcore -role, -promise, -status;
 use Pcore::App::API qw[:CONST];
+use Pcore::Util::Text qw[encode_utf8];
 
 # TODO salt = app_id
 # TODO return result hash
@@ -91,7 +92,7 @@ SQL
         $self->_verify_token_hash(
             $private_token,
             $res->{hash},
-            $res->{app_id},
+            encode_utf8( $res->{app_id} ),
             sub ($status) {
 
                 # token valid
@@ -233,9 +234,9 @@ sub update_app_instance ( $self, $app_instance_id, $app_instance_version, $cb ) 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8, 131, 216          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 9, 132, 217          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 8                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_app_instance_token' declared  |
+## |    3 | 9                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_app_instance_token' declared  |
 ## |      |                      | but not used                                                                                                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
