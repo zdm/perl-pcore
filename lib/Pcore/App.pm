@@ -27,7 +27,7 @@ has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
 
 sub _build_name ($self) {
-    return ref $self;
+    return ref($self) =~ s[::][-]smgr;
 }
 
 # TODO get description from POD abstract or die
