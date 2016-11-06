@@ -71,7 +71,7 @@ sub _build_map ($self) {
                     if ( $path->suffix eq 'pm' ) {
                         my $route = $path->dirname . $path->filename_base;
 
-                        my $class = "$ns_path/$route " =~ s[/][::]smgr;
+                        my $class = "$ns_path/$route" =~ s[/][::]smgr;
 
                         $controllers->{$class} = '/' . _perl_class_path_to_snake_case($route) . '/';
                     }
