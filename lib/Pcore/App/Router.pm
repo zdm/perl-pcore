@@ -56,15 +56,15 @@ sub _build_map ($self) {
     for my $path ( grep { !ref } @INC ) {
 
         # index controller
-        if ( -f "$path/$ns_path . pm " ) {
+        if ( -f "$path/$ns_path.pm" ) {
             $controllers->{$index_class} = '/';
         }
 
-        if ( -d "$path / $ns_path " ) {
-            my $guard = P->file->chdir("$path / $ns_path ");
+        if ( -d "$path/$ns_path" ) {
+            my $guard = P->file->chdir("$path/$ns_path");
 
             P->file->find(
-                "$path / $ns_path ",
+                "$path/$ns_path",
                 abs => 0,
                 dir => 0,
                 sub ($path) {
@@ -86,7 +86,7 @@ sub _build_map ($self) {
         P->class->load($class);
 
         if ( !$class->does('Pcore::App::Controller') ) {
-            die qq["$class " is not a consumer of " Pcore::App::Controller "];
+            die qq["$class" is not a consumer of "Pcore::App::Controller"];
         }
         else {
             my $path = $controllers->{$class};
@@ -111,7 +111,7 @@ sub _build_map ($self) {
         }
     }
 
-    die qq[Index controller "$index_class " was not found or nor a consumer of " Pcore::App::Controller::Index "] if !$self->{index_class};
+    die qq[Index controller "$index_class" was not found or not a consumer of "Pcore::App::Controller::Index"] if !$self->{index_class};
 
     return { reverse $controllers->%* };
 }
