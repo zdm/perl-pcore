@@ -1,8 +1,7 @@
-- authentication tags;
-
-
-
 - cleanup API methods;
+
+
+- authentication tags;
 - app permissions, auth_app, etc...;
 - API auth - CRUD methods ???;
 

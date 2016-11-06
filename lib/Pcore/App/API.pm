@@ -510,58 +510,6 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub set_user_permissions ( $self, $creator_user_id, $user_id, $permissions, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->set_user_permissions(
-        $creator_user_id,
-        $user_id,
-        $permissions,
-        sub ($res) {
-
-            # invalidate user cache on success
-            if ($res) {
-
-                # $self->_invalidate_user_cache($user_id);
-            }
-
-            $cb->($res) if $cb;
-
-            $blocking_cv->($res) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
-sub add_user_permissions ( $self, $creator_user_id, $user_id, $permissions, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    $self->{backend}->add_user_permissions(
-        $creator_user_id,
-        $user_id,
-        $permissions,
-        sub ($res) {
-
-            # invalidate user cache on success
-            if ($res) {
-
-                # $self->_invalidate_user_cache($user_id);
-            }
-
-            $cb->($res) if $cb;
-
-            $blocking_cv->($res) if $blocking_cv;
-
-            return;
-        }
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 # USER TOKEN
 sub create_user_token ( $self, $user_id, $desc, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
@@ -632,8 +580,7 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 217, 448, 469, 513,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 539, 566             |                                                                                                                |
+## |    3 | 217, 448, 469, 514   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 242                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
