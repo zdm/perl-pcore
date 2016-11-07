@@ -30,6 +30,12 @@ sub wantarray ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return !!$self->{_cb};
 }
 
+sub api_can_call ( $self, $method_id, $cb ) {
+    $self->{auth}->api_can_call( $method_id, $cb );
+
+    return;
+}
+
 sub api_call ( $self, $method_id, @args ) {
     $self->{auth}->api_call( $method_id, @args );
 

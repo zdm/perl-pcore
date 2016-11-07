@@ -21,6 +21,64 @@ has app_instance_id => ( is => 'ro', isa => Maybe [Str], required => 1 );
 
 has permissions => ( is => 'ro', isa => Maybe [HashRef], required => 1 );
 
+sub api_can_call ( $method_id, $cb ) {
+    my $map = $self->{app}->{api}->{map};
+
+    # find method
+    my $method_cfg = $map->{method}->{$method_id};
+
+    if ( !$method_cfg ) {
+        $cb->( status [ 404, qq[API method "$method_id" was not found] ] );
+
+        return;
+    }
+
+    # user is root, method authentication is not required
+    if ( $self->{is_root} ) {
+        $cb->( status 200 );
+    }
+
+    # user is not root, need to perform authorization
+    else {
+
+        # perform authorization
+        $self->_authorize(
+            sub ($permissions) {
+
+                # user is disabled or permisisons error
+                if ( !$permissions ) {
+                    $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $cb;
+
+                    return;
+                }
+
+                # method has no permissions, api call is allowed for any authenticated user
+                if ( !$method_cfg->{permissions} ) {
+                    $cb->( status 200 );
+
+                    return;
+                }
+
+                # method has permissions, compare method roles with authorized roles
+                for my $role ( $method_cfg->{permissions}->@* ) {
+                    if ( exists $permissions->{$role} ) {
+                        $cb->( status 200 );
+
+                        return;
+                    }
+                }
+
+                # api call is permitted
+                $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $cb;
+
+                return;
+            }
+        );
+    }
+
+    return;
+}
+
 sub api_call ( $self, $method_id, @ ) {
     my ( $cb, $args );
 
@@ -88,7 +146,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
                     return;
                 }
 
-                # method has no permissions, api call is allowed for any authenticated and authorized user
+                # method has no permissions, api call is allowed for any authenticated user
                 if ( !$method_cfg->{permissions} ) {
                     $api_call->();
 
@@ -174,7 +232,7 @@ sub _authorize ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 123                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
