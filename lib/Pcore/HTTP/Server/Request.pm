@@ -217,31 +217,6 @@ sub accept_websocket ( $self, $headers = undef ) {
     return $h;
 }
 
-# TOKEN
-sub get_token ( $self ) {
-    my $env = $self->{env};
-
-    # get auth token from query param, header, cookie
-    my ( $user_name, $token );
-
-    if ( $env->{QUERY_STRING} && $env->{QUERY_STRING} =~ /\baccess_token=([^&]+)/sm ) {
-        $token = $1;
-    }
-    elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Token\s+(.+)\b/smi ) {
-        $token = $1;
-    }
-    elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Basic\s+(.+)\b/smi ) {
-        $token = eval { from_b64 $1};
-
-        ( $user_name, $token ) = split /:/sm, $token if $token;
-    }
-    elsif ( $env->{HTTP_COOKIE} && $env->{HTTP_COOKIE} =~ /\btoken=([^;]+)\b/sm ) {
-        $token = $1;
-    }
-
-    return $user_name, $token;
-}
-
 1;
 __END__
 =pod

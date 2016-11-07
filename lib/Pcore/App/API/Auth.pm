@@ -21,7 +21,7 @@ has app_instance_id => ( is => 'ro', isa => Maybe [Str], required => 1 );
 
 has permissions => ( is => 'ro', isa => Maybe [HashRef], required => 1 );
 
-sub api_can_call ( $method_id, $cb ) {
+sub api_can_call ( $self, $method_id, $cb ) {
     my $map = $self->{app}->{api}->{map};
 
     # find method
@@ -47,7 +47,7 @@ sub api_can_call ( $method_id, $cb ) {
 
                 # user is disabled or permisisons error
                 if ( !$permissions ) {
-                    $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $cb;
+                    $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] );
 
                     return;
                 }
@@ -69,7 +69,7 @@ sub api_can_call ( $method_id, $cb ) {
                 }
 
                 # api call is permitted
-                $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $cb;
+                $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] );
 
                 return;
             }
@@ -96,79 +96,38 @@ sub api_call ( $self, $method_id, @ ) {
 }
 
 sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
-    my $map = $self->{app}->{api}->{map};
-
-    # find method
-    my $method_cfg = $map->{method}->{$method_id};
-
-    if ( !$method_cfg ) {
-        $cb->( status [ 404, qq[API method "$method_id" was not found] ] ) if $cb;
-
-        return;
-    }
-
-    my $api_call = sub {
-        my $obj = $map->{obj}->{ $method_cfg->{class_name} };
-
-        my $method_name = $method_cfg->{local_method_name};
-
-        # create API request
-        my $req = bless {
-            auth => $self,
-            _cb  => $cb,
-          },
-          'Pcore::App::API::Auth::Request';
-
-        # call method
-        eval { $obj->$method_name( $req, $args ? $args->@* : () ) };
-
-        $@->sendlog if $@;
-
-        return;
-    };
-
-    # user is root, method authentication is not required
-    if ( $self->{is_root} ) {
-        $api_call->();
-    }
-
-    # user is not root, need to perform authorization
-    else {
-
-        # perform authorization
-        $self->_authorize(
-            sub ($permissions) {
-
-                # user is disabled or permisisons error
-                if ( !$permissions ) {
-                    $cb->( status [ 403, q[Unauthorized access] ] ) if $cb;
-
-                    return;
-                }
-
-                # method has no permissions, api call is allowed for any authenticated user
-                if ( !$method_cfg->{permissions} ) {
-                    $api_call->();
-
-                    return;
-                }
-
-                # method has permissions, compare method roles with authorized roles
-                for my $role ( $method_cfg->{permissions}->@* ) {
-                    if ( exists $permissions->{$role} ) {
-                        $api_call->();
-
-                        return;
-                    }
-                }
-
-                # api call is permitted
-                $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] ) if $cb;
-
-                return;
+    $self->api_can_call(
+        $method_id,
+        sub ($can_call) {
+            if ( !$can_call ) {
+                $cb->($can_call) if $cb;
             }
-        );
-    }
+            else {
+                my $map = $self->{app}->{api}->{map};
+
+                # get method
+                my $method_cfg = $map->{method}->{$method_id};
+
+                my $obj = $map->{obj}->{ $method_cfg->{class_name} };
+
+                my $method_name = $method_cfg->{local_method_name};
+
+                # create API request
+                my $req = bless {
+                    auth => $self,
+                    _cb  => $cb,
+                  },
+                  'Pcore::App::API::Auth::Request';
+
+                # call method
+                eval { $obj->$method_name( $req, $args ? $args->@* : () ) };
+
+                $@->sendlog if $@;
+            }
+
+            return;
+        }
+    );
 
     return;
 }

@@ -2,7 +2,7 @@ package Pcore::App::API;
 
 use Pcore -role, -const, -status, -export => { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 use Pcore::App::API::Map;
-use Pcore::Util::Data qw[from_b64_url];
+use Pcore::Util::Data qw[from_b64 from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[create_uuid_from_bin uuid_str];
@@ -213,6 +213,37 @@ sub init ( $self, $cb ) {
 }
 
 # AUTHENTICATE
+sub authenticate_request ( $self, $req, $cb ) {
+    my $env = $req->{env};
+
+    # get auth token from query param, header, cookie
+    my ( $user_name, $token );
+
+    if ( $env->{QUERY_STRING} && $env->{QUERY_STRING} =~ /\baccess_token=([^&]+)/sm ) {
+        $token = $1;
+    }
+    elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Token\s+(.+)\b/smi ) {
+        $token = $1;
+    }
+    elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Basic\s+(.+)\b/smi ) {
+        $token = eval { from_b64 $1};
+
+        ( $user_name, $token ) = split /:/sm, $token if $token;
+    }
+    elsif ( $env->{HTTP_COOKIE} && $env->{HTTP_COOKIE} =~ /\btoken=([^;]+)\b/sm ) {
+        $token = $1;
+    }
+
+    if ($token) {
+        $self->authenticate( $user_name, $token, $cb );
+    }
+    else {
+        $cb->( status 403 );
+    }
+
+    return;
+}
+
 sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
     my ( $token_type, $token_id, $private_token );
 
@@ -586,10 +617,10 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 216, 274, 456, 477,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 520                  |                                                                                                                |
+## |    3 | 247, 305, 487, 508,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 551                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 241                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 272                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

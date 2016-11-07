@@ -1,9 +1,7 @@
 package Pcore::App::Controller::API;
 
 use Pcore -const, -role, -status;
-use Pcore::App::API qw[:CONST];
-use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_b64];
-use Pcore::Util::Scalar qw[blessed];
+use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor];
 
 with qw[Pcore::App::Controller::WebSocket];
 
@@ -83,26 +81,22 @@ sub run ( $self, $req ) {
     # method is not specified, this is callback, not supported in API server
     return $cb->( status [ 400, q[Method is required] ] ) if !$data->{method};
 
-    # get auth token
-    my ( $user_name, $token ) = $req->get_token;
-
-    # no auth token provided
-    return $cb->( status [ 401, q[Authentication token wasn't provided] ] ) if !$token;
-
-    # authenticate token
-    $self->{app}->{api}->authenticate(
-        $user_name,
-        $token,
+    # authenticate
+    $self->{app}->{api}->authenticate_request(
+        $req,
         sub ( $res ) {
-            my $auth = $res->{auth};
 
             # token authentication error
             if ( !$res ) {
                 $cb->($res);
+
+                return;
             }
 
+            my $auth = $res->{auth};
+
             # this is app connection, disabled
-            elsif ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
+            if ( $auth->{is_app} ) {
                 $cb->( status [ 403, q[App must connect via WebSocket interface] ] );
             }
 
@@ -167,96 +161,17 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 }
 
 sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
-    my ( $user_name, $token ) = $req->get_token;
-
-    # no auth token provided
-    return $decline->(401) if !$token;
-
-    $self->{app}->{api}->authenticate(
-        $user_name,
-        $token,
+    $self->{app}->{api}->authenticate_request(
+        $req,
         sub ( $res ) {
 
             # token authentication error
             if ( !$res ) {
                 $decline->($res);
-
-                return;
-            }
-
-            my $auth = $res->{auth};
-
-            # this is app connection request
-            if ( $auth->{token_type} == $TOKEN_TYPE_APP_INSTANCE_TOKEN && $self->{app}->{api}->{backend}->is_local ) {
-
-                # decode app connection request
-                my $data;
-
-                # JSON content type
-                if ( !$req->{env}->{CONTENT_TYPE} || $req->{env}->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
-                    $data = eval { from_json $req->body } if $req->body;
-
-                    # content decode error
-                    if ($@) {
-                        $decline->( [ 400, q[Error decoding JSON request body] ] );
-
-                        return;
-                    }
-                }
-
-                # CBOR content type
-                elsif ( $req->{env}->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
-                    $data = eval { from_cbor $req->body } if $req->body;
-
-                    # content decode error
-                    if ($@) {
-                        $decline->( [ 400, q[Error decoding CBOR request body] ] );
-
-                        return;
-                    }
-                }
-
-                # invalid content type
-                else {
-                    $decline->( [ 400, q[Content type is invalid] ] );
-
-                    return;
-                }
-
-                if ( !$data ) {
-                    $decline->( [ 400, q[App connect request is invalid] ] );
-
-                    return;
-                }
-
-                $self->{app}->{api}->{backend}->connect_app_instance(
-                    $auth->{app_instance_id},
-                    $data->{version},
-                    $data->{roles},
-                    $data->{permissions},
-                    sub ($status) {
-
-                        # app connection is allowed
-                        if ($status) {
-                            $ws->{auth} = $auth;
-
-                            # accept websocket connection
-                            $accept->();
-                        }
-
-                        # decline
-                        else {
-                            $decline->($status);
-                        }
-
-                        return;
-                    }
-                );
             }
             else {
-
                 # token authenticated successfully, store token in websocket connection object
-                $ws->{auth} = $auth;
+                $ws->{auth} = $res->{auth};
 
                 # accept websocket connection
                 $accept->();
@@ -300,7 +215,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 127                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 121                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
