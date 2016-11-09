@@ -5,6 +5,11 @@
 - app permissions, auth_app, etc...;
 - API auth - CRUD methods ???;
 
+- api protocol:
+    - result -> data;
+    - args -> data;
+    - runas => [ $token_type, $token_id, $private_token ];
+
 -----------------------------------------------------------------------------------------------
 
 - APP & APP API:
