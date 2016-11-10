@@ -6,49 +6,35 @@ with qw[Pcore::HTTP::Server::Router];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has map         => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has map         => ( is => 'lazy', isa => HashRef, init_arg => undef );    # router path -> class name
 has index_class => ( is => 'ro',   isa => Str,     init_arg => undef );
 has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
 
 has _path_class_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # router path -> sigleton cache
 has _class_instance_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # class name -> sigleton cache
 
-sub _perl_class_path_to_snake_case ($str) {
-
-    # convert aB -> a-b
-    $str =~ s/([[:lower:]])([[:upper:]])/"$1-" . lc $2/smge;
-
-    # convert Ab -> -ab, if "A" is not first symbol and "A" if not after "/"
-    $str =~ s[([^/])([[:upper:]])([[:lower:]])]["$1-" . lc($2) . $3]smge;
-
-    return lc $str;
-}
-
 sub _build_map ($self) {
     my $index_class = ref( $self->app ) . '::Index';
 
-    my $controllers = {};
+    my $index_path = ( $index_class =~ s[::][/]smgr ) . q[/];
 
-    my $ns_path = $index_class =~ s[::][/]smgr;
+    my $index_module = ( $index_class =~ s[::][/]smgr ) . '.pm';
+
+    # related to $index_path module path -> full module path mapping
+    my $modules = {};
 
     # scan %INC
-    for my $class ( keys %INC ) {
-
-        # remove .pm suffix
-        $class =~ s/[.]pm\z//sm;
+    for my $module ( keys %INC ) {
+        next if substr( $module, -3 ) ne '.pm';
 
         # index controller
-        if ( $class eq $ns_path ) {
-            $controllers->{$index_class} = '/';
+        if ( $module eq $index_module ) {
+            $modules->{$module} = undef;
         }
 
         # non-index controller
-        elsif ( $class =~ m[\A$ns_path/]sm ) {
-            my $route = $class;
-
-            $class =~ s[/][::]smg;
-
-            $controllers->{$class} = '/' . _perl_class_path_to_snake_case($route) . '/';
+        elsif ( index( $module, $index_path ) == 0 ) {
+            $modules->{$module} = undef;
         }
     }
 
@@ -56,25 +42,17 @@ sub _build_map ($self) {
     for my $path ( grep { !ref } @INC ) {
 
         # index controller
-        if ( -f "$path/$ns_path.pm" ) {
-            $controllers->{$index_class} = '/';
+        if ( -f "$path/$index_module" ) {
+            $modules->{$index_module} = undef;
         }
 
-        if ( -d "$path/$ns_path" ) {
-            my $guard = P->file->chdir("$path/$ns_path");
-
+        if ( -d "$path/$index_path" ) {
             P->file->find(
-                "$path/$ns_path",
+                "$path/$index_path",
                 abs => 0,
                 dir => 0,
                 sub ($path) {
-                    if ( $path->suffix eq 'pm' ) {
-                        my $route = $path->dirname . $path->filename_base;
-
-                        my $class = "$ns_path/$route" =~ s[/][::]smgr;
-
-                        $controllers->{$class} = '/' . _perl_class_path_to_snake_case($route) . '/';
-                    }
+                    $modules->{"${index_path}${path}"} = undef if $path->suffix eq 'pm';
 
                     return;
                 }
@@ -82,38 +60,47 @@ sub _build_map ($self) {
         }
     }
 
-    for my $class ( sort keys $controllers->%* ) {
-        P->class->load($class);
+    my $map;
 
-        if ( !$class->does('Pcore::App::Controller') ) {
-            die qq["$class" is not a consumer of "Pcore::App::Controller"];
+    for my $module ( sort keys $modules->%* ) {
+        my $class = P->class->load($module);
+
+        die qq["$class" is not a consumer of "Pcore::App::Controller"] if !$class->does('Pcore::App::Controller');
+
+        my $obj = $class->new( { app => $self->{app} } );
+
+        my $route = $obj->path;
+
+        # create route automatically
+        if ( !$route ) {
+            $route = lc( ( $class . '::' ) =~ s[\A$index_class:*][/]smr );
+
+            $route =~ s[::][/]smg;
+
+            $obj->{path} = $route;
         }
-        else {
-            my $path = $controllers->{$class};
 
-            # create and cache controller object
-            $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$path} = $class->new(
-                {   app  => $self->{app},
-                    path => $path,
-                }
-            );
+        die qq[Route "$route" is not unique] if exists $self->{_path_class_cache}->{$route};
 
-            if ( $class->does('Pcore::App::Controller::Index') ) {
+        $map->{$route} = $class;
 
-                # index controller
-                $self->{index_class} = $class;
-            }
-            elsif ( $class->does('Pcore::App::Controller::API') ) {
+        $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$route} = $obj;
 
-                # api controller
-                $self->{api_class} = $class;
-            }
+        if ( $class->does('Pcore::App::Controller::Index') && $route eq '/' ) {
+
+            # index controller
+            $self->{index_class} = $class;
+        }
+        elsif ( $class->does('Pcore::App::Controller::API') ) {
+
+            # api controller
+            $self->{api_class} = $class;
         }
     }
 
     die qq[Index controller "$index_class" was not found or not a consumer of "Pcore::App::Controller::Index"] if !$self->{index_class};
 
-    return { reverse $controllers->%* };
+    return $map;
 }
 
 sub run ( $self, $req ) {
@@ -166,8 +153,7 @@ sub get_instance ( $self, $class_name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 42, 51, 60, 76, 122, | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
-## |      |  141                 |                                                                                                                |
+## |    2 | 76, 89, 109, 128     | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

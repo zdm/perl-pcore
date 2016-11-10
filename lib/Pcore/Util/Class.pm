@@ -13,13 +13,17 @@ sub load ( $class, @ ) {
 
     my $class_filename;
 
-    if ( $class =~ /[.]pm\z/sm ) {
+    if ( substr( $class, -3 ) eq '.pm' ) {
         $class_filename = $class;
+
+        $class =~ s[/][::]smg;
+
+        substr $class, -3, 3, q[];
     }
     else {
         $class = resolve_class_name( $class, $args{ns} );
 
-        $class_filename = ( $class =~ s[::][/]smgr ) . q[.pm];
+        $class_filename = ( $class =~ s[::][/]smgr ) . '.pm';
     }
 
     require $class_filename;
