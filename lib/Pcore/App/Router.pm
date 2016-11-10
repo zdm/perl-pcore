@@ -67,18 +67,19 @@ sub _build_map ($self) {
 
         die qq["$class" is not a consumer of "Pcore::App::Controller"] if !$class->does('Pcore::App::Controller');
 
-        my $obj = $class->new( { app => $self->{app} } );
+        # generate route path
+        my $route = lc( ( $class . '::' ) =~ s[\A$index_class:*][/]smr );
 
-        my $route = $obj->path;
+        $route =~ s[::][/]smg;
 
-        # create route automatically
-        if ( !$route ) {
-            $route = lc( ( $class . '::' ) =~ s[\A$index_class:*][/]smr );
+        my $obj = $class->new(
+            {   app  => $self->{app},
+                path => $route,
+            }
+        );
 
-            $route =~ s[::][/]smg;
-
-            $obj->{path} = $route;
-        }
+        # get obj route
+        $route = $obj->path;
 
         die qq[Route "$route" is not unique] if exists $self->{_path_class_cache}->{$route};
 
@@ -153,7 +154,7 @@ sub get_instance ( $self, $class_name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 76, 89, 109, 128     | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 71, 90, 110, 129     | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
