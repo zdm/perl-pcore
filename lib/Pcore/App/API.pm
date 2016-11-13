@@ -238,7 +238,7 @@ sub authenticate_request ( $self, $req, $cb ) {
         $self->authenticate( $user_name, $token, $cb );
     }
     else {
-        $cb->( status 403 );
+        $cb->( status 401 );
     }
 
     return;
@@ -313,7 +313,7 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
 
         # auth is valid and auth permissions are defined
         if ( defined $auth->{permissions} ) {
-            $cb->( status 200, auth => $auth );
+            $cb->( status 200, $auth );
 
             return;
         }
@@ -356,7 +356,7 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
                     # my $tags = $res->{result}->{tags};
                 }
 
-                $cb->( status 200, auth => $auth );
+                $cb->( status 200, $auth );
             }
 
             return;

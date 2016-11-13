@@ -84,25 +84,23 @@ sub run ( $self, $req ) {
     # authenticate
     $self->{app}->{api}->authenticate_request(
         $req,
-        sub ( $res ) {
+        sub ( $auth ) {
 
             # token authentication error
-            if ( !$res ) {
-                $cb->($res);
+            if ( !$auth ) {
+                $cb->($auth);
 
                 return;
             }
 
-            my $auth = $res->{auth};
-
             # this is app connection, disabled
-            if ( $auth->{is_app} ) {
+            if ( $auth->{result}->{is_app} ) {
                 $cb->( status [ 403, q[App must connect via WebSocket interface] ] );
             }
 
             # method is specified, this is API call
             elsif ( my $method_id = $data->{method} ) {
-                $auth->api_call_arrayref( $method_id, $data->{args}, $cb );
+                $auth->{result}->api_call_arrayref( $method_id, $data->{args}, $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
@@ -163,15 +161,16 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
     $self->{app}->{api}->authenticate_request(
         $req,
-        sub ( $res ) {
+        sub ( $auth ) {
 
             # token authentication error
-            if ( !$res ) {
-                $decline->($res);
+            if ( !$auth ) {
+                $decline->($auth);
             }
             else {
+
                 # token authenticated successfully, store token in websocket connection object
-                $ws->{auth} = $res->{auth};
+                $ws->{auth} = $auth->{result};
 
                 # accept websocket connection
                 $accept->();
@@ -215,7 +214,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 121                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 119                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
