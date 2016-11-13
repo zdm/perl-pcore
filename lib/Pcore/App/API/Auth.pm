@@ -4,6 +4,12 @@ use Pcore -class, -status;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
 
+use overload    #
+  q[bool] => sub {
+    return $_[0]->{app}->{api}->{auth_cache}->{auth}->{ $_[0]->{id} };
+  },
+  fallback => undef;
+
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has id => ( is => 'ro', isa => Str, required => 1 );
@@ -191,7 +197,7 @@ sub _authorize ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 123                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 129                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

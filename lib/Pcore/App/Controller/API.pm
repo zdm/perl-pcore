@@ -94,13 +94,13 @@ sub run ( $self, $req ) {
             }
 
             # this is app connection, disabled
-            if ( $auth->{result}->{is_app} ) {
+            if ( $auth->{is_app} ) {
                 $cb->( status [ 403, q[App must connect via WebSocket interface] ] );
             }
 
             # method is specified, this is API call
             elsif ( my $method_id = $data->{method} ) {
-                $auth->{result}->api_call_arrayref( $method_id, $data->{args}, $cb );
+                $auth->api_call_arrayref( $method_id, $data->{args}, $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
@@ -170,7 +170,7 @@ sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
             else {
 
                 # token authenticated successfully, store token in websocket connection object
-                $ws->{auth} = $auth->{result};
+                $ws->{auth} = $auth;
 
                 # accept websocket connection
                 $accept->();
