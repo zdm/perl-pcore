@@ -173,6 +173,19 @@ sub create_user_session ( $self, $user_id, $cb ) {
     return;
 }
 
+sub remove_user_session ( $self, $user_session_id, $cb ) {
+    my $removed = $self->dbh->do( q[DELETE FROM api_user_session WHERE id = ?], [$user_session_id] );
+
+    if ($removed) {
+        $cb->( status 200 );
+    }
+    else {
+        $cb->( status [ 404, 'User session was not found' ] );
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

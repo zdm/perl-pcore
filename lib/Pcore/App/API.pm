@@ -608,6 +608,23 @@ sub create_user_session ( $self, $user_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub remove_user_session ( $self, $user_session_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->remove_user_session(
+        $user_session_id,
+        sub ( $res ) {
+            $cb->($res) if $cb;
+
+            $blocking_cv->($res) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
