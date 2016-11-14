@@ -19,9 +19,10 @@ has is_websocket_connect_request => ( is => 'lazy', isa => Bool, init_arg => und
 has _use_keepalive               => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 has _response_status => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has _auth => ( is => 'ro', isa => Object, init_arg => undef );    # request authentication result
 
-const our $HTTP_SERVER_RESPONSE_STARTED  => 1;    # headers written
-const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
+const our $HTTP_SERVER_RESPONSE_STARTED  => 1;                    # headers written
+const our $HTTP_SERVER_RESPONSE_FINISHED => 2;                    # body written
 
 # const our $CONTENT_TYPE_HTML       => 1;
 # const our $CONTENT_TYPE_TEXT       => 2;
@@ -215,6 +216,54 @@ sub accept_websocket ( $self, $headers = undef ) {
     $h->push_write( $buf . $CRLF );
 
     return $h;
+}
+
+# AUTHENTICATE
+sub authenticate ( $self, $cb ) {
+
+    # request is already authenticated
+    if ( exists $self->{_auth} ) {
+        $cb->( $self->{_auth} );
+    }
+    elsif ( !$self->{app}->{api} ) {
+        $cb->( $self->{_auth} = status 401 );
+    }
+    else {
+        my $env = $self->{env};
+
+        # get auth token from query param, header, cookie
+        my ( $user_name, $token );
+
+        if ( $env->{QUERY_STRING} && $env->{QUERY_STRING} =~ /\baccess_token=([^&]+)/sm ) {
+            $token = $1;
+        }
+        elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Token\s+(.+)\b/smi ) {
+            $token = $1;
+        }
+        elsif ( $env->{HTTP_AUTHORIZATION} && $env->{HTTP_AUTHORIZATION} =~ /Basic\s+(.+)\b/smi ) {
+            $token = eval { from_b64 $1};
+
+            ( $user_name, $token ) = split /:/sm, $token if $token;
+        }
+        elsif ( $env->{HTTP_COOKIE} && $env->{HTTP_COOKIE} =~ /\btoken=([^;]+)\b/sm ) {
+            $token = $1;
+        }
+
+        if ($token) {
+            $self->{app}->{api}->authenticate(
+                $user_name,
+                $token,
+                sub ($auth) {
+                    $cb->( $self->{_auth} = $auth );
+                }
+            );
+        }
+        else {
+            $cb->( $self->{_auth} = status 401 );
+        }
+    }
+
+    return;
 }
 
 1;

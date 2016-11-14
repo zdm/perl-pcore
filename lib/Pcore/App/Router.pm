@@ -136,7 +136,10 @@ sub run ( $self, $req ) {
         }
     }
 
-    $req->@{qw[path path_tail]} = ( $path, P->path($path_tail) );
+    # extend HTTP request
+    $req->{app}       = $self->{app};
+    $req->{path}      = $path;
+    $req->{path_tail} = P->path($path_tail);
 
     $self->{_path_class_cache}->{$path}->run($req);
 

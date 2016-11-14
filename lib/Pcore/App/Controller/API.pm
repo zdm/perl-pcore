@@ -81,9 +81,8 @@ sub run ( $self, $req ) {
     # method is not specified, this is callback, not supported in API server
     return $cb->( status [ 400, q[Method is required] ] ) if !$data->{method};
 
-    # authenticate
-    $self->{app}->{api}->authenticate_request(
-        $req,
+    # authenticate request
+    $req->authenticate(
         sub ( $auth ) {
 
             # token authentication error
@@ -159,8 +158,9 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 }
 
 sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
-    $self->{app}->{api}->authenticate_request(
-        $req,
+
+    # authenticate request
+    $req->authenticate(
         sub ( $auth ) {
 
             # token authentication error
@@ -214,7 +214,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 119                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 118                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
