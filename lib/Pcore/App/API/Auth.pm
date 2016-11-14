@@ -190,6 +190,10 @@ sub _authorize ( $self, $cb ) {
     return;
 }
 
+sub TO_DATA ($self) {
+    die q[API auth object serialization error];
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
