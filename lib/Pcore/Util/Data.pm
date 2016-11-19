@@ -128,7 +128,7 @@ sub encode_data ( $type, $data, @ ) {
             $res = \$json->encode($data);
         }
         elsif ( $args{readable} ) {
-            state $json = _get_json_obj( ascii => 0, latin1 => 0, utf8 => 1, pretty => 1, canonical => 1 );
+            state $json = _get_json_obj( ascii => 0, latin1 => 0, utf8 => 1, canonical => 1, indent => 1, space_before => 0, space_after => 1 );
 
             $res = \$json->encode($data);
         }
@@ -452,16 +452,16 @@ sub _get_json_obj {
         # ENCODE
         ascii  => 1,
         latin1 => 0,
-        pretty => 0,    # set indent, space_before, space_after
 
-        # indent       => 0,
-        # space_before => 0,    # put a space before the ":" separating key from values
-        # space_after  => 0,    # put a space after the ":" separating key from values, and after "," separating key-value pairs
+        # pretty       => 0,    # set indent, space_before, space_after
+        canonical    => 0,    # sort hash keys, slow
+        indent       => 0,
+        space_before => 0,    # put a space before the ":" separating key from values
+        space_after  => 0,    # put a space after the ":" separating key from values, and after "," separating key-value pairs
 
-        canonical       => 0,    # sort hash keys, slow
-        allow_unknown   => 0,    # throw exception if can't encode item
-        allow_blessed   => 1,    # allow blessed objects
-        convert_blessed => 1,    # use TO_JSON method of blessed objects
+        allow_unknown   => 0, # throw exception if can't encode item
+        allow_blessed   => 1, # allow blessed objects
+        convert_blessed => 1, # use TO_JSON method of blessed objects
 
         @_,
     );
