@@ -129,6 +129,76 @@ sub _build_method ($self) {
     return $method;
 }
 
+# TODO add caching
+# TODO how to work with FormHandler methods???
+sub extdirect_map ( $self, $ver, $auth, $cb ) {
+    my $map = {
+        id        => undef,
+        namespace => 'API.' . ref( $self->{app} ) =~ s[::][]smgr,
+        timeout   => undef,
+        url       => $self->app->router->get_api_class->path . "$ver/",
+        type      => 'remoting',
+        version   => $ver,
+        actions   => {},
+    };
+
+    my $cv = AE::cv sub {
+        $cb->($map);
+
+        return;
+    };
+
+    $cv->begin;
+
+    my $methods = $self->method;
+
+    for my $method ( values $methods->%* ) {
+        next if $ver ne $method->{version};
+
+        $cv->begin;
+
+        $auth->api_can_call(
+            $method->{id},
+            sub ($status) {
+                if ($status) {
+                    my $action = $method->{class_path} =~ s[/][.]smgr;
+
+                    $action =~ s/\A[.]//sm;
+
+                    # remove version from action
+                    $action =~ s/\Av\d+[.]//sm;
+
+                    push $map->{actions}->{$action}->@*,
+
+                      # JSON method
+                      { name        => $method->{method_name},
+                        len         => undef,
+                        params      => [],
+                        strict      => \0,
+                        formHandler => \0,
+                      },
+
+                      # FormHandler method
+                      { name        => "$method->{method_name}_FormHandler",
+                        len         => undef,
+                        params      => [],
+                        strict      => \0,
+                        formHandler => \1,
+                      };
+                }
+
+                $cv->end;
+
+                return;
+            }
+        );
+    }
+
+    $cv->end;
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -138,7 +208,7 @@ sub _build_method ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 115                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 115, 121             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 115, 121, 136        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

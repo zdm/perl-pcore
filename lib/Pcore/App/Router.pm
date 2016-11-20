@@ -150,6 +150,10 @@ sub get_instance ( $self, $class_name ) {
     return $self->{_class_instance_cache}->{$class_name};
 }
 
+sub get_api_class ($self) {
+    return $self->{_class_instance_cache}->{ $self->{api_class} };
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

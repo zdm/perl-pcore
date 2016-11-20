@@ -26,6 +26,32 @@ sub _build_websocket_autopong ($self) {
 
 # ENTRYPOINT
 sub run ( $self, $req ) {
+
+    # ExtDirect API map
+    if ( $req->{path_tail} && $req->{path_tail} =~ m[extdirect[.]json\z]sm ) {
+        if ( $req->{path_tail} =~ m[\A(v\d+)/extdirect[.]json]sm ) {
+            my $ver = $1;
+
+            $req->authenticate(
+                sub ( $auth ) {
+                    $self->{app}->{api}->{map}->extdirect_map(
+                        $ver, $auth,
+                        sub ($map) {
+                            $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $map, readable => 1 )->finish;
+
+                            return;
+                        }
+                    );
+                }
+            );
+        }
+        else {
+            $req->(404)->finish;
+        }
+
+        return;
+    }
+
     my $env = $req->{env};
 
     my $content_type = $CONTENT_TYPE_JSON;
@@ -214,7 +240,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 118                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 144                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
