@@ -56,11 +56,11 @@ sub run ( $self, $req ) {
 
     my $content_type = $CONTENT_TYPE_JSON;
 
-    my $cid;
+    my $tid;
 
     # create callback
-    my $cb = sub ( $status ) {
-        $status->{cid} = $cid;
+    my $cb = sub ( $res ) {
+        $res->{tid} = $tid;
 
         # create list of HTTP response headers
         my @headers = (    #
@@ -68,7 +68,7 @@ sub run ( $self, $req ) {
         );
 
         # write HTTP response
-        $req->( $status, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $status : to_cbor $status)->finish;
+        $req->( $res, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $res : to_cbor $res)->finish;
 
         # free HTTP request object
         undef $req;
@@ -102,7 +102,7 @@ sub run ( $self, $req ) {
     }
 
     # set request id
-    $cid = $data->{cid};
+    $tid = $data->{tid};
 
     # method is not specified, this is callback, not supported in API server
     return $cb->( status [ 400, q[Method is required] ] ) if !$data->{method};
@@ -125,7 +125,17 @@ sub run ( $self, $req ) {
 
             # method is specified, this is API call
             elsif ( my $method_id = $data->{method} ) {
-                $auth->api_call_arrayref( $method_id, $data->{args}, $cb );
+
+                # ExtDirect call
+                if ( $data->{action} ) {
+
+                    # TODO parse version from query string
+                    my $version = 'v3';
+
+                    $method_id = "/$version/$data->{action}/$data->{method}";
+                }
+
+                $auth->api_call_arrayref( $method_id, [ $data->{data} ], $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
@@ -240,7 +250,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 144                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 154                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
