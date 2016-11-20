@@ -171,18 +171,28 @@ sub extdirect_map ( $self, $ver, $auth, $cb ) {
                     push $map->{actions}->{$action}->@*,
 
                       # JSON method
-                      { name        => $method->{method_name},
-                        len         => undef,
-                        params      => [],
-                        strict      => \0,
+                      { name     => $method->{method_name},
+                        len      => undef,
+                        params   => [],
+                        strict   => \0,
+                        metadata => {
+                            len    => undef,
+                            params => [],
+                            strict => \0,
+                        },
                         formHandler => \0,
                       },
 
                       # FormHandler method
-                      { name        => "$method->{method_name}_FormHandler",
-                        len         => undef,
-                        params      => [],
-                        strict      => \0,
+                      { name     => "$method->{method_name}_FormHandler",
+                        len      => undef,
+                        params   => [],
+                        strict   => \0,
+                        metadata => {
+                            len    => undef,
+                            params => [],
+                            strict => \0,
+                        },
                         formHandler => \1,
                       };
                 }
