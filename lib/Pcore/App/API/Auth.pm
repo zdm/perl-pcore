@@ -3,6 +3,7 @@ package Pcore::App::API::Auth;
 use Pcore -class, -status;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
+use Pcore::Util::Scalar qw[blessed];
 
 use overload    #
   q[bool] => sub {
@@ -90,6 +91,11 @@ sub api_call ( $self, $method_id, @ ) {
 
     # parse $args and $cb
     if ( ref $_[-1] eq 'CODE' ) {
+        $cb = $_[-1];
+
+        $args = [ splice @_, 2, -1 ] if @_ > 3;
+    }
+    elsif ( blessed $_[-1] && $_[-1]->isa('Pcore::App::API::Auth::Request') ) {
         $cb = $_[-1];
 
         $args = [ splice @_, 2, -1 ] if @_ > 3;
@@ -201,7 +207,7 @@ sub TO_DATA ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 129                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 135                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
