@@ -10,8 +10,17 @@ sub TO_DATA ($self) {
     # remove internal keys
     delete $dump->{status_reason};
 
-    # add "success" key
-    $dump->{success} = $self ? $TRUE : $FALSE if !exists $dump->{success};
+    $dump->{api_status} = delete $dump->{status};
+    $dump->{api_reason} = delete $dump->{reason};
+
+    # defined response type
+    if ( $self->is_success ) {
+        $dump->{type} = 'rpc';
+    }
+    else {
+        $dump->{type} = 'exception';
+        $dump->{message} //= $dump->{api_reason};
+    }
 
     return $dump;
 }
