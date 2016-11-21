@@ -4,13 +4,16 @@ use Pcore -class;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has method => ( is => 'lazy', isa => HashRef, init_arg => undef );
-has obj => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has extjs_namespace => ( is => 'lazy', isa => Str,     init_arg => undef );
+has method          => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has obj             => ( is => 'ro',   isa => HashRef, default  => sub { {} }, init_arg => undef );
 
 # TODO https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
 
 sub _build_method ($self) {
     my $method = {};
+
+    $self->{extjs_namespace} = 'API.' . ref( $self->{app} ) =~ s[::][]smgr;
 
     my $ns_path = ( ref( $self->app ) =~ s[::][/]smgr ) . '/API';
 
@@ -82,6 +85,10 @@ sub _build_method ($self) {
 
             my $local_method_name = "api_$method_name";
 
+            # define ExtJS action name
+            my $extjs_action = $class_path =~ s[/][.]smgr;
+            $extjs_action =~ s/\Av\d+[.]//sm;
+
             $method->{$method_id} = {
                 $obj_map->{$method_name}->%*,
                 id                => $method_id,
@@ -90,6 +97,7 @@ sub _build_method ($self) {
                 class_path        => "/$class_path",
                 method_name       => $method_name,
                 local_method_name => $local_method_name,
+                extjs_action      => $extjs_action,
             };
 
             # method should exists
@@ -134,7 +142,7 @@ sub _build_method ($self) {
 sub extdirect_map ( $self, $ver, $auth, $cb ) {
     my $map = {
         id        => undef,
-        namespace => 'API.' . ref( $self->{app} ) =~ s[::][]smgr,
+        namespace => $self->{extjs_namespace},
         timeout   => undef,
         url       => $self->app->router->get_api_class->path . "$ver/",
         type      => 'remoting',
@@ -161,14 +169,7 @@ sub extdirect_map ( $self, $ver, $auth, $cb ) {
             $method->{id},
             sub ($status) {
                 if ($status) {
-                    my $action = $method->{class_path} =~ s[/][.]smgr;
-
-                    $action =~ s/\A[.]//sm;
-
-                    # remove version from action
-                    $action =~ s/\Av\d+[.]//sm;
-
-                    push $map->{actions}->{$action}->@*,
+                    push $map->{actions}->{ $method->{extjs_action} }->@*,
 
                       # JSON method
                       { name     => $method->{method_name},
@@ -209,6 +210,10 @@ sub extdirect_map ( $self, $ver, $auth, $cb ) {
     return;
 }
 
+sub get_method ( $self, $method_id ) {
+    return $self->{method}->{$method_id};
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -216,9 +221,9 @@ sub extdirect_map ( $self, $ver, $auth, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 115                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 123                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 115, 121, 136        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 123, 129, 144        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
