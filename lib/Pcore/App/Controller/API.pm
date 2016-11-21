@@ -28,14 +28,14 @@ sub _build_websocket_autopong ($self) {
 sub run ( $self, $req ) {
 
     # ExtDirect API map
-    if ( $req->{path_tail} && $req->{path_tail} =~ m[extdirect[.]json\z]sm ) {
-        if ( $req->{path_tail} =~ m[\A(v\d+)/extdirect[.]json]sm ) {
+    if ( $req->{path_tail} ) {
+        if ( $req->{path_tail} =~ m[\A(?:(v\d+)/)?extdirect[.]json\z]sm ) {
             my $ver = $1;
 
             $req->authenticate(
                 sub ( $auth ) {
                     $self->{app}->{api}->{map}->extdirect_map(
-                        $ver, $auth,
+                        $auth, $ver,
                         sub ($map) {
                             $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $map, readable => 1 )->finish;
 
@@ -126,11 +126,7 @@ sub run ( $self, $req ) {
 
                 # ExtDirect call
                 if ( $data->{action} ) {
-
-                    # TODO parse version from query string
-                    my $version = 'v3';
-
-                    $method_id = "/$version/$data->{action}/$data->{method}";
+                    $method_id = q[/] . ( $data->{action} =~ s[[.]][/]smgr ) . "/$data->{method}";
                 }
 
                 $auth->api_call_arrayref( $method_id, [ $data->{data} ], $cb );
@@ -249,7 +245,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 153                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 149                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -85,10 +85,6 @@ sub _build_method ($self) {
 
             my $local_method_name = "api_$method_name";
 
-            # define ExtJS action name
-            my $extjs_action = $class_path =~ s[/][.]smgr;
-            $extjs_action =~ s/\Av\d+[.]//sm;
-
             $method->{$method_id} = {
                 $obj_map->{$method_name}->%*,
                 id                => $method_id,
@@ -97,7 +93,7 @@ sub _build_method ($self) {
                 class_path        => "/$class_path",
                 method_name       => $method_name,
                 local_method_name => $local_method_name,
-                extjs_action      => $extjs_action,
+                extjs_action      => $class_path =~ s[/][.]smgr,
             };
 
             # method should exists
@@ -139,12 +135,12 @@ sub _build_method ($self) {
 
 # TODO add caching
 # TODO how to work with FormHandler methods???
-sub extdirect_map ( $self, $ver, $auth, $cb ) {
+sub extdirect_map ( $self, $auth, $ver, $cb ) {
     my $map = {
         id        => undef,
         namespace => $self->{extjs_namespace},
         timeout   => undef,
-        url       => $self->app->router->get_api_class->path . "$ver/",
+        url       => $self->app->router->get_api_class->path,
         type      => 'remoting',
         version   => $ver,
         actions   => {},
@@ -161,7 +157,7 @@ sub extdirect_map ( $self, $ver, $auth, $cb ) {
     my $methods = $self->method;
 
     for my $method ( values $methods->%* ) {
-        next if $ver ne $method->{version};
+        next if $ver && $ver ne $method->{version};
 
         $cv->begin;
 
@@ -182,19 +178,6 @@ sub extdirect_map ( $self, $ver, $auth, $cb ) {
                             strict => \0,
                         },
                         formHandler => \0,
-                      },
-
-                      # FormHandler method
-                      { name     => "$method->{method_name}_FormHandler",
-                        len      => undef,
-                        params   => [],
-                        strict   => \0,
-                        metadata => {
-                            len    => undef,
-                            params => [],
-                            strict => \0,
-                        },
-                        formHandler => \1,
                       };
                 }
 
@@ -221,9 +204,9 @@ sub get_method ( $self, $method_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 123                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 119                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 123, 129, 144        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 119, 125, 140        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
