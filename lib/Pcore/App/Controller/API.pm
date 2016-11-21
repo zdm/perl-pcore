@@ -149,6 +149,7 @@ sub run ( $self, $req ) {
 }
 
 # WEBSOCKET INTERFACE
+# TODO make ExtDirect compatible
 sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 
     # decode payload
@@ -164,16 +165,16 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
         my $cb;
 
         # this is not void API call, create callback
-        if ( my $cid = $data->{cid} ) {
-            $cb = sub ( $status ) {
-                $status->{cid} = $cid;
+        if ( my $tid = $data->{tid} ) {
+            $cb = sub ( $res ) {
+                $res->{tid} = $tid;
 
                 # write response
                 if ( $content_type eq $CONTENT_TYPE_JSON ) {
-                    $ws->send_text( to_json($status)->$* );
+                    $ws->send_text( to_json($res)->$* );
                 }
                 else {
-                    $ws->send_binary( to_cbor($status)->$* );
+                    $ws->send_binary( to_cbor($res)->$* );
                 }
 
                 return;
@@ -248,7 +249,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 152                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 153                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
