@@ -13,7 +13,7 @@ sub TO_DATA ($self) {
     $dump->{api_status} = delete $dump->{status};
     $dump->{api_reason} = delete $dump->{reason};
 
-    # defined response type
+    # define response type
     if ( $self->is_success ) {
         $dump->{type} = 'rpc';
     }
