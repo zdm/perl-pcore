@@ -56,7 +56,7 @@ sub run ( $self, $req ) {
 
     my $content_type = $CONTENT_TYPE_JSON;
 
-    my $tid;
+    my ( $tid, $data );
 
     # create callback
     my $cb = sub ( $res ) {
@@ -68,15 +68,13 @@ sub run ( $self, $req ) {
         );
 
         # write HTTP response
-        $req->( $res, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $res : to_cbor $res)->finish;
+        $req->( 200, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $res : to_cbor $res)->finish;
 
         # free HTTP request object
         undef $req;
 
         return;
     };
-
-    my $data;
 
     # JSON content type
     if ( !$env->{CONTENT_TYPE} || $env->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
@@ -250,7 +248,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 154                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 152                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
