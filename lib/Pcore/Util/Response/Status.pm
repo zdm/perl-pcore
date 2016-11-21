@@ -5,21 +5,25 @@ use Pcore -class;
 with qw[Pcore::Util::Status::Role];
 
 sub TO_DATA ($self) {
-    my $dump = { $self->%* };
+    my $dump = {
+        tid    => $self->{tid},
+        result => {
+            'status' => $self->{status},
+            reason   => $self->{reason},
+        },
+    };
 
-    # remove internal keys
-    delete $dump->{status_reason};
-
-    $dump->{api_status} = delete $dump->{status};
-    $dump->{api_reason} = delete $dump->{reason};
+    $dump->{result}->{data}  = $self->{result} if defined $self->{result};
+    $dump->{result}->{total} = $self->{total}  if defined $self->{total};
 
     # define response type
     if ( $self->is_success ) {
         $dump->{type} = 'rpc';
+        $dump->{message} = $self->{message} if $self->{message};
     }
     else {
         $dump->{type} = 'exception';
-        $dump->{message} //= $dump->{api_reason};
+        $dump->{message} = $self->{message} // $self->{reason};
     }
 
     return $dump;
