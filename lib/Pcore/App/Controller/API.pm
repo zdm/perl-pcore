@@ -64,7 +64,7 @@ sub run ( $self, $req ) {
         # prepare response data packet
         my $response = {
             tid    => $data->{tid},
-            type   => $res ? 'rpc' : 'exception',
+            type   => $res->is_success ? 'rpc' : 'exception',
             result => $res,
         };
 
