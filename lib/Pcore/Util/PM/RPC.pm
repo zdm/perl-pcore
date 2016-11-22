@@ -6,7 +6,7 @@ use Config;
 use Pcore::Util::Scalar qw[weaken];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
-use Pcore::Util::Response::Status;
+use Pcore::Util::Result;
 
 has class => ( is => 'ro', isa => Str, required => 1 );    # RPC object class name
 has name  => ( is => 'ro', isa => Str, required => 1 );    # RPC process name for process manager
@@ -159,31 +159,31 @@ sub _on_data ( $self, $data ) {
 
     # RPC method call
     if ( $data->{method} ) {
-        $self->_on_method_call( $data->{pid}, $data->{cid}, $data->{method}, $data->{args} );
+        $self->_on_method_call( $data->{pid}, $data->{tid}, $data->{method}, $data->{data} );
     }
 
     # RPC callback
     else {
-        if ( my $cb = delete $self->_queue->{ $data->{cid} } ) {
-            $cb->( bless $data, 'Pcore::Util::Response::Status' );
+        if ( my $cb = delete $self->_queue->{ $data->{tid} } ) {
+            $cb->( bless $data, 'Pcore::Util::Result' );
         }
     }
 
     return;
 }
 
-sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
+sub _on_method_call ( $self, $worker_pid, $tid, $method, $data ) {
     if ( !$self->{on_call} || !exists $self->{on_call}->{$method} ) {
         die qq[RPC worker trying to call method "$method"];
     }
     else {
         my $cb;
 
-        if ( defined $cid ) {
-            $cb = sub ($status) {
-                $status->{cid} = $cid;
+        if ( defined $tid ) {
+            $cb = sub ($res) {
+                $res->{tid} = $tid;
 
-                my $cbor = P->data->to_cbor($status);
+                my $cbor = P->data->to_cbor($res);
 
                 my $worker = $self->{_workers_idx}->{$worker_pid};
 
@@ -193,14 +193,9 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
             };
         }
 
-        my $req = bless {
-            cid        => $cid,
-            cb         => $cb,
-            worker_pid => $worker_pid,
-          },
-          'Pcore::Util::PM::RPC::Request';
+        my $req = bless { cb => $cb }, 'Pcore::Util::PM::RPC::Request';
 
-        eval { $self->{on_call}->{$method}->( $req, $args ? $args->@* : () ) };
+        eval { $self->{on_call}->{$method}->( $req, $data ? $data->@* : () ) };
 
         $@->sendlog if $@;
     }
@@ -208,26 +203,26 @@ sub _on_method_call ( $self, $worker_pid, $cid, $method, $args ) {
     return;
 }
 
-# $method = Str, @args, $cb = Maybe[CodeRef]
+# $method = Str, @data, $cb = Maybe[CodeRef]
 sub rpc_call ( $self, $method, @ ) {
 
     # stop creating new calls in the term state
     return if $self->{_term};
 
-    my ( $cid, $cb, $args );
+    my ( $tid, $cb, $data );
 
     if ( @_ > 2 ) {
         if ( ref $_[-1] eq 'CODE' ) {
             $cb = $_[-1];
 
-            $args = [ splice @_, 2, -1 ];
+            $data = [ splice @_, 2, -1 ];
 
-            $cid = uuid_str();
+            $tid = uuid_str();
 
-            $self->_queue->{$cid} = $cb;
+            $self->_queue->{$tid} = $cb;
         }
         else {
-            $args = [ splice @_, 2 ];
+            $data = [ splice @_, 2 ];
         }
     }
 
@@ -238,9 +233,9 @@ sub rpc_call ( $self, $method, @ ) {
 
     # prepare CBOR data
     my $cbor = P->data->to_cbor(
-        {   cid    => $cid,
+        {   tid    => $tid,
             method => $method,
-            args   => $args,
+            data   => $data,
         }
     );
 
@@ -249,7 +244,7 @@ sub rpc_call ( $self, $method, @ ) {
     return;
 }
 
-# $method = Str, @args
+# $method = Str, @data
 sub rpc_call_all ( $self, $method, @ ) {
 
     # stop creating new calls in the term state
@@ -257,7 +252,7 @@ sub rpc_call_all ( $self, $method, @ ) {
 
     my $cbor = P->data->to_cbor(
         {   method => $method,
-            args   => @_ > 2 ? [ splice @_, 2 ] : undef,
+            data   => @_ > 2 ? [ splice @_, 2 ] : undef,
         }
     );
 
@@ -316,7 +311,7 @@ sub rpc_term ( $self, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 175                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 203                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 198                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 125                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -33,7 +33,7 @@ use if $MSWIN, 'Win32API::File';
 use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
-use Pcore::Util::Response::Status;
+use Pcore::Util::Result;
 
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *IN,  $BOOT_ARGS->[3], 'r' ) or die $!;
@@ -188,33 +188,33 @@ sub _on_data ($data) {
         # stop receiving new calls in TERM state
         return if $TERM;
 
-        _on_method_call( $data->{cid}, $data->{method}, $data->{args} );
+        _on_method_call( $data->{tid}, $data->{method}, $data->{data} );
     }
 
     # RPC callback
     else {
-        if ( my $cb = delete $QUEUE->{ $data->{cid} } ) {
-            $cb->( bless $data, 'Pcore::Util::Response::Status' );
+        if ( my $cb = delete $QUEUE->{ $data->{tid} } ) {
+            $cb->( bless $data, 'Pcore::Util::Result' );
         }
     }
 
     return;
 }
 
-sub _on_method_call ( $cid, $method, $args ) {
+sub _on_method_call ( $tid, $method, $data ) {
     if ( !$RPC->can($method) ) {
         die qq[Unknown RPC method "$method"];
     }
     else {
         my $cb;
 
-        if ( defined $cid ) {
-            $cb = sub ($status) {
-                $status->{pid}  = $$;
-                $status->{cid}  = $cid;
-                $status->{deps} = $BOOT_ARGS->[2] ? _get_new_deps() : undef;
+        if ( defined $tid ) {
+            $cb = sub ($res) {
+                $res->{pid}  = $$;
+                $res->{tid}  = $tid;
+                $res->{deps} = $BOOT_ARGS->[2] ? _get_new_deps() : undef;
 
-                my $cbor = P->data->to_cbor($status);
+                my $cbor = P->data->to_cbor($res);
 
                 $OUT->push_write( pack( 'L>', bytes::length $cbor->$* ) . $cbor->$* );
 
@@ -222,13 +222,9 @@ sub _on_method_call ( $cid, $method, $args ) {
             };
         }
 
-        my $req = bless {
-            cid => $cid,
-            cb  => $cb,
-          },
-          'Pcore::Util::PM::RPC::Request';
+        my $req = bless { cb => $cb }, 'Pcore::Util::PM::RPC::Request';
 
-        eval { $RPC->$method( $req, $args ? $args->@* : () ) };
+        eval { $RPC->$method( $req, $data ? $data->@* : () ) };
 
         $@->sendlog if $@;
     }
@@ -236,32 +232,32 @@ sub _on_method_call ( $cid, $method, $args ) {
     return;
 }
 
-# $method = Str, @args, $cb = Maybe[CodeRef]
+# $method = Str, @data, $cb = Maybe[CodeRef]
 sub rpc_call ( $self, $method, @ ) {
-    my ( $cid, $cb, $args );
+    my ( $tid, $cb, $data );
 
     if ( @_ > 2 ) {
         if ( ref $_[-1] eq 'CODE' ) {
             $cb = $_[-1];
 
-            $args = [ splice @_, 2, -1 ];
+            $data = [ splice @_, 2, -1 ];
 
-            $cid = uuid_str();
+            $tid = uuid_str();
 
-            $QUEUE->{$cid} = $cb;
+            $QUEUE->{$tid} = $cb;
         }
         else {
-            $args = [ splice @_, 2 ];
+            $data = [ splice @_, 2 ];
         }
     }
 
     # prepare CBOR data
     my $cbor = P->data->to_cbor(
         {   pid    => $$,
-            cid    => $cid,
-            deps   => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
+            tid    => $tid,
             method => $method,
-            args   => $args,
+            deps   => $BOOT_ARGS->[2] ? _get_new_deps() : undef,
+            data   => $data,
         }
     );
 
@@ -277,7 +273,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 231                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 227                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 100, 110             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
