@@ -1,6 +1,6 @@
 package Pcore::App::Controller::API;
 
-use Pcore -const, -role, -status;
+use Pcore -const, -role, -result;
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor];
 
 with qw[Pcore::App::Controller::WebSocket];
@@ -56,11 +56,17 @@ sub run ( $self, $req ) {
 
     my $content_type = $CONTENT_TYPE_JSON;
 
-    my ( $tid, $data );
+    my $data;
 
     # create callback
     my $cb = sub ( $res ) {
-        $res->{tid} = $tid;
+
+        # prepare response data packet
+        my $response = {
+            tid    => $data->{tid},
+            type   => $res ? 'rpc' : 'exception',
+            result => $res,
+        };
 
         # create list of HTTP response headers
         my @headers = (    #
@@ -68,7 +74,7 @@ sub run ( $self, $req ) {
         );
 
         # write HTTP response
-        $req->( 200, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $res : to_cbor $res)->finish;
+        $req->( 200, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $response : to_cbor $response)->finish;
 
         # free HTTP request object
         undef $req;
@@ -81,7 +87,7 @@ sub run ( $self, $req ) {
         $data = eval { from_json $req->body };
 
         # content decode error
-        return $cb->( status [ 400, q[Error decoding JSON request body] ] ) if $@;
+        return $cb->( result [ 400, q[Error decoding JSON request body] ] ) if $@;
     }
 
     # CBOR content type
@@ -91,19 +97,16 @@ sub run ( $self, $req ) {
         $data = eval { from_cbor $req->body };
 
         # content decode error
-        return $cb->( status [ 400, q[Error decoding CBOR request body] ] ) if $@;
+        return $cb->( result [ 400, q[Error decoding CBOR request body] ] ) if $@;
     }
 
     # invalid content type
     else {
-        return $cb->( status [ 400, q[Content type is invalid] ] );
+        return $cb->( result [ 400, q[Content type is invalid] ] );
     }
 
-    # set request id
-    $tid = $data->{tid};
-
     # method is not specified, this is callback, not supported in API server
-    return $cb->( status [ 400, q[Method is required] ] ) if !$data->{method};
+    return $cb->( result [ 400, q[Method is required] ] ) if !$data->{method};
 
     # authenticate request
     $req->authenticate(
@@ -118,23 +121,21 @@ sub run ( $self, $req ) {
 
             # this is app connection, disabled
             if ( $auth->{is_app} ) {
-                $cb->( status [ 403, q[App must connect via WebSocket interface] ] );
+                $cb->( result [ 403, q[App must connect via WebSocket interface] ] );
             }
 
             # method is specified, this is API call
             elsif ( my $method_id = $data->{method} ) {
 
                 # ExtDirect call
-                if ( $data->{action} ) {
-                    $method_id = q[/] . ( $data->{action} =~ s[[.]][/]smgr ) . "/$data->{method}";
-                }
+                $method_id = q[/] . ( $data->{action} =~ s[[.]][/]smgr ) . "/$data->{method}" if $data->{action};
 
                 $auth->api_call_arrayref( $method_id, [ $data->{data} ], $cb );
             }
 
             # method is not specified, this is callback, not supported in API server
             else {
-                $cb->( status [ 400, q[Method is required] ] );
+                $cb->( result [ 400, q[Method is required] ] );
             }
 
             return;
@@ -245,7 +246,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 149                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 150                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

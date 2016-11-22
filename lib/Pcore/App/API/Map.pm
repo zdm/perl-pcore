@@ -136,6 +136,14 @@ sub _build_method ($self) {
 # TODO add caching
 # TODO how to work with FormHandler methods???
 sub extdirect_map ( $self, $auth, $ver, $cb ) {
+
+    # TODO remove workaround for unauthenticated request
+    if ( !$auth ) {
+        $cb->(undef);
+
+        return;
+    }
+
     my $map = {
         id        => undef,
         namespace => $self->{extjs_namespace},
@@ -206,7 +214,7 @@ sub get_method ( $self, $method_id ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 119                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 119, 125, 140        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 119, 125, 148        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

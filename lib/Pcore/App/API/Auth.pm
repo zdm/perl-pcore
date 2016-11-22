@@ -1,6 +1,6 @@
 package Pcore::App::API::Auth;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
 use Pcore::Util::Scalar qw[blessed];
@@ -35,14 +35,14 @@ sub api_can_call ( $self, $method_id, $cb ) {
     my $method_cfg = $map->{method}->{$method_id};
 
     if ( !$method_cfg ) {
-        $cb->( status [ 404, qq[API method "$method_id" was not found] ] );
+        $cb->( result [ 404, qq[API method "$method_id" was not found] ] );
 
         return;
     }
 
     # user is root, method authentication is not required
     if ( $self->{is_root} ) {
-        $cb->( status 200 );
+        $cb->( result 200 );
     }
 
     # user is not root, need to perform authorization
@@ -54,14 +54,14 @@ sub api_can_call ( $self, $method_id, $cb ) {
 
                 # user is disabled or permisisons error
                 if ( !$permissions ) {
-                    $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] );
+                    $cb->( result [ 403, qq[Unauthorized access to API method "$method_id"] ] );
 
                     return;
                 }
 
                 # method has no permissions, api call is allowed for any authenticated user
                 if ( !$method_cfg->{permissions} ) {
-                    $cb->( status 200 );
+                    $cb->( result 200 );
 
                     return;
                 }
@@ -69,14 +69,14 @@ sub api_can_call ( $self, $method_id, $cb ) {
                 # method has permissions, compare method roles with authorized roles
                 for my $role ( $method_cfg->{permissions}->@* ) {
                     if ( exists $permissions->{$role} ) {
-                        $cb->( status 200 );
+                        $cb->( result 200 );
 
                         return;
                     }
                 }
 
                 # api call is permitted
-                $cb->( status [ 403, qq[Unauthorized access to API method "$method_id"] ] );
+                $cb->( result [ 403, qq[Unauthorized access to API method "$method_id"] ] );
 
                 return;
             }
@@ -183,7 +183,7 @@ sub _authorize ( $self, $cb ) {
                     $cb->(undef);
                 }
                 else {
-                    $self->{permissions} = $res->{result}->{auth}->{permisions};
+                    $self->{permissions} = $res->{data}->{auth}->{permisions};
 
                     $cb->( $self->{permissions} );
                 }

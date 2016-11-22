@@ -1,6 +1,6 @@
 package Pcore::App::API::Backend::Remote;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 
 with qw[Pcore::App::API::Backend];
 
@@ -15,7 +15,7 @@ sub _build_host ($self) {
 }
 
 sub init ( $self, $cb ) {
-    $cb->( status 200 );
+    $cb->( result 200 );
 
     return;
 }
@@ -30,7 +30,7 @@ sub register_app ( $self, $cb ) {
     # - on register - store token locally;
     # - upload api methods;
 
-    $cb->( status 200 );
+    $cb->( result 200 );
 
     return;
 }

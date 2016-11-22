@@ -1,6 +1,6 @@
 package Pcore::App::API::Backend::Local::sqlite::User;
 
-use Pcore -role, -promise, -status;
+use Pcore -role, -promise, -result;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::Text qw[encode_utf8];
@@ -26,14 +26,14 @@ SQL
 
     # user not found
     if ( !$user ) {
-        $cb->( status [ 404, 'User not found' ] );
+        $cb->( result [ 404, 'User not found' ] );
 
         return;
     }
 
     # user is disabled
     if ( !$user->{enabled} ) {
-        $cb->( status [ 404, 'User disabled' ] );
+        $cb->( result [ 404, 'User disabled' ] );
 
         return;
     }
@@ -74,7 +74,7 @@ SQL
             }
         }
 
-        $cb->( status 200, { auth => $auth, tags => $tags } );
+        $cb->( result 200, { auth => $auth, tags => $tags } );
 
         return;
     };
@@ -115,10 +115,10 @@ sub get_users ( $self, $cb ) {
             delete $row->{hash};
         }
 
-        $cb->( status 200, users => $users );
+        $cb->( result 200, users => $users );
     }
     else {
-        $cb->( status 500 );
+        $cb->( result 500 );
     }
 
     return;
@@ -131,12 +131,12 @@ sub get_user ( $self, $user_id, $cb ) {
         if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE id = ?], [$user_id] ) ) {
             delete $user->{hash};
 
-            $cb->( status 200, $user );
+            $cb->( result 200, $user );
         }
         else {
 
             # user not found
-            $cb->( status [ 404, 'User not found' ] );
+            $cb->( result [ 404, 'User not found' ] );
         }
     }
 
@@ -145,12 +145,12 @@ sub get_user ( $self, $user_id, $cb ) {
         if ( my $user = $self->dbh->selectrow( q[SELECT * FROM api_user WHERE name = ?], [$user_id] ) ) {
             delete $user->{hash};
 
-            $cb->( status 200, $user );
+            $cb->( result 200, $user );
         }
         else {
 
             # user not found
-            $cb->( status [ 404, 'User not found' ] );
+            $cb->( result [ 404, 'User not found' ] );
         }
     }
 
@@ -164,7 +164,7 @@ sub create_root_user ( $self, $cb ) {
 
             # root user already exists
             if ($user) {
-                $cb->( status 304 );
+                $cb->( result 304 );
             }
             else {
                 my $user_id = uuid_str;
@@ -184,13 +184,13 @@ sub create_root_user ( $self, $cb ) {
 
                         # password hash generated
                         else {
-                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, 1, ?, ?)], [ $user_id, 'root', time, $password_hash->{result}->{hash} ] );
+                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, 1, ?, ?)], [ $user_id, 'root', time, $password_hash->{data}->{hash} ] );
 
                             if ( !$created ) {
-                                $cb->( status [ 500, 'Error creating root user' ] );
+                                $cb->( result [ 500, 'Error creating root user' ] );
                             }
                             else {
-                                $cb->( status 200, { root_password => $root_password } );
+                                $cb->( result 200, { root_password => $root_password } );
                             }
                         }
 
@@ -208,20 +208,20 @@ sub create_root_user ( $self, $cb ) {
 
 sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permissions, $cb ) {
     if ( $user_name eq 'root' ) {
-        $cb->( status [ 400, 'User name is not valid' ] );
+        $cb->( result [ 400, 'User name is not valid' ] );
 
         return;
     }
 
     # validate user name
     if ( !$self->{app}->{api}->validate_name($user_name) || $user_name eq 'root' ) {
-        $cb->( status [ 400, 'User name is not valid' ] );
+        $cb->( result [ 400, 'User name is not valid' ] );
 
         return;
     }
 
     if ( $self->dbh->selectrow( q[SELECT id FROM api_user WHERE name = ?], [$user_name] ) ) {
-        $cb->( status [ 400, 'User name already exists' ] );
+        $cb->( result [ 400, 'User name already exists' ] );
 
         return;
     }
@@ -269,20 +269,20 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permis
 
                                             $dbh->begin_work;
 
-                                            my $created = $dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, ?, ?, ?)], [ $user_id, $user_name, $enabled, time, $password_hash->{result}->{hash} ] );
+                                            my $created = $dbh->do( q[INSERT OR IGNORE INTO api_user (id, name, enabled, created_ts, hash) VALUES (?, ?, ?, ?, ?)], [ $user_id, $user_name, $enabled, time, $password_hash->{data}->{hash} ] );
 
                                             # user creation error
                                             if ( !$created ) {
                                                 $dbh->rollback;
 
-                                                $cb->( status [ 500, 'User creation error' ] );
+                                                $cb->( result [ 500, 'User creation error' ] );
                                             }
 
                                             # user created
                                             else {
 
                                                 # add user permissions
-                                                for my $role_id ( keys $roles->{result}->%* ) {
+                                                for my $role_id ( keys $roles->{data}->%* ) {
                                                     my $user_permission_id = uuid_str;
 
                                                     # create permission
@@ -292,7 +292,7 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permis
                                                     if ( !$permission_created ) {
                                                         $dbh->rollback;
 
-                                                        $cb->( status [ 500, 'User creation error' ] );
+                                                        $cb->( result [ 500, 'User creation error' ] );
 
                                                         return;
                                                     }
@@ -320,7 +320,7 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permis
                             };
 
                             # base user is root
-                            if ( $base_user->{result}->{name} eq 'root' ) {
+                            if ( $base_user->{data}->{name} eq 'root' ) {
                                 $create_user->();
                             }
 
@@ -329,7 +329,7 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permis
 
                                 # get base user permissions
                                 $self->get_user_permissions(
-                                    $base_user->{result}->{id},
+                                    $base_user->{data}->{id},
                                     sub ($base_user_permissions) {
 
                                         # base user permissions get error
@@ -341,11 +341,11 @@ sub create_user ( $self, $base_user_id, $user_name, $password, $enabled, $permis
                                         else {
 
                                             # compare base user permissions
-                                            for my $role_id ( keys $roles->{result}->%* ) {
+                                            for my $role_id ( keys $roles->{data}->%* ) {
 
                                                 # base user permission not exists
-                                                if ( !$base_user_permissions->{result}->{$role_id}->{user_permission_id} ) {
-                                                    $cb->( status [ 400, 'Permissions error' ] );
+                                                if ( !$base_user_permissions->{data}->{$role_id}->{user_permission_id} ) {
+                                                    $cb->( result [ 400, 'Permissions error' ] );
 
                                                     return;
                                                 }
@@ -385,9 +385,9 @@ sub set_user_password ( $self, $user_id, $user_password_bin, $cb ) {
             # get user ok
             else {
                 $self->_generate_user_password_hash(
-                    $user->{result}->{name},
+                    $user->{data}->{name},
                     $user_password_bin,
-                    encode_utf8( $user->{result}->{id} ),
+                    encode_utf8( $user->{data}->{id} ),
                     sub ( $password_hash ) {
 
                         # password hash genereation error
@@ -397,13 +397,13 @@ sub set_user_password ( $self, $user_id, $user_password_bin, $cb ) {
 
                         # password hash generated
                         else {
-                            my $updated = $self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $password_hash->{result}->{hash}, $user->{result}->{id} ] );
+                            my $updated = $self->dbh->do( q[UPDATE api_user SET hash = ? WHERE id = ?], [ $password_hash->{data}->{hash}, $user->{data}->{id} ] );
 
                             if ( !$updated ) {
-                                $cb->( status [ 500, 'Error setting user password' ] );
+                                $cb->( result [ 500, 'Error setting user password' ] );
                             }
                             else {
-                                $cb->( status 200 );
+                                $cb->( result 200 );
                             }
                         }
 
@@ -429,18 +429,18 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
                 return;
             }
 
-            if ( !!$enabled ^ $user->{result}->{enabled} ) {
-                if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $user->{result}->{id} ] ) ) {
-                    $cb->( status 200 );
+            if ( !!$enabled ^ $user->{data}->{enabled} ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $user->{data}->{id} ] ) ) {
+                    $cb->( result 200 );
                 }
                 else {
-                    $cb->( status [ 500, 'Error set user enabled' ] );
+                    $cb->( result [ 500, 'Error set user enabled' ] );
                 }
             }
             else {
 
                 # not modified
-                $cb->( status 304 );
+                $cb->( result 304 );
             }
 
             return;
@@ -475,14 +475,14 @@ SQL
     );
 
     if ( !$permissions ) {
-        $cb->( status 200, {} );
+        $cb->( result 200, {} );
     }
     else {
 
         # index permissions by app_role_id
         $permissions = { map { $_->{app_role_id} => $_ } $permissions->@* };
 
-        $cb->( status 200, $permissions );
+        $cb->( result 200, $permissions );
     }
 
     return;

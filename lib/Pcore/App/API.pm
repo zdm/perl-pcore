@@ -1,6 +1,6 @@
 package Pcore::App::API;
 
-use Pcore -role, -const, -status, -export => { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
+use Pcore -role, -const, -result, -export => { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_APP_INSTANCE_TOKEN $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 use Pcore::App::API::Map;
 use Pcore::Util::Data qw[from_b64 from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
@@ -141,9 +141,9 @@ sub init ( $self, $cb ) {
 
                                         # root user created
                                         else {
-                                            say qq[Root password: $res->{result}->{root_password}] if $res;
+                                            say qq[Root password: $res->{data}->{root_password}] if $res;
 
-                                            $cb->( status 200 );
+                                            $cb->( result 200 );
                                         }
 
                                         return;
@@ -224,7 +224,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->( status [ 400, 'Error decoding user token' ] );
+            $cb->( result [ 400, 'Error decoding user token' ] );
 
             return;
         }
@@ -252,14 +252,14 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->( status [ 400, 'Error decoding user token' ] );
+            $cb->( result [ 400, 'Error decoding user token' ] );
 
             return;
         }
 
         # invalid token type
         if ( !exists $TOKEN_TYPE->{$token_type} ) {
-            $cb->( status [ 400, 'Invalid token type' ] );
+            $cb->( result [ 400, 'Invalid token type' ] );
 
             return;
         }
@@ -310,10 +310,10 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
                 $auth = $self->{auth_cache}->{auth}->{$auth_id};
 
                 if ($auth) {
-                    $auth->{permissions} = $res->{result}->{auth}->{permisions};
+                    $auth->{permissions} = $res->{data}->{auth}->{permisions};
                 }
                 else {
-                    $auth = $self->{auth_cache}->{auth}->{$auth_id} = bless $res->{result}->{auth}, 'Pcore::App::API::Auth';
+                    $auth = $self->{auth_cache}->{auth}->{$auth_id} = bless $res->{data}->{auth}, 'Pcore::App::API::Auth';
 
                     $auth->{app} = $self->{app};
 
@@ -322,7 +322,7 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
                     $auth->{private_token} = $private_token;
 
                     # TODO tags
-                    # my $tags = $res->{result}->{tags};
+                    # my $tags = $res->{data}->{tags};
                 }
 
                 $cb->($auth);

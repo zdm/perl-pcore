@@ -1,6 +1,6 @@
 package Pcore::HTTP::Server::Request;
 
-use Pcore -class, -const, -status;
+use Pcore -class, -const, -result;
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
@@ -83,7 +83,7 @@ sub _respond ( $self, @ ) {
         # compose headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
         $buf = do {
-            my $status = blessed $_[1] ? $_[1] : status $_[1];
+            my $status = blessed $_[1] ? $_[1] : result $_[1];
 
             "HTTP/1.1 $status->{status} $status->{reason}$CRLF";
         };
@@ -197,7 +197,7 @@ sub _build_is_websocket_connect_request ( $self ) {
 }
 
 sub accept_websocket ( $self, $headers = undef ) {
-    state $reason = Pcore::Util::Status::Role->get_reason(101);
+    state $reason = Pcore::Util::Result->get_reason(101);
 
     die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
@@ -226,7 +226,7 @@ sub authenticate ( $self, $cb ) {
         $cb->( $self->{_auth} );
     }
     elsif ( !$self->{app}->{api} ) {
-        $cb->( $self->{_auth} = status 401 );
+        $cb->( $self->{_auth} = result 401 );
     }
     else {
         my $env = $self->{env};
@@ -259,7 +259,7 @@ sub authenticate ( $self, $cb ) {
             );
         }
         else {
-            $cb->( $self->{_auth} = status 401 );
+            $cb->( $self->{_auth} = result 401 );
         }
     }
 

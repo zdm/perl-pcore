@@ -1,6 +1,6 @@
 package Pcore::App::API::Auth::Request;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 use Pcore::Util::Scalar qw[blessed];
 
 use overload    #
@@ -51,7 +51,7 @@ sub _respond ( $self, @ ) {
     if ( my $cb = delete $self->{_cb} ) {
 
         # return response, if callback is defined
-        $cb->( blessed $_[1] ? $_[1] : status splice @_, 1 );
+        $cb->( blessed $_[1] ? $_[1] : result splice @_, 1 );
     }
 
     return;

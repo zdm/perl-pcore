@@ -1,6 +1,6 @@
 package Pcore::App::API::Backend::Local::sqlite::UserToken;
 
-use Pcore -role, -promise, -status;
+use Pcore -role, -promise, -result;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::Text qw[encode_utf8];
@@ -43,14 +43,14 @@ SQL
 
     # user token not found
     if ( !$user_token ) {
-        $cb->( status [ 404, 'User token not found' ] );
+        $cb->( result [ 404, 'User token not found' ] );
 
         return;
     }
 
     # user disabled
     if ( !$user_token->{user_enabled} ) {
-        $cb->( status [ 404, 'User disabled' ] );
+        $cb->( result [ 404, 'User disabled' ] );
 
         return;
     }
@@ -80,7 +80,7 @@ SQL
             $auth->{permissions} = {};
         }
 
-        $cb->( status 200, { auth => $auth, tags => $tags } );
+        $cb->( result 200, { auth => $auth, tags => $tags } );
 
         return;
     };
@@ -131,8 +131,8 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
             else {
 
                 # root user can't have token
-                if ( $user->{result}->{name} eq 'root' ) {
-                    $cb->( status [ 400, 'Error creation token for root user' ] );
+                if ( $user->{data}->{name} eq 'root' ) {
+                    $cb->( result [ 400, 'Error creation token for root user' ] );
                 }
                 else {
 
@@ -151,7 +151,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 
                                 # get user permissions
                                 $self->get_user_permissions(
-                                    $user->{result}->{id},
+                                    $user->{data}->{id},
                                     sub ($user_permissions) {
 
                                         # user permissions get error
@@ -163,11 +163,11 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                                         else {
 
                                             # compare token and user permissions
-                                            for my $role_id ( keys $roles->{result}->%* ) {
+                                            for my $role_id ( keys $roles->{data}->%* ) {
 
                                                 # user permission is not set
-                                                if ( !$user_permissions->{result}->{$role_id}->{user_permission_id} ) {
-                                                    $cb->( status [ 400, q[Invalid user token permissions] ] );
+                                                if ( !$user_permissions->{data}->{$role_id}->{user_permission_id} ) {
+                                                    $cb->( result [ 400, q[Invalid user token permissions] ] );
 
                                                     return;
                                                 }
@@ -176,7 +176,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                                             # generate user token
                                             $self->_generate_token(
                                                 $TOKEN_TYPE_USER_TOKEN,
-                                                $user->{result}->{id},
+                                                $user->{data}->{id},
                                                 sub ($user_token) {
 
                                                     # user token generation error
@@ -191,26 +191,26 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                                                         $dbh->begin_work;
 
                                                         # insert user token
-                                                        my $token_created = $dbh->do( q[INSERT OR IGNORE INTO api_user_token (id, user_id, desc, created_ts, hash) VALUES (?, ?, ?, ?, ?)], [ $user_token->{result}->{id}, $user->{result}->{id}, $desc // q[], time, $user_token->{result}->{hash} ] );
+                                                        my $token_created = $dbh->do( q[INSERT OR IGNORE INTO api_user_token (id, user_id, desc, created_ts, hash) VALUES (?, ?, ?, ?, ?)], [ $user_token->{data}->{id}, $user->{data}->{id}, $desc // q[], time, $user_token->{data}->{hash} ] );
 
                                                         if ( !$token_created ) {
                                                             $dbh->rollback;
 
-                                                            $cb->( status [ 500, 'User token creation error' ] );
+                                                            $cb->( result [ 500, 'User token creation error' ] );
                                                         }
 
                                                         # create user token permissions
                                                         else {
-                                                            for my $role_id ( keys $roles->{result}->%* ) {
+                                                            for my $role_id ( keys $roles->{data}->%* ) {
 
                                                                 # create user permission
-                                                                my $permission_created = $dbh->do( q[INSERT INTO api_user_token_permission (id, user_token_id, user_permission_id) VALUES (?, ?, ?)], [ uuid_str, $user_token->{result}->{id}, $user_permissions->{result}->{$role_id}->{user_permission_id} ] );
+                                                                my $permission_created = $dbh->do( q[INSERT INTO api_user_token_permission (id, user_token_id, user_permission_id) VALUES (?, ?, ?)], [ uuid_str, $user_token->{data}->{id}, $user_permissions->{data}->{$role_id}->{user_permission_id} ] );
 
                                                                 # user permission is not set
                                                                 if ( !$permission_created ) {
                                                                     $dbh->rollback;
 
-                                                                    $cb->( status [ 500, q[Error creation user token permissions] ] );
+                                                                    $cb->( result [ 500, q[Error creation user token permissions] ] );
 
                                                                     return;
                                                                 }
@@ -219,10 +219,10 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                                                             $dbh->commit;
 
                                                             $cb->(
-                                                                status 201,
-                                                                {   id    => $user_token->{result}->{id},
+                                                                result 201,
+                                                                {   id    => $user_token->{data}->{id},
                                                                     type  => $TOKEN_TYPE_USER_TOKEN,
-                                                                    token => $user_token->{result}->{token},
+                                                                    token => $user_token->{data}->{token},
                                                                 }
                                                             );
                                                         }
@@ -253,10 +253,10 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
 
 sub remove_user_token ( $self, $user_token_id, $cb ) {
     if ( $self->dbh->do( q[DELETE OR IGNORE FROM api_user_token WHERE id = ?], [$user_token_id] ) ) {
-        $cb->( status 200 );
+        $cb->( result 200 );
     }
     else {
-        $cb->( status [ 404, 'User token not found' ] );
+        $cb->( result [ 404, 'User token not found' ] );
     }
 
     return;

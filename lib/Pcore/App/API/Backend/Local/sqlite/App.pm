@@ -1,6 +1,6 @@
 package Pcore::App::API::Backend::Local::sqlite::App;
 
-use Pcore -role, -promise, -status;
+use Pcore -role, -promise, -result;
 use Pcore::Util::UUID qw[uuid_str];
 
 sub get_app ( $self, $app_id, $cb ) {
@@ -8,24 +8,24 @@ sub get_app ( $self, $app_id, $cb ) {
     # $app_id is id
     if ( $app_id =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm ) {
         if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE id = ?], [$app_id] ) ) {
-            $cb->( status 200, $app );
+            $cb->( result 200, $app );
         }
         else {
 
             # app not found
-            $cb->( status [ 404, 'App not found' ] );
+            $cb->( result [ 404, 'App not found' ] );
         }
     }
 
     # $app_id is name
     else {
         if ( my $app = $self->dbh->selectrow( q[SELECT * FROM api_app WHERE name = ?], [$app_id] ) ) {
-            $cb->( status 200, $app );
+            $cb->( result 200, $app );
         }
         else {
 
             # app not found
-            $cb->( status [ 404, 'App not found' ] );
+            $cb->( result [ 404, 'App not found' ] );
         }
     }
 
@@ -36,7 +36,7 @@ sub create_app ( $self, $name, $desc, $permissions, $cb ) {
 
     # validate app name
     if ( !$self->{app}->{api}->validate_name($name) ) {
-        $cb->( status [ 400, 'App name is not valid' ] );
+        $cb->( result [ 400, 'App name is not valid' ] );
 
         return;
     }
@@ -54,11 +54,11 @@ sub create_app ( $self, $name, $desc, $permissions, $cb ) {
             if ( !$app ) {
                 $dbh->rollback;
 
-                $cb->( status [ 400, 'Error creating app' ] );
+                $cb->( result [ 400, 'Error creating app' ] );
             }
             else {
                 $self->add_app_permissions(
-                    $app->{result}->{id},
+                    $app->{data}->{id},
                     $permissions,
                     sub ($res) {
                         if ( !$res && $res != 304 ) {
@@ -69,7 +69,7 @@ sub create_app ( $self, $name, $desc, $permissions, $cb ) {
                         else {
                             $dbh->commit;
 
-                            $cb->( status $created ? 201 : 304, $app->{result} );
+                            $cb->( result $created ? 201 : 304, $app->{data} );
                         }
 
                         return;
@@ -88,16 +88,16 @@ sub check_app_permissions_approved ( $self, $app_id, $cb ) {
 
     # app is root
     if ( $app_id eq $self->{app}->{id} ) {
-        $cb->( status 200 );
+        $cb->( result 200 );
 
         return;
     }
 
     if ( $self->dbh->selectall( q[SELECT * FROM api_app_permission WHERE app_id = ? AND approved = 0], [$app_id] ) ) {
-        $cb->( status [ 400, 'App permissions are not approved' ] );
+        $cb->( result [ 400, 'App permissions are not approved' ] );
     }
     else {
-        $cb->( status 200 );
+        $cb->( result 200 );
     }
 
     return;
@@ -113,7 +113,7 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
             else {
 
                 # index roles by role_id
-                $roles = $roles->{result};
+                $roles = $roles->{data};
 
                 my $modified;
 
@@ -122,7 +122,7 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
                     $modified = 1 if $self->dbh->do( q[INSERT OR IGNORE INTO api_app_permissions (id, app_id, app_role_id, approved) VALUE (?, ?, ?, 0)], [ uuid_str, $app_id, $role_id ] );
                 }
 
-                $cb->( status $modified ? 200 : 304 );
+                $cb->( result $modified ? 200 : 304 );
             }
 
             return;
@@ -139,7 +139,7 @@ sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
 
         # validate app name
         if ( !$self->{app}->{api}->validate_name($role_name) ) {
-            $cb->( status [ 400, 'Role name is not valid' ] );
+            $cb->( result [ 400, 'Role name is not valid' ] );
 
             return;
         }
@@ -155,10 +155,10 @@ sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
                 my $modified;
 
                 for my $role_name ( keys $app_roles->%* ) {
-                    $modified = 1 if $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (id, app_id, name, desc) VALUES (?, ?, ?, ?)], [ uuid_str, $app->{result}->{id}, $role_name, $app_roles->{$role_name} ] );
+                    $modified = 1 if $self->dbh->do( q[INSERT OR IGNORE INTO api_app_role (id, app_id, name, desc) VALUES (?, ?, ?, ?)], [ uuid_str, $app->{data}->{id}, $role_name, $app_roles->{$role_name} ] );
                 }
 
-                $cb->( status $modified ? 200 : 304 );
+                $cb->( result $modified ? 200 : 304 );
 
             }
 
@@ -175,10 +175,10 @@ sub get_app_role ( $self, $role_id, $cb ) {
     # $role_id is role id
     if ( $role_id =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm ) {
         if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE id = ?], [$role_id] ) ) {
-            $cb->( status 200, $role );
+            $cb->( result 200, $role );
         }
         else {
-            $cb->( status [ 404, qq[App role "$role_id" not found] ] );
+            $cb->( result [ 404, qq[App role "$role_id" not found] ] );
         }
     }
 
@@ -189,20 +189,20 @@ sub get_app_role ( $self, $role_id, $cb ) {
         # $app_id is app id
         if ( $app_id =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm ) {
             if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
-                $cb->( status 200, $role );
+                $cb->( result 200, $role );
             }
             else {
-                $cb->( status [ 404, qq[App role "$role_id" not found] ] );
+                $cb->( result [ 404, qq[App role "$role_id" not found] ] );
             }
         }
 
         # $app_id is app name
         else {
             if ( my $role = $self->dbh->selectrow( q[SELECT api_app_role.* FROM api_app, api_app_role WHERE api_app.name = ? AND api_app.id = api_app_role.app_id AND api_app_role.name = ?], [ $app_id, $role_name ] ) ) {
-                $cb->( status 200, $role );
+                $cb->( result 200, $role );
             }
             else {
-                $cb->( status [ 404, qq[App role "$role_id" not found] ] );
+                $cb->( result [ 404, qq[App role "$role_id" not found] ] );
             }
         }
     }
@@ -216,10 +216,10 @@ sub resolve_app_roles ( $self, $roles, $cb ) {
 
     my $cv = AE::cv sub {
         if ($errors) {
-            $cb->( status [ 400, 'Error resolving app roles' ], $errors );
+            $cb->( result [ 400, 'Error resolving app roles' ], $errors );
         }
         else {
-            $cb->( status 200, $resolved_roles );
+            $cb->( result 200, $resolved_roles );
         }
 
         return;
@@ -234,7 +234,7 @@ sub resolve_app_roles ( $self, $roles, $cb ) {
             $role_id,
             sub ($res) {
                 if ($res) {
-                    $resolved_roles->{ $res->{result}->{id} } = $res->{result};
+                    $resolved_roles->{ $res->{data}->{id} } = $res->{data};
                 }
                 else {
                     $errors->{$role_id} = $res->{reason};
@@ -262,7 +262,7 @@ sub get_app_roles ( $self, $app_id, $cb ) {
                 $cb->($app);
             }
             else {
-                my $roles = $self->dbh->selectall( q[SELECT * FROM api_app_role WHERE app_id = ?], [ $app->{result}->{id} ] );
+                my $roles = $self->dbh->selectall( q[SELECT * FROM api_app_role WHERE app_id = ?], [ $app->{data}->{id} ] );
 
                 $cb->( 200, $roles // [] );
             }

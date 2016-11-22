@@ -1,6 +1,6 @@
 package Pcore::App::API::Backend::Local::sqlite;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 
 with qw[Pcore::App::API::Backend::Local::sqlite::App];
 with qw[Pcore::App::API::Backend::Local::sqlite::AppInstance];
@@ -107,7 +107,7 @@ SQL
 
     $ddl->upgrade;
 
-    $cb->( status 200 );
+    $cb->( result 200 );
 
     return;
 }

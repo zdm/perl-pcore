@@ -1,6 +1,6 @@
 package Pcore::App::API::Backend::Local;
 
-use Pcore -role, -status;
+use Pcore -role, -result;
 use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::App::API qw[:CONST];
@@ -54,7 +54,7 @@ sub init ( $self, $cb ) {
                 on_ready => sub ($rpc) {
                     $self->{_hash_rpc} = $rpc;
 
-                    $cb->( status 200 );
+                    $cb->( result 200 );
 
                     return;
                 },
@@ -88,7 +88,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
 
                 # create app instalnce
                 $self->create_app_instance(
-                    $app->{result}->{id},
+                    $app->{data}->{id},
                     $app_instance_host,
                     $app_instance_version,
                     sub ($app_instance) {
@@ -100,7 +100,7 @@ sub register_app_instance ( $self, $app_name, $app_desc, $app_permissions, $app_
 
                         # app instance created
                         else {
-                            $cb->( status 200, app_id => $app->{result}->{id}, app_instance_id => $app_instance->{result}->{id}, app_instance_token => $app_instance->{result}->{token} );
+                            $cb->( result 200, app_id => $app->{data}->{id}, app_instance_id => $app_instance->{data}->{id}, app_instance_token => $app_instance->{data}->{token} );
                         }
 
                         return;
@@ -134,7 +134,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
 
                 # get app
                 $self->get_app(
-                    $app_instance->{result}->{app_id},
+                    $app_instance->{data}->{app_id},
                     sub ($app) {
 
                         # get app error
@@ -147,7 +147,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
 
                             # add app permissions
                             $self->add_app_permissions(
-                                $app->{result}->{id},
+                                $app->{data}->{id},
                                 $app_permissions,
                                 sub ($res) {
 
@@ -159,7 +159,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
 
                                         # check, that all app permissions are approved
                                         $self->check_app_permissions_approved(
-                                            $app->{result}->{id},
+                                            $app->{data}->{id},
                                             sub ($res) {
 
                                                 # app permissions are not approved
@@ -186,7 +186,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
 
                                                                 # add app roles
                                                                 $self->add_app_roles(
-                                                                    $app->{result}->{id},
+                                                                    $app->{data}->{id},
                                                                     $app_roles,
                                                                     sub($res) {
 
@@ -197,7 +197,7 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
 
                                                                         # app roles added
                                                                         else {
-                                                                            $cb->( status 200 );
+                                                                            $cb->( result 200 );
                                                                         }
 
                                                                         return;
@@ -250,7 +250,7 @@ sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token
         $self->_auth_user_session( $app_instance_id, $token_id, $private_token, $cb );
     }
     else {
-        $cb->( status [ 400, 'Invalid token type' ] );
+        $cb->( result [ 400, 'Invalid token type' ] );
     }
 
     return;
@@ -272,7 +272,7 @@ sub _generate_token ( $self, $token_type, $salt, $cb ) {
                 $cb->($res);
             }
             else {
-                $cb->( status 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} } );
+                $cb->( result 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} } );
             }
 
             return;
@@ -297,7 +297,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, 
                 $cb->($res);
             }
             else {
-                $cb->( status 200, { hash => $res->{hash} } );
+                $cb->( result 200, { hash => $res->{hash} } );
             }
 
             return;
@@ -319,7 +319,7 @@ sub _verify_token_hash ( $self, $private_token, $hash, $salt, $cb ) {
             $private_token . $salt,
             $hash,
             sub ( $res ) {
-                $cb->( $self->{_hash_cache}->{$cache_id} = $res->{match} ? status 200 : status [ 400, 'Invalid token' ] );
+                $cb->( $self->{_hash_cache}->{$cache_id} = $res->{match} ? result 200 : result [ 400, 'Invalid token' ] );
 
                 return;
             }

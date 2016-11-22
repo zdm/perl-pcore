@@ -1,6 +1,6 @@
 package Pcore::App::API::Backend::Local::sqlite::UserSession;
 
-use Pcore -role, -promise, -status;
+use Pcore -role, -promise, -result;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];
 
@@ -40,14 +40,14 @@ SQL
 
     # user session not found
     if ( !$user_session ) {
-        $cb->( status [ 404, 'User session not found' ] );
+        $cb->( result [ 404, 'User session not found' ] );
 
         return;
     }
 
     # user disabled
     if ( !$user_session->{user_enabled} ) {
-        $cb->( status [ 404, 'User disabled' ] );
+        $cb->( result [ 404, 'User disabled' ] );
 
         return;
     }
@@ -77,7 +77,7 @@ SQL
             $auth->{permissions} = {};
         }
 
-        $cb->( status 200, { auth => $auth, tags => $tags } );
+        $cb->( result 200, { auth => $auth, tags => $tags } );
 
         return;
     };
@@ -125,8 +125,8 @@ sub create_user_session ( $self, $user_id, $cb ) {
             }
 
             # user is disabled
-            elsif ( !$user->{result}->{enabled} ) {
-                $cb->( status [ 400, q[User is disabled] ] );
+            elsif ( !$user->{data}->{enabled} ) {
+                $cb->( result [ 400, q[User is disabled] ] );
             }
 
             # user ok
@@ -135,7 +135,7 @@ sub create_user_session ( $self, $user_id, $cb ) {
                 # generate session token
                 $self->_generate_token(
                     $TOKEN_TYPE_USER_SESSION,
-                    $user->{result}->{id},
+                    $user->{data}->{id},
                     sub ($token) {
 
                         # token generation error
@@ -145,17 +145,17 @@ sub create_user_session ( $self, $user_id, $cb ) {
 
                         # token geneerated
                         else {
-                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_user_session (id, user_id, created_ts, hash) VALUES (?, ?, ?, ?)], [ $token->{result}->{id}, $user->{result}->{id}, time, $token->{result}->{hash} ] );
+                            my $created = $self->dbh->do( q[INSERT OR IGNORE INTO api_user_session (id, user_id, created_ts, hash) VALUES (?, ?, ?, ?)], [ $token->{data}->{id}, $user->{data}->{id}, time, $token->{data}->{hash} ] );
 
                             if ( !$created ) {
-                                $cb->( status [ 500, q[Session creation error] ] );
+                                $cb->( result [ 500, q[Session creation error] ] );
                             }
                             else {
                                 $cb->(
-                                    status 201,
-                                    {   id    => $token->{result}->{id},
+                                    result 201,
+                                    {   id    => $token->{data}->{id},
                                         type  => $TOKEN_TYPE_USER_SESSION,
-                                        token => $token->{result}->{token},
+                                        token => $token->{data}->{token},
                                     }
                                 );
                             }
@@ -177,10 +177,10 @@ sub remove_user_session ( $self, $user_session_id, $cb ) {
     my $removed = $self->dbh->do( q[DELETE FROM api_user_session WHERE id = ?], [$user_session_id] );
 
     if ($removed) {
-        $cb->( status 200 );
+        $cb->( result 200 );
     }
     else {
-        $cb->( status [ 404, 'User session was not found' ] );
+        $cb->( result [ 404, 'User session was not found' ] );
     }
 
     return;
