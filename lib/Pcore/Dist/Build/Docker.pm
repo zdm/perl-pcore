@@ -147,7 +147,7 @@ sub report ( $self, $dockerhub_repo ) {
     my $report;
 
     # index tags
-    for my $tag ( values $tags->{result}->%* ) {
+    for my $tag ( values $tags->{data}->%* ) {
         $report->{ $tag->name } = {
             size         => $tag->full_size,
             last_updated => $tag->last_updated,
@@ -155,12 +155,12 @@ sub report ( $self, $dockerhub_repo ) {
     }
 
     # index build tags
-    for my $build_tag ( values $build_settings->{result}->{build_tags}->%* ) {
+    for my $build_tag ( values $build_settings->{data}->{build_tags}->%* ) {
         $report->{ $build_tag->name }->{is_build_tag} = 1 if $build_tag->name ne '{sourceref}';
     }
 
     # index builds
-    for my $build ( $build_history->{result}->@* ) {
+    for my $build ( $build_history->{data}->@* ) {
         if ( !exists $report->{ $build->dockertag_name }->{build_status} ) {
             if ( $build->build_status_name eq 'Error' ) {
                 $report->{ $build->dockertag_name }->{build_status} = BOLD WHITE ON_RED;
@@ -234,7 +234,7 @@ sub create_build_tag ( $self, $dockerhub_repo, $tag ) {
         say $build_settings->reason;
     }
     else {
-        for ( values $build_settings->{result}->{build_tags}->%* ) {
+        for ( values $build_settings->{data}->{build_tags}->%* ) {
             if ( $_->name eq $tag || $_->source_name eq $tag ) {
                 say q[tag already exists];
 
@@ -279,11 +279,11 @@ sub remove_tag ( $self, $dockerhub_repo, $tag ) {
 
     my $tags = $dockerhub_repo->tags;
 
-    if ( !$tags->{result}->{$tag} ) {
+    if ( !$tags->{data}->{$tag} ) {
         say 'Tag does not exists';
     }
     else {
-        my $res = $tags->{result}->{$tag}->remove;
+        my $res = $tags->{data}->{$tag}->remove;
 
         say $res->status ? 'OK' : $res->reason;
     }
@@ -299,7 +299,7 @@ sub remove_tag ( $self, $dockerhub_repo, $tag ) {
     else {
         my $build_tag;
 
-        for ( values $build_settings->{result}->{build_tags}->%* ) {
+        for ( values $build_settings->{data}->{build_tags}->%* ) {
             if ( $_->name eq $tag ) {
                 $build_tag = $_;
 

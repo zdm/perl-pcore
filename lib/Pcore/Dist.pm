@@ -240,7 +240,7 @@ sub _build_id ($self) {
 
     if ( !$self->is_cpan_dist && $self->scm ) {
         if ( my $scm_id = $self->scm->scm_id ) {
-            $id->@{ keys $scm_id->{result}->%* } = values $scm_id->{result}->%*;
+            $id->@{ keys $scm_id->{data}->%* } = values $scm_id->{data}->%*;
         }
 
         if ( $id->{release} && defined $id->{release_distance} && $id->{release_distance} == 1 ) {
@@ -276,7 +276,7 @@ sub _build_version ($self) {
 
 sub _build_is_commited ($self) {
     if ( !$self->is_cpan_dist && $self->scm && ( my $scm_is_commited = $self->scm->scm_is_commited ) ) {
-        return $scm_is_commited->{result};
+        return $scm_is_commited->{data};
     }
 
     return;
@@ -284,7 +284,7 @@ sub _build_is_commited ($self) {
 
 sub _build_releases ($self) {
     if ( !$self->is_cpan_dist && $self->scm && ( my $scm_releases = $self->scm->scm_releases ) ) {
-        return $scm_releases->{result};
+        return $scm_releases->{data};
     }
 
     return;

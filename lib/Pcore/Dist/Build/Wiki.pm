@@ -98,7 +98,7 @@ MD
 
     $scm->scm_addremove or die;
 
-    if ( !$scm->scm_is_commited->{result} ) {
+    if ( !$scm->scm_is_commited->{data} ) {
         $scm->scm_commit('automatically updated') or die;
 
       PUSH_WIKI:

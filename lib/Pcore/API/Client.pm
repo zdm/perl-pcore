@@ -1,6 +1,6 @@
 package Pcore::API::Client;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 use Pcore::HTTP::WebSocket;
 use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
@@ -72,12 +72,12 @@ sub api_call ( $self, $method, @ ) {
 
                 # HTTP protocol or API call error
                 if ( !$res ) {
-                    $cb->( status [ $res->status, $res->reason ] ) if $cb;
+                    $cb->( result [ $res->status, $res->reason ] ) if $cb;
                 }
                 else {
                     my $response = from_cbor $res->body;
 
-                    $cb->( bless $response, 'Pcore::Util::Response::Status' ) if $cb;
+                    $cb->( bless $response, 'Pcore::Util::Result' ) if $cb;
                 }
 
                 return;
@@ -112,7 +112,7 @@ sub api_call ( $self, $method, @ ) {
 
         if ( !$ws ) {
             my $on_error = sub ( $status, $reason ) {
-                $cb->( status [ $status, $reason ] ) if $cb;
+                $cb->( result [ $status, $reason ] ) if $cb;
 
                 return;
             };
@@ -174,7 +174,7 @@ sub api_call ( $self, $method, @ ) {
                         # this is API callback
                         else {
                             if ( my $callback = delete $self->{_ws_cid_cache}->{ $data->{cid} } ) {
-                                $callback->( bless $data, 'Pcore::Util::Response::Status' ) if $callback;
+                                $callback->( bless $data, 'Pcore::Util::Result' ) if $callback;
                             }
                         }
                     }

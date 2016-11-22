@@ -1,6 +1,6 @@
 package Pcore::API::DockerHub;
 
-use Pcore -const, -class, -status, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TAG $DOCKERHUB_SOURCE_BRANCH]] };
+use Pcore -const, -class, -result, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TAG $DOCKERHUB_SOURCE_BRANCH]] };
 require Pcore::API::DockerHub::Repository;
 
 # https://github.com/RyanTheAllmighty/Docker-Hub-API
@@ -56,12 +56,12 @@ sub login ( $self, % ) {
         undef,
         { username => $self->api_username, password => $self->api_password },
         sub ($res) {
-            if ( $res->{result}->{detail} ) {
-                $res->{reason} = delete $res->{result}->{detail};
+            if ( $res->{data}->{detail} ) {
+                $res->{reason} = delete $res->{data}->{detail};
             }
 
-            if ( $res->is_success && $res->{result}->{token} ) {
-                $self->{login_token} = delete $res->{result}->{token};
+            if ( $res->is_success && $res->{data}->{token} ) {
+                $self->{login_token} = delete $res->{data}->{token};
             }
 
             $args{cb}->($res) if $args{cb};
@@ -106,7 +106,7 @@ sub get_all_repos ( $self, % ) {
             if ( $res->is_success ) {
                 my $result = {};
 
-                for my $repo ( $res->{result}->@* ) {
+                for my $repo ( $res->{data}->@* ) {
                     $repo = bless $repo, 'Pcore::API::DockerHub::Repository';
 
                     $repo->set_status( $res->status );
@@ -116,7 +116,7 @@ sub get_all_repos ( $self, % ) {
                     $result->{ $repo->id } = $repo;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -141,15 +141,15 @@ sub get_repos ( $self, % ) {
         1, undef,
         sub($res) {
             if ( $res->is_success ) {
-                $res->{count} = delete $res->{result}->{count};
+                $res->{count} = delete $res->{data}->{count};
 
-                $res->{next} = delete $res->{result}->{next};
+                $res->{next} = delete $res->{data}->{next};
 
-                $res->{previous} = delete $res->{result}->{previous};
+                $res->{previous} = delete $res->{data}->{previous};
 
                 my $result = {};
 
-                for my $repo ( $res->{result}->{results}->@* ) {
+                for my $repo ( $res->{data}->{results}->@* ) {
                     $repo = bless $repo, 'Pcore::API::DockerHub::Repository';
 
                     $repo->set_status( $res->status );
@@ -159,7 +159,7 @@ sub get_repos ( $self, % ) {
                     $result->{ $repo->id } = $repo;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -184,15 +184,15 @@ sub get_starred_repos ( $self, % ) {
         1, undef,
         sub($res) {
             if ( $res->is_success ) {
-                $res->{count} = delete $res->{result}->{count};
+                $res->{count} = delete $res->{data}->{count};
 
-                $res->{next} = delete $res->{result}->{next};
+                $res->{next} = delete $res->{data}->{next};
 
-                $res->{previous} = delete $res->{result}->{previous};
+                $res->{previous} = delete $res->{data}->{previous};
 
                 my $result = {};
 
-                for my $repo ( $res->{result}->{results}->@* ) {
+                for my $repo ( $res->{data}->{results}->@* ) {
                     $repo = bless $repo, 'Pcore::API::DockerHub::Repository';
 
                     $repo->set_status( $res->status );
@@ -202,7 +202,7 @@ sub get_starred_repos ( $self, % ) {
                     $result->{ $repo->id } = $repo;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -225,7 +225,7 @@ sub get_repo ( $self, $repo_name, % ) {
         1, undef,
         sub($res) {
             if ( $res->is_success ) {
-                my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
+                my $repo = bless $res->{data}, 'Pcore::API::DockerHub::Repository';
 
                 $repo->set_status( $res->status, $res->reason );
 
@@ -266,7 +266,7 @@ sub create_repo ( $self, $repo_name, % ) {
         },
         sub ($res) {
             if ( $res->is_success ) {
-                my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
+                my $repo = bless $res->{data}, 'Pcore::API::DockerHub::Repository';
 
                 $repo->set_status( $res->status, $res->reason );
 
@@ -277,8 +277,8 @@ sub create_repo ( $self, $repo_name, % ) {
                 $res = $repo;
             }
             else {
-                if ( $res->{result}->{__all__} ) {
-                    $res->{reason} = $res->{result}->{__all__}->[0] if $res->{result}->{__all__}->[0];
+                if ( $res->{data}->{__all__} ) {
+                    $res->{reason} = $res->{data}->{__all__}->[0] if $res->{data}->{__all__}->[0];
                 }
             }
 
@@ -337,7 +337,7 @@ sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc
         },
         sub ($res) {
             if ( $res->is_success ) {
-                my $repo = bless $res->{result}, 'Pcore::API::DockerHub::Repository';
+                my $repo = bless $res->{data}, 'Pcore::API::DockerHub::Repository';
 
                 $repo->set_status( $res->status, $res->reason );
 
@@ -348,11 +348,11 @@ sub create_automated_build ( $self, $repo_name, $provider, $vcs_repo_name, $desc
                 $res = $repo;
             }
             else {
-                if ( $res->{result}->{detail} ) {
-                    $res->{reason} = $res->{result}->{detail};
+                if ( $res->{data}->{detail} ) {
+                    $res->{reason} = $res->{data}->{detail};
                 }
-                elsif ( $res->{result}->{__all__} ) {
-                    $res->{reason} = $res->{result}->{__all__}->[0] if $res->{result}->{__all__}->[0];
+                elsif ( $res->{data}->{__all__} ) {
+                    $res->{reason} = $res->{data}->{__all__}->[0] if $res->{data}->{__all__}->[0];
                 }
             }
 
@@ -376,7 +376,7 @@ sub request ( $self, $type, $path, $auth, $data, $cb ) {
             },
             body => $data ? P->data->to_json($data) : undef,
             on_finish => sub ($res) {
-                my $api_res = status [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
+                my $api_res = result [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
 
                 $cb->($api_res) if $cb;
 

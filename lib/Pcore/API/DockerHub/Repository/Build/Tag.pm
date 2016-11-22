@@ -3,7 +3,7 @@ package Pcore::API::DockerHub::Repository::Build::Tag;
 use Pcore -class;
 use Pcore::API::DockerHub qw[:CONST];
 
-with qw[Pcore::Util::Status::Role];
+with qw[Pcore::Util::Result::Status];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
 has id   => ( is => 'ro', isa => Int, required => 1 );

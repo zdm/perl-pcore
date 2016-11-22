@@ -1,6 +1,6 @@
 package Pcore::API::GitHub;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 
 has api_username => ( is => 'ro', isa => Str, required => 1 );
 has api_token    => ( is => 'ro', isa => Str, required => 1 );
@@ -116,16 +116,16 @@ sub create_repo ( $self, @ ) {
             my $api_res;
 
             if ( $res->status != 200 ) {
-                $api_res = status [ $res->status, $res->reason ];
+                $api_res = result [ $res->status, $res->reason ];
             }
             else {
                 my $json = P->data->from_json( $res->body );
 
                 if ( $json->{error} ) {
-                    $api_res = status [ 200, $json->{message} ];
+                    $api_res = result [ 200, $json->{message} ];
                 }
                 else {
-                    $api_res = status 200;
+                    $api_res = result 200;
                 }
             }
 

@@ -21,11 +21,8 @@ our $EXPORT_PRAGMA = {
     result      => 0,    # export Pcore::Util::Result qw[result]
     role        => 0,    # package is a Moo role
     script_path => 1,    # specify script path for ENV, used in RPC
-
-    # TODO remove
-    status => 0,         # export Pcore::Util::Response qw[status]
-    try    => 0,         # export Pcore::Core::Exception qw[:DEFAULT try catch]
-    types  => 0,         # export types
+    try         => 0,    # export Pcore::Core::Exception qw[:DEFAULT try catch]
+    types       => 0,    # export types
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
@@ -167,14 +164,6 @@ sub import {
         }
         else {
             Pcore::Core::Exception->import( -caller => $caller );
-        }
-
-        # TODO remove
-        # process -status pragma
-        if ( $import->{pragma}->{status} ) {
-            state $STATUS_INIT = !!require Pcore::Util::Response;
-
-            Pcore::Util::Response->import( -caller => $caller, qw[status] );
         }
 
         # process -result pragma
@@ -607,25 +596,25 @@ sub init_demolish ( $self, $class ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 69                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    |
+## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 113                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 110                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 261                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 250                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 339                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 457                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 328                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 446                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 371, 400, 403, 407,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 439, 442, 447, 450,  |                                                                                                                |
-## |      | 475, 494             |                                                                                                                |
+## |    3 | 360, 389, 392, 396,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 428, 431, 436, 439,  |                                                                                                                |
+## |      | 464, 483             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 590                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 579                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 271                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 260                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 375                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 364                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

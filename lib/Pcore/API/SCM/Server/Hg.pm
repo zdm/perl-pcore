@@ -1,6 +1,6 @@
 package Pcore::API::SCM::Server::Hg;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 use Pcore::API::SCM qw[:CONST];
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::API::SCM::Upstream;
@@ -127,10 +127,10 @@ sub scm_cmd ( $self, $root, $cb, $cmd ) {
                     my $api_res;
 
                     if ( exists $res->{e} ) {
-                        $api_res = status [ 500, join q[ ], $res->{e}->@* ];
+                        $api_res = result [ 500, join q[ ], $res->{e}->@* ];
                     }
                     else {
-                        $api_res = status 200, $res->{o};
+                        $api_res = result 200, $res->{o};
                     }
 
                     $cb->($api_res);
@@ -165,7 +165,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
                     release_distance => undef,
                 );
 
-                ( $res{node}, $res{phase}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{release} ) = split /\n/sm, $res->{result}->[0];
+                ( $res{node}, $res{phase}, $res{tags}, $res{bookmark}, $res{branch}, $res{desc}, $res{date}, $res{release} ) = split /\n/sm, $res->{data}->[0];
 
                 $res{tags} = $res{tags} ? [ split /\x00/sm, $res{tags} ] : undef;
 
@@ -175,7 +175,7 @@ sub scm_id ( $self, $root, $cb, $args ) {
                     $res{release} = undef if $res{release} eq 'null';
                 }
 
-                $res->{result} = \%res;
+                $res->{data} = \%res;
             }
 
             $cb->($res);
@@ -218,7 +218,7 @@ sub scm_releases ( $self, $root, $cb, $args ) {
         $root,
         sub ($res) {
             if ( $res->is_success ) {
-                $res->{result} = [ sort grep {/\Av\d+[.]\d+[.]\d+\z/sm} $res->{result}->@* ];
+                $res->{data} = [ sort grep {/\Av\d+[.]\d+[.]\d+\z/sm} $res->{data}->@* ];
             }
 
             $cb->($res);
@@ -236,7 +236,7 @@ sub scm_is_commited ( $self, $root, $cb, $args ) {
         $root,
         sub ($res) {
             if ( $res->is_success ) {
-                $res->{result} = defined $res->{result} ? 0 : 1;
+                $res->{data} = defined $res->{data} ? 0 : 1;
             }
 
             $cb->($res);

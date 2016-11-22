@@ -2,7 +2,7 @@ package Pcore::API::DockerHub::Repository::WebHook;
 
 use Pcore -class;
 
-with qw[Pcore::Util::Status::Role];
+with qw[Pcore::Util::Result::Status];
 
 has repo => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], required => 1 );
 has id => ( is => 'ro', isa => Int, required => 1 );

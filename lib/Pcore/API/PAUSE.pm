@@ -1,6 +1,6 @@
 package Pcore::API::PAUSE;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 use Pcore::Util::Text qw[encode_utf8];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -44,7 +44,7 @@ sub upload ( $self, $path ) {
         body => \$body,
     );
 
-    return status [ $res->status, $res->reason ];
+    return result [ $res->status, $res->reason ];
 }
 
 sub clean ( $self ) {
@@ -88,14 +88,14 @@ sub clean ( $self ) {
                 body => P->data->to_uri($params),
             );
 
-            return status [ $res1->status, $res1->reason ];
+            return result [ $res1->status, $res1->reason ];
         }
         else {
-            return status [ 200, 'Nothing to do' ];
+            return result [ 200, 'Nothing to do' ];
         }
     }
     else {
-        return status [ $res->status, $res->reason ];
+        return result [ $res->status, $res->reason ];
     }
 }
 

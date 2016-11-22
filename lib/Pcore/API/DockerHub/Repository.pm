@@ -9,7 +9,7 @@ use Pcore::API::DockerHub::Repository::Tag;
 use Pcore::API::DockerHub::Repository::Build::Tag;
 use Pcore::API::DockerHub::Repository::Collaborator;
 
-with qw[Pcore::Util::Status::Role];
+with qw[Pcore::Util::Result::Status];
 
 has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::DockerHub'], required => 1 );
 
@@ -112,15 +112,15 @@ sub webhooks ( $self, % ) {
         1, undef,
         sub($res) {
             if ( $res->is_success ) {
-                $res->{count} = delete $res->{result}->{count};
+                $res->{count} = delete $res->{data}->{count};
 
-                $res->{next} = delete $res->{result}->{next};
+                $res->{next} = delete $res->{data}->{next};
 
-                $res->{previous} = delete $res->{result}->{previous};
+                $res->{previous} = delete $res->{data}->{previous};
 
                 my $result = {};
 
-                for my $webhook ( $res->{result}->{results}->@* ) {
+                for my $webhook ( $res->{data}->{results}->@* ) {
                     $webhook = bless $webhook, 'Pcore::API::DockerHub::Repository::WebHook';
 
                     $webhook->set_status( $res->status );
@@ -130,7 +130,7 @@ sub webhooks ( $self, % ) {
                     $result->{ $webhook->{name} } = $webhook;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -161,7 +161,7 @@ sub create_webhook ( $self, $webhook_name, $url, % ) {
             }
             else {
                 # create webhook object
-                my $webhook = bless $res->{result}, 'Pcore::API::DockerHub::Repository::WebHook';
+                my $webhook = bless $res->{data}, 'Pcore::API::DockerHub::Repository::WebHook';
 
                 $webhook->set_status( $res->status );
 
@@ -170,7 +170,7 @@ sub create_webhook ( $self, $webhook_name, $url, % ) {
                 # create webhook hook
                 $self->api->request(
                     'post',
-                    "/repositories/@{[$self->id]}/webhooks/@{[$res->{result}->{id}]}/hooks/",
+                    "/repositories/@{[$self->id]}/webhooks/@{[$res->{data}->{id}]}/hooks/",
                     1,
                     { hook_url => $url },
                     sub ($hook_res) {
@@ -188,7 +188,7 @@ sub create_webhook ( $self, $webhook_name, $url, % ) {
                             );
                         }
                         else {
-                            push $webhook->{hooks}->@*, $hook_res->{result};
+                            push $webhook->{hooks}->@*, $hook_res->{data};
 
                             $args{cb}->($webhook) if $args{cb};
 
@@ -227,8 +227,8 @@ sub remove_empty_webhooks ( $self, % ) {
 
             $cv->begin;
 
-            if ( $res->{result}->%* ) {
-                for my $webhook ( values $res->{result}->%* ) {
+            if ( $res->{data}->%* ) {
+                for my $webhook ( values $res->{data}->%* ) {
                     if ( !$webhook->{hooks}->@* ) {
                         $cv->begin;
 
@@ -265,15 +265,15 @@ sub links ( $self, % ) {
         1, undef,
         sub($res) {
             if ( $res->is_success ) {
-                $res->{count} = delete $res->{result}->{count};
+                $res->{count} = delete $res->{data}->{count};
 
-                $res->{next} = delete $res->{result}->{next};
+                $res->{next} = delete $res->{data}->{next};
 
-                $res->{previous} = delete $res->{result}->{previous};
+                $res->{previous} = delete $res->{data}->{previous};
 
                 my $result = {};
 
-                for my $link ( $res->{result}->{results}->@* ) {
+                for my $link ( $res->{data}->{results}->@* ) {
                     $link = bless $link, 'Pcore::API::DockerHub::Repository::Link';
 
                     $link->set_status( $res->status );
@@ -283,7 +283,7 @@ sub links ( $self, % ) {
                     $result->{ $link->id } = $link;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -308,7 +308,7 @@ sub create_link ( $self, $to_repo, % ) {
         { to_repo => $to_repo },
         sub ($res) {
             if ( $res->is_success ) {
-                my $link = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Link';
+                my $link = bless $res->{data}, 'Pcore::API::DockerHub::Repository::Link';
 
                 $link->set_status( $res->status, $res->reason );
 
@@ -364,13 +364,13 @@ sub trigger_build ( $self, $source_name = 'latest', $source_type = $DOCKERHUB_SO
         },
         sub ($res) {
             if ( $res->is_success ) {
-                if ( !$res->{result}->@* ) {
+                if ( !$res->{data}->@* ) {
                     $res->set_status( 404, 'Invalid build source name' );
                 }
                 else {
                     my $result = [];
 
-                    for my $build ( $res->{result}->@* ) {
+                    for my $build ( $res->{data}->@* ) {
                         $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
 
                         $build->set_status( $res->status );
@@ -380,7 +380,7 @@ sub trigger_build ( $self, $source_name = 'latest', $source_type = $DOCKERHUB_SO
                         push $result->@*, $build;
                     }
 
-                    $res->{result} = $result;
+                    $res->{data} = $result;
                 }
             }
 
@@ -405,15 +405,15 @@ sub build_history ( $self, % ) {
         1, undef,
         sub ($res) {
             if ( $res->is_success ) {
-                $res->{count} = delete $res->{result}->{count};
+                $res->{count} = delete $res->{data}->{count};
 
-                $res->{next} = delete $res->{result}->{next};
+                $res->{next} = delete $res->{data}->{next};
 
-                $res->{previous} = delete $res->{result}->{previous};
+                $res->{previous} = delete $res->{data}->{previous};
 
                 my $result = [];
 
-                for my $build ( $res->{result}->{results}->@* ) {
+                for my $build ( $res->{data}->{results}->@* ) {
                     $build = bless $build, 'Pcore::API::DockerHub::Repository::Build';
 
                     $build->{build_status} = $build->{status};
@@ -425,7 +425,7 @@ sub build_history ( $self, % ) {
                     push $result->@*, $build;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -450,7 +450,7 @@ sub build_settings ( $self, % ) {
             if ( $res->is_success ) {
                 my $build_tags = {};
 
-                for my $build_tag ( $res->{result}->{build_tags}->@* ) {
+                for my $build_tag ( $res->{data}->{build_tags}->@* ) {
                     my $tag = bless $build_tag, 'Pcore::API::DockerHub::Repository::Build::Tag';
 
                     $tag->{repo} = $self;
@@ -460,7 +460,7 @@ sub build_settings ( $self, % ) {
                     $build_tags->{ $tag->id } = $tag;
                 }
 
-                $res->{result}->{build_tags} = $build_tags;
+                $res->{data}->{build_tags} = $build_tags;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -492,7 +492,7 @@ sub create_build_tag ( $self, % ) {
         },
         sub ($res) {
             if ( $res->is_success ) {
-                my $tag = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Build::Tag';
+                my $tag = bless $res->{data}, 'Pcore::API::DockerHub::Repository::Build::Tag';
 
                 $tag->set_status( $res->status, $res->reason );
 
@@ -525,15 +525,15 @@ sub tags ( $self, % ) {
         1, undef,
         sub($res) {
             if ( $res->is_success ) {
-                $res->{count} = delete $res->{result}->{count};
+                $res->{count} = delete $res->{data}->{count};
 
-                $res->{next} = delete $res->{result}->{next};
+                $res->{next} = delete $res->{data}->{next};
 
-                $res->{previous} = delete $res->{result}->{previous};
+                $res->{previous} = delete $res->{data}->{previous};
 
                 my $result = {};
 
-                for my $tag ( $res->{result}->{results}->@* ) {
+                for my $tag ( $res->{data}->{results}->@* ) {
                     $tag = bless $tag, 'Pcore::API::DockerHub::Repository::Tag';
 
                     $tag->set_status( $res->status );
@@ -543,7 +543,7 @@ sub tags ( $self, % ) {
                     $result->{ $tag->{name} } = $tag;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -567,15 +567,15 @@ sub collaborators ( $self, % ) {
         1, undef,
         sub($res) {
             if ( $res->is_success ) {
-                $res->{count} = delete $res->{result}->{count};
+                $res->{count} = delete $res->{data}->{count};
 
-                $res->{next} = delete $res->{result}->{next};
+                $res->{next} = delete $res->{data}->{next};
 
-                $res->{previous} = delete $res->{result}->{previous};
+                $res->{previous} = delete $res->{data}->{previous};
 
                 my $result = {};
 
-                for my $collaborator ( $res->{result}->{results}->@* ) {
+                for my $collaborator ( $res->{data}->{results}->@* ) {
                     $collaborator = bless $collaborator, 'Pcore::API::DockerHub::Repository::Collaborator';
 
                     $collaborator->set_status( $res->status );
@@ -585,7 +585,7 @@ sub collaborators ( $self, % ) {
                     $result->{ $collaborator->{user} } = $collaborator;
                 }
 
-                $res->{result} = $result;
+                $res->{data} = $result;
             }
 
             $args{cb}->($res) if $args{cb};
@@ -608,7 +608,7 @@ sub create_collaborator ( $self, $collaborator_name, % ) {
         { user => $collaborator_name },
         sub ($res) {
             if ( $res->is_success ) {
-                my $collaborator = bless $res->{result}, 'Pcore::API::DockerHub::Repository::Collaborator';
+                my $collaborator = bless $res->{data}, 'Pcore::API::DockerHub::Repository::Collaborator';
 
                 $collaborator->( $res->status, $res->reason );
 

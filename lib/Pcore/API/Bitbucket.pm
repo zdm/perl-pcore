@@ -1,6 +1,6 @@
 package Pcore::API::Bitbucket;
 
-use Pcore -class, -status;
+use Pcore -class, -result;
 use Pcore::API::Bitbucket::Issue;
 use Pcore::API::SCM qw[:CONST];
 
@@ -286,14 +286,14 @@ sub create_repo ( $self, @ ) {
             my $json = $res->body ? P->data->from_json( $res->body ) : undef;
 
             if ( $res->status != 200 ) {
-                $api_res = status [ $res->status, $json && $json->{error}->{message} ? $json->{error}->{message} : $res->reason ];
+                $api_res = result [ $res->status, $json && $json->{error}->{message} ? $json->{error}->{message} : $res->reason ];
             }
             else {
                 if ( $json->{error} ) {
-                    $api_res = status [ 569, $json->{error}->{message} ];
+                    $api_res = result [ 569, $json->{error}->{message} ];
                 }
                 else {
-                    $api_res = status 200;
+                    $api_res = result 200;
                 }
             }
 

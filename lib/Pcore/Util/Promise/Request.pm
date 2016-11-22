@@ -1,7 +1,7 @@
 package Pcore::Util::Promise::Request;
 
 use Pcore -class;
-use Pcore::Util::Response;
+use Pcore::Util::Result;
 use Pcore::Util::Scalar qw[blessed];
 use overload    #
   q[bool] => sub {
@@ -20,7 +20,7 @@ use overload    #
     return [ $_[0]->{response}->{status}, $_[0]->{response}->{reason} ];
   },
   q[&{}] => sub ( $self, @ ) {
-    return sub { return _respond( $self, blessed $_[0] ? $_[0] : &Pcore::Util::Response::status ) };    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+    return sub { return _respond( $self, blessed $_[0] ? $_[0] : &Pcore::Util::Result::result ) };    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
   },
   fallback => 1;
 
@@ -28,10 +28,10 @@ has _promise => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Promise'], requir
 has _cb => ( is => 'ro', isa => CodeRef, required => 1 );
 has _self => ( is => 'ro', isa => Object );
 
-has response => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Response'], init_arg => undef );
+has response => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Result'], init_arg => undef );
 
 has _then_idx  => ( is => 'ro', isa => PositiveInt, default => 1, init_arg => undef );
-has _responded => ( is => 'ro', isa => Bool,        default => 0, init_arg => undef );                  # already responded
+has _responded => ( is => 'ro', isa => Bool,        default => 0, init_arg => undef );                # already responded
 
 P->init_demolish(__PACKAGE__);
 
@@ -39,7 +39,7 @@ sub DEMOLISH ( $self, $global ) {
     if ( !$global && !$self->{_responded} ) {
 
         # request object destroyed without return any result, this is possible run-time error in AE callback
-        _respond( $self, Pcore::Util::Response::status 500 );
+        _respond( $self, Pcore::Util::Result::result 500 );
     }
 
     return;
@@ -58,7 +58,7 @@ sub done ( $self, @ ) {
 
     $self->{_responded} = 1;
 
-    $self->{_cb}->( blessed $_[1] ? $_[1] : Pcore::Util::Response::status splice @_, 1 );
+    $self->{_cb}->( blessed $_[1] ? $_[1] : Pcore::Util::Result::result splice @_, 1 );
 
     return;
 }
@@ -79,7 +79,7 @@ sub _respond ( $self, $res ) {
             if ( !$self->{_responded} ) {
                 $self->{_responded} = 1;
 
-                $self->{_cb}->( Pcore::Util::Response::status 500 );
+                $self->{_cb}->( Pcore::Util::Result::result 500 );
             }
         }
     }
