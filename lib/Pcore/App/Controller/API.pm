@@ -82,6 +82,8 @@ sub run ( $self, $req ) {
             'Content-Type' => $content_type == $CONTENT_TYPE_JSON ? 'application/json' : 'application/cbor',
         );
 
+        push @headers, $res->{headers}->@* if $res->{headers};
+
         # write HTTP response
         $req->( 200, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $response : to_cbor $response)->finish;
 
@@ -255,7 +257,9 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 159                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 28                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 161                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
