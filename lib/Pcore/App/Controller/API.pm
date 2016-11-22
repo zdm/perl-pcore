@@ -60,13 +60,22 @@ sub run ( $self, $req ) {
 
     # create callback
     my $cb = sub ( $res ) {
+        my $response;
 
-        # prepare response data packet
-        my $response = {
-            tid    => $data->{tid},
-            type   => $res->is_success ? 'rpc' : 'exception',
-            result => $res,
-        };
+        if ( $res->is_success ) {
+            $response = {
+                tid    => $data->{tid},
+                type   => 'rpc',
+                result => $res,
+            };
+        }
+        else {
+            $response = {
+                tid     => $data->{tid},
+                type    => 'exception',
+                message => $res->{message} // $res->{reason},
+            };
+        }
 
         # create list of HTTP response headers
         my @headers = (    #
@@ -246,7 +255,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 150                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 159                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
