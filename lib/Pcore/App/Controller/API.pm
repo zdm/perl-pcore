@@ -29,8 +29,10 @@ sub run ( $self, $req ) {
 
     # ExtDirect API map
     if ( $req->{path_tail} ) {
-        if ( $req->{path_tail} =~ m[\A(?:(v\d+)/)?extdirect[.]json\z]sm ) {
-            my $ver = $1;
+        if ( $req->{path_tail} =~ m[\Aextdirect[.]json\z]sm ) {
+            my $query = P->data->from_uri_query( $req->{env}->{QUERY_STRING} );
+
+            my $ver = $query->{v};
 
             $req->authenticate(
                 sub ( $auth ) {
@@ -250,7 +252,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 154                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 156                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
