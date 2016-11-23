@@ -28,6 +28,10 @@ has app_instance_id => ( is => 'ro', isa => Maybe [Str] );
 
 has permissions => ( is => 'ro', isa => Maybe [HashRef] );
 
+sub TO_DATA ($self) {
+    die q[Direct auth object serialization is impossible for security reasons];
+}
+
 sub api_can_call ( $self, $method_id, $cb ) {
     my $map = $self->{app}->{api}->{map};
 
@@ -195,10 +199,6 @@ sub _authorize ( $self, $cb ) {
     return;
 }
 
-sub TO_DATA ($self) {
-    die q[Direct auth object serialization is impossible for security reasons];
-}
-
 sub extdirect_map ( $self, $ver, $cb ) {
     $self->{app}->{api}->{map}->extdirect_map( $self, $ver, $cb );
 
@@ -212,7 +212,7 @@ sub extdirect_map ( $self, $ver, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 134                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 138                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
