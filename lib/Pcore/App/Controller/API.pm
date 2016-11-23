@@ -34,8 +34,8 @@ sub run ( $self, $req ) {
 
             $req->authenticate(
                 sub ( $auth ) {
-                    $self->{app}->{api}->{map}->extdirect_map(
-                        $auth, $ver,
+                    $auth->extdirect_map(
+                        $ver,
                         sub ($map) {
                             $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $map, readable => 1 )->finish;
 

@@ -133,8 +133,6 @@ sub _build_method ($self) {
     return $method;
 }
 
-# TODO add caching
-# TODO how to work with FormHandler methods???
 sub extdirect_map ( $self, $auth, $ver, $cb ) {
     my $map = {
         id        => undef,
@@ -206,7 +204,7 @@ sub get_method ( $self, $method_id ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 119                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 119, 125, 140        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 119, 125, 138        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

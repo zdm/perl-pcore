@@ -199,6 +199,12 @@ sub TO_DATA ($self) {
     die q[Direct auth object serialization is impossible for security reasons];
 }
 
+sub extdirect_map ( $self, $ver, $cb ) {
+    $self->{app}->{api}->{map}->extdirect_map( $self, $ver, $cb );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
