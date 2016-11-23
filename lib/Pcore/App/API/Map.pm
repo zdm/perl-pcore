@@ -105,7 +105,7 @@ sub _build_method ($self) {
             # check method permissions
             if ( $method->{$method_id}->{permissions} ) {
 
-                # convert method role to ArrayRef
+                # convert method permissions to ArrayRef
                 $method->{$method_id}->{permissions} = [ $method->{$method_id}->{permissions} ] if !ref $method->{$method_id}->{permissions};
 
                 # methods permissions are empty
@@ -116,13 +116,16 @@ sub _build_method ($self) {
                 # check permissions
                 else {
                     for my $role ( $method->{$method_id}->{permissions}->@* ) {
-                        if ( !exists $self->app->api->roles->{$role} ) {
-                            die qq[Invalid API method permission "$role" for method "$method_id"];
+
+                        # expand "*"
+                        if ( $role eq q[*] ) {
+                            $method->{$method_id}->{permissions} = [ keys $self->app->api->roles->%* ];
+
+                            last;
                         }
 
-                        # adding method description to the role description
-                        else {
-                            $self->app->api->roles->{$role} .= qq[, $method->{$method_id}->{desc}];
+                        if ( !exists $self->app->api->roles->{$role} ) {
+                            die qq[Invalid API method permission "$role" for method "$method_id"];
                         }
                     }
                 }
@@ -202,9 +205,9 @@ sub get_method ( $self, $method_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 119                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 121, 127             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 119, 125, 138        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 122, 127, 141        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
