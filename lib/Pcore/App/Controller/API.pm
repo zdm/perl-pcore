@@ -1,13 +1,9 @@
 package Pcore::App::Controller::API;
 
 use Pcore -const, -role, -result;
-use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor];
+use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_uri_query];
 
 with qw[Pcore::App::Controller::WebSocket];
-
-# HTTP_AUTHORIZATION - Basic - username:password
-# HTTP_AUTHORIZATION - token - token
-# QUERY_STRING = access_token=asdasd
 
 const our $CONTENT_TYPE_JSON => 1;
 const our $CONTENT_TYPE_CBOR => 2;
@@ -30,7 +26,7 @@ sub run ( $self, $req ) {
     # ExtDirect API map
     if ( $req->{path_tail} ) {
         if ( $req->{path_tail} =~ m[\Aextdirect[.]json\z]sm ) {
-            my $query = P->data->from_uri_query( $req->{env}->{QUERY_STRING} );
+            my $query = from_uri_query $req->{env}->{QUERY_STRING};
 
             my $ver = $query->{v};
 
@@ -115,7 +111,7 @@ sub run ( $self, $req ) {
 
     # invalid content type
     else {
-        return $cb->( result [ 400, q[Content type is invalid] ] );
+        return $cb->( result 415 );
     }
 
     # method is not specified, this is callback, not supported in API server
@@ -252,7 +248,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 156                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 152                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
