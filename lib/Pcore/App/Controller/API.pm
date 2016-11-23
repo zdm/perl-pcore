@@ -56,47 +56,16 @@ sub run ( $self, $req ) {
 
     my $data;
 
-    # create callback
-    my $cb = sub ( $res ) {
-        my $response;
-
-        if ( $res->is_success ) {
-            $response = {
-                tid    => $data->{tid},
-                type   => 'rpc',
-                result => $res,
-            };
-        }
-        else {
-            $response = {
-                tid     => $data->{tid},
-                type    => 'exception',
-                message => $res->{message} // $res->{reason},
-            };
-        }
-
-        # create list of HTTP response headers
-        my @headers = (    #
-            'Content-Type' => $content_type == $CONTENT_TYPE_JSON ? 'application/json' : 'application/cbor',
-        );
-
-        push @headers, $res->{headers}->@* if $res->{headers};
-
-        # write HTTP response
-        $req->( 200, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $response : to_cbor $response)->finish;
-
-        # free HTTP request object
-        undef $req;
-
-        return;
-    };
-
     # JSON content type
     if ( !$env->{CONTENT_TYPE} || $env->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
         $data = eval { from_json $req->body };
 
         # content decode error
-        return $cb->( result [ 400, q[Error decoding JSON request body] ] ) if $@;
+        if ($@) {
+            $req->( [ 400, q[Error decoding JSON request body] ] )->finish;
+
+            return;
+        }
     }
 
     # CBOR content type
@@ -105,17 +74,19 @@ sub run ( $self, $req ) {
 
         $data = eval { from_cbor $req->body };
 
-        # content decode error
-        return $cb->( result [ 400, q[Error decoding CBOR request body] ] ) if $@;
+        if ($@) {
+            $req->( [ 400, q[Error decoding CBOR request body] ] )->finish;
+
+            return;
+        }
     }
 
     # invalid content type
     else {
-        return $cb->( result 415 );
-    }
+        $req->(415)->finish;
 
-    # method is not specified, this is callback, not supported in API server
-    return $cb->( result [ 400, q[Method is required] ] ) if !$data->{method};
+        return;
+    }
 
     # authenticate request
     $req->authenticate(
@@ -123,21 +94,76 @@ sub run ( $self, $req ) {
 
             # this is app connection, disabled
             if ( $auth->{is_app} ) {
-                $cb->( result [ 403, q[App must connect via WebSocket interface] ] );
+                $req->( [ 403, q[App must connect via WebSocket interface] ] )->finish;
             }
-
-            # method is specified, this is API call
-            elsif ( my $method_id = $data->{method} ) {
-
-                # ExtDirect call
-                $method_id = q[/] . ( $data->{action} =~ s[[.]][/]smgr ) . "/$data->{method}" if $data->{action};
-
-                $auth->api_call_arrayref( $method_id, [ $data->{data} ], $cb );
-            }
-
-            # method is not specified, this is callback, not supported in API server
             else {
-                $cb->( result [ 400, q[Method is required] ] );
+                $data = [$data] if ref $data ne 'ARRAY';
+
+                my ( $response, @headers );
+
+                my $cv = AE::cv sub {
+
+                    # add Content-Type header
+                    push @headers, ( 'Content-Type' => $content_type == $CONTENT_TYPE_JSON ? 'application/json' : 'application/cbor' );
+
+                    # write HTTP response
+                    $req->( 200, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $response : to_cbor $response)->finish;
+
+                    # free HTTP request object
+                    undef $req;
+
+                    return;
+                };
+
+                $cv->begin;
+
+                for my $tx ( $data->@* ) {
+
+                    # method is not specified, this is callback, not supported in API server
+                    if ( !$tx->{method} ) {
+                        push $response->@*,
+                          { tid     => $tx->{tid},
+                            type    => 'exception',
+                            message => 'Method is required',
+                          };
+
+                        next;
+                    }
+
+                    $cv->begin;
+
+                    # combine method with action
+                    my $method_id = $tx->{action} ? q[/] . ( $tx->{action} =~ s[[.]][/]smgr ) . "/$tx->{method}" : $tx->{method};
+
+                    $auth->api_call_arrayref(
+                        $method_id,
+                        [ $tx->{data} ],
+                        sub ($res) {
+                            if ( $res->is_success ) {
+                                push $response->@*,
+                                  { tid    => $tx->{tid},
+                                    type   => 'rpc',
+                                    result => $res,
+                                  };
+
+                                push @headers, $res->{headers}->@* if $res->{headers};
+                            }
+                            else {
+                                push $response->@*,
+                                  { tid     => $tx->{tid},
+                                    type    => 'exception',
+                                    message => $res->{message} // $res->{reason},
+                                  };
+                            }
+
+                            $cv->end;
+
+                            return;
+                        }
+                    );
+                }
+
+                $cv->end;
             }
 
             return;
@@ -248,7 +274,9 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 152                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 24                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 178                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
