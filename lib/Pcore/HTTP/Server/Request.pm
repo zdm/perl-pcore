@@ -249,18 +249,13 @@ sub authenticate ( $self, $cb ) {
             $token = $1;
         }
 
-        if ($token) {
-            $self->{app}->{api}->authenticate(
-                $user_name,
-                $token,
-                sub ($auth) {
-                    $cb->( $self->{_auth} = $auth );
-                }
-            );
-        }
-        else {
-            $cb->( $self->{_auth} = result 401 );
-        }
+        $self->{app}->{api}->authenticate(
+            $user_name,
+            $token,
+            sub ($auth) {
+                $cb->( $self->{_auth} = $auth );
+            }
+        );
     }
 
     return;

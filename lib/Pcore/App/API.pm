@@ -214,6 +214,14 @@ sub init ( $self, $cb ) {
 
 # AUTHENTICATE
 sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
+
+    # no auth token provided
+    if ( !defined $token ) {
+        $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
+
+        return;
+    }
+
     my ( $token_type, $token_id, $private_token );
 
     # authenticate user password
@@ -224,7 +232,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->( result [ 400, 'Error decoding user token' ] );
+            $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
 
             return;
         }
@@ -252,14 +260,14 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 
         # error decoding token
         if ($@) {
-            $cb->( result [ 400, 'Error decoding user token' ] );
+            $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
 
             return;
         }
 
         # invalid token type
         if ( !exists $TOKEN_TYPE->{$token_type} ) {
-            $cb->( result [ 400, 'Invalid token type' ] );
+            $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
 
             return;
         }
@@ -274,8 +282,10 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
 sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) {
     my $auth;
 
+    # get auth_id by private token
     my $auth_id = $self->{auth_cache}->{private_token}->{$private_token};
 
+    # get cached auth, if private token is cached and has associated auth id
     $auth = $self->{auth_cache}->{auth}->{$auth_id} if $auth_id;
 
     if ($auth) {
@@ -297,28 +307,48 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
         $auth ? undef : $private_token,    # validate token, if auth is new
 
         sub ( $res ) {
+
+            # get auth_id by private token
             $auth_id = $self->{auth_cache}->{private_token}->{$private_token};
 
+            # authentication error
             if ( !$res ) {
+
+                # invalidate auth, if auth id was cached
                 $self->{auth_cache}->remove_auth($auth_id) if $auth_id;
 
-                $cb->($res);
+                # return new unauthenticated auth object
+                $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
             }
+
+            # authenticated
             else {
-                $auth_id = $self->{auth_cache}->{private_token}->{$private_token} = uuid_str if !$auth_id;
 
-                $auth = $self->{auth_cache}->{auth}->{$auth_id};
+                # generate new auth_id, if auth wasn't cached yet
+                if ( !$auth_id ) {
+                    $auth_id = $self->{auth_cache}->{private_token}->{$private_token} = uuid_str;
+                }
 
+                # or try to get auth from cache
+                else {
+                    $auth = $self->{auth_cache}->{auth}->{$auth_id};
+                }
+
+                # auth is cached
                 if ($auth) {
+
+                    # store auth permissions
                     $auth->{permissions} = $res->{data}->{auth}->{permisions};
                 }
+
+                # auth wasn't cached
                 else {
+
+                    # create new auth object
                     $auth = $self->{auth_cache}->{auth}->{$auth_id} = bless $res->{data}->{auth}, 'Pcore::App::API::Auth';
 
-                    $auth->{app} = $self->{app};
-
-                    $auth->{id} = $auth_id;
-
+                    $auth->{app}           = $self->{app};
+                    $auth->{id}            = $auth_id;
                     $auth->{private_token} = $private_token;
 
                     # TODO tags
@@ -603,10 +633,10 @@ sub remove_user_session ( $self, $user_session_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 216, 274, 456, 477,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 520                  |                                                                                                                |
+## |    3 | 216, 282, 486, 507,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 550                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 241                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 249                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

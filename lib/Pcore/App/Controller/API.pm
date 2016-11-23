@@ -123,13 +123,6 @@ sub run ( $self, $req ) {
     $req->authenticate(
         sub ( $auth ) {
 
-            # token authentication error
-            if ( !$auth ) {
-                $cb->($auth);
-
-                return;
-            }
-
             # this is app connection, disabled
             if ( $auth->{is_app} ) {
                 $cb->( result [ 403, q[App must connect via WebSocket interface] ] );
@@ -257,9 +250,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 28                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 161                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 154                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

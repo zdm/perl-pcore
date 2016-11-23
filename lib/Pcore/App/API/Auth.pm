@@ -7,26 +7,26 @@ use Pcore::Util::Scalar qw[blessed];
 
 use overload    #
   q[bool] => sub {
-    return $_[0]->{app}->{api}->{auth_cache}->{auth}->{ $_[0]->{id} };
+    return $_[0]->{id} && $_[0]->{app}->{api}->{auth_cache}->{auth}->{ $_[0]->{id} };
   },
   fallback => undef;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has id => ( is => 'ro', isa => Str, required => 1 );
-has token_type => ( is => 'ro', isa => Enum [ keys $TOKEN_TYPE->%* ], required => 1 );
-has token_id => ( is => 'ro', isa => Str, required => 1 );
+has id         => ( is => 'ro', isa => Maybe [Str] );
+has token_type => ( is => 'ro', isa => Maybe [ Enum [ keys $TOKEN_TYPE->%* ] ] );
+has token_id   => ( is => 'ro', isa => Maybe [Str] );
 
-has is_user => ( is => 'ro', isa => Bool, required => 1 );
-has is_root => ( is => 'ro', isa => Bool, required => 1 );
-has user_id   => ( is => 'ro', isa => Maybe [Str], required => 1 );
-has user_name => ( is => 'ro', isa => Maybe [Str], required => 1 );
+has is_user   => ( is => 'ro', isa => Bool );
+has is_root   => ( is => 'ro', isa => Bool );
+has user_id   => ( is => 'ro', isa => Maybe [Str] );
+has user_name => ( is => 'ro', isa => Maybe [Str] );
 
-has is_app => ( is => 'ro', isa => Bool, required => 1 );
-has app_id          => ( is => 'ro', isa => Maybe [Str], required => 1 );
-has app_instance_id => ( is => 'ro', isa => Maybe [Str], required => 1 );
+has is_app          => ( is => 'ro', isa => Bool );
+has app_id          => ( is => 'ro', isa => Maybe [Str] );
+has app_instance_id => ( is => 'ro', isa => Maybe [Str] );
 
-has permissions => ( is => 'ro', isa => Maybe [HashRef], required => 1 );
+has permissions => ( is => 'ro', isa => Maybe [HashRef] );
 
 sub api_can_call ( $self, $method_id, $cb ) {
     my $map = $self->{app}->{api}->{map};
@@ -34,14 +34,20 @@ sub api_can_call ( $self, $method_id, $cb ) {
     # find method
     my $method_cfg = $map->{method}->{$method_id};
 
+    # methodd wasn't found
     if ( !$method_cfg ) {
-        $cb->( result [ 404, qq[API method "$method_id" was not found] ] );
+        $cb->( result 404 );
 
         return;
     }
 
     # user is root, method authentication is not required
     if ( $self->{is_root} ) {
+        $cb->( result 200 );
+    }
+
+    # method has no permissions, authorization is not required
+    elsif ( !$method_cfg->{permissions} ) {
         $cb->( result 200 );
     }
 
@@ -52,16 +58,9 @@ sub api_can_call ( $self, $method_id, $cb ) {
         $self->_authorize(
             sub ($permissions) {
 
-                # user is disabled or permisisons error
+                # user is disabled or permisisons error, api call is forbidden
                 if ( !$permissions ) {
-                    $cb->( result [ 403, qq[Unauthorized access to API method "$method_id"] ] );
-
-                    return;
-                }
-
-                # method has no permissions, api call is allowed for any authenticated user
-                if ( !$method_cfg->{permissions} ) {
-                    $cb->( result 200 );
+                    $cb->( result 403 );
 
                     return;
                 }
@@ -75,8 +74,8 @@ sub api_can_call ( $self, $method_id, $cb ) {
                     }
                 }
 
-                # api call is permitted
-                $cb->( result [ 403, qq[Unauthorized access to API method "$method_id"] ] );
+                # api call is forbidden
+                $cb->( result 403 );
 
                 return;
             }
@@ -148,7 +147,7 @@ sub _authorize ( $self, $cb ) {
     my $cache = $self->{app}->{api}->{auth_cache}->{auth};
 
     # token was removed, token is not authenticated
-    if ( !exists $cache->{ $self->{id} } ) {
+    if ( !$self->{id} || !exists $cache->{ $self->{id} } ) {
         $cb->(undef);
 
         return;
@@ -197,7 +196,7 @@ sub _authorize ( $self, $cb ) {
 }
 
 sub TO_DATA ($self) {
-    die q[API auth object serialization error];
+    die q[Direct auth object serialization is impossible for security reasons];
 }
 
 1;
@@ -207,7 +206,7 @@ sub TO_DATA ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 135                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 134                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
