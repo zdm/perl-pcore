@@ -137,7 +137,7 @@ sub run ( $self, $req ) {
 
                     $auth->api_call_arrayref(
                         $method_id,
-                        [ $tx->{data} ],
+                        $tx->{data},
                         sub ($res) {
                             if ( $res->is_success ) {
                                 push $response->@*,

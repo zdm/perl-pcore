@@ -170,11 +170,11 @@ sub extdirect_map ( $self, $auth, $ver, $cb ) {
 
                       # JSON method
                       { name     => $method->{method_name},
-                        len      => undef,
+                        len      => 1,
                         params   => [],
                         strict   => \0,
                         metadata => {
-                            len    => undef,
+                            len    => 1,
                             params => [],
                             strict => \0,
                         },
