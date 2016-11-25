@@ -41,8 +41,6 @@ sub TO_DATA ($self) {
     delete $dump->{status_reason};
     delete $dump->{headers};
 
-    $dump->{message} //= $self->{reason} if !$self->is_success;
-
     return $dump;
 }
 
