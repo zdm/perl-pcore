@@ -5,7 +5,7 @@ use Pcore::App::API qw[:CONST];
 use Pcore::Util::Text qw[encode_utf8];
 
 # TODO tags
-sub _auth_user_session ( $self, $source_app_instance_id, $user_session_id, $private_token, $cb ) {
+sub _auth_user_session ( $self, $source_app_instance_id, $private_token, $cb ) {
     state $q1 = <<'SQL';
         SELECT
             api_app_role.name AS app_role_name
@@ -35,7 +35,7 @@ SQL
                 api_user.id = api_user_session.user_id
                 AND api_user_session.id = ?
 SQL
-        [$user_session_id]
+        [ $private_token->[1] ]
     );
 
     # user session not found
@@ -52,62 +52,48 @@ SQL
         return;
     }
 
-    my $get_permissions = sub {
-        my $auth = {
-            token_type => $TOKEN_TYPE_USER_SESSION,
-            token_id   => $user_session_id,
+    # verify token
+    $self->_verify_token_hash(
+        $private_token->[2],
+        $user_session->{user_session_hash},
+        encode_utf8( $user_session->{user_id} ),
+        sub ($status) {
 
-            is_user   => 1,
-            is_root   => $user_session->{user_name} eq 'root',
-            user_id   => $user_session->{user_id},
-            user_name => $user_session->{user_name},
-
-            is_app          => 0,
-            app_id          => undef,
-            app_instance_id => undef,
-        };
-
-        my $tags = {};
-
-        # get permissions
-        if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_session->{user_id} ] ) ) {
-            $auth->{permissions} = { map { $_->{app_role_name} => 1 } $roles->@* };
-        }
-        else {
-            $auth->{permissions} = {};
-        }
-
-        $cb->( result 200, { auth => $auth, tags => $tags } );
-
-        return;
-    };
-
-    if ($private_token) {
-
-        # verify token
-        $self->_verify_token_hash(
-            $private_token,
-            $user_session->{user_session_hash},
-            encode_utf8( $user_session->{user_id} ),
-            sub ($status) {
-
-                # token is valid
-                if ($status) {
-                    $get_permissions->();
-                }
-
-                # token is invalid
-                else {
-                    $cb->($status);
-                }
-
-                return;
+            # token is not valid
+            if ( !$status ) {
+                $cb->($status);
             }
-        );
-    }
-    else {
-        $get_permissions->();
-    }
+
+            # token is invalid
+            else {
+                my $auth = {
+                    private_token => $private_token,
+
+                    is_user   => 1,
+                    is_root   => $user_session->{user_name} eq 'root',
+                    user_id   => $user_session->{user_id},
+                    user_name => $user_session->{user_name},
+
+                    is_app          => 0,
+                    app_id          => undef,
+                    app_instance_id => undef,
+
+                    permissions => {},
+                };
+
+                my $tags = {};
+
+                # get permissions
+                if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_session->{user_id} ] ) ) {
+                    $auth->{permissions} = { map { $_->{app_role_name} => 1 } $roles->@* };
+                }
+
+                $cb->( result 200, { auth => $auth, tags => $tags } );
+            }
+
+            return;
+        }
+    );
 
     return;
 }

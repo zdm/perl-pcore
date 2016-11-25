@@ -13,9 +13,8 @@ use overload    #
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has id         => ( is => 'ro', isa => Maybe [Str] );
-has token_type => ( is => 'ro', isa => Maybe [ Enum [ keys $TOKEN_TYPE->%* ] ] );
-has token_id   => ( is => 'ro', isa => Maybe [Str] );
+has id            => ( is => 'ro', isa => Maybe [Str] );
+has private_token => ( is => 'ro', isa => Maybe [ArrayRef] );
 
 has is_user   => ( is => 'ro', isa => Bool );
 has is_root   => ( is => 'ro', isa => Bool );
@@ -212,7 +211,7 @@ sub extdirect_map ( $self, $ver, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 138                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 137                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -11,7 +11,7 @@ sub remove_auth ( $self, $auth_id ) {
     if ( my $auth = $self->{auth}->{$auth_id} ) {
 
         # remove private token
-        delete $self->{private_token}->{ $auth->{private_token} };
+        delete $self->{private_token}->{ $auth->{private_token}->[2] };
 
         # remove auth
         delete $self->{auth}->{$auth_id};

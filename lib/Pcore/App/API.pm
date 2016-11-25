@@ -32,6 +32,7 @@ has permissions => ( is => 'ro', isa => Maybe [ArrayRef], init_arg => undef );  
 has backend => ( is => 'ro', isa => ConsumerOf ['Pcore::App::API::Backend'], init_arg => undef );
 
 has auth_cache => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth::Cache'], init_arg => undef );
+has _auth_cb_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around _build_roles => sub ( $orig, $self ) {
     my $roles = $self->$orig;
@@ -273,43 +274,39 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
         }
     }
 
-    $self->authenticate_private( $token_type, $token_id, $private_token, $cb );
+    $self->authenticate_private( [ $token_type, $token_id, $private_token ], $cb );
 
     return;
 }
 
 # TODO link tags
-sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) {
+sub authenticate_private ( $self, $private_token, $cb ) {
     my $auth;
 
     # get auth_id by private token
-    my $auth_id = $self->{auth_cache}->{private_token}->{$private_token};
+    my $auth_id = $self->{auth_cache}->{private_token}->{ $private_token->[2] };
 
     # get cached auth, if private token is cached and has associated auth id
     $auth = $self->{auth_cache}->{auth}->{$auth_id} if $auth_id;
 
     if ($auth) {
+        $cb->($auth);
 
-        # auth is valid and auth permissions are defined
-        if ( defined $auth->{permissions} ) {
-            $cb->($auth);
-
-            return;
-        }
+        return;
     }
 
+    push $self->{_auth_cb_cache}->{ $private_token->[2] }->@*, $cb;
+
+    return if $self->{_auth_cb_cache}->{ $private_token->[2] }->@* > 1;
+
     # authenticate on backend
-    # TODO stack calls
     $self->{backend}->auth_token(
         $self->{app}->{instance_id},
-        $token_type,
-        $token_id,
-        $auth ? undef : $private_token,    # validate token, if auth is new
-
+        $private_token,
         sub ( $res ) {
 
             # get auth_id by private token
-            $auth_id = $self->{auth_cache}->{private_token}->{$private_token};
+            $auth_id = $self->{auth_cache}->{private_token}->{ $private_token->[2] };
 
             # authentication error
             if ( !$res ) {
@@ -326,7 +323,7 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
 
                 # generate new auth_id, if auth wasn't cached yet
                 if ( !$auth_id ) {
-                    $auth_id = $self->{auth_cache}->{private_token}->{$private_token} = uuid_str;
+                    $auth_id = $self->{auth_cache}->{private_token}->{ $private_token->[2] } = uuid_str;
                 }
 
                 # or try to get auth from cache
@@ -337,7 +334,7 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
                 # auth is cached
                 if ($auth) {
 
-                    # store auth permissions
+                    # update auth permissions
                     $auth->{permissions} = $res->{data}->{auth}->{permisions};
                 }
 
@@ -347,15 +344,19 @@ sub authenticate_private ( $self, $token_type, $token_id, $private_token, $cb ) 
                     # create new auth object
                     $auth = $self->{auth_cache}->{auth}->{$auth_id} = bless $res->{data}->{auth}, 'Pcore::App::API::Auth';
 
-                    $auth->{app}           = $self->{app};
-                    $auth->{id}            = $auth_id;
-                    $auth->{private_token} = $private_token;
+                    $auth->{app} = $self->{app};
+                    $auth->{id}  = $auth_id;
 
                     # TODO tags
                     # my $tags = $res->{data}->{tags};
                 }
 
-                $cb->($auth);
+                # call callbacks
+                while ( my $cb = shift $self->{_auth_cb_cache}->{ $private_token->[2] }->@* ) {
+                    $cb->($auth);
+                }
+
+                delete $self->{_auth_cb_cache}->{ $private_token->[2] };
             }
 
             return;
@@ -631,12 +632,11 @@ sub remove_user_session ( $self, $user_session_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 60                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 216, 282, 486, 507,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 550                  |                                                                                                                |
+## |    3 | 217, 487, 508, 551   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 249                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 250                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

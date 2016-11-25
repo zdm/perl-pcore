@@ -236,18 +236,18 @@ sub connect_app_instance ( $self, $app_instance_id, $app_instance_version, $app_
 
 # AUTH
 # NOTE this method should be accessible only for applications
-sub auth_token ( $self, $app_instance_id, $token_type, $token_id, $private_token, $cb ) {
-    if ( $token_type == $TOKEN_TYPE_USER_PASSWORD ) {
-        $self->_auth_user_password( $app_instance_id, $token_id, $private_token, $cb );
+sub auth_token ( $self, $app_instance_id, $private_token, $cb ) {
+    if ( $private_token->[0] == $TOKEN_TYPE_USER_PASSWORD ) {
+        $self->_auth_user_password( $app_instance_id, $private_token, $cb );
     }
-    elsif ( $token_type == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
-        $self->_auth_app_instance_token( $app_instance_id, $token_id, $private_token, $cb );
+    elsif ( $private_token->[0] == $TOKEN_TYPE_APP_INSTANCE_TOKEN ) {
+        $self->_auth_app_instance_token( $app_instance_id, $private_token, $cb );
     }
-    elsif ( $token_type == $TOKEN_TYPE_USER_TOKEN ) {
-        $self->_auth_user_token( $app_instance_id, $token_id, $private_token, $cb );
+    elsif ( $private_token->[0] == $TOKEN_TYPE_USER_TOKEN ) {
+        $self->_auth_user_token( $app_instance_id, $private_token, $cb );
     }
-    elsif ( $token_type == $TOKEN_TYPE_USER_SESSION ) {
-        $self->_auth_user_session( $app_instance_id, $token_id, $private_token, $cb );
+    elsif ( $private_token->[0] == $TOKEN_TYPE_USER_SESSION ) {
+        $self->_auth_user_session( $app_instance_id, $private_token, $cb );
     }
     else {
         $cb->( result [ 400, 'Invalid token type' ] );

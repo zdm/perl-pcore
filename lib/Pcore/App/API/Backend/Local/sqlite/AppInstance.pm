@@ -6,7 +6,7 @@ use Pcore::Util::Text qw[encode_utf8];
 
 # TODO salt = app_id
 # TODO return result hash
-sub _auth_app_instance_token ( $self, $source_app_instance_id, $app_instance_id, $private_token, $cb ) {
+sub _auth_app_instance_token ( $self, $source_app_instance_id, $private_token, $cb ) {
     state $sql1 = <<'SQL';
         SELECT
             api_app_instance.app_id,
@@ -39,7 +39,7 @@ SQL
 SQL
 
     # get app instance
-    my $res = $self->dbh->selectrow( $sql1, [$app_instance_id] );
+    my $res = $self->dbh->selectrow( $sql1, [ $private_token->[1] ] );
 
     # app instance not found
     if ( !$res ) {
@@ -48,70 +48,55 @@ SQL
         return;
     }
 
-    my $continue = sub {
-        my $app_id = $res->{app_id};
+    # verify token
+    $self->_verify_token_hash(
+        $private_token->[2],
+        $res->{hash},
+        encode_utf8( $res->{app_id} ),
+        sub ($status) {
 
-        my $auth = {
-            token_type => $TOKEN_TYPE_APP_INSTANCE_TOKEN,
-
-            is_user   => 0,
-            is_root   => undef,
-            user_id   => undef,
-            user_name => undef,
-
-            is_app          => 0,
-            app_id          => $app_id,
-            app_instance_id => $app_instance_id,
-
-            enabled => $res->{app_enabled} && $res->{app_instance_enabled},
-        };
-
-        my $tags = {
-            app_id          => $res->{app_id},
-            app_instance_id => $app_instance_id,
-        };
-
-        # get permissions
-        if ( my $roles = $self->dbh->selectall( $sql2, [ $source_app_instance_id, $app_id ] ) ) {
-            for my $row ( $roles->@* ) {
-                $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
+            # token is not valid
+            if ( !$status ) {
+                $cb->($status);
             }
-        }
-        else {
-            $auth->{permissions} = {};
-        }
 
-        $cb->( result 200, auth => $auth, tags => $tags );
+            # token is valid
+            else {
+                my $auth = {
+                    private_token => $private_token,
 
-        return;
-    };
+                    is_user   => 0,
+                    is_root   => undef,
+                    user_id   => undef,
+                    user_name => undef,
 
-    if ($private_token) {
+                    is_app          => 0,
+                    app_id          => $res->{app_id},
+                    app_instance_id => $private_token->[1],
 
-        # verify token
-        $self->_verify_token_hash(
-            $private_token,
-            $res->{hash},
-            encode_utf8( $res->{app_id} ),
-            sub ($status) {
+                    enabled => $res->{app_enabled} && $res->{app_instance_enabled},
 
-                # token valid
-                if ($status) {
-                    $continue->();
+                    permissions => {},
+                };
+
+                my $tags = {
+                    app_id          => $res->{app_id},
+                    app_instance_id => $private_token->[1],
+                };
+
+                # get permissions
+                if ( my $roles = $self->dbh->selectall( $sql2, [ $source_app_instance_id, $res->{app_id} ] ) ) {
+                    for my $row ( $roles->@* ) {
+                        $auth->{permissions}->{ $row->{source_app_role_name} } = 1;
+                    }
                 }
 
-                # token is invalid
-                else {
-                    $cb->($status);
-                }
-
-                return;
+                $cb->( result 200, auth => $auth, tags => $tags );
             }
-        );
-    }
-    else {
-        $continue->();
-    }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -234,7 +219,7 @@ sub update_app_instance ( $self, $app_instance_id, $app_instance_version, $cb ) 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9, 132, 217          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 9, 117, 202          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 9                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_app_instance_token' declared  |
 ## |      |                      | but not used                                                                                                   |

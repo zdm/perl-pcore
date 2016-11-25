@@ -6,7 +6,7 @@ use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::Text qw[encode_utf8];
 
 # TODO tags
-sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $private_token, $cb ) {
+sub _auth_user_password ( $self, $source_app_instance_id, $private_token, $cb ) {
     state $q1 = <<'SQL';
         SELECT
             api_app_role.name AS app_role_name
@@ -22,7 +22,7 @@ sub _auth_user_password ( $self, $source_app_instance_id, $user_name_utf8, $priv
 SQL
 
     # get user
-    my $user = $self->dbh->selectrow( q[SELECT id, hash, enabled FROM api_user WHERE name = ?], [$user_name_utf8] );
+    my $user = $self->dbh->selectrow( q[SELECT id, hash, enabled FROM api_user WHERE name = ?], [ $private_token->[1] ] );
 
     # user not found
     if ( !$user ) {
@@ -38,73 +38,52 @@ SQL
         return;
     }
 
-    my $get_permissions = sub {
-        my $user_id = $user->{id};
+    # verify token
+    $self->_verify_token_hash(
+        $private_token->[2],
+        $user->{hash},
+        encode_utf8( $user->{id} ),
+        sub ($status) {
 
-        my $auth = {
-            token_type => $TOKEN_TYPE_USER_PASSWORD,
-            token_id   => $user_name_utf8,
-
-            is_user   => 1,
-            is_root   => $user_name_utf8 eq 'root',
-            user_id   => $user_id,
-            user_name => $user_name_utf8,
-
-            is_app          => 0,
-            app_id          => undef,
-            app_instance_id => undef,
-        };
-
-        my $tags = {};
-
-        # root user
-        if ( $auth->{is_root} ) {
-            $auth->{permissions} = {};
-        }
-
-        # non-root user
-        else {
-
-            # get permissions
-            if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_id ] ) ) {
-                $auth->{permissions} = { map { $_->{app_role_name} => 1 } $roles->@* };
+            # token is invalid
+            if ( !$status ) {
+                $cb->($status);
             }
+
+            # token is valid
             else {
-                $auth->{permissions} = {};
+                my $auth = {
+                    private_token => $private_token,
+
+                    is_user   => 1,
+                    is_root   => $private_token->[1] eq 'root',
+                    user_id   => $user->{id},
+                    user_name => $private_token->[1],
+
+                    is_app          => 0,
+                    app_id          => undef,
+                    app_instance_id => undef,
+
+                    permissions => {},
+                };
+
+                my $tags = {};
+
+                # not a root user
+                if ( !$auth->{is_root} ) {
+
+                    # get permissions
+                    if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user->{id} ] ) ) {
+                        $auth->{permissions} = { map { $_->{app_role_name} => 1 } $roles->@* };
+                    }
+                }
+
+                $cb->( result 200, { auth => $auth, tags => $tags } );
             }
+
+            return;
         }
-
-        $cb->( result 200, { auth => $auth, tags => $tags } );
-
-        return;
-    };
-
-    if ($private_token) {
-
-        # verify token
-        $self->_verify_token_hash(
-            $private_token,
-            $user->{hash},
-            encode_utf8( $user->{id} ),
-            sub ($status) {
-
-                # token is valid
-                if ($status) {
-                    $get_permissions->();
-                }
-
-                # token is invalid
-                else {
-                    $cb->($status);
-                }
-
-                return;
-            }
-        );
-    }
-    else {
-        $get_permissions->();
-    }
+    );
 
     return;
 }
@@ -495,16 +474,16 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9, 209, 375          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 9, 188, 354          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 9                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_password' declared but   |
 ## |      |                      | not used                                                                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 130                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 109                  | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 209                  | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
+## |    3 | 188                  | Subroutines::ProhibitExcessComplexity - Subroutine "create_user" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 292, 347             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 271, 326             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

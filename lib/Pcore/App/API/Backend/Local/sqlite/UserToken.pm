@@ -6,7 +6,7 @@ use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::Text qw[encode_utf8];
 
 # TODO tags
-sub _auth_user_token ( $self, $source_app_instance_id, $user_token_id, $private_token, $cb ) {
+sub _auth_user_token ( $self, $source_app_instance_id, $private_token, $cb ) {
     state $q1 = <<'SQL';
         SELECT
             api_app_role.name AS app_role_name
@@ -38,7 +38,7 @@ SQL
                 api_user.id = api_user_token.user_id
                 AND api_user_token.id = ?
 SQL
-        [$user_token_id]
+        [ $private_token->[1] ]
     );
 
     # user token not found
@@ -55,62 +55,48 @@ SQL
         return;
     }
 
-    my $get_permissions = sub {
-        my $auth = {
-            token_type => $TOKEN_TYPE_USER_TOKEN,
-            token_id   => $user_token_id,
+    # verify token
+    $self->_verify_token_hash(
+        $private_token->[2],
+        $user_token->{user_token_hash},
+        encode_utf8( $user_token->{user_id} ),
+        sub ($status) {
 
-            is_user   => 1,
-            is_root   => 0,
-            user_id   => $user_token->{user_id},
-            user_name => $user_token->{user_name},
-
-            is_app          => 0,
-            app_id          => undef,
-            app_instance_id => undef,
-        };
-
-        my $tags = {};
-
-        # get permissions
-        if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $user_token_id ] ) ) {
-            $auth->{permissions} = { map { $_->{app_role_name} => 1 } $roles->@* };
-        }
-        else {
-            $auth->{permissions} = {};
-        }
-
-        $cb->( result 200, { auth => $auth, tags => $tags } );
-
-        return;
-    };
-
-    if ($private_token) {
-
-        # verify token
-        $self->_verify_token_hash(
-            $private_token,
-            $user_token->{user_token_hash},
-            encode_utf8( $user_token->{user_id} ),
-            sub ($status) {
-
-                # token is valid
-                if ($status) {
-                    $get_permissions->();
-                }
-
-                # token is invalid
-                else {
-                    $cb->($status);
-                }
-
-                return;
+            # token is not valid
+            if ( !$status ) {
+                $cb->($status);
             }
-        );
-    }
-    else {
-        $get_permissions->();
-    }
+
+            # token is valid
+            else {
+                my $auth = {
+                    private_token => $private_token,
+
+                    is_user   => 1,
+                    is_root   => 0,
+                    user_id   => $user_token->{user_id},
+                    user_name => $user_token->{user_name},
+
+                    is_app          => 0,
+                    app_id          => undef,
+                    app_instance_id => undef,
+
+                    permissions => {},
+                };
+
+                my $tags = {};
+
+                # get permissions
+                if ( my $roles = $self->dbh->selectall( $q1, [ $source_app_instance_id, $private_token->[1] ] ) ) {
+                    $auth->{permissions} = { map { $_->{app_role_name} => 1 } $roles->@* };
+                }
+
+                $cb->( result 200, { auth => $auth, tags => $tags } );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -269,12 +255,12 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9, 118               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 9, 104               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 9                    | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_auth_user_token' declared but not  |
 ## |      |                      | used                                                                                                           |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 169, 196, 204, 210   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 155, 182, 190, 196   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
