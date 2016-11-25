@@ -6,10 +6,11 @@ use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
 
 has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
-has token             => ( is => 'lazy', isa => Str );
-has keepalive_timeout => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
-has http_timeout      => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
-has http_tls_ctx      => ( is => 'ro',   isa => Maybe [HashRef] );
+has token => ( is => 'lazy', isa => Str );
+has api_ver => ( is => 'ro', isa => Str, default => 'v1' );    # default API version for relative methods
+has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
+has http_timeout      => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
+has http_tls_ctx      => ( is => 'ro', isa => Maybe [HashRef] );
 
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -51,6 +52,9 @@ sub api_call ( $self, $method, @ ) {
         $data = [ splice @_, 2 ];
     }
 
+    # add version to relative method id
+    $method = "/$self->{api_ver}/$method" if substr( $method, 0, 1 ) ne q[/];
+
     # HTTP protocol
     if ( $self->_is_http ) {
         P->http->post(
@@ -76,9 +80,14 @@ sub api_call ( $self, $method, @ ) {
                     $cb->( result [ $res->status, $res->reason ] ) if $cb;
                 }
                 else {
-                    my $response = from_cbor $res->body;
+                    my $res_data = from_cbor $res->body;
 
-                    $cb->( bless $response, 'Pcore::Util::Result' ) if $cb;
+                    if ( $res_data->{type} eq 'exception' ) {
+                        $cb->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' ) if $cb;
+                    }
+                    else {
+                        $cb->( bless $res_data->[0]->{result}, 'Pcore::Util::Result' ) if $cb;
+                    }
                 }
 
                 return;
@@ -213,7 +222,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 41                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (30)                  |
+## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (34)                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

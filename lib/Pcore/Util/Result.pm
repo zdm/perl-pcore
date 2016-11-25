@@ -30,6 +30,11 @@ sub result ( $status, @ ) {
     return bless \%args, __PACKAGE__;
 }
 
+# allowed attributes:
+# - data - default;
+# - error - error message, or HashRef field_name => field_validation_error;
+# - headers - HTTP headers;
+
 sub TO_DATA ($self) {
     my $dump = { $self->%* };
 

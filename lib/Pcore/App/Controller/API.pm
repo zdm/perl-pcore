@@ -124,7 +124,10 @@ sub run ( $self, $req ) {
                         push $response->@*,
                           { tid     => $tx->{tid},
                             type    => 'exception',
-                            message => 'Method is required',
+                            message => {
+                                status => 400,
+                                reason => 'Method is required',
+                            },
                           };
 
                         next;
@@ -139,20 +142,20 @@ sub run ( $self, $req ) {
                         $method_id,
                         $tx->{data},
                         sub ($res) {
+                            push @headers, $res->{headers}->@* if $res->{headers};
+
                             if ( $res->is_success ) {
                                 push $response->@*,
                                   { tid    => $tx->{tid},
                                     type   => 'rpc',
                                     result => $res,
                                   };
-
-                                push @headers, $res->{headers}->@* if $res->{headers};
                             }
                             else {
                                 push $response->@*,
                                   { tid     => $tx->{tid},
                                     type    => 'exception',
-                                    message => $res->{message} // $res->{reason},
+                                    message => $res,
                                   };
                             }
 
@@ -276,7 +279,7 @@ sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 24                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 178                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 181                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
