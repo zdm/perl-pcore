@@ -315,7 +315,7 @@ sub authenticate_private ( $self, $private_token, $cb ) {
                 $self->{auth_cache}->remove_auth($auth_id) if $auth_id;
 
                 # return new unauthenticated auth object
-                $cb->( bless { app => $self->{app} }, 'Pcore::App::API::Auth' );
+                $auth = bless { app => $self->{app} }, 'Pcore::App::API::Auth';
             }
 
             # authenticated
@@ -350,14 +350,14 @@ sub authenticate_private ( $self, $private_token, $cb ) {
                     # TODO tags
                     # my $tags = $res->{data}->{tags};
                 }
-
-                # call callbacks
-                while ( my $cb = shift $self->{_auth_cb_cache}->{ $private_token->[2] }->@* ) {
-                    $cb->($auth);
-                }
-
-                delete $self->{_auth_cb_cache}->{ $private_token->[2] };
             }
+
+            # call callbacks
+            while ( my $cb = shift $self->{_auth_cb_cache}->{ $private_token->[2] }->@* ) {
+                $cb->($auth);
+            }
+
+            delete $self->{_auth_cb_cache}->{ $private_token->[2] };
 
             return;
         }
