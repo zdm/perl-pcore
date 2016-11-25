@@ -14,7 +14,7 @@ use overload    #
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
 has id            => ( is => 'ro', isa => Maybe [Str] );
-has private_token => ( is => 'ro', isa => Maybe [ArrayRef] );
+has private_token => ( is => 'ro', isa => Maybe [ArrayRef] );    # [ $token_type, $token_id, $token_hash ]
 
 has is_user   => ( is => 'ro', isa => Bool );
 has is_root   => ( is => 'ro', isa => Bool );
@@ -32,57 +32,82 @@ sub TO_DATA ($self) {
 }
 
 sub api_can_call ( $self, $method_id, $cb ) {
-    my $map = $self->{app}->{api}->{map};
+    my $auth_cache = $self->{app}->{api}->{auth_cache};
 
-    # find method
-    my $method_cfg = $map->{method}->{$method_id};
+    state $check_permissions = sub ( $auth, $method_id, $cb ) {
 
-    # methodd wasn't found
-    if ( !$method_cfg ) {
-        $cb->( result 404 );
+        # find method
+        my $method_cfg = $auth->{app}->{api}->{map}->{method}->{$method_id};
 
-        return;
-    }
+        # method wasn't found
+        if ( !$method_cfg ) {
+            $cb->( result 404 );
+        }
 
-    # user is root, method authentication is not required
-    if ( $self->{is_root} ) {
-        $cb->( result 200 );
-    }
+        # method was found
+        else {
 
-    # method has no permissions, authorization is not required
-    elsif ( !$method_cfg->{permissions} ) {
-        $cb->( result 200 );
-    }
+            # user is root, method authentication is not required
+            if ( $auth->{is_root} ) {
+                $cb->( result 200 );
+            }
 
-    # user is not root, need to perform authorization
-    else {
+            # method has no permissions, authorization is not required
+            elsif ( !$method_cfg->{permissions} ) {
+                $cb->( result 200 );
+            }
 
-        # perform authorization
-        $self->_authorize(
-            sub ($permissions) {
+            # auth has no permisisons, api call is forbidden
+            elsif ( !$auth->{permissions} ) {
+                $cb->( result 403 );
+            }
 
-                # user is disabled or permisisons error, api call is forbidden
-                if ( !$permissions ) {
-                    $cb->( result 403 );
-
-                    return;
-                }
-
-                # method has permissions, compare method roles with authorized roles
-                for my $role ( $method_cfg->{permissions}->@* ) {
-                    if ( exists $permissions->{$role} ) {
+            # compare permissions
+            else {
+                for my $role_name ( $method_cfg->{permissions}->@* ) {
+                    if ( exists $auth->{permissions}->{$role_name} ) {
                         $cb->( result 200 );
 
                         return;
                     }
                 }
 
-                # api call is forbidden
                 $cb->( result 403 );
-
-                return;
             }
-        );
+        }
+
+        return;
+    };
+
+    # token is not authenticated
+    if ( !$self->{private_token} ) {
+        $check_permissions->( $self, $method_id, $cb );
+    }
+
+    # token is authenticated
+    else {
+
+        # get auth_id from cache
+        my $auth_id = $auth_cache->{private_token}->{ $self->{private_token}->[2] };
+
+        # token is authenticated
+        if ( $auth_id && $auth_cache->{auth}->{$auth_id} ) {
+            $check_permissions->( $self, $method_id, $cb );
+        }
+
+        # token was invalidated
+        else {
+
+            # re-authenticate token
+            $self->{app}->{api}->authenticate_private(
+                $self->{private_token},
+                sub ($auth) {
+                    $check_permissions->( $auth, $method_id, $cb );
+
+                    return;
+                }
+            );
+        }
     }
 
     return;
@@ -146,58 +171,6 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
     return;
 }
 
-sub _authorize ( $self, $cb ) {
-    my $cache = $self->{app}->{api}->{auth_cache}->{auth};
-
-    # token was removed, token is not authenticated
-    if ( !$self->{id} || !exists $cache->{ $self->{id} } ) {
-        $cb->(undef);
-
-        return;
-    }
-
-    # auth is enabled and has permissions defined
-    if ( defined $self->{permissions} ) {
-        $cb->( $self->{permissions} );
-
-        return;
-    }
-
-    # authorize on backend
-    $self->{backend}->auth_token(
-        $self->{app}->{instance_id},
-        $self->{token_type},
-        $self->{token_id},
-        undef,    # do not validate token
-
-        sub ( $res ) {
-
-            # get permissions error
-            if ( !$res ) {
-                $cb->(undef);
-            }
-
-            # permissions retrieved
-            else {
-
-                # token was removed, token is not authenticated
-                if ( !exists $cache->{ $self->{id} } ) {
-                    $cb->(undef);
-                }
-                else {
-                    $self->{permissions} = $res->{data}->{auth}->{permisions};
-
-                    $cb->( $self->{permissions} );
-                }
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
 sub extdirect_map ( $self, $ver, $cb ) {
     $self->{app}->{api}->{map}->extdirect_map( $self, $ver, $cb );
 
@@ -211,7 +184,7 @@ sub extdirect_map ( $self, $ver, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 137                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 162                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

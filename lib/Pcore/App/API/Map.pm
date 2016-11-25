@@ -164,8 +164,8 @@ sub extdirect_map ( $self, $auth, $ver, $cb ) {
 
         $auth->api_can_call(
             $method->{id},
-            sub ($status) {
-                if ($status) {
+            sub ($can_call) {
+                if ($can_call) {
                     push $map->{actions}->{ $method->{extjs_action} }->@*,
 
                       # JSON method
