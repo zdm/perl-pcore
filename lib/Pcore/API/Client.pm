@@ -75,18 +75,21 @@ sub api_call ( $self, $method, @ ) {
             ),
             on_finish => sub ($res) {
 
-                # HTTP protocol or API call error
-                if ( !$res ) {
-                    $cb->( result [ $res->status, $res->reason ] ) if $cb;
-                }
-                else {
-                    my $res_data = from_cbor $res->body;
+                if ($cb) {
 
-                    if ( $res_data->{type} eq 'exception' ) {
-                        $cb->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' ) if $cb;
+                    # HTTP protocol error
+                    if ( !$res ) {
+                        $cb->( result [ $res->status, $res->reason ] );
                     }
                     else {
-                        $cb->( bless $res_data->[0]->{result}, 'Pcore::Util::Result' ) if $cb;
+                        my $res_data = from_cbor $res->body;
+
+                        if ( $res_data->{type} eq 'exception' ) {
+                            $cb->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' );
+                        }
+                        else {
+                            $cb->( bless $res_data->[0]->{result}, 'Pcore::Util::Result' );
+                        }
                     }
                 }
 
@@ -222,7 +225,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (34)                  |
+## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (32)                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
