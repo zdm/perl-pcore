@@ -15,7 +15,7 @@ has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => 
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
 has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg => undef );
 has _ws_connect_cache => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
-has _ws_cid_cache     => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
+has _ws_tid_cache     => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
 around BUILDARGS => sub ( $orig, $self, $uri, @ ) {
     my %args = ( splice @_, 3 );
@@ -39,21 +39,21 @@ sub _build__is_http ($self) {
 
 # TODO make blocking call
 sub api_call ( $self, $method, @ ) {
-    my ( $cb, $args );
+    my ( $cb, $data );
 
     # parse callback
     if ( ref $_[-1] eq 'CODE' ) {
         $cb = $_[-1];
 
-        $args = [ splice @_, 2, -1 ];
+        $data = [ splice @_, 2, -1 ];
     }
     else {
-        $args = [ splice @_, 2 ];
+        $data = [ splice @_, 2 ];
     }
 
     # HTTP protocol
     if ( $self->_is_http ) {
-        P->http->get(
+        P->http->post(
             $self->_uri,
             keepalive_timeout => $self->keepalive_timeout,
             ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
@@ -64,8 +64,9 @@ sub api_call ( $self, $method, @ ) {
                 CONTENT_TYPE  => 'application/cbor',
             },
             body => to_cbor(
-                {   method => $method,
-                    args   => $args,
+                {   tid    => uuid_str(),
+                    method => $method,
+                    data   => $data,
                 }
             ),
             on_finish => sub ($res) {
@@ -88,19 +89,19 @@ sub api_call ( $self, $method, @ ) {
     # WebSocket protocol
     else {
         my $on_connect = sub ( $ws ) {
-            my $cid;
+            my $tid;
 
             if ($cb) {
-                $cid = uuid_str();
+                $tid = uuid_str();
 
-                $self->{_ws_cid_cache}->{$cid} = $cb;
+                $self->{_ws_tid_cache}->{$tid} = $cb;
             }
 
             $ws->send_binary(
                 to_cbor(
-                    {   cid    => $cid,
+                    {   tid    => $tid,
                         method => $method,
-                        args   => $args,
+                        data   => $data,
                     }
                 )->$*
             );
@@ -159,35 +160,35 @@ sub api_call ( $self, $method, @ ) {
                 on_binary => sub ( $ws, $payload_ref ) {
 
                     # decode CBOR payload
-                    my $data = eval { from_cbor $payload_ref};
+                    my $res_data = eval { from_cbor $payload_ref};
 
                     die q[WebSocket protocol error, can't decode CBOR payload] if $@;
 
-                    # cid is present
-                    if ( $data->{cid} ) {
+                    # tid is present
+                    if ( $res_data->{tid} ) {
 
                         # this is API call, not supported in API client yet, ignoring
-                        if ( $data->{method} ) {
+                        if ( $res_data->{method} ) {
                             return;
                         }
 
                         # this is API callback
                         else {
-                            if ( my $callback = delete $self->{_ws_cid_cache}->{ $data->{cid} } ) {
-                                $callback->( bless $data, 'Pcore::Util::Result' ) if $callback;
+                            if ( my $callback = delete $self->{_ws_tid_cache}->{ $res_data->{tid} } ) {
+                                $callback->( bless $res_data, 'Pcore::Util::Result' ) if $callback;
                             }
                         }
                     }
 
-                    # cid is not present
+                    # tid is not present
                     else {
 
                         # this is void API call, not supported in API client yet, ignoring
-                        if ( $data->{method} ) {
+                        if ( $res_data->{method} ) {
                             return;
                         }
 
-                        # this is error, cid and/or method must be specified
+                        # this is error, tid and/or method must be specified
                         else {
                             return;
                         }
