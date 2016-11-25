@@ -4,7 +4,7 @@ use Pcore -export => { ALL => [qw[uuid_bin uuid_str uuid_hex create_uuid create_
 use Pcore::Util::UUID::Obj;
 use Data::UUID qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
-my $uuid = Data::UUID->new;
+our $UUID = Data::UUID->new;
 
 *create_uuid          = \&create;
 *create_uuid_from_bin = \&create_from_bin;
@@ -16,7 +16,7 @@ my $uuid = Data::UUID->new;
 *uuid_hex = \&hex;
 
 sub create {
-    return bless { bin => $uuid->create_bin }, 'Pcore::Util::UUID::Obj';
+    return bless { bin => $UUID->create_bin }, 'Pcore::Util::UUID::Obj';
 }
 
 sub create_from_bin ($bin) {
@@ -32,15 +32,15 @@ sub create_from_hex ($hex) {
 }
 
 sub bin {
-    return $uuid->create_bin;
+    return $UUID->create_bin;
 }
 
 sub str {
-    return $uuid->create_str;
+    return $UUID->create_str;
 }
 
 sub hex {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return $uuid->create_hex;
+    return $UUID->create_hex;
 }
 
 1;

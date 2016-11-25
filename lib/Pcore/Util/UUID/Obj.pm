@@ -7,15 +7,15 @@ has str => ( is => 'lazy', isa => Str );
 has hex => ( is => 'lazy', isa => Str );
 
 sub _build_bin ($self) {
-    return defined $self->{str} ? $uuid->from_string( $self->{str} ) : defined $self->{hex} ? $uuid->from_hexstring( $self->{hex} ) : die q[UUID was not found];
+    return defined $self->{str} ? $Pcore::Util::UUID::UUID->from_string( $self->{str} ) : defined $self->{hex} ? $Pcore::Util::UUID::UUID->from_hexstring( $self->{hex} ) : die q[UUID was not found];
 }
 
 sub _build_str ($self) {
-    return $uuid->to_string( $self->bin );
+    return $Pcore::Util::UUID::UUID->to_string( $self->bin );
 }
 
 sub _build_hex ($self) {
-    return $uuid->to_hexstring( $self->bin );
+    return $Pcore::Util::UUID::UUID->to_hexstring( $self->bin );
 }
 
 1;
