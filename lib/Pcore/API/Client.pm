@@ -187,7 +187,12 @@ sub api_call ( $self, $method, @ ) {
                         # this is API callback
                         else {
                             if ( my $callback = delete $self->{_ws_tid_cache}->{ $res_data->{tid} } ) {
-                                $callback->( bless $res_data, 'Pcore::Util::Result' ) if $callback;
+                                if ( $res_data->{type} eq 'exception' ) {
+                                    $callback->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' );
+                                }
+                                else {
+                                    $callback->( bless $res_data->[0]->{result}, 'Pcore::Util::Result' );
+                                }
                             }
                         }
                     }
@@ -225,7 +230,9 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (32)                  |
+## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (33)                  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 190                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
