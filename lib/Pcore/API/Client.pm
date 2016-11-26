@@ -84,7 +84,7 @@ sub api_call ( $self, $method, @ ) {
                     else {
                         my $res_data = from_cbor $res->body;
 
-                        if ( $res_data->{type} eq 'exception' ) {
+                        if ( $res_data->[0]->{type} eq 'exception' ) {
                             $cb->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' );
                         }
                         else {
@@ -187,7 +187,7 @@ sub api_call ( $self, $method, @ ) {
                         # this is API callback
                         else {
                             if ( my $callback = delete $self->{_ws_tid_cache}->{ $res_data->{tid} } ) {
-                                if ( $res_data->{type} eq 'exception' ) {
+                                if ( $res_data->[0]->{type} eq 'exception' ) {
                                     $callback->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' );
                                 }
                                 else {
