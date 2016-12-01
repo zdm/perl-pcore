@@ -57,10 +57,11 @@
         status => 404,
         re     => undef,
     },
-    'xanga.com' => {
-        status => 302,
-        re     => undef,
-    },
+
+    # 'xanga.com' => {
+    #     status => 302,
+    #     re     => undef,
+    # },
     'skyrock.com' => {
         status => 404,
         re     => undef,
@@ -121,10 +122,11 @@
         status => 404,
         re     => undef,
     },
-    'hpage.com' => {
-        status => 302,
-        re     => undef,
-    },
+
+    # 'hpage.com' => {
+    #     status => 302,
+    #     re     => undef,
+    # },
     'hautetfort.com' => {
         status => 404,
         re     => undef,
@@ -164,8 +166,8 @@
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 86, 98, 118, 137,    | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
-## |      | 152                  |                                                                                                                |
+## |    3 | 87, 99, 119, 139,    | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |      | 154                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
