@@ -52,6 +52,7 @@ requires 'Crypt::Argon2';
 requires 'Pod::Markdown';
 requires 'Software::License';
 requires 'Module::CPANfile';
+requires 'Filter::Crypto';
 on develop => sub {
     requires 'Module::Build::Tiny';
     requires 'CPAN::Changes';
@@ -66,7 +67,6 @@ on develop => sub {
 
     # PAR
     requires 'PAR::Packer';
-    requires 'Filter::Crypto';
 };
 
 # Pcore::HTTP

@@ -10,6 +10,11 @@
 
 -----------------------------------------------------------------------------------------------
 
+- EventBus conception:
+    - single, universal in-process EventBus;
+    - for logging or other listeners and event types;
+    - external processes can subscribe to events using websocket connection;
+
 - APP & APP API:
     - move roles and permissions from API to App;
     - auth tags;
