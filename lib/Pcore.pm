@@ -100,6 +100,11 @@ sub import {
             Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
         }
 
+        # TODO remove, when following issues will be resolved
+        # https://github.com/steve-m-hay/Filter-Crypto/issues/1
+        # https://rt.cpan.org/Public/Bug/Display.html?id=102788
+        require Filter::Crypto::Decrypt;
+
         require Import::Into;
         require B::Hooks::AtRuntime;
         require B::Hooks::EndOfScope::XS;
@@ -598,23 +603,23 @@ sub init_demolish ( $self, $class ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 110                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 115                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 250                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 255                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 328                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 446                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 333                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 451                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 360, 389, 392, 396,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 428, 431, 436, 439,  |                                                                                                                |
-## |      | 464, 483             |                                                                                                                |
+## |    3 | 365, 394, 397, 401,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 433, 436, 441, 444,  |                                                                                                                |
+## |      | 469, 488             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 579                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 584                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 260                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 265                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 364                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 369                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
