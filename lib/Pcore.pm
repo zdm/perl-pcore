@@ -103,7 +103,7 @@ sub import {
         # TODO remove, when following issues will be resolved
         # https://github.com/steve-m-hay/Filter-Crypto/issues/1
         # https://rt.cpan.org/Public/Bug/Display.html?id=102788
-        require Filter::Crypto::Decrypt;
+        require Filter::Crypto::Decrypt if !$EMBEDDED;
 
         require Import::Into;
         require B::Hooks::AtRuntime;
@@ -601,7 +601,7 @@ sub init_demolish ( $self, $class ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    |
+## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 115                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
