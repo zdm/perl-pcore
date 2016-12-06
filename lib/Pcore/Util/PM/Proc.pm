@@ -49,7 +49,7 @@ around new => sub ( $orig, $self, $cmd, @ ) {
         splice @_, 3,
     );
 
-    $args{win32_cflags} = Win32::Process::CREATE_NO_WINDOW() if delete $args{win32_create_no_window};
+    $args{win32_cflags} = Win32::Process::CREATE_NO_WINDOW() if $MSWIN && delete $args{win32_create_no_window};
 
     my $hdl = $self->_redirect_std( \%args );
 
@@ -309,6 +309,16 @@ sub _on_exit ( $self, $status ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
