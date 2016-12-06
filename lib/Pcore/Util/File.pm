@@ -797,12 +797,11 @@ sub untar ( $tar, $target, @ ) {
     state $init = !!require Archive::Tar;
 
     my %args = (
-        compressed      => 1,
         strip_component => 0,
         splice @_, 2,
     );
 
-    $tar = Archive::Tar->new( $tar, $args{compressed} );
+    $tar = Archive::Tar->new($tar);
 
     my $strip_component;
 
@@ -852,7 +851,7 @@ sub untar ( $tar, $target, @ ) {
 ## |      | 124                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
 ## |      | 250                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 822                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 821                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
