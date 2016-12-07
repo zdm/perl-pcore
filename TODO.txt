@@ -39,6 +39,8 @@
     - write logs to socket;
 
 - HANDLE and PROXY refactoring
+    - rename -> timeout -> http_timeout, keepalive_timeout -> http_keep...;
+    - http_timeout works incorrectly, should be timeout for whole request, currently only timeout between read operation;
     - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
 
     - pcore::ae::handle - use reason instead of message in error callbacks;
