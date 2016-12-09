@@ -105,6 +105,8 @@ const our $STATUS_REASON => {
 };
 
 around BUILDARGS => sub ( $orig, $self, $args ) {
+    $args->{status} //= 0;
+
     if ( ref $args->{status} eq 'ARRAY' ) {
         if ( ref $args->{status}->[1] eq 'HASH' ) {
             $args->{status_reason} //= $args->{status}->[1];
