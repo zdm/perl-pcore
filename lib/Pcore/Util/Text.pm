@@ -429,7 +429,7 @@ sub decode_html_entities {
 
     state $init = !!require HTML::Entities;
 
-    decode_utf8 $_;
+    Pcore::Util::Text::decode_utf8 $_;
 
     HTML::Entities::decode_entities $_;
 
