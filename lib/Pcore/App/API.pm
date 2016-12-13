@@ -547,6 +547,23 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
+sub remove_user ( $self, $user_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    $self->{backend}->remove_user(
+        $user_id,
+        sub ($res) {
+            $cb->($res) if $cb;
+
+            $blocking_cv->($res) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 # USER TOKEN
 sub create_user_token ( $self, $user_id, $desc, $permissions, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
@@ -634,7 +651,7 @@ sub remove_user_session ( $self, $user_session_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 60                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 217, 487, 508, 551   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 217, 487, 508, 568   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 250                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -429,6 +429,38 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
     return;
 }
 
+sub remove_user ( $self, $user_id, $cb ) {
+    $self->get_user(
+        $user_id,
+        sub ($user) {
+
+            # user not found
+            if ($user) {
+                $cb->($user);
+            }
+            else {
+
+                # remove user
+                my $removed = $self->dbh->do( q[DELETE FROM api_user WHERE id = ?], [ $user->{data}->{id} ] );
+
+                # user not removed
+                if ( !$removed ) {
+                    $cb->( result [ 500, 'Error removing user' ] );
+                }
+
+                # user removed
+                else {
+                    $cb->($user);
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
 # USER PERMISSIONS
 # return all user permissions, indexed by app role id
 sub get_user_permissions ( $self, $user_id, $cb ) {
