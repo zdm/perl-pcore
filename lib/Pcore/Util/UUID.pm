@@ -1,6 +1,6 @@
 package Pcore::Util::UUID;
 
-use Pcore -export => { ALL => [qw[uuid_bin uuid_str uuid_hex create_uuid create_uuid_from_bin create_uuid_from_str create_uuid_from_hex]] };
+use Pcore -export => { ALL => [qw[is_uuid_str uuid_bin uuid_str uuid_hex create_uuid create_uuid_from_bin create_uuid_from_str create_uuid_from_hex]] };
 use Pcore::Util::UUID::Obj;
 use Data::UUID qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
@@ -14,6 +14,10 @@ our $UUID = Data::UUID->new;
 *uuid_bin = \&bin;
 *uuid_str = \&str;
 *uuid_hex = \&hex;
+
+sub is_uuid_str ($str) {
+    return $str =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm;
+}
 
 sub create {
     return bless { bin => $UUID->create_bin }, 'Pcore::Util::UUID::Obj';
@@ -44,6 +48,16 @@ sub hex {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 19                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
