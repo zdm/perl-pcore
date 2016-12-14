@@ -65,6 +65,7 @@ sub send_mail (@) {
     $h->data();
     $h->datasend("Reply-To: $args{reply_to}$CRLF") if $args{reply_to};
     $h->datasend("From: $args{from}$CRLF");
+    $h->datasend("To: @{[ join q[, ], $args{to}->@* ]}$CRLF");
     $h->datasend("Subject: $args{subject}$CRLF");
 
     $h->datasend("MIME-Version: 1.0$CRLF");
