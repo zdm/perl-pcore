@@ -2,16 +2,16 @@ package Pcore::Util::Mail;
 
 use Pcore;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
-use Net::SMTPS;
+use Net::SMTP;
 use Mail::IMAPClient qw[];
 
-sub send_mail {
+sub send_mail (@) {
     my %args = (
         host         => undef,
         port         => undef,
         username     => undef,
         password     => undef,
-        layer        => undef,                           # undef, ssl, starttls
+        ssl          => undef,                           # undef, ssl, starttls
         debug        => 0,
         content_type => 'text/plain; charset="UTF-8"',
         from         => q[],
@@ -19,10 +19,10 @@ sub send_mail {
         @_,
     );
 
-    my $h = Net::SMTPS->new(
+    my $h = Net::SMTP->new(
         Host  => $args{host},
         Port  => $args{port},
-        doSSL => $args{layer},
+        SSL   => $args{ssl},
         Debug => $args{debug},
     ) or die 'Could not connect to mail server ' . $args{host};
 
@@ -32,8 +32,7 @@ sub send_mail {
 
     encode_utf8 $args{body};
 
-    # Create arbitrary boundary text used to seperate
-    # different parts of the message\n
+    # create arbitrary boundary text used to seperate different parts of the message\n
     my ( $bi, @bchrs );
     my $boundary = q[];
     for my $bn ( 48 .. 57, 65 .. 90, 97 .. 122 ) {
@@ -45,15 +44,27 @@ sub send_mail {
 
     $h->mail("$args{from}$CRLF");
 
-    my @recepients = split /[,;]/sm, $args{to};
-    foreach my $recp (@recepients) {
-        $h->to("$recp$CRLF");
+    if ( $args{to} ) {
+        $args{to} = [ $args{to} ] if ref $args{to} ne 'ARRAY';
+
+        $h->to( $args{to}->@* );
+    }
+
+    if ( $args{cc} ) {
+        $args{cc} = [ $args{cc} ] if ref $args{cc} ne 'ARRAY';
+
+        $h->cc( $args{cc}->@* );
+    }
+
+    if ( $args{bcc} ) {
+        $args{bcc} = [ $args{bcc} ] if ref $args{bcc} ne 'ARRAY';
+
+        $h->bcc( $args{bcc}->@* );
     }
 
     $h->data();
     $h->datasend("Reply-To: $args{reply_to}$CRLF") if $args{reply_to};
     $h->datasend("From: $args{from}$CRLF");
-    $h->datasend("To: $args{to}$CRLF");
     $h->datasend("Subject: $args{subject}$CRLF");
 
     $h->datasend("MIME-Version: 1.0$CRLF");
@@ -64,7 +75,7 @@ sub send_mail {
     $h->datasend("$CRLF");
     $h->datasend("$args{body}$CRLF$CRLF");
 
-    # Send attachments
+    # send attachments
     if ( $args{attachments} ) {
         if ( ref $args{attachments} eq 'HASH' ) {
             my $path = $args{attachments}->{path};
@@ -92,6 +103,7 @@ sub send_mail {
     $h->datasend("$CRLF");
 
     $h->dataend;
+
     $h->quit;
 
     return;
@@ -166,7 +178,7 @@ sub get_mail {
 
     my @search_string;
 
-    for my $token ( keys $args{search} ) {
+    for my $token ( keys $args{search}->%* ) {
         my $res;
 
         if ( ref $args{search}->{$token} ) {
@@ -257,6 +269,16 @@ sub _get_messages {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "send_mail" with high complexity score (21)                 |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =head1
 
