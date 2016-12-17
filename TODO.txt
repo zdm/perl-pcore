@@ -15,6 +15,18 @@
     - for logging or other listeners and event types;
     - external processes can subscribe to events using websocket connection;
 
+- LOG SUBSYSTEM:
+    - write logs to socket;
+
+- Pcore::SMTP - AnyEvent - based SMTP implementation;
+
+- Pcore::PDF - HTML to PDF convertor, using XS bindings to http://wkhtmltopdf.org/;
+
+- use qq[] instead of " in Pcore dump to quote strings;
+
+- PAR:
+    - PAR - DSO auto scan;
+
 - APP & APP API:
     - move roles and permissions from API to App;
     - auth tags;
@@ -34,9 +46,6 @@
     - return API response;
     - handy way to specify bind param type for execeute;
         - update SQLite BLOB fields;
-
-- LOG SUBSYSTEM:
-    - write logs to socket;
 
 - HANDLE and PROXY refactoring
     - rename -> timeout -> http_timeout, keepalive_timeout -> http_keep...;

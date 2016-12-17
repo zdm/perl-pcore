@@ -126,7 +126,6 @@ requires 'List::Util::XS';
 requires 'List::AllUtils';
 
 # Pcore::Util::Mail
-requires 'Net::SMTP';
 requires 'Mail::IMAPClient';
 
 # Pcore::Util::PM
