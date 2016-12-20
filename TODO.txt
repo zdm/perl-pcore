@@ -18,8 +18,6 @@
 - LOG SUBSYSTEM:
     - write logs to socket;
 
-- Pcore::PDF - HTML to PDF convertor, using XS bindings to http://wkhtmltopdf.org/;
-
 - use qq[] instead of " in Pcore dump to quote strings;
 
 - PAR:
