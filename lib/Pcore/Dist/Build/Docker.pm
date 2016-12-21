@@ -211,7 +211,11 @@ sub update_from_tag ( $self, $tag ) {
         else {
             P->file->write_bin( $self->dist->root . 'Dockerfile', $dockerfile );
 
-            $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$tag"], 'Dockerfile' ) or die;
+            # TODO cd to repo root
+
+            my $res = $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$tag"], 'Dockerfile' );
+
+            die "$res" if !$res;
 
             $self->dist->clear_docker;
 
