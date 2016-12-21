@@ -39,7 +39,7 @@ around new => sub ( $orig, $self, $class, @args ) {
         $args{workers} = P->sys->cpus_num;
     }
     elsif ( $args{workers} < 0 ) {
-        $args{workers} = P->sys->cpus_num + $args{workers};
+        $args{workers} = P->sys->cpus_num - $args{workers};
 
         $args{workers} = 1 if $args{workers} <= 0;
     }
