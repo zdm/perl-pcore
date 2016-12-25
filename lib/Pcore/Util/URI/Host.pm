@@ -34,6 +34,8 @@ has pub_suffix_utf8      => ( is => 'lazy', init_arg => undef );
 has is_root_domain       => ( is => 'lazy', init_arg => undef );    # domain is a root domain
 has root_domain          => ( is => 'lazy', init_arg => undef );
 has root_domain_utf8     => ( is => 'lazy', init_arg => undef );
+has root_label           => ( is => 'lazy', init_arg => undef );
+has root_label_utf8      => ( is => 'lazy', init_arg => undef );
 
 our $TLD;
 our $PUB_SUFFIX;
@@ -353,6 +355,26 @@ sub _build_root_domain_utf8 ($self) {
     return domain_to_utf8( $self->root_domain );
 }
 
+sub _build_root_label ($self) {
+    if ( my $root_domain = $self->root_domain ) {
+        $root_domain =~ s/[.].+\z//sm;
+
+        return $root_domain;
+    }
+
+    return q[];
+}
+
+sub _build_root_label_utf8 ($self) {
+    if ( my $root_domain_utf8 = $self->root_domain_utf8 ) {
+        $root_domain_utf8 =~ s/[.].+\z//sm;
+
+        return $root_domain_utf8;
+    }
+
+    return q[];
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -360,7 +382,7 @@ sub _build_root_domain_utf8 ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 304                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 306                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
