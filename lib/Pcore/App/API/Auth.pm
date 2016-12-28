@@ -41,7 +41,7 @@ sub api_can_call ( $self, $method_id, $cb ) {
 
         # method wasn't found
         if ( !$method_cfg ) {
-            $cb->( result 404 );
+            $cb->( result [ 404, qq[Method "$method_id" was not found] ] );
         }
 
         # method was found
@@ -59,7 +59,7 @@ sub api_can_call ( $self, $method_id, $cb ) {
 
             # auth has no permisisons, api call is forbidden
             elsif ( !$auth->{permissions} ) {
-                $cb->( result 403 );
+                $cb->( result [ 403, qq[Insufficient permissions for method "$method_id"] ] );
             }
 
             # compare permissions
@@ -72,7 +72,7 @@ sub api_can_call ( $self, $method_id, $cb ) {
                     }
                 }
 
-                $cb->( result 403 );
+                $cb->( result [ 403, qq[Insufficient permissions for method "$method_id"] ] );
             }
         }
 
