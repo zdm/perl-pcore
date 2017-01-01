@@ -1,4 +1,4 @@
-package Pcore::Util::URI::Punycode;
+package Pcore::Util::IDN::PP;
 
 use Pcore -const, -export => [qw[domain_to_ascii domain_to_utf8]];
 
@@ -189,7 +189,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::URI::Punycode
+Pcore::Util::IDN::PP
 
 =head1 SYNOPSIS
 

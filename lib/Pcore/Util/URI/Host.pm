@@ -3,7 +3,7 @@ package Pcore::Util::URI::Host;
 use Pcore -class;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use AnyEvent::Socket qw[];
-use Pcore::Util::URI::Punycode qw[:ALL];
+use Pcore::Util::IDN qw[:ALL];
 
 use overload    #
   q[""] => sub {

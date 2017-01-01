@@ -121,6 +121,9 @@ requires 'Digest::SHA3';
 # Pcore::Util::File
 requires 'File::Copy::Recursive';
 
+# Pcore::Util::IDN
+requires 'Net::LibIDN';
+
 # Pcore::Util::List
 requires 'List::Util::XS';
 requires 'List::AllUtils';
