@@ -380,63 +380,67 @@ sub _add_dist ( $self, $dist ) {
 }
 
 sub _compress_upx ( $self, $path ) {
-    return if !$MSWIN;    # disabled for linux, upx doesn't pack anything under lnux
 
-    my $upx;
+    # NOTE upx compression is disabled, because latest version compress with errors
+    if (0) {
+        return if !$MSWIN;    # disabled for linux, upx doesn't pack anything under lnux
 
-    my $upx_cache_dir = $ENV->{PCORE_USER_DIR} . 'upx-cache/';
+        my $upx;
 
-    if ($MSWIN) {
-        $upx = $ENV->share->get('/bin/upx.exe');
-    }
-    else {
-        $upx = $ENV->share->get('/bin/upx_x64');
-    }
+        my $upx_cache_dir = $ENV->{PCORE_USER_DIR} . 'upx-cache/';
 
-    if ($upx) {
-        P->file->mkpath($upx_cache_dir);
-
-        my @files;
-
-        my $file_md5 = {};
-
-        for my $file ( $path->@* ) {
-            $file_md5->{$file} = Digest::MD5->new->add( P->file->read_bin($file)->$* )->hexdigest;
-
-            if ( -e $upx_cache_dir . $file_md5->{$file} ) {
-                P->file->copy( $upx_cache_dir . $file_md5->{$file}, $file );
-            }
-            else {
-                push @files, $file;
-
-                # change permissions, so upx can overwrite file
-                # following will remove READ-ONLY attribute under windows
-                chmod 0777, $file or 1;
-            }
+        if ($MSWIN) {
+            $upx = $ENV->share->get('/bin/upx.exe');
+        }
+        else {
+            $upx = $ENV->share->get('/bin/upx_x64');
         }
 
-        if (@files) {
-            say q[];
+        if ($upx) {
+            P->file->mkpath($upx_cache_dir);
 
-            my $cmd = q[];
+            my @files;
 
-            for my $file (@files) {
-                if ( length qq[$cmd "$file"] > 8191 ) {
-                    P->pm->run_proc($cmd) or 1;
+            my $file_md5 = {};
 
-                    $cmd = qq[$upx --best "$file"];
+            for my $file ( $path->@* ) {
+                $file_md5->{$file} = Digest::MD5->new->add( P->file->read_bin($file)->$* )->hexdigest;
+
+                if ( -e $upx_cache_dir . $file_md5->{$file} ) {
+                    P->file->copy( $upx_cache_dir . $file_md5->{$file}, $file );
                 }
                 else {
-                    $cmd ||= qq[$upx --best];
+                    push @files, $file;
 
-                    $cmd .= qq[ "$file"];
+                    # change permissions, so upx can overwrite file
+                    # following will remove READ-ONLY attribute under windows
+                    chmod 0777, $file or 1;
                 }
             }
 
-            P->pm->run_proc($cmd) or 1 if $cmd;
+            if (@files) {
+                say q[];
 
-            for my $file (@files) {
-                P->file->copy( $file, $upx_cache_dir . $file_md5->{$file} );
+                my $cmd = q[];
+
+                for my $file (@files) {
+                    if ( length qq[$cmd "$file"] > 8191 ) {
+                        P->pm->run_proc($cmd) or 1;
+
+                        $cmd = qq[$upx --best "$file"];
+                    }
+                    else {
+                        $cmd ||= qq[$upx --best];
+
+                        $cmd .= qq[ "$file"];
+                    }
+                }
+
+                P->pm->run_proc($cmd) or 1 if $cmd;
+
+                for my $file (@files) {
+                    P->file->copy( $file, $upx_cache_dir . $file_md5->{$file} );
+                }
             }
         }
     }
@@ -606,13 +610,13 @@ sub _error ( $self, $msg ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 270                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 406, 424             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 409, 427             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 458                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 462                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 559, 562             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 563, 566             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 475, 481             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 479, 485             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
