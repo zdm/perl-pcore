@@ -450,7 +450,7 @@ sub _test_connection ( $self, $connect, $proxy_type, $cb ) {
         timeout                     => $PROXY_TEST_TIMEOUT,
         persistent                  => 0,
         proxy                       => $self,
-        proxy_type                  => $proxy_type,                     # connect to proxy without waitinf for the slot
+        proxy_type                  => $proxy_type,                     # connect to proxy without waiting for the slot
         _proxy_keep_thread_on_error => 1,                               # do not finish proxy thread automatically on handle destroy
         on_error                    => sub ( $h, $fatal, $message ) {
             $cb->(undef);
