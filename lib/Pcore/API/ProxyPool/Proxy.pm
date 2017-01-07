@@ -513,10 +513,10 @@ sub _test_scheme_httpx ( $self, $scheme, $h, $proxy_type, $cb ) {
         my $auth_header = $self->userinfo ? q[Proxy-Authorization: Basic ] . $self->userinfo_b64 . $CRLF : q[];
 
         if ( $scheme eq 'http' ) {
-            $h->push_write(qq[GET http://www.google.com/favicon.ico HTTP/1.0${CRLF}${auth_header}${CRLF}]);
+            $h->push_write(qq[GET http://www.google.com/favicon.ico HTTP/1.0${CRLF}Host:www.google.com${CRLF}${auth_header}${CRLF}]);
         }
         else {
-            $h->push_write(qq[GET https://www.google.com/favicon.ico HTTP/1.0${CRLF}${auth_header}${CRLF}]);
+            $h->push_write(qq[GET https://www.google.com/favicon.ico HTTP/1.0${CRLF}Host:www.google.com${CRLF}${auth_header}${CRLF}]);
         }
     }
     else {
