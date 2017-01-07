@@ -337,7 +337,7 @@ sub _connect_proxy ( $self, $args ) {
         if ($proxy_error) {
             $h->destroy if $h;
 
-            $proxy->_set_connect_error if $proxy && $proxy_error == $PROXY_ERROR_CONNECT || $proxy_error == $PROXY_ERROR_AUTH;
+            $proxy->_set_connect_error if $proxy && $proxy_error == $PROXY_ERROR_CONNECT;    # || $proxy_error == $PROXY_ERROR_AUTH;
 
             if ( $proxy_error && $on_proxy_connect_error ) {
                 $on_proxy_connect_error->( $hdl, $error_reason, $proxy_error );
