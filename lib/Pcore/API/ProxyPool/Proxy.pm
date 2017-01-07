@@ -355,7 +355,7 @@ sub _check ( $self, $connect, $cb ) {
             }
         }
         else {
-            # cache test result only if no caoonect error
+            # cache test result only if no connect error
             if ( !$self->{connect_error} ) {
 
                 # reset connect errors counter
