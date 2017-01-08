@@ -337,7 +337,7 @@ sub _connect_proxy ( $self, $args ) {
         if ($proxy_error) {
             $h->destroy if $h;
 
-            $proxy->_set_connect_error if $proxy && $proxy_error == $PROXY_ERROR_CONNECT;    # || $proxy_error == $PROXY_ERROR_AUTH;
+            $proxy->_set_connect_error if $proxy && $proxy_error == $PROXY_ERROR_CONNECT || $proxy_error == $PROXY_ERROR_AUTH;
 
             if ( $proxy_error && $on_proxy_connect_error ) {
                 $on_proxy_connect_error->( $hdl, $error_reason, $proxy_error );
@@ -473,19 +473,28 @@ sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_finish ) {
             sub ( $h, $chunk ) {
                 my $rep = unpack 'C*', substr( $chunk, 1, 1 );
 
-                if ( $rep == 90 ) {    # request granted
+                # request granted
+                if ( $rep == 90 ) {
                     $on_finish->( $h, undef, undef );
                 }
-                elsif ( $rep == 91 ) {    # request rejected or failed, tunnel creation error
+
+                # request rejected or failed, tunnel creation error
+                elsif ( $rep == 91 ) {
                     $on_finish->( $h, 'Request rejected or failed', $PROXY_ERROR_OTHER );
                 }
-                elsif ( $rep == 92 ) {    # request rejected becasue SOCKS server cannot connect to identd on the client
+
+                # request rejected becasue SOCKS server cannot connect to identd on the client
+                elsif ( $rep == 92 ) {
                     $on_finish->( $h, 'Request rejected becasue SOCKS server cannot connect to identd on the client', $PROXY_ERROR_AUTH );
                 }
-                elsif ( $rep == 93 ) {    # request rejected because the client program and identd report different user-ids
+
+                # request rejected because the client program and identd report different user-ids
+                elsif ( $rep == 93 ) {
                     $on_finish->( $h, 'Request rejected because the client program and identd report different user-ids', $PROXY_ERROR_AUTH );
                 }
-                else {                    # unknown error
+
+                # unknown error or not SOCKS4 proxy response
+                else {
                     $on_finish->( $h, 'Invalid socks4 server response', $PROXY_ERROR_OTHER );
                 }
 
@@ -502,9 +511,12 @@ sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_finish ) {
 sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_finish ) {
 
     # start handshake
+    # no authentication or authenticate with username/password
     if ( $proxy->userinfo ) {
         $self->push_write(qq[\x05\x02\x00\x02]);
     }
+
+    # no authentication
     else {
         $self->push_write(qq[\x05\x01\x00]);
     }
@@ -512,22 +524,31 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_finish ) {
     $self->unshift_read(
         chunk => 2,
         sub ( $h, $chunk ) {
-            my ( $ver, $method ) = unpack 'C*', $chunk;
+            my ( $ver, $auth_method ) = unpack 'C*', $chunk;
 
-            if ( $method == 255 ) {    # no valid auth method was proposed
-                $on_finish->( $h, 'No authorization method was found', $PROXY_ERROR_AUTH );
+            # no valid authentication method was proposed
+            if ( $auth_method == 255 ) {
+                $on_finish->( $h, 'No authentication method was found', $PROXY_ERROR_AUTH );
             }
-            elsif ( $method == 2 ) {    # start username / password authorization
+
+            # start username / password authentication
+            elsif ( $auth_method == 2 ) {
+
+                # send authentication credentials
                 $h->push_write( qq[\x01] . pack( 'C', length $proxy->username ) . $proxy->username . pack( 'C', length $proxy->password ) . $proxy->password );
 
+                # read authentication response
                 $h->unshift_read(
                     chunk => 2,
                     sub ( $h, $chunk ) {
                         my ( $auth_ver, $auth_status ) = unpack 'C*', $chunk;
 
-                        if ( $auth_status != 0 ) {    # auth error
-                            $on_finish->( $h, 'Authorization failure', $PROXY_ERROR_AUTH );
+                        # authentication error
+                        if ( $auth_status != 0 ) {
+                            $on_finish->( $h, 'Authentication failure', $PROXY_ERROR_AUTH );
                         }
+
+                        # authenticated
                         else {
                             _socks5_establish_tunnel( $h, $proxy, $connect, $on_finish );
                         }
@@ -536,13 +557,17 @@ sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_finish ) {
                     }
                 );
             }
-            elsif ( $method == 0 ) {                  # no authorization needed
+
+            # no authentication is needed
+            elsif ( $auth_method == 0 ) {
                 _socks5_establish_tunnel( $h, $proxy, $connect, $on_finish );
 
                 return;
             }
+
+            # unknown authentication method or not SOCKS5 response
             else {
-                $on_finish->( $h, 'Authorization method is not supported', $PROXY_ERROR_AUTH );
+                $on_finish->( $h, 'Authentication method is not supported', $PROXY_ERROR_OTHER );
             }
 
             return;
@@ -991,27 +1016,27 @@ sub get_connect ($connect) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 72                   | * Subroutine "new" with high complexity score (44)                                                             |
-## |      | 624                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 750                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 649                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 775                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 282, 660, 661        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 282, 685, 686        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 57, 469, 506, 509,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |      | 521, 559, 562, 565   |                                                                                                                |
+## |    2 | 57, 469, 516, 521,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 538, 584, 587, 590   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 697                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 722                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1025 does not specify text                                                  |
-## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1033 does not specify text                                                  |
-## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1061 does not specify text                                                  |
-## |      | 1019                 | * Link L<AnyEvent::Handle> on line 1077 does not specify text                                                  |
-## |      | 1019                 | * Link L<AnyEvent::Socket> on line 1077 does not specify text                                                  |
-## |      | 1019, 1019           | * Link L<Pcore::Proxy> on line 1043 does not specify text                                                      |
-## |      | 1019                 | * Link L<Pcore::Proxy> on line 1077 does not specify text                                                      |
+## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1050 does not specify text                                                  |
+## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1058 does not specify text                                                  |
+## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1086 does not specify text                                                  |
+## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1102 does not specify text                                                  |
+## |      | 1044                 | * Link L<AnyEvent::Socket> on line 1102 does not specify text                                                  |
+## |      | 1044, 1044           | * Link L<Pcore::Proxy> on line 1068 does not specify text                                                      |
+## |      | 1044                 | * Link L<Pcore::Proxy> on line 1102 does not specify text                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 53, 58, 474, 559,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 562, 565, 571        |                                                                                                                |
+## |    1 | 53, 58, 474, 584,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 587, 590, 596        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
