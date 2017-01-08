@@ -12,10 +12,6 @@ sub CLI ($self) {
                 desc    => 'crypt non-core perl sources with Filter::Crypto',
                 negated => 1,
             },
-            upx => {
-                desc    => 'do not compress shared objects with upx',
-                negated => 1,
-            },
             clean => {
                 desc    => 'clean temp dir on exit',
                 negated => 1,
@@ -66,7 +62,7 @@ sub run ( $self, $opt ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 35                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 31                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -7,7 +7,6 @@ use Pcore::Dist::Build::PAR::Script;
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
 has crypt => ( is => 'ro', isa => Maybe [Bool] );
-has upx   => ( is => 'ro', isa => Maybe [Bool] );
 has clean => ( is => 'ro', isa => Maybe [Bool] );
 
 has release => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -63,7 +62,6 @@ sub run ($self) {
         $profile->{script}  = P->path( $self->dist->root . 'bin/' . $script );
         $profile->{release} = $self->release;
         $profile->{crypt}   = $self->crypt if defined $self->crypt;
-        $profile->{upx}     = $self->upx if defined $self->upx;
         $profile->{clean}   = $self->clean if defined $self->clean;
 
         # check, that script from par profile exists in filesystem

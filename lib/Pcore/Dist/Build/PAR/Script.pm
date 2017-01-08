@@ -14,7 +14,6 @@ has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required =>
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 has release => ( is => 'ro', isa => Bool,     required => 1 );
 has crypt   => ( is => 'ro', isa => Bool,     required => 1 );
-has upx     => ( is => 'ro', isa => Bool,     required => 1 );
 has clean   => ( is => 'ro', isa => Bool,     required => 1 );
 has mod     => ( is => 'ro', isa => HashRef,  required => 1 );
 has shlib   => ( is => 'ro', isa => ArrayRef, required => 1 );
@@ -81,27 +80,6 @@ sub run ($self) {
     $self->_add_shlib;
 
     my $temp = $self->tree->write_to_temp;
-
-    # compress so with upx
-    if ( $self->upx ) {
-        my @compress_upx;
-
-        P->file->find(
-            $temp->path,
-            dir => 0,
-            sub ($path) {
-
-                # compress with upx
-                if ( $path =~ /\Q$Config{so}\E\z/sm ) {
-                    push @compress_upx, $path->realpath;
-                }
-
-                return;
-            }
-        );
-
-        $self->_compress_upx( \@compress_upx ) if @compress_upx;
-    }
 
     # create zipped par
     my $zip = Archive::Zip->new;
@@ -379,75 +357,6 @@ sub _add_dist ( $self, $dist ) {
     return;
 }
 
-sub _compress_upx ( $self, $path ) {
-
-    # NOTE upx compression is disabled, because latest version compress with errors
-    if (0) {
-        return if !$MSWIN;    # disabled for linux, upx doesn't pack anything under lnux
-
-        my $upx;
-
-        my $upx_cache_dir = $ENV->{PCORE_USER_DIR} . 'upx-cache/';
-
-        if ($MSWIN) {
-            $upx = $ENV->share->get('/bin/upx.exe');
-        }
-        else {
-            $upx = $ENV->share->get('/bin/upx_x64');
-        }
-
-        if ($upx) {
-            P->file->mkpath($upx_cache_dir);
-
-            my @files;
-
-            my $file_md5 = {};
-
-            for my $file ( $path->@* ) {
-                $file_md5->{$file} = Digest::MD5->new->add( P->file->read_bin($file)->$* )->hexdigest;
-
-                if ( -e $upx_cache_dir . $file_md5->{$file} ) {
-                    P->file->copy( $upx_cache_dir . $file_md5->{$file}, $file );
-                }
-                else {
-                    push @files, $file;
-
-                    # change permissions, so upx can overwrite file
-                    # following will remove READ-ONLY attribute under windows
-                    chmod 0777, $file or 1;
-                }
-            }
-
-            if (@files) {
-                say q[];
-
-                my $cmd = q[];
-
-                for my $file (@files) {
-                    if ( length qq[$cmd "$file"] > 8191 ) {
-                        P->pm->run_proc($cmd) or 1;
-
-                        $cmd = qq[$upx --best "$file"];
-                    }
-                    else {
-                        $cmd ||= qq[$upx --best];
-
-                        $cmd .= qq[ "$file"];
-                    }
-                }
-
-                P->pm->run_proc($cmd) or 1 if $cmd;
-
-                for my $file (@files) {
-                    P->file->copy( $file, $upx_cache_dir . $file_md5->{$file} );
-                }
-            }
-        }
-    }
-
-    return;
-}
-
 sub _repack_parl ( $self, $parl_path, $zip ) {
     print 'repacking parl ... ';
 
@@ -501,15 +410,6 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
                 }
             )->run->out_buffer;
         }
-        elsif ( $self->upx && $filename =~ /[.]$Config{so}\z/sm ) {
-
-            # store shared object to the temporary path
-            my $temppath = P->file->temppath( base => $parl_so_temp, suffix => $Config{so} );
-
-            P->file->write_bin( $temppath, $content );
-
-            $file_section->{$filename} = $temppath->path;
-        }
         else {
             $file_section->{$filename} = \$content;
         }
@@ -520,19 +420,12 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
     # write raw exe
     P->file->write_bin( $path, $src );
 
-    # patch windows exe icon, need to patch before upx
+    # patch windows exe icon
     $self->_patch_icon($path);
 
     my $md5 = Digest::MD5->new;
 
-    if ( $self->upx ) {
-        $self->_compress_upx( [ $path, grep { !ref } values $file_section->%* ] );
-
-        $md5->add( P->file->read_bin($path)->$* );
-    }
-    else {
-        $md5->add( $src->$* );
-    }
+    $md5->add( $src->$* );
 
     my $fh = P->file->get_fh( $path, O_RDWR );
 
@@ -608,15 +501,13 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 270                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 248                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 409, 427             | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## |    3 | 371                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 462                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    2 | 456, 459             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 563, 566             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 479, 485             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 388, 394             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

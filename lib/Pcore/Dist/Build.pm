@@ -111,7 +111,6 @@ sub par ( $self, @ ) {
     my %args = (
         release => 0,
         crypt   => undef,
-        upx     => undef,
         clean   => undef,
         splice @_, 1,
     );
