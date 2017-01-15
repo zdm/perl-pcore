@@ -32,6 +32,6 @@
         'Pcore/Src/File.pm'          => ['/data/src.perl'],
         'Pcore/Util/Path.pm'         => ['/data/mime.perl'],
         'Pcore/Util/URI/Host.pm'     => [ '/data/pub_suffix.dat', '/data/tld.dat' ],
-        'Pcore/Util/URI/Web2.pm'     => ['/data/web2.perl'],
+        'Pcore/Util/URI/Web2.pm'     => ['/data/web2.ini'],
     },
 }

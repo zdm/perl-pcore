@@ -38,6 +38,6 @@
     mod_share => {
 
         # eg.:
-        # 'Distribution/Module/Name.pm' => ['/data/pcore.perl', '/data/web2.perl'],
+        # 'Distribution/Module/Name.pm' => ['/data/cfg.perl', '/data/cfg.ini'],
     },
 }

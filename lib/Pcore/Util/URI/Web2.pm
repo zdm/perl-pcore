@@ -9,7 +9,7 @@ has web2_id     => ( is => 'lazy', isa => Maybe [Str],      init_arg => undef );
 has is_web2 => ( is => 'lazy', isa => Bool, init_arg => undef );
 has web2_canon => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );    # subdomain.domain.tld, domain.tld/path/, without scheme
 
-our $WEB2_CFG = P->cfg->load( $ENV->share->get('/data/web2.perl') );
+our $WEB2_CFG = P->cfg->load( $ENV->share->get('/data/web2.ini') );
 
 our $WEB2_HOST_RE;
 
@@ -17,6 +17,8 @@ sub _web2_compile {
     my @re;
 
     for my $host ( sort keys $WEB2_CFG->%* ) {
+        $WEB2_CFG->{$host}->{re} = qr[$WEB2_CFG->{$host}->{re}]smi if $WEB2_CFG->{$host}->{re} && ref $WEB2_CFG->{$host}->{re} ne 'Regexp';
+
         if ( $host =~ /[.]/sm ) {
             push @re, quotemeta $host;
         }
@@ -132,7 +134,7 @@ sub web2_check_available ( $self, $http_res ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 120                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 122                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
