@@ -34,6 +34,19 @@ sub _web2_compile {
     return;
 }
 
+sub web2_load_cfg ( $self, $cfg, $merge = 1 ) {
+    if ($merge) {
+        P->hash->merge( $WEB2_CFG, $cfg );
+    }
+    else {
+        $WEB2_CFG = $cfg;
+    }
+
+    undef $WEB2_HOST_RE;
+
+    return;
+}
+
 sub _build__web2_data ($self) {
     _web2_compile() if !$WEB2_HOST_RE;
 
@@ -93,19 +106,6 @@ sub _build_web2_canon ($self) {
     else {
         return;
     }
-}
-
-sub web2_load_cfg ( $self, $cfg, $merge = 1 ) {
-    if ($merge) {
-        P->hash->merge( $WEB2_CFG, $cfg );
-    }
-    else {
-        $WEB2_CFG = $cfg;
-    }
-
-    undef $WEB2_HOST_RE;
-
-    return;
 }
 
 # NOTE http request must be performed with recursion enabled
