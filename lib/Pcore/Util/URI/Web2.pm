@@ -12,12 +12,13 @@ has web2_canon => ( is => 'lazy', isa => Maybe [Str], init_arg => undef );    # 
 our $WEB2_CFG = P->cfg->load( $ENV->share->get('/data/web2.ini') );
 
 our $WEB2_HOST_RE;
+our $WEB2_RE;
 
 sub _web2_compile {
     my @re;
 
     for my $host ( sort keys $WEB2_CFG->%* ) {
-        $WEB2_CFG->{$host}->{re} = qr[$WEB2_CFG->{$host}->{re}]smi if $WEB2_CFG->{$host}->{re} && ref $WEB2_CFG->{$host}->{re} ne 'Regexp';
+        $WEB2_RE->{$host} = qr[$WEB2_CFG->{$host}->{re}]smi if $WEB2_CFG->{$host}->{re};
 
         if ( $host =~ /[.]/sm ) {
             push @re, quotemeta $host;
@@ -29,20 +30,24 @@ sub _web2_compile {
 
     my $re = join q[|], @re;
 
-    $WEB2_HOST_RE = qr/($re)\z/smi;
+    $WEB2_HOST_RE = qr[($re)\z]smi;
 
     return;
 }
 
+sub web2_cfg ($self) {
+    return $WEB2_CFG;
+}
+
 sub web2_load_cfg ( $self, $cfg, $merge = 1 ) {
-    if ($merge) {
-        P->hash->merge( $WEB2_CFG, $cfg );
-    }
-    else {
-        $WEB2_CFG = $cfg;
+    $WEB2_CFG = {} if !$merge;
+
+    for my $host ( keys $cfg->%* ) {
+        $WEB2_CFG->{$host}->%* = $cfg->{$host}->%*;
     }
 
     undef $WEB2_HOST_RE;
+    undef $WEB2_RE;
 
     return;
 }
@@ -114,14 +119,16 @@ sub web2_check_available ( $self, $http_res ) {
 
     return undef if !$http_res->body;   ## no critic qw[Subroutines::ProhibitExplicitReturnUndef]
 
-    my $cfg = $WEB2_CFG->{ $self->web2_id };
+    my $web2_id = $self->web2_id;
+
+    my $cfg = $WEB2_CFG->{$web2_id};
 
     if ( $cfg->{status} && $http_res->status == $cfg->{status} ) { return 1 }
 
-    if ( $cfg->{re} ) {
+    if ( $WEB2_RE->{$web2_id} ) {
         eval { decode_utf8 $http_res->body->$* };
 
-        return 1 if $http_res->body->$* =~ $cfg->{re};
+        return 1 if $http_res->body->$* =~ $WEB2_RE->{$web2_id};
     }
 
     return 0;
@@ -134,7 +141,7 @@ sub web2_check_available ( $self, $http_res ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 122                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 129                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
