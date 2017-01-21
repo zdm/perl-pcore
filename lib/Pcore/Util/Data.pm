@@ -177,9 +177,9 @@ sub encode_data ( $type, $data, @ ) {
         $res = \$xml_obj->hash2xml( $data->{$root}, root => $root, indent => $args{readable} ? 4 : 0 );
     }
     elsif ( $type == $DATA_TYPE_INI ) {
-        state $init = !!require Config::INI::Writer;
+        state $init = !!require Pcore::Util::Config::INI;
 
-        $res = \Config::INI::Writer->write_string($data);
+        $res = Pcore::Util::Config::INI::to_ini($data);
     }
     else {
         die qq[Unknown serializer "$type"];
@@ -405,9 +405,9 @@ CODE
         $res = $xml_obj->xml2hash($data_ref);
     }
     elsif ( $type == $DATA_TYPE_INI ) {
-        state $init = !!require Config::INI::Reader;
+        state $init = !!require Pcore::Util::Config::INI;
 
-        $res = Config::INI::Reader->read_string( $data_ref->$* );
+        $res = Pcore::Util::Config::INI::from_ini( $data_ref->$* );
     }
     else {
         die qq[Unknown serializer "$type"];

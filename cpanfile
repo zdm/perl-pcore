@@ -95,7 +95,6 @@ requires 'YAML::XS';
 requires 'JSON::XS';
 requires 'CBOR::XS';
 requires 'XML::Hash::XS';
-requires 'Config::INI';
 requires 'Crypt::CBC';
 requires 'Crypt::DES';
 requires 'Compress::Zlib';
