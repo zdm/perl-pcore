@@ -549,7 +549,7 @@ sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
             $obj->add( 'warn',  'stderr:', 'file:warn.log' );
         }
 
-        # file logs are disabled bby default for particular scripts
+        # file logs are disabled bby default for scripts, that are not part of distribution
         else {
             $obj->add( 'fatal', 'stderr:' );
             $obj->add( 'error', 'stderr:' );
