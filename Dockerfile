@@ -15,11 +15,7 @@ WORKDIR $DIST_PATH
 
 # --develop
 RUN /bin/bash -c ' \
-
-    # TODO remove
-    cpanm Filter::decrypt --notest --reinstall \
-
-    && cpan-outdated | cpanm \
+    cpan-outdated | cpanm \
     && cpanm --with-feature linux --with-recommends --with-suggests --installdeps . \
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
