@@ -53,17 +53,17 @@ requires 'Pod::Markdown';
 requires 'Software::License';
 requires 'Module::CPANfile';
 requires 'Filter::Crypto';
+
+# commond devel modules
 on develop => sub {
     requires 'Module::Build::Tiny';
     requires 'CPAN::Changes';
 
     # debugging and profiling
-    feature linux => sub {
-        requires 'Devel::NYTProf';
-    };
+    requires 'Devel::NYTProf';
+    requires 'Devel::Cover';
 
     # suggests 'Devel::hdb';
-    # suggests 'Devel::Cover';
 
     # PAR
     requires 'PAR::Packer';
