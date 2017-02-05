@@ -10,8 +10,9 @@ extends qw[Pcore::HTTP::Message];
 has method => ( is => 'ro', isa => Enum             [ keys $Pcore::HTTP::HTTP_METHODS->%* ] );
 has url    => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'] );
 
-has useragent         => ( is => 'ro', isa => Str,               default => $Pcore::HTTP::DEFAULT->{useragent} );
-has recurse           => ( is => 'ro', isa => PositiveOrZeroInt, default => $Pcore::HTTP::DEFAULT->{recurse} );
+has useragent => ( is => 'ro', isa => Str, default => $Pcore::HTTP::DEFAULT->{useragent} );
+has recurse => ( is => 'ro', isa => PositiveOrZeroInt, default => $Pcore::HTTP::DEFAULT->{recurse} );
+has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => $Pcore::HTTP::DEFAULT->{keepalive_timeout} );
 has timeout           => ( is => 'ro', isa => PositiveOrZeroInt, default => $Pcore::HTTP::DEFAULT->{timeout} );
 has accept_compressed => ( is => 'ro', isa => Bool,              default => $Pcore::HTTP::DEFAULT->{accept_compressed} );
 has decompress        => ( is => 'ro', isa => Bool,              default => $Pcore::HTTP::DEFAULT->{decompress} );
@@ -51,7 +52,7 @@ sub run ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 44                   | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 45                   | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
