@@ -13,6 +13,7 @@
         # qr[\Ashare/data/.+[.]dat\z]smi,
         # qr[\Abin/]smi,    # ignore "/bin/" directory
 
+        qr[\Ashare/data/ca_file[.]pem\z]smi,
         qr[\Ashare/data/tld[.]dat\z]smi,
         qr[\Ashare/data/pub_suffix[.]dat\z]smi,
     ],
@@ -30,6 +31,7 @@
         'Pcore/Dist/Build/Deploy.pm' => ['/data/pcore.perl'],
         'Pcore/Dist/Build/PAR'       => ['/data/pcore.perl'],
         'Pcore/Src/File.pm'          => ['/data/src.perl'],
+        'Pcore/Util/CA.pm'           => ['/data/ca_file.pem'],
         'Pcore/Util/Path.pm'         => ['/data/mime.perl'],
         'Pcore/Util/URI/Host.pm'     => [ '/data/pub_suffix.dat', '/data/tld.dat' ],
         'Pcore/Util/URI/Web2.pm'     => ['/data/web2.ini'],
