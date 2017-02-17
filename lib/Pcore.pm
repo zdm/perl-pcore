@@ -37,6 +37,7 @@ our $P = sub : const {'Pcore'};
 # configure standard library
 our $UTIL = {
     bit      => 'Pcore::Util::Bit',
+    ca       => 'Pcore::Util::CA',
     cfg      => 'Pcore::Util::Config',
     class    => 'Pcore::Util::Class',
     data     => 'Pcore::Util::Data',
@@ -601,25 +602,25 @@ sub init_demolish ( $self, $class ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    |
+## |    3 | 67                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 115                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 116                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 255                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 256                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 333                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 451                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 334                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 452                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 365, 394, 397, 401,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 433, 436, 441, 444,  |                                                                                                                |
-## |      | 469, 488             |                                                                                                                |
+## |    3 | 366, 395, 398, 402,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 434, 437, 442, 445,  |                                                                                                                |
+## |      | 470, 489             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 584                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 585                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 265                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 266                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 369                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 370                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

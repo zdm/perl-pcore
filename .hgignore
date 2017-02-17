@@ -1,5 +1,6 @@
 # pcore
 re:^data/
 
+re:^share/data/ca_file.pem$
 re:^share/data/tld.dat$
 re:^share/data/pub_suffix.dat$
