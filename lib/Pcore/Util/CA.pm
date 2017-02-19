@@ -7,8 +7,11 @@ sub update ($cb = undef) {
 
     print 'updating ca_file.pem ... ';
 
+    require Pcore::HTTP;
+
     P->http->get(
         'https://curl.haxx.se/ca/cacert.pem',
+        tls_ctx   => $Pcore::HTTP::TLS_CTX_HIGH,
         on_finish => sub ($res) {
             my $status;
 
@@ -35,7 +38,7 @@ sub update ($cb = undef) {
 }
 
 sub ca_file {
-    return $ENV->share->get('/data/ca_file.pem');
+    return $ENV->share->get('/data/ca_file.pem') // undef;
 }
 
 1;

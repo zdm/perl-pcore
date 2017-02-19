@@ -13,7 +13,6 @@
         # qr[\Ashare/data/.+[.]dat\z]smi,
         # qr[\Abin/]smi,    # ignore "/bin/" directory
 
-        qr[\Ashare/data/ca_file[.]pem\z]smi,
         qr[\Ashare/data/tld[.]dat\z]smi,
         qr[\Ashare/data/pub_suffix[.]dat\z]smi,
     ],
