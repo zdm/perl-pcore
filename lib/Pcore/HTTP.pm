@@ -23,8 +23,22 @@ use Pcore::HTTP::CookieJar;
 const our $TLS_CTX_LOW  => 1;
 const our $TLS_CTX_HIGH => 2;
 const our $TLS_CTX      => {
-    $TLS_CTX_LOW  => { cache => 1, sslv2  => 1 },
-    $TLS_CTX_HIGH => { cache => 1, verify => 1, verify_peername => 'https' },
+    $TLS_CTX_LOW => {
+        ca_file         => P->ca->ca_file,
+        cache           => 1,
+        verify          => 0,
+        verify_peername => undef,
+        sslv2           => 1,
+        dh              => undef,            # Diffie-Hellman is disabled
+    },
+    $TLS_CTX_HIGH => {
+        ca_file         => P->ca->ca_file,
+        cache           => 1,
+        verify          => 1,
+        verify_peername => 'http',
+        sslv2           => 0,
+        dh              => 'schmorp4096',
+    },
 };
 
 our $DEFAULT = {
@@ -412,11 +426,11 @@ sub _get_on_progress_cb (%args) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 114                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 128                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 175                  | Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (34)                  |
+## |    3 | 189                  | Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (34)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 161                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 175                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
