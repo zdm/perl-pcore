@@ -87,7 +87,8 @@ sub _build_map ($self) {
 
         $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$route} = $obj;
 
-        if ( $class->does('Pcore::App::Controller::Index') && $route eq '/' ) {
+        # NOTE maybe check $class->does('Pcore::App::Controller::Index')
+        if ( $route eq '/' ) {
 
             # index controller
             $self->{index_class} = $class;
@@ -161,7 +162,7 @@ sub get_api_class ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 71, 90, 110, 129     | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 71, 91, 111, 130     | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
