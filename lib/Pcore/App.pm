@@ -82,14 +82,26 @@ sub _build_http_server ($self) {
 }
 
 # TODO init appliacation
-around run => sub ( $orig, $self ) {
+around run => sub ( $orig, $self, $cb = undef ) {
 
     # scan router classes
     $self->router->map;
 
-    if ( $self->api ) {
-        my $cv = AE::cv;
+    my $cv = AE::cv sub {
+        $self->$orig(
+            sub {
+                $self->http_server->run;
 
+                $cb->() if $cb;
+
+                return;
+            }
+        );
+
+        return;
+    };
+
+    if ( $self->api ) {
         $self->api->init(
             sub ($status) {
                 exit if !$status;
@@ -99,18 +111,14 @@ around run => sub ( $orig, $self ) {
                 return;
             }
         );
-
-        $cv->recv;
     }
     else {
 
         # die if API controller found, but no API server provided
         die q[API is required] if $self->router->api_class && !$self->api;
+
+        $cv->send;
     }
-
-    $self->$orig;
-
-    $self->http_server->run;
 
     return;
 };
