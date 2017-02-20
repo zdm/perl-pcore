@@ -326,7 +326,12 @@ sub _build_pub_suffix ($self) {
 }
 
 sub _build_pub_suffix_utf8 ($self) {
-    return domain_to_utf8( $self->pub_suffix );
+    if ( my $pub_suffix = $self->pub_suffix ) {
+        return domain_to_utf8($pub_suffix);
+    }
+    else {
+        return q[];
+    }
 }
 
 sub _build_is_root_domain ($self) {
@@ -352,7 +357,13 @@ sub _build_root_domain ($self) {
 }
 
 sub _build_root_domain_utf8 ($self) {
-    return domain_to_utf8( $self->root_domain );
+    if ( my $root_domain = $self->root_domain ) {
+        return domain_to_utf8($root_domain);
+    }
+    else {
+        return q[];
+    }
+
 }
 
 sub _build_root_label ($self) {
