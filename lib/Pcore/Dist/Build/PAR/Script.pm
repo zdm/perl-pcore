@@ -1,7 +1,7 @@
 package Pcore::Dist::Build::PAR::Script;
 
 use Pcore -class, -ansi;
-use Pcore::Util::Text qw[format_num];
+use Pcore::Util::Text qw[add_num_sep];
 use Pcore::Util::File::Tree;
 use Archive::Zip qw[];
 use PAR::Filter;
@@ -116,7 +116,7 @@ sub run ($self) {
 
     P->file->chmod( 'rwx------', $target_exe );
 
-    say 'final binary size: ' . BLACK ON_GREEN . q[ ] . format_num( -s $target_exe ) . q[ ] . RESET . ' bytes';
+    say 'final binary size: ' . BLACK ON_GREEN . q[ ] . add_num_sep( -s $target_exe ) . q[ ] . RESET . ' bytes';
 
     return;
 }
@@ -460,7 +460,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $out_len = $fh->tell;
 
-    say 'done, ', BLACK ON_GREEN . q[ ] . format_num( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
+    say 'done, ', BLACK ON_GREEN . q[ ] . add_num_sep( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
 
     say 'hash: ' . $hash;
 

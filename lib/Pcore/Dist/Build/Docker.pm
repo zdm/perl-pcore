@@ -93,7 +93,7 @@ sub report ( $self, $dockerhub_repo ) {
                 width  => 15,
                 align  => 1,
                 format => sub ( $val, $id, $row ) {
-                    return $val ? P->text->format_num($val) : q[-];
+                    return $val ? P->text->add_num_sep($val) : q[-];
                 }
             },
             last_updated => {

@@ -14,7 +14,7 @@ use Pcore -export, [
       encode_utf8
       escape_scalar
       expand_num
-      format_num
+      add_num_sep
       fullchomp
       lcut
       lcut_all
@@ -455,14 +455,14 @@ sub expand_num ($num) {
 }
 
 # pretty print number 1234567 -> 1_234_567
-sub format_num ( $num, $delim = q[_] ) {
+sub add_num_sep ( $num, $sep = q[_] ) {
     my $sign = $num =~ s/\A([^\d])//sm ? $1 : q[];
 
     my $fraction = $num =~ s/[.](\d+)\z//sm ? $1 : undef;
 
-    $num = scalar reverse join $delim, ( reverse $num ) =~ /(.{1,3})/smg;
+    $num = scalar reverse join $sep, ( reverse $num ) =~ /(.{1,3})/smg;
 
-    $num .= q[.] . scalar reverse join $delim, ( reverse $fraction ) =~ /(.{1,3})/smg if $fraction;
+    $num .= q[.] . scalar reverse join $sep, ( reverse $fraction ) =~ /(.{1,3})/smg if $fraction;
 
     return $sign . $num;
 }

@@ -2,7 +2,7 @@ package Pcore::Core::Dump::Dumper;
 
 use Pcore -class;
 use Pcore::Util::Scalar qw[refaddr isweak reftype blessed looks_like_number tainted];
-use Pcore::Util::Text qw[escape_scalar remove_ansi format_num];
+use Pcore::Util::Text qw[escape_scalar remove_ansi add_num_sep];
 use re qw[];
 use Sort::Naturally qw[nsort];
 use Term::ANSIColor qw[colored];
@@ -303,7 +303,7 @@ sub SCALAR {
         $res = colored( 'undef', $COLOR->{undef} );
     }
     elsif ( looks_like_number( $_[0] ) ) {
-        $res = colored( format_num( $_[0] ), $COLOR->{number} );
+        $res = colored( add_num_sep( $_[0] ), $COLOR->{number} );
     }
     else {
         my $item         = $_[0];                  # scalar become untied
