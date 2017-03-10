@@ -157,36 +157,45 @@ sub extdirect_map ( $self, $auth, $ver, $cb ) {
 
     my $methods = $self->method;
 
+    state $add_method = sub ( $map, $method ) {
+        push $map->{actions}->{ $method->{extjs_action} }->@*,
+
+          # JSON method
+          { name     => $method->{method_name},
+            len      => 1,
+            params   => [],
+            strict   => \0,
+            metadata => {
+                len    => 1,
+                params => [],
+                strict => \0,
+            },
+            formHandler => \0,
+          };
+
+        return;
+    };
+
     for my $method ( values $methods->%* ) {
         next if $ver && $ver ne $method->{version};
 
-        $cv->begin;
+        if ( defined $auth ) {
+            $cv->begin;
 
-        $auth->api_can_call(
-            $method->{id},
-            sub ($can_call) {
-                if ($can_call) {
-                    push $map->{actions}->{ $method->{extjs_action} }->@*,
+            $auth->api_can_call(
+                $method->{id},
+                sub ($can_call) {
+                    $add_method->( $map, $method ) if $can_call;
 
-                      # JSON method
-                      { name     => $method->{method_name},
-                        len      => 1,
-                        params   => [],
-                        strict   => \0,
-                        metadata => {
-                            len    => 1,
-                            params => [],
-                            strict => \0,
-                        },
-                        formHandler => \0,
-                      };
+                    $cv->end;
+
+                    return;
                 }
-
-                $cv->end;
-
-                return;
-            }
-        );
+            );
+        }
+        else {
+            $add_method->( $map, $method );
+        }
     }
 
     $cv->end;
