@@ -31,7 +31,7 @@
         'Pcore/Dist/Build/PAR'       => ['/data/pcore.perl'],
         'Pcore/Src/File.pm'          => ['/data/src.perl'],
         'Pcore/Util/CA.pm'           => ['/data/ca_file.pem'],
-        'Pcore/Util/Path.pm'         => ['/data/mime.perl'],
+        'Pcore/Util/Path.pm'         => ['/data/mime.json'],
         'Pcore/Util/URI/Host.pm'     => [ '/data/pub_suffix.dat', '/data/tld.dat' ],
         'Pcore/Util/URI/Web2.pm'     => ['/data/web2.ini'],
     },
