@@ -550,7 +550,7 @@ sub log {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
             $obj->add( 'warn',  'stderr:', 'file:warn.log' );
         }
 
-        # file logs are disabled bby default for scripts, that are not part of distribution
+        # file logs are disabled by default for scripts, that are not part of the distribution
         else {
             $obj->add( 'fatal', 'stderr:' );
             $obj->add( 'error', 'stderr:' );
@@ -593,6 +593,37 @@ sub init_demolish ( $self, $class ) {
     Method::Generate::DemolishAll->new->generate_method($class) if $class->can('DEMOLISH') && $class->isa('Moo::Object');
 
     return;
+}
+
+# EVENT
+our $EV;
+
+sub listen_event ( $self, $keys, $cb ) {
+    state $ev = do {
+        if ( !$EV ) {
+            require Pcore::Core::Event;
+
+            $EV = Pcore::Core::Event->new;
+        }
+
+        $EV;
+    };
+
+    return $ev->listen_event( $keys, $cb );
+}
+
+sub fire_event ( $self, $key, $data = undef ) {
+    state $ev = do {
+        if ( !$EV ) {
+            require Pcore::Core::Event;
+
+            $EV = Pcore::Core::Event->new;
+        }
+
+        $EV;
+    };
+
+    return $ev->fire_event( $key, $data );
 }
 
 1;
