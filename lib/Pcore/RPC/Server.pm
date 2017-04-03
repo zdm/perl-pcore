@@ -18,6 +18,7 @@ BEGIN {
 
     $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $BOOT_ARGS );
 
+    # set $main::VERSION
     $main::VERSION = version->new( $BOOT_ARGS->{version} );
 }
 
@@ -31,7 +32,9 @@ use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
 use Pcore::HTTP::Server;
+use Pcore::RPC::Connection;
 
+# open control handle
 if ($MSWIN) {
     Win32API::File::OsFHandleOpen( *CTRL_FH, $BOOT_ARGS->{ctrl_fh}, 'w' ) or die $!;
 }
@@ -39,39 +42,37 @@ else {
     open *CTRL_FH, '>&=', $BOOT_ARGS->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
 }
 
-# ignore INT
+# ignore SIGINT
 $SIG->{INT} = AE::signal INT => sub {
     return;
 };
 
-# term on TERM
+# TODO term on SIGTERM
 $SIG->{TERM} = AE::signal TERM => sub {
     _on_term();
 
     return;
 };
 
-my $RPC;
-my $DEPS  = {};
-my $QUEUE = {};
-
+# my $DEPS  = {};
+# my $QUEUE = {};
 # my $TERM;
 
 our $CV = AE::cv;
 
 # create object
-# TODO call new after handshake done, because object can start communicate with server in BUILD method
-$RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
+my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
 
-# TODO get random port on 127.0.0.1 if undef
-my $listen = $BOOT_ARGS->{listen} // '127.0.0.1:80';
+# get random port on 127.0.0.1 if undef
+my $listen = $BOOT_ARGS->{listen} // '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
+
+my $protocol = Pcore::RPC::Connection->new;
 
 # start websocket server
 my $http_server = Pcore::HTTP::Server->new(
     {   listen => $listen,
         app    => sub ($req) {
-
-            # $server->run($req);
+            $protocol->run($req);
 
             return;
         },
@@ -109,7 +110,7 @@ exit;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 90                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 91                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

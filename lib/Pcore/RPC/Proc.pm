@@ -5,7 +5,6 @@ use Fcntl;
 use Config;
 use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
-use Pcore::Util::Scalar qw[weaken];
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::Data qw[:CONST];
 
@@ -15,6 +14,7 @@ has on_finish => ( is => 'rw', isa => Maybe [CodeRef] );
 
 around new => sub ( $orig, $self, @ ) {
     my %args = (
+        listen    => undef,                                     # RPC server listen
         class     => undef,
         name      => undef,                                     # readable name for process manager
         buildargs => undef,                                     # class constructor arguments
@@ -80,6 +80,7 @@ around new => sub ( $orig, $self, @ ) {
         on_ready => sub ($proc) {
             $self->{proc} = $proc;
 
+            # send configuration to RPC STDIN
             $proc->stdin->push_write( $boot_args . $LF );
 
             # wrap AE handles and perform handshale
@@ -105,7 +106,6 @@ around new => sub ( $orig, $self, @ ) {
 };
 
 sub _handshake ( $self, $ctrl_fh, $cb ) {
-    weaken $self;
 
     # wrap control_fh
     Pcore::AE::Handle->new(
@@ -114,6 +114,8 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
             $h->push_read(
                 line => "\x00",
                 sub ( $h1, $line, $eol ) {
+
+                    # destroy control fh
                     $h->destroy;
 
                     if ( $line =~ /\ALISTEN:(.+)\z/sm ) {

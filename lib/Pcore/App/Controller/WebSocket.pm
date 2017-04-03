@@ -25,7 +25,7 @@ sub _build_websocket_max_message_size ($self) {
 }
 
 sub _build_websocket_permessage_deflate ($self) {
-    return 1;
+    return 0;
 }
 
 sub _build_websocket_autopong ($self) {
