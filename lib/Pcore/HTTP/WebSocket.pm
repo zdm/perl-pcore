@@ -4,7 +4,6 @@ use Pcore -const, -class;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Pcore::Util::Data qw[to_b64 to_xor];
 use Pcore::Util::List qw[pairs];
-use Pcore::Util::Random qw[random_bytes];
 use Pcore::AE::Handle;
 use Compress::Raw::Zlib;
 use Pcore::Util::Digest qw[sha1];
@@ -649,17 +648,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 70                   | * Subroutine "connect" with high complexity score (38)                                                         |
-## |      | 300                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
-## |      | 413                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
+## |      | 69                   | * Subroutine "connect" with high complexity score (38)                                                         |
+## |      | 299                  | * Subroutine "start_listen" with high complexity score (25)                                                    |
+## |      | 412                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 261, 267, 521        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 260, 266, 520        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 459                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 458                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 582, 584             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 581, 583             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 429              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 40, 428              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
