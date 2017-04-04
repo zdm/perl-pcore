@@ -1,16 +1,17 @@
 package Pcore::RPC::Connection;
 
 use Pcore -class;
+use Pcore::Util::Scalar qw[refaddr];
 use Pcore::Util::Data qw[to_cbor from_json from_cbor];
 
-with qw[Pcore::App::Controller::WebSocket];
+has ws_protocol           => ( is => 'ro', isa => Str,  default => 'pcore', init_arg => undef );
+has ws_permessage_deflate => ( is => 'ro', isa => Bool, default => 0,       init_arg => undef );
+has ws_max_message_size => ( is => 'ro', isa => PositiveInt, default => 1_024 * 1_024 * 100, init_arg => undef );    # 100 Mb
+has ws_autopong => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );                        # auto pong timeout in seconds
 
-has '+websocket_subprotocol'        => ( default => 'pcore-rpc' );
-has '+websocket_max_message_size'   => ( default => 0 );
-has '+websocket_permessage_deflate' => ( default => 0 );
-has '+websocket_autopong'           => ( default => 3 );
+with qw[Pcore::HTTP::WebSocket::Server];
 
-has ws => ( is => 'ro', init_arg => undef );
+has ws_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 sub run ( $self, $req ) {
     $req->return_xxx(400);
@@ -18,27 +19,35 @@ sub run ( $self, $req ) {
     return;
 }
 
-sub rpc_call ( $self, $method, $args, $cb = undef ) {
-    my $payload = [ $method, $args ];
-
-    $self->{ws}->send_binary( to_cbor($payload)->$* );
+sub ws_on_accept ( $self, $ws, $req, $accept, $decline ) {
+    $accept->();
 
     return;
 }
 
-sub websocket_on_connect ( $self, $ws ) {
-    say 'CONNECTED';
-
-    $self->{ws} = $ws;
+sub ws_on_connect ( $self, $ws ) {
+    $self->{ws_cache}->{ refaddr $ws} = $ws;
 
     return;
 }
 
-sub websocket_on_text ( $self, $payload_ref ) {
+sub ws_on_disconnect ( $self, $ws, $status, $reason ) {
+    delete $self->{ws_cache}->{ refaddr $ws};
+
     return;
 }
 
-sub websocket_on_binary ( $self, $payload_ref ) {
+sub ws_on_text ( $self, $ws, $data_ref ) {
+    say dump $data_ref;
+
+    return;
+}
+
+sub ws_on_binary ( $self, $ws, $data_ref ) {
+    return;
+}
+
+sub ws_on_pong ( $self, $ws, $data_ref ) {
     return;
 }
 
