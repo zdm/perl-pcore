@@ -16,7 +16,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
         ws_max_message_size   => 1024 * 1024 * 100,    # 100 Mb
         ws_permessage_deflate => 0,
 
-        # callbacks
+        # websocket callbacks
         ws_on_disconnect => undef,
         ws_on_text       => undef,
         ws_on_binary     => undef,
