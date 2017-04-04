@@ -76,7 +76,7 @@ around run => sub ( $orig, $self, $req ) {
                 return;
             };
 
-            $ws->{on_pong} = sub ( $ws, $data_ref ) {
+            $ws->{on_pong} = sub ( $ws, $data_ref = undef ) {
                 $self->ws_on_pong( $ws, $data_ref );
 
                 return;

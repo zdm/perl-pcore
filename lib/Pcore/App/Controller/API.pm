@@ -8,15 +8,15 @@ with qw[Pcore::App::Controller::WebSocket];
 const our $CONTENT_TYPE_JSON => 1;
 const our $CONTENT_TYPE_CBOR => 2;
 
-sub _build_websocket_subprotocol ($self) {
-    return 'pcore-api';
+sub _build_ws_protocol ($self) {
+    return 'pcore';
 }
 
-sub _build_websocket_max_message_size ($self) {
+sub _build_ws_max_message_size ($self) {
     return 1024 * 1024 * 10;
 }
 
-sub _build_websocket_autopong ($self) {
+sub _build_ws_autopong ($self) {
     return 50;
 }
 
@@ -178,13 +178,13 @@ sub run ( $self, $req ) {
 
 # WEBSOCKET INTERFACE
 # TODO make ExtDirect compatible
-sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
+sub _ws_api_call ( $self, $ws, $payload_ref, $content_type ) {
 
     # decode payload
     my $data = eval { $content_type eq $CONTENT_TYPE_JSON ? from_json $payload_ref : from_cbor $payload_ref};
 
     # content decode error
-    return $self->websocket_disconnect( $ws, 400, q[Error decoding request body] ) if $@;
+    return $self->ws_disconnect( $ws, 400, q[Error decoding request body] ) if $@;
 
     my $auth = $ws->{auth};
 
@@ -214,13 +214,13 @@ sub _websocket_api_call ( $self, $ws, $payload_ref, $content_type ) {
 
     # method is not specified, this is callback, not supported in API server
     else {
-        return $self->websocket_disconnect( $ws, 400, q[Method is required] );
+        return $self->ws_disconnect( $ws, 400, q[Method is required] );
     }
 
     return;
 }
 
-sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
+sub ws_on_accept ( $self, $ws, $req, $accept, $decline ) {
 
     # authenticate request
     $req->authenticate(
@@ -246,27 +246,27 @@ sub websocket_on_accept ( $self, $ws, $req, $accept, $decline ) {
     return;
 }
 
-sub websocket_on_connect ( $self, $ws ) {
+sub ws_on_connect ( $self, $ws ) {
     return;
 }
 
-sub websocket_on_text ( $self, $ws, $payload_ref ) {
-    $self->_websocket_api_call( $ws, $payload_ref, $CONTENT_TYPE_JSON );
-
-    return;
-}
-
-sub websocket_on_binary ( $self, $ws, $payload_ref ) {
-    $self->_websocket_api_call( $ws, $payload_ref, $CONTENT_TYPE_CBOR );
+sub ws_on_text ( $self, $ws, $data_ref ) {
+    $self->_ws_api_call( $ws, $data_ref, $CONTENT_TYPE_JSON );
 
     return;
 }
 
-sub websocket_on_pong ( $self, $ws, $payload ) {
+sub ws_on_binary ( $self, $ws, $data_ref ) {
+    $self->_ws_api_call( $ws, $data_ref, $CONTENT_TYPE_CBOR );
+
     return;
 }
 
-sub websocket_on_disconnect ( $self, $ws, $status, $reason ) {
+sub ws_on_pong ( $self, $ws, $data_ref = undef ) {
+    return;
+}
+
+sub ws_on_disconnect ( $self, $ws, $status, $reason ) {
     return;
 }
 

@@ -313,7 +313,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
 
         # PONG message
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-            $self->{on_pong}->( $self, $payload_ref ? $payload_ref->$* : q[] ) if $self->{on_pong};
+            $self->{on_pong}->( $self, $payload_ref ? $payload_ref : () ) if $self->{on_pong};
         }
     }
 

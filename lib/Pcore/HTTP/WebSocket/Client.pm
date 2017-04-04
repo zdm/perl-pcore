@@ -13,7 +13,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 
         # websocket args
         ws_protocol           => undef,
-        ws_max_message_size   => 1024 * 1024 * 100,    # 100 Mb
+        ws_max_message_size   => 1024 * 1024 * 10,    # 10 Mb
         ws_permessage_deflate => 0,
 
         # websocket callbacks
@@ -24,7 +24,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 
         # HTTP args
         useragent => "Pcore-HTTP/$Pcore::VERSION",
-        headers   => undef,                            # ArrayRef
+        headers   => undef,                           # ArrayRef
 
         # create handle args
         handle_params          => {},

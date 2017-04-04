@@ -47,7 +47,7 @@ sub ws_on_binary ( $self, $ws, $data_ref ) {
     return;
 }
 
-sub ws_on_pong ( $self, $ws, $data_ref ) {
+sub ws_on_pong ( $self, $ws, $data_ref = undef ) {
     return;
 }
 
