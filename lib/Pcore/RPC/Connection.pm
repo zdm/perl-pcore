@@ -1,7 +1,6 @@
 package Pcore::RPC::Connection;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[refaddr];
 use Pcore::Util::Data qw[to_cbor from_json from_cbor];
 
 has ws_protocol           => ( is => 'ro', isa => Str,  default => 'pcore', init_arg => undef );
@@ -10,8 +9,6 @@ has ws_max_message_size => ( is => 'ro', isa => PositiveInt, default => 1_024 * 
 has ws_autopong => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );                        # auto pong timeout in seconds
 
 with qw[Pcore::HTTP::WebSocket::Server];
-
-has ws_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 sub run ( $self, $req ) {
     $req->return_xxx(400);
@@ -26,14 +23,12 @@ sub ws_on_accept ( $self, $ws, $req, $accept, $decline ) {
 }
 
 sub ws_on_connect ( $self, $ws ) {
-    $self->{ws_cache}->{ refaddr $ws} = $ws;
-
     return;
 }
 
+# TODO - remove all listeners;
+# TODO - call and remove all pending callbacks;
 sub ws_on_disconnect ( $self, $ws, $status, $reason ) {
-    delete $self->{ws_cache}->{ refaddr $ws};
-
     return;
 }
 

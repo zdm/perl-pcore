@@ -1,9 +1,12 @@
 package Pcore::HTTP::WebSocket::Server;
 
 use Pcore -role;
+use Pcore::Util::Scalar qw[refaddr];
 use Pcore::HTTP::WebSocket::Handle;
 
 requires qw[run ws_protocol ws_permessage_deflate ws_max_message_size ws_autopong ws_on_accept ws_on_connect ws_on_disconnect ws_on_text ws_on_binary ws_on_pong];
+
+has ws_handles => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 around run => sub ( $orig, $self, $req ) {
 
@@ -87,6 +90,9 @@ around run => sub ( $orig, $self, $req ) {
 
             $ws->start_listen;
 
+            # store ws handle
+            $self->{ws_handles}->{ refaddr $ws} = $ws;
+
             $self->ws_on_connect($ws);
 
             return;
@@ -107,6 +113,12 @@ around run => sub ( $orig, $self, $req ) {
     else {
         return $self->$orig($req);
     }
+};
+
+around ws_on_disconnect => sub ( $orig, $self, $ws, $status, $reason ) {
+    delete $self->{ws_handles}->{ refaddr $ws};
+
+    return $self->$orig( $ws, $status, $reason );
 };
 
 1;
