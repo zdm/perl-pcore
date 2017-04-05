@@ -1,10 +1,10 @@
-package Pcore::Websocket;
+package Pcore::WebSocket;
 
 use Pcore;
 use Pcore::Util::Scalar qw[refaddr];
 use Pcore::Util::Data qw[to_b64];
 use Pcore::Util::List qw[pairs];
-use Pcore::Websocket::Handle;
+use Pcore::WebSocket::Handle;
 use Pcore::AE::Handle;
 
 our $HANDLE = {};
@@ -41,7 +41,7 @@ sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutin
         }
 
         # create empty websocket object
-        my $ws = bless {}, "Pcore::Websocket::Protocol::$implementation";
+        my $ws = bless {}, "Pcore::WebSocket::Protocol::$implementation";
 
         my $accept = sub ( $ws_cfg = undef, $headers = undef ) {
             $ws->@{ keys $ws_cfg->%* } = values $ws_cfg->%* if $ws_cfg;
@@ -96,46 +96,44 @@ sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutin
     return;
 }
 
-sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+
+    # protocol
+    # permessage_deflate
+    my %args = splice @_, 3;
+
+    my $class = eval { P->class->load( $protocol || 'raw', ns => 'Pcore::WebSocket::Protocol' ) };
+
+    my $on_error = sub ( $staus, $reason ) {
+        if ( $args{on_connect_error} ) {
+            $args{on_connect_error}->( $status, $reason );
+        }
+        elsif ( $args{on_error} ) {
+            $args{on_error}->( $status, $reason );
+        }
+        else {
+            die qq[WebSocket proxy connect error: $status, $reason];
+        }
+
+        return;
+    };
+
+    if ($@) {
+        $on_error->( 400, 'WebSocket protocol is not supported' );
+
+        return;
+    }
+
     $uri = Pcore->uri($uri) if !ref $uri;
 
-    my %args = (
-
-        # websocket args
-        ws_protocol           => undef,
-        ws_max_message_size   => 1024 * 1024 * 10,    # 10 Mb
-        ws_permessage_deflate => 0,
-
-        # websocket callbacks
-        ws_on_disconnect => undef,
-        ws_on_text       => undef,
-        ws_on_binary     => undef,
-        ws_on_pong       => undef,
-
-        # HTTP args
-        useragent => "Pcore-HTTP/$Pcore::VERSION",
-        headers   => undef,                           # ArrayRef
-
-        # create handle args
-        handle_params          => {},
-        connect_timeout        => undef,
-        tls_ctx                => undef,
-        bind_ip                => undef,
-        proxy                  => undef,
-        on_proxy_connect_error => undef,
-        on_connect_error       => undef,
-        on_connect             => undef,
-        splice @_, 2,
-    );
-
     Pcore::AE::Handle->new(
-        persistent => 0,
         $args{handle_params}->%*,
-        connect         => $uri,
-        connect_timeout => $args{connect_timeout},
-        tls_ctx         => $args{tls_ctx},
-        bind_ip         => $args{bind_ip},
-        proxy           => $args{proxy},
+        persistent             => 0,
+        connect                => $uri,
+        connect_timeout        => $args{connect_timeout},
+        tls_ctx                => $args{tls_ctx},
+        bind_ip                => $args{bind_ip},
+        proxy                  => $args{proxy},
         on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
             if ( $args{on_proxy_connect_error} ) {
                 $args{on_proxy_connect_error}->( 594, $reason, $proxy_error );
@@ -182,13 +180,13 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
             my @headers = (    #
                 "GET $request_path HTTP/1.1",
                 'Host:' . $uri->host,
+                "User-Agent:Pcore-HTTP/$Pcore::VERSION",
                 'Upgrade:websocket',
                 'Connection:upgrade',
-                "Sec-WebSocket-Version:$Pcore::HTTP::WebSocket::Handle::WEBSOCKET_VERSION",
+                "Sec-WebSocket-Version:$Pcore::WebSocket::Handle::WEBSOCKET_VERSION",
                 "Sec-WebSocket-Key:$sec_websocket_key",
-                ( $args{ws_protocol}           ? "Sec-WebSocket-Protocol:$args{ws_protocol}"   : () ),
-                ( $args{ws_permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
-                ( $args{useragent}             ? "User-Agent:$args{useragent}"                 : () ),
+                ( $args{protocol}           ? "Sec-WebSocket-Protocol:$args{protocol}"      : () ),
+                ( $args{permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
             );
 
             push @headers, map {"$_->[0]:$_->[1]"} pairs $args{headers}->@* if $args{headers};
@@ -223,12 +221,12 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                         }
 
                         # check SEC_WEBSOCKET_ACCEPT
-                        elsif ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne Pcore::HTTP::WebSocket::Handle->challenge($sec_websocket_key) ) {
+                        elsif ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne Pcore::WebSocket::Handle->get_challenge($sec_websocket_key) ) {
                             $error_status = 596;
                             $error_reason = q[Invalid WebSocket SEC_WEBSOCKET_ACCEPT];
                         }
 
-                        # check protocol
+                        # TODO check protocol
                         else {
                             if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
                                 if ( !$args{ws_protocol} || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$args{ws_protocol}\b/smi ) {
@@ -244,12 +242,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                     }
 
                     if ($error_status) {
-                        if ( $args{on_connect_error} ) {
-                            $args{on_connect_error}->( $error_status, $error_reason );
-                        }
-                        else {
-                            die qq[WebSocket connect error: $error_status, $error_reason];
-                        }
+                        $on_error->( $error_status, $error_reason );
                     }
                     else {
                         my $permessage_deflate = 0;
@@ -269,9 +262,9 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                             on_binary          => $args{ws_on_binary},
                             on_pong            => $args{ws_on_pong},
                           },
-                          'Pcore::HTTP::WebSocket::Handle';
+                          $class;
 
-                        $ws->start_listen;
+                        $ws->on_connect;
 
                         $args{on_connect}->( $ws, $res_headers ) if $args{on_connect};
                     }
@@ -296,7 +289,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
 ## |======+======================+================================================================================================================|
 ## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (38)                   |
+## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (40)                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -307,7 +300,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Websocket
+Pcore::WebSocket
 
 =head1 SYNOPSIS
 

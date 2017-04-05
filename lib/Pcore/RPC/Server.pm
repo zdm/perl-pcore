@@ -32,7 +32,7 @@ use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
 use Pcore::HTTP::Server;
-use Pcore::Websocket;
+use Pcore::WebSocket;
 
 # open control handle
 if ($MSWIN) {
@@ -70,7 +70,7 @@ my $listen = $BOOT_ARGS->{listen} // '127.0.0.1:' . P->sys->get_free_port('127.0
 my $http_server = Pcore::HTTP::Server->new(
     {   listen => $listen,
         app    => sub ($req) {
-            Pcore::Websocket->accept(
+            Pcore::WebSocket->accept(
                 'pcore', $req,
                 sub ( $ws, $req, $accept, $decline ) {
                     $accept->(

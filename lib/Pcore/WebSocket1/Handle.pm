@@ -94,9 +94,28 @@ sub pong ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
 sub disconnect ( $self, $status = undef ) {
     return if !$self->{is_connected};
 
+    # mark connection as closed
+    $self->{is_connected} = 0;
+
     $status = result [ 1000, $WEBSOCKET_STATUS_REASON ] if !defined $status;
 
+    # cleanup message data
+    undef $self->{_msg};
+
+    # send close message
+    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
+
+    # destroy handle
+    $self->{h}->destroy;
+
+    # remove from cache
+    delete $Pcore::WebSocket::HANDLE->{ refaddr $self};
+
+    # call protocol on_disconnect
     $self->on_disconnect($status);
+
+    # call on_disconnect callback, if defined
+    $self->{on_disconnect}->( $self, $status ) if $self->{on_disconnect};
 
     return;
 }
@@ -114,7 +133,7 @@ around on_connect => sub ( $orig, $self ) {
     # set on_error handler
     $self->{h}->on_error(
         sub ( $h, @ ) {
-            $self->on_disconnect( result [ 1001, $WEBSOCKET_STATUS_REASON ] );    # 1001 - Going Away
+            $self->disconnect( result [ 1001, $WEBSOCKET_STATUS_REASON ] );    # 1001 - Going Away
 
             return;
         }
@@ -132,7 +151,7 @@ around on_connect => sub ( $orig, $self ) {
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->on_disconnect( result [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$self->{_msg};
+                        return $self->disconnect( result [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$self->{_msg};
 
                         # restore message "op", "rsv1"
                         ( $header->{op}, $header->{rsv1} ) = ( $self->{_msg}->[1], $self->{_msg}->[2] );
@@ -151,7 +170,7 @@ around on_connect => sub ( $orig, $self ) {
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
-                        return $self->on_disconnect( result [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$self->{_msg};
+                        return $self->disconnect( result [ 1002, $WEBSOCKET_STATUS_REASON ] ) if !$self->{_msg};
 
                         # restore "rsv1" flag
                         $header->{rsv1} = $self->{_msg}->[2];
@@ -177,10 +196,10 @@ around on_connect => sub ( $orig, $self ) {
                     # check max. message size, return 1009 - message too big
                     if ( $self->{max_message_size} ) {
                         if ( $self->{_msg} && $self->{_msg}->[0] ) {
-                            return $self->on_disconnect( result [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} + length $self->{_msg}->[0] > $self->{max_message_size};
+                            return $self->disconnect( result [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} + length $self->{_msg}->[0] > $self->{max_message_size};
                         }
                         else {
-                            return $self->on_disconnect( result [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} > $self->{max_message_size};
+                            return $self->disconnect( result [ 1009, $WEBSOCKET_STATUS_REASON ] ) if $header->{len} > $self->{max_message_size};
                         }
                     }
 
@@ -226,33 +245,6 @@ around on_connect => sub ( $orig, $self ) {
     return;
 };
 
-around on_disconnect => sub ( $orig, $self, $status ) {
-    return if !$self->{is_connected};
-
-    # mark connection as closed
-    $self->{is_connected} = 0;
-
-    # cleanup message data
-    undef $self->{_msg};
-
-    # send close message
-    $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_CLOSE, \( pack( 'n', $status->{status} ) . encode_utf8 $status->{reason} ) ) );
-
-    # destroy handle
-    $self->{h}->destroy;
-
-    # remove from cache
-    delete $Pcore::Websocket::HANDLE->{ refaddr $self};
-
-    # call protocol on_disconnect
-    $self->$orig($status);
-
-    # call on_disconnect callback, if defined
-    $self->{on_disconnect}->( $self, $status ) if $self->{on_disconnect};
-
-    return;
-};
-
 sub _on_frame ( $self, $header, $payload_ref ) {
     if ($payload_ref) {
 
@@ -273,7 +265,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
 
             $inflate->inflate( $payload_ref, my $out );
 
-            return $self->on_disconnect( result [ 1009, $WEBSOCKET_STATUS_REASON ] ) if length $payload_ref->$*;
+            return $self->disconnect( result [ 1009, $WEBSOCKET_STATUS_REASON ] ) if length $payload_ref->$*;
 
             $payload_ref = \$out;
         }
@@ -301,7 +293,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
             if ($payload_ref) {
                 eval { decode_utf8 $payload_ref->$* };
 
-                return $self->on_disconnect( result [ 1003, 'UTF-8 decode error', $WEBSOCKET_STATUS_REASON ] ) if $@;
+                return $self->disconnect( result [ 1003, 'UTF-8 decode error', $WEBSOCKET_STATUS_REASON ] ) if $@;
 
                 $self->on_text($payload_ref);
             }
@@ -325,7 +317,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
                 $status = 1006;    # 1006 - Abnormal Closure - if close status was not specified
             }
 
-            $self->on_disconnect( result [ $status, $reason, $WEBSOCKET_STATUS_REASON ] );
+            $self->disconnect( result [ $status, $reason, $WEBSOCKET_STATUS_REASON ] );
         }
 
         # PING message
@@ -474,19 +466,19 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (29)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (27)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 82, 88, 347          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 82, 88, 339          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 256                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
+## |    3 | 248                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 302                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 294                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 408, 410             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 400, 402             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 272              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 41, 264              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 320                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 312                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
