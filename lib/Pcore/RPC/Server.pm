@@ -32,7 +32,7 @@ use Pcore::Util::PM::RPC qw[:CONST];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::Util::PM::RPC::Request;
 use Pcore::HTTP::Server;
-use Pcore::RPC::Connection;
+use Pcore::Websocket;
 
 # open control handle
 if ($MSWIN) {
@@ -66,13 +66,40 @@ my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} //
 # get random port on 127.0.0.1 if undef
 my $listen = $BOOT_ARGS->{listen} // '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
 
-my $protocol = Pcore::RPC::Connection->new;
-
 # start websocket server
 my $http_server = Pcore::HTTP::Server->new(
     {   listen => $listen,
         app    => sub ($req) {
-            $protocol->run($req);
+            Pcore::Websocket->accept(
+                'pcore', $req,
+                sub ( $ws, $req, $accept, $decline ) {
+                    $accept->(
+                        {   max_message_size   => 1_024 * 1_024 * 100,    # 100 Mb
+                            pong_timeout       => 50,
+                            permessage_deflate => 0,
+                            on_connect         => sub ($ws) {
+                                say 'CONNECTED';
+
+                                $ws->listen_event( ['test.event'] );
+
+                                return;
+                            },
+                            on_disconnect => sub ( $ws, $status ) {
+                                say 'DISCONNECTED - ' . $status;
+
+                                return;
+                            },
+                            on_rpc_call => sub ($req) {
+                                say dump $req;
+
+                                return;
+                            }
+                        }
+                    );
+
+                    return;
+                },
+            );
 
             return;
         },
@@ -110,7 +137,7 @@ exit;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 91                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 118                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
