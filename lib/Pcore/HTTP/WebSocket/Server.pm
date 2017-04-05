@@ -1,7 +1,7 @@
 package Pcore::HTTP::WebSocket::Server;
 
 use Pcore -role;
-use Pcore::HTTP::WebSocket::Connection;
+use Pcore::HTTP::WebSocket::Handle;
 
 requires qw[run ws_protocol ws_permessage_deflate ws_max_message_size ws_autopong ws_on_accept ws_on_connect ws_on_disconnect ws_on_text ws_on_binary ws_on_pong];
 
@@ -12,7 +12,7 @@ around run => sub ( $orig, $self, $req ) {
         my $env = $req->{env};
 
         # websocket version is not specified or not supported
-        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $Pcore::HTTP::WebSocket::Connection::WEBSOCKET_VERSION;
+        return $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] ) if !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $Pcore::HTTP::WebSocket::Handle::WEBSOCKET_VERSION;
 
         # websocket key is not specified
         return $req->return_xxx( [ 400, q[WebSocket SEC_WEBSOCKET_KEY header is required] ] ) if !$env->{HTTP_SEC_WEBSOCKET_KEY};
@@ -28,7 +28,7 @@ around run => sub ( $orig, $self, $req ) {
         }
 
         # create empty websocket object
-        my $ws = bless {}, 'Pcore::HTTP::WebSocket::Connection';
+        my $ws = bless {}, 'Pcore::HTTP::WebSocket::Handle';
 
         my $accept = sub ($headers = undef) {
             my $ws_permessage_deflate = 0;
@@ -42,7 +42,7 @@ around run => sub ( $orig, $self, $req ) {
 
             # create response headers
             my @headers = (    #
-                'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket::Connection->challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
+                'Sec-WebSocket-Accept' => Pcore::HTTP::WebSocket::Handle->challenge( $env->{HTTP_SEC_WEBSOCKET_KEY} ),
                 ( $ws_protocol           ? ( 'Sec-WebSocket-Protocol'   => $ws_protocol )         : () ),
                 ( $ws_permessage_deflate ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
             );

@@ -1,7 +1,7 @@
 package Pcore::HTTP::WebSocket::Client;
 
 use Pcore;
-use Pcore::HTTP::WebSocket::Connection;
+use Pcore::HTTP::WebSocket::Handle;
 use Pcore::Util::Data qw[to_b64];
 use Pcore::Util::List qw[pairs];
 use Pcore::AE::Handle;
@@ -94,7 +94,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                 'Host:' . $uri->host,
                 'Upgrade:websocket',
                 'Connection:upgrade',
-                "Sec-WebSocket-Version:$Pcore::HTTP::WebSocket::Connection::WEBSOCKET_VERSION",
+                "Sec-WebSocket-Version:$Pcore::HTTP::WebSocket::Handle::WEBSOCKET_VERSION",
                 "Sec-WebSocket-Key:$sec_websocket_key",
                 ( $args{ws_protocol}           ? "Sec-WebSocket-Protocol:$args{ws_protocol}"   : () ),
                 ( $args{ws_permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
@@ -133,7 +133,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                         }
 
                         # check SEC_WEBSOCKET_ACCEPT
-                        elsif ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne Pcore::HTTP::WebSocket::Connection->challenge($sec_websocket_key) ) {
+                        elsif ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne Pcore::HTTP::WebSocket::Handle->challenge($sec_websocket_key) ) {
                             $error_status = 596;
                             $error_reason = q[Invalid WebSocket SEC_WEBSOCKET_ACCEPT];
                         }
@@ -179,7 +179,7 @@ sub connect ( $self, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltin
                             on_binary          => $args{ws_on_binary},
                             on_pong            => $args{ws_on_pong},
                           },
-                          'Pcore::HTTP::WebSocket::Connection';
+                          'Pcore::HTTP::WebSocket::Handle';
 
                         $ws->start_listen;
 

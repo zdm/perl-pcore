@@ -38,7 +38,34 @@ sub ws_on_disconnect ( $self, $ws, $status, $reason ) {
 }
 
 sub ws_on_text ( $self, $ws, $data_ref ) {
-    say dump $data_ref;
+    my $data = from_json $data_ref->$*;
+
+    if ( $data->{type} eq 'listen' ) {
+        for my $key ( $data->{data}->@* ) {
+            my $listener = P->listen_event(
+                $key,
+                sub ( $key, $data = undef ) {
+                    $ws->send_text(
+                        P->data->to_json(
+                            {   type => 'event',
+                                data => {
+                                    key  => $key,
+                                    data => $data,
+                                },
+                            }
+                        )->$*
+                    );
+
+                    return;
+                }
+            );
+
+            push $ws->{event_listeners}->@*, $listener;
+        }
+    }
+    elsif ( $data->{type} eq 'event' ) {
+        P->fire_event( $data->{data}->{key}, $data->{data}->{data} );
+    }
 
     return;
 }
