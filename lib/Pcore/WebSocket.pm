@@ -1,6 +1,6 @@
 package Pcore::WebSocket;
 
-use Pcore;
+use Pcore -result;
 use Pcore::Util::Scalar qw[refaddr];
 use Pcore::Util::Data qw[to_b64];
 use Pcore::Util::List qw[pairs];
@@ -97,28 +97,30 @@ sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutin
 }
 
 sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-
-    # permessage_deflate
-    my %args = splice @_, 3;
+    my %args = (
+        max_message_size   => 0,
+        permessage_deflate => 0,               # use compression
+        on_error           => undef,
+        on_connect         => undef,           # mandatory
+        on_disconnect      => undef,           # passed to websocket constructor
+        @_[ 3 .. $#_ ]
+    );
 
     my $class = eval { P->class->load( $protocol || 'raw', ns => 'Pcore::WebSocket::Protocol' ) };
 
-    my $on_error = sub ( $status, $reason ) {
-        if ( $args{on_connect_error} ) {
-            $args{on_connect_error}->( $status, $reason );
-        }
-        elsif ( $args{on_error} ) {
-            $args{on_error}->( $status, $reason );
+    my $on_error = sub ( $status ) {
+        if ( $args{on_error} ) {
+            $args{on_error}->($status);
         }
         else {
-            die qq[WebSocket connect error: $status, $reason];
+            die qq[WebSocket connect error: $status];
         }
 
         return;
     };
 
     if ($@) {
-        $on_error->( 400, 'WebSocket protocol is not supported' );
+        $on_error->( result [ 400, 'WebSocket protocol is not supported' ] );
 
         return;
     }
@@ -134,35 +136,17 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
         bind_ip                => $args{bind_ip},
         proxy                  => $args{proxy},
         on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
-            if ( $args{on_proxy_connect_error} ) {
-                $args{on_proxy_connect_error}->( 594, $reason, $proxy_error );
-            }
-            elsif ( $args{on_connect_error} ) {
-                $args{on_proxy_connect_error}->( 594, $reason );
-            }
-            else {
-                die qq[WebSocket proxy connect error: 594, $reason, $proxy_error];
-            }
+            $on_error->( result [ 594, $reason ] );
 
             return;
         },
         on_connect_error => sub ( $h, $reason ) {
-            if ( $args{on_connect_error} ) {
-                $args{on_connect_error}->( 595, $reason );
-            }
-            else {
-                die qq[WebSocket connect error: 595, $reason];
-            }
+            $on_error->( result [ 595, $reason ] );
 
             return;
         },
         on_error => sub ( $h, $fatal, $reason ) {
-            if ( $args{on_connect_error} ) {
-                $args{on_connect_error}->( 596, $reason );
-            }
-            else {
-                die qq[WebSocket connect error: 596, $reason];
-            }
+            $on_error->( result [ 596, $reason ] );
 
             return;
         },
@@ -195,53 +179,48 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
             $h->read_http_res_headers(
                 headers => 1,
                 sub ( $h1, $headers, $error_reason ) {
-                    my $error_status;
+                    my $res;
 
                     my $res_headers;
 
                     if ($error_reason) {
 
                         # headers parsing error
-                        $error_status = 596;
+                        $res = result [ 596, $error_reason ];
                     }
                     else {
                         $res_headers = $headers->{headers};
 
                         # check response status
                         if ( $headers->{status} != 101 ) {
-                            $error_status = $headers->{status};
-                            $error_reason = $headers->{reason};
+                            $res = result [ $headers->{status}, $headers->{reason} ];
                         }
 
                         # check response connection headers
                         elsif ( !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi ) {
-                            $error_status = 596;
-                            $error_reason = q[WebSocket handshake error];
+                            $res = result [ 596, q[WebSocket handshake error] ];
                         }
 
                         # check SEC_WEBSOCKET_ACCEPT
                         elsif ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne Pcore::WebSocket::Handle->get_challenge($sec_websocket_key) ) {
-                            $error_status = 596;
-                            $error_reason = q[Invalid WebSocket SEC_WEBSOCKET_ACCEPT];
+                            $res = result [ 596, q[Invalid SEC_WEBSOCKET_ACCEPT header] ];
                         }
 
                         # check protocol
                         else {
                             if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
                                 if ( !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
-                                    $error_status = 596;
-                                    $error_reason = qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"];
+                                    $res = result [ 596, qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"] ];
                                 }
                             }
                             elsif ($protocol) {
-                                $error_status = 596;
-                                $error_reason = q[WebSocket server returned no protocol];
+                                $res = result [ 596, q[WebSocket server returned no protocol] ];
                             }
                         }
                     }
 
-                    if ($error_status) {
-                        $on_error->( $error_status, $error_reason );
+                    if ( defined $res ) {
+                        $on_error->($res);
                     }
                     else {
                         my $permessage_deflate = 0;
@@ -256,9 +235,11 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
                             max_message_size   => $args{max_message_size},
                             permessage_deflate => $permessage_deflate,
                             _send_masked       => 1,                         # client always send masked frames
+                            on_disconnect      => $args{on_disconnect},
                           },
                           $class;
 
+                        # call protocol on_connect
                         $ws->on_connect;
 
                         $args{on_connect}->( $ws, $res_headers );
@@ -284,7 +265,9 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
 ## |======+======================+================================================================================================================|
 ## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (39)                   |
+## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (31)                   |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 100                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

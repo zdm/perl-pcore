@@ -20,7 +20,7 @@ around new => sub ( $orig, $self, @ ) {
         buildargs => undef,                                     # class constructor arguments
         on_ready  => undef,
         on_finish => undef,
-        splice @_, 2,
+        @_[ 2 .. $#_ ],
     );
 
     # create self instance
