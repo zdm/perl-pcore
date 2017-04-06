@@ -96,10 +96,8 @@ sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutin
     return;
 }
 
-# TODO check protocol, etc...
 sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
-    # protocol
     # permessage_deflate
     my %args = splice @_, 3;
 
@@ -227,19 +225,19 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
                             $error_reason = q[Invalid WebSocket SEC_WEBSOCKET_ACCEPT];
                         }
 
-                        # TODO check protocol
-                        # else {
-                        #     if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
-                        #         if ( !$args{ws_protocol} || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$args{ws_protocol}\b/smi ) {
-                        #             $error_status = 596;
-                        #             $error_reason = qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"];
-                        #         }
-                        #     }
-                        #     elsif ( $args{ws_protocol} ) {
-                        #         $error_status = 596;
-                        #         $error_reason = q[WebSocket server returned no protocol];
-                        #     }
-                        # }
+                        # check protocol
+                        else {
+                            if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
+                                if ( !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
+                                    $error_status = 596;
+                                    $error_reason = qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"];
+                                }
+                            }
+                            elsif ($protocol) {
+                                $error_status = 596;
+                                $error_reason = q[WebSocket server returned no protocol];
+                            }
+                        }
                     }
 
                     if ($error_status) {
@@ -286,7 +284,7 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
 ## |======+======================+================================================================================================================|
 ## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 100                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (34)                   |
+## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (39)                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
