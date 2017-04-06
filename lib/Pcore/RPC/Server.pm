@@ -63,8 +63,6 @@ my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} //
 # TODO parse IP addr
 my $listen = $BOOT_ARGS->{listen} // '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
 
-# TODO scandeps protocol - part of RPC settings, not headers
-
 # start websocket server
 my $http_server = Pcore::HTTP::Server->new(
     {   listen => $listen,
@@ -73,18 +71,17 @@ my $http_server = Pcore::HTTP::Server->new(
                 'pcore', $req,
                 sub ( $ws, $req, $accept, $decline ) {
                     $accept->(
-                        {   max_message_size   => 1_024 * 1_024 * 100,    # 100 Mb
+                        {   max_message_size   => 1_024 * 1_024 * 100,      # 100 Mb
                             pong_timeout       => 50,
                             permessage_deflate => 0,
-
-                            # TODO scan deps protocol
-                            on_connect => sub ($ws) {
+                            scandeps           => $BOOT_ARGS->{scandeps},
+                            on_connect         => sub ($ws) {
                                 $RPC->ON_CONNECT($ws) if $RPC->can('ON_CONNECT');
 
                                 return;
                             },
                             on_disconnect => sub ( $ws, $status ) {
-                                return;
+                                $RPC->ON_DISCONNECT($ws) if $RPC->can('ON_DISCONNECT');
                             },
                             on_rpc_call => sub ( $req, $method, $args = undef ) {
                                 if ( $RPC->can($method) ) {
@@ -143,9 +140,9 @@ exit;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 93                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 90                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 124                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 121                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
