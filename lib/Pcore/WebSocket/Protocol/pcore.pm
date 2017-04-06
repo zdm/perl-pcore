@@ -1,7 +1,7 @@
 package Pcore::WebSocket::Protocol::pcore;
 
 use Pcore -class, -result, -const;
-use Pcore::Util::Data qw[to_json from_json];
+use Pcore::Util::Data qw[to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::WebSocket::Protocol::pcore::Request;
 
@@ -38,7 +38,7 @@ sub rpc_call ( $self, $method, @ ) {
         $msg->{data} = [ @_[ 2 .. $#_ ] ];
     }
 
-    $self->send_text( to_json $msg);
+    $self->send_binary( to_cbor $msg);
 
     return;
 }
@@ -55,7 +55,7 @@ sub listen_remote_events ( $self, $events ) {
         events => $events,
     };
 
-    $self->send_text( to_json $msg);
+    $self->send_binary( to_cbor $msg);
 
     return;
 }
@@ -67,7 +67,7 @@ sub fire_remote_event ( $self, $event, $data = undef ) {
         data  => $data,
     };
 
-    $self->send_text( to_json $msg);
+    $self->send_binary( to_cbor $msg);
 
     return;
 }
@@ -92,7 +92,11 @@ sub on_disconnect ( $self, $status ) {
 }
 
 sub on_text ( $self, $data_ref ) {
-    my $msg = eval { from_json $data_ref->$* };
+    return;
+}
+
+sub on_binary ( $self, $data_ref ) {
+    my $msg = eval { from_cbor $data_ref->$* };
 
     if ($@) {
         return;
@@ -100,10 +104,6 @@ sub on_text ( $self, $data_ref ) {
 
     $self->_on_message($msg);
 
-    return;
-}
-
-sub on_binary ( $self, $data_ref ) {
     return;
 }
 
@@ -155,7 +155,7 @@ sub _on_message ( $self, $msg ) {
                             result => $res,
                         };
 
-                        $self->send_text( to_json $msg);
+                        $self->send_binary( to_cbor $msg);
 
                         return;
                     };
