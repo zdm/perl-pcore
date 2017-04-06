@@ -1,7 +1,7 @@
 package Pcore::WebSocket::Protocol::pcore;
 
 use Pcore -class, -result, -const;
-use Pcore::Util::Data qw[to_cbor from_cbor];
+use CBOR::XS qw[];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::WebSocket::Protocol::pcore::Request;
 
@@ -21,6 +21,21 @@ const our $MSG_TYPE_LISTEN => 'listen';
 const our $MSG_TYPE_EVENT  => 'event';
 const our $MSG_TYPE_RPC    => 'rpc';
 
+my $CBOR = do {
+    my $cbor = CBOR::XS->new;
+
+    $cbor->max_depth(512);
+    $cbor->max_size(0);    # max. string size is unlimited
+    $cbor->allow_unknown(0);
+    $cbor->allow_sharing(1);
+    $cbor->allow_cycles(1);
+    $cbor->pack_strings(0);    # set to 1 affect speed, but makes size smaller
+    $cbor->validate_utf8(0);
+    $cbor->filter(undef);
+
+    $cbor;
+};
+
 sub rpc_call ( $self, $method, @ ) {
     my $msg = {
         type   => $MSG_TYPE_RPC,
@@ -38,7 +53,7 @@ sub rpc_call ( $self, $method, @ ) {
         $msg->{data} = [ @_[ 2 .. $#_ ] ];
     }
 
-    $self->send_binary( to_cbor $msg);
+    $self->send_binary( \$CBOR->encode($msg) );
 
     return;
 }
@@ -55,7 +70,7 @@ sub listen_remote_events ( $self, $events ) {
         events => $events,
     };
 
-    $self->send_binary( to_cbor $msg);
+    $self->send_binary( \$CBOR->encode($msg) );
 
     return;
 }
@@ -67,7 +82,7 @@ sub fire_remote_event ( $self, $event, $data = undef ) {
         data  => $data,
     };
 
-    $self->send_binary( to_cbor $msg);
+    $self->send_binary( \$CBOR->encode($msg) );
 
     return;
 }
@@ -96,7 +111,7 @@ sub on_text ( $self, $data_ref ) {
 }
 
 sub on_binary ( $self, $data_ref ) {
-    my $msg = eval { from_cbor $data_ref->$* };
+    my $msg = eval { $CBOR->decode( $data_ref->$* ) };
 
     if ($@) {
         return;
@@ -155,7 +170,7 @@ sub _on_message ( $self, $msg ) {
                             result => $res,
                         };
 
-                        $self->send_binary( to_cbor $msg);
+                        $self->send_binary( \$CBOR->encode($msg) );
 
                         return;
                     };
