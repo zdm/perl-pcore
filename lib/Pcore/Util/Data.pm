@@ -496,7 +496,7 @@ sub _get_cbor_obj {
     $cbor->allow_unknown(0);
     $cbor->allow_sharing(1);
     $cbor->allow_cycles(1);
-    $cbor->pack_strings(1);
+    $cbor->pack_strings(0);    # set to 1 affect speed, but makes size smaller
     $cbor->validate_utf8(0);
     $cbor->filter(undef);
 
