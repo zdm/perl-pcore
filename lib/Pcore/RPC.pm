@@ -11,10 +11,9 @@ sub run_rpc ( $self, $class, @ ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
-        name      => $class,    # readable name for process manager
-        workers   => undef,     # FALSE - max. CPUs, -n - CPUs - n || 1
-        buildargs => undef,     # Maybe[HashRef], RPC object constructor arguments
-        on_ready  => undef,     # Maybe[CodeRef]
+        workers   => undef,    # FALSE - max. CPUs, -n - CPUs - n || 1
+        buildargs => undef,    # Maybe[HashRef], RPC object constructor arguments
+        on_ready  => undef,    # Maybe[CodeRef]
         @_[ 2 .. $#_ ],
     );
 
@@ -46,7 +45,6 @@ sub run_rpc ( $self, $class, @ ) {
 
         Pcore::RPC::Proc->new(
             class     => $class,
-            name      => $args{name},
             buildargs => $args{buildargs},
             on_ready  => sub ($proc) {
                 push $rpc->{workers}->@*, $proc;
@@ -158,7 +156,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 59, 122              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 57, 120              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

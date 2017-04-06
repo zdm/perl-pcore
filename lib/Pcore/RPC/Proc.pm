@@ -15,8 +15,7 @@ has on_finish => ( is => 'rw', isa => Maybe [CodeRef] );
 around new => sub ( $orig, $self, @ ) {
     my %args = (
         listen    => undef,                                     # RPC server listen
-        class     => undef,
-        name      => undef,                                     # readable name for process manager
+        class     => undef,                                     # mandatory
         buildargs => undef,                                     # class constructor arguments
         on_ready  => undef,
         on_finish => undef,
@@ -61,13 +60,11 @@ around new => sub ( $orig, $self, @ ) {
 
     my $cmd = [];
 
-    $args{name} //= $args{class};
-
     if ($MSWIN) {
-        push $cmd->@*, $perl, qq[-MPcore::RPC::Server -e "" $args{name}];
+        push $cmd->@*, $perl, qq[-MPcore::RPC::Server -e "" $args{class}];
     }
     else {
-        push $cmd->@*, $perl, '-MPcore::RPC::Server', '-e', q[], $args{name};
+        push $cmd->@*, $perl, '-MPcore::RPC::Server', '-e', q[], $args{class};
     }
 
     # needed for PAR, pass current @INC libs to child process via $ENV{PERL5LIB}
@@ -145,7 +142,7 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 115                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 112                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
