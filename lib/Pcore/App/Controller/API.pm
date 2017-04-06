@@ -1,27 +1,62 @@
 package Pcore::App::Controller::API;
 
-use Pcore -const, -role, -result;
-use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_uri_query];
+use Pcore -role, -result;
+use Pcore::Util::Data qw[from_json to_json from_uri_query];
+use Pcore::WebSocket;
 
-with qw[Pcore::App::Controller::WebSocket];
+with qw[Pcore::App::Controller];
 
-const our $CONTENT_TYPE_JSON => 1;
-const our $CONTENT_TYPE_CBOR => 2;
-
-sub _build_ws_protocol ($self) {
-    return 'pcore';
-}
-
-sub _build_ws_max_message_size ($self) {
-    return 1024 * 1024 * 10;
-}
-
-sub _build_ws_autopong ($self) {
-    return 50;
-}
-
-# ENTRYPOINT
 sub run ( $self, $req ) {
+
+    # WebSocket connect handler
+    if ( $req->is_websocket_connect_request ) {
+        Pcore::WebSocket->accept_ws(
+            'pcore', $req,
+            sub ( $ws, $req, $accept, $reject ) {
+
+                # authenticate request
+                $req->authenticate(
+                    sub ( $auth ) {
+
+                        # token authentication error
+                        if ( !$auth ) {
+                            $decline->($auth);
+                        }
+                        else {
+
+                            # token authenticated successfully, store token in websocket connection object
+                            $ws->{auth} = $auth;
+
+                            # accept websocket connection
+                            $accept->(
+                                {   max_message_size   => 1_024 * 1_024 * 100,    # 100 Mb
+                                    pong_timeout       => 50,
+                                    permessage_deflate => 0,
+                                    on_connect         => sub ($ws) {
+                                        return;
+                                    },
+                                    on_disconnect => sub ( $ws, $status ) {
+                                        return;
+                                    },
+                                    on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
+                                        $ws->{auth}->api_call_arrayref( $method, $args, $req );
+
+                                        return;
+                                    }
+                                }
+                            );
+                        }
+
+                        return;
+                    }
+                );
+
+                return;
+            },
+        );
+
+        return;
+    }
 
     # ExtDirect API map
     if ( $req->{path_tail} ) {
@@ -52,30 +87,15 @@ sub run ( $self, $req ) {
 
     my $env = $req->{env};
 
-    my $content_type = $CONTENT_TYPE_JSON;
+    my $msg;
 
-    my $data;
-
-    # JSON content type
+    # decode API request
     if ( !$env->{CONTENT_TYPE} || $env->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
-        $data = eval { from_json $req->body };
+        $msq = eval { from_json $req->body };
 
         # content decode error
         if ($@) {
             $req->( [ 400, q[Error decoding JSON request body] ] )->finish;
-
-            return;
-        }
-    }
-
-    # CBOR content type
-    elsif ( $env->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
-        $content_type = $CONTENT_TYPE_CBOR;
-
-        $data = eval { from_cbor $req->body };
-
-        if ($@) {
-            $req->( [ 400, q[Error decoding CBOR request body] ] )->finish;
 
             return;
         }
@@ -97,17 +117,17 @@ sub run ( $self, $req ) {
                 $req->( [ 403, q[App must connect via WebSocket interface] ] )->finish;
             }
             else {
-                $data = [$data] if ref $data ne 'ARRAY';
+                $msg = [$msg] if ref $msg ne 'ARRAY';
 
                 my ( $response, @headers );
 
                 my $cv = AE::cv sub {
 
                     # add Content-Type header
-                    push @headers, ( 'Content-Type' => $content_type == $CONTENT_TYPE_JSON ? 'application/json' : 'application/cbor' );
+                    push @headers, ( 'Content-Type' => 'application/json' );
 
                     # write HTTP response
-                    $req->( 200, \@headers, $content_type == $CONTENT_TYPE_JSON ? to_json $response : to_cbor $response)->finish;
+                    $req->( 200, \@headers, to_json $response)->finish;
 
                     # free HTTP request object
                     undef $req;
@@ -117,7 +137,21 @@ sub run ( $self, $req ) {
 
                 $cv->begin;
 
-                for my $tx ( $data->@* ) {
+                for my $tx ( $msg->@* ) {
+
+                    # check message type
+                    if ( !$tx->{type} || $tx->{type} ne 'rpc' ) {
+                        push $response->@*,
+                          { tid     => $tx->{tid},
+                            type    => 'exception',
+                            message => {
+                                status => 400,
+                                reason => 'Invalid API request type',
+                            },
+                          };
+
+                        next;
+                    }
 
                     # method is not specified, this is callback, not supported in API server
                     if ( !$tx->{method} ) {
@@ -176,100 +210,6 @@ sub run ( $self, $req ) {
     return;
 }
 
-# WEBSOCKET INTERFACE
-# TODO make ExtDirect compatible
-sub _ws_api_call ( $self, $ws, $payload_ref, $content_type ) {
-
-    # decode payload
-    my $data = eval { $content_type eq $CONTENT_TYPE_JSON ? from_json $payload_ref : from_cbor $payload_ref};
-
-    # content decode error
-    return $self->ws_disconnect( $ws, 400, q[Error decoding request body] ) if $@;
-
-    my $auth = $ws->{auth};
-
-    # method is specified, this is API call
-    if ( my $method_id = $data->{method} ) {
-        my $cb;
-
-        # this is not void API call, create callback
-        if ( my $tid = $data->{tid} ) {
-            $cb = sub ( $res ) {
-                $res->{tid} = $tid;
-
-                # write response
-                if ( $content_type eq $CONTENT_TYPE_JSON ) {
-                    $ws->send_text( to_json($res)->$* );
-                }
-                else {
-                    $ws->send_binary( to_cbor($res)->$* );
-                }
-
-                return;
-            };
-        }
-
-        $auth->api_call_arrayref( $method_id, $data->{args}, $cb );
-    }
-
-    # method is not specified, this is callback, not supported in API server
-    else {
-        return $self->ws_disconnect( $ws, 400, q[Method is required] );
-    }
-
-    return;
-}
-
-sub ws_on_accept ( $self, $ws, $req, $accept, $decline ) {
-
-    # authenticate request
-    $req->authenticate(
-        sub ( $auth ) {
-
-            # token authentication error
-            if ( !$auth ) {
-                $decline->($auth);
-            }
-            else {
-
-                # token authenticated successfully, store token in websocket connection object
-                $ws->{auth} = $auth;
-
-                # accept websocket connection
-                $accept->();
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub ws_on_connect ( $self, $ws ) {
-    return;
-}
-
-sub ws_on_text ( $self, $ws, $data_ref ) {
-    $self->_ws_api_call( $ws, $data_ref, $CONTENT_TYPE_JSON );
-
-    return;
-}
-
-sub ws_on_binary ( $self, $ws, $data_ref ) {
-    $self->_ws_api_call( $ws, $data_ref, $CONTENT_TYPE_CBOR );
-
-    return;
-}
-
-sub ws_on_pong ( $self, $ws, $data_ref = undef ) {
-    return;
-}
-
-sub ws_on_disconnect ( $self, $ws, $status, $reason ) {
-    return;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -277,9 +217,7 @@ sub ws_on_disconnect ( $self, $ws, $status, $reason ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 24                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 181                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (22)                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

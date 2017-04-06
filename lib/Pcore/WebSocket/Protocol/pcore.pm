@@ -161,7 +161,7 @@ sub _on_message ( $self, $msg ) {
                     };
                 }
 
-                $self->{on_rpc_call}->( $req, $msg->{method}, $msg->{data} );
+                $self->{on_rpc_call}->( $self, $req, $msg->{method}, $msg->{data} );
             }
         }
 

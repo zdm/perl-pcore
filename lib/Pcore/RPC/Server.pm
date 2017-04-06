@@ -82,8 +82,10 @@ my $http_server = Pcore::HTTP::Server->new(
                             },
                             on_disconnect => sub ( $ws, $status ) {
                                 $RPC->ON_DISCONNECT($ws) if $RPC->can('ON_DISCONNECT');
+
+                                return;
                             },
-                            on_rpc_call => sub ( $req, $method, $args = undef ) {
+                            on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
                                 if ( $RPC->can($method) ) {
 
                                     # call method
@@ -140,9 +142,9 @@ exit;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 90                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 92                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 121                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 123                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
