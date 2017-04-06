@@ -11,11 +11,10 @@ sub run_rpc ( $self, $class, @ ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
-        name        => $class,    # readable name for process manager
-        workers     => undef,     # FALSE - max. CPUs, -n - CPUs - n || 1
-        buildargs   => undef,     # Maybe[HashRef], RPC object constructor arguments
-        on_ready    => undef,     # Maybe[CodeRef]
-        on_rpc_call => undef,     # CodeRef($cb, $method, $data)
+        name      => $class,    # readable name for process manager
+        workers   => undef,     # FALSE - max. CPUs, -n - CPUs - n || 1
+        buildargs => undef,     # Maybe[HashRef], RPC object constructor arguments
+        on_ready  => undef,     # Maybe[CodeRef]
         @_[ 2 .. $#_ ],
     );
 
@@ -159,7 +158,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 60, 123              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 59, 122              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

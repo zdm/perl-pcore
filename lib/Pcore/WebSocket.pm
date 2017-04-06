@@ -103,7 +103,7 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
         on_error           => undef,
         on_connect         => undef,           # mandatory
         on_disconnect      => undef,           # passed to websocket constructor
-        @_[ 3 .. $#_ ]
+        @_[ 3 .. $#_ ],
     );
 
     my $class = eval { P->class->load( $protocol || 'raw', ns => 'Pcore::WebSocket::Protocol' ) };
@@ -266,8 +266,6 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
 ## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (31)                   |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 100                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
