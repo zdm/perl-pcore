@@ -3,8 +3,6 @@ package Pcore::App::API::RPC::Hash;
 use Pcore -class;
 use Crypt::Argon2;
 
-with qw[Pcore::Util::PM::RPC::Worker];
-
 # http://argon2-cffi.readthedocs.io/en/stable/parameters.html
 # https://pthree.org/2016/06/29/further-investigation-into-scrypt-and-argon2-password-hashing/
 

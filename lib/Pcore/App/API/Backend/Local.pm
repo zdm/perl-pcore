@@ -54,7 +54,13 @@ sub init ( $self, $cb ) {
                 on_ready => sub ($rpc) {
                     $self->{_hash_rpc} = $rpc;
 
-                    $cb->( result 200 );
+                    $rpc->connect_rpc(
+                        on_connect => sub ($h) {
+                            $cb->( result 200 );
+
+                            return;
+                        }
+                    );
 
                     return;
                 },
@@ -336,15 +342,15 @@ sub _verify_token_hash ( $self, $private_token, $hash, $salt, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 72, 120, 239, 285,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 310                  |                                                                                                                |
+## |    3 | 78, 126, 245, 291,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 316                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 194                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 200                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 260                  | * Private subroutine/method '_generate_token' declared but not used                                            |
-## |      | 285                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
-## |      | 310                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
+## |      | 266                  | * Private subroutine/method '_generate_token' declared but not used                                            |
+## |      | 291                  | * Private subroutine/method '_generate_user_password_hash' declared but not used                               |
+## |      | 316                  | * Private subroutine/method '_verify_token_hash' declared but not used                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

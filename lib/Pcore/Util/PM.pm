@@ -1,6 +1,6 @@
 package Pcore::Util::PM;
 
-use Pcore -export, [qw[is_superuser run_proc run_rpc]];
+use Pcore -export, [qw[is_superuser run_proc run_rpc connect_rpc]];
 use POSIX qw[];
 
 sub change_priv {
@@ -72,9 +72,15 @@ sub run_proc (@) {
 }
 
 sub run_rpc ( $class, @ ) {
-    state $init = !!require Pcore::Util::PM::RPC;
+    state $init = !!require Pcore::RPC;
 
-    return Pcore::Util::PM::RPC->new(@_);
+    return Pcore::RPC->run_rpc(@_);
+}
+
+sub connect_rpc ( @ ) {
+    state $init = !!require Pcore::RPC;
+
+    return Pcore::RPC->connect_rpc(@_);
 }
 
 1;
