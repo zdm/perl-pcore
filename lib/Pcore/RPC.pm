@@ -1,6 +1,7 @@
 package Pcore::RPC;
 
 use Pcore -class;
+use Pcore::Util::Scalar qw[blessed];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
@@ -82,12 +83,16 @@ sub connect_rpc ( $self, % ) {
         @_[ 1 .. $#_ ],
     );
 
+    $self = bless {}, $self if !blessed $self;
+
     if ( !$args{addr} ) {
         $args{addr} = $self->get_listen;
     }
     else {
         $args{addr} = [ $args{addr} ] if ref $args{addr} ne 'ARRAY';
     }
+
+    die q[No addresses specified] if !$args{addr}->@*;
 
     my $cv = AE::cv sub {
         $args{on_ready}->($self) if $args{on_ready};
@@ -156,7 +161,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 57, 120              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 58, 125              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
