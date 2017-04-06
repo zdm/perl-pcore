@@ -20,7 +20,7 @@ sub run ( $self, $req ) {
 
                         # token authentication error
                         if ( !$auth ) {
-                            $decline->($auth);
+                            $reject->($auth);
                         }
                         else {
 
@@ -91,7 +91,7 @@ sub run ( $self, $req ) {
 
     # decode API request
     if ( !$env->{CONTENT_TYPE} || $env->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
-        $msq = eval { from_json $req->body };
+        $msg = eval { from_json $req->body };
 
         # content decode error
         if ($@) {
