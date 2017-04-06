@@ -96,7 +96,8 @@ sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutin
     return;
 }
 
-sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+# TODO check protocol, etc...
+sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
     # protocol
     # permessage_deflate
@@ -104,7 +105,7 @@ sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::Proh
 
     my $class = eval { P->class->load( $protocol || 'raw', ns => 'Pcore::WebSocket::Protocol' ) };
 
-    my $on_error = sub ( $staus, $reason ) {
+    my $on_error = sub ( $status, $reason ) {
         if ( $args{on_connect_error} ) {
             $args{on_connect_error}->( $status, $reason );
         }
@@ -112,7 +113,7 @@ sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::Proh
             $args{on_error}->( $status, $reason );
         }
         else {
-            die qq[WebSocket proxy connect error: $status, $reason];
+            die qq[WebSocket connect error: $status, $reason];
         }
 
         return;
@@ -185,7 +186,7 @@ sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::Proh
                 'Connection:upgrade',
                 "Sec-WebSocket-Version:$Pcore::WebSocket::Handle::WEBSOCKET_VERSION",
                 "Sec-WebSocket-Key:$sec_websocket_key",
-                ( $args{protocol}           ? "Sec-WebSocket-Protocol:$args{protocol}"      : () ),
+                ( $protocol                 ? "Sec-WebSocket-Protocol:$protocol"            : () ),
                 ( $args{permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
             );
 
@@ -227,18 +228,18 @@ sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::Proh
                         }
 
                         # TODO check protocol
-                        else {
-                            if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
-                                if ( !$args{ws_protocol} || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$args{ws_protocol}\b/smi ) {
-                                    $error_status = 596;
-                                    $error_reason = qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"];
-                                }
-                            }
-                            elsif ( $args{ws_protocol} ) {
-                                $error_status = 596;
-                                $error_reason = q[WebSocket server returned no protocol];
-                            }
-                        }
+                        # else {
+                        #     if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
+                        #         if ( !$args{ws_protocol} || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$args{ws_protocol}\b/smi ) {
+                        #             $error_status = 596;
+                        #             $error_reason = qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"];
+                        #         }
+                        #     }
+                        #     elsif ( $args{ws_protocol} ) {
+                        #         $error_status = 596;
+                        #         $error_reason = q[WebSocket server returned no protocol];
+                        #     }
+                        # }
                     }
 
                     if ($error_status) {
@@ -249,24 +250,20 @@ sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::Proh
 
                         # check and set extensions
                         if ( $res_headers->{SEC_WEBSOCKET_EXTENSIONS} ) {
-                            $permessage_deflate = 1 if $args{ws_permessage_deflate} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
+                            $permessage_deflate = 1 if $args{permessage_deflate} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
                         }
 
                         my $ws = bless {
                             h                  => $h,
-                            max_message_size   => $args{ws_max_message_size},
+                            max_message_size   => $args{max_message_size},
                             permessage_deflate => $permessage_deflate,
-                            _send_masked       => 1,                            # client always send masked frames
-                            on_disconnect      => $args{ws_on_disconnect},
-                            on_text            => $args{ws_on_text},
-                            on_binary          => $args{ws_on_binary},
-                            on_pong            => $args{ws_on_pong},
+                            _send_masked       => 1,                         # client always send masked frames
                           },
                           $class;
 
                         $ws->on_connect;
 
-                        $args{on_connect}->( $ws, $res_headers ) if $args{on_connect};
+                        $args{on_connect}->( $ws, $res_headers );
                     }
 
                     return;
@@ -289,7 +286,7 @@ sub connect ( $self, $uri, $protocol, @ ) {    ## no critic qw[Subroutines::Proh
 ## |======+======================+================================================================================================================|
 ## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (40)                   |
+## |    3 | 100                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (34)                   |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

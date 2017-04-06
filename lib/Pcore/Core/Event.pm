@@ -6,41 +6,41 @@ use Pcore::Core::Event::Listener;
 
 has listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-sub listen_event ( $self, $keys, $cb ) {
-    $keys = [$keys] if ref $keys ne 'ARRAY';
+sub listen_events ( $self, $events, $cb ) {
+    $events = [$events] if ref $events ne 'ARRAY';
 
     my $listener = Pcore::Core::Event::Listener->new(
-        {   event => $self,
-            keys  => $keys,
-            cb    => $cb,
+        {   broker => $self,
+            events => $events,
+            cb     => $cb,
         }
     );
 
     my $wantarray = defined wantarray;
 
-    for my $key ( $keys->@* ) {
-        push $self->{listeners}->{$key}->@*, $listener;
+    for my $event ( $events->@* ) {
+        push $self->{listeners}->{$event}->@*, $listener;
 
-        weaken $self->{listeners}->{$key}->[-1] if $wantarray;
+        weaken $self->{listeners}->{$event}->[-1] if $wantarray;
     }
 
     return $wantarray ? $listener : ();
 }
 
-sub has_listeners ( $self, $keys ) {
-    $keys = [$keys] if ref $keys ne 'ARRAY';
+sub has_listeners ( $self, $events ) {
+    $events = [$events] if ref $events ne 'ARRAY';
 
-    for my $key ( $keys->@* ) {
-        return 1 if exists $self->{listeners}->{$key};
+    for my $event ( $events->@* ) {
+        return 1 if exists $self->{listeners}->{$event};
     }
 
     return 0;
 }
 
-sub fire_event ( $self, $key, $data = undef ) {
-    if ( my $listeners = $self->{listeners}->{$key} ) {
+sub fire_event ( $self, $event, $data = undef ) {
+    if ( my $listeners = $self->{listeners}->{$event} ) {
         for my $listener ( $listeners->@* ) {
-            $listener->{cb}->( $key, $data );
+            $listener->{cb}->( $event, $data );
         }
     }
 

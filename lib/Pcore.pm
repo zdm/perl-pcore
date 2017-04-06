@@ -598,7 +598,7 @@ sub init_demolish ( $self, $class ) {
 # EVENT
 our $EV;
 
-sub listen_event ( $self, $keys, $cb ) {
+sub listen_events ( $self, $events, $cb ) {
     state $ev = do {
         if ( !$EV ) {
             require Pcore::Core::Event;
@@ -609,10 +609,10 @@ sub listen_event ( $self, $keys, $cb ) {
         $EV;
     };
 
-    return $ev->listen_event( $keys, $cb );
+    return $ev->listen_events( $events, $cb );
 }
 
-sub fire_event ( $self, $key, $data = undef ) {
+sub fire_event ( $self, $event, $data = undef ) {
     state $ev = do {
         if ( !$EV ) {
             require Pcore::Core::Event;
@@ -623,7 +623,7 @@ sub fire_event ( $self, $key, $data = undef ) {
         $EV;
     };
 
-    return $ev->fire_event( $key, $data );
+    return $ev->fire_event( $event, $data );
 }
 
 1;

@@ -67,14 +67,14 @@ const our $WEBSOCKET_STATUS_REASON => {
     1015 => 'TLS handshake',
 };
 
-sub send_text ( $self, $payload ) {
-    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, \encode_utf8 $payload) );
+sub send_text ( $self, $data_ref ) {
+    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, \encode_utf8 $data_ref->$* ) );
 
     return;
 }
 
-sub send_binary ( $self, $payload ) {
-    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, \$payload ) );
+sub send_binary ( $self, $data_ref ) {
+    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, $data_ref ) );
 
     return;
 }

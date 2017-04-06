@@ -78,19 +78,28 @@ my $http_server = Pcore::HTTP::Server->new(
                             pong_timeout       => 50,
                             permessage_deflate => 0,
                             on_connect         => sub ($ws) {
-                                say 'CONNECTED';
+                                say 'CONNECTED 1';
 
-                                $ws->listen_event( ['test.event'] );
+                                $ws->listen_events('test.event');
 
                                 return;
                             },
                             on_disconnect => sub ( $ws, $status ) {
-                                say 'DISCONNECTED - ' . $status;
+                                say 'DISCONNECTED 1 - ' . $status;
 
                                 return;
                             },
-                            on_rpc_call => sub ($req) {
-                                say dump $req;
+                            on_rpc_call => sub ( $req, $method, $args = undef ) {
+                                if ( $RPC->can($method) ) {
+
+                                    # call method
+                                    eval { $RPC->$method( $req, $args ? $args->@* : () ) };
+
+                                    $@->sendlog if $@;
+                                }
+                                else {
+                                    $req->(q[400, q[Method not implemented]]);
+                                }
 
                                 return;
                             }
@@ -137,7 +146,9 @@ exit;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 118                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    3 | 96                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 127                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

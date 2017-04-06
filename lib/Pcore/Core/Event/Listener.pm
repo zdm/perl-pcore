@@ -3,9 +3,9 @@ package Pcore::Core::Event::Listener;
 use Pcore -class;
 use Pcore::Util::Scalar qw[refaddr];
 
-has event => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Event'], required => 1 );
-has keys => ( is => 'ro', isa => ArrayRef, required => 1 );
-has cb   => ( is => 'ro', isa => CodeRef,  required => 1 );
+has broker => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Event'], required => 1 );
+has events => ( is => 'ro', isa => ArrayRef, required => 1 );
+has cb     => ( is => 'ro', isa => CodeRef,  required => 1 );
 
 has _refaddr => ( is => 'ro', isa => Str, init_arg => undef );
 
@@ -22,8 +22,8 @@ sub DEMOLISH ( $self, $global ) {
 }
 
 sub remove ($self) {
-    for my $key ( $self->{keys}->@* ) {
-        my $listeners = $self->{event}->{listeners}->{$key};
+    for my $event ( $self->{events}->@* ) {
+        my $listeners = $self->{broker}->{listeners}->{$event};
 
         for ( my $i = $listeners->$#*; $i >= 0; $i-- ) {
             if ( !defined $listeners->[$i] || $listeners->[$i]->{_refaddr} eq $self->{_refaddr} ) {
@@ -31,7 +31,7 @@ sub remove ($self) {
             }
         }
 
-        delete $self->{event}->{listeners}->{$key} if !$self->{event}->{listeners}->{$key}->@*;
+        delete $self->{broker}->{listeners}->{$event} if !$self->{broker}->{listeners}->{$event}->@*;
     }
 
     return;
