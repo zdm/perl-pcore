@@ -15,6 +15,7 @@ has default_type => ( is => 'ro', isa => Enum [ $TYPE_TEXT, $TYPE_BINARY ], defa
 has on_rpc_call => ( is => 'ro', isa => CodeRef );
 
 # TODO implement scan_deps protocol, get scan_deps flag from headers
+has scandeps => ( is => 'ro', isa => Bool, default => 0 );
 
 has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
