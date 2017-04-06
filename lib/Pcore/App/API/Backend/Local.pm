@@ -55,7 +55,7 @@ sub init ( $self, $cb ) {
                     $self->{_hash_rpc} = $rpc;
 
                     $rpc->connect_rpc(
-                        on_connect => sub ($h) {
+                        on_ready => sub ($h) {
                             $cb->( result 200 );
 
                             return;
