@@ -104,7 +104,7 @@ sub connect_rpc ( $self, % ) {
     for my $addr ( $args{addr}->@* ) {
         $cv->begin;
 
-        Pcore::WebSocket->connect(
+        Pcore::WebSocket->connect_ws(
             pcore    => "ws://$addr/",
             on_error => sub ($res) {
                 die $res;

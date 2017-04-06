@@ -9,7 +9,7 @@ use Pcore::AE::Handle;
 
 our $HANDLE = {};
 
-sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub accept_ws ( $self, $protocol, $req, $on_accept ) {
 
     # this is websocket connect request
     if ( $req->is_websocket_connect_request ) {
@@ -77,13 +77,13 @@ sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutin
             return;
         };
 
-        my $decline = sub ( $status = 400, $headers = undef ) {
+        my $reject = sub ( $status = 400, $headers = undef ) {
             $req->( $status, $headers )->finish;
 
             return;
         };
 
-        $on_accept->( $ws, $req, $accept, $decline );
+        $on_accept->( $ws, $req, $accept, $reject );
 
         return;
     }
@@ -96,13 +96,13 @@ sub accept ( $self, $protocol, $req, $on_accept ) {    ## no critic qw[Subroutin
     return;
 }
 
-sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub connect_ws ( $self, $protocol, $uri, @ ) {
     my %args = (
         max_message_size   => 0,
-        permessage_deflate => 0,               # use compression
+        permessage_deflate => 0,        # use compression
         on_error           => undef,
-        on_connect         => undef,           # mandatory
-        on_disconnect      => undef,           # passed to websocket constructor
+        on_connect         => undef,    # mandatory
+        on_disconnect      => undef,    # passed to websocket constructor
         @_[ 3 .. $#_ ],
     );
 
@@ -265,7 +265,7 @@ sub connect ( $self, $protocol, $uri, @ ) {    ## no critic qw[Subroutines::Proh
 ## |======+======================+================================================================================================================|
 ## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect" with high complexity score (31)                   |
+## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (31)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
