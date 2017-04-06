@@ -27,10 +27,9 @@ package    # hide from CPAN
 
 use Pcore -script_path => $BOOT_ARGS->{script_path};
 use Pcore::AE::Handle;
-use if $MSWIN, 'Win32API::File';
-use Pcore::Util::UUID qw[uuid_str];
 use Pcore::HTTP::Server;
 use Pcore::WebSocket;
+use if $MSWIN, 'Win32API::File';
 
 # open control handle
 if ($MSWIN) {
@@ -142,9 +141,9 @@ exit;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 92                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 91                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 123                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 122                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
