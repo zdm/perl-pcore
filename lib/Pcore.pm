@@ -16,7 +16,6 @@ our $EXPORT_PRAGMA = {
     embedded    => 0,    # run in embedded mode
     export      => 1,    # install standart import method
     inline      => 0,    # package use Inline
-    no_isa_attr => 0,    # do not check isa for class / role attributes
     promise     => 0,    # export Pcore::Util::Promise qw[promise]
     result      => 0,    # export Pcore::Util::Result qw[result]
     role        => 0,    # package is a Moo role
@@ -27,7 +26,6 @@ our $EXPORT_PRAGMA = {
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
 our $SCRIPT_PATH = $0;      # script path was specified in Pcore pragma -script_path
-our $NO_ISA_ATTR = 0;       # do not check isa for class / role attributes
 our $WIN_ENC     = undef;
 our $CON_ENC     = undef;
 
@@ -80,9 +78,6 @@ sub import {
 
         # store -script_path pragma
         $SCRIPT_PATH = $import->{pragma}->{script_path} if $import->{pragma}->{script_path};
-
-        # store -no_isa_attr pragma
-        $NO_ISA_ATTR = 1 if $import->{pragma}->{no_isa_attr};
 
         # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
         if ( $^O =~ /MSWin/sm && !$EMBEDDED ) {
@@ -290,9 +285,6 @@ sub _import_moo ( $caller, $role ) {
 
         *{"$caller\::has"} = sub {
             my ( $name_proto, %spec ) = @_;
-
-            # disable type checking
-            delete $spec{isa} if $NO_ISA_ATTR;
 
             # auto add builder if lazy and builder or default is not specified
             $spec{builder} = 1 if $spec{lazy} && !exists $spec{default} && !exists $spec{builder};
@@ -633,25 +625,25 @@ sub fire_event ( $self, $event, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 67                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    |
+## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 116                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 111                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 256                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 251                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 334                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 452                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 326                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 444                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 366, 395, 398, 402,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 434, 437, 442, 445,  |                                                                                                                |
-## |      | 470, 489             |                                                                                                                |
+## |    3 | 358, 387, 390, 394,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 426, 429, 434, 437,  |                                                                                                                |
+## |      | 462, 481             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 585                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 577                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 266                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 261                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 370                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 362                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
