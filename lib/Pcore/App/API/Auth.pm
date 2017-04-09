@@ -171,8 +171,8 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
     return;
 }
 
-sub extdirect_map ( $self, $ver, $cb ) {
-    $self->{app}->{api}->{map}->extdirect_map( $self, $ver, $cb );
+sub extdirect_map ( $self, $host, $ver, $cb ) {
+    $self->{app}->{api}->{map}->extdirect_map( $host, $self, $ver, $cb );
 
     return;
 }

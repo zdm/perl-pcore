@@ -2,19 +2,33 @@ package Pcore::App::Router;
 
 use Pcore -class;
 
-with qw[Pcore::HTTP::Server::Router];
+use overload    #
+  q[&{}] => sub ( $self, @ ) {
+    return sub { return $self->run(@_) };
+  },
+  fallback => undef;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+has hosts => ( is => 'ro', isa => HashRef, required => 1 );
 
-has map         => ( is => 'lazy', isa => HashRef, init_arg => undef );    # router path -> class name
-has index_class => ( is => 'ro',   isa => Str,     init_arg => undef );
-has api_class   => ( is => 'ro',   isa => Str,     init_arg => undef );
+has map           => ( is => 'lazy', isa => HashRef, init_arg => undef );    # router path -> class name
+has host_api_path => ( is => 'ro',   isa => HashRef, init_arg => undef );
 
 has _path_class_cache     => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # router path -> sigleton cache
 has _class_instance_cache => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );    # class name -> sigleton cache
 
 sub _build_map ($self) {
-    my $index_class = ref( $self->app ) . '::Index';
+    my $map;
+
+    for my $host ( keys $self->{hosts}->%* ) {
+        $map->{$host} = $self->_get_host_map( $host, $self->{hosts}->{$host} ) if defined $self->{hosts}->{$host};
+    }
+
+    return $map;
+}
+
+sub _get_host_map ( $self, $host, $ns ) {
+    my $index_class = "${ns}::Index";
 
     my $index_path = ( $index_class =~ s[::][/]smgr ) . q[/];
 
@@ -74,6 +88,7 @@ sub _build_map ($self) {
 
         my $obj = $class->new(
             {   app  => $self->{app},
+                host => $host,
                 path => $route,
             }
         );
@@ -81,26 +96,23 @@ sub _build_map ($self) {
         # get obj route
         $route = $obj->path;
 
-        die qq[Route "$route" is not unique] if exists $self->{_path_class_cache}->{$route};
+        die qq[Route "$route" is not unique] if exists $self->{_path_class_cache}->{$host}->{$route};
 
         $map->{$route} = $class;
 
-        $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$route} = $obj;
+        $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$host}->{$route} = $obj;
 
-        # NOTE maybe check $class->does('Pcore::App::Controller::Index')
-        if ( $route eq '/' ) {
-
-            # index controller
-            $self->{index_class} = $class;
-        }
-        elsif ( $class->does('Pcore::App::Controller::API') ) {
+        if ( $class->does('Pcore::App::Controller::API') ) {
 
             # api controller
-            $self->{api_class} = $class;
+            $self->{host_api_path}->{$host} = $obj->{path};
         }
     }
 
-    die qq[Index controller "$index_class" was not found or not a consumer of "Pcore::App::Controller::Index"] if !$self->{index_class};
+    # check, that index controller is present
+    if ( !exists $map->{'/'} ) {
+        die qq[HTTP router path "/" is required but not found for host "$host"];
+    }
 
     return $map;
 }
@@ -114,7 +126,26 @@ sub run ( $self, $req ) {
 
     $path = $path->dirname;
 
-    my $map = $self->map;
+    my $map = $self->{map};
+
+    my $host = $env->{HTTP_HOST} // '*';
+
+    if ( !exists $map->{$host} ) {
+
+        # use default host, if possible
+        if ( exists $map->{'*'} ) {
+            $host = '*';
+        }
+
+        # unknown HTTP host
+        else {
+            $req->return_xxx(421);    # 421 - misdirected request
+
+            return;
+        }
+    }
+
+    $map = $map->{$host};
 
     my $class;
 
@@ -139,20 +170,21 @@ sub run ( $self, $req ) {
 
     # extend HTTP request
     $req->{app}       = $self->{app};
+    $req->{host}      = $host;
     $req->{path}      = $path;
     $req->{path_tail} = P->path($path_tail);
 
-    $self->{_path_class_cache}->{$path}->run($req);
+    $self->{_path_class_cache}->{$host}->{$path}->run($req);
 
     return;
 }
 
-sub get_instance ( $self, $class_name ) {
+sub get_ctrl_by_class_name ( $self, $class_name ) {
     return $self->{_class_instance_cache}->{$class_name};
 }
 
-sub get_api_class ($self) {
-    return $self->{_class_instance_cache}->{ $self->{api_class} };
+sub get_host_api_path ( $self, $host ) {
+    return $self->{host_api_path}->{$host};
 }
 
 1;
@@ -162,7 +194,8 @@ sub get_api_class ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 71, 91, 111, 130     | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |    2 | 85, 113, 123, 131,   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## |      | 136, 137, 161        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

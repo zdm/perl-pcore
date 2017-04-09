@@ -136,12 +136,12 @@ sub _build_method ($self) {
     return $method;
 }
 
-sub extdirect_map ( $self, $auth, $ver, $cb ) {
+sub extdirect_map ( $self, $host, $auth, $ver, $cb ) {
     my $map = {
         id        => undef,
         namespace => $self->{extjs_namespace},
         timeout   => undef,
-        url       => $self->app->router->get_api_class->path,
+        url       => $self->{app}->{router}->get_host_api_path($host),
         type      => 'remoting',
         version   => $ver,
         actions   => {},
@@ -216,7 +216,7 @@ sub get_method ( $self, $method_id ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 121, 127             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 122, 127, 141        | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 122, 127             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

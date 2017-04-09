@@ -21,10 +21,18 @@ has id             => ( is => 'ro', isa => Str, init_arg => undef );    # app id
 has instance_id    => ( is => 'ro', isa => Str, init_arg => undef );    # app instance id
 has instance_token => ( is => 'ro', isa => Str, init_arg => undef );    # app instance token
 
-has version => ( is => 'lazy', isa => InstanceOf ['version'], init_arg => undef );                      # app instance version
-has router => ( is => 'lazy', isa => ConsumerOf ['Pcore::HTTP::Server::Router'], init_arg => undef );
+has version => ( is => 'lazy', isa => InstanceOf ['version'],            init_arg => undef );    # app instance version
+has router  => ( is => 'ro',   isa => InstanceOf ['Pcore::App::Router'], init_arg => undef );
 has api => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
 has http_server => ( is => 'lazy', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
+
+sub BUILD ( $self, $args ) {
+
+    # create HTTP router
+    $self->{router} = Pcore::App::Router->new( { hosts => $args->{hosts} // { '*' => ref $self }, app => $self } );
+
+    return;
+}
 
 sub _build_name ($self) {
     return ref($self) =~ s[::][-]smgr;
@@ -52,10 +60,6 @@ sub _build_version ($self) {
     no strict qw[refs];
 
     return ${ ref($self) . '::VERSION' };
-}
-
-sub _build_router ($self) {
-    return Pcore::App::Router->new( { app => $self } );
 }
 
 sub _build_api ($self) {
@@ -115,7 +119,7 @@ around run => sub ( $orig, $self, $cb = undef ) {
     else {
 
         # die if API controller found, but no API server provided
-        die q[API is required] if $self->router->api_class && !$self->api;
+        die q[API is required] if $self->{router}->{host_api_path}->%* && !$self->api;
 
         $cv->send;
     }
@@ -135,6 +139,16 @@ sub store_cfg ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 32                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

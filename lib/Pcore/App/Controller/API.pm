@@ -68,6 +68,7 @@ sub run ( $self, $req ) {
             $req->authenticate(
                 sub ( $auth ) {
                     $auth->extdirect_map(
+                        $req->{host},
                         $ver,
                         sub ($map) {
                             $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $map, readable => 1 )->finish;

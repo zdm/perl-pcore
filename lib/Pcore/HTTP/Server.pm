@@ -7,7 +7,7 @@ use Pcore::Util::Scalar qw[blessed];
 use Pcore::HTTP::Server::Request;
 
 has listen => ( is => 'ro', isa => Str, required => 1 );
-has app => ( is => 'ro', isa => CodeRef | ConsumerOf ['Pcore::HTTP::Server::Router'], required => 1 );
+has app => ( is => 'ro', isa => CodeRef | InstanceOf ['Pcore::App::Router'], required => 1 );
 
 has backlog => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 0 );
 has tcp_no_delay     => ( is => 'ro', isa => Bool, default => 1 );
