@@ -55,7 +55,10 @@ $SIG->{TERM} = AE::signal TERM => sub {
 my $cv = AE::cv;
 
 # create object
-my $RPC = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
+my $rpc = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
+
+my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
+my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
 
 # get random port on 127.0.0.1 if undef
 # TODO do not use port if listen addr. is unix socket
@@ -75,20 +78,20 @@ my $http_server = Pcore::HTTP::Server->new(
                             permessage_deflate => 0,
                             scandeps           => $BOOT_ARGS->{scandeps},
                             on_connect         => sub ($ws) {
-                                $RPC->ON_CONNECT($ws) if $RPC->can('ON_CONNECT');
+                                $rpc->RPC_ON_CONNECT($ws) if $can_rpc_on_connect;
 
                                 return;
                             },
                             on_disconnect => sub ( $ws, $status ) {
-                                $RPC->ON_DISCONNECT($ws) if $RPC->can('ON_DISCONNECT');
+                                $rpc->RPC_ON_DISCONNECT($ws) if $can_rpc_on_disconnect;
 
                                 return;
                             },
                             on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
-                                if ( $RPC->can($method) ) {
+                                if ( $rpc->can($method) ) {
 
                                     # call method
-                                    eval { $RPC->$method( $req, $args ? $args->@* : () ) };
+                                    eval { $rpc->$method( $req, $args ? $args->@* : () ) };
 
                                     $@->sendlog if $@;
                                 }
@@ -141,9 +144,9 @@ exit;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 91                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 94                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 122                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 125                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
