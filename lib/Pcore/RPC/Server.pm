@@ -1,152 +1,130 @@
 package Pcore::RPC::Server;
 
-use strict;
-use warnings;
-
-our $BOOT_ARGS;
-
-BEGIN {
-    require CBOR::XS;
-
-    # shift class name
-    my $name = shift @ARGV;
-
-    # read and unpack boot args from STDIN
-    $BOOT_ARGS = <>;
-
-    chomp $BOOT_ARGS;
-
-    $BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $BOOT_ARGS );
-
-    # set $main::VERSION
-    $main::VERSION = version->new( $BOOT_ARGS->{version} );
-}
-
-package    # hide from CPAN
-  main;
-
-use Pcore -script_path => $BOOT_ARGS->{script_path};
+use Pcore;
 use Pcore::AE::Handle;
 use Pcore::HTTP::Server;
 use Pcore::WebSocket;
 use if $MSWIN, 'Win32API::File';
 
-# open control handle
-if ($MSWIN) {
-    Win32API::File::OsFHandleOpen( *CTRL_FH, $BOOT_ARGS->{ctrl_fh}, 'w' ) or die $!;
-}
-else {
-    open *CTRL_FH, '>&=', $BOOT_ARGS->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
-}
+sub run ( $class, $RPC_BOOT_ARGS ) {
 
-# ignore SIGINT
-$SIG->{INT} = AE::signal INT => sub {
-    return;
-};
-
-# TODO term on SIGTERM
-$SIG->{TERM} = AE::signal TERM => sub {
-
-    # _on_term();
-
-    return;
-};
-
-my $cv = AE::cv;
-
-# create object
-my $rpc = P->class->load( $BOOT_ARGS->{class} )->new( $BOOT_ARGS->{buildargs} // () );
-
-my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
-my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
-
-# get random port on 127.0.0.1 if undef
-# TODO do not use port if listen addr. is unix socket
-# TODO parse IP addr
-my $listen = $BOOT_ARGS->{listen} // '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
-
-# start websocket server
-my $http_server = Pcore::HTTP::Server->new(
-    {   listen => $listen,
-        app    => sub ($req) {
-            Pcore::WebSocket->accept_ws(
-                'pcore', $req,
-                sub ( $ws, $req, $accept, $reject ) {
-                    $accept->(
-                        {   max_message_size   => 1_024 * 1_024 * 100,      # 100 Mb
-                            pong_timeout       => 50,
-                            permessage_deflate => 0,
-                            scandeps           => $BOOT_ARGS->{scandeps},
-                            on_connect         => sub ($ws) {
-                                $rpc->RPC_ON_CONNECT($ws) if $can_rpc_on_connect;
-
-                                return;
-                            },
-                            on_disconnect => sub ( $ws, $status ) {
-                                $rpc->RPC_ON_DISCONNECT($ws) if $can_rpc_on_disconnect;
-
-                                return;
-                            },
-                            on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
-                                if ( $rpc->can($method) ) {
-
-                                    # call method
-                                    eval { $rpc->$method( $req, $args ? $args->@* : () ) };
-
-                                    $@->sendlog if $@;
-                                }
-                                else {
-                                    $req->(q[400, q[Method not implemented]]);
-                                }
-
-                                return;
-                            }
-                        }
-                    );
-
-                    return;
-                },
-            );
-
-            return;
-        },
+    # open control handle
+    if ($MSWIN) {
+        Win32API::File::OsFHandleOpen( *CTRL_FH, $RPC_BOOT_ARGS->{ctrl_fh}, 'w' ) or die $!;
     }
-)->run;
+    else {
+        open *CTRL_FH, '>&=', $RPC_BOOT_ARGS->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+    }
 
-# wrap *CTRL_FH
-Pcore::AE::Handle->new(
-    fh       => \*CTRL_FH,
-    on_error => sub ( $h, $fatal, $msg ) {
-        die $msg;
-    },
-    on_connect => sub ( $h, @ ) {
+    # ignore SIGINT
+    $SIG->{INT} = AE::signal INT => sub {
+        return;
+    };
 
-        # handshake
-        $h->push_write("LISTEN:$listen\x00");
+    # TODO term on SIGTERM
+    $SIG->{TERM} = AE::signal TERM => sub {
 
-        # close control connection
-        $h->destroy;
-
-        close *CTRL_FH or die;
+        # _on_term();
 
         return;
-    }
-);
+    };
 
-$cv->recv;
+    my $cv = AE::cv;
 
-exit;
+    # create object
+    my $rpc = $class->new( $RPC_BOOT_ARGS->{buildargs} // () );
 
-1;    ## no critic qw[ControlStructures::ProhibitUnreachableCode]
+    my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
+    my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
+
+    # get random port on 127.0.0.1 if undef
+    # TODO do not use port if listen addr. is unix socket
+    # TODO parse IP addr
+    my $listen = $RPC_BOOT_ARGS->{listen} // '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
+
+    # start websocket server
+    my $http_server = Pcore::HTTP::Server->new(
+        {   listen => $listen,
+            app    => sub ($req) {
+                Pcore::WebSocket->accept_ws(
+                    'pcore', $req,
+                    sub ( $ws, $req, $accept, $reject ) {
+                        $accept->(
+                            {   max_message_size   => 1_024 * 1_024 * 100,          # 100 Mb
+                                pong_timeout       => 50,
+                                permessage_deflate => 0,
+                                scandeps           => $RPC_BOOT_ARGS->{scandeps},
+                                on_connect         => sub ($ws) {
+                                    $rpc->RPC_ON_CONNECT($ws) if $can_rpc_on_connect;
+
+                                    return;
+                                },
+                                on_disconnect => sub ( $ws, $status ) {
+                                    $rpc->RPC_ON_DISCONNECT($ws) if $can_rpc_on_disconnect;
+
+                                    return;
+                                },
+                                on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
+                                    if ( $rpc->can($method) ) {
+
+                                        # call method
+                                        eval { $rpc->$method( $req, $args ? $args->@* : () ) };
+
+                                        $@->sendlog if $@;
+                                    }
+                                    else {
+                                        $req->(q[400, q[Method not implemented]]);
+                                    }
+
+                                    return;
+                                }
+                            }
+                        );
+
+                        return;
+                    },
+                );
+
+                return;
+            },
+        }
+    )->run;
+
+    # wrap *CTRL_FH
+    Pcore::AE::Handle->new(
+        fh       => \*CTRL_FH,
+        on_error => sub ( $h, $fatal, $msg ) {
+            die $msg;
+        },
+        on_connect => sub ( $h, @ ) {
+
+            # handshake
+            $h->push_write("LISTEN:$listen\x00");
+
+            # close control connection
+            $h->destroy;
+
+            close *CTRL_FH or die;
+
+            return;
+        }
+    );
+
+    $cv->recv;
+
+    exit;
+}
+
+1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
 ## PerlCritic profile "pcore-script" policy violations:
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 94                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 71                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 125                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 102                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

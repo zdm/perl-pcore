@@ -7,25 +7,25 @@ use Pcore::Core::Const qw[:CORE];
 
 # define %EXPORT_PRAGMA for exporter
 our $EXPORT_PRAGMA = {
-    ansi        => 0,    # re-export Term::ANSIColor qw[:constants]
-    autoload    => 0,    # export AUTOLOAD
-    class       => 0,    # package is a Moo class
-    config      => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
-    const       => 0,    # export "const" keyword
-    dist        => 0,    # mark package aas Pcore dist main module
-    embedded    => 0,    # run in embedded mode
-    export      => 1,    # install standart import method
-    inline      => 0,    # package use Inline
-    promise     => 0,    # export Pcore::Util::Promise qw[promise]
-    result      => 0,    # export Pcore::Util::Result qw[result]
-    role        => 0,    # package is a Moo role
-    script_path => 1,    # specify script path for ENV, used in RPC
-    try         => 0,    # export Pcore::Core::Exception qw[:DEFAULT try catch]
-    types       => 0,    # export types
+    ansi     => 0,    # re-export Term::ANSIColor qw[:constants]
+    autoload => 0,    # export AUTOLOAD
+    class    => 0,    # package is a Moo class
+    config   => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
+    const    => 0,    # export "const" keyword
+    dist     => 0,    # mark package aas Pcore dist main module
+    embedded => 0,    # run in embedded mode
+    export   => 1,    # install standart import method
+    inline   => 0,    # package use Inline
+    promise  => 0,    # export Pcore::Util::Promise qw[promise]
+    result   => 0,    # export Pcore::Util::Result qw[result]
+    role     => 0,    # package is a Moo role
+    rpc      => 0,    # run class as RPC server
+    try      => 0,    # export Pcore::Core::Exception qw[:DEFAULT try catch]
+    types    => 0,    # export types
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
-our $SCRIPT_PATH = $0;      # script path was specified in Pcore pragma -script_path
+our $SCRIPT_PATH = $0;
 our $WIN_ENC     = undef;
 our $CON_ENC     = undef;
 
@@ -76,9 +76,6 @@ sub import {
         # store -embedded pragma
         $EMBEDDED = 1 if $import->{pragma}->{embedded};
 
-        # store -script_path pragma
-        $SCRIPT_PATH = $import->{pragma}->{script_path} if $import->{pragma}->{script_path};
-
         # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
         if ( $^O =~ /MSWin/sm && !$EMBEDDED ) {
             require Net::SSLeay;
@@ -109,6 +106,33 @@ sub import {
 
         # install run-time hook to caller package
         B::Hooks::AtRuntime::at_runtime( \&Pcore::_CORE_RUN );
+
+        # detect RPC server
+        if ( $import->{pragma}->{rpc} && $0 eq '-' ) {
+
+            # read and unpack boot args from STDIN
+            my $RPC_BOOT_ARGS = <>;
+
+            chomp $RPC_BOOT_ARGS;
+
+            require CBOR::XS;
+
+            $RPC_BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $RPC_BOOT_ARGS );
+
+            # init RPC environment
+            $SCRIPT_PATH   = $RPC_BOOT_ARGS->{script_path};
+            $main::VERSION = version->new( $RPC_BOOT_ARGS->{version} );
+
+            B::Hooks::AtRuntime::after_runtime(
+                sub {
+                    require Pcore::RPC::Server;
+
+                    Pcore::RPC::Server::run( $caller, $RPC_BOOT_ARGS );
+
+                    exit;
+                }
+            );
+        }
 
         _CORE_INIT();
 
@@ -625,25 +649,27 @@ sub fire_event ( $self, $event, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (25)                    |
+## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 111                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 108                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 251                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 275                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 326                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 444                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 350                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 468                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 358, 387, 390, 394,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 426, 429, 434, 437,  |                                                                                                                |
-## |      | 462, 481             |                                                                                                                |
+## |    3 | 382, 411, 414, 418,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 450, 453, 458, 461,  |                                                                                                                |
+## |      | 486, 505             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 577                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 601                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 261                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 111                  | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 362                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    2 | 285                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 386                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

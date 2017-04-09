@@ -42,7 +42,6 @@ around new => sub ( $orig, $self, @ ) {
         version     => $main::VERSION->normal,
         scandeps    => $ENV->{SCAN_DEPS},
         listen      => undef,
-        class       => $args{class},
         buildargs   => $args{buildargs},
     };
 
@@ -61,10 +60,10 @@ around new => sub ( $orig, $self, @ ) {
     my $cmd = [];
 
     if ($MSWIN) {
-        push $cmd->@*, $perl, qq[-MPcore::RPC::Server -e "" $args{class}];
+        push $cmd->@*, $perl, "-M$args{class}";
     }
     else {
-        push $cmd->@*, $perl, '-MPcore::RPC::Server', '-e', q[], $args{class};
+        push $cmd->@*, $perl, "-M$args{class}";
     }
 
     # needed for PAR, pass current @INC libs to child process via $ENV{PERL5LIB}
@@ -142,7 +141,7 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 112                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 111                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
