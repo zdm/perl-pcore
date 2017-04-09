@@ -1,6 +1,6 @@
 package Pcore::App::API::RPC::Hash;
 
-use Pcore -class;
+use Pcore -class, -rpc;
 use Crypt::Argon2;
 
 # http://argon2-cffi.readthedocs.io/en/stable/parameters.html
