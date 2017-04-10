@@ -360,8 +360,6 @@ sub DEMOLISH ( $self, $global ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 324                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 134                  | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 326, 344             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 103                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |

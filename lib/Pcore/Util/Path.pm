@@ -468,8 +468,6 @@ sub TO_DUMP {
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (58)                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 19                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 363                  | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
