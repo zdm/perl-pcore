@@ -161,14 +161,15 @@
 
             # ValuesAndExpressions
             'ValuesAndExpressions::ProhibitInterpolationOfLiterals' => { severity => 3 },
-            'Variables::ProhibitPackageVars'                        => undef,
-            'Variables::ProhibitPunctuationVars'                    => undef,
-            'ValuesAndExpressions::ProhibitVersionStrings'          => undef,
             'ValuesAndExpressions::ProhibitMagicNumbers'            => undef,
+            'ValuesAndExpressions::ProhibitNoisyQuotes'             => undef,
+            'ValuesAndExpressions::ProhibitVersionStrings'          => undef,
 
             # Variables
-            'Variables::ProhibitUnusedVariables' => { severity => 4 },
+            'Variables::ProhibitPackageVars'     => undef,
+            'Variables::ProhibitPunctuationVars' => undef,
             'Variables::ProhibitReusedNames'     => { severity => 4 },
+            'Variables::ProhibitUnusedVariables' => { severity => 4 },
         },
         'pcore-script' => {
             __parent__ => 'common',
