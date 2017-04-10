@@ -11,10 +11,10 @@ sub load ( $class, @ ) {
         splice @_, 1,
     );
 
-    my $class_filename;
+    my $module;
 
     if ( substr( $class, -3 ) eq '.pm' ) {
-        $class_filename = $class;
+        $module = $class;
 
         $class =~ s[/][::]smg;
 
@@ -23,10 +23,10 @@ sub load ( $class, @ ) {
     else {
         $class = resolve_class_name( $class, $args{ns} );
 
-        $class_filename = ( $class =~ s[::][/]smgr ) . '.pm';
+        $module = ( $class =~ s[::][/]smgr ) . '.pm';
     }
 
-    require $class_filename;
+    require $module;
 
     die qq[Error loading class "$class". Class must be instance of "$args{isa}"] if $args{isa} && !$class->isa( $args{isa} );
 
@@ -67,11 +67,11 @@ sub find ( $class, @ ) {
 }
 
 sub resolve_class_name ( $class, $ns = undef ) {
-    if ( $class =~ s/\A[+]//sm ) {
+    if ( substr( $class, 0, 1 ) eq '+' ) {
         return $class;
     }
     else {
-        return $ns ? qq[${ns}::${class}] : $class;
+        return $ns ? "${ns}::$class" : $class;
     }
 }
 
@@ -108,6 +108,16 @@ sub get_sub_fullname {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 70                   | ValuesAndExpressions::ProhibitNoisyQuotes - Quotes used with a noisy string                                    |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

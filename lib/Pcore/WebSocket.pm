@@ -106,7 +106,11 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
         @_[ 3 .. $#_ ],
     );
 
-    my $class = eval { P->class->load( $protocol || 'raw', ns => 'Pcore::WebSocket::Protocol' ) };
+    my $implementation = $protocol || 'raw';
+
+    eval { require "Pcore/Websocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
+
+    my $class = "Pcore::WebSocket::Protocol::$implementation";
 
     my $on_error = sub ( $status ) {
         if ( $args{on_error} ) {
@@ -263,7 +267,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 37                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 37, 111              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (31)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
