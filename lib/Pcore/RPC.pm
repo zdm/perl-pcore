@@ -8,6 +8,10 @@ use Pcore::WebSocket;
 has workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has connections => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 
+sub TO_DATA ( $self, ) {
+    return $self->get_listen;
+}
+
 sub run_rpc ( $self, $class, @ ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -161,7 +165,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 58, 125              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 62, 129              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

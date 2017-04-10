@@ -64,13 +64,15 @@ sub forward_events ( $self, $events ) {
     return;
 }
 
-sub listen_remote_events ( $self, $events ) {
+sub listen_remote_events ( $self, $events, $cb = undef ) {
     my $msg = {
         type   => $MSG_TYPE_LISTEN,
         events => $events,
     };
 
     $self->send_binary( \$CBOR->encode($msg) );
+
+    P->listen_events( $events, $cb ) if $cb;
 
     return;
 }
