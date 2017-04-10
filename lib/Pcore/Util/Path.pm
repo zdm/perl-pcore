@@ -431,6 +431,11 @@ sub _get_mime_types ($self) {
                 $MIME_TYPES->{category}->{$type} = $1;
             }
         }
+
+        # compile shebang
+        for my $key ( keys $MIME_TYPES->{shebang}->%* ) {
+            $MIME_TYPES->{shebang}->{$key} = qr/$MIME_TYPES->{shebang}->{$key}/sm;
+        }
     }
 
     return $MIME_TYPES;

@@ -3,9 +3,9 @@
       "cpanfile": "text/x-script.perl-cpanfile"
    },
    "shebang": {
-      "application/x-sh": null,
-      "text/x-script.perl": null,
-      "text/x-script.python": null
+      "application/x-sh": "/(?:sh|bash)\\z",
+      "text/x-script.perl": "perl",
+      "text/x-script.python": "python"
    },
    "suffix": {
       "3gp": "video/3gpp",
