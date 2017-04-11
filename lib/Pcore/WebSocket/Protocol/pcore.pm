@@ -62,7 +62,7 @@ sub forward_events ( $self, $events ) {
     return;
 }
 
-sub listen_remote_events ( $self, $events ) {
+sub subscribe_events ( $self, $events ) {
     my $msg = {
         type   => $MSG_TYPE_LISTEN,
         events => $events,
@@ -98,8 +98,8 @@ sub before_connect_server ( $self, $env, $args ) {
 
     my $headers;
 
-    if ( $args->{listen_remote_events} ) {
-        my $events = ref $args->{listen_remote_events} eq 'ARRAY' ? $args->{listen_remote_events} : [ $args->{listen_remote_events} ];
+    if ( $args->{subscribe_events} ) {
+        my $events = ref $args->{subscribe_events} eq 'ARRAY' ? $args->{subscribe_events} : [ $args->{subscribe_events} ];
 
         push $headers->@*, 'Pcore-RPC-Listen-Events', join ',', $events->@*;
     }
@@ -114,8 +114,8 @@ sub before_connect_client ( $self, $args ) {
 
     my $headers;
 
-    if ( $args->{listen_remote_events} ) {
-        my $events = ref $args->{listen_remote_events} eq 'ARRAY' ? $args->{listen_remote_events} : [ $args->{listen_remote_events} ];
+    if ( $args->{subscribe_events} ) {
+        my $events = ref $args->{subscribe_events} eq 'ARRAY' ? $args->{subscribe_events} : [ $args->{subscribe_events} ];
 
         push $headers->@*, 'Pcore-RPC-Listen-Events:' . join ',', $events->@*;
     }

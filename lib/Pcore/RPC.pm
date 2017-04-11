@@ -81,11 +81,11 @@ sub connect_rpc ( $self, % ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
-        addr                 => undef,
-        listen_remote_events => undef,
-        forward_events       => undef,
-        on_connect           => undef,    # called for each handle individually
-        on_ready             => undef,
+        addr             => undef,
+        subscribe_events => undef,
+        forward_events   => undef,
+        on_connect       => undef,    # called for each handle individually
+        on_ready         => undef,
         @_[ 1 .. $#_ ],
     );
 
@@ -116,8 +116,8 @@ sub connect_rpc ( $self, % ) {
         Pcore::WebSocket->connect_ws(
             pcore          => "ws://$addr/",
             before_connect => {
-                listen_remote_events => $args{listen_remote_events},
-                forward_events       => $args{forward_events},
+                subscribe_events => $args{subscribe_events},
+                forward_events   => $args{forward_events},
             },
             on_error => sub ($res) {
                 die $res;
