@@ -8,14 +8,6 @@ use if $MSWIN, 'Win32API::File';
 
 sub run ( $class, $RPC_BOOT_ARGS ) {
 
-    # open control handle
-    if ($MSWIN) {
-        Win32API::File::OsFHandleOpen( *CTRL_FH, $RPC_BOOT_ARGS->{ctrl_fh}, 'w' ) or die $!;
-    }
-    else {
-        open *CTRL_FH, '>&=', $RPC_BOOT_ARGS->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
-    }
-
     # ignore SIGINT
     $SIG->{INT} = AE::signal INT => sub {
         return;
@@ -34,9 +26,8 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
     # create object
     my $rpc = $class->new( $RPC_BOOT_ARGS->{buildargs} // () );
 
-    my $can_rpc_before_connect = $rpc->can('RPC_BEFORE_CONNECT');
-    my $can_rpc_on_connect     = $rpc->can('RPC_ON_CONNECT');
-    my $can_rpc_on_disconnect  = $rpc->can('RPC_ON_DISCONNECT');
+    my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
+    my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
 
     # get random port on 127.0.0.1 if undef
     # TODO do not use port if listen addr. is unix socket
@@ -50,6 +41,8 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                 Pcore::WebSocket->accept_ws(
                     'pcore', $req,
                     sub ( $ws, $req, $accept, $reject ) {
+                        no strict qw[refs];
+
                         $accept->(
                             {   max_message_size   => 1_024 * 1_024 * 100,     # 100 Mb
                                 pong_timeout       => 50,
@@ -74,8 +67,11 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                                     return;
                                 }
                             },
-                            headers => undef,
-                            $can_rpc_before_connect ? ( before_connect => $rpc->RPC_BEFORE_CONNECT ) : (),
+                            headers        => undef,
+                            before_connect => {
+                                listen_events  => ${"${class}::RPC_LISTEN_EVENTS"},
+                                borward_events => ${"${class}::RPC_FORWARD_EVENTS"},
+                            },
                             $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : (),
                         );
 
@@ -88,25 +84,17 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
         }
     )->run;
 
-    # wrap *CTRL_FH
-    Pcore::AE::Handle->new(
-        fh       => \*CTRL_FH,
-        on_error => sub ( $h, $fatal, $msg ) {
-            die $msg;
-        },
-        on_connect => sub ( $h, @ ) {
+    # open control handle
+    if ($MSWIN) {
+        Win32API::File::OsFHandleOpen( *FH, $RPC_BOOT_ARGS->{ctrl_fh}, 'w' ) or die $!;
+    }
+    else {
+        open *FH, '>&=', $RPC_BOOT_ARGS->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+    }
 
-            # handshake
-            $h->push_write("LISTEN:$listen\x00");
+    print {*FH} "LISTEN:$listen\x00";
 
-            # close control connection
-            $h->destroy;
-
-            close *CTRL_FH or die;
-
-            return;
-        }
-    );
+    close *FH or die;
 
     $cv->recv;
 
@@ -120,9 +108,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 59                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 100                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 95                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
