@@ -62,7 +62,7 @@ sub forward_events ( $self, $events ) {
     return;
 }
 
-sub subscribe_events ( $self, $events ) {
+sub listen_events ( $self, $events ) {
     my $msg = {
         type   => $MSG_TYPE_LISTEN,
         events => $events,
@@ -86,8 +86,8 @@ sub fire_remote_event ( $self, $event, $data = undef ) {
 }
 
 sub before_connect_server ( $self, $env, $args ) {
-    if ( $env->{HTTP_PCORE_RPC_LISTEN_EVENTS} ) {
-        my $events = [ map { trim $_} split /,/sm, $env->{HTTP_PCORE_RPC_LISTEN_EVENTS} ];
+    if ( $env->{HTTP_PCORE_LISTEN_EVENTS} ) {
+        my $events = [ map { trim $_} split /,/sm, $env->{HTTP_PCORE_LISTEN_EVENTS} ];
 
         $self->_set_listeners($events) if $events->@*;
     }
@@ -98,10 +98,10 @@ sub before_connect_server ( $self, $env, $args ) {
 
     my $headers;
 
-    if ( $args->{subscribe_events} ) {
-        my $events = ref $args->{subscribe_events} eq 'ARRAY' ? $args->{subscribe_events} : [ $args->{subscribe_events} ];
+    if ( $args->{listen_events} ) {
+        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
 
-        push $headers->@*, 'Pcore-RPC-Listen-Events', join ',', $events->@*;
+        push $headers->@*, 'Pcore-Listen-Events', join ',', $events->@*;
     }
 
     return $headers;
@@ -114,10 +114,10 @@ sub before_connect_client ( $self, $args ) {
 
     my $headers;
 
-    if ( $args->{subscribe_events} ) {
-        my $events = ref $args->{subscribe_events} eq 'ARRAY' ? $args->{subscribe_events} : [ $args->{subscribe_events} ];
+    if ( $args->{listen_events} ) {
+        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
 
-        push $headers->@*, 'Pcore-RPC-Listen-Events:' . join ',', $events->@*;
+        push $headers->@*, 'Pcore-Listen-Events:' . join ',', $events->@*;
     }
 
     return $headers;
@@ -128,8 +128,8 @@ sub on_connect_server ( $self ) {
 }
 
 sub on_connect_client ( $self, $headers ) {
-    if ( $headers->{PCORE_RPC_LISTEN_EVENTS} ) {
-        my $events = [ map { trim $_} split /,/sm, $headers->{PCORE_RPC_LISTEN_EVENTS} ];
+    if ( $headers->{PCORE_LISTEN_EVENTS} ) {
+        my $events = [ map { trim $_} split /,/sm, $headers->{PCORE_LISTEN_EVENTS} ];
 
         $self->_set_listeners($events) if $events->@*;
     }

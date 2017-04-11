@@ -9,7 +9,7 @@ has workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_ar
 has connections => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 
 sub TO_DATA ( $self, ) {
-    return $self->get_listen;
+    return $self->get_connect;
 }
 
 sub run_rpc ( $self, $class, @ ) {
@@ -81,27 +81,27 @@ sub connect_rpc ( $self, % ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
-        addr             => undef,
-        subscribe_events => undef,
-        forward_events   => undef,
-        on_connect       => undef,    # called for each handle individually
-        on_ready         => undef,
+        connect        => undef,
+        listen_events  => undef,
+        forward_events => undef,
+        on_connect     => undef,
         @_[ 1 .. $#_ ],
     );
 
     $self = bless {}, $self if !blessed $self;
 
-    if ( !$args{addr} ) {
-        $args{addr} = $self->get_listen;
+    # parse connect
+    if ( !$args{connect} ) {
+        $args{connect} = $self->get_connect;
     }
     else {
-        $args{addr} = [ $args{addr} ] if ref $args{addr} ne 'ARRAY';
+        $args{connect} = [ $args{connect} ] if ref $args{connect} ne 'ARRAY';
     }
 
-    die q[No addresses specified] if !$args{addr}->@*;
+    die q[No addresses specified] if !$args{connect}->@*;
 
     my $cv = AE::cv sub {
-        $args{on_ready}->($self) if $args{on_ready};
+        $args{on_connect}->($self) if $args{on_connect};
 
         $blocking_cv->($self) if $blocking_cv;
 
@@ -110,22 +110,20 @@ sub connect_rpc ( $self, % ) {
 
     $cv->begin;
 
-    for my $addr ( $args{addr}->@* ) {
+    for my $addr ( $args{connect}->@* ) {
         $cv->begin;
 
         Pcore::WebSocket->connect_ws(
             pcore          => "ws://$addr/",
             before_connect => {
-                subscribe_events => $args{subscribe_events},
-                forward_events   => $args{forward_events},
+                listen_events  => $args{listen_events},
+                forward_events => $args{forward_events},
             },
             on_error => sub ($res) {
                 die $res;
             },
             on_connect => sub ( $ws, $headers ) {
                 push $self->{connections}->@*, $ws;
-
-                $args{on_connect}->($ws) if $args{on_connect};
 
                 $cv->end;
 
@@ -150,7 +148,7 @@ sub connect_rpc ( $self, % ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub get_listen ($self) {
+sub get_connect ($self) {
     return [ map { $_->{listen} } $self->{workers}->@* ];
 }
 
@@ -171,7 +169,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 62, 135              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 62, 133              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

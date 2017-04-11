@@ -77,10 +77,10 @@ sub run_rpc ( $class, @ ) {
     return Pcore::RPC->run_rpc(@_);
 }
 
-sub connect_rpc ( $addr, %args ) {
+sub connect_rpc ( $connect, %args ) {
     state $init = !!require Pcore::RPC;
 
-    return Pcore::RPC->connect_rpc( %args, addr => $addr );
+    return Pcore::RPC->connect_rpc( %args, connect => $connect );
 }
 
 1;
