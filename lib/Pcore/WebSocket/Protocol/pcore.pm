@@ -98,8 +98,8 @@ sub before_connect_server ( $self, $env, $args ) {
 
     my $headers;
 
-    if ( $args->{listen_events} ) {
-        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
+    if ( $args->{listen_remote_events} ) {
+        my $events = ref $args->{listen_remote_events} eq 'ARRAY' ? $args->{listen_remote_events} : [ $args->{listen_remote_events} ];
 
         push $headers->@*, 'Pcore-RPC-Listen-Events', join ',', $events->@*;
     }
@@ -114,8 +114,8 @@ sub before_connect_client ( $self, $args ) {
 
     my $headers;
 
-    if ( $args->{listen_events} ) {
-        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
+    if ( $args->{listen_remote_events} ) {
+        my $events = ref $args->{listen_remote_events} eq 'ARRAY' ? $args->{listen_remote_events} : [ $args->{listen_remote_events} ];
 
         push $headers->@*, 'Pcore-RPC-Listen-Events:' . join ',', $events->@*;
     }

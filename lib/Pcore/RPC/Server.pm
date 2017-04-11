@@ -75,7 +75,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                                 }
                             },
                             headers => undef,
-                            $can_rpc_before_connect ? ( before_connect => $rpc->RPC_BEFORE_CONNECT ) : undef,
+                            $can_rpc_before_connect ? ( before_connect => $rpc->RPC_BEFORE_CONNECT ) : (),
                             $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : (),
                         );
 
