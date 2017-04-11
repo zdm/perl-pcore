@@ -17,6 +17,7 @@ sub run_rpc ( $self, $class, @ ) {
 
     my %args = (
         workers   => undef,    # FALSE - max. CPUs, -n - CPUs - n || 1
+        listen    => undef,
         buildargs => undef,    # Maybe[HashRef], RPC object constructor arguments
         on_ready  => undef,    # Maybe[CodeRef]
         @_[ 2 .. $#_ ],
@@ -49,6 +50,7 @@ sub run_rpc ( $self, $class, @ ) {
         $cv->begin;
 
         Pcore::RPC::Proc->new(
+            listen    => $args{listen},
             class     => $class,
             buildargs => $args{buildargs},
             on_ready  => sub ($proc) {
@@ -169,7 +171,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 62, 133              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 64, 135              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

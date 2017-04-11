@@ -41,7 +41,7 @@ around new => sub ( $orig, $self, @ ) {
         script_path => $ENV->{SCRIPT_PATH},
         version     => $main::VERSION->normal,
         scandeps    => $ENV->{SCAN_DEPS},
-        listen      => undef,
+        listen      => $args{listen},
         buildargs   => $args{buildargs},
     };
 
