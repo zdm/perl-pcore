@@ -29,13 +29,10 @@ sub run ( $self, $req ) {
 
                             # accept websocket connection
                             $accept->(
-                                {   max_message_size   => 1_024 * 1_024 * 100,    # 100 Mb
+                                {   max_message_size   => 1_024 * 1_024 * 100,     # 100 Mb
                                     pong_timeout       => 50,
                                     permessage_deflate => 0,
-                                    on_connect         => sub ($ws) {
-                                        return;
-                                    },
-                                    on_disconnect => sub ( $ws, $status ) {
+                                    on_disconnect      => sub ( $ws, $status ) {
                                         return;
                                     },
                                     on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
@@ -43,7 +40,10 @@ sub run ( $self, $req ) {
 
                                         return;
                                     }
-                                }
+                                },
+                                headers        => undef,
+                                before_connect => undef,
+                                on_connect     => undef,
                             );
                         }
 

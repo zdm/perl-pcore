@@ -43,8 +43,15 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
         # create empty websocket object
         my $ws = bless {}, "Pcore::WebSocket::Protocol::$implementation";
 
-        my $accept = sub ( $ws_cfg = undef, $headers = undef ) {
-            $ws->@{ keys $ws_cfg->%* } = values $ws_cfg->%* if $ws_cfg;
+        my $accept = sub ( $cfg, @ ) {
+            my %args = (
+                headers        => undef,                                   # Maybe[ArrayRef]
+                before_connect => undef,                                   # Maybe[HashRef]
+                on_connect     => undef,                                   # Maybe[CodeRef]
+                @_[ 1 .. $#_ ],
+            );
+
+            $ws->@{ keys $cfg->%* } = values $cfg->%*;
 
             my $permessage_deflate = 0;
 
@@ -62,8 +69,13 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
                 ( $permessage_deflate ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
             );
 
-            # add custom headers
-            push @headers, $headers->@* if $headers;
+            # add user headers
+            push @headers, $args{headers}->@* if $args{headers};
+
+            # add protocol headers
+            if ( my $protocol_headers = $ws->before_connect_server( $env, $args{before_connect} ) ) {
+                push @headers, $protocol_headers->@*;
+            }
 
             # accept websocket connection
             $ws->{h} = $req->accept_websocket( \@headers );
@@ -71,8 +83,13 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
             # store ws handle
             $HANDLE->{ refaddr $ws} = $ws;
 
-            # connected
+            # call protocol on_connected
             $ws->on_connect;
+
+            $ws->on_connect_server;
+
+            # call on_connect callback, if defined
+            $args{on_connect}->($ws) if $args{on_connect};
 
             return;
         };
@@ -100,12 +117,15 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
     my %args = (
         max_message_size   => 0,
         permessage_deflate => 0,        # use compression
+        headers            => undef,    # Maybe[ArrayRef]
+        before_connect     => undef,    # Maybe[HashRef]
         on_error           => undef,
         on_connect         => undef,    # mandatory
         on_disconnect      => undef,    # passed to websocket constructor
         @_[ 3 .. $#_ ],
     );
 
+    # load protocol implementation
     my $implementation = $protocol || 'raw';
 
     eval { require "Pcore/Websocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
@@ -176,7 +196,21 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
                 ( $args{permessage_deflate} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
             );
 
+            # add user headers
             push @headers, map {"$_->[0]:$_->[1]"} pairs $args{headers}->@* if $args{headers};
+
+            my $ws = bless {
+                max_message_size => $args{max_message_size},
+                on_disconnect    => $args{on_disconnect},
+                _send_masked     => 1,                         # client always send masked frames
+            }, $class;
+
+            # add protocol headers
+            if ( $args{before_connect} ) {
+                if ( my $protocol_headers = $ws->before_connect_client( $args{before_connect} ) ) {
+                    push @headers, $protocol_headers->@*;
+                }
+            }
 
             $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
 
@@ -234,17 +268,12 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
                             $permessage_deflate = 1 if $args{permessage_deflate} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
                         }
 
-                        my $ws = bless {
-                            h                  => $h,
-                            max_message_size   => $args{max_message_size},
-                            permessage_deflate => $permessage_deflate,
-                            _send_masked       => 1,                         # client always send masked frames
-                            on_disconnect      => $args{on_disconnect},
-                          },
-                          $class;
+                        $ws->@{qw[h permessage_deflate]} = ( $h, $permessage_deflate );
 
                         # call protocol on_connect
                         $ws->on_connect;
+
+                        $ws->on_connect_client($res_headers);
 
                         $args{on_connect}->( $ws, $res_headers );
                     }
@@ -267,9 +296,9 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 37, 111              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 37, 131              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (31)                |
+## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (33)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

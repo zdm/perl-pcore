@@ -15,13 +15,12 @@ use Pcore::Util::Digest qw[sha1];
 # https://tools.ietf.org/html/rfc7692#page-10
 # https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/
 
-requires qw[protocol on_connect on_disconnect on_text on_binary on_pong];
+requires qw[protocol before_connect_server before_connect_client on_connect_server on_connect_client on_disconnect on_text on_binary on_pong];
 
 has max_message_size   => ( is => 'ro', isa => PositiveOrZeroInt, default => 1_024 * 1_024 * 100 );    # 0 - do not check
 has pong_timeout       => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong
 has permessage_deflate => ( is => 'ro', isa => Bool,              default => 0 );                      # use compression
 
-has on_connect    => ( is => 'ro', isa => CodeRef, reader => undef );
 has on_disconnect => ( is => 'ro', isa => CodeRef, reader => undef );
 
 has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], required => 1 );
@@ -125,7 +124,7 @@ sub get_challenge ( $self, $key ) {
     return to_b64( sha1( ($key) . $WEBSOCKET_GUID ), q[] );
 }
 
-around on_connect => sub ( $orig, $self ) {
+sub on_connect ( $self ) {
     return if $self->{is_connected};
 
     $self->{is_connected} = 1;
@@ -236,14 +235,8 @@ around on_connect => sub ( $orig, $self ) {
         $self->{h}->timeout($pong_timeout);
     }
 
-    # call protocol on_connect
-    $self->$orig;
-
-    # call on_connect callback, if defined
-    $self->{on_connect}->($self) if $self->{on_connect};
-
     return;
-};
+}
 
 sub _on_frame ( $self, $header, $payload_ref ) {
     if ($payload_ref) {
@@ -466,19 +459,19 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (27)                               |
+## |    3 | 81, 87, 332          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 82, 88, 339          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 127                  | * Subroutine "on_connect" with high complexity score (26)                                                      |
+## |      | 241                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 248                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_frame" with high complexity score (27)                 |
+## |    3 | 287                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 294                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 393, 395             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 400, 402             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    2 | 40, 257              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 264              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 312                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 305                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

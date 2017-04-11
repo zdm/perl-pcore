@@ -4,13 +4,11 @@ use Pcore -class, -result, -const;
 use CBOR::XS qw[];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::WebSocket::Protocol::pcore::Request;
+use Pcore::Util::Text qw[trim];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
 has on_rpc_call => ( is => 'ro', isa => CodeRef );
-
-# TODO implement scan_deps protocol, get scan_deps flag from headers
-has scandeps => ( is => 'ro', isa => Bool, default => 0 );
 
 has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -64,15 +62,13 @@ sub forward_events ( $self, $events ) {
     return;
 }
 
-sub listen_remote_events ( $self, $events, $cb = undef ) {
+sub listen_remote_events ( $self, $events ) {
     my $msg = {
         type   => $MSG_TYPE_LISTEN,
         events => $events,
     };
 
     $self->send_binary( \$CBOR->encode($msg) );
-
-    P->listen_events( $events, $cb ) if $cb;
 
     return;
 }
@@ -89,7 +85,55 @@ sub fire_remote_event ( $self, $event, $data = undef ) {
     return;
 }
 
-sub on_connect ( $self ) {
+sub before_connect_server ( $self, $env, $args ) {
+    if ( $env->{HTTP_PCORE_RPC_LISTEN_EVENTS} ) {
+        my $events = [ map { trim $_} split /,/sm, $env->{HTTP_PCORE_RPC_LISTEN_EVENTS} ];
+
+        $self->_set_listeners($events) if $events->@*;
+    }
+
+    if ( $args->{forward_events} ) {
+        $self->_set_listeners( $args->{forward_events} );
+    }
+
+    my $headers;
+
+    if ( $args->{listen_events} ) {
+        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
+
+        push $headers->@*, 'Pcore-RPC-Listen-Events', join ',', $events->@*;
+    }
+
+    return $headers;
+}
+
+sub before_connect_client ( $self, $args ) {
+    if ( $args->{forward_events} ) {
+        $self->_set_listeners( $args->{forward_events} );
+    }
+
+    my $headers;
+
+    if ( $args->{listen_events} ) {
+        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
+
+        push $headers->@*, 'Pcore-RPC-Listen-Events:' . join ',', $events->@*;
+    }
+
+    return $headers;
+}
+
+sub on_connect_server ( $self ) {
+    return;
+}
+
+sub on_connect_client ( $self, $headers ) {
+    if ( $headers->{PCORE_RPC_LISTEN_EVENTS} ) {
+        my $events = [ map { trim $_} split /,/sm, $headers->{PCORE_RPC_LISTEN_EVENTS} ];
+
+        $self->_set_listeners($events) if $events->@*;
+    }
+
     return;
 }
 

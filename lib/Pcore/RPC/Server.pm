@@ -34,8 +34,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
     # create object
     my $rpc = $class->new( $RPC_BOOT_ARGS->{buildargs} // () );
 
-    my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
-    my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
+    my $can_rpc_before_connect = $rpc->can('RPC_BEFORE_CONNECT');
+    my $can_rpc_on_connect     = $rpc->can('RPC_ON_CONNECT');
+    my $can_rpc_on_disconnect  = $rpc->can('RPC_ON_DISCONNECT');
 
     # get random port on 127.0.0.1 if undef
     # TODO do not use port if listen addr. is unix socket
@@ -50,16 +51,10 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                     'pcore', $req,
                     sub ( $ws, $req, $accept, $reject ) {
                         $accept->(
-                            {   max_message_size   => 1_024 * 1_024 * 100,          # 100 Mb
+                            {   max_message_size   => 1_024 * 1_024 * 100,     # 100 Mb
                                 pong_timeout       => 50,
                                 permessage_deflate => 0,
-                                scandeps           => $RPC_BOOT_ARGS->{scandeps},
-                                on_connect         => sub ($ws) {
-                                    $rpc->RPC_ON_CONNECT($ws) if $can_rpc_on_connect;
-
-                                    return;
-                                },
-                                on_disconnect => sub ( $ws, $status ) {
+                                on_disconnect      => sub ( $ws, $status ) {
                                     $rpc->RPC_ON_DISCONNECT($ws) if $can_rpc_on_disconnect;
 
                                     return;
@@ -78,7 +73,10 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 
                                     return;
                                 }
-                            }
+                            },
+                            headers => undef,
+                            $can_rpc_before_connect ? ( before_connect => $rpc->RPC_BEFORE_CONNECT ) : undef,
+                            $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : (),
                         );
 
                         return;
@@ -122,9 +120,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 71                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 66                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 102                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 100                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

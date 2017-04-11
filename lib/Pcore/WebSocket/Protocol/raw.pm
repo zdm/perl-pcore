@@ -10,7 +10,19 @@ has on_pong   => ( is => 'ro', isa => CodeRef, reader => undef );
 
 with qw[Pcore::WebSocket::Handle];
 
-sub on_connect ( $self ) {
+sub before_connect_server ( $self, $env, $args ) {
+    return;
+}
+
+sub before_connect_client ( $self, $args ) {
+    return;
+}
+
+sub on_connect_server ( $self ) {
+    return;
+}
+
+sub on_connect_client ( $self, $headers ) {
     return;
 }
 

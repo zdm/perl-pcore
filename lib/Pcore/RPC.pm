@@ -81,9 +81,11 @@ sub connect_rpc ( $self, % ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
-        addr       => undef,
-        on_connect => undef,    # called for each handle individually
-        on_ready   => undef,
+        addr           => undef,
+        listen_events  => undef,
+        forward_events => undef,
+        on_connect     => undef,    # called for each handle individually
+        on_ready       => undef,
         @_[ 1 .. $#_ ],
     );
 
@@ -112,7 +114,11 @@ sub connect_rpc ( $self, % ) {
         $cv->begin;
 
         Pcore::WebSocket->connect_ws(
-            pcore    => "ws://$addr/",
+            pcore          => "ws://$addr/",
+            before_connect => {
+                listen_events  => $args{listen_events},
+                forward_events => $args{forward_events},
+            },
             on_error => sub ($res) {
                 die $res;
             },
@@ -165,7 +171,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 62, 129              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 62, 135              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
