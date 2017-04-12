@@ -2,18 +2,15 @@ package Pcore::AE::DNS::Cache;
 
 use Pcore;
 use base qw[AnyEvent::DNS];
-use AnyEvent::Socket qw[];
 
-our $TTL          = 60;
-our $NEGATIVE_TTL = 5;
+our $TTL            = 60;
+our $NEGATIVE_TTL   = 5;
+our $MAX_CACHE_SIZE = 10_000;
 
 our $_CACHE_DNS = {};
 our $_OLD_DNS_RESOLVER;
-our $_EXPIRE_TIMER;
 
 __PACKAGE__->register;
-
-# TODO perform purge on timer
 
 sub register ( $self, %args ) {
     return if $AnyEvent::DNS::RESOLVER && ref $AnyEvent::DNS::RESOLVER eq $self;
@@ -41,25 +38,17 @@ sub register ( $self, %args ) {
 
     $expire_timeout = 60 if $expire_timeout < 60;
 
-    $_EXPIRE_TIMER = AE::timer $expire_timeout, $expire_timeout, sub {
-        $self->expire;
-
-        return;
-    };
-
     return;
 }
 
 sub unregister ($self) {
     $AnyEvent::DNS::RESOLVER = $_OLD_DNS_RESOLVER;
 
-    undef $_EXPIRE_TIMER;
-
     return;
 }
 
 sub purge ($self) {
-    $_CACHE_DNS->%* = ();
+    $_CACHE_DNS = {};
 
     return;
 }
@@ -79,17 +68,9 @@ sub request ( $self, $req, $cb ) {
 
     my $cache_key = join q[-], $req->{qd}->[0]->@*;
 
-    push $callback->{$cache_key}->@*, $cb;
-
-    return if $callback->{$cache_key}->@* > 1;
-
     if ( exists $_CACHE_DNS->{$cache_key} ) {
         if ( $_CACHE_DNS->{$cache_key}->[0] > time ) {
-            while ( my $cb = shift $callback->{$cache_key}->@* ) {
-                $cb->( $_CACHE_DNS->{$cache_key}->[1]->@* );
-            }
-
-            delete $callback->{$cache_key};
+            $cb->( $_CACHE_DNS->{$cache_key}->[1]->@* );
 
             return;
         }
@@ -98,12 +79,16 @@ sub request ( $self, $req, $cb ) {
         }
     }
 
+    push $callback->{$cache_key}->@*, $cb;
+
+    return if $callback->{$cache_key}->@* > 1;
+
     $self->SUPER::request(
         $req,
         sub {
-            $_CACHE_DNS->{$cache_key}->[0] = time + ( @_ ? $TTL : $NEGATIVE_TTL );
+            $self->purge if keys $_CACHE_DNS->%* > $MAX_CACHE_SIZE;
 
-            $_CACHE_DNS->{$cache_key}->[1] = [@_];
+            $_CACHE_DNS->{$cache_key} = [ time + ( @_ ? $TTL : $NEGATIVE_TTL ), \@_ ];
 
             while ( my $cb = shift $callback->{$cache_key}->@* ) {
                 $cb->( $_CACHE_DNS->{$cache_key}->[1]->@* );
