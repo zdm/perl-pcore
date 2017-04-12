@@ -6,6 +6,12 @@ use AnyEvent::Socket qw[];
 use Pcore::Util::Scalar qw[blessed];
 use Pcore::HTTP::Server::Request;
 
+# listen:
+# unix:/socket/path
+# unix:abstract-socket-name
+# *:80
+# 127.0.0.1:80
+
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has app => ( is => 'ro', isa => CodeRef | InstanceOf ['Pcore::App::Router'], required => 1 );
 
@@ -19,8 +25,7 @@ has client_header_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 
 has client_body_timeout   => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );    # 0 - do not use
 has client_max_body_size  => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );     # 0 - do not check
 
-has _listen_uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
-has _listen_socket => ( is => 'lazy', isa => Object, init_arg => undef );
+has _listen_socket => ( is => 'ro', isa => Object, init_arg => undef );
 
 const our $PSGI_ENV => {
     'psgi.version'      => [ 1, 1 ],
@@ -47,26 +52,26 @@ const our $PSGI_ENV => {
 # TODO implement shutdown and graceful shutdown
 
 sub run ($self) {
-    $self->_listen_socket;
 
-    return $self;
-}
+    # parse listen
+    if ( $self->{listen} =~ /\Aunix:(.+)/sm ) {
+        my $path = $1;
 
-sub _build__listen_uri ($self) {
-    return P->uri( $self->listen, authority => 1, base => 'tcp:' );
-}
+        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( 'unix/', $path, sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
 
-sub _build__listen_socket ($self) {
-    if ( $self->_listen_uri->scheme eq 'unix' ) {
-        my $server = AnyEvent::Socket::tcp_server( 'unix/', $self->_listen_uri->path, sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
-
-        chmod oct 777, $self->_listen_uri->path or die;
-
-        return $server;
+        chmod oct 777, $path or die if substr( $path, 0, 1 ) eq '/';
     }
     else {
-        return AnyEvent::Socket::tcp_server( $self->_listen_uri->host || undef, $self->_listen_uri->port, sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
+        my ( $host, $port ) = split /:/sm, $self->{listen};
+
+        die qq[Invalid listen "$self->{listen}"] if !$host || !$port;
+
+        undef $host if $host eq '*';
+
+        $self->{_listen_socket} = AnyEvent::Socket::tcp_server( $host, $port, sub { return $self->_on_accept(@_) }, sub { return $self->_on_prepare(@_) } );
     }
+
+    return $self;
 }
 
 sub _on_prepare ( $self, $fh, $host, $port ) {
@@ -300,7 +305,7 @@ sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 257                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 262                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

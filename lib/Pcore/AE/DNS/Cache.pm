@@ -7,60 +7,13 @@ use AnyEvent::Socket qw[];
 our $TTL          = 60;
 our $NEGATIVE_TTL = 5;
 
-our $_CACHE_DNS      = {};
-our $_CACHE_SOCKADDR = {};
+our $_CACHE_DNS = {};
 our $_OLD_DNS_RESOLVER;
 our $_EXPIRE_TIMER;
 
-*AnyEvent::Socket::resolve_sockaddr_nocache = \&AnyEvent::Socket::resolve_sockaddr;
-
 __PACKAGE__->register;
 
-sub AnyEvent::Socket::resolve_sockaddr_cache {
-    state $callback = {};
-
-    my $code = pop;
-
-    my $cache_key = join q[-], map { $_ // q[] } @_;
-
-    push $callback->{$cache_key}->@*, $code;
-
-    return if $callback->{$cache_key}->@* > 1;
-
-    if ( exists $_CACHE_SOCKADDR->{$cache_key} ) {
-        if ( $_CACHE_SOCKADDR->{$cache_key}->[0] > time ) {
-            while ( my $cb = shift $callback->{$cache_key}->@* ) {
-                $cb->( $_CACHE_SOCKADDR->{$cache_key}->[1]->@* );
-            }
-
-            delete $callback->{$cache_key};
-
-            return;
-        }
-        else {
-            delete $_CACHE_SOCKADDR->{$cache_key};
-        }
-    }
-
-    AnyEvent::Socket::resolve_sockaddr_nocache(
-        @_,
-        sub {
-            $_CACHE_SOCKADDR->{$cache_key}->[0] = time + ( @_ ? $TTL : $NEGATIVE_TTL );
-
-            $_CACHE_SOCKADDR->{$cache_key}->[1] = [@_];
-
-            while ( my $cb = shift $callback->{$cache_key}->@* ) {
-                $cb->( $_CACHE_SOCKADDR->{$cache_key}->[1]->@* );
-            }
-
-            delete $callback->{$cache_key};
-
-            return;
-        }
-    );
-
-    return;
-}
+# TODO perform purge on timer
 
 sub register ( $self, %args ) {
     return if $AnyEvent::DNS::RESOLVER && ref $AnyEvent::DNS::RESOLVER eq $self;
@@ -94,13 +47,6 @@ sub register ( $self, %args ) {
         return;
     };
 
-    # install resolve_sockaddr hook
-    {
-        no warnings qw[redefine prototype];
-
-        *AnyEvent::Socket::resolve_sockaddr = \&AnyEvent::Socket::resolve_sockaddr_cache;
-    }
-
     return;
 }
 
@@ -109,20 +55,11 @@ sub unregister ($self) {
 
     undef $_EXPIRE_TIMER;
 
-    # remove resolve_sockaddr hook
-    {
-        no warnings qw[redefine prototype];
-
-        *AnyEvent::Socket::resolve_sockaddr = *AnyEvent::Socket::resolve_sockaddr_nocache;
-    }
-
     return;
 }
 
 sub purge ($self) {
     $_CACHE_DNS->%* = ();
-
-    $_CACHE_SOCKADDR->%* = ();
 
     return;
 }
@@ -132,10 +69,6 @@ sub expire ($self) {
 
     for ( keys $_CACHE_DNS->%* ) {
         delete $_CACHE_DNS->{$_} if $_CACHE_DNS->{$_}->[0] <= $time;
-    }
-
-    for ( keys $_CACHE_SOCKADDR->%* ) {
-        delete $_CACHE_SOCKADDR->{$_} if $_CACHE_SOCKADDR->{$_}->[0] <= $time;
     }
 
     return;
