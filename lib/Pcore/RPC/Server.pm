@@ -29,10 +29,33 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
     my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
     my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
 
-    # get random port on 127.0.0.1 if undef
-    # TODO do not use port if listen addr. is unix socket
-    # TODO parse IP addr
-    my $listen = $RPC_BOOT_ARGS->{listen} // '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
+    # parse listen
+    my $listen;
+
+    if ( !$RPC_BOOT_ARGS->{listen} ) {
+
+        # for windows use TCP loopback
+        if ($MSWIN) {
+            $listen = '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
+        }
+
+        # for linux use abstract UDS
+        else {
+            $listen = "unix:pcore-rpc-$$";
+        }
+    }
+    else {
+
+        # host without port
+        if ( $RPC_BOOT_ARGS->{listen} !~ /:/sm ) {
+            $listen = "$RPC_BOOT_ARGS->{listen}:" . P->sys->get_free_port( $RPC_BOOT_ARGS->{listen} eq '*' ? () : $RPC_BOOT_ARGS->{listen} );
+        }
+
+        # unix socket or fully qualified host:port
+        else {
+            $listen = $RPC_BOOT_ARGS->{listen};
+        }
+    }
 
     # start websocket server
     my $http_server = Pcore::HTTP::Server->new(
@@ -108,9 +131,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 82                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 95                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 118                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
