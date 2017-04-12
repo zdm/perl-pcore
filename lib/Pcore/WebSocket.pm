@@ -149,12 +149,23 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
         return;
     }
 
-    $uri = Pcore->uri($uri) if !ref $uri;
+    my $connect;
+
+    if ( $uri =~ m[\Awss?://unix:(.+)?/]sm ) {
+        $connect = [ 'unix/', $1 ];
+
+        $uri = Pcore->uri($uri) if !ref $uri;
+    }
+    else {
+        $uri = Pcore->uri($uri) if !ref $uri;
+
+        $connect = $uri;
+    }
 
     Pcore::AE::Handle->new(
         $args{handle_params}->%*,
         persistent             => 0,
-        connect                => $uri,
+        connect                => $connect,
         connect_timeout        => $args{connect_timeout},
         tls_ctx                => $args{tls_ctx},
         bind_ip                => $args{bind_ip},
@@ -298,7 +309,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 37, 131              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (33)                |
+## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (36)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

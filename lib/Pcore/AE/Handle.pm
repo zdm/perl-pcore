@@ -91,6 +91,7 @@ sub new ( $self, @ ) {
         $args{on_connect}->( $self->SUPER::new(%args), undef, undef, undef );
     }
     else {
+
         # parse connect attribute
         $args{connect} = get_connect( $args{connect} );
 
@@ -1016,27 +1017,27 @@ sub get_connect ($connect) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 72                   | * Subroutine "new" with high complexity score (44)                                                             |
-## |      | 649                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 775                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 650                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 776                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 282, 685, 686        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 283, 686, 687        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 57, 469, 516, 521,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |      | 538, 584, 587, 590   |                                                                                                                |
+## |    2 | 57, 470, 517, 522,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 539, 585, 588, 591   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 722                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 723                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1050 does not specify text                                                  |
-## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1058 does not specify text                                                  |
-## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1086 does not specify text                                                  |
-## |      | 1044                 | * Link L<AnyEvent::Handle> on line 1102 does not specify text                                                  |
-## |      | 1044                 | * Link L<AnyEvent::Socket> on line 1102 does not specify text                                                  |
-## |      | 1044, 1044           | * Link L<Pcore::Proxy> on line 1068 does not specify text                                                      |
-## |      | 1044                 | * Link L<Pcore::Proxy> on line 1102 does not specify text                                                      |
+## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1051 does not specify text                                                  |
+## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1059 does not specify text                                                  |
+## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1087 does not specify text                                                  |
+## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1103 does not specify text                                                  |
+## |      | 1045                 | * Link L<AnyEvent::Socket> on line 1103 does not specify text                                                  |
+## |      | 1045, 1045           | * Link L<Pcore::Proxy> on line 1069 does not specify text                                                      |
+## |      | 1045                 | * Link L<Pcore::Proxy> on line 1103 does not specify text                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 53, 58, 474, 584,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 587, 590, 596        |                                                                                                                |
+## |    1 | 53, 58, 475, 585,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 588, 591, 597        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
