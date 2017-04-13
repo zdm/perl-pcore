@@ -156,6 +156,11 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 
         $uri = Pcore->uri($uri) if !ref $uri;
     }
+    elsif ( $uri =~ m[\A(wss?)://[*]:(.+)]sm ) {
+        $uri = P->uri("$1://127.0.0.1:$2");
+
+        $connect = $uri;
+    }
     else {
         $uri = Pcore->uri($uri) if !ref $uri;
 
@@ -309,7 +314,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 37, 131              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (36)                |
+## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (37)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
