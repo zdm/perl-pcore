@@ -177,7 +177,13 @@ sub run ( $self, $req ) {
                         $method_id,
                         $tx->{data},
                         sub ($res) {
-                            push @headers, $res->{headers}->@* if $res->{headers};
+
+                            # process response headers
+                            if ( $res->{headers} ) {
+                                push @headers, $res->{headers}->@*;
+
+                                delete $res->{headers};
+                            }
 
                             if ( $res->is_success ) {
                                 push $response->@*,
