@@ -41,9 +41,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 
         # for linux use abstract UDS
         else {
-            $listen = '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
-
-            # $listen = "unix:pcore-rpc-$$";
+            $listen = "unix:pcore-rpc-$$";
         }
     }
     else {
@@ -133,9 +131,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 84                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 82                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 120                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 118                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
