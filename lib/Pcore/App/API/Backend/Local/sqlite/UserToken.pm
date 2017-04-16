@@ -122,7 +122,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                 }
                 else {
 
-                    # resolve repmisisons
+                    # resolve permisisons
                     $self->resolve_app_roles(
                         $permissions,
                         sub ($roles) {
