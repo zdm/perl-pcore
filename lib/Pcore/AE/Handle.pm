@@ -179,7 +179,19 @@ sub new ( $self, @ ) {
             my $on_prepare = $args{on_prepare};
 
             $args{on_prepare} = sub ($h) {
-                bind $h->{fh}, $bind_ip or die $! if $bind_ip;
+
+                # handle bind error, call error callback
+                if ($bind_ip) {
+                    eval { bind $h->{fh}, $bind_ip or die $! };
+
+                    if ($@) {
+                        $h->{on_connect_error}->( $h, 'Bind IP error' );
+
+                        $h->destroy;
+
+                        return;
+                    }
+                }
 
                 $on_prepare->($h) if $on_prepare;
 
@@ -1016,28 +1028,30 @@ sub get_connect ($connect) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 72                   | * Subroutine "new" with high complexity score (44)                                                             |
-## |      | 650                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 776                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 72                   | * Subroutine "new" with high complexity score (45)                                                             |
+## |      | 662                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 788                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 283, 686, 687        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 185                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 57, 470, 517, 522,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |      | 539, 585, 588, 591   |                                                                                                                |
+## |    3 | 295, 698, 699        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 723                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 57, 482, 529, 534,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 551, 597, 600, 603   |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 735                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1051 does not specify text                                                  |
-## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1059 does not specify text                                                  |
-## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1087 does not specify text                                                  |
-## |      | 1045                 | * Link L<AnyEvent::Handle> on line 1103 does not specify text                                                  |
-## |      | 1045                 | * Link L<AnyEvent::Socket> on line 1103 does not specify text                                                  |
-## |      | 1045, 1045           | * Link L<Pcore::Proxy> on line 1069 does not specify text                                                      |
-## |      | 1045                 | * Link L<Pcore::Proxy> on line 1103 does not specify text                                                      |
+## |      | 1059                 | * Link L<AnyEvent::Handle> on line 1065 does not specify text                                                  |
+## |      | 1059                 | * Link L<AnyEvent::Handle> on line 1073 does not specify text                                                  |
+## |      | 1059                 | * Link L<AnyEvent::Handle> on line 1101 does not specify text                                                  |
+## |      | 1059                 | * Link L<AnyEvent::Handle> on line 1117 does not specify text                                                  |
+## |      | 1059                 | * Link L<AnyEvent::Socket> on line 1117 does not specify text                                                  |
+## |      | 1059, 1059           | * Link L<Pcore::Proxy> on line 1083 does not specify text                                                      |
+## |      | 1059                 | * Link L<Pcore::Proxy> on line 1117 does not specify text                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 53, 58, 475, 585,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 588, 591, 597        |                                                                                                                |
+## |    1 | 53, 58, 487, 597,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 600, 603, 609        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
