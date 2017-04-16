@@ -90,6 +90,9 @@ sub run ( $self, $req ) {
 
     my $msg;
 
+    # TODO remove
+    my $CBOR = 0;
+
     # decode API request
     if ( !$env->{CONTENT_TYPE} || $env->{CONTENT_TYPE} =~ m[\bapplication/json\b]smi ) {
         $msg = eval { from_json $req->body };
@@ -100,6 +103,20 @@ sub run ( $self, $req ) {
 
             return;
         }
+    }
+
+    # TODO remove, decode CBOR
+    elsif ( $env->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
+        $msg = eval { P->data->from_cbor( $req->body ) };
+
+        # content decode error
+        if ($@) {
+            $req->( [ 400, q[Error decoding JSON request body] ] )->finish;
+
+            return;
+        }
+
+        $CBOR = 1;
     }
 
     # invalid content type
@@ -124,11 +141,19 @@ sub run ( $self, $req ) {
 
                 my $cv = AE::cv sub {
 
-                    # add Content-Type header
-                    push @headers, ( 'Content-Type' => 'application/json' );
+                    # TODO remove CBOR
+                    if ($CBOR) {
+                        push @headers, ( 'Content-Type' => 'application/cbor' );
 
-                    # write HTTP response
-                    $req->( 200, \@headers, to_json $response)->finish;
+                        $req->( 200, \@headers, P->data->to_cbor($response) )->finish;
+                    }
+                    else {
+                        # add Content-Type header
+                        push @headers, ( 'Content-Type' => 'application/json' );
+
+                        # write HTTP response
+                        $req->( 200, \@headers, to_json $response)->finish;
+                    }
 
                     # free HTTP request object
                     undef $req;
@@ -139,6 +164,9 @@ sub run ( $self, $req ) {
                 $cv->begin;
 
                 for my $tx ( $msg->@* ) {
+
+                    # TODO remove, type is mandatory
+                    $tx->{type} ||= 'rpc';
 
                     # check message type
                     if ( !$tx->{type} || $tx->{type} ne 'rpc' ) {
@@ -225,7 +253,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (22)                       |
+## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
