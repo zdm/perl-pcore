@@ -1,7 +1,7 @@
 package Pcore::App::Controller::API;
 
 use Pcore -role, -result;
-use Pcore::Util::Data qw[from_json to_json from_uri_query];
+use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_uri_query];
 use Pcore::WebSocket;
 
 with qw[Pcore::App::Controller];
@@ -90,7 +90,6 @@ sub run ( $self, $req ) {
 
     my $msg;
 
-    # TODO remove
     my $CBOR = 0;
 
     # decode API request
@@ -105,9 +104,8 @@ sub run ( $self, $req ) {
         }
     }
 
-    # TODO remove, decode CBOR
     elsif ( $env->{CONTENT_TYPE} =~ m[\bapplication/cbor\b]smi ) {
-        $msg = eval { P->data->from_cbor( $req->body ) };
+        $msg = eval { from_cbor $req->body };
 
         # content decode error
         if ($@) {
@@ -140,14 +138,16 @@ sub run ( $self, $req ) {
                 my ( $response, @headers );
 
                 my $cv = AE::cv sub {
-
-                    # TODO remove CBOR
                     if ($CBOR) {
+
+                        # add Content-Type header
                         push @headers, ( 'Content-Type' => 'application/cbor' );
 
-                        $req->( 200, \@headers, P->data->to_cbor($response) )->finish;
+                        # write HTTP response
+                        $req->( 200, \@headers, to_cbor $response )->finish;
                     }
                     else {
+
                         # add Content-Type header
                         push @headers, ( 'Content-Type' => 'application/json' );
 
@@ -165,11 +165,9 @@ sub run ( $self, $req ) {
 
                 for my $tx ( $msg->@* ) {
 
-                    # TODO remove, type is mandatory
-                    $tx->{type} ||= 'rpc';
-
                     # check message type
-                    if ( !$tx->{type} || $tx->{type} ne 'rpc' ) {
+                    # only rpc calls are enabled via HTTP interface
+                    if ( $tx->{type} && $tx->{type} ne 'rpc' ) {
                         push $response->@*,
                           { tid     => $tx->{tid},
                             type    => 'exception',
@@ -253,7 +251,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
+## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (26)                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
