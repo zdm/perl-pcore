@@ -34,7 +34,7 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
         # load wesocket protocol class
         my $implementation = $protocol || 'raw';
 
-        eval { require "Pcore/Websocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
+        eval { require "Pcore/WebSocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
 
         if ($@) {
             return $req->return_xxx( [ 400, q[Unsupported WebSocket protocol] ] );
@@ -128,7 +128,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
     # load protocol implementation
     my $implementation = $protocol || 'raw';
 
-    eval { require "Pcore/Websocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
+    eval { require "Pcore/WebSocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
 
     my $class = "Pcore::WebSocket::Protocol::$implementation";
 
