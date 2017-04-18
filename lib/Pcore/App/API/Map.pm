@@ -83,7 +83,7 @@ sub _build_method ($self) {
         for my $method_name ( sort keys $obj_map->%* ) {
             my $method_id = qq[/$class_path/$method_name];
 
-            my $local_method_name = "api_$method_name";
+            my $local_method_name = "API_$method_name";
 
             $method->{$method_id} = {
                 $obj_map->{$method_name}->%*,
@@ -97,7 +97,7 @@ sub _build_method ($self) {
             };
 
             # method should exists
-            die qq[API method "$local_method_name" is not exists. By convention api methods should be prefixed with "api_" prefix] if !$obj->can($local_method_name);
+            die qq[API method "$local_method_name" is not exists. By convention api methods should be prefixed with "API_" prefix] if !$obj->can($local_method_name);
 
             # method description is required
             die qq[API method "$method_id" requires description] if !$method->{$method_id}->{desc};
