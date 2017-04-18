@@ -76,10 +76,12 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                                     return;
                                 },
                                 on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
-                                    if ( $rpc->can($method) ) {
+                                    my $method_name = "API_$method";
+
+                                    if ( $rpc->can($method_name) ) {
 
                                         # call method
-                                        eval { $rpc->$method( $req, $args ? $args->@* : () ) };
+                                        eval { $rpc->$method_name( $req, $args ? $args->@* : () ) };
 
                                         $@->sendlog if $@;
                                     }
@@ -131,9 +133,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 82                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 84                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 118                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 120                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
