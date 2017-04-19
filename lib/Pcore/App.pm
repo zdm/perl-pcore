@@ -94,9 +94,11 @@ around run => sub ( $orig, $self, $cb = undef ) {
     my $cv = AE::cv sub {
         $self->$orig(
             sub {
+
+                # start HTTP server
                 $self->http_server->run;
 
-                $cb->() if $cb;
+                $cb->($self) if $cb;
 
                 return;
             }
@@ -124,7 +126,7 @@ around run => sub ( $orig, $self, $cb = undef ) {
         $cv->send;
     }
 
-    return;
+    return $self;
 };
 
 # this method can be overloaded in subclasses
