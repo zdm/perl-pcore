@@ -7,7 +7,7 @@ use CSS::Packer qw[];
 
 with qw[Pcore::Src::Filter];
 
-sub decompress ($self) {
+my $PACKER = do {
     my $packer = CSS::Packer->init;
 
     $packer->{old_declaration_replacement} = $packer->{declaration}->{reggrp_data}->[0]->{replacement};
@@ -18,13 +18,17 @@ sub decompress ($self) {
 
     $packer->{_reggrp_declaration} = Regexp::RegGrp->new( { reggrp => $packer->{declaration}->{reggrp_data} } );
 
-    $self->buffer->$* = $packer->minify( $self->buffer, { compress => 'pretty' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $packer;
+};
+
+sub decompress ($self) {
+    $PACKER->minify( $self->{buffer}, { compress => 'pretty' } );
 
     return 0;
 }
 
 sub compress ($self) {
-    $self->buffer->$* = CSS::Packer->init->minify( $self->buffer, { compress => 'minify' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $PACKER->minify( $self->{buffer}, { compress => 'minify' } );
 
     return 0;
 }

@@ -5,6 +5,8 @@ use Pcore::Util::Text qw[rcut_all encode_utf8];
 
 with qw[Pcore::Src::Filter];
 
+my $JS_PACKER;
+
 sub decompress ( $self, % ) {
     my %args = (
         js_hint => 1,
@@ -56,7 +58,9 @@ sub decompress ( $self, % ) {
 sub compress ($self) {
     state $init = !!require JavaScript::Packer;
 
-    $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'clean' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $JS_PACKER //= JavaScript::Packer->init;
+
+    $JS_PACKER->minify( $self->{buffer}, { compress => 'clean' } );
 
     return 0;
 }
@@ -64,7 +68,9 @@ sub compress ($self) {
 sub obfuscate ($self) {
     state $init = !!require JavaScript::Packer;
 
-    $self->buffer->$* = JavaScript::Packer->init->minify( $self->buffer, { compress => 'obfuscate' } );    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $JS_PACKER //= JavaScript::Packer->init;
+
+    $JS_PACKER->minify( $self->{buffer}, { compress => 'obfuscate' } );
 
     return 0;
 }
@@ -147,7 +153,7 @@ sub run_js_hint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 73                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 79                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
