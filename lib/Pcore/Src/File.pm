@@ -3,7 +3,9 @@ package Pcore::Src::File;
 use Pcore -class, -ansi, -try;
 use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi remove_bom];
 
-has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate]], required => 1 );
+require Pcore::Src;
+
+has action => ( is => 'ro', isa => Enum [ $Pcore::Src::SRC_DECOMPRESS, $Pcore::Src::SRC_COMPRESS, $Pcore::Src::SRC_OBFUSCATE ], required => 1 );
 has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
 has is_realpath => ( is => 'lazy', isa => Bool );
 has in_buffer   => ( is => 'lazy', isa => ScalarRef, predicate => 1 );

@@ -260,7 +260,7 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
     }
 
     $src = Pcore::Src::File->new(
-        {   action      => 'compress',
+        {   action      => $Pcore::Src::SRC_COMPRESS,
             path        => $target,
             is_realpath => 0,
             in_buffer   => $src,
@@ -399,11 +399,11 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
             # compress perl sources
             $file_section->{$filename} = Pcore::Src::File->new(
-                {   action      => 'compress',
+                {   action      => $Pcore::Src::SRC_COMPRESS,
                     path        => $filename,
                     is_realpath => 0,
                     in_buffer   => \$content,
-                    filter_args => {             #
+                    filter_args => {                            #
                         perl_compress         => 1,
                         perl_compress_keep_ln => 0,
                     },

@@ -1,10 +1,16 @@
 package Pcore::Src;
 
-use Pcore -class, -ansi, -try;
+use Pcore -class, -ansi, -try, -const, -export => { CONST => [qw[$SRC_DECOMPRESS $SRC_COMPRESS $SRC_OBFUSCATE $SRC_COMMIT]] };
 use Pcore::Util::Text qw[decode_utf8];
-use Pcore::Src::File;
 
-has action => ( is => 'ro', isa => Enum [qw[decompress compress obfuscate commit]], required => 1 );
+const our $SRC_DECOMPRESS => 'decompress';
+const our $SRC_COMPRESS   => 'compress';
+const our $SRC_OBFUSCATE  => 'obfuscate';
+const our $SRC_COMMIT     => 'commit';
+
+require Pcore::Src::File;
+
+has action => ( is => 'ro', isa => Enum [ $SRC_DECOMPRESS, $SRC_COMPRESS, $SRC_OBFUSCATE, $SRC_COMMIT ], required => 1 );
 has path => ( is => 'ro', isa => Maybe [Str] );
 
 # mandatory, if source path is idr
@@ -50,8 +56,8 @@ action to perform:
     obfuscate    applied only for javascript and embedded javascripts, comments will be deleted;
     commit       SCM commit hook
 TXT
-                isa     => [qw[decompress compress obfuscate commit]],
-                default => 'decompress',
+                isa     => [ $SRC_DECOMPRESS, $SRC_COMPRESS, $SRC_OBFUSCATE, $SRC_COMMIT ],
+                default => $SRC_DECOMPRESS,
             },
             type => {
                 desc => 'define source files to process. Mandatory, if <source> is a directory. Recognized types: perl, html, css, js',
@@ -425,7 +431,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 417                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
+## |    3 | 423                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

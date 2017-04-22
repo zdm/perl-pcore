@@ -109,8 +109,8 @@ sub encode_data ( $type, $data, @ ) {
             state $init1 = !!require Pcore::Src::File;
 
             $res = Pcore::Src::File->new(
-                {   action      => 'decompress',
-                    path        => 'config.perl',    # mark file as perl config
+                {   action      => $Pcore::Src::SRC_DECOMPRESS,
+                    path        => 'config.perl',                 # mark file as perl config
                     is_realpath => 0,
                     in_buffer   => $res,
                     filter_args => {
