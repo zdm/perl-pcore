@@ -7,17 +7,15 @@ use Pcore::WebSocket;
 use if $MSWIN, 'Win32API::File';
 
 sub run ( $class, $RPC_BOOT_ARGS ) {
+    $ENV->scan_deps if $RPC_BOOT_ARGS->{scandeps};
 
     # ignore SIGINT
     $SIG->{INT} = AE::signal INT => sub {
         return;
     };
 
-    # TODO term on SIGTERM
+    # ignore SIGTERM
     $SIG->{TERM} = AE::signal TERM => sub {
-
-        # _on_term();
-
         return;
     };
 
@@ -57,6 +55,26 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
         }
     }
 
+    # create RPC_TERM message listener
+    P->listen_events(
+        'RPC_TERM',
+        sub ( $event, @ ) {
+            $rpc->RPC_ON_TERM if $rpc->can('RPC_ON_TERM');
+
+            exit;
+        }
+    );
+
+    my $listen_events = ['RPC_TERM'];
+
+    {
+        no strict qw[refs];
+
+        if ( ${"${class}::RPC_LISTEN_EVENTS"} ) {
+            push $listen_events->@*, ref ${"${class}::RPC_LISTEN_EVENTS"} eq 'ARRAY' ? ${"${class}::RPC_LISTEN_EVENTS"}->@* : ${"${class}::RPC_LISTEN_EVENTS"};
+        }
+    }
+
     # start websocket server
     my $http_server = Pcore::HTTP::Server->new(
         {   listen => $listen,
@@ -86,7 +104,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                                         $@->sendlog if $@;
                                     }
                                     else {
-                                        $req->(q[400, q[Method not implemented]]);
+                                        $req->( [ 400, q[Method not implemented] ] );
                                     }
 
                                     return;
@@ -94,8 +112,8 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                             },
                             headers        => undef,
                             before_connect => {
-                                listen_events  => ${"${class}::RPC_LISTEN_EVENTS"},
-                                borward_events => ${"${class}::RPC_FORWARD_EVENTS"},
+                                listen_events  => $listen_events,
+                                forward_events => ${"${class}::RPC_FORWARD_EVENTS"},
                             },
                             $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : (),
                         );
@@ -133,9 +151,11 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 84                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 120                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    3 | 102                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 138                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -6,6 +6,7 @@ use File::Spec qw[];    ## no critic qw[Modules::ProhibitEvilModules] needed to 
 use Cwd qw[];           ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Dist;
 use Pcore::Core::Env::Share;
+use Fcntl qw[LOCK_EX SEEK_SET];
 
 has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );    # process run from PAR distribution
 has _main_dist => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
@@ -155,7 +156,6 @@ sub _INIT ($self) {
 
     # CLI options
     $self->{SCAN_DEPS} = 0;
-    $self->{DEPS}      = undef;
     $self->{DAEMONIZE} = 0;
     $self->{UID}       = undef;
     $self->{GID}       = undef;
@@ -295,8 +295,6 @@ sub scan_deps ($self) {
 
     $self->{SCAN_DEPS} = $self->dist->share_dir . "pardeps-$self->{SCRIPT_NAME}-@{[$^V->normal]}-$Config{archname}.json";
 
-    Pcore::Core::Exception::cluck('Scanning the PAR dependencies ...');
-
     # eval TypeTiny Error
     eval { Int->('error') };
 
@@ -306,32 +304,30 @@ sub scan_deps ($self) {
     return;
 }
 
-sub add_deps ( $self, $deps ) {
-    $self->{DEPS}->@{ $deps->@* } = () if $self->{SCAN_DEPS};
-
-    return;
-}
-
 sub DEMOLISH ( $self, $global ) {
     if ( $self->{SCAN_DEPS} ) {
-        my ( $index, $deps );
+        my $index;
 
-        if ( -f $self->{SCAN_DEPS} ) {
+        my $mode = -e $self->{SCAN_DEPS} ? '+<:raw' : '>:raw';
 
-            # load deps
-            open my $deps_fh, '<:raw', $self->{SCAN_DEPS} or die;
+        open my $FH, $mode, $self->{SCAN_DEPS} or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
+        flock $FH, LOCK_EX or die;
+
+        {
             local $/;
 
-            $deps = JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->decode(<$deps_fh>);
-
-            close $deps_fh or die;
+            my $deps = JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->decode(<$FH>);
 
             $index->@{ $deps->@* } = ();
         }
 
-        for my $pkg ( sort ( keys %INC, keys $self->{DEPS}->%* ) ) {
+        my $updated;
+
+        for my $pkg ( sort keys %INC ) {
             if ( !exists $index->{$pkg} ) {
+                $updated = 1;
+
                 $index->{$pkg} = undef;
 
                 say qq[new deps found: $pkg];
@@ -339,11 +335,17 @@ sub DEMOLISH ( $self, $global ) {
         }
 
         # store deps
-        open my $deps_fh, '>:raw', $self->{SCAN_DEPS} or die;
+        if ($updated) {
+            truncate $FH, 0 or die;
 
-        print {$deps_fh} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode( [ sort keys $index->%* ] );
+            seek $FH, 0, SEEK_SET or die;
 
-        close $deps_fh or die;
+            print {$FH} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode( [ sort keys $index->%* ] );
+
+            say "WRITE DEPS - $$";
+        }
+
+        close $FH or die;
     }
 
     return;
@@ -356,15 +358,13 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 301                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 299                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 324                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 318                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 326, 344             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 320, 343             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 103                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 333                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 104                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

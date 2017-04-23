@@ -1,7 +1,7 @@
 package Pcore::RPC;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[blessed];
+use Pcore::Util::Scalar qw[blessed weaken];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
@@ -45,6 +45,9 @@ sub run_rpc ( $self, $class, @ ) {
 
     $cv->begin;
 
+    my $weaken_rpc = $rpc;
+    weaken $weaken_rpc;
+
     # create workers
     for ( 1 .. $args{workers} ) {
         $cv->begin;
@@ -61,11 +64,13 @@ sub run_rpc ( $self, $class, @ ) {
                 return;
             },
             on_finish => sub ($proc) {
-                for ( my $i = 0; $i <= $rpc->{workers}->$#*; $i++ ) {
-                    if ( $rpc->{workers}->[$i] eq $proc ) {
-                        splice $rpc->{workers}->@*, $i, 1, ();
+                if ($weaken_rpc) {
+                    for ( my $i = 0; $i <= $weaken_rpc->{workers}->$#*; $i++ ) {
+                        if ( $weaken_rpc->{workers}->[$i] eq $proc ) {
+                            splice $weaken_rpc->{workers}->@*, $i, 1, ();
 
-                        last;
+                            last;
+                        }
                     }
                 }
 
@@ -112,6 +117,9 @@ sub connect_rpc ( $self, % ) {
 
     $cv->begin;
 
+    my $weaken_rpc = $self;
+    weaken $weaken_rpc;
+
     for my $addr ( $args{connect}->@* ) {
         $cv->begin;
 
@@ -132,11 +140,13 @@ sub connect_rpc ( $self, % ) {
                 return;
             },
             on_disconnect => sub ( $ws, $status ) {
-                for ( my $i = 0; $i <= $self->{connections}->$#*; $i++ ) {
-                    if ( $self->{connections}->[$i] eq $ws ) {
-                        splice $self->{connections}->@*, $i, 1, ();
+                if ($weaken_rpc) {
+                    for ( my $i = 0; $i <= $weaken_rpc->{connections}->$#*; $i++ ) {
+                        if ( $weaken_rpc->{connections}->[$i] eq $ws ) {
+                            splice $weaken_rpc->{connections}->@*, $i, 1, ();
 
-                        last;
+                            last;
+                        }
                     }
                 }
 
@@ -171,7 +181,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 64, 135              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 68, 144              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

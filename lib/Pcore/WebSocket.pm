@@ -291,7 +291,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 
                         $ws->on_connect_client($res_headers);
 
-                        $args{on_connect}->( $ws, $res_headers );
+                        delete( $args{on_connect} )->( $ws, $res_headers );
                     }
 
                     return;

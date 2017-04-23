@@ -7,6 +7,7 @@ use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::Data qw[:CONST];
+use Pcore::Util::Scalar qw[weaken];
 
 has proc => ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 has listen => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server listen addr.
@@ -40,7 +41,7 @@ around new => sub ( $orig, $self, @ ) {
     my $boot_args = {
         script_path => $ENV->{SCRIPT_PATH},
         version     => $main::VERSION->normal,
-        scandeps    => $ENV->{SCAN_DEPS},
+        scandeps    => $ENV->{SCAN_DEPS} ? 1 : undef,
         listen      => $args{listen},
         buildargs   => $args{buildargs},
     };
@@ -69,6 +70,9 @@ around new => sub ( $orig, $self, @ ) {
     # needed for PAR, pass current @INC libs to child process via $ENV{PERL5LIB}
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
 
+    my $weaken_self = $self;
+    weaken $weaken_self;
+
     # create proc
     P->pm->run_proc(
         $cmd,
@@ -92,7 +96,7 @@ around new => sub ( $orig, $self, @ ) {
             return;
         },
         on_finish => sub ($proc) {
-            $self->{on_finish}->($self) if $self->{on_finish};
+            $weaken_self->{on_finish}->($weaken_self) if $weaken_self && $weaken_self->{on_finish};
 
             return;
         }
@@ -141,7 +145,7 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 111                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 115                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -11,7 +11,7 @@ has token             => ( is => 'lazy', isa => Str );
 has api_ver           => ( is => 'ro',   isa => Str );                                     # default API version for relative methods
 has keepalive_timeout => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
 has http_timeout      => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
-has http_tls_ctx      => ( is => 'ro',   isa => Maybe [HashRef] );
+has http_tls_ctx      => ( is => 'ro',   isa => Maybe [ HashRef | Int ] );
 
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -110,6 +110,12 @@ sub api_call ( $self, $method, @ ) {
 
     # WebSocket protocol
     else {
+        my $cb;
+
+        if ( ref $_[-1] eq 'CODE' ) {
+            $cb = $_[-1];
+        }
+
         my $on_connect = sub ( $h ) {
             $h->rpc_call( $method, @_[ 2 .. $#_ ] );
 
@@ -183,7 +189,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (24)                  |
+## |    3 | 43                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (25)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 51                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
