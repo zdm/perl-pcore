@@ -1,16 +1,17 @@
 package Pcore::API::Client;
 
 use Pcore -class, -result;
-use Pcore::HTTP::WebSocket;
+use Pcore::WebSocket;
 use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
 
-has uri => ( is => 'ro', isa => Str, required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
-has token => ( is => 'lazy', isa => Str );
-has api_ver => ( is => 'ro', isa => Str, default => 'v1' );    # default API version for relative methods
-has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
-has http_timeout      => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
-has http_tls_ctx      => ( is => 'ro', isa => Maybe [HashRef] );
+has uri => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'], required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
+
+has token             => ( is => 'lazy', isa => Str );
+has api_ver           => ( is => 'ro',   isa => Str );                                     # default API version for relative methods
+has keepalive_timeout => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
+has http_timeout      => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
+has http_tls_ctx      => ( is => 'ro',   isa => Maybe [HashRef] );
 
 has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
 has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
@@ -68,7 +69,8 @@ sub api_call ( $self, $method, @ ) {
                 CONTENT_TYPE  => 'application/cbor',
             },
             body => to_cbor(
-                {   tid    => uuid_str(),
+                {   type   => 'rpc',
+                    tid    => uuid_str(),
                     method => $method,
                     data   => $data,
                 }
@@ -100,23 +102,8 @@ sub api_call ( $self, $method, @ ) {
 
     # WebSocket protocol
     else {
-        my $on_connect = sub ( $ws ) {
-            my $tid;
-
-            if ($cb) {
-                $tid = uuid_str();
-
-                $self->{_ws_tid_cache}->{$tid} = $cb;
-            }
-
-            $ws->send_binary(
-                to_cbor(
-                    {   tid    => $tid,
-                        method => $method,
-                        data   => $data,
-                    }
-                )->$*
-            );
+        my $on_connect = sub ( $h ) {
+            $h->rpc_call( $method, $data->@*, $cb );
 
             return;
         };
@@ -134,9 +121,8 @@ sub api_call ( $self, $method, @ ) {
 
             return if $self->{_ws_connect_cache}->@* > 1;
 
-            Pcore::HTTP::WebSocket->connect(
-                $self->_uri,
-                subprotocol     => 'pcore-api',
+            Pcore::WebSocket->connect_ws(
+                'pcore'         => $self->_uri,
                 headers         => [ 'Authorization' => 'token ' . $self->token, ],
                 connect_timeout => 10,
                 ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
@@ -169,48 +155,7 @@ sub api_call ( $self, $method, @ ) {
 
                     return;
                 },
-                on_binary => sub ( $ws, $payload_ref ) {
-
-                    # decode CBOR payload
-                    my $res_data = eval { from_cbor $payload_ref};
-
-                    die q[WebSocket protocol error, can't decode CBOR payload] if $@;
-
-                    # tid is present
-                    if ( $res_data->{tid} ) {
-
-                        # this is API call, not supported in API client yet, ignoring
-                        if ( $res_data->{method} ) {
-                            return;
-                        }
-
-                        # this is API callback
-                        else {
-                            if ( my $callback = delete $self->{_ws_tid_cache}->{ $res_data->{tid} } ) {
-                                if ( $res_data->[0]->{type} eq 'exception' ) {
-                                    $callback->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' );
-                                }
-                                else {
-                                    $callback->( bless $res_data->[0]->{result}, 'Pcore::Util::Result' );
-                                }
-                            }
-                        }
-                    }
-
-                    # tid is not present
-                    else {
-
-                        # this is void API call, not supported in API client yet, ignoring
-                        if ( $res_data->{method} ) {
-                            return;
-                        }
-
-                        # this is error, tid and/or method must be specified
-                        else {
-                            return;
-                        }
-                    }
-
+                on_rpc_call => sub ( $h, $req, $method, $data ) {
                     return;
                 },
             );
@@ -230,9 +175,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 42                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (33)                  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 190                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 43                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (22)                  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

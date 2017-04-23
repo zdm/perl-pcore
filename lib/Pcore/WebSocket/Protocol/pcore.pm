@@ -8,7 +8,7 @@ use Pcore::Util::Text qw[trim];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
-has on_rpc_call => ( is => 'ro', isa => CodeRef );
+has on_rpc_call => ( is => 'ro', isa => CodeRef );    # ($h, $req, $method, $data)
 
 has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
