@@ -41,23 +41,31 @@ sub _build__is_http ($self) {
 
 # TODO make blocking call
 sub api_call ( $self, $method, @ ) {
-    my ( $cb, $data );
-
-    # parse callback
-    if ( ref $_[-1] eq 'CODE' ) {
-        $cb = $_[-1];
-
-        $data = [ splice @_, 2, -1 ];
-    }
-    else {
-        $data = [ splice @_, 2 ];
-    }
 
     # add version to relative method id
-    $method = "/$self->{api_ver}/$method" if substr( $method, 0, 1 ) ne q[/];
+    if ( substr( $method, 0, 1 ) ne q[/] ) {
+        if ( $self->{api_ver} ) {
+            $method = "/$self->{api_ver}/$method";
+        }
+        else {
+            die qq[You need to defined default "api_ver" to use relative methods names];
+        }
+    }
 
     # HTTP protocol
     if ( $self->_is_http ) {
+        my ( $cb, $data );
+
+        # parse callback
+        if ( ref $_[-1] eq 'CODE' ) {
+            $cb = $_[-1];
+
+            $data = [ @_[ 2 .. $#_ - 1 ] ];
+        }
+        else {
+            $data = [ @_[ 2 .. $#_ ] ];
+        }
+
         P->http->post(
             $self->_uri,
             keepalive_timeout => $self->keepalive_timeout,
@@ -103,7 +111,7 @@ sub api_call ( $self, $method, @ ) {
     # WebSocket protocol
     else {
         my $on_connect = sub ( $h ) {
-            $h->rpc_call( $method, $data->@*, $cb );
+            $h->rpc_call( $method, @_[ 2 .. $#_ ] );
 
             return;
         };
@@ -175,7 +183,9 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (22)                  |
+## |    3 | 43                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (24)                  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 51                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
