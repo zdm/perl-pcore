@@ -23,14 +23,14 @@
 
                 # common arch. dependent shared libs names, used by modules
                 mod_shlib => {
-                    'B/Hooks/OP/Check.pm'       => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
-                    'BerkeleyDB.pm'             => ['libdb-6.2_.dll'],
-                    'Filter/Crypto/Decrypt.pm'  => [ 'libeay32_.dll', 'zlib1_.dll' ],
-                    'Net/LibIDN.pm'             => [ 'libidn-11_.dll', 'libiconv-2_.dll' ],
-                    'Net/SSLeay.pm'             => [ 'ssleay32_.dll', 'libeay32_.dll', 'zlib1_.dll' ],
-                    'Pcore/Util/PM/RPC/Proc.pm' => [$^X],
-                    'XML/Hash/XS.pm'            => [ 'libxml2-2_.dll', 'libiconv-2_.dll', 'zlib1_.dll', 'liblzma-5_.dll' ],
-                    'XML/LibXML.pm'             => [ 'libxml2-2_.dll', 'libiconv-2_.dll', 'zlib1_.dll', 'liblzma-5_.dll' ],
+                    'B/Hooks/OP/Check.pm'      => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
+                    'BerkeleyDB.pm'            => ['libdb-6.2_.dll'],
+                    'Filter/Crypto/Decrypt.pm' => [ 'libeay32_.dll', 'zlib1_.dll' ],
+                    'Net/LibIDN.pm'            => [ 'libidn-11_.dll', 'libiconv-2_.dll' ],
+                    'Net/SSLeay.pm'            => [ 'ssleay32_.dll', 'libeay32_.dll', 'zlib1_.dll' ],
+                    'Pcore/RPC/Proc.pm'        => [$^X],
+                    'XML/Hash/XS.pm'           => [ 'libxml2-2_.dll', 'libiconv-2_.dll', 'zlib1_.dll', 'liblzma-5_.dll' ],
+                    'XML/LibXML.pm'            => [ 'libxml2-2_.dll', 'libiconv-2_.dll', 'zlib1_.dll', 'liblzma-5_.dll' ],
                 },
             },
             'MSWin32-x64-multi-thread' => {
@@ -40,14 +40,14 @@
 
                 # common arch. dependent shared libs names, used by modules
                 mod_shlib => {
-                    'B/Hooks/OP/Check.pm'       => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
-                    'BerkeleyDB.pm'             => ['libdb-6.2__.dll'],
-                    'Filter/Crypto/Decrypt.pm'  => [ 'libeay32__.dll', 'zlib1__.dll' ],
-                    'Net/LibIDN.pm'             => [ 'libidn-11__.dll', 'libiconv-2__.dll' ],
-                    'Net/SSLeay.pm'             => [ 'ssleay32__.dll', 'libeay32__.dll', 'zlib1__.dll' ],
-                    'Pcore/Util/PM/RPC/Proc.pm' => [$^X],
-                    'XML/Hash/XS.pm'            => [ 'libxml2-2__.dll', 'libiconv-2__.dll', 'zlib1__.dll', 'liblzma-5__.dll' ],
-                    'XML/LibXML.pm'             => [ 'libxml2-2__.dll', 'libiconv-2__.dll', 'zlib1__.dll', 'liblzma-5__.dll' ],
+                    'B/Hooks/OP/Check.pm'      => ['auto/B/Hooks/OP/Check/Check.xs.dll'],
+                    'BerkeleyDB.pm'            => ['libdb-6.2__.dll'],
+                    'Filter/Crypto/Decrypt.pm' => [ 'libeay32__.dll', 'zlib1__.dll' ],
+                    'Net/LibIDN.pm'            => [ 'libidn-11__.dll', 'libiconv-2__.dll' ],
+                    'Net/SSLeay.pm'            => [ 'ssleay32__.dll', 'libeay32__.dll', 'zlib1__.dll' ],
+                    'Pcore/RPC/Proc.pm'        => [$^X],
+                    'XML/Hash/XS.pm'           => [ 'libxml2-2__.dll', 'libiconv-2__.dll', 'zlib1__.dll', 'liblzma-5__.dll' ],
+                    'XML/LibXML.pm'            => [ 'libxml2-2__.dll', 'libiconv-2__.dll', 'zlib1__.dll', 'liblzma-5__.dll' ],
                 },
             },
         },
