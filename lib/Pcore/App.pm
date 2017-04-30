@@ -10,6 +10,8 @@ has desc => ( is => 'lazy', isa => Str );
 # API settings
 has auth => ( is => 'ro', isa => Str, required => 1 );    # db, http or was uri
 
+has devel => ( is => 'ro', isa => Bool, default => 0 );
+
 # HTTP server settings
 has listen => ( is => 'ro', isa => Str, required => 1 );
 has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
