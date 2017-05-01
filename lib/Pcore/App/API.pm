@@ -65,7 +65,8 @@ sub validate_name ( $self, $name ) {
 }
 
 # INIT API
-sub init ( $self, $cb ) {
+sub init_api ($self) {
+    print 'Scanning API ... ';
 
     # build roles
     $self->{roles} = $self->_build_roles;
@@ -82,6 +83,13 @@ sub init ( $self, $cb ) {
 
     # init map
     $self->{map}->method;
+
+    say 'done';
+
+    return;
+}
+
+sub connect_api ( $self, $cb ) {
 
     # build API auth backend
     my $auth_uri = P->uri( $self->{app}->{auth} );
@@ -651,9 +659,9 @@ sub remove_user_session ( $self, $user_session_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 60                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 217, 487, 508, 568   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 225, 495, 516, 576   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 250                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 258                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

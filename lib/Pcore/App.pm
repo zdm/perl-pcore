@@ -90,10 +90,6 @@ sub _build_http_server ($self) {
 # TODO init appliacation
 around run => sub ( $orig, $self, $cb = undef ) {
     my $cv = AE::cv sub {
-
-        # scan router classes
-        $self->router->map;
-
         $self->$orig(
             sub {
 
@@ -109,8 +105,18 @@ around run => sub ( $orig, $self, $cb = undef ) {
         return;
     };
 
+    # init api
+    $self->api->init_api if $self->api;
+
+    # scan router classes
+    print 'Scanning HTTP controllers ... ';
+    $self->router->map;
+    say 'done';
+
     if ( $self->api ) {
-        $self->api->init(
+
+        # connect api
+        $self->api->connect_api(
             sub ($status) {
                 exit if !$status;
 
