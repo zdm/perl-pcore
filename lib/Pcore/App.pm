@@ -89,11 +89,11 @@ sub _build_http_server ($self) {
 
 # TODO init appliacation
 around run => sub ( $orig, $self, $cb = undef ) {
-
-    # scan router classes
-    $self->router->map;
-
     my $cv = AE::cv sub {
+
+        # scan router classes
+        $self->router->map;
+
         $self->$orig(
             sub {
 
