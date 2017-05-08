@@ -193,12 +193,6 @@ sub api_call_arrayref ( $self, $env, $method_id, $args, $cb = undef ) {
     return;
 }
 
-sub extdirect_map ( $self, $host, $ver, $cb ) {
-    $self->{app}->{api}->{map}->extdirect_map( $host, $self, $ver, $cb );
-
-    return;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

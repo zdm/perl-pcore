@@ -58,30 +58,8 @@ sub run ( $self, $req ) {
         return;
     }
 
-    # ExtDirect API map
     if ( $req->{path_tail} ) {
-        if ( $req->{path_tail} =~ m[\Aextdirect[.]json\z]sm ) {
-            my $query = from_uri_query $req->{env}->{QUERY_STRING};
-
-            my $ver = $query->{v};
-
-            $req->authenticate(
-                sub ( $auth ) {
-                    $auth->extdirect_map(
-                        $req->{host},
-                        $ver,
-                        sub ($map) {
-                            $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $map, readable => 1 )->finish;
-
-                            return;
-                        }
-                    );
-                }
-            );
-        }
-        else {
-            $req->(404)->finish;
-        }
+        $req->(404)->finish;
 
         return;
     }
@@ -251,7 +229,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (26)                       |
+## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (24)                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

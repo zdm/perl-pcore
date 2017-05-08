@@ -4,16 +4,13 @@ use Pcore -class;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has extjs_namespace => ( is => 'lazy', isa => Str,     init_arg => undef );
-has method          => ( is => 'lazy', isa => HashRef, init_arg => undef );
-has obj             => ( is => 'ro',   isa => HashRef, default  => sub { {} }, init_arg => undef );
+has method => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has obj => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 # TODO https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
 
 sub _build_method ($self) {
     my $method = {};
-
-    $self->{extjs_namespace} = 'API.' . ref( $self->{app} ) =~ s[::][]smgr;
 
     my $ns_path = ( ref( $self->app ) =~ s[::][/]smgr ) . '/API';
 
@@ -93,7 +90,6 @@ sub _build_method ($self) {
                 class_path        => "/$class_path",
                 method_name       => $method_name,
                 local_method_name => $local_method_name,
-                extjs_action      => $class_path =~ s[/][.]smgr,
             };
 
             # method should exists
@@ -136,73 +132,6 @@ sub _build_method ($self) {
     return $method;
 }
 
-sub extdirect_map ( $self, $host, $auth, $ver, $cb ) {
-    my $map = {
-        id        => undef,
-        namespace => $self->{extjs_namespace},
-        timeout   => undef,
-        url       => $self->{app}->{router}->get_host_api_path($host),
-        type      => 'remoting',
-        version   => $ver,
-        actions   => {},
-    };
-
-    my $cv = AE::cv sub {
-        $cb->($map);
-
-        return;
-    };
-
-    $cv->begin;
-
-    my $methods = $self->method;
-
-    state $add_method = sub ( $map, $method ) {
-        push $map->{actions}->{ $method->{extjs_action} }->@*,
-
-          # JSON method
-          { name     => $method->{method_name},
-            len      => 1,
-            params   => [],
-            strict   => \0,
-            metadata => {
-                len    => 1,
-                params => [],
-                strict => \0,
-            },
-            formHandler => \0,
-          };
-
-        return;
-    };
-
-    for my $method ( values $methods->%* ) {
-        next if $ver && $ver ne $method->{version};
-
-        if ( defined $auth ) {
-            $cv->begin;
-
-            $auth->api_can_call(
-                $method->{id},
-                sub ($can_call) {
-                    $add_method->( $map, $method ) if $can_call;
-
-                    $cv->end;
-
-                    return;
-                }
-            );
-        }
-        else {
-            $add_method->( $map, $method );
-        }
-    }
-
-    $cv->end;
-
-    return;
-}
-
 sub get_method ( $self, $method_id ) {
     return $self->{method}->{$method_id};
 }
@@ -214,9 +143,9 @@ sub get_method ( $self, $method_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 121, 127             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 117, 123             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 122, 127             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 118, 123             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
