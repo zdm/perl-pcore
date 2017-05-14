@@ -146,7 +146,7 @@ sub on_connect ( $self ) {
                 # check protocol errors
                 if ( $header->{fin} ) {
 
-                    # this is the last frame of the fragmentated message
+                    # this is the last frame of the fragmented message
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
@@ -165,7 +165,7 @@ sub on_connect ( $self ) {
                 }
                 else {
 
-                    # this is the next frame of the fragmentated message
+                    # this is the next frame of the fragmented message
                     if ( $header->{op} == $WEBSOCKET_OP_CONTINUATION ) {
 
                         # message was not started, return 1002 - protocol error
@@ -175,7 +175,7 @@ sub on_connect ( $self ) {
                         $header->{rsv1} = $self->{_msg}->[2];
                     }
 
-                    # this is the first frame of the fragmentated message
+                    # this is the first frame of the fragmented message
                     else {
 
                         # store message "op"
