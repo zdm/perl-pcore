@@ -273,7 +273,10 @@ sub _on_message ( $self, $msg, $is_json ) {
                     };
                 }
 
-                $self->{on_rpc_call}->( $self, $req, $msg->{method}, $msg->{data} );
+                # combine method with action
+                my $method_id = $msg->{action} ? q[/] . ( $msg->{action} =~ s[[.]][/]smgr ) . "/$msg->{method}" : $msg->{method};
+
+                $self->{on_rpc_call}->( $self, $req, $method_id, $msg->{data} );
             }
         }
 
