@@ -1,6 +1,7 @@
 package Pcore::WebSocket::Protocol::pcore;
 
 use Pcore -class, -result, -const;
+use JSON::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use CBOR::XS qw[];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::WebSocket::Protocol::pcore::Request;
@@ -25,13 +26,50 @@ my $CBOR = do {
     $cbor->max_depth(512);
     $cbor->max_size(0);    # max. string size is unlimited
     $cbor->allow_unknown(0);
-    $cbor->allow_sharing(1);
+    $cbor->allow_sharing(0);    # maust be disable for compatibility with JS CBOR
     $cbor->allow_cycles(1);
-    $cbor->pack_strings(0);    # set to 1 affect speed, but makes size smaller
+    $cbor->forbid_objects(0);
+    $cbor->pack_strings(0);     # set to 1 decrease speed, but makes size smaller
+    $cbor->text_keys(0);
+    $cbor->text_strings(0);
     $cbor->validate_utf8(0);
     $cbor->filter(undef);
 
     $cbor;
+};
+
+my $JSON = do {
+    my $json = JSON::XS->new;
+
+    $json->utf8(1);
+    $json->allow_nonref(1);    # allow scalars
+    $json->allow_tags(0);      # use FREEZE / THAW, we don't use this, because non-standard JSON will be generated, use CBOR instead to serialize objects
+
+    # shrink                        => 0,
+    # max_depth                     => 512,
+
+    # DECODE
+    $json->relaxed(1);    # allows commas and # - style comments
+
+    # filter_json_object            => undef,
+    # filter_json_single_key_object => undef,
+    # max_size                      => 0,
+
+    # ENCODE
+    $json->ascii(1);
+    $json->latin1(0);
+
+    # pretty       => 0,    # set indent, space_before, space_after
+    $json->canonical(0);       # sort hash keys, slow
+    $json->indent(0);
+    $json->space_before(0);    # put a space before the ":" separating key from values
+    $json->space_after(0);     # put a space after the ":" separating key from values, and after "," separating key-value pairs
+
+    $json->allow_unknown(0);   # throw exception if can't encode item
+    $json->allow_blessed(1);   # allow blessed objects
+    $json->convert_blessed(1); # use TO_JSON method of blessed objects
+
+    $json;
 };
 
 sub rpc_call ( $self, $method, @ ) {
@@ -153,6 +191,14 @@ sub on_disconnect ( $self, $status ) {
 }
 
 sub on_text ( $self, $data_ref ) {
+    my $msg = eval { $JSON->decode( $data_ref->$* ) };
+
+    if ($@) {
+        return;
+    }
+
+    $self->_on_message( $msg, 1 );
+
     return;
 }
 
@@ -163,7 +209,7 @@ sub on_binary ( $self, $data_ref ) {
         return;
     }
 
-    $self->_on_message($msg);
+    $self->_on_message( $msg, 0 );
 
     return;
 }
@@ -191,7 +237,7 @@ sub _set_listeners ( $self, $events ) {
     return;
 }
 
-sub _on_message ( $self, $msg ) {
+sub _on_message ( $self, $msg, $is_json ) {
     return if !$msg->{type};
 
     if ( $msg->{type} eq $MSG_TYPE_LISTEN ) {
@@ -216,7 +262,12 @@ sub _on_message ( $self, $msg ) {
                             result => $res,
                         };
 
-                        $self->send_binary( \$CBOR->encode($msg) );
+                        if ($is_json) {
+                            $self->send_text( \$JSON->encode($msg) );
+                        }
+                        else {
+                            $self->send_binary( \$CBOR->encode($msg) );
+                        }
 
                         return;
                     };

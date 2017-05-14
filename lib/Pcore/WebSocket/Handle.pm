@@ -67,7 +67,7 @@ const our $WEBSOCKET_STATUS_REASON => {
 };
 
 sub send_text ( $self, $data_ref ) {
-    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, \encode_utf8 $data_ref->$* ) );
+    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, $data_ref ) );
 
     return;
 }
@@ -284,8 +284,6 @@ sub _on_frame ( $self, $header, $payload_ref ) {
         # TEXT message
         if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
             if ($payload_ref) {
-                eval { decode_utf8 $payload_ref->$* };
-
                 return $self->disconnect( result [ 1003, 'UTF-8 decode error', $WEBSOCKET_STATUS_REASON ] ) if $@;
 
                 $self->on_text($payload_ref);
@@ -459,19 +457,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 81, 87, 332          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 81, 87, 330          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 127                  | * Subroutine "on_connect" with high complexity score (26)                                                      |
 ## |      | 241                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 287                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 393, 395             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 391, 393             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 40, 257              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 305                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 303                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
