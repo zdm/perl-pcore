@@ -424,12 +424,12 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 
     # extended payload (64-bit with 32-bit fallback)
     elsif ( $header->{len} == 127 ) {
-        $hlen = $masked ? 10 : 14;
+        $hlen = $masked ? 14 : 10;
 
         return if length $buf_ref->$* < $hlen;
 
         # cut header
-        my $full_header = substr $buf_ref->$*, 0, 10, q[];
+        my $full_header = substr $buf_ref->$*, 0, $hlen, q[];
 
         $header->{mask} = substr $full_header, 10, 4, q[] if $masked;
 

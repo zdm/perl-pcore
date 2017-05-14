@@ -194,6 +194,7 @@ sub on_text ( $self, $data_ref ) {
     my $msg = eval { $JSON->decode( $data_ref->$* ) };
 
     if ($@) {
+        say $@;
         return;
     }
 
