@@ -237,55 +237,81 @@ sub _set_listeners ( $self, $events ) {
     return;
 }
 
+# TODO process exceptions in callback
 sub _on_message ( $self, $msg, $is_json ) {
-    return if !$msg->{type};
+    $msg = [$msg] if ref $msg ne 'ARRAY';
 
-    if ( $msg->{type} eq $MSG_TYPE_LISTEN ) {
-        $self->_set_listeners( $msg->{events} );
-    }
-    elsif ( $msg->{type} eq $MSG_TYPE_EVENT ) {
-        P->fire_event( $msg->{event}, $msg->{data} );
-    }
-    elsif ( $msg->{type} eq $MSG_TYPE_RPC ) {
+    for my $trans ( $msg->@* ) {
+        next if !$trans->{type};
 
-        # method is specified, this is rpc call
-        if ( $msg->{method} ) {
-            if ( $self->{on_rpc_call} ) {
-                my $req = bless {}, 'Pcore::WebSocket::Protocol::pcore::Request';
+        if ( $trans->{type} eq $MSG_TYPE_LISTEN ) {
+            $self->_set_listeners( $trans->{events} );
 
-                # callback is required
-                if ( $msg->{tid} ) {
-                    $req->{_cb} = sub ($res) {
-                        my $msg = {
-                            type   => $MSG_TYPE_RPC,
-                            tid    => $msg->{tid},
-                            result => $res,
-                        };
-
-                        if ($is_json) {
-                            $self->send_text( \$JSON->encode($msg) );
-                        }
-                        else {
-                            $self->send_binary( \$CBOR->encode($msg) );
-                        }
-
-                        return;
-                    };
-                }
-
-                # combine method with action
-                my $method_id = $msg->{action} ? q[/] . ( $msg->{action} =~ s[[.]][/]smgr ) . "/$msg->{method}" : $msg->{method};
-
-                $self->{on_rpc_call}->( $self, $req, $method_id, $msg->{data} );
-            }
+            next;
         }
 
-        # method is not specified, this is callback, tid is required
-        elsif ( $msg->{tid} ) {
-            if ( my $cb = delete $self->{_callbacks}->{ $msg->{tid} } ) {
+        if ( $trans->{type} eq $MSG_TYPE_EVENT ) {
+            P->fire_event( $trans->{event}, $trans->{data} );
 
-                # convert result to response object
-                $cb->( bless $msg->{result}, 'Pcore::Util::Result' );
+            next;
+        }
+
+        if ( $trans->{type} eq $MSG_TYPE_RPC ) {
+
+            # method is specified, this is rpc call
+            if ( $trans->{method} ) {
+                if ( $self->{on_rpc_call} ) {
+                    my $req = bless {}, 'Pcore::WebSocket::Protocol::pcore::Request';
+
+                    # callback is required
+                    if ( $trans->{tid} ) {
+                        $req->{_cb} = sub ($res) {
+                            my $result;
+
+                            # if ( $res->is_success ) {
+                            $result = {
+                                type   => 'rpc',
+                                tid    => $trans->{tid},
+                                result => $res,
+                            };
+
+                            # }
+                            # else {
+                            #     $result = {
+                            #         type    => $MSG_TYPE_RPC,
+                            #         tid     => $trans->{tid},
+                            #         message => $res,
+                            #     };
+                            # }
+
+                            if ($is_json) {
+                                $self->send_text( \$JSON->encode($result) );
+                            }
+                            else {
+                                $self->send_binary( \$CBOR->encode($result) );
+                            }
+
+                            return;
+                        };
+                    }
+
+                    # combine method with action
+                    if ( my $action = delete $trans->{action} ) {
+                        $trans->{method} = q[/] . ( $action =~ s[[.]][/]smgr ) . "/$trans->{method}";
+                    }
+
+                    $self->{on_rpc_call}->( $self, $req, $trans );
+                }
+            }
+
+            # method is not specified, this is callback, tid is required
+            elsif ( $trans->{tid} ) {
+                if ( my $cb = delete $self->{_callbacks}->{ $trans->{tid} } ) {
+
+                    # convert result to response object
+                    # TODO here can be a exception
+                    $cb->( bless $trans->{result}, 'Pcore::Util::Result' );
+                }
             }
         }
     }
@@ -294,6 +320,16 @@ sub _on_message ( $self, $msg, $is_json ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 287                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
