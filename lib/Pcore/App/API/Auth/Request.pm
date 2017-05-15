@@ -10,7 +10,6 @@ use overload    #
   fallback => 1;
 
 has auth => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );
-has env => ( is => 'ro', isa => Maybe [HashRef], required => 1 );
 has _cb => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
@@ -38,7 +37,7 @@ sub api_can_call ( $self, $method_id, $cb ) {
 }
 
 sub api_call ( $self, $method_id, @args ) {
-    $self->{auth}->api_call_env( $self->{env}, $method_id, @args );
+    $self->{auth}->api_call( $method_id, @args );
 
     return;
 }

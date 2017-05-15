@@ -30,7 +30,7 @@ sub run ( $self, $req ) {
                                     return;
                                 },
                                 on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
-                                    $ws->{auth}->api_call_arrayref( undef, $method, $args, $req );
+                                    $ws->{auth}->api_call_arrayref( $method, $args, $req );
 
                                     return;
                                 }
@@ -171,7 +171,6 @@ sub run ( $self, $req ) {
                     my $method_id = $tx->{action} ? q[/] . ( $tx->{action} =~ s[[.]][/]smgr ) . "/$tx->{method}" : $tx->{method};
 
                     $auth->api_call_arrayref(
-                        $env,
                         $method_id,
                         $tx->{data},
                         sub ($res) {
