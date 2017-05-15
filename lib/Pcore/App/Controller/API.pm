@@ -18,34 +18,27 @@ sub run ( $self, $req ) {
                 $req->authenticate(
                     sub ( $auth ) {
 
-                        # token authentication error
-                        if ( !$auth ) {
-                            $reject->($auth);
-                        }
-                        else {
+                        # token authenticated successfully, store token in websocket connection object
+                        $ws->{auth} = $auth;
 
-                            # token authenticated successfully, store token in websocket connection object
-                            $ws->{auth} = $auth;
-
-                            # accept websocket connection
-                            $accept->(
-                                {   max_message_size   => 1_024 * 1_024 * 100,     # 100 Mb
-                                    pong_timeout       => 50,
-                                    permessage_deflate => 0,
-                                    on_disconnect      => sub ( $ws, $status ) {
-                                        return;
-                                    },
-                                    on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
-                                        $ws->{auth}->api_call_arrayref( undef, $method, $args, $req );
-
-                                        return;
-                                    }
+                        # accept websocket connection
+                        $accept->(
+                            {   max_message_size   => 1_024 * 1_024 * 100,     # 100 Mb
+                                pong_timeout       => 50,
+                                permessage_deflate => 0,
+                                on_disconnect      => sub ( $ws, $status ) {
+                                    return;
                                 },
-                                headers        => undef,
-                                before_connect => undef,
-                                on_connect     => undef,
-                            );
-                        }
+                                on_rpc_call => sub ( $ws, $req, $method, $args = undef ) {
+                                    $ws->{auth}->api_call_arrayref( undef, $method, $args, $req );
+
+                                    return;
+                                }
+                            },
+                            headers        => undef,
+                            before_connect => undef,
+                            on_connect     => undef,
+                        );
 
                         return;
                     }
@@ -229,7 +222,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (24)                       |
+## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (22)                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
