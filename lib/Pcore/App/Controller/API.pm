@@ -106,24 +106,18 @@ sub run ( $self, $req ) {
             else {
                 $msg = [$msg] if ref $msg ne 'ARRAY';
 
-                my ( $response, @headers );
+                my $response;
 
                 my $cv = AE::cv sub {
                     if ($CBOR) {
 
-                        # add Content-Type header
-                        push @headers, ( 'Content-Type' => 'application/cbor' );
-
                         # write HTTP response
-                        $req->( 200, \@headers, to_cbor $response )->finish;
+                        $req->( 200, [ 'Content-Type' => 'application/cbor' ], to_cbor $response )->finish;
                     }
                     else {
 
-                        # add Content-Type header
-                        push @headers, ( 'Content-Type' => 'application/json' );
-
                         # write HTTP response
-                        $req->( 200, \@headers, to_json $response)->finish;
+                        $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $response)->finish;
                     }
 
                     # free HTTP request object
@@ -136,8 +130,7 @@ sub run ( $self, $req ) {
 
                 for my $tx ( $msg->@* ) {
 
-                    # check message type
-                    # only rpc calls are enabled via HTTP interface
+                    # check message type, only rpc calls are enabled via HTTP interface
                     if ( $tx->{type} && $tx->{type} ne 'rpc' ) {
                         push $response->@*,
                           { tid     => $tx->{tid},
@@ -174,14 +167,6 @@ sub run ( $self, $req ) {
                         $method_id,
                         $tx->{data},
                         sub ($res) {
-
-                            # process response headers
-                            if ( $res->{headers} ) {
-                                push @headers, $res->{headers}->@*;
-
-                                delete $res->{headers};
-                            }
-
                             if ( $res->is_success ) {
                                 push $response->@*,
                                   { tid    => $tx->{tid},
@@ -221,7 +206,7 @@ sub run ( $self, $req ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (22)                       |
+## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (21)                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
