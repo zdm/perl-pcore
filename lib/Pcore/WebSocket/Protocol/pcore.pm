@@ -16,10 +16,10 @@ has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg 
 
 with qw[Pcore::WebSocket::Handle];
 
-const our $MSG_TYPE_LISTEN    => 'listen';
-const our $MSG_TYPE_EVENT     => 'event';
-const our $MSG_TYPE_RPC       => 'rpc';
-const our $MSG_TYPE_EXCEPTION => 'exception';
+const our $TRANS_TYPE_LISTEN    => 'listen';
+const our $TRANS_TYPE_EVENT     => 'event';
+const our $TRANS_TYPE_RPC       => 'rpc';
+const our $TRANS_TYPE_EXCEPTION => 'exception';
 
 my $CBOR = do {
     my $cbor = CBOR::XS->new;
@@ -75,7 +75,7 @@ my $JSON = do {
 
 sub rpc_call ( $self, $method, @ ) {
     my $msg = {
-        type   => $MSG_TYPE_RPC,
+        type   => $TRANS_TYPE_RPC,
         method => $method,
     };
 
@@ -103,7 +103,7 @@ sub forward_events ( $self, $events ) {
 
 sub listen_events ( $self, $events ) {
     my $msg = {
-        type   => $MSG_TYPE_LISTEN,
+        type   => $TRANS_TYPE_LISTEN,
         events => $events,
     };
 
@@ -114,7 +114,7 @@ sub listen_events ( $self, $events ) {
 
 sub fire_remote_event ( $self, $event, $data = undef ) {
     my $msg = {
-        type  => $MSG_TYPE_EVENT,
+        type  => $TRANS_TYPE_EVENT,
         event => $event,
         data  => $data,
     };
@@ -244,19 +244,19 @@ sub _on_message ( $self, $msg, $is_json ) {
     for my $trans ( $msg->@* ) {
         next if !$trans->{type};
 
-        if ( $trans->{type} eq $MSG_TYPE_LISTEN ) {
+        if ( $trans->{type} eq $TRANS_TYPE_LISTEN ) {
             $self->_set_listeners( $trans->{events} );
 
             next;
         }
 
-        if ( $trans->{type} eq $MSG_TYPE_EVENT ) {
+        if ( $trans->{type} eq $TRANS_TYPE_EVENT ) {
             P->fire_event( $trans->{event}, $trans->{data} );
 
             next;
         }
 
-        if ( $trans->{type} eq $MSG_TYPE_EXCEPTION ) {
+        if ( $trans->{type} eq $TRANS_TYPE_EXCEPTION ) {
             if ( $trans->{tid} ) {
                 if ( my $cb = delete $self->{_callbacks}->{ $trans->{tid} } ) {
 
@@ -268,7 +268,7 @@ sub _on_message ( $self, $msg, $is_json ) {
             next;
         }
 
-        if ( $trans->{type} eq $MSG_TYPE_RPC ) {
+        if ( $trans->{type} eq $TRANS_TYPE_RPC ) {
 
             # method is specified, this is rpc call
             if ( $trans->{method} ) {
@@ -282,14 +282,14 @@ sub _on_message ( $self, $msg, $is_json ) {
 
                             if ( $res->is_success ) {
                                 $result = {
-                                    type   => $MSG_TYPE_RPC,
+                                    type   => $TRANS_TYPE_RPC,
                                     tid    => $trans->{tid},
                                     result => $res,
                                 };
                             }
                             else {
                                 $result = {
-                                    type    => $MSG_TYPE_EXCEPTION,
+                                    type    => $TRANS_TYPE_EXCEPTION,
                                     tid     => $trans->{tid},
                                     message => $res,
                                 };

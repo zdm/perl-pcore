@@ -10,6 +10,9 @@ const our $WS_MAX_MESSAGE_SIZE => 1_024 * 1_024 * 100;    # 100 Mb
 const our $WS_PONG_INTERVAL    => 50;
 const our $WS_COMPRESSION      => 0;
 
+const our $TRANS_TYPE_RPC       => 'rpc';
+const our $TRANS_TYPE_EXCEPTION => 'exception';
+
 sub run ( $self, $req ) {
     if ( $req->{path_tail} ) {
         $req->(404)->finish;
@@ -152,13 +155,14 @@ sub _http_api_router ( $self, $auth, $data, $cb ) {
 
     for my $trans ( $data->@* ) {
 
-        $trans->{type} ||= 'rpc';
+        # TODO required only for compatibility with old clients, can be removed
+        $trans->{type} ||= $TRANS_TYPE_RPC;
 
         # check message type, only rpc calls are enabled here
-        if ( $trans->{type} ne 'rpc' ) {
+        if ( $trans->{type} ne $TRANS_TYPE_RPC ) {
             push $response->@*,
               { tid     => $trans->{tid},
-                type    => 'exception',
+                type    => $TRANS_TYPE_EXCEPTION,
                 message => {
                     status => 400,
                     reason => 'Invalid API request type',
@@ -172,7 +176,7 @@ sub _http_api_router ( $self, $auth, $data, $cb ) {
         if ( !$trans->{method} ) {
             push $response->@*,
               { tid     => $trans->{tid},
-                type    => 'exception',
+                type    => $TRANS_TYPE_EXCEPTION,
                 message => {
                     status => 400,
                     reason => 'Method is required',
@@ -195,14 +199,14 @@ sub _http_api_router ( $self, $auth, $data, $cb ) {
             sub ($res) {
                 if ( $res->is_success ) {
                     push $response->@*,
-                      { type   => 'rpc',
+                      { type   => $TRANS_TYPE_RPC,
                         tid    => $trans->{tid},
                         result => $res,
                       };
                 }
                 else {
                     push $response->@*,
-                      { type    => 'exception',
+                      { type    => $TRANS_TYPE_EXCEPTION,
                         tid     => $trans->{tid},
                         message => $res,
                       };
