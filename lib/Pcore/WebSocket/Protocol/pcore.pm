@@ -16,9 +16,10 @@ has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg 
 
 with qw[Pcore::WebSocket::Handle];
 
-const our $MSG_TYPE_LISTEN => 'listen';
-const our $MSG_TYPE_EVENT  => 'event';
-const our $MSG_TYPE_RPC    => 'rpc';
+const our $MSG_TYPE_LISTEN    => 'listen';
+const our $MSG_TYPE_EVENT     => 'event';
+const our $MSG_TYPE_RPC       => 'rpc';
+const our $MSG_TYPE_EXCEPTION => 'exception';
 
 my $CBOR = do {
     my $cbor = CBOR::XS->new;
@@ -237,7 +238,6 @@ sub _set_listeners ( $self, $events ) {
     return;
 }
 
-# TODO process exceptions in callback
 sub _on_message ( $self, $msg, $is_json ) {
     $msg = [$msg] if ref $msg ne 'ARRAY';
 
@@ -256,6 +256,18 @@ sub _on_message ( $self, $msg, $is_json ) {
             next;
         }
 
+        if ( $trans->{type} eq $MSG_TYPE_EXCEPTION ) {
+            if ( $trans->{tid} ) {
+                if ( my $cb = delete $self->{_callbacks}->{ $trans->{tid} } ) {
+
+                    # convert result to response object
+                    $cb->( bless $trans->{message}, 'Pcore::Util::Result' );
+                }
+            }
+
+            next;
+        }
+
         if ( $trans->{type} eq $MSG_TYPE_RPC ) {
 
             # method is specified, this is rpc call
@@ -268,21 +280,20 @@ sub _on_message ( $self, $msg, $is_json ) {
                         $req->{_cb} = sub ($res) {
                             my $result;
 
-                            # if ( $res->is_success ) {
-                            $result = {
-                                type   => 'rpc',
-                                tid    => $trans->{tid},
-                                result => $res,
-                            };
-
-                            # }
-                            # else {
-                            #     $result = {
-                            #         type    => $MSG_TYPE_RPC,
-                            #         tid     => $trans->{tid},
-                            #         message => $res,
-                            #     };
-                            # }
+                            if ( $res->is_success ) {
+                                $result = {
+                                    type   => $MSG_TYPE_RPC,
+                                    tid    => $trans->{tid},
+                                    result => $res,
+                                };
+                            }
+                            else {
+                                $result = {
+                                    type    => $MSG_TYPE_EXCEPTION,
+                                    tid     => $trans->{tid},
+                                    message => $res,
+                                };
+                            }
 
                             if ($is_json) {
                                 $self->send_text( \$JSON->encode($result) );
@@ -309,7 +320,6 @@ sub _on_message ( $self, $msg, $is_json ) {
                 if ( my $cb = delete $self->{_callbacks}->{ $trans->{tid} } ) {
 
                     # convert result to response object
-                    # TODO here can be a exception
                     $cb->( bless $trans->{result}, 'Pcore::Util::Result' );
                 }
             }
@@ -326,7 +336,7 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 287                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 283, 298             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

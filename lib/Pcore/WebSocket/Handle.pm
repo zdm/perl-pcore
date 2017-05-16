@@ -223,7 +223,7 @@ sub on_connect ( $self ) {
     );
 
     # start autopong
-    if ( my $pong_interval = $self->pong_inverval ) {
+    if ( my $pong_interval = $self->pong_interval ) {
         $self->{h}->on_timeout(
             sub ($h) {
                 $self->pong;
