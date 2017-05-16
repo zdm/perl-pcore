@@ -6,6 +6,7 @@ use CBOR::XS qw[];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::WebSocket::Protocol::pcore::Request;
 use Pcore::Util::Text qw[trim];
+use Pcore::Util::Scalar qw[blessed];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
@@ -79,7 +80,8 @@ sub rpc_call ( $self, $method, @ ) {
         method => $method,
     };
 
-    if ( ref $_[-1] eq 'CODE' ) {
+    # detect callback
+    if ( ref $_[-1] eq 'CODE' or ( blessed $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
         $msg->{data} = [ @_[ 2 .. $#_ - 1 ] ];
 
         $msg->{tid} = uuid_str();
@@ -336,7 +338,7 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 283, 298             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 285, 300             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

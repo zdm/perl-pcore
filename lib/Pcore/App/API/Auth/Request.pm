@@ -26,6 +26,10 @@ sub DEMOLISH ( $self, $global ) {
     return;
 }
 
+sub IS_CALLBACK ($self) {
+    return 1;
+}
+
 sub wantarray ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return !!$self->{_cb};
 }

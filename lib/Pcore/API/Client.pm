@@ -2,6 +2,7 @@ package Pcore::API::Client;
 
 use Pcore -class, -result;
 use Pcore::WebSocket;
+use Pcore::Util::Scalar qw[blessed];
 use Pcore::Util::Data qw[to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
 
@@ -76,7 +77,8 @@ sub api_call ( $self, $method, @args ) {
 sub _send_http ( $self, $method, @ ) {
     my ( $cb, $data );
 
-    if ( ref $_[-1] eq 'CODE' ) {
+    # detect callback
+    if ( ref $_[-1] eq 'CODE' or ( blessed $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
         $cb = $_[-1];
 
         $data = [ @_[ 2 .. $#_ - 1 ] ] if @_ > 3;
@@ -136,7 +138,11 @@ sub _send_ws ( $self, @args ) {
     $self->_get_ws(
         sub ( $ws, $error ) {
             if ( defined $error ) {
-                $args[-1]->($error) if ref $args[-1] eq 'CODE';
+
+                # detect callback
+                if ( ref $_[-1] eq 'CODE' or ( blessed $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
+                    $args[-1]->($error);
+                }
             }
             else {
                 $ws->rpc_call(@args);
@@ -209,7 +215,7 @@ sub _get_ws ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 62                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 63                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
