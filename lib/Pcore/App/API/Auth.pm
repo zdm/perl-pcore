@@ -117,21 +117,16 @@ sub api_call ( $self, $method_id, @ ) {
     my ( $cb, $args );
 
     # parse $args and $cb
-    if ( ref $_[-1] eq 'CODE' ) {
+    if ( ref $_[-1] eq 'CODE' or ( blessed $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
         $cb = $_[-1];
 
-        $args = [ splice @_, 2, -1 ] if @_ > 3;
-    }
-    elsif ( blessed $_[-1] && $_[-1]->isa('Pcore::App::API::Auth::Request') ) {
-        $cb = $_[-1];
-
-        $args = [ splice @_, 2, -1 ] if @_ > 3;
+        $args = [ @_[ 2 .. $#_ - 1 ] ] if @_ > 3;
     }
     else {
-        $args = [ splice @_, 2 ] if @_ > 2;
+        $args = [ @_[ 2 .. $#_ ] ] if @_ > 2;
     }
 
-    return api_call_arrayref( $self, $method_id, $args, $cb );
+    return $self->api_call_arrayref( $method_id, $args, $cb );
 }
 
 sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
@@ -178,7 +173,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 162                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 157                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
