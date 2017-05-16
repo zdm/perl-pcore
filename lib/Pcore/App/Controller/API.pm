@@ -33,7 +33,7 @@ sub run ( $self, $req ) {
                         # accept websocket connection
                         $accept->(
                             {   max_message_size => $WS_MAX_MESSAGE_SIZE,
-                                pong_timeout     => $WS_PONG_INTERVAL,
+                                pong_interval    => $WS_PONG_INTERVAL,
                                 compression      => $WS_COMPRESSION,
                                 on_disconnect    => sub ( $ws, $status ) {
                                     return;

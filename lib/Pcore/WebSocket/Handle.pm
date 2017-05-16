@@ -18,7 +18,7 @@ use Pcore::Util::Digest qw[sha1];
 requires qw[protocol before_connect_server before_connect_client on_connect_server on_connect_client on_disconnect on_text on_binary on_pong];
 
 has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1_024 * 1_024 * 100 );    # 0 - do not check
-has pong_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong
+has pong_interval    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong
 has compression      => ( is => 'ro', isa => Bool,              default => 0 );                      # use permessage_deflate compression
 
 has on_disconnect => ( is => 'ro', isa => CodeRef, reader => undef );
@@ -223,7 +223,7 @@ sub on_connect ( $self ) {
     );
 
     # start autopong
-    if ( my $pong_timeout = $self->pong_timeout ) {
+    if ( my $pong_interval = $self->pong_inverval ) {
         $self->{h}->on_timeout(
             sub ($h) {
                 $self->pong;
@@ -232,7 +232,7 @@ sub on_connect ( $self ) {
             }
         );
 
-        $self->{h}->timeout($pong_timeout);
+        $self->{h}->timeout($pong_interval);
     }
 
     return;
