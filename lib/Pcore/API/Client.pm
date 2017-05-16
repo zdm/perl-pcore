@@ -2,41 +2,54 @@ package Pcore::API::Client;
 
 use Pcore -class, -result;
 use Pcore::WebSocket;
-use Pcore::Util::Data qw[to_json from_json to_cbor from_cbor];
+use Pcore::Util::Data qw[to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
 
-has uri => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'], required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
+has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
 
-has token             => ( is => 'lazy', isa => Str );
-has api_ver           => ( is => 'ro',   isa => Str );                                     # default API version for relative methods
-has keepalive_timeout => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
-has http_timeout      => ( is => 'ro',   isa => Maybe [PositiveOrZeroInt] );
-has http_tls_ctx      => ( is => 'ro',   isa => Maybe [ HashRef | Int ] );
+has token             => ( is => 'ro', isa => Str );
+has api_ver           => ( is => 'ro', isa => Str );                                 # eg: 'v1', default API version for relative methods
+has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
+has http_timeout      => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
+has http_tls_ctx      => ( is => 'ro', isa => Maybe [ HashRef | Int ] );
 
-has _uri => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::URI'], init_arg => undef );
-has _is_http => ( is => 'lazy', isa => Bool, init_arg => undef );
+has _is_http => ( is => 'lazy', isa => Bool, required => 1 );
+
+has _pending_requests => ( is => 'ro', isa => ArrayRef, init_arg => undef );
+has _sent_requests    => ( is => 'ro', isa => HashRef,  init_arg => undef );
+has _get_ws_cb        => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg => undef );
-has _ws_connect_cache => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
-has _ws_tid_cache     => ( is => 'ro', isa => HashRef,  default => sub { {} }, init_arg => undef );
 
 around BUILDARGS => sub ( $orig, $self, $uri, @ ) {
     my %args = ( splice @_, 3 );
 
-    $args{uri} = $uri;
+    $args{uri} = P->uri($uri);
+
+    $args{token} = $args{uri}->userinfo if !$args{token};
+
+    $args{_is_http} = $args{uri}->is_http;
 
     return $self->$orig( \%args );
 };
 
-sub _build__uri($self) {
-    return P->uri( $self->uri );
+sub set_token ( $self, $token = undef ) {
+    if ( $token // q[] ne $self->{token} // q[] ) {
+        $self->{token} = $token;
+
+        $self->disconnect;
+    }
+
+    return;
 }
 
-sub _build_token ($self) {
-    return $self->_uri->userinfo;
-}
+sub disconnect ($self) {
+    if ( $self->{_ws} ) {
+        $self->{_ws}->disconnect;
 
-sub _build__is_http ($self) {
-    return $self->_uri->is_http;
+        $self->{_ws} = undef;
+    }
+
+    return;
 }
 
 # TODO make blocking call
@@ -52,130 +65,197 @@ sub api_call ( $self, $method, @ ) {
         }
     }
 
-    # HTTP protocol
+    my ( $cb, $data );
+
+    if ( ref $_[-1] eq 'CODE' ) {
+        $cb = $_[-1];
+
+        $data = [ @_[ 2 .. $#_ - 1 ] ] if @_ > 3;
+    }
+    else {
+        $data = [ @_[ 2 .. $#_ ] ] if @_ > 2;
+    }
+
+    push $self->{_pending_requests}->@*,
+      [ {   type   => 'rpc',
+            method => $method,
+            ( $cb   ? ( tid  => uuid_str ) : () ),
+            ( $data ? ( data => $data )    : () ),
+        },
+        $cb
+      ];
+
+    $self->_send_requests;
+
+    return;
+}
+
+sub _send_requests ( $self ) {
+    my $data;
+
+    while ( my $req = shift $self->{_pending_requests}->@* ) {
+        push $data->@*, $req->[0];
+
+        $self->{_sent_requests}->{ $req->[0]->{tid} } = $req->[1] if $req->[1];
+    }
+
+    return if !$data;
+
+    my $payload = to_cbor $data;
+
     if ( $self->_is_http ) {
-        my ( $cb, $data );
+        $self->_send_http($data);
+    }
+    else {
+        $self->_send_ws($data);
+    }
 
-        # parse callback
-        if ( ref $_[-1] eq 'CODE' ) {
-            $cb = $_[-1];
+    return;
+}
 
-            $data = [ @_[ 2 .. $#_ - 1 ] ];
-        }
-        else {
-            $data = [ @_[ 2 .. $#_ ] ];
-        }
+sub _send_http ( $self, $data ) {
+    P->http->post(
+        $self->uri,
+        keepalive_timeout => $self->keepalive_timeout,
+        ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
+        ( $self->http_tls_ctx ? ( tls_ctx => $self->http_tls_ctx ) : () ),
+        headers => {
+            REFERER       => undef,
+            AUTHORIZATION => "Token $self->{token}",
+            CONTENT_TYPE  => 'application/cbor',
+        },
+        body      => to_cbor($data),
+        on_finish => sub ($res) {
+            if ( !$res ) {
+                $self->_fire_callbacks( $data, result [ $res->status, $res->reason ] );
+            }
+            else {
+                my $msg = eval { from_cbor $res->body };
 
-        P->http->post(
-            $self->_uri,
-            keepalive_timeout => $self->keepalive_timeout,
-            ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
-            ( $self->http_tls_ctx ? ( tls_ctx => $self->http_tls_ctx ) : () ),
-            headers => {
-                REFERER       => undef,
-                AUTHORIZATION => 'token ' . $self->token,
-                CONTENT_TYPE  => 'application/cbor',
-            },
-            body => to_cbor(
-                {   type   => 'rpc',
-                    tid    => uuid_str(),
-                    method => $method,
-                    data   => $data,
+                if ($@) {
+                    $self->_fire_callbacks( $data, result [ $res->status, $res->reason ] );
                 }
-            ),
-            on_finish => sub ($res) {
+                else {
+                    $msg = [$msg] if ref $msg ne 'ARRAY';
 
-                if ($cb) {
+                    for my $trans ( $msg->@* ) {
+                        next if !$trans->{type};
 
-                    # HTTP protocol error
-                    if ( !$res ) {
-                        $cb->( result [ $res->status, $res->reason ] );
+                        next if !$trans->{tid};
+
+                        if ( my $cb = delete $self->{_sent_requests}->{ $trans->{tid} } ) {
+                            if ( $trans->{type} eq 'exception' ) {
+                                $cb->( bless $trans->{message}, 'Pcore::Util::Result' );
+                            }
+                            elsif ( $trans->{type} eq 'rpc' ) {
+                                $cb->( bless $trans->{result}, 'Pcore::Util::Result' );
+                            }
+                        }
+                    }
+                }
+            }
+
+            return;
+        },
+    );
+
+    return;
+}
+
+sub _send_ws ( $self, $data ) {
+    $self->_get_ws(
+        sub ( $ws, $error ) {
+            if ( defined $error ) {
+                $self->_fire_callbacks( $data, $error );
+            }
+            else {
+                for my $trans ( $data->@* ) {
+                    if ( $trans->{tid} ) {
+                        $ws->rpc_call(
+                            $trans->{method},
+                            $trans->{data} ? $trans->{data}->@* : (),
+                            sub ($res) {
+                                if ( my $cb = delete $self->{_sent_requests}->{ $trans->{tid} } ) {
+                                    $cb->($res);
+                                }
+
+                                return;
+                            }
+                        );
                     }
                     else {
-                        my $res_data = from_cbor $res->body;
-
-                        if ( $res_data->[0]->{type} eq 'exception' ) {
-                            $cb->( bless $res_data->[0]->{message}, 'Pcore::Util::Result' );
-                        }
-                        else {
-                            $cb->( bless $res_data->[0]->{result}, 'Pcore::Util::Result' );
-                        }
+                        $ws->rpc_call( $trans->{method}, $trans->{data} ? $trans->{data}->@* : () );
                     }
+                }
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub _get_ws ( $self, $cb ) {
+    if ( $self->{ws} ) {
+        $cb->( $self->{ws}, undef );
+    }
+    else {
+        push $self->{_get_ws_cb}->@*, $cb;
+
+        return if $self->{_get_ws_cb}->@* > 1;
+
+        Pcore::WebSocket->connect_ws(
+            pcore            => $self->uri,
+            max_message_size => 0,
+            compression      => 0,            # use permessage_deflate compression
+            ( $self->{token} ? ( headers => [ Authorization => "Token $self->{token}" ] ) : () ),
+
+            # before_connect => {
+            #     listen_events  => $args{listen_events},
+            #     forward_events => $args{forward_events},
+            # },
+            on_error => sub ($res) {
+                while ( my $cb = shift $self->{_get_ws_cb}->@* ) {
+                    $cb->( undef, $res );
                 }
 
                 return;
             },
+            on_connect => sub ( $ws, $headers ) {
+                $self->{_ws} = $ws;
+
+                while ( my $cb = shift $self->{_get_ws_cb}->@* ) {
+                    $cb->( $ws, undef );
+                }
+
+                return;
+            },
+
+            # TODO fire pending callbacks
+            on_disconnect => sub ( $ws, $status ) {
+                $self->{_ws} = undef;
+
+                for my $tid ( keys $self->{_sent_requests}->%* ) {
+                    if ( my $cb = delete $self->{_sent_requests}->{$tid} ) {
+                        $cb->($status);
+                    }
+                }
+
+                return;
+            }
         );
     }
 
-    # WebSocket protocol
-    else {
-        my $cb;
+    return;
+}
 
-        if ( ref $_[-1] eq 'CODE' ) {
-            $cb = $_[-1];
-        }
+sub _fire_callbacks ( $self, $data, $res ) {
+    for my $trans ( $data->@* ) {
+        next if !$trans->{tid};
 
-        my $on_connect = sub ( $h ) {
-            $h->rpc_call( $method, @_[ 2 .. $#_ ] );
-
-            return;
-        };
-
-        my $ws = $self->{_ws};
-
-        if ( !$ws ) {
-            my $on_error = sub ( $status, $reason ) {
-                $cb->( result [ $status, $reason ] ) if $cb;
-
-                return;
-            };
-
-            push $self->{_ws_connect_cache}->@*, [ $on_error, $on_connect ];
-
-            return if $self->{_ws_connect_cache}->@* > 1;
-
-            Pcore::WebSocket->connect_ws(
-                'pcore'         => $self->_uri,
-                headers         => [ 'Authorization' => 'token ' . $self->token, ],
-                connect_timeout => 10,
-                ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
-                ( $self->http_tls_ctx ? ( tls_ctx => $self->http_tls_ctx ) : () ),
-                on_proxy_connect_error => sub ( $status, $reason ) {
-                    while ( my $callback = shift $self->{_ws_connect_cache}->@* ) {
-                        $callback->[0]->( $status, $reason );
-                    }
-
-                    return;
-                },
-                on_connect_error => sub ( $status, $reason ) {
-                    while ( my $callback = shift $self->{_ws_connect_cache}->@* ) {
-                        $callback->[0]->( $status, $reason );
-                    }
-
-                    return;
-                },
-                on_connect => sub ( $ws, $headers ) {
-                    $self->{_ws} = $ws;
-
-                    while ( my $callback = shift $self->{_ws_connect_cache}->@* ) {
-                        $callback->[1]->($ws);
-                    }
-
-                    return;
-                },
-                on_disconnect => sub ( $ws, $status, $reason ) {
-                    undef $self->{_ws};
-
-                    return;
-                },
-                on_rpc_call => sub ( $h, $req, $method, $data ) {
-                    return;
-                },
-            );
-        }
-        else {
-            $on_connect->($ws);
+        if ( my $cb = delete $self->{_sent_requests}->{ $trans->{tid} } ) {
+            $cb->($res);
         }
     }
 
@@ -189,9 +269,7 @@ sub api_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 43                   | Subroutines::ProhibitExcessComplexity - Subroutine "api_call" with high complexity score (25)                  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 51                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 64                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
