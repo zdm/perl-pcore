@@ -17,9 +17,9 @@ use Pcore::Util::Digest qw[sha1];
 
 requires qw[protocol before_connect_server before_connect_client on_connect_server on_connect_client on_disconnect on_text on_binary on_pong];
 
-has max_message_size   => ( is => 'ro', isa => PositiveOrZeroInt, default => 1_024 * 1_024 * 100 );    # 0 - do not check
-has pong_timeout       => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong
-has permessage_deflate => ( is => 'ro', isa => Bool,              default => 0 );                      # use compression
+has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1_024 * 1_024 * 100 );    # 0 - do not check
+has pong_timeout     => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong
+has compression      => ( is => 'ro', isa => Bool,              default => 0 );                      # use permessage_deflate compression
 
 has on_disconnect => ( is => 'ro', isa => CodeRef, reader => undef );
 
@@ -30,7 +30,7 @@ has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef )
 # mask data on send, for websocket client only
 has _send_masked => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
-has _msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );                                        # fragmentated message data, [$payload, $op, $rsv1]
+has _msg => ( is => 'ro', isa => ArrayRef, init_arg => undef );                                      # fragmentated message data, [$payload, $op, $rsv1]
 has _deflate => ( is => 'ro', init_arg => undef );
 has _inflate => ( is => 'ro', init_arg => undef );
 
@@ -67,13 +67,13 @@ const our $WEBSOCKET_STATUS_REASON => {
 };
 
 sub send_text ( $self, $data_ref ) {
-    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_TEXT, $data_ref ) );
+    $self->{h}->push_write( $self->_build_frame( 1, $self->{compression}, 0, 0, $WEBSOCKET_OP_TEXT, $data_ref ) );
 
     return;
 }
 
 sub send_binary ( $self, $data_ref ) {
-    $self->{h}->push_write( $self->_build_frame( 1, $self->{permessage_deflate}, 0, 0, $WEBSOCKET_OP_BINARY, $data_ref ) );
+    $self->{h}->push_write( $self->_build_frame( 1, $self->{compression}, 0, 0, $WEBSOCKET_OP_BINARY, $data_ref ) );
 
     return;
 }
@@ -160,7 +160,7 @@ sub on_connect ( $self ) {
                     else {
 
                         # set "rsv1" flag
-                        $header->{rsv1} = $self->{permessage_deflate} && $header->{rsv1} ? 1 : 0;
+                        $header->{rsv1} = $self->{compression} && $header->{rsv1} ? 1 : 0;
                     }
                 }
                 else {
@@ -182,7 +182,7 @@ sub on_connect ( $self ) {
                         $self->{_msg}->[1] = $header->{op};
 
                         # set and store "rsv1" flag
-                        $self->{_msg}->[2] = $header->{rsv1} = $self->{permessage_deflate} && $header->{rsv1} ? 1 : 0;
+                        $self->{_msg}->[2] = $header->{rsv1} = $self->{compression} && $header->{rsv1} ? 1 : 0;
                     }
                 }
 

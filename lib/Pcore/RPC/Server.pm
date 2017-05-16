@@ -85,10 +85,10 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                         no strict qw[refs];
 
                         $accept->(
-                            {   max_message_size   => 1_024 * 1_024 * 100,     # 100 Mb
-                                pong_timeout       => 50,
-                                permessage_deflate => 0,
-                                on_disconnect      => sub ( $ws, $status ) {
+                            {   max_message_size => 1_024 * 1_024 * 100,     # 100 Mb
+                                pong_timeout     => 50,
+                                compression      => 0,
+                                on_disconnect    => sub ( $ws, $status ) {
                                     $rpc->RPC_ON_DISCONNECT($ws) if $can_rpc_on_disconnect;
 
                                     return;

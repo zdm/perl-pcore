@@ -32,10 +32,10 @@ sub run ( $self, $req ) {
 
                         # accept websocket connection
                         $accept->(
-                            {   max_message_size   => $WS_MAX_MESSAGE_SIZE,
-                                pong_timeout       => $WS_PONG_INTERVAL,
-                                permessage_deflate => $WS_COMPRESSION,
-                                on_disconnect      => sub ( $ws, $status ) {
+                            {   max_message_size => $WS_MAX_MESSAGE_SIZE,
+                                pong_timeout     => $WS_PONG_INTERVAL,
+                                compression      => $WS_COMPRESSION,
+                                on_disconnect    => sub ( $ws, $status ) {
                                     return;
                                 },
                                 on_rpc_call => sub ( $ws, $req, $trans ) {
