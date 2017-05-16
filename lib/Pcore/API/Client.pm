@@ -15,9 +15,7 @@ has http_tls_ctx      => ( is => 'ro', isa => Maybe [ HashRef | Int ] );
 
 has _is_http => ( is => 'lazy', isa => Bool, required => 1 );
 
-has _pending_requests => ( is => 'ro', isa => ArrayRef, init_arg => undef );
-has _sent_requests    => ( is => 'ro', isa => HashRef,  init_arg => undef );
-has _get_ws_cb        => ( is => 'ro', isa => ArrayRef, init_arg => undef );
+has _get_ws_cb => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg => undef );
 
 around BUILDARGS => sub ( $orig, $self, $uri, @ ) {
@@ -53,7 +51,7 @@ sub disconnect ($self) {
 }
 
 # TODO make blocking call
-sub api_call ( $self, $method, @ ) {
+sub api_call ( $self, $method, @args ) {
 
     # add version to relative method id
     if ( substr( $method, 0, 1 ) ne q[/] ) {
@@ -65,6 +63,17 @@ sub api_call ( $self, $method, @ ) {
         }
     }
 
+    if ( $self->{_is_http} ) {
+        $self->_send_http( $method, @args );
+    }
+    else {
+        $self->_send_ws( $method, @args );
+    }
+
+    return;
+}
+
+sub _send_http ( $self, $method, @ ) {
     my ( $cb, $data );
 
     if ( ref $_[-1] eq 'CODE' ) {
@@ -76,44 +85,13 @@ sub api_call ( $self, $method, @ ) {
         $data = [ @_[ 2 .. $#_ ] ] if @_ > 2;
     }
 
-    push $self->{_pending_requests}->@*,
-      [ {   type   => 'rpc',
-            method => $method,
-            ( $cb   ? ( tid  => uuid_str ) : () ),
-            ( $data ? ( data => $data )    : () ),
-        },
-        $cb
-      ];
+    my $payload = {
+        type   => 'rpc',
+        method => $method,
+        ( $cb   ? ( tid  => uuid_str ) : () ),
+        ( $data ? ( data => $data )    : () ),
+    };
 
-    $self->_send_requests;
-
-    return;
-}
-
-sub _send_requests ( $self ) {
-    my $data;
-
-    while ( my $req = shift $self->{_pending_requests}->@* ) {
-        push $data->@*, $req->[0];
-
-        $self->{_sent_requests}->{ $req->[0]->{tid} } = $req->[1] if $req->[1];
-    }
-
-    return if !$data;
-
-    my $payload = to_cbor $data;
-
-    if ( $self->_is_http ) {
-        $self->_send_http($data);
-    }
-    else {
-        $self->_send_ws($data);
-    }
-
-    return;
-}
-
-sub _send_http ( $self, $data ) {
     P->http->post(
         $self->uri,
         keepalive_timeout => $self->keepalive_timeout,
@@ -124,33 +102,25 @@ sub _send_http ( $self, $data ) {
             AUTHORIZATION => "Token $self->{token}",
             CONTENT_TYPE  => 'application/cbor',
         },
-        body      => to_cbor($data),
+        body      => to_cbor($payload),
         on_finish => sub ($res) {
             if ( !$res ) {
-                $self->_fire_callbacks( $data, result [ $res->status, $res->reason ] );
+                $cb->( result [ $res->status, $res->reason ] ) if $cb;
             }
             else {
                 my $msg = eval { from_cbor $res->body };
 
                 if ($@) {
-                    $self->_fire_callbacks( $data, result [ $res->status, $res->reason ] );
+                    $cb->( result [ 500, 'Error decoding response' ] ) if $cb;
                 }
-                else {
-                    $msg = [$msg] if ref $msg ne 'ARRAY';
+                elsif ($cb) {
+                    my $trans = ref $msg eq 'ARRAY' ? $msg->[0] : $msg;
 
-                    for my $trans ( $msg->@* ) {
-                        next if !$trans->{type};
-
-                        next if !$trans->{tid};
-
-                        if ( my $cb = delete $self->{_sent_requests}->{ $trans->{tid} } ) {
-                            if ( $trans->{type} eq 'exception' ) {
-                                $cb->( bless $trans->{message}, 'Pcore::Util::Result' );
-                            }
-                            elsif ( $trans->{type} eq 'rpc' ) {
-                                $cb->( bless $trans->{result}, 'Pcore::Util::Result' );
-                            }
-                        }
+                    if ( $trans->{type} eq 'exception' ) {
+                        $cb->( bless $trans->{message}, 'Pcore::Util::Result' );
+                    }
+                    elsif ( $trans->{type} eq 'rpc' ) {
+                        $cb->( bless $trans->{result}, 'Pcore::Util::Result' );
                     }
                 }
             }
@@ -162,31 +132,14 @@ sub _send_http ( $self, $data ) {
     return;
 }
 
-sub _send_ws ( $self, $data ) {
+sub _send_ws ( $self, @args ) {
     $self->_get_ws(
         sub ( $ws, $error ) {
             if ( defined $error ) {
-                $self->_fire_callbacks( $data, $error );
+                $args[-1]->($error) if ref $args[-1] eq 'CODE';
             }
             else {
-                for my $trans ( $data->@* ) {
-                    if ( $trans->{tid} ) {
-                        $ws->rpc_call(
-                            $trans->{method},
-                            $trans->{data} ? $trans->{data}->@* : (),
-                            sub ($res) {
-                                if ( my $cb = delete $self->{_sent_requests}->{ $trans->{tid} } ) {
-                                    $cb->($res);
-                                }
-
-                                return;
-                            }
-                        );
-                    }
-                    else {
-                        $ws->rpc_call( $trans->{method}, $trans->{data} ? $trans->{data}->@* : () );
-                    }
-                }
+                $ws->rpc_call(@args);
             }
 
             return;
@@ -232,31 +185,18 @@ sub _get_ws ( $self, $cb ) {
                 return;
             },
 
-            # TODO fire pending callbacks
-            on_disconnect => sub ( $ws, $status ) {
-                $self->{_ws} = undef;
-
-                for my $tid ( keys $self->{_sent_requests}->%* ) {
-                    if ( my $cb = delete $self->{_sent_requests}->{$tid} ) {
-                        $cb->($status);
-                    }
-                }
-
-                return;
-            }
+            # on_disconnect => sub ( $ws, $status ) {
+            #     $self->{_ws} = undef;
+            #
+            #     for my $tid ( keys $self->{_sent_requests}->%* ) {
+            #         if ( my $cb = delete $self->{_sent_requests}->{$tid} ) {
+            #             $cb->($status);
+            #         }
+            #     }
+            #
+            #     return;
+            # }
         );
-    }
-
-    return;
-}
-
-sub _fire_callbacks ( $self, $data, $res ) {
-    for my $trans ( $data->@* ) {
-        next if !$trans->{tid};
-
-        if ( my $cb = delete $self->{_sent_requests}->{ $trans->{tid} } ) {
-            $cb->($res);
-        }
     }
 
     return;
@@ -269,7 +209,7 @@ sub _fire_callbacks ( $self, $data, $res ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 62                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
