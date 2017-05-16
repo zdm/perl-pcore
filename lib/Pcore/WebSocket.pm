@@ -116,7 +116,7 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
 
 sub connect_ws ( $self, $protocol, $uri, @ ) {
     my %args = (
-        connect_timeout => 10,
+        connect_timeout => 30,
         tls_ctx         => $Pcore::HTTP::TLS_CTX->{$TLS_CTX_HIGH},
         bind_ip         => undef,
         proxy           => undef,
