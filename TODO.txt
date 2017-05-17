@@ -1,4 +1,5 @@
 - remove pcore util config from dist.perl;
+- dist mod_share removed;
 
 - rename pcore.perl - pcore.yaml or .json;
 - pcore release - changelog editor, show closed issues, show commit messages + dates, + editor config from pcore.ini;

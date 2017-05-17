@@ -24,12 +24,5 @@
         bugtracker => {
             web => undef,       # bugtracker url
         }
-    },
-
-    # shared resources, used by modules in this distribution
-    mod_share => {
-
-        # eg.:
-        # 'Distribution/Module/Name.pm' => ['/data/cfg.perl', '/data/cfg.ini'],
-    },
+    }
 }
