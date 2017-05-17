@@ -1,6 +1,7 @@
+- remove pcore util config from dist.perl;
+
 - rename pcore.perl - pcore.yaml or .json;
 - pcore release - changelog editor, show closed issues, show commit messages + dates, + editor config from pcore.ini;
-- remove pcore util config from dist.perl;
 
 - auth client memory leak - websocket not destroyed on undef;
 

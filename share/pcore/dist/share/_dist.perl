@@ -26,14 +26,6 @@
         }
     },
 
-    # Pcore utils, provided by this distribution
-    util => {
-
-        # eg.:
-        # util_accessor_name => 'Util::Package::Name'
-        # and later in the code you can use P->util_accessor_name->...
-    },
-
     # shared resources, used by modules in this distribution
     mod_share => {
 

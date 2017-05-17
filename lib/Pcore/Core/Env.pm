@@ -234,15 +234,6 @@ sub register_dist ( $self, $dist ) {
     # add dist to the dists index
     $self->_dist_idx->{ $dist->name } = $dist;
 
-    # register dist utils
-    if ( $dist->cfg->{util} ) {
-        for my $util ( keys $dist->cfg->{util}->%* ) {
-            die qq[Pcore util "$util" is already registered] if exists $Pcore::UTIL->{$util};
-
-            $Pcore::UTIL->{$util} = $dist->cfg->{util}->{$util};
-        }
-    }
-
     # register dist share
     my $share_lib_level;
 
@@ -346,11 +337,11 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 287                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 278                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 306                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 297                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 308, 331             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 299, 322             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 101                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
