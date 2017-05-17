@@ -1,22 +1,26 @@
-- cleanup API methods;
+- rename pcore.perl - pcore.yaml or .json;
+- pcore release - changelog editor, show closed issues, show commit messages + dates, + editor config from pcore.ini;
+- remove pcore util config from dist.perl;
 
+- auth client memory leak - websocket not destroyed on undef;
 
+- pack full dist share dir to par, remove corresponding config;
+
+- use cookie for session token;
+
+- rewiew API methods;
+- auth cache + EventBus;
 - authentication tags;
+
+
+- API applications connector;
+
 - app permissions, auth_app, etc...;
-- API auth - CRUD methods ???;
 
 - api protocol:
     - runas => [ $token_type, $token_id, $private_token ];
 
 -----------------------------------------------------------------------------------------------
-
-- EventBus conception:
-    - single, universal in-process EventBus;
-    - for logging or other listeners and event types;
-    - external processes can subscribe to events using websocket connection;
-
-- LOG SUBSYSTEM:
-    - write logs to socket;
 
 - use qq[] instead of " in Pcore dump to quote strings;
 

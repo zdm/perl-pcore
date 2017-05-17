@@ -41,9 +41,6 @@ sub _normalize_inc {
             next;
         }
 
-        # ignore relative script path, added by perl automatically
-        next if $inc_path eq q[.];
-
         # ignore non-exists path
         next if !-d $inc_path;
 
@@ -112,15 +109,6 @@ sub _configure_inc {
 
             # register dist lib path in @INC, dist lib path is always on top of other dists
             unshift @inc, $dist_lib_path if $dist_lib_path;
-        }
-
-        # add absolute script path, only if not in PAR mode
-        my $script_path = P->path( $ENV->{SCRIPT_DIR}, is_dir => 1 )->canonpath;
-
-        if ( !exists $inc_index->{$script_path} ) {
-            $inc_index->{$script_path} = 1;
-
-            push @inc, $script_path;
         }
     }
 
@@ -358,13 +346,13 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 299                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 287                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 318                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 306                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 320, 343             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    2 | 308, 331             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 104                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 101                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
