@@ -34,7 +34,7 @@ sub run ($self) {
         return;
     }
 
-    # working with issues tracker
+    # get closed issues sinse latest release
     my $closed_issues = $self->dist->build->issues && $self->dist->build->issues->get( closed => 1 );
 
     if ($closed_issues) {
@@ -72,8 +72,12 @@ sub run ($self) {
 
         $self->dist->build->issues->create_version(
             $new_ver,
-            sub ($id) {
-                die q[Error creating new version on issues tracker] if !$id;
+            sub ($res) {
+                if ( !$res ) {
+                    say qq[Error creating new version on issues tracker: $res];
+
+                    exit;
+                }
 
                 $cv->end;
 
@@ -86,8 +90,12 @@ sub run ($self) {
 
         $self->dist->build->issues->create_milestone(
             $new_ver,
-            sub ($id) {
-                die q[Error creating new milestone on issues tracker] if !$id;
+            sub ($res) {
+                if ( !$res ) {
+                    say qq[Error creating new milestone on issues tracker: $res];
+
+                    exit;
+                }
 
                 $cv->end;
 
@@ -110,7 +118,13 @@ sub run ($self) {
 
                 $issue->set_milestone(
                     $new_ver,
-                    sub ($success) {
+                    sub ($res) {
+                        if ( !$res ) {
+                            say qq[Error updating milestone for issue: $res];
+
+                            exit;
+                        }
+
                         $cv->end;
 
                         return;
@@ -333,6 +347,9 @@ sub _upload_to_cpan ($self) {
     return;
 }
 
+# TODO get commits sisnse latest build
+# open editor
+# get editor results
 sub _create_changes ( $self, $ver, $issues ) {
     state $init = !!require CPAN::Changes;
 
@@ -374,13 +391,13 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (33)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (34)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 87, 128, 147, 179,   |                                                                                                                |
-## |      | 184, 189, 194        |                                                                                                                |
+## |      | 91, 142, 161, 193,   |                                                                                                                |
+## |      | 198, 203, 208        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 351                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 368                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

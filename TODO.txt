@@ -1,9 +1,9 @@
-- update bitbucket API;
-	- check integration;
+- scm should return standard API result;
+- dockerhub should return standard API result;
 
 - pcore release - changelog editor, show closed issues, show commit messages + dates, + editor config from pcore.ini;
-	- get commits sisnce last release;
-	- open editor;
+    - get commits sisnce last release;
+    - open editor;
 
 - auth client memory leak - websocket not destroyed on undef;
 
