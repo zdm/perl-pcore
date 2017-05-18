@@ -1,11 +1,13 @@
-- rename pcore.perl - pcore.yaml or .json;
+- rename pcore.perl - pcore.yaml;
+
+- update bitbucket API;
+
 - pcore release - changelog editor, show closed issues, show commit messages + dates, + editor config from pcore.ini;
 
 - auth client memory leak - websocket not destroyed on undef;
 
-- pack full dist share dir to par, remove corresponding config;
-
 - use cookie for session token;
+- remove basic auth;
 
 - rewiew API methods;
 - auth cache + EventBus;

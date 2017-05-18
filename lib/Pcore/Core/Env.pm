@@ -15,7 +15,7 @@ has share => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'], init
 has _dist_idx => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );           # registered dists. index
 has cli           => ( is => 'ro',   isa => HashRef, init_arg => undef );                              # parsed CLI data
 has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
-has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                              # $HOME/.pcore/pcore.perl config
+has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                              # $HOME/.pcore/pcore.ini config
 
 has can_scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 
@@ -208,7 +208,7 @@ sub _build_share ($self) {
 }
 
 sub _build_user_cfg_path ($self) {
-    return "$self->{PCORE_USER_DIR}pcore.perl";
+    return "$self->{PCORE_USER_DIR}pcore.ini";
 }
 
 sub _build_user_cfg ($self) {
@@ -216,7 +216,7 @@ sub _build_user_cfg ($self) {
         return {};
     }
     else {
-        return P->cfg->load("$self->{PCORE_USER_DIR}pcore.perl");
+        return P->cfg->load( $self->user_cfg_path );
     }
 }
 
