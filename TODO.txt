@@ -1,4 +1,3 @@
-- scm should return standard API result;
 - dockerhub should return standard API result;
 
 - pcore release - changelog editor, show closed issues, show commit messages + dates, + editor config from pcore.ini;
