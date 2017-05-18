@@ -1,4 +1,4 @@
-package Pcore::API::Bitbucket2;
+package Pcore::API::Bitbucket;
 
 use Pcore -class, -result;
 use Pcore::API::Bitbucket::Issue;
@@ -402,7 +402,7 @@ sub get_issues ( $self, @ ) {
         sort      => 'priority',    # priority, kind, version, component, milestone
         status    => undef,
         milestone => undef,
-        @_[ 1 .. $#_ - 1 ]
+        @_[ 1 .. $#_ - 1 ],
     );
 
     delete $args{status}    if !defined $args{status};
@@ -485,18 +485,6 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 400                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 501                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 505 does not match the package declaration      |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

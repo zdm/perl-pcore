@@ -1,6 +1,6 @@
 package Pcore::API::Bitbucket::Issue;
 
-use Pcore -class, -const, -ansi;
+use Pcore -class, -const, -ansi, -result;
 
 const our $PRIORITY => {
     trivial  => 1,
