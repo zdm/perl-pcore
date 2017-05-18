@@ -216,7 +216,7 @@ sub _can_release ($self) {
         return;
     }
 
-    if ( $self->dist->cfg->{cpan} && !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{username} || !$ENV->user_cfg->{'Pcore::API::PAUSE'}->{password} ) {
+    if ( $self->dist->cfg->{cpan} && !$ENV->user_cfg->{PAUSE}->{username} || !$ENV->user_cfg->{PAUSE}->{password} ) {
         say q[You need to specify PAUSE credentials.];
 
         return;
@@ -228,7 +228,7 @@ sub _can_release ($self) {
     }
 
     if ( $self->dist->docker ) {
-        if ( !$ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_username} || !$ENV->user_cfg->{'Pcore::API::DockerHub'}->{api_password} ) {
+        if ( !$ENV->user_cfg->{DOCKERHUB}->{username} || !$ENV->user_cfg->{DOCKERHUB}->{password} ) {
             say q[You need to specify DockerHub credentials.];
 
             return;
@@ -304,8 +304,8 @@ sub _upload_to_cpan ($self) {
     print 'Uploading to CPAN ... ';
 
     my $pause = Pcore::API::PAUSE->new(
-        {   username => $ENV->user_cfg->{'Pcore::API::PAUSE'}->{username},
-            password => $ENV->user_cfg->{'Pcore::API::PAUSE'}->{password},
+        {   username => $ENV->user_cfg->{PAUSE}->{username},
+            password => $ENV->user_cfg->{PAUSE}->{password},
         }
     );
 
