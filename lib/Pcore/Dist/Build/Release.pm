@@ -161,13 +161,39 @@ sub run ($self) {
         $self->dist->build->wiki->run;
     }
 
-    # addremove
-    $self->dist->scm->scm_addremove or die;
+    # add/remove and commit
+    {
+        print 'Committing ... ';
 
-    # commit
-    $self->dist->scm->scm_commit(qq[release $new_ver]) or die;
+        # addremove
+        $self->dist->scm->scm_addremove or do {
+            say 'Error add/remove files';
 
-    $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or die;
+            return;
+        };
+
+        # commit
+        $self->dist->scm->scm_commit(qq[release $new_ver]) or do {
+            say 'Error committing changes';
+
+            return;
+        };
+
+        say 'done';
+    }
+
+    # set release tags
+    {
+        print 'Setting tags ... ';
+
+        $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or do {
+            say 'Error setting tags';
+
+            return;
+        };
+
+        say 'done';
+    }
 
     if ( $self->dist->scm->upstream ) {
       PUSH_UPSTREAM:
@@ -394,10 +420,10 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (34)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 91, 142, 161, 193,   |                                                                                                                |
-## |      | 198, 203, 208        |                                                                                                                |
+## |      | 91, 142, 161, 219,   |                                                                                                                |
+## |      | 224, 229, 234        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 368                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 394                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
