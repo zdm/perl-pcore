@@ -163,32 +163,34 @@ sub run ($self) {
     }
 
     # add/remove
-    print 'Add/remove changes ... ';
-    $self->dist->scm->scm_addremove or do {
-        say 'Error add/remove files';
+    {
+        print 'Add/remove changes ... ';
 
-        return;
-    };
-    say 'done';
+        my $res = $self->dist->scm->scm_addremove;
+
+        say $res && return if !$res;
+
+        say 'done';
+    }
 
     # commit
-    print 'Committing ... ';
-    $self->dist->scm->scm_commit(qq[release $new_ver]) or do {
-        say 'Error committing changes';
+    {
+        print 'Committing ... ';
 
-        return;
-    };
-    say 'done';
+        my $res = $self->dist->scm->scm_commit(qq[release $new_ver]);
+
+        say $res && return if !$res;
+
+        say 'done';
+    }
 
     # set release tags
     {
         print 'Setting tags ... ';
 
-        $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 ) or do {
-            say 'Error setting tags';
+        my $res = $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 );
 
-            return;
-        };
+        say $res && return if !$res;
 
         say 'done';
     }
@@ -451,13 +453,13 @@ TXT
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (33)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (36)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 28, 39, 48, 74, 92,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 143, 162, 217, 222,  |                                                                                                                |
-## |      | 227, 232             |                                                                                                                |
+## |      | 143, 162, 219, 224,  |                                                                                                                |
+## |      | 229, 234             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 389                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 391                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
