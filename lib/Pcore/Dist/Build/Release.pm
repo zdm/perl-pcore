@@ -162,26 +162,23 @@ sub run ($self) {
         $self->dist->build->wiki->run;
     }
 
-    # add/remove and commit
-    {
-        print 'Committing ... ';
+    # add/remove
+    print 'Add/remove changes ... ';
+    $self->dist->scm->scm_addremove or do {
+        say 'Error add/remove files';
 
-        # addremove
-        $self->dist->scm->scm_addremove or do {
-            say 'Error add/remove files';
+        return;
+    };
+    say 'done';
 
-            return;
-        };
+    # commit
+    print 'Committing ... ';
+    $self->dist->scm->scm_commit(qq[release $new_ver]) or do {
+        say 'Error committing changes';
 
-        # commit
-        $self->dist->scm->scm_commit(qq[release $new_ver]) or do {
-            say 'Error committing changes';
-
-            return;
-        };
-
-        say 'done';
-    }
+        return;
+    };
+    say 'done';
 
     # set release tags
     {
@@ -428,11 +425,7 @@ TXT
 
     P->file->write_text( $temp_file, $log );
 
-    system $ENV->user_cfg->{_}->{editor}, $temp_file or do {
-        say 'Error open changlog editor';
-
-        return;
-    };
+    system $ENV->user_cfg->{_}->{editor}, $temp_file;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
     $temp_file->sysseek( 0, 0 );
 
@@ -461,10 +454,10 @@ TXT
 ## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (33)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 28, 39, 48, 74, 92,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 143, 162, 220, 225,  |                                                                                                                |
-## |      | 230, 235             |                                                                                                                |
+## |      | 143, 162, 217, 222,  |                                                                                                                |
+## |      | 227, 232             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 392                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 389                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

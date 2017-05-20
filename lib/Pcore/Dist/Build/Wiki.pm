@@ -96,7 +96,7 @@ MD
 
     say keys( $toc->%* ) + 1 . ' wiki page(s) were generated';
 
-    print 'Updating wiki ... ';
+    print 'Add/remove wiki changes ... ';
     $scm->scm_addremove or die;
     say 'done';
 
