@@ -180,7 +180,7 @@ sub scm_set_tag ( $self, $tag, @ ) {
     return $self->_request( 'scm_set_tag', [ splice @_, 1 ] );
 }
 
-sub scm_get_changesets ( $self, $tag, $cb ) {
+sub scm_get_changesets ( $self, $tag, $cb = undef ) {
     return $self->_request( 'scm_get_changesets', [ splice @_, 1 ] );
 }
 

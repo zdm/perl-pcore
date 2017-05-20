@@ -1,9 +1,3 @@
-- pcore release - changelog editor, show closed issues, show commit messages + dates, + editor config from pcore.ini;
-    - get commits sisnce last release;
-    - open editor;
-
-- dockerhub should return standard API result;
-
 - auth client memory leak - websocket not destroyed on undef;
 
 - use cookie for session token;

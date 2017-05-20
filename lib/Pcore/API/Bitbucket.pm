@@ -405,9 +405,6 @@ sub get_issues ( $self, @ ) {
         @_[ 1 .. $#_ - 1 ],
     );
 
-    delete $args{status}    if !defined $args{status};
-    delete $args{milestone} if !defined $args{milestone};
-
     P->http->get(                   #
         "https://bitbucket.org/api/1.0/repositories/@{[$self->id]}/issues/?" . P->data->to_uri( \%args ),
         headers   => { AUTHORIZATION => $self->auth },

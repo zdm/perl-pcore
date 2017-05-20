@@ -24,27 +24,28 @@ sub run ($self) {
     return if !$new_ver;
 
     # check for resolved issues without milestone
-    if ( $self->dist->build->issues && ( my $resolved_issues = $self->dist->build->issues->get( resolved => 1 ) ) ) {
-        say qq[Following issues are resolved and not closed:$LF];
+    if ( $self->dist->build->issues ) {
+        my $resolved_issues = $self->dist->build->issues->get( resolved => 1 );
 
-        $self->dist->build->issues->print_issues($resolved_issues);
+        if ( !$resolved_issues ) {
+            say 'Error retrieving issues from tracker';
 
-        say qq[${LF}Close or re-open this issues. Release is impossible.$LF];
+            return;
+        }
 
-        return;
+        if ( $resolved_issues->{data} ) {
+            say qq[Following issues are resolved and not closed:$LF];
+
+            $self->dist->build->issues->print_issues( $resolved_issues->{data} );
+
+            say qq[${LF}Close or re-open this issues. Release is impossible.$LF];
+
+            return;
+        }
     }
 
     # get closed issues sinse latest release
     my $closed_issues = $self->dist->build->issues && $self->dist->build->issues->get( closed => 1 );
-
-    if ($closed_issues) {
-        say qq[\nFollowing issues will be added to the release CHANGES file\n];
-
-        $self->dist->build->issues->print_issues($closed_issues);
-    }
-    else {
-        say qq[\nNo issues were closed since the last release];
-    }
 
     say qq[${LF}Current version is: $cur_ver];
 
@@ -108,12 +109,12 @@ sub run ($self) {
         say 'done';
 
         # get closed issues, set milestone for closed issues
-        if ($closed_issues) {
+        if ( $closed_issues->{data} ) {
             $cv = AE::cv;
 
             print q[Updating milestone for closed issues ... ];
 
-            for my $issue ( $closed_issues->@* ) {
+            for my $issue ( $closed_issues->{data}->@* ) {
                 $cv->begin;
 
                 $issue->set_milestone(
@@ -147,14 +148,14 @@ sub run ($self) {
 
     P->file->write_bin( $self->dist->module->path, $self->dist->module->content );
 
-    # clear cached data, important for version
+    # clear cached data
     $self->dist->clear;
 
     # update working copy
     $self->dist->build->update;
 
     # update CHANGES file
-    $self->_create_changes( $new_ver, $closed_issues );
+    $self->_create_changes( $new_ver, $closed_issues->{data} );
 
     # generate wiki
     if ( $self->dist->build->wiki ) {
@@ -373,9 +374,6 @@ sub _upload_to_cpan ($self) {
     return;
 }
 
-# TODO get commits sisnse latest build
-# open editor
-# get editor results
 sub _create_changes ( $self, $ver, $issues ) {
     state $init = !!require CPAN::Changes;
 
@@ -400,10 +398,53 @@ sub _create_changes ( $self, $ver, $issues ) {
         }
     }
     else {
-        $rel->add_changes('No issues were closed since the last release');
+        $rel->add_changes('No issues on bugtracker were closed since the last release');
     }
 
-    $changes->add_release($rel);
+    # get changesets since latest release
+    my $tag = $ver eq 'v0.1.0' ? undef : 'latest';
+
+    my $changesets = $self->dist->scm->scm_get_changesets($tag);
+
+    my $summary_idx;
+
+    my $log = <<'TXT';
+LOG: Edit changelog.  Lines beginning with 'LOG:' are removed.
+
+TXT
+    for my $changeset ( $changesets->{data}->@* ) {
+        if ( !exists $summary_idx->{ $changeset->{summary} } ) {
+            $summary_idx->{ $changeset->{summary} } = undef;
+
+            next if $changeset->{summary} =~ /\Arelease v[\d.]+\z/sm;
+
+            next if $changeset->{summary} =~ /\AAdded tag/sm;
+
+            $log .= "- $changeset->{summary}\n";
+        }
+    }
+
+    my $temp_file = P->file->tempfile;
+
+    P->file->write_text( $temp_file, $log );
+
+    system $ENV->user_cfg->{_}->{editor}, $temp_file or do {
+        say 'Error open changlog editor';
+
+        return;
+    };
+
+    $temp_file->sysseek( 0, 0 );
+
+    for my $line ( P->file->read_lines($temp_file)->@* ) {
+        next if $line =~ /\ALOG:/sm;
+
+        $line =~ s/\A[\s-]*//sm;
+
+        $rel->add_changes($line);
+    }
+
+    say $rel->serialize;
 
     P->file->write_text( $changes_path, $changes->serialize );
 
@@ -417,13 +458,13 @@ sub _create_changes ( $self, $ver, $issues ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (34)                       |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (33)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 27, 30, 38, 43, 73,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
-## |      | 91, 142, 161, 219,   |                                                                                                                |
-## |      | 224, 229, 234        |                                                                                                                |
+## |    2 | 28, 39, 48, 74, 92,  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |      | 143, 162, 220, 225,  |                                                                                                                |
+## |      | 230, 235             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 394                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 392                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
