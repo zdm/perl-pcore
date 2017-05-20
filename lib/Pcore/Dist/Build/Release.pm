@@ -441,6 +441,8 @@ TXT
 
     say $rel->serialize;
 
+    $changes->add_release($rel);
+
     P->file->write_text( $changes_path, $changes->serialize );
 
     return;
