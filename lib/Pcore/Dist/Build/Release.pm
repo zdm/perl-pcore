@@ -423,15 +423,13 @@ TXT
         }
     }
 
-    my $temp_file = P->file->tempfile;
+    my $tempfile = P->file->temppath;
 
-    P->file->write_text( $temp_file, $log );
+    P->file->write_text( $tempfile, $log );
 
-    system $ENV->user_cfg->{_}->{editor}, $temp_file;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    system $ENV->user_cfg->{_}->{editor}, $tempfile;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
-    $temp_file->sysseek( 0, 0 );
-
-    for my $line ( P->file->read_lines($temp_file)->@* ) {
+    for my $line ( P->file->read_lines($tempfile)->@* ) {
         next if $line =~ /\ALOG:/sm;
 
         $line =~ s/\A[\s-]*//sm;
@@ -439,6 +437,7 @@ TXT
         $rel->add_changes($line);
     }
 
+    say "\nCHANGES:";
     say $rel->serialize;
 
     $changes->add_release($rel);
