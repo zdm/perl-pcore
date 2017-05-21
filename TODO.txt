@@ -1,3 +1,5 @@
+- redesign error log;
+
 - auth client memory leak - websocket not destroyed on undef;
 
 - use cookie for session token;
