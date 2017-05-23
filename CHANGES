@@ -1,3 +1,13 @@
+v0.34.0 2017-05-23T15:46:24Z
+ - No issues on bugtracker were closed since the last release
+ - fixed invalid arguments for websocket on_pong callback
+ - websocket on_pong callback get payload as scalar instead of scalar ref
+ - Pcore::HTTP::Request removed
+ - http connect_timeout added
+ - makes http cookies support HashRef
+ - http cookie_jar renamed to cookies
+ - Pcore::HTTP::Message removed
+
 v0.33.2 2017-05-20T20:44:07Z
  - No issues on bugtracker were closed since the last release
  - do not block filehandle for temp CHANGES file during release
