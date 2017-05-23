@@ -1,13 +1,23 @@
-- market - do not check moz if there is not active accounts;
+- redesign HTTP ua;
+    - cookies - remove support for pub. suffixes;
+    - cookies - use raw HashRef instead of object;
+    - remove HTTP::Request object;
+    - http - make it easy to pass handle params;
+
 
 - websocket - rename error -> on_connect_error;
+    - make pong return scalar instead of ref;
+    - make ping accept scalar instead of ref;
+    - auth client memory leak - websocket not destroyed on undef;
+    - on_disconnect should be called everytinme on disconnect;
 
 - redesign error log;
 
-- auth client memory leak - websocket not destroyed on undef;
-
 - use cookie for session token;
 - remove basic auth;
+
+- docker API - Attempt to access disallowed key '2' in a restricted hash at d:/projects/pcore/lib/Pcore/API/DockerHub/Repository/Build.pm line 25.;
+
 
 - rewiew API methods;
 - auth cache + EventBus;
