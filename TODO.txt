@@ -1,8 +1,11 @@
 - redesign HTTP ua;
+	- add connect_timeout;
+
     - cookies - remove support for pub. suffixes;
     - cookies - use raw HashRef instead of object;
-    - remove HTTP::Request object;
     - http - make it easy to pass handle params;
+    - remove Pcore::HTTP::Message;
+    - headers shoud be always ArrayRef and in 'Header-Name' format;
 
 
 - websocket - rename error -> on_connect_error;

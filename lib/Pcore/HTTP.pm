@@ -127,7 +127,7 @@ for my $method ( keys $HTTP_METHODS->%* ) {
 
     eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
         *$sub_name = sub {
-            return _request( splice( \@_, 1 ), method => '$method', url => \$_[0] );
+            return request( \@_[ 1 .. \$#_ ], method => '$method', url => \$_[0] );
         };
 PERL
 
@@ -138,12 +138,6 @@ PERL
 
     # name sub
     P->class->set_subname( 'Pcore::HTTP::' . $sub_name, \&{$sub_name} );
-}
-
-sub request {
-    state $init = !!require Pcore::HTTP::Request;
-
-    return Pcore::HTTP::Request->new(@_);
 }
 
 # mirror($target_path, $url, $params) or mirror($target_path, $method, $url, $params)
@@ -183,7 +177,104 @@ sub mirror ( $target, @ ) {
         return;
     };
 
-    return _request( %args, method => $method, url => $url );
+    return request( %args, method => $method, url => $url );
+}
+
+sub request ( @ ) {
+    my %args = ( $DEFAULT->%*, @_ );
+
+    $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !ref $args{url};
+
+    # create headers object
+    if ( !$args{headers} ) {
+        $args{headers} = Pcore::HTTP::Message::Headers->new;
+    }
+    elsif ( !blessed $args{headers} ) {
+        $args{headers} = Pcore::HTTP::Message::Headers->new( $args{headers} );
+    }
+
+    # create empty HTTP response object
+    $args{res} = Pcore::HTTP::Response->new( { status => 0 } );
+
+    # resolve cookie_jar shortcut
+    $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};
+
+    # set HOST header
+    $args{headers}->{HOST} = $args{url}->host->name if !exists $args{headers}->{HOST};
+
+    # set REFERER header
+    $args{headers}->{REFERER} = $args{url}->to_string if !exists $args{headers}->{REFERER};
+
+    # set ACCEPT_ENCODING headers
+    $args{headers}->{ACCEPT_ENCODING} = 'gzip' if $args{accept_compressed} && !exists $args{headers}->{ACCEPT_ENCODING};
+
+    # add COOKIE headers
+    if ( $args{cookie_jar} && ( my $cookies = $args{cookie_jar}->get_cookies( $args{url} ) ) ) {
+        $args{headers}->add( COOKIE => join q[; ], $cookies->@* );
+    }
+
+    # merge handle_params
+    if ( my $handle_params = delete $args{handle_params} ) {
+        $args{handle_params} = {    #
+            $DEFAULT_HANDLE_PARAMS->%*,
+            $handle_params->%*,
+        };
+    }
+    else {
+        $args{handle_params} = $DEFAULT_HANDLE_PARAMS;
+    }
+
+    # apply useragent
+    if ( my $useragent = delete $args{useragent} ) {
+        $args{headers}->{USER_AGENT} = $useragent if !exists $args{headers}->{USER_AGENT};
+    }
+
+    # resolve TLS context shortcut
+    $args{tls_ctx} = $TLS_CTX->{ $args{tls_ctx} } if !ref $args{tls_ctx};
+
+    # resolve on_progress shortcut
+    if ( $args{on_progress} && ref $args{on_progress} ne 'CODE' ) {
+        if ( !ref $args{on_progress} ) {
+            $args{on_progress} = _get_on_progress_cb();
+        }
+        elsif ( ref $args{on_progress} eq 'HASH' ) {
+            $args{on_progress} = _get_on_progress_cb( $args{on_progress}->%* );
+        }
+        else {
+            die q["on_progress" can be CodeRef, HashRef or "1"];
+        }
+    }
+
+    # blocking cv
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    # on_finish wrapper
+    my $before_finish = delete $args{before_finish};
+
+    my $on_finish = delete $args{on_finish};
+
+    my $res = $args{res};
+
+    $args{on_finish} = sub {
+
+        # rewind body fh
+        $res->body->seek( 0, 0 ) if $res->has_body && is_glob( $res->body );
+
+        # before_finish callback
+        $before_finish->($res) if $before_finish;
+
+        # on_finish callback
+        $on_finish->($res) if $on_finish;
+
+        $blocking_cv->send($res) if $blocking_cv;
+
+        return;
+    };
+
+    # throw request
+    Pcore::HTTP::Util::http_request( \%args );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 sub _request {
@@ -428,9 +519,13 @@ sub _get_on_progress_cb (%args) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 128                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 189                  | Subroutines::ProhibitExcessComplexity - Subroutine "_request" with high complexity score (34)                  |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 183                  | * Subroutine "request" with high complexity score (29)                                                         |
+## |      | 280                  | * Subroutine "_request" with high complexity score (34)                                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 175                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    3 | 280                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_request' declared but not used     |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 169                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
