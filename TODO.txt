@@ -1,10 +1,10 @@
 - redesign HTTP ua;
-    - cookies - remove support for pub. suffixes;
-    - cookies - use raw HashRef instead of object;
+    - cookies - remove support for pub. suffixes, this is useless overhead;
 
     - remove Pcore::HTTP::Message;
     - headers shoud be always ArrayRef and in 'Header-Name' format;
 
+- HTTP handle should return errors using standard result object;
 
 - websocket - rename error -> on_connect_error;
     - make pong return scalar instead of ref;

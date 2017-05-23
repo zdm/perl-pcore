@@ -54,7 +54,7 @@ our $DEFAULT = {
     decompress        => 1,                              # automatically decompress
     persistent        => $PERSISTENT_IDENT,
     session           => undef,
-    cookie_jar        => undef,                          # 1 - create cookie jar object automatically
+    cookie_jar        => undef,                          # 1 - create temp cookie jar object, HashRef - use as cookies storage
 
     # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
     buf_size => 0,
@@ -198,7 +198,18 @@ sub request ( @ ) {
     $args{res} = Pcore::HTTP::Response->new( { status => 0 } );
 
     # resolve cookie_jar shortcut
-    $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};
+    if ( $args{cookie_jar} && !blessed $args{cookie_jar} ) {
+
+        # cookie_jar is SCALAR, create temp cookie jar object
+        if ( !ref $args{cookie_jar} ) {
+            $args{cookie_jar} = Pcore::HTTP::CookieJar->new;
+        }
+
+        # cookie jar is HashRef, bless
+        else {
+            $args{cookie_jar} = bless { cookies => $args{cookie_jar} }, 'Pcore::HTTP::CookieJar';
+        }
+    }
 
     # set HOST header
     $args{headers}->{HOST} = $args{url}->host->name if !exists $args{headers}->{HOST};
@@ -403,7 +414,7 @@ sub _get_on_progress_cb (%args) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 129                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 184                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (29)                   |
+## |    3 | 184                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (31)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 170                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
