@@ -1,3 +1,10 @@
+[13:53:27.046548][1][Pcore::WebSocket::Protocol::pcore][FATAL] AE: error in callback: Too few arguments for subroutine at /var/local/pcore/lib/Pcore/WebSocket/Handle.pm line 285.
+    Pcore::WebSocket::Protocol::pcore::on_pong at /var/local/pcore/l
+
+- market - do not check moz if there is not active accounts;
+
+- websocket - rename error -> on_connect_error;
+
 - redesign error log;
 
 - auth client memory leak - websocket not destroyed on undef;
