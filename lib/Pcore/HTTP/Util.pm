@@ -202,7 +202,7 @@ sub _connect ( $args, $runtime, $cb ) {
     Pcore::AE::Handle->new(
         $args->{handle_params}->%*,
         connect                => $args->{url},
-        connect_timeout        => $args->{timeout},
+        connect_timeout        => $args->{connect_timeout} // $args->{timeout},
         timeout                => $args->{timeout},
         persistent             => $args->{persistent},
         session                => $args->{session},

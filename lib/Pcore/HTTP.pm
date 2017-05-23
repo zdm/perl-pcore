@@ -49,6 +49,7 @@ our $DEFAULT = {
     recurse           => 7,                              # max. redirects
     keepalive_timeout => undef,                          # keepalive timeout for persistent connections, if false - default value will be used
     timeout           => 300,                            # timeout in seconds
+    connect_timeout   => undef,                          # handle socket connect timeout
     accept_compressed => 1,                              # add ACCEPT_ENCODIING header
     decompress        => 1,                              # automatically decompress
     persistent        => $PERSISTENT_IDENT,
@@ -277,123 +278,6 @@ sub request ( @ ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub _request {
-    my %args = $DEFAULT->%*;
-
-    # create empty headers object
-    $args{headers} = Pcore::HTTP::Message::Headers->new;
-
-    while (@_) {
-        if ( blessed $_[0] ) {
-            my $obj = shift;
-
-            for my $arg ( keys $DEFAULT->%* ) {
-                next if $arg eq 'headers';
-
-                $args{$arg} = $obj->$arg;
-            }
-
-            $args{headers}->replace( $obj->headers->get_hash );
-        }
-        else {
-            my $headers = delete $args{headers};
-
-            %args = ( %args, @_ );
-
-            $headers->replace( blessed $args{headers} ? $args{headers}->get_hash : $args{headers} ) if $args{headers};
-
-            $args{headers} = $headers;
-
-            last;
-        }
-    }
-
-    # create empty HTTP response object
-    $args{res} = Pcore::HTTP::Response->new( { status => 0 } );
-
-    # resolve cookie_jar shortcut
-    $args{cookie_jar} = Pcore::HTTP::CookieJar->new if $args{cookie_jar} && !ref $args{cookie_jar};
-
-    $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !ref $args{url};
-
-    # set HOST header
-    $args{headers}->{HOST} = $args{url}->host->name if !exists $args{headers}->{HOST};
-
-    # set REFERER header
-    $args{headers}->{REFERER} = $args{url}->to_string if !exists $args{headers}->{REFERER};
-
-    # set ACCEPT_ENCODING headers
-    $args{headers}->{ACCEPT_ENCODING} = 'gzip' if $args{accept_compressed} && !exists $args{headers}->{ACCEPT_ENCODING};
-
-    # add COOKIE headers
-    if ( $args{cookie_jar} && ( my $cookies = $args{cookie_jar}->get_cookies( $args{url} ) ) ) {
-        $args{headers}->add( COOKIE => join q[; ], $cookies->@* );
-    }
-
-    # merge handle_params
-    if ( my $handle_params = delete $args{handle_params} ) {
-        $args{handle_params} = {    #
-            $DEFAULT_HANDLE_PARAMS->%*,
-            $handle_params->%*,
-        };
-    }
-    else {
-        $args{handle_params} = $DEFAULT_HANDLE_PARAMS;
-    }
-
-    # apply useragent
-    if ( my $useragent = delete $args{useragent} ) {
-        $args{headers}->{USER_AGENT} = $useragent if !exists $args{headers}->{USER_AGENT};
-    }
-
-    # resolve TLS context shortcut
-    $args{tls_ctx} = $TLS_CTX->{ $args{tls_ctx} } if !ref $args{tls_ctx};
-
-    # resolve on_progress shortcut
-    if ( $args{on_progress} && ref $args{on_progress} ne 'CODE' ) {
-        if ( !ref $args{on_progress} ) {
-            $args{on_progress} = _get_on_progress_cb();
-        }
-        elsif ( ref $args{on_progress} eq 'HASH' ) {
-            $args{on_progress} = _get_on_progress_cb( $args{on_progress}->%* );
-        }
-        else {
-            die q["on_progress" can be CodeRef, HashRef or "1"];
-        }
-    }
-
-    # blocking cv
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    # on_finish wrapper
-    my $before_finish = delete $args{before_finish};
-
-    my $on_finish = delete $args{on_finish};
-
-    my $res = $args{res};
-
-    $args{on_finish} = sub {
-
-        # rewind body fh
-        $res->body->seek( 0, 0 ) if $res->has_body && is_glob( $res->body );
-
-        # before_finish callback
-        $before_finish->($res) if $before_finish;
-
-        # on_finish callback
-        $on_finish->($res) if $on_finish;
-
-        $blocking_cv->send($res) if $blocking_cv;
-
-        return;
-    };
-
-    # throw request
-    Pcore::HTTP::Util::http_request( \%args );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
-}
-
 sub rand_ua {
     state $USER_AGENTS = [    #
         'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.111 Safari/537.36',
@@ -517,15 +401,11 @@ sub _get_on_progress_cb (%args) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 128                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 129                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 183                  | * Subroutine "request" with high complexity score (29)                                                         |
-## |      | 280                  | * Subroutine "_request" with high complexity score (34)                                                        |
+## |    3 | 184                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (29)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 280                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_request' declared but not used     |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 169                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 170                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
