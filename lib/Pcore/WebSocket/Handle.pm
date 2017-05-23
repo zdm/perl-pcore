@@ -320,7 +320,7 @@ sub _on_frame ( $self, $header, $payload_ref ) {
 
         # PONG message
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-            $self->on_pong( $payload_ref ? $payload_ref : () );
+            $self->on_pong($payload_ref);
         }
     }
 
@@ -461,7 +461,7 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 127                  | * Subroutine "on_connect" with high complexity score (26)                                                      |
-## |      | 241                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 241                  | * Subroutine "_on_frame" with high complexity score (26)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 391, 393             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
