@@ -4,7 +4,7 @@ package main v0.1.0;
 
 use Pcore;
 use Benchmark;
-use Pcore::HTTP::CookieJar;
+use Pcore::HTTP::Cookies;
 
 # use HTTP::Cookie;
 
@@ -18,7 +18,7 @@ my $cookies = [    #
     'name5=value; domain=aaa.bbb.com; path=/',
 ];
 
-my $jar = Pcore::HTTP::CookieJar->new;
+my $jar = Pcore::HTTP::Cookies->new;
 
 my $tests = {
     add => sub {

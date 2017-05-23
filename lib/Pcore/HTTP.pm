@@ -11,7 +11,7 @@ use Pcore::AE::Handle qw[:PERSISTENT];
 use Pcore::HTTP::Util;
 use Pcore::HTTP::Message::Headers;
 use Pcore::HTTP::Response;
-use Pcore::HTTP::CookieJar;
+use Pcore::HTTP::Cookies;
 
 # 594 - errors during proxy handshake.
 # 595 - errors during connection establishment.
@@ -54,7 +54,7 @@ our $DEFAULT = {
     decompress        => 1,                              # automatically decompress
     persistent        => $PERSISTENT_IDENT,
     session           => undef,
-    cookie_jar        => undef,                          # 1 - create temp cookie jar object, HashRef - use as cookies storage
+    cookies           => undef,                          # 1 - create temp cookie jar object, HashRef - use as cookies storage
 
     # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
     buf_size => 0,
@@ -197,17 +197,17 @@ sub request ( @ ) {
     # create empty HTTP response object
     $args{res} = Pcore::HTTP::Response->new( { status => 0 } );
 
-    # resolve cookie_jar shortcut
-    if ( $args{cookie_jar} && !blessed $args{cookie_jar} ) {
+    # resolve cookies shortcut
+    if ( $args{cookies} && !blessed $args{cookies} ) {
 
-        # cookie_jar is SCALAR, create temp cookie jar object
-        if ( !ref $args{cookie_jar} ) {
-            $args{cookie_jar} = Pcore::HTTP::CookieJar->new;
+        # cookies is SCALAR, create temp cookies object
+        if ( !ref $args{cookies} ) {
+            $args{cookies} = Pcore::HTTP::Cookies->new;
         }
 
         # cookie jar is HashRef, bless
         else {
-            $args{cookie_jar} = bless { cookies => $args{cookie_jar} }, 'Pcore::HTTP::CookieJar';
+            $args{cookies} = bless { cookies => $args{cookies} }, 'Pcore::HTTP::Cookies';
         }
     }
 
@@ -221,7 +221,7 @@ sub request ( @ ) {
     $args{headers}->{ACCEPT_ENCODING} = 'gzip' if $args{accept_compressed} && !exists $args{headers}->{ACCEPT_ENCODING};
 
     # add COOKIE headers
-    if ( $args{cookie_jar} && ( my $cookies = $args{cookie_jar}->get_cookies( $args{url} ) ) ) {
+    if ( $args{cookies} && ( my $cookies = $args{cookies}->get_cookies( $args{url} ) ) ) {
         $args{headers}->add( COOKIE => join q[; ], $cookies->@* );
     }
 

@@ -1,4 +1,4 @@
-package Pcore::HTTP::CookieJar;
+package Pcore::HTTP::Cookies;
 
 use Pcore -class;
 
@@ -288,7 +288,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::CookieJar
+Pcore::HTTP::Cookies
 
 =head1 SYNOPSIS
 
