@@ -1,4 +1,4 @@
-package Pcore::HTTP::Message::Headers;
+package Pcore::HTTP::Headers;
 
 use Pcore -class;
 extends qw[Pcore::Util::Hash::Multivalue];
@@ -41,7 +41,7 @@ __END__
 
 =head1 NAME
 
-Pcore::HTTP::Message::Headers
+Pcore::HTTP::Headers
 
 =head1 SYNOPSIS
 

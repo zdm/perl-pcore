@@ -1,8 +1,6 @@
 - redesign HTTP ua;
     - cookies - remove support for pub. suffixes, this is useless overhead;
-	- rename cookie_jar -> cookies;
 
-    - remove Pcore::HTTP::Message;
     - headers shoud be always ArrayRef and in 'Header-Name' format;
 
 - HTTP handle should return errors using standard result object;

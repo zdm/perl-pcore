@@ -9,7 +9,7 @@ use Pcore -const,
 use Pcore::Util::Scalar qw[blessed is_glob];
 use Pcore::AE::Handle qw[:PERSISTENT];
 use Pcore::HTTP::Util;
-use Pcore::HTTP::Message::Headers;
+use Pcore::HTTP::Headers;
 use Pcore::HTTP::Response;
 use Pcore::HTTP::Cookies;
 
@@ -188,10 +188,10 @@ sub request ( @ ) {
 
     # create headers object
     if ( !$args{headers} ) {
-        $args{headers} = Pcore::HTTP::Message::Headers->new;
+        $args{headers} = Pcore::HTTP::Headers->new;
     }
     elsif ( !blessed $args{headers} ) {
-        $args{headers} = Pcore::HTTP::Message::Headers->new( $args{headers} );
+        $args{headers} = Pcore::HTTP::Headers->new( $args{headers} );
     }
 
     # create empty HTTP response object
