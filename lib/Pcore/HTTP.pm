@@ -242,7 +242,7 @@ sub request ( @ ) {
     }
 
     # resolve TLS context shortcut
-    $args{tls_ctx} = $TLS_CTX->{ $args{tls_ctx} } if !ref $args{tls_ctx};
+    $args{tls_ctx} = $TLS_CTX->{ $args{tls_ctx} } if $args{tls_ctx} && !ref $args{tls_ctx};
 
     # resolve on_progress shortcut
     if ( $args{on_progress} && ref $args{on_progress} ne 'CODE' ) {
@@ -414,7 +414,7 @@ sub _get_on_progress_cb (%args) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 129                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 184                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (31)                   |
+## |    3 | 184                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (32)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 170                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
