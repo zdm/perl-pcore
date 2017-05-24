@@ -3,6 +3,7 @@ package Pcore::HTTP::Util;
 use Pcore -const;
 use Errno qw[];
 use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
+use Pcore::AE::Handle2;
 use Pcore::Util::Scalar qw[refaddr];
 use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
 
@@ -199,44 +200,68 @@ sub http_request ($args) {
 }
 
 sub _connect ( $args, $runtime, $cb ) {
-    Pcore::AE::Handle->new(
-        $args->{handle_params}->%*,
-        connect                => $args->{url},
-        connect_timeout        => $args->{connect_timeout} // $args->{timeout},
-        timeout                => $args->{timeout},
-        persistent             => $args->{persistent},
-        session                => $args->{session},
-        tls_ctx                => $args->{tls_ctx},
-        bind_ip                => $args->{bind_ip},
-        proxy                  => $args->{proxy},
-        on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
-            $runtime->{finish}->( 594, $reason );
+    if ( $args->{persistent} || $args->{proxy} ) {
+        Pcore::AE::Handle->new(
+            $args->{handle_params}->%*,
+            connect                => $args->{url},
+            connect_timeout        => $args->{connect_timeout} // $args->{timeout},
+            timeout                => $args->{timeout},
+            persistent             => $args->{persistent},
+            session                => $args->{session},
+            tls_ctx                => $args->{tls_ctx},
+            bind_ip                => $args->{bind_ip},
+            proxy                  => $args->{proxy},
+            on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
+                $runtime->{finish}->( 594, $reason );
 
-            return;
-        },
-        on_connect_error => sub ( $h, $reason ) {
-            $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+                return;
+            },
+            on_connect_error => sub ( $h, $reason ) {
+                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
 
-            return;
-        },
-        on_error => sub ( $h, $fatal, $reason ) {
-            $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+                return;
+            },
+            on_error => sub ( $h, $fatal, $reason ) {
+                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
 
-            return;
-        },
-        on_connect => sub ( $h, $host, $port, $retry ) {
-            if ( $h->{proxy} && $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP && $h->{proxy}->userinfo ) {
-                $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $h->{proxy}->userinfo_b64;
-            }
-            else {
+                return;
+            },
+            on_connect => sub ( $h, $host, $port, $retry ) {
+                if ( $h->{proxy} && $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP && $h->{proxy}->userinfo ) {
+                    $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $h->{proxy}->userinfo_b64;
+                }
+                else {
+                    delete $args->{headers}->{PROXY_AUTHORIZATION};
+                }
+
+                $cb->($h);
+
+                return;
+            },
+        );
+    }
+    else {
+        Pcore::AE::Handle2->new(
+            $args->{handle_params}->%*,
+            connect         => $args->{url},
+            connect_timeout => $args->{connect_timeout} // $args->{timeout},
+            timeout         => $args->{timeout},
+            tls_ctx         => $args->{tls_ctx},
+            bind_ip         => $args->{bind_ip},
+            on_error        => sub ( $h, $fatal, $reason ) {
+                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+
+                return;
+            },
+            on_connect => sub ( $h ) {
                 delete $args->{headers}->{PROXY_AUTHORIZATION};
-            }
 
-            $cb->($h);
+                $cb->($h);
 
-            return;
-        },
-    );
+                return;
+            },
+        );
+    }
 
     return;
 }
@@ -649,13 +674,13 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 25                   | * Subroutine "http_request" with high complexity score (28)                                                    |
-## |      | 244                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
-## |      | 379                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 26                   | * Subroutine "http_request" with high complexity score (28)                                                    |
+## |      | 269                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
+## |      | 404                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 359                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 384                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 591                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 616                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -113,7 +113,9 @@ sub _error ( $self, $errno, $fatal = undef, $message = undef ) {
     $message ||= "$!";
 
     if ( $self->{on_error} ) {
-        $self->{on_error}->( $self, result [ 599, $message ] );
+
+        # $self->{on_error}->( $self, result [ 599, $message ] );
+        $self->{on_error}->( $self, $fatal, $message );
 
         $self->destroy if $fatal;
     }
@@ -498,23 +500,23 @@ sub get_connect ($connect) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 138                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 264                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 140                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 266                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 174, 175             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 176, 177             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 24                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 211                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 213                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 527                  | * Link L<AnyEvent::Handle> on line 533 does not specify text                                                   |
-## |      | 527                  | * Link L<AnyEvent::Handle> on line 541 does not specify text                                                   |
-## |      | 527                  | * Link L<AnyEvent::Handle> on line 569 does not specify text                                                   |
-## |      | 527                  | * Link L<AnyEvent::Handle> on line 585 does not specify text                                                   |
-## |      | 527                  | * Link L<AnyEvent::Socket> on line 585 does not specify text                                                   |
-## |      | 527, 527             | * Link L<Pcore::Proxy> on line 551 does not specify text                                                       |
-## |      | 527                  | * Link L<Pcore::Proxy> on line 585 does not specify text                                                       |
+## |      | 526                  | * Link L<AnyEvent::Handle> on line 532 does not specify text                                                   |
+## |      | 526                  | * Link L<AnyEvent::Handle> on line 540 does not specify text                                                   |
+## |      | 526                  | * Link L<AnyEvent::Handle> on line 568 does not specify text                                                   |
+## |      | 526                  | * Link L<AnyEvent::Handle> on line 584 does not specify text                                                   |
+## |      | 526                  | * Link L<AnyEvent::Socket> on line 584 does not specify text                                                   |
+## |      | 526, 526             | * Link L<Pcore::Proxy> on line 550 does not specify text                                                       |
+## |      | 526                  | * Link L<Pcore::Proxy> on line 584 does not specify text                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 20, 25               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
