@@ -1,8 +1,11 @@
+- Pcore::AE::Handle2:
+    - handle should return errors using standard result object;
+    - remove proxies;
+    - remove persistent;
+
 - redesign HTTP ua;
     - cookies - remove support for pub. suffixes, this is useless overhead;
     - headers shoud be always ArrayRef and in 'Header-Name' format;
-
-- HTTP handle should return errors using standard result object;
 
 - websocket - rename error -> on_connect_error;
     - make pong return scalar instead of ref;
@@ -45,11 +48,6 @@
     - blocking api call;
     - api client - blocking call;
     - blocking api auth methods;
-
-- RPC
-    - combine RPC + WebSocket;
-        - bidirectional API protocol;
-        - WebSocket message broker;
 
 - SQL:
     - error handling;
