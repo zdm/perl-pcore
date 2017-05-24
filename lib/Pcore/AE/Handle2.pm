@@ -6,9 +6,12 @@ use AnyEvent::Socket qw[];
 use Pcore::AE::DNS::Cache;
 use Pcore::HTTP::Headers;
 use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF HEADERS_NONE];
+use Pcore::AE::Handle::Cache2;
 
 const our $MAX_READ_SIZE => 131_072;
 const our $CONNECT_ARGS  => [qw[fh connect on_connect connect_timeout bind_ip]];
+
+const our $CACHE => Pcore::AE::Handle::Cache2->new;
 
 # register "http_headers" read type
 AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
@@ -38,8 +41,9 @@ AnyEvent::Handle::register_read_type http_headers => sub ( $self, $cb ) {
 
 sub new ( $self, @ ) {
     my $args = {
-        fh      => undef,
-        connect => undef,    # mandatory
+        fh         => undef,
+        connect    => undef,    # mandatory
+        persistent => 0,        # try to fetch handle from cache before connect
 
         on_connect_error => undef,    # $h, $message
         on_error         => undef,    # $h, $fatal, $message
@@ -53,12 +57,28 @@ sub new ( $self, @ ) {
         @_[ 1 .. $#_ ]
     };
 
+    # get connect args
+    my $connect_args->@{ $CONNECT_ARGS->@* } = delete $args->@{ $CONNECT_ARGS->@* };
+
+    # process persistent
+    if ( !$args->{fh} ) {
+        $connect_args->{connect} = get_connect( $connect_args->{connect} );
+
+        if ( $args->{persistent} ) {
+
+            $args->{persistent} = join q[|], $connect_args->{connect}->[2], $connect_args->{connect}->[0], $connect_args->{connect}->[1];
+
+            if ( my $h = $CACHE->fetch( $args->{persistent} ) ) {
+                $connect_args->{on_connect}->( $h, undef, undef, undef );
+
+                return;
+            }
+        }
+    }
+
     # convert to AE::Handle attrs
     $args->{no_delay}  = delete $args->{tcp_no_delay};
     $args->{keepalive} = delete $args->{tcp_so_keepalive};
-
-    # get connect args
-    my $connect_args->@{ $CONNECT_ARGS->@* } = delete $args->@{ $CONNECT_ARGS->@* };
 
     my $h = bless $args, $self;
 
@@ -72,8 +92,6 @@ sub new ( $self, @ ) {
         $connect_args->{on_connect}->( $h, undef, undef, undef ) if !$h->destroyed;
     }
     else {
-        $connect_args->{connect} = get_connect( $connect_args->{connect} );
-
         $h->{peername} = $connect_args->{connect}->[0] unless exists $h->{peername};
 
         if ( $connect_args->{bind_ip} ) {
@@ -478,6 +496,13 @@ sub read_eof ( $self, $on_read ) {
     return;
 }
 
+# CACHE METHODS
+sub store ( $self, $timeout ) {
+    $CACHE->store( $self, $timeout );
+
+    return;
+}
+
 # UTIL
 sub get_connect ($connect) {
 
@@ -510,25 +535,25 @@ sub get_connect ($connect) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 150                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 276                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 168                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 294                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 186, 187             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 204, 205             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 24                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 27                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 223                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 241                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 536                  | * Link L<AnyEvent::Handle> on line 542 does not specify text                                                   |
-## |      | 536                  | * Link L<AnyEvent::Handle> on line 550 does not specify text                                                   |
-## |      | 536                  | * Link L<AnyEvent::Handle> on line 578 does not specify text                                                   |
-## |      | 536                  | * Link L<AnyEvent::Handle> on line 594 does not specify text                                                   |
-## |      | 536                  | * Link L<AnyEvent::Socket> on line 594 does not specify text                                                   |
-## |      | 536, 536             | * Link L<Pcore::Proxy> on line 560 does not specify text                                                       |
-## |      | 536                  | * Link L<Pcore::Proxy> on line 594 does not specify text                                                       |
+## |      | 561                  | * Link L<AnyEvent::Handle> on line 567 does not specify text                                                   |
+## |      | 561                  | * Link L<AnyEvent::Handle> on line 575 does not specify text                                                   |
+## |      | 561                  | * Link L<AnyEvent::Handle> on line 603 does not specify text                                                   |
+## |      | 561                  | * Link L<AnyEvent::Handle> on line 619 does not specify text                                                   |
+## |      | 561                  | * Link L<AnyEvent::Socket> on line 619 does not specify text                                                   |
+## |      | 561, 561             | * Link L<Pcore::Proxy> on line 585 does not specify text                                                       |
+## |      | 561                  | * Link L<Pcore::Proxy> on line 619 does not specify text                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 20, 25               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 23, 28               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

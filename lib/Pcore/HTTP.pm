@@ -45,37 +45,36 @@ our $DEFAULT = {
     method => undef,
     url    => undef,
 
-    useragent         => "Pcore-HTTP/$Pcore::VERSION",
-    recurse           => 7,                              # max. redirects
-    keepalive_timeout => undef,                          # keepalive timeout for persistent connections, if false - default value will be used
-    timeout           => 300,                            # timeout in seconds
-    connect_timeout   => undef,                          # handle socket connect timeout
-    accept_compressed => 1,                              # add ACCEPT_ENCODIING header
-    decompress        => 1,                              # automatically decompress
-    persistent        => 0,
-    session           => undef,
-    cookies           => undef,                          # 1 - create temp cookie jar object, HashRef - use as cookies storage
+    useragent => "Pcore-HTTP/$Pcore::VERSION",    # shortcut for User-Agent header
+    recurse   => 7,                               # max. redirects
 
-    # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
-    buf_size => 0,
+    accept_compressed => 1,                       # add ACCEPT_ENCODIING header
+    decompress        => 1,                       # automatically decompress
 
-    tls_ctx       => $TLS_CTX_LOW,
-    bind_ip       => undef,
-    proxy         => undef,
-    handle_params => undef,
+    cookies => undef,                             # 1 - create temp cookie jar object, HashRef - use as cookies storage
+
+    persistent => 0,                              # persistent timeout in seconds, proxy connection can't be persistent
+
+    buf_size => 0,                                # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
+
+    handle_params   => undef,                     # HashRef with params, that will be passed directly to AE::Handle
+    connect_timeout => undef,                     # handle connect timeout
+    timeout         => 300,                       # timeout in seconds
+    tls_ctx         => $TLS_CTX_LOW,
+    bind_ip         => undef,
+    proxy           => undef,
 
     headers => undef,
     body    => undef,
 
-    # 1 - create progress indicator, HashRef - progress indicator params, CodeRef - on_progress callback
-    on_progress   => undef,
+    on_progress   => undef,                       # 1 - create progress indicator, HashRef - progress indicator params, CodeRef - on_progress callback
     on_header     => undef,
     on_body       => undef,
     before_finish => undef,
     on_finish     => undef,
 };
 
-our $DEFAULT_HANDLE_PARAMS = {    #
+our $DEFAULT_HANDLE_PARAMS = {                    #
     max_read_size => 1_048_576,
 };
 
@@ -185,6 +184,9 @@ sub request ( @ ) {
     my %args = ( $DEFAULT->%*, @_ );
 
     $args{url} = P->uri( $args{url}, base => 'http://', authority => 1 ) if !ref $args{url};
+
+    # proxy connections can't be persistent
+    $args{persistent} = 0 if $args{proxy};
 
     # create headers object
     if ( !$args{headers} ) {
@@ -412,11 +414,11 @@ sub _get_on_progress_cb (%args) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 129                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 128                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 184                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (32)                   |
+## |    3 | 183                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (33)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 170                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 169                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

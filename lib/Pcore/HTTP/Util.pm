@@ -2,7 +2,7 @@ package Pcore::HTTP::Util;
 
 use Pcore -const;
 use Errno qw[];
-use Pcore::AE::Handle qw[:PERSISTENT :PROXY_TYPE];
+use Pcore::AE::Handle qw[:PROXY_TYPE];
 use Pcore::AE::Handle2;
 use Pcore::Util::Scalar qw[refaddr];
 use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
@@ -56,9 +56,7 @@ sub http_request ($args) {
                 $set_error->( $error_status, $error_reason );
             }
             else {                            # request was finished normally
-                my $persistent = $runtime->{h}->{persistent} || $args->{persistent};
-
-                $persistent = 0 if $runtime->{h}->{proxy} && $args->{persistent} == $PERSISTENT_NO_PROXY;
+                my $persistent = $args->{persistent};
 
                 if ($persistent) {
                     if ( $runtime->{res}->{version} == 1.1 ) {    # HTTP/1.1
@@ -67,10 +65,13 @@ sub http_request ($args) {
                     elsif ( $runtime->{res}->{version} == 1.0 ) {    # HTTP/1.0
                         $persistent = 0 if !$runtime->{res}->headers->{CONNECTION} || $runtime->{res}->headers->{CONNECTION} !~ /\bkeep-?alive\b/smi;
                     }
+                    else {
+                        $persistent = 0;
+                    }
                 }
 
                 # store or destroy handle
-                $persistent ? $runtime->{h}->store( $args->{keepalive_timeout} ) : $runtime->{h}->destroy;
+                $persistent ? $runtime->{h}->store($persistent) : $runtime->{h}->destroy;
 
                 # process redirect
                 if ( $runtime->{redirect} ) {
@@ -200,14 +201,12 @@ sub http_request ($args) {
 }
 
 sub _connect ( $args, $runtime, $cb ) {
-    if ( $args->{persistent} || $args->{proxy} ) {
+    if ( $args->{proxy} ) {
         Pcore::AE::Handle->new(
             $args->{handle_params}->%*,
             connect                => $args->{url},
             connect_timeout        => $args->{connect_timeout} // $args->{timeout},
             timeout                => $args->{timeout},
-            persistent             => $args->{persistent},
-            session                => $args->{session},
             tls_ctx                => $args->{tls_ctx},
             bind_ip                => $args->{bind_ip},
             proxy                  => $args->{proxy},
@@ -244,6 +243,7 @@ sub _connect ( $args, $runtime, $cb ) {
         Pcore::AE::Handle2->new(
             $args->{handle_params}->%*,
             connect          => $args->{url},
+            persistent       => $args->{persistent},
             connect_timeout  => $args->{connect_timeout} // $args->{timeout},
             timeout          => $args->{timeout},
             tls_ctx          => $args->{tls_ctx},
@@ -252,12 +252,12 @@ sub _connect ( $args, $runtime, $cb ) {
                 $runtime->{finish}->( $runtime->{on_error_status}, $reason );
 
                 return;
-            }
-              on_error => sub ( $h, $fatal, $reason ) {
+            },
+            on_error => sub ( $h, $fatal, $reason ) {
                 $runtime->{finish}->( $runtime->{on_error_status}, $reason );
 
                 return;
-              },
+            },
             on_connect => sub ( $h, $host, $port, $retry ) {
                 delete $args->{headers}->{PROXY_AUTHORIZATION};
 
@@ -679,7 +679,7 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 26                   | * Subroutine "http_request" with high complexity score (28)                                                    |
+## |      | 26                   | * Subroutine "http_request" with high complexity score (26)                                                    |
 ## |      | 274                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
 ## |      | 409                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
