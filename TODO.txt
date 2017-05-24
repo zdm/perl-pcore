@@ -1,11 +1,10 @@
 - Pcore::AE::Handle2:
     - on_connect_error - requires for HTTP agent;
     - restore handle cache;
+
     - handle should return errors using standard result object;
     - remove proxies;
     - remove persistent;
-    - on_connect_error - _error should try to call $self->on_connect_error->() first if exists and delete this callback;
-    - on_coonect should receive $h, host, port, retry;
 
 - redesign HTTP ua;
     - cookies - remove support for pub. suffixes, this is useless overhead;
