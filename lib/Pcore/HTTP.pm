@@ -52,7 +52,7 @@ our $DEFAULT = {
     connect_timeout   => undef,                          # handle socket connect timeout
     accept_compressed => 1,                              # add ACCEPT_ENCODIING header
     decompress        => 1,                              # automatically decompress
-    persistent        => $PERSISTENT_IDENT,
+    persistent        => 0,
     session           => undef,
     cookies           => undef,                          # 1 - create temp cookie jar object, HashRef - use as cookies storage
 
