@@ -1,4 +1,6 @@
 - Pcore::AE::Handle2:
+    - on_connect_error - requires for HTTP agent;
+    - restore handle cache;
     - handle should return errors using standard result object;
     - remove proxies;
     - remove persistent;
@@ -21,6 +23,7 @@
 - use cookie for session token;
 - remove basic auth;
 
+- error add/remove dist files after committing wiki;
 - docker API - Attempt to access disallowed key '2' in a restricted hash at d:/projects/pcore/lib/Pcore/API/DockerHub/Repository/Build.pm line 25.;
 
 
