@@ -1,5 +1,3 @@
-- TLS_CTX - remove $TLS_CTX const;
-
 - review Pcore::AE:::Handle usage;
 
 - Pcore::AE::Handle2:
