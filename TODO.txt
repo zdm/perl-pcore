@@ -1,5 +1,3 @@
-- review Pcore::AE:::Handle usage;
-
 - Pcore::AE::Handle2:
     - handle should return errors using standard result object;
 

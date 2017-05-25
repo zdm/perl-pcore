@@ -82,7 +82,7 @@ sub new ( $self, @ ) {
     my $connect_args->@{ $CONNECT_ARGS->@* } = delete $args->@{ $CONNECT_ARGS->@* };
 
     # process persistent
-    if ( !$args->{fh} ) {
+    if ( !$connect_args->{fh} ) {
         $connect_args->{connect} = get_connect( $connect_args->{connect} );
 
         if ( $args->{persistent} ) {
@@ -106,7 +106,7 @@ sub new ( $self, @ ) {
 
     my $h = bless $args, $self;
 
-    if ( $args->{fh} ) {
+    if ( $connect_args->{fh} ) {
         $h->{fh} = $connect_args->{fh};
 
         $h->_start;
