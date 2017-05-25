@@ -174,7 +174,7 @@ sub _get_ws ( $self, $cb ) {
             #     listen_events  => $args{listen_events},
             #     forward_events => $args{forward_events},
             # },
-            on_error => sub ($res) {
+            on_connect_error => sub ($res) {
                 while ( my $cb = shift $self->{_get_ws_cb}->@* ) {
                     $cb->( undef, $res );
                 }

@@ -115,30 +115,25 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
 
 sub connect_ws ( $self, $protocol, $uri, @ ) {
     my %args = (
-        connect_timeout => 30,
-        tls_ctx         => $TLS_CTX_HIGH,
-        bind_ip         => undef,
+        on_connect_error => undef,
+        connect_timeout  => 30,
+        tls_ctx          => $TLS_CTX_HIGH,
+        bind_ip          => undef,
 
         max_message_size => 0,
         compression      => 0,        # use permessage_deflate compression
-        headers          => undef,    # Maybe[ArrayRef]
-        before_connect   => undef,    # Maybe[HashRef]
-        on_error         => undef,
-        on_connect       => undef,    # mandatory
         on_disconnect    => undef,    # passed to websocket constructor
+
+        headers        => undef,      # Maybe[ArrayRef]
+        before_connect => undef,      # Maybe[HashRef]
+        on_connect     => undef,      # mandatory
+
         @_[ 3 .. $#_ ],
     );
 
-    # load protocol implementation
-    my $implementation = $protocol || 'raw';
-
-    eval { require "Pcore/WebSocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
-
-    my $class = "Pcore::WebSocket::Protocol::$implementation";
-
-    my $on_error = sub ( $status ) {
-        if ( $args{on_error} ) {
-            $args{on_error}->($status);
+    my $on_connect_error = sub ( $status ) {
+        if ( $args{on_connect_error} ) {
+            $args{on_connect_error}->($status);
         }
         else {
             die qq[WebSocket connect error: $status];
@@ -147,8 +142,15 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
         return;
     };
 
+    # load protocol implementation
+    my $implementation = $protocol || 'raw';
+
+    eval { require "Pcore/WebSocket/Protocol/$implementation.pm" };    ## no critic qw[Modules::RequireBarewordIncludes]
+
+    my $class = "Pcore::WebSocket::Protocol::$implementation";
+
     if ($@) {
-        $on_error->( result [ 400, 'WebSocket protocol is not supported' ] );
+        $on_connect_error->( result [ 400, 'WebSocket protocol is not supported' ] );
 
         return;
     }
@@ -172,19 +174,12 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
     }
 
     Pcore::AE::Handle2->new(
-        $args{handle_params}->%*,
-        persistent       => 0,
-        connect          => $connect,
-        connect_timeout  => $args{connect_timeout},
-        tls_ctx          => $args{tls_ctx},
-        bind_ip          => $args{bind_ip},
-        on_connect_error => sub ( $h, $reason ) {
-            $on_error->( result [ 595, $reason ] );
-
-            return;
-        },
-        on_error => sub ( $h, $fatal, $reason ) {
-            $on_error->( result [ 596, $reason ] );
+        connect         => $connect,
+        connect_timeout => $args{connect_timeout},
+        tls_ctx         => $args{tls_ctx},
+        bind_ip         => $args{bind_ip},
+        on_error        => sub ( $h, $fatal, $reason ) {
+            $on_connect_error->( result [ 596, $reason ] );
 
             return;
         },
@@ -231,66 +226,67 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
             $h->read_http_res_headers(
                 headers => 1,
                 sub ( $h1, $headers, $error_reason ) {
-                    my $res;
 
-                    my $res_headers;
-
+                    # headers parsing error
                     if ($error_reason) {
+                        $on_connect_error->( result [ 596, $error_reason ] );
 
-                        # headers parsing error
-                        $res = result [ 596, $error_reason ];
+                        return;
+                    }
+
+                    my $res_headers = $headers->{headers};
+
+                    # check response status
+                    if ( $headers->{status} != 101 ) {
+                        $on_connect_error->( result [ $headers->{status}, $headers->{reason} ] );
+
+                        return;
+                    }
+
+                    # check response connection headers
+                    if ( !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi ) {
+                        $on_connect_error->( result [ 596, q[WebSocket handshake error] ] );
+
+                        return;
+                    }
+
+                    # validate SEC_WEBSOCKET_ACCEPT
+                    if ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne Pcore::WebSocket::Handle->get_challenge($sec_websocket_key) ) {
+                        $on_connect_error->( result [ 596, q[Invalid SEC_WEBSOCKET_ACCEPT header] ] );
+
+                        return;
+                    }
+
+                    # check protocol
+                    if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
+                        if ( !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
+                            $on_connect_error->( result [ 596, qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"] ] );
+
+                            return;
+                        }
+                    }
+                    elsif ($protocol) {
+                        $on_connect_error->( result [ 596, q[WebSocket server returned no protocol] ] );
+
+                        return;
+                    }
+
+                    # check compression support
+                    if ( $res_headers->{SEC_WEBSOCKET_EXTENSIONS} ) {
+                        $ws->{compression} = 1 if $args{compression} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
                     }
                     else {
-                        $res_headers = $headers->{headers};
-
-                        # check response status
-                        if ( $headers->{status} != 101 ) {
-                            $res = result [ $headers->{status}, $headers->{reason} ];
-                        }
-
-                        # check response connection headers
-                        elsif ( !$res_headers->{CONNECTION} || !$res_headers->{UPGRADE} || $res_headers->{CONNECTION} !~ /\bupgrade\b/smi || $res_headers->{UPGRADE} !~ /\bwebsocket\b/smi ) {
-                            $res = result [ 596, q[WebSocket handshake error] ];
-                        }
-
-                        # check SEC_WEBSOCKET_ACCEPT
-                        elsif ( !$res_headers->{SEC_WEBSOCKET_ACCEPT} || $res_headers->{SEC_WEBSOCKET_ACCEPT} ne Pcore::WebSocket::Handle->get_challenge($sec_websocket_key) ) {
-                            $res = result [ 596, q[Invalid SEC_WEBSOCKET_ACCEPT header] ];
-                        }
-
-                        # check protocol
-                        else {
-                            if ( $res_headers->{SEC_WEBSOCKET_PROTOCOL} ) {
-                                if ( !$protocol || $res_headers->{SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
-                                    $res = result [ 596, qq[WebSocket server returned unsupported protocol "$res_headers->{SEC_WEBSOCKET_PROTOCOL}"] ];
-                                }
-                            }
-                            elsif ($protocol) {
-                                $res = result [ 596, q[WebSocket server returned no protocol] ];
-                            }
-                        }
+                        $ws->{compression} = 0;
                     }
 
-                    if ( defined $res ) {
-                        $on_error->($res);
-                    }
-                    else {
-                        my $compression = 0;
+                    $ws->{h} = $h;
 
-                        # check and set extensions
-                        if ( $res_headers->{SEC_WEBSOCKET_EXTENSIONS} ) {
-                            $compression = 1 if $args{compression} && $res_headers->{SEC_WEBSOCKET_EXTENSIONS} =~ /\bpermessage-deflate\b/smi;
-                        }
+                    # call protocol on_connect
+                    $ws->on_connect;
 
-                        $ws->@{qw[h compression]} = ( $h, $compression );
+                    $ws->on_connect_client($res_headers);
 
-                        # call protocol on_connect
-                        $ws->on_connect;
-
-                        $ws->on_connect_client($res_headers);
-
-                        delete( $args{on_connect} )->( $ws, $res_headers );
-                    }
+                    $args{on_connect}->( $ws, $res_headers );
 
                     return;
                 }
@@ -310,9 +306,9 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 37, 135              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 37, 148              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (37)                |
+## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (34)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

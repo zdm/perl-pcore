@@ -22,6 +22,7 @@
 
 - error add/remove dist files after committing wiki;
 - docker API - Attempt to access disallowed key '2' in a restricted hash at d:/projects/pcore/lib/Pcore/API/DockerHub/Repository/Build.pm line 25.;
+- commit error, when committing not from root dir, eg. p doc -f devel from data dir;
 
 
 - rewiew API methods;
@@ -39,6 +40,10 @@
 -----------------------------------------------------------------------------------------------
 
 - use qq[] instead of " in Pcore dump to quote strings;
+
+- websocket RPC bin protocol:
+    - [headers length, cbor headers, cbor body];
+    - allows to decode headers and return body to client;
 
 - PAR:
     - PAR - DSO auto scan;
