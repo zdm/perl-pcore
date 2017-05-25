@@ -8,11 +8,11 @@ use Pcore::Util::UUID qw[uuid_str];
 
 has uri => ( is => 'ro', isa => InstanceOf ['Pcore::Util::URI'], required => 1 );    # http://token@host:port/api/, ws://token@host:port/api/
 
-has token             => ( is => 'ro', isa => Str );
-has api_ver           => ( is => 'ro', isa => Str );                                 # eg: 'v1', default API version for relative methods
-has keepalive_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
-has http_timeout      => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
-has http_tls_ctx      => ( is => 'ro', isa => Maybe [ HashRef | Int ] );
+has token           => ( is => 'ro', isa => Str );
+has api_ver         => ( is => 'ro', isa => Str );                                         # eg: 'v1', default API version for relative methods
+has http_persistent => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 600 );
+has http_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
+has http_tls_ctx => ( is => 'ro', isa => Maybe [ HashRef | Int ] );
 
 has _is_http => ( is => 'lazy', isa => Bool, required => 1 );
 
@@ -96,9 +96,9 @@ sub _send_http ( $self, $method, @ ) {
 
     P->http->post(
         $self->uri,
-        keepalive_timeout => $self->keepalive_timeout,
-        ( $self->http_timeout ? ( timeout => $self->http_timeout ) : () ),
-        ( $self->http_tls_ctx ? ( tls_ctx => $self->http_tls_ctx ) : () ),
+        persistent => $self->{http_persistent},
+        ( $self->{http_timeout} ? ( timeout => $self->{http_timeout} ) : () ),
+        ( $self->{http_tls_ctx} ? ( tls_ctx => $self->{http_tls_ctx} ) : () ),
         headers => {
             REFERER       => undef,
             AUTHORIZATION => "Token $self->{token}",
