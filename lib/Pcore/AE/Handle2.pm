@@ -70,8 +70,9 @@ sub new ( $self, @ ) {
         on_error         => undef,    # $h, $fatal, $message
         on_connect       => undef,    # mandatory, $h, $host, $port, $repeat
 
-        tcp_no_delay     => 1,        # no_delay
-        tcp_so_keepalive => 1,        # keepalive
+        tls_ctx          => $TLS_CTX_HIGH,
+        tcp_no_delay     => 1,               # no_delay
+        tcp_so_keepalive => 1,               # keepalive
 
         connect_timeout => 30,
         bind_ip         => undef,
@@ -101,7 +102,7 @@ sub new ( $self, @ ) {
     $args->{no_delay}  = delete $args->{tcp_no_delay};
     $args->{keepalive} = delete $args->{tcp_so_keepalive};
 
-    # resolve TLS context shortcut
+    # resolve TLS_CTX shortcut
     $args->{tls_ctx} = $TLS_CTX->{ $args->{tls_ctx} } if $args->{tls_ctx} && !ref $args->{tls_ctx};
 
     my $h = bless $args, $self;
@@ -559,23 +560,23 @@ sub get_connect ($connect) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 192                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 318                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 193                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 319                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 228, 229             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 229, 230             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 48                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 265                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 266                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 585                  | * Link L<AnyEvent::Handle> on line 591 does not specify text                                                   |
-## |      | 585                  | * Link L<AnyEvent::Handle> on line 599 does not specify text                                                   |
-## |      | 585                  | * Link L<AnyEvent::Handle> on line 627 does not specify text                                                   |
-## |      | 585                  | * Link L<AnyEvent::Handle> on line 643 does not specify text                                                   |
-## |      | 585                  | * Link L<AnyEvent::Socket> on line 643 does not specify text                                                   |
-## |      | 585, 585             | * Link L<Pcore::Proxy> on line 609 does not specify text                                                       |
-## |      | 585                  | * Link L<Pcore::Proxy> on line 643 does not specify text                                                       |
+## |      | 586                  | * Link L<AnyEvent::Handle> on line 592 does not specify text                                                   |
+## |      | 586                  | * Link L<AnyEvent::Handle> on line 600 does not specify text                                                   |
+## |      | 586                  | * Link L<AnyEvent::Handle> on line 628 does not specify text                                                   |
+## |      | 586                  | * Link L<AnyEvent::Handle> on line 644 does not specify text                                                   |
+## |      | 586                  | * Link L<AnyEvent::Socket> on line 644 does not specify text                                                   |
+## |      | 586, 586             | * Link L<Pcore::Proxy> on line 610 does not specify text                                                       |
+## |      | 586                  | * Link L<Pcore::Proxy> on line 644 does not specify text                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 44, 49               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
