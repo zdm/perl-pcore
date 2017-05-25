@@ -89,7 +89,12 @@ sub new ( $self, @ ) {
     $args{keepalive} = delete $args{tcp_so_keepalive};
 
     # resolve TLS_CTX shortcut
-    $args{tls_ctx} = $Pcore::AE::Handle2::TLS_CTX{ $args{tls_ctx} } if $args{tls_ctx} && !ref $args{tls_ctx};
+    if ( !$args{tls_ctx} ) {
+        $args{tls_ctx} = $Pcore::AE::Handle2::TLS_CTX->{$TLS_CTX_LOW};
+    }
+    elsif ( !ref $args{tls_ctx} ) {
+        $args{tls_ctx} = $Pcore::AE::Handle2::TLS_CTX->{ $args{tls_ctx} };
+    }
 
     if ( $args{fh} ) {
         $args{on_connect}->( $self->SUPER::new(%args), undef, undef, undef );
@@ -1033,29 +1038,29 @@ sub get_connect ($connect) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 73                   | * Subroutine "new" with high complexity score (47)                                                             |
-## |      | 666                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 792                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 671                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 797                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 189                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 194                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 299, 702, 703        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 304, 707, 708        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 58, 486, 533, 538,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |      | 555, 601, 604, 607   |                                                                                                                |
+## |    2 | 58, 491, 538, 543,   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 560, 606, 609, 612   |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 739                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 744                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 1063                 | * Link L<AnyEvent::Handle> on line 1069 does not specify text                                                  |
-## |      | 1063                 | * Link L<AnyEvent::Handle> on line 1077 does not specify text                                                  |
-## |      | 1063                 | * Link L<AnyEvent::Handle> on line 1105 does not specify text                                                  |
-## |      | 1063                 | * Link L<AnyEvent::Handle> on line 1121 does not specify text                                                  |
-## |      | 1063                 | * Link L<AnyEvent::Socket> on line 1121 does not specify text                                                  |
-## |      | 1063, 1063           | * Link L<Pcore::Proxy> on line 1087 does not specify text                                                      |
-## |      | 1063                 | * Link L<Pcore::Proxy> on line 1121 does not specify text                                                      |
+## |      | 1068                 | * Link L<AnyEvent::Handle> on line 1074 does not specify text                                                  |
+## |      | 1068                 | * Link L<AnyEvent::Handle> on line 1082 does not specify text                                                  |
+## |      | 1068                 | * Link L<AnyEvent::Handle> on line 1110 does not specify text                                                  |
+## |      | 1068                 | * Link L<AnyEvent::Handle> on line 1126 does not specify text                                                  |
+## |      | 1068                 | * Link L<AnyEvent::Socket> on line 1126 does not specify text                                                  |
+## |      | 1068, 1068           | * Link L<Pcore::Proxy> on line 1092 does not specify text                                                      |
+## |      | 1068                 | * Link L<Pcore::Proxy> on line 1126 does not specify text                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 54, 59, 491, 601,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 604, 607, 613        |                                                                                                                |
+## |    1 | 54, 59, 496, 606,    | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 609, 612, 618        |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
