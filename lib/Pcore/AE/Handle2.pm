@@ -8,8 +8,8 @@ use Pcore::HTTP::Headers;
 use HTTP::Parser::XS qw[HEADERS_AS_ARRAYREF HEADERS_NONE];
 use Pcore::AE::Handle::Cache2;
 
-const our $TLS_CTX_LOW  => 1;
-const our $TLS_CTX_HIGH => 2;
+const our $TLS_CTX_LOW  => 0;
+const our $TLS_CTX_HIGH => 1;
 const our $TLS_CTX      => {
     $TLS_CTX_LOW => {
         ca_file         => P->ca->ca_file,
