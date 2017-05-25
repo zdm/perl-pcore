@@ -1,17 +1,15 @@
-- in persistent mode should store all redirect connections;
-- review Pcore::AE:::Handle usage;
 - TLS_CTX - remove $TLS_CTX const;
-- Pcore::HTTP :PERSISTENT
+
+- review Pcore::AE:::Handle usage;
 
 - Pcore::AE::Handle2:
-    - on_connect_error - requires for HTTP agent;
-
     - handle should return errors using standard result object;
-    - remove proxies;
 
 - redesign HTTP ua;
     - cookies - remove support for pub. suffixes, this is useless overhead;
     - headers shoud be always ArrayRef and in 'Header-Name' format;
+    - http_timeout works incorrectly, should be timeout for whole request, currently only timeout between read operation;
+    - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
 
 - websocket - rename error -> on_connect_error;
     - !!! unclear, was request accepted by server or not? need to invent signalling mechanism, or terminate request by timeout;
@@ -65,9 +63,6 @@
 
 - HANDLE and PROXY refactoring
     - rename -> timeout -> http_timeout, keepalive_timeout -> http_keep...;
-    - http_timeout works incorrectly, should be timeout for whole request, currently only timeout between read operation;
-    - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
 
     - pcore::ae::handle - use reason instead of message in error callbacks;
     - http - do not use header object, use direct cache;
-    - persistent -> keepalive_timeout in HTTP client;
