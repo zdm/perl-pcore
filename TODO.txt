@@ -1,3 +1,8 @@
+- in persistent mode should store all redirect connections;
+- review Pcore::AE:::Handle usage;
+- TLS_CTX - remove $TLS_CTX const;
+- Pcore::HTTP :PERSISTENT
+
 - Pcore::AE::Handle2:
     - on_connect_error - requires for HTTP agent;
 

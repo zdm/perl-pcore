@@ -33,18 +33,22 @@ sub http_request ($args) {
     $runtime = {
         res    => $args->{res},
         h      => undef,
-        finish => sub ( $error_status = undef, $error_reason = undef ) {
+        finish => sub ( $error_status = undef, $error_reason = undef, $is_connect_error = undef ) {
             state $finished = 0;
 
             return if $finished;
 
             $finished = 1;
 
-            my $set_error = sub ( $error_status, $error_reason ) {
+            my $set_error = sub ( $error_status, $error_reason, $is_connect_error ) {
                 $args->{res}->set_status( $error_status, $error_reason );
+
+                $args->{res}->{is_connect_error} = 1 if $is_connect_error;
 
                 if ( refaddr( $args->{res} ) != refaddr( $runtime->{res} ) ) {
                     $runtime->{res}->set_status( $error_status, $error_reason );
+
+                    $runtime->{is_connect_error} = 1 if $is_connect_error;
                 }
 
                 return;
@@ -53,7 +57,7 @@ sub http_request ($args) {
             if ( defined $error_status ) {    # request was finished with connection / HTTP protocol error
                 $runtime->{h}->destroy if $runtime->{h};
 
-                $set_error->( $error_status, $error_reason );
+                $set_error->( $error_status, $error_reason, $is_connect_error );
             }
             else {                            # request was finished normally
                 my $persistent = $args->{persistent};
@@ -76,7 +80,7 @@ sub http_request ($args) {
                 # process redirect
                 if ( $runtime->{redirect} ) {
                     if ( $args->{recurse} < 1 ) {
-                        $set_error->( 599, 'Too many redirections' );
+                        $set_error->( 599, 'Too many redirections', 0 );
                     }
                     else {
                         $args->{recurse}--;
@@ -109,7 +113,7 @@ sub http_request ($args) {
 
                         undef $runtime;
 
-                        http_request($args);
+                        AE::postpone { http_request($args) };
 
                         return;
                     }
@@ -249,7 +253,7 @@ sub _connect ( $args, $runtime, $cb ) {
             tls_ctx          => $args->{tls_ctx},
             bind_ip          => $args->{bind_ip},
             on_connect_error => sub ( $h, $reason ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+                $runtime->{finish}->( $runtime->{on_error_status}, $reason, 1 );
 
                 return;
             },
@@ -679,13 +683,13 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 26                   | * Subroutine "http_request" with high complexity score (26)                                                    |
-## |      | 274                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
-## |      | 409                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 26                   | * Subroutine "http_request" with high complexity score (28)                                                    |
+## |      | 278                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
+## |      | 413                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 389                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 393                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 621                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 625                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
