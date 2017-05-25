@@ -216,6 +216,9 @@ sub request ( @ ) {
         $args{handle_params} = $DEFAULT_HANDLE_PARAMS;
     }
 
+    # use timeout as connect timeout if not defined
+    $args{connect_timeout} //= $args{timeout};
+
     # apply useragent
     if ( my $useragent = delete $args{useragent} ) {
         $args{headers}->{USER_AGENT} = $useragent if !exists $args{headers}->{USER_AGENT};

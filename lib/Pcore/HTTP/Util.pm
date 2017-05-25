@@ -209,7 +209,7 @@ sub _connect ( $args, $runtime, $cb ) {
         Pcore::AE::Handle->new(
             $args->{handle_params}->%*,
             connect                => $args->{url},
-            connect_timeout        => $args->{connect_timeout} // $args->{timeout},
+            connect_timeout        => $args->{connect_timeout},
             timeout                => $args->{timeout},
             tls_ctx                => $args->{tls_ctx},
             bind_ip                => $args->{bind_ip},
@@ -248,7 +248,7 @@ sub _connect ( $args, $runtime, $cb ) {
             $args->{handle_params}->%*,
             connect          => $args->{url},
             persistent       => $args->{persistent},
-            connect_timeout  => $args->{connect_timeout} // $args->{timeout},
+            connect_timeout  => $args->{connect_timeout},
             timeout          => $args->{timeout},
             tls_ctx          => $args->{tls_ctx},
             bind_ip          => $args->{bind_ip},
