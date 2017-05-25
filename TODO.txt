@@ -8,6 +8,7 @@
     - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
 
 - websocket - rename error -> on_connect_error;
+    - use tls_ctx in connect_ws;
     - !!! unclear, was request accepted by server or not? need to invent signalling mechanism, or terminate request by timeout;
     - make pong return scalar instead of ref;
     - make ping accept scalar instead of ref;
