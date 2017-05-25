@@ -38,7 +38,7 @@ our $DEFAULT = {
     handle_params   => undef,                     # HashRef with params, that will be passed directly to AE::Handle
     connect_timeout => undef,                     # handle connect timeout
     timeout         => 300,                       # timeout in seconds
-    tls_ctx         => $TLS_CTX_LOW,
+    tls_ctx         => $TLS_CTX_HIGH,
     bind_ip         => undef,
     proxy           => undef,
 
