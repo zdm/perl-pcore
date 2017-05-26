@@ -38,10 +38,7 @@ sub run ( $self, $req ) {
                             {   max_message_size => $WS_MAX_MESSAGE_SIZE,
                                 pong_interval    => $WS_PONG_INTERVAL,
                                 compression      => $WS_COMPRESSION,
-                                on_disconnect    => sub ( $ws, $status ) {
-                                    return;
-                                },
-                                on_rpc => sub ( $ws, $req, $tx ) {
+                                on_rpc           => sub ( $ws, $req, $tx ) {
                                     $ws->{auth}->api_call_arrayref( $tx->{method}, $tx->{data}, $req );
 
                                     return;
@@ -49,6 +46,7 @@ sub run ( $self, $req ) {
                             },
                             before_connect => undef,
                             on_connect     => undef,
+                            on_disconnect  => undef,
                         );
 
                         return;
