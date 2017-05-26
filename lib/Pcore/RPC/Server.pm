@@ -92,13 +92,13 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 
                                     return;
                                 },
-                                on_rpc => sub ( $ws, $req, $tran ) {
-                                    my $method_name = "API_$tran->{method}";
+                                on_rpc => sub ( $ws, $req, $tx ) {
+                                    my $method_name = "API_$tx->{method}";
 
                                     if ( $rpc->can($method_name) ) {
 
                                         # call method
-                                        eval { $rpc->$method_name( $req, $tran->{data} ? $tran->{data}->@* : () ) };
+                                        eval { $rpc->$method_name( $req, $tx->{data} ? $tx->{data}->@* : () ) };
 
                                         $@->sendlog if $@;
                                     }

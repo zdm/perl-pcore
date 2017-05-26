@@ -19,10 +19,10 @@ with qw[Pcore::WebSocket::Handle];
 
 P->init_demolish(__PACKAGE__);
 
-const our $TRANS_TYPE_LISTEN    => 'listen';
-const our $TRANS_TYPE_EVENT     => 'event';
-const our $TRANS_TYPE_RPC       => 'rpc';
-const our $TRANS_TYPE_EXCEPTION => 'exception';
+const our $TX_TYPE_LISTEN    => 'listen';
+const our $TX_TYPE_EVENT     => 'event';
+const our $TX_TYPE_RPC       => 'rpc';
+const our $TX_TYPE_EXCEPTION => 'exception';
 
 my $CBOR = do {
     my $cbor = CBOR::XS->new;
@@ -78,7 +78,7 @@ my $JSON = do {
 
 sub rpc_call ( $self, $method, @ ) {
     my $msg = {
-        type   => $TRANS_TYPE_RPC,
+        type   => $TX_TYPE_RPC,
         method => $method,
     };
 
@@ -107,7 +107,7 @@ sub forward_events ( $self, $events ) {
 
 sub listen_events ( $self, $events ) {
     my $msg = {
-        type   => $TRANS_TYPE_LISTEN,
+        type   => $TX_TYPE_LISTEN,
         events => $events,
     };
 
@@ -118,7 +118,7 @@ sub listen_events ( $self, $events ) {
 
 sub fire_remote_event ( $self, $event, $data = undef ) {
     my $msg = {
-        type  => $TRANS_TYPE_EVENT,
+        type  => $TX_TYPE_EVENT,
         event => $event,
         data  => $data,
     };
@@ -245,42 +245,42 @@ sub _set_listeners ( $self, $events ) {
 sub _on_message ( $self, $msg, $is_json ) {
     $msg = [$msg] if ref $msg ne 'ARRAY';
 
-    for my $trans ( $msg->@* ) {
-        next if !$trans->{type};
+    for my $tx ( $msg->@* ) {
+        next if !$tx->{type};
 
-        if ( $trans->{type} eq $TRANS_TYPE_LISTEN ) {
-            $self->_set_listeners( $trans->{events} );
-
-            next;
-        }
-
-        if ( $trans->{type} eq $TRANS_TYPE_EVENT ) {
-            P->fire_event( $trans->{event}, $trans->{data} );
+        if ( $tx->{type} eq $TX_TYPE_LISTEN ) {
+            $self->_set_listeners( $tx->{events} );
 
             next;
         }
 
-        if ( $trans->{type} eq $TRANS_TYPE_EXCEPTION ) {
-            if ( $trans->{tid} ) {
-                if ( my $cb = delete $self->{_callbacks}->{ $trans->{tid} } ) {
+        if ( $tx->{type} eq $TX_TYPE_EVENT ) {
+            P->fire_event( $tx->{event}, $tx->{data} );
+
+            next;
+        }
+
+        if ( $tx->{type} eq $TX_TYPE_EXCEPTION ) {
+            if ( $tx->{tid} ) {
+                if ( my $cb = delete $self->{_callbacks}->{ $tx->{tid} } ) {
 
                     # convert result to response object
-                    $cb->( bless $trans->{message}, 'Pcore::Util::Result' );
+                    $cb->( bless $tx->{message}, 'Pcore::Util::Result' );
                 }
             }
 
             next;
         }
 
-        if ( $trans->{type} eq $TRANS_TYPE_RPC ) {
+        if ( $tx->{type} eq $TX_TYPE_RPC ) {
 
             # method is specified, this is rpc call
-            if ( $trans->{method} ) {
+            if ( $tx->{method} ) {
                 if ( !$self->{on_rpc} ) {
-                    if ( $trans->{tid} ) {
+                    if ( $tx->{tid} ) {
                         my $result = {
-                            type    => $TRANS_TYPE_EXCEPTION,
-                            tid     => $trans->{tid},
+                            type    => $TX_TYPE_EXCEPTION,
+                            tid     => $tx->{tid},
                             message => result [ 500, 'RPC is not supported' ],
                         };
 
@@ -296,7 +296,7 @@ sub _on_message ( $self, $msg, $is_json ) {
                     my $req = bless {}, 'Pcore::WebSocket::Protocol::pcore::Request';
 
                     # callback is required
-                    if ( $trans->{tid} ) {
+                    if ( $tx->{tid} ) {
                         weaken $self;
 
                         $req->{_cb} = sub ($res) {
@@ -306,15 +306,15 @@ sub _on_message ( $self, $msg, $is_json ) {
 
                             if ( $res->is_success ) {
                                 $result = {
-                                    type   => $TRANS_TYPE_RPC,
-                                    tid    => $trans->{tid},
+                                    type   => $TX_TYPE_RPC,
+                                    tid    => $tx->{tid},
                                     result => $res,
                                 };
                             }
                             else {
                                 $result = {
-                                    type    => $TRANS_TYPE_EXCEPTION,
-                                    tid     => $trans->{tid},
+                                    type    => $TX_TYPE_EXCEPTION,
+                                    tid     => $tx->{tid},
                                     message => $res,
                                 };
                             }
@@ -331,20 +331,20 @@ sub _on_message ( $self, $msg, $is_json ) {
                     }
 
                     # combine method with action
-                    if ( my $action = delete $trans->{action} ) {
-                        $trans->{method} = q[/] . ( $action =~ s[[.]][/]smgr ) . "/$trans->{method}";
+                    if ( my $action = delete $tx->{action} ) {
+                        $tx->{method} = q[/] . ( $action =~ s[[.]][/]smgr ) . "/$tx->{method}";
                     }
 
-                    $self->{on_rpc}->( $self, $req, $trans );
+                    $self->{on_rpc}->( $self, $req, $tx );
                 }
             }
 
             # method is not specified, this is callback, tid is required
-            elsif ( $trans->{tid} ) {
-                if ( my $cb = delete $self->{_callbacks}->{ $trans->{tid} } ) {
+            elsif ( $tx->{tid} ) {
+                if ( my $cb = delete $self->{_callbacks}->{ $tx->{tid} } ) {
 
                     # convert result to response object
-                    $cb->( bless $trans->{result}, 'Pcore::Util::Result' );
+                    $cb->( bless $tx->{result}, 'Pcore::Util::Result' );
                 }
             }
         }

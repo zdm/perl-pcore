@@ -131,13 +131,13 @@ sub _send_http ( $self, $method, @ ) {
                     $cb->( result [ 500, 'Error decoding response' ] ) if $cb;
                 }
                 elsif ($cb) {
-                    my $trans = ref $msg eq 'ARRAY' ? $msg->[0] : $msg;
+                    my $tx = ref $msg eq 'ARRAY' ? $msg->[0] : $msg;
 
-                    if ( $trans->{type} eq 'exception' ) {
-                        $cb->( bless $trans->{message}, 'Pcore::Util::Result' );
+                    if ( $tx->{type} eq 'exception' ) {
+                        $cb->( bless $tx->{message}, 'Pcore::Util::Result' );
                     }
-                    elsif ( $trans->{type} eq 'rpc' ) {
-                        $cb->( bless $trans->{result}, 'Pcore::Util::Result' );
+                    elsif ( $tx->{type} eq 'rpc' ) {
+                        $cb->( bless $tx->{result}, 'Pcore::Util::Result' );
                     }
                 }
             }
@@ -216,8 +216,8 @@ sub _get_ws ( $self, $cb ) {
             },
             on_rpc => do {
                 if ( $self->{on_rpc} ) {
-                    sub ( $ws, $req, $trans ) {
-                        $self->{on_rpc}->( $ws, $req, $trans ) if $self && $self->{on_rpc};
+                    sub ( $ws, $req, $tx ) {
+                        $self->{on_rpc}->( $ws, $req, $tx ) if $self && $self->{on_rpc};
 
                         return;
                     };
