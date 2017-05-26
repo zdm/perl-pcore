@@ -7,6 +7,9 @@
     - auth client memory leak - websocket not destroyed on undef;
     - on_disconnect should be called everytinme on disconnect;
 
+	- http_persistent -> persistent;
+	- http_timeout -> timeout;
+
 - redesign error log;
 
 - Pcore::AE::Handle2:
