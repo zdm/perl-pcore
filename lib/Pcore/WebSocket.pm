@@ -9,7 +9,6 @@ use Pcore::AE::Handle2 qw[:TLS_CTX];
 
 our $HANDLE = {};
 
-# TODO delete known params, other should be passed to websocket
 sub accept_ws ( $self, $protocol, $req, $on_accept ) {
 
     # this is websocket connect request
@@ -103,7 +102,6 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
     return;
 }
 
-# TODO delete known params, other should be passed to websocket
 sub connect_ws ( $self, $protocol, $uri, @ ) {
     my %args = (
         connect_timeout  => 30,
@@ -290,9 +288,9 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 38, 138              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 37, 136              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 107                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (33)                |
+## |    3 | 105                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (33)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
