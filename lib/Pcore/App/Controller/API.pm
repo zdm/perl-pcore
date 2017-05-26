@@ -41,7 +41,7 @@ sub run ( $self, $req ) {
                                 on_disconnect    => sub ( $ws, $status ) {
                                     return;
                                 },
-                                on_rpc_call => sub ( $ws, $req, $trans ) {
+                                on_rpc => sub ( $ws, $req, $trans ) {
                                     $ws->{auth}->api_call_arrayref( $trans->{method}, $trans->{data}, $req );
 
                                     return;

@@ -212,6 +212,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
             my $ws = bless {
                 max_message_size => $args{max_message_size},
                 on_disconnect    => $args{on_disconnect},
+                on_rpc           => $args{on_rpc},
                 _send_masked     => 1,                         # client always send masked frames
             }, $class;
 

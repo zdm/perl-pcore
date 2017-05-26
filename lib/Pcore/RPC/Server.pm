@@ -92,7 +92,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 
                                     return;
                                 },
-                                on_rpc_call => sub ( $ws, $req, $tran ) {
+                                on_rpc => sub ( $ws, $req, $tran ) {
                                     my $method_name = "API_$tran->{method}";
 
                                     if ( $rpc->can($method_name) ) {

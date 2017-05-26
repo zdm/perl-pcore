@@ -10,7 +10,7 @@ use Pcore::Util::Scalar qw[blessed weaken];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
-has on_rpc_call => ( is => 'ro', isa => CodeRef );    # ($h, $req, $method, $data)
+has on_rpc => ( is => 'ro', isa => CodeRef );    # ($h, $req, $method, $data)
 
 has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -276,7 +276,7 @@ sub _on_message ( $self, $msg, $is_json ) {
 
             # method is specified, this is rpc call
             if ( $trans->{method} ) {
-                if ( $self->{on_rpc_call} ) {
+                if ( $self->{on_rpc} ) {
                     my $req = bless {}, 'Pcore::WebSocket::Protocol::pcore::Request';
 
                     # callback is required
@@ -319,7 +319,7 @@ sub _on_message ( $self, $msg, $is_json ) {
                         $trans->{method} = q[/] . ( $action =~ s[[.]][/]smgr ) . "/$trans->{method}";
                     }
 
-                    $self->{on_rpc_call}->( $self, $req, $trans );
+                    $self->{on_rpc}->( $self, $req, $trans );
                 }
             }
 
