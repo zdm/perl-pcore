@@ -6,7 +6,7 @@ use CBOR::XS qw[];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::WebSocket::Protocol::pcore::Request;
 use Pcore::Util::Text qw[trim];
-use Pcore::Util::Scalar qw[blessed];
+use Pcore::Util::Scalar qw[blessed weaken];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
@@ -281,7 +281,11 @@ sub _on_message ( $self, $msg, $is_json ) {
 
                     # callback is required
                     if ( $trans->{tid} ) {
+                        weaken $self;
+
                         $req->{_cb} = sub ($res) {
+                            return if !$self;
+
                             my $result;
 
                             if ( $res->is_success ) {
@@ -340,7 +344,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 287, 302             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 245                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 291, 306             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

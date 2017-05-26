@@ -1,14 +1,10 @@
 - websocket:
-	- rename error -> on_connect_error;
-    - use tls_ctx in connect_ws;
-    - !!! unclear, was request accepted by server or not? need to invent signalling mechanism, or terminate request by timeout;
-    - make pong return scalar instead of ref;
-    - make ping accept scalar instead of ref;
+    - ping (sub) - ping with callback;
+
     - auth client memory leak - websocket not destroyed on undef;
     - on_disconnect should be called everytinme on disconnect;
 
-	- http_persistent -> persistent;
-	- http_timeout -> timeout;
+    - before_connect is ugly;
 
 - redesign error log;
 
