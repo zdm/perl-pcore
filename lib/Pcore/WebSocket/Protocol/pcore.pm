@@ -10,7 +10,9 @@ use Pcore::Util::Scalar qw[blessed weaken];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
-has on_rpc => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $req, $tx)
+has on_rpc          => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $req, $tx)
+has on_listen_event => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $ev), should return true if operation is allowed
+has on_fire_event   => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $ev), should return true if operation is allowed
 
 has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
@@ -237,6 +239,9 @@ sub _set_listeners ( $self, $events ) {
     for my $event ( $events->@* ) {
         next if exists $self->{_listeners}->{$event};
 
+        # do not set event listener, if not authorized
+        next if $self->{on_listen_event} && !$self->{on_listen_event}->( $self, $event );
+
         $self->{_listeners}->{$event} = P->listen_events(
             $event,
             sub ( $event, $data ) {
@@ -265,6 +270,10 @@ sub _on_message ( $self, $msg, $is_json ) {
 
         # fire local event from remote call
         if ( $tx->{type} eq $TX_TYPE_EVENT ) {
+
+            # ignore event, if not authorized
+            next if $self->{on_fire_event} && !$self->{on_fire_event}->( $self, $tx->{event} );
+
             P->fire_event( $tx->{event}, $tx->{data} );
 
             next;
@@ -374,9 +383,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 253                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
+## |    3 | 258                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 299, 321, 336        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 308, 330, 345        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
