@@ -22,6 +22,7 @@ has timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
 # WebSocket options
 has compression => ( is => 'ro', isa => Bool, default => 0 );
 has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef] );
+has on_rpc        => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _is_http => ( is => 'lazy', isa => Bool, required => 1 );
 
@@ -185,11 +186,11 @@ sub _get_ws ( $self, $cb ) {
             connect_timeout  => $self->{connect_timeout},
             tls_ctx          => $self->{tls_ctx},
             ( $self->{token} ? ( headers => [ Authorization => "Token $self->{token}" ] ) : () ),
+            before_connect => {
 
-            # before_connect => {
-            #     listen_events  => $args{listen_events},
-            #     forward_events => $args{forward_events},
-            # },
+                # listen_events  => $args{listen_events},
+                # forward_events => $args{forward_events},
+            },
             on_connect_error => sub ($res) {
                 while ( my $cb = shift $self->{_get_ws_cb}->@* ) {
                     $cb->( undef, $res );
@@ -207,10 +208,17 @@ sub _get_ws ( $self, $cb ) {
                 return;
             },
             on_disconnect => sub ( $ws, $status ) {
+                undef $self->{_ws};
+
                 $self->{on_disconnect}->($status) if $self && $self->{on_disconnect};
 
                 return;
-            }
+            },
+            on_rpc => sub ( $ws, $req, $trans ) {
+                $self->{on_rpc}->( $ws, $req, $trans ) if $self && $self->{on_rpc};
+
+                return;
+            },
         );
     }
 
@@ -224,7 +232,7 @@ sub _get_ws ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 76                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 77                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

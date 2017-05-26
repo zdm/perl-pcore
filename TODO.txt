@@ -1,5 +1,15 @@
 - websocket:
+    - fix accept_ws on_accept params;
+
+	-> on_rpc_call -> on_rpc;
+	- rewrite on_rpc, return exception;
+
     - ping (sub) - ping with callback;
+
+     - test server handle destroyed and callbacks are called;
+     - test rpc client demolish;
+
+
 
     - auth client memory leak - websocket not destroyed on undef;
     - on_disconnect should be called everytinme on disconnect;

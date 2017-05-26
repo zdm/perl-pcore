@@ -123,6 +123,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
         max_message_size => 0,
         compression      => 0,        # use permessage_deflate compression
         on_disconnect    => undef,    # passed to websocket constructor
+        on_rpc           => undef,    # passed to websocket constructor
 
         headers        => undef,      # Maybe[ArrayRef]
         before_connect => undef,      # Maybe[HashRef]
@@ -306,7 +307,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 37, 148              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 37, 149              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 116                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (34)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
