@@ -232,13 +232,15 @@ sub on_binary ( $self, $data_ref ) {
 sub _set_listeners ( $self, $events ) {
     $events = [$events] if ref $events ne 'ARRAY';
 
+    weaken $self;
+
     for my $event ( $events->@* ) {
         next if exists $self->{_listeners}->{$event};
 
         $self->{_listeners}->{$event} = P->listen_events(
             $event,
             sub ( $event, $data ) {
-                $self->fire_remote_event( $event, $data );
+                $self->fire_remote_event( $event, $data ) if $self;
 
                 return;
             }
@@ -372,9 +374,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 251                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
+## |    3 | 253                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 297, 319, 334        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 299, 321, 336        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
