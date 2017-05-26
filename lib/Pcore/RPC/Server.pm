@@ -70,7 +70,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
         no strict qw[refs];
 
         if ( ${"$class\::RPC_LISTEN_EVENTS"} ) {
-            push $listen_events->@*, ref ${"$class\::RPC_LISTEN_EVENTS"} eq 'ARRAY' ? ${"${class}::RPC_LISTEN_EVENTS"}->@* : ${"$class\::RPC_LISTEN_EVENTS"};
+            push $listen_events->@*, ref ${"$class\::RPC_LISTEN_EVENTS"} eq 'ARRAY' ? ${"$class\::RPC_LISTEN_EVENTS"}->@* : ${"$class\::RPC_LISTEN_EVENTS"};
         }
     }
 
