@@ -89,7 +89,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                             compression      => 0,
                             before_connect   => {
                                 listen_events  => $listen_events,
-                                forward_events => ${"${class}::RPC_FORWARD_EVENTS"},
+                                forward_events => ${"$class\::RPC_FORWARD_EVENTS"},
                             },
                             ( $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : () ),    #
                             ( $can_rpc_on_disconnect ? ( on_disconnect => sub ( $ws, $status ) { $rpc->RPC_ON_DISCONNECT( $ws, $status ); return; } ) : () ),
