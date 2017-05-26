@@ -70,9 +70,6 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
                 ( $compression ? ( 'Sec-WebSocket-Extensions' => 'permessage-deflate' ) : () ),
             );
 
-            # add user headers
-            push @headers, $args{headers}->@* if $args{headers};
-
             # add protocol headers
             if ( my $protocol_headers = $ws->before_connect_server( $env, $args{before_connect} ) ) {
                 push @headers, $protocol_headers->@*;
@@ -120,7 +117,6 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
         connect_timeout  => 30,
         tls_ctx          => $TLS_CTX_HIGH,
         bind_ip          => undef,
-        headers          => undef,           # Maybe[ArrayRef]
         before_connect   => undef,           # Maybe[HashRef]
         on_connect_error => undef,
         on_connect       => undef,           # mandatory
@@ -206,9 +202,6 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
                 ( $protocol          ? "Sec-WebSocket-Protocol:$protocol"            : () ),
                 ( $args{compression} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
             );
-
-            # add user headers
-            push @headers, map {"$_->[0]:$_->[1]"} pairs $args{headers}->@* if $args{headers};
 
             my $ws = bless {
                 max_message_size => $args{max_message_size},
@@ -309,9 +302,9 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 38, 150              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 38, 146              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 118                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (34)                |
+## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (33)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

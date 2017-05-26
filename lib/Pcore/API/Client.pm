@@ -21,8 +21,10 @@ has timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
 
 # WebSocket options
 has compression => ( is => 'ro', isa => Bool, default => 0 );
-has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef] );
-has on_rpc        => ( is => 'ro', isa => Maybe [CodeRef] );
+has listen_events  => ( is => 'ro', isa => ArrayRef );
+has forward_events => ( is => 'ro', isa => ArrayRef );
+has on_disconnect  => ( is => 'ro', isa => Maybe [CodeRef] );
+has on_rpc         => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _is_http => ( is => 'lazy', isa => Bool, required => 1 );
 
@@ -185,11 +187,10 @@ sub _get_ws ( $self, $cb ) {
             compression      => $self->{compression},
             connect_timeout  => $self->{connect_timeout},
             tls_ctx          => $self->{tls_ctx},
-            ( $self->{token} ? ( headers => [ Authorization => "Token $self->{token}" ] ) : () ),
-            before_connect => {
-
-                # listen_events  => $args{listen_events},
-                # forward_events => $args{forward_events},
+            before_connect   => {
+                token          => $self->{token},
+                listen_events  => $self->{listen_events},
+                forward_events => $self->{forward_events},
             },
             on_connect_error => sub ($res) {
                 while ( my $cb = shift $self->{_get_ws_cb}->@* ) {
@@ -236,7 +237,7 @@ sub _get_ws ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 77                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 79                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

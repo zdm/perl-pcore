@@ -47,7 +47,6 @@ sub run ( $self, $req ) {
                                     return;
                                 }
                             },
-                            headers        => undef,
                             before_connect => undef,
                             on_connect     => undef,
                         );

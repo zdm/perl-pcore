@@ -16,13 +16,12 @@ use Pcore::Util::Digest qw[sha1];
 
 requires qw[protocol before_connect_server before_connect_client on_connect_server on_connect_client on_disconnect on_text on_binary on_pong];
 
+has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle2'], required => 1 );
+
 has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1_024 * 1_024 * 100 );    # 0 - do not check message size
 has pong_interval    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong automatically
 has compression      => ( is => 'ro', isa => Bool,              default => 0 );                      # use permessage_deflate compression
-
-has on_disconnect => ( is => 'ro', isa => CodeRef, reader => undef );
-
-has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle2'], required => 1 );
+has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );                        # ($ws, $status)
 
 has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
@@ -466,17 +465,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88, 94, 339          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 87, 93, 338          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 134                  | * Subroutine "on_connect" with high complexity score (27)                                                      |
-## |      | 250                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 133                  | * Subroutine "on_connect" with high complexity score (27)                                                      |
+## |      | 249                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 400, 402             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 399, 401             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 266              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 38, 265              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 312                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 311                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

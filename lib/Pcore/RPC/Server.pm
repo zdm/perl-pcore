@@ -109,7 +109,6 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                                     return;
                                 }
                             },
-                            headers        => undef,
                             before_connect => {
                                 listen_events  => $listen_events,
                                 forward_events => ${"${class}::RPC_FORWARD_EVENTS"},
@@ -154,7 +153,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 101                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 137                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 136                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

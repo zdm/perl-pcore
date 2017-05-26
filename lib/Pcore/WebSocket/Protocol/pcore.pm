@@ -10,13 +10,14 @@ use Pcore::Util::Scalar qw[blessed weaken];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
-has on_rpc => ( is => 'ro', isa => CodeRef );    # ($h, $req, $method, $data)
+has on_rpc => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $req, $tx)
 
 has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 with qw[Pcore::WebSocket::Handle];
 
+# TODO remove
 P->init_demolish(__PACKAGE__);
 
 const our $TX_TYPE_LISTEN    => 'listen';
@@ -161,6 +162,10 @@ sub before_connect_client ( $self, $args ) {
         my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
 
         push $headers->@*, 'Pcore-Listen-Events:' . join ',', $events->@*;
+    }
+
+    if ( $args->{token} ) {
+        push $headers->@*, "Authorization:Token $args->{token}";
     }
 
     return $headers;
@@ -360,9 +365,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 245                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
+## |    3 | 250                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 287, 307, 322        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 292, 312, 327        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
