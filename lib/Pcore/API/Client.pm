@@ -23,8 +23,11 @@ has timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
 has compression => ( is => 'ro', isa => Bool, default => 0 );
 has listen_events  => ( is => 'ro', isa => ArrayRef );
 has forward_events => ( is => 'ro', isa => ArrayRef );
+has on_connect     => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_disconnect  => ( is => 'ro', isa => Maybe [CodeRef] );
 has on_rpc         => ( is => 'ro', isa => Maybe [CodeRef] );
+has on_ping        => ( is => 'ro', isa => Maybe [CodeRef] );
+has on_pong        => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _is_http => ( is => 'lazy', isa => Bool, required => 1 );
 
@@ -202,6 +205,8 @@ sub _get_ws ( $self, $cb ) {
             on_connect => sub ( $ws, $headers ) {
                 $self->{_ws} = $ws;
 
+                $self->{on_connect}->( $self, $headers ) if $self->{on_connect};
+
                 while ( my $cb = shift $self->{_get_ws_cb}->@* ) {
                     $cb->( $ws, undef );
                 }
@@ -211,14 +216,32 @@ sub _get_ws ( $self, $cb ) {
             on_disconnect => sub ( $ws, $status ) {
                 undef $self->{_ws};
 
-                $self->{on_disconnect}->($status) if $self && $self->{on_disconnect};
+                $self->{on_disconnect}->( $self, $status ) if $self && $self->{on_disconnect};
 
                 return;
+            },
+            on_ping => do {
+                if ( $self->{on_ping} ) {
+                    sub ( $ws, $payload_ref ) {
+                        $self->{on_ping}->( $self, $payload_ref ) if $self && $self->{on_ping};
+
+                        return;
+                    };
+                }
+            },
+            on_pong => do {
+                if ( $self->{on_pong} ) {
+                    sub ( $ws, $payload_ref ) {
+                        $self->{on_pong}->( $self, $payload_ref ) if $self && $self->{on_pong};
+
+                        return;
+                    };
+                }
             },
             on_rpc => do {
                 if ( $self->{on_rpc} ) {
                     sub ( $ws, $req, $tx ) {
-                        $self->{on_rpc}->( $ws, $req, $tx ) if $self && $self->{on_rpc};
+                        $self->{on_rpc}->( $self, $req, $tx ) if $self && $self->{on_rpc};
 
                         return;
                     };
@@ -237,7 +260,7 @@ sub _get_ws ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 79                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 82                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

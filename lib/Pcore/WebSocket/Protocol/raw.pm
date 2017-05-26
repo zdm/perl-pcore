@@ -4,9 +4,8 @@ use Pcore -class;
 
 has protocol => ( is => 'ro', isa => Str, default => q[], init_arg => undef );
 
-has on_text   => ( is => 'ro', isa => CodeRef, reader => undef );
-has on_binary => ( is => 'ro', isa => CodeRef, reader => undef );
-has on_pong   => ( is => 'ro', isa => CodeRef, reader => undef );
+has on_text   => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );
+has on_binary => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );
 
 with qw[Pcore::WebSocket::Handle];
 
@@ -38,12 +37,6 @@ sub on_text ( $self, $data_ref ) {
 
 sub on_binary ( $self, $data_ref ) {
     $self->{on_binary}->($data_ref) if $self->{on_binary};
-
-    return;
-}
-
-sub on_pong ( $self, $data_ref ) {
-    $self->{on_pong}->($data_ref) if $self->{on_pong};
 
     return;
 }

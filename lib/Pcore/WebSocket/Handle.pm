@@ -14,12 +14,14 @@ use Pcore::Util::Digest qw[sha1];
 # https://tools.ietf.org/html/rfc7692#page-10
 # https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/
 
-requires qw[protocol before_connect_server before_connect_client on_connect_server on_connect_client on_disconnect on_text on_binary on_pong];
+requires qw[protocol before_connect_server before_connect_client on_connect_server on_connect_client on_disconnect on_text on_binary];
 
 has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1_024 * 1_024 * 100 );    # 0 - do not check message size
 has pong_interval    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong automatically
 has compression      => ( is => 'ro', isa => Bool,              default => 0 );                      # use permessage_deflate compression
 has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );                        # ($ws, $status)
+has on_ping       => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );                        # ($ws, $status)
+has on_pong       => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );                        # ($ws, $status)
 
 has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle2'], init_arg => undef );
 has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
@@ -83,13 +85,13 @@ sub send_binary ( $self, $data_ref ) {
     return;
 }
 
-sub ping ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
+sub send_ping ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
     $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PING, \$payload ) );
 
     return;
 }
 
-sub pong ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
+sub send_pong ( $self, $payload = $WEBSOCKET_PING_PONG_PAYLOAD ) {
     $self->{h}->push_write( $self->_build_frame( 1, 0, 0, 0, $WEBSOCKET_OP_PONG, \$payload ) );
 
     return;
@@ -235,7 +237,7 @@ sub on_connect ( $self, $h ) {
     if ( my $pong_interval = $self->pong_interval ) {
         $self->{h}->on_timeout(
             sub ($h) {
-                $self->pong;
+                $self->send_pong;
 
                 return;
             }
@@ -323,13 +325,15 @@ sub _on_frame ( $self, $header, $payload_ref ) {
         # PING message
         elsif ( $header->{op} == $WEBSOCKET_OP_PING ) {
 
-            # send pong automatically
-            $self->pong( $payload_ref ? $payload_ref->$* : q[] );
+            # reply pong automatically
+            $self->send_pong( $payload_ref ? $payload_ref->$* : q[] );
+
+            $self->{on_ping}->( $self, $payload_ref || \q[] ) if $self->{on_ping};
         }
 
         # PONG message
         elsif ( $header->{op} == $WEBSOCKET_OP_PONG ) {
-            $self->on_pong( $payload_ref || \q[] );
+            $self->{on_pong}->( $self, $payload_ref || \q[] ) if $self->{on_pong};
         }
     }
 
@@ -466,17 +470,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 86, 92, 339          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 94, 343          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 132                  | * Subroutine "on_connect" with high complexity score (27)                                                      |
-## |      | 250                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 134                  | * Subroutine "on_connect" with high complexity score (27)                                                      |
+## |      | 252                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 400, 402             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 404, 406             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 37, 266              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 268              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 312                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 314                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

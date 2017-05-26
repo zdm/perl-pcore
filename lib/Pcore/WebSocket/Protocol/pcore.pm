@@ -221,10 +221,6 @@ sub on_binary ( $self, $data_ref ) {
     return;
 }
 
-sub on_pong ( $self, $data_ref ) {
-    return;
-}
-
 sub _set_listeners ( $self, $events ) {
     $events = [$events] if ref $events ne 'ARRAY';
 
@@ -368,9 +364,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 247                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
+## |    3 | 243                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 293, 315, 330        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 289, 311, 326        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
