@@ -64,6 +64,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
         }
     );
 
+    # compose listen events
     my $listen_events = ['RPC_TERM'];
 
     {
@@ -146,9 +147,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 102                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 103                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 131                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 132                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
