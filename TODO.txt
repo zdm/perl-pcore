@@ -1,9 +1,6 @@
 - websocket:
     - fix accept_ws on_accept params;
 
-	-> on_rpc_call -> on_rpc;
-	- rewrite on_rpc, return exception;
-
 	- rename trans -> tx;
 
     - ping (sub) - ping with callback;

@@ -67,7 +67,7 @@ const our $WEBSOCKET_STATUS_REASON => {
 
 sub DEMOLISH ( $self, $global ) {
     if ( !$global ) {
-        $self->disconnect( result [ 1000, 'Destroyed' ] );
+        $self->disconnect( result 1001 );
     }
 
     return;
