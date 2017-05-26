@@ -117,19 +117,18 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
 # TODO delete known params, other should be passed to websocket
 sub connect_ws ( $self, $protocol, $uri, @ ) {
     my %args = (
-        on_connect_error => undef,
         connect_timeout  => 30,
         tls_ctx          => $TLS_CTX_HIGH,
         bind_ip          => undef,
+        headers          => undef,           # Maybe[ArrayRef]
+        before_connect   => undef,           # Maybe[HashRef]
+        on_connect_error => undef,
+        on_connect       => undef,           # mandatory
 
         max_message_size => 0,
-        compression      => 0,        # use permessage_deflate compression
-        on_disconnect    => undef,    # passed to websocket constructor
-        on_rpc           => undef,    # passed to websocket constructor
-
-        headers        => undef,      # Maybe[ArrayRef]
-        before_connect => undef,      # Maybe[HashRef]
-        on_connect     => undef,      # mandatory
+        compression      => 0,               # use permessage_deflate compression
+        on_disconnect    => undef,           # passed to websocket constructor
+        on_rpc           => undef,           # passed to websocket constructor
 
         @_[ 3 .. $#_ ],
     );
@@ -310,7 +309,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 38, 151              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 38, 150              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 118                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (34)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
