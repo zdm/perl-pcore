@@ -1,7 +1,7 @@
 package Pcore::WebSocket::Handle;
 
 use Pcore -const, -role, -result;
-use Pcore::Util::Scalar qw[refaddr];
+use Pcore::Util::Scalar qw[weaken refaddr];
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
 use Pcore::Util::Data qw[to_b64 to_xor];
 use Compress::Raw::Zlib;
@@ -65,6 +65,14 @@ const our $WEBSOCKET_STATUS_REASON => {
     1015 => 'TLS handshake',
 };
 
+sub DEMOLISH ( $self, $global ) {
+    if ( !$global ) {
+        $self->disconnect( result [ 1000, 'Destroyed' ] );
+    }
+
+    return;
+}
+
 sub send_text ( $self, $data_ref ) {
     $self->{h}->push_write( $self->_build_frame( 1, $self->{compression}, 0, 0, $WEBSOCKET_OP_TEXT, $data_ref ) );
 
@@ -106,7 +114,7 @@ sub disconnect ( $self, $status = undef ) {
     # destroy handle
     $self->{h}->destroy;
 
-    # remove from cache
+    # remove from cache, affect only server handles
     delete $Pcore::WebSocket::HANDLE->{ refaddr $self};
 
     # call protocol on_disconnect
@@ -128,10 +136,12 @@ sub on_connect ( $self ) {
 
     $self->{is_connected} = 1;
 
+    weaken $self;
+
     # set on_error handler
     $self->{h}->on_error(
         sub ( $h, @ ) {
-            $self->disconnect( result [ 1001, $WEBSOCKET_STATUS_REASON ] );    # 1001 - Going Away
+            $self->disconnect( result [ 1001, $WEBSOCKET_STATUS_REASON ] ) if $self;    # 1001 - Going Away
 
             return;
         }
@@ -456,17 +466,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 80, 86, 329          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 94, 339          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 126                  | * Subroutine "on_connect" with high complexity score (26)                                                      |
-## |      | 240                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
+## |      | 134                  | * Subroutine "on_connect" with high complexity score (27)                                                      |
+## |      | 250                  | * Subroutine "_on_frame" with high complexity score (27)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 390, 392             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 400, 402             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 39, 256              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39, 266              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 302                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 312                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,7 +2,7 @@ package Pcore::API::Client;
 
 use Pcore -class, -result;
 use Pcore::WebSocket;
-use Pcore::Util::Scalar qw[blessed];
+use Pcore::Util::Scalar qw[blessed weaken];
 use Pcore::Util::Data qw[to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::HTTP qw[:TLS_CTX];
@@ -14,11 +14,21 @@ has api_ver         => ( is => 'ro', isa => Str );                              
 has http_persistent => ( is => 'ro', isa => Maybe [PositiveOrZeroInt], default => 600 );
 has http_timeout => ( is => 'ro', isa => Maybe [PositiveOrZeroInt] );
 has tls_ctx => ( is => 'ro', isa => Maybe [ HashRef | Int ], default => $TLS_CTX_HIGH );
+has compression => ( is => 'ro', isa => Bool, default => 0 );
+has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _is_http => ( is => 'lazy', isa => Bool, required => 1 );
 
 has _get_ws_cb => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 has _ws => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::WebSocket'], init_arg => undef );
+
+sub DEMOLISH ( $self, $global ) {
+    if ( !$global ) {
+        $self->{_ws}->disconnect if $self->{_ws};
+    }
+
+    return;
+}
 
 around BUILDARGS => sub ( $orig, $self, $uri, @ ) {
     my %args = ( splice @_, 3 );
@@ -43,11 +53,7 @@ sub set_token ( $self, $token = undef ) {
 }
 
 sub disconnect ($self) {
-    if ( $self->{_ws} ) {
-        $self->{_ws}->disconnect;
-
-        $self->{_ws} = undef;
-    }
+    undef $self->{_ws};
 
     return;
 }
@@ -155,18 +161,20 @@ sub _send_ws ( $self, @args ) {
 }
 
 sub _get_ws ( $self, $cb ) {
-    if ( $self->{ws} ) {
-        $cb->( $self->{ws}, undef );
+    if ( $self->{_ws} ) {
+        $cb->( $self->{_ws}, undef );
     }
     else {
         push $self->{_get_ws_cb}->@*, $cb;
 
         return if $self->{_get_ws_cb}->@* > 1;
 
+        weaken $self;
+
         Pcore::WebSocket->connect_ws(
             pcore            => $self->uri,
             max_message_size => 0,
-            compression      => 0,                  # use permessage_deflate compression
+            compression      => $self->{compression},
             tls_ctx          => $self->{tls_ctx},
             ( $self->{token} ? ( headers => [ Authorization => "Token $self->{token}" ] ) : () ),
 
@@ -190,18 +198,11 @@ sub _get_ws ( $self, $cb ) {
 
                 return;
             },
+            on_disconnect => sub ( $ws, $status ) {
+                $self->{on_disconnect}->($status) if $self && $self->{on_disconnect};
 
-            # on_disconnect => sub ( $ws, $status ) {
-            #     $self->{_ws} = undef;
-            #
-            #     for my $tid ( keys $self->{_sent_requests}->%* ) {
-            #         if ( my $cb = delete $self->{_sent_requests}->{$tid} ) {
-            #             $cb->($status);
-            #         }
-            #     }
-            #
-            #     return;
-            # }
+                return;
+            }
         );
     }
 
@@ -215,7 +216,7 @@ sub _get_ws ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 70                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
