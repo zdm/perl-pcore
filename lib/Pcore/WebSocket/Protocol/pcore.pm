@@ -17,9 +17,6 @@ has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg 
 
 with qw[Pcore::WebSocket::Handle];
 
-# TODO remove
-P->init_demolish(__PACKAGE__);
-
 const our $TX_TYPE_LISTEN    => 'listen';
 const our $TX_TYPE_EVENT     => 'event';
 const our $TX_TYPE_RPC       => 'rpc';
@@ -365,9 +362,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 250                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
+## |    3 | 247                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 292, 312, 327        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 289, 309, 324        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

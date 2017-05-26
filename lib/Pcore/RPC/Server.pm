@@ -80,36 +80,35 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
             app    => sub ($req) {
                 Pcore::WebSocket->accept_ws(
                     'pcore', $req,
-                    sub ( $ws, $req, $accept, $reject ) {
+                    sub ( $req, $accept, $reject ) {
                         no strict qw[refs];
 
                         $accept->(
-                            {   max_message_size => 1_024 * 1_024 * 100,       # 100 Mb
-                                pong_interval    => 50,
-                                compression      => 0,
-                                on_rpc           => sub ( $ws, $req, $tx ) {
-                                    my $method_name = "API_$tx->{method}";
-
-                                    if ( $rpc->can($method_name) ) {
-
-                                        # call method
-                                        eval { $rpc->$method_name( $req, $tx->{data} ? $tx->{data}->@* : () ) };
-
-                                        $@->sendlog if $@;
-                                    }
-                                    else {
-                                        $req->( [ 400, q[Method not implemented] ] );
-                                    }
-
-                                    return;
-                                }
-                            },
-                            before_connect => {
+                            max_message_size => 1_024 * 1_024 * 100,    # 100 Mb
+                            pong_interval    => 50,
+                            compression      => 0,
+                            before_connect   => {
                                 listen_events  => $listen_events,
                                 forward_events => ${"${class}::RPC_FORWARD_EVENTS"},
                             },
                             ( $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : () ),    #
                             ( $can_rpc_on_disconnect ? ( on_disconnect => sub ( $ws, $status ) { $rpc->RPC_ON_DISCONNECT( $ws, $status ); return; } ) : () ),
+                            on_rpc => sub ( $ws, $req, $tx ) {
+                                my $method_name = "API_$tx->{method}";
+
+                                if ( $rpc->can($method_name) ) {
+
+                                    # call method
+                                    eval { $rpc->$method_name( $req, $tx->{data} ? $tx->{data}->@* : () ) };
+
+                                    $@->sendlog if $@;
+                                }
+                                else {
+                                    $req->( [ 400, q[Method not implemented] ] );
+                                }
+
+                                return;
+                            },
                         );
 
                         return;
@@ -147,9 +146,9 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 96                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 102                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 132                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 131                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -24,29 +24,31 @@ sub run ( $self, $req ) {
     if ( $req->is_websocket_connect_request ) {
         Pcore::WebSocket->accept_ws(
             'pcore', $req,
-            sub ( $ws, $req, $accept, $reject ) {
+            sub ( $req, $accept, $reject ) {
 
                 # authenticate request
                 $req->authenticate(
                     sub ( $auth ) {
 
-                        # token authenticated successfully, store token in websocket connection object
-                        $ws->{auth} = $auth;
-
                         # accept websocket connection
                         $accept->(
-                            {   max_message_size => $WS_MAX_MESSAGE_SIZE,
-                                pong_interval    => $WS_PONG_INTERVAL,
-                                compression      => $WS_COMPRESSION,
-                                on_rpc           => sub ( $ws, $req, $tx ) {
-                                    $ws->{auth}->api_call_arrayref( $tx->{method}, $tx->{data}, $req );
+                            max_message_size => $WS_MAX_MESSAGE_SIZE,
+                            pong_interval    => $WS_PONG_INTERVAL,
+                            compression      => $WS_COMPRESSION,
+                            before_connect   => undef,
+                            on_connect       => sub ($ws) {
 
-                                    return;
-                                }
+                                # store auth in websocket connection object
+                                $ws->{auth} = $auth;
+
+                                return;
                             },
-                            before_connect => undef,
-                            on_connect     => undef,
-                            on_disconnect  => undef,
+                            on_disconnect => undef,
+                            on_rpc        => sub ( $ws, $req, $tx ) {
+                                $ws->{auth}->api_call_arrayref( $tx->{method}, $tx->{data}, $req );
+
+                                return;
+                            },
                         );
 
                         return;

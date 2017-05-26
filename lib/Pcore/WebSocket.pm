@@ -41,18 +41,10 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
             return $req->return_xxx( [ 400, q[Unsupported WebSocket protocol] ] );
         }
 
-        # create empty websocket object
-        my $ws = bless {}, "Pcore::WebSocket::Protocol::$implementation";
+        my $accept = sub ( %args ) {
 
-        my $accept = sub ( $cfg, @ ) {
-            my %args = (
-                headers        => undef,                                   # Maybe[ArrayRef]
-                before_connect => undef,                                   # Maybe[HashRef]
-                on_connect     => undef,                                   # Maybe[CodeRef]
-                @_[ 1 .. $#_ ],
-            );
-
-            $ws->@{ keys $cfg->%* } = values $cfg->%*;
+            # create websocket object
+            my $ws = "Pcore::WebSocket::Protocol::$implementation"->new( \%args );
 
             my $compression = 0;
 
@@ -76,13 +68,13 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
             }
 
             # accept websocket connection
-            $ws->{h} = $req->accept_websocket( \@headers );
+            my $h = $req->accept_websocket( \@headers );
 
             # store ws handle
             $HANDLE->{ refaddr $ws} = $ws;
 
             # call protocol on_connected
-            $ws->on_connect;
+            $ws->on_connect($h);
 
             $ws->on_connect_server;
 
@@ -98,7 +90,7 @@ sub accept_ws ( $self, $protocol, $req, $on_accept ) {
             return;
         };
 
-        $on_accept->( $ws, $req, $accept, $reject );
+        $on_accept->( $req, $accept, $reject );
 
         return;
     }
@@ -203,12 +195,10 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
                 ( $args{compression} ? 'Sec-WebSocket-Extensions:permessage-deflate' : () ),
             );
 
-            my $ws = bless {
-                max_message_size => $args{max_message_size},
-                on_disconnect    => $args{on_disconnect},
-                on_rpc           => $args{on_rpc},
-                _send_masked     => 1,                         # client always send masked frames
-            }, $class;
+            my $ws = $class->new( \%args );
+
+            # client always send masked frames
+            $ws->{_send_masked} = 1;
 
             # add protocol headers
             if ( $args{before_connect} ) {
@@ -275,10 +265,8 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
                         $ws->{compression} = 0;
                     }
 
-                    $ws->{h} = $h;
-
                     # call protocol on_connect
-                    $ws->on_connect;
+                    $ws->on_connect($h);
 
                     $ws->on_connect_client($res_headers);
 
@@ -302,9 +290,9 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 38, 146              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 38, 138              | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 115                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (33)                |
+## |    3 | 107                  | Subroutines::ProhibitExcessComplexity - Subroutine "connect_ws" with high complexity score (33)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

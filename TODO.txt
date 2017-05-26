@@ -1,6 +1,5 @@
 - websocket:
-    - fix accept_ws on_accept params;
-    - before_connect is ugly;
+	- weaken ref warn;
 
     - ping (sub) - ping with callback;
 
