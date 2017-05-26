@@ -1,10 +1,12 @@
 - websocket:
-	- weaken ref warn;
+    - check demolish;
 
     - ping (sub) - ping with callback;
 
      - test server handle destroyed and callbacks are called;
      - test rpc client demolish;
+
+     - events authorization;
 
 - redesign error log;
 

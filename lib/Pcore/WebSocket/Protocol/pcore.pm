@@ -250,18 +250,21 @@ sub _on_message ( $self, $msg, $is_json ) {
     for my $tx ( $msg->@* ) {
         next if !$tx->{type};
 
+        # forward local events to remote peer
         if ( $tx->{type} eq $TX_TYPE_LISTEN ) {
             $self->_set_listeners( $tx->{events} );
 
             next;
         }
 
+        # fire local event from remote call
         if ( $tx->{type} eq $TX_TYPE_EVENT ) {
             P->fire_event( $tx->{event}, $tx->{data} );
 
             next;
         }
 
+        # exception
         if ( $tx->{type} eq $TX_TYPE_EXCEPTION ) {
             if ( $tx->{tid} ) {
                 if ( my $cb = delete $self->{_callbacks}->{ $tx->{tid} } ) {
@@ -274,6 +277,7 @@ sub _on_message ( $self, $msg, $is_json ) {
             next;
         }
 
+        # RPC
         if ( $tx->{type} eq $TX_TYPE_RPC ) {
 
             # method is specified, this is rpc call
@@ -299,10 +303,12 @@ sub _on_message ( $self, $msg, $is_json ) {
 
                     # callback is required
                     if ( $tx->{tid} ) {
-                        weaken $self;
+                        my $weak_self = $self;
+
+                        weaken $weak_self;
 
                         $req->{_cb} = sub ($res) {
-                            return if !$self;
+                            return if !$weak_self;
 
                             my $result;
 
@@ -322,10 +328,10 @@ sub _on_message ( $self, $msg, $is_json ) {
                             }
 
                             if ($is_json) {
-                                $self->send_text( \$JSON->encode($result) );
+                                $weak_self->send_text( \$JSON->encode($result) );
                             }
                             else {
-                                $self->send_binary( \$CBOR->encode($result) );
+                                $weak_self->send_binary( \$CBOR->encode($result) );
                             }
 
                             return;
@@ -364,7 +370,7 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 247                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 289, 309, 324        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 293, 315, 330        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
