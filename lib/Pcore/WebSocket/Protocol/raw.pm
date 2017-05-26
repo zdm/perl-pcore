@@ -10,11 +10,23 @@ has on_binary => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );
 with qw[Pcore::WebSocket::Handle];
 
 sub before_connect_server ( $self, $env, $args ) {
-    return;
+    my $headers;
+
+    if ( $args->{headers} ) {
+        push $headers->@*, $args->{headers}->@*;
+    }
+
+    return $headers;
 }
 
 sub before_connect_client ( $self, $args ) {
-    return;
+    my $headers;
+
+    if ( $args->{headers} ) {
+        push $headers->@*, $args->{headers}->@*;
+    }
+
+    return $headers;
 }
 
 sub on_connect_server ( $self ) {
