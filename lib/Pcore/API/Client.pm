@@ -214,10 +214,14 @@ sub _get_ws ( $self, $cb ) {
 
                 return;
             },
-            on_rpc => sub ( $ws, $req, $trans ) {
-                $self->{on_rpc}->( $ws, $req, $trans ) if $self && $self->{on_rpc};
+            on_rpc => do {
+                if ( $self->{on_rpc} ) {
+                    sub ( $ws, $req, $trans ) {
+                        $self->{on_rpc}->( $ws, $req, $trans ) if $self && $self->{on_rpc};
 
-                return;
+                        return;
+                    };
+                }
             },
         );
     }

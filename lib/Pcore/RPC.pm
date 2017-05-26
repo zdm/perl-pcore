@@ -117,8 +117,7 @@ sub connect_rpc ( $self, % ) {
 
     $cv->begin;
 
-    my $weaken_rpc = $self;
-    weaken $weaken_rpc;
+    weaken $self;
 
     for my $addr ( $args{connect}->@* ) {
         $cv->begin;
@@ -140,10 +139,12 @@ sub connect_rpc ( $self, % ) {
                 return;
             },
             on_disconnect => sub ( $ws, $status ) {
-                if ($weaken_rpc) {
-                    for ( my $i = 0; $i <= $weaken_rpc->{connections}->$#*; $i++ ) {
-                        if ( $weaken_rpc->{connections}->[$i] eq $ws ) {
-                            splice $weaken_rpc->{connections}->@*, $i, 1, ();
+                if ($self) {
+
+                    # remove destroyed connection from cache
+                    for ( my $i = 0; $i <= $self->{connections}->$#*; $i++ ) {
+                        if ( $self->{connections}->[$i] eq $ws ) {
+                            splice $self->{connections}->@*, $i, 1, ();
 
                             last;
                         }
@@ -181,7 +182,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 68, 144              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 68, 145              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -276,7 +276,23 @@ sub _on_message ( $self, $msg, $is_json ) {
 
             # method is specified, this is rpc call
             if ( $trans->{method} ) {
-                if ( $self->{on_rpc} ) {
+                if ( !$self->{on_rpc} ) {
+                    if ( $trans->{tid} ) {
+                        my $result = {
+                            type    => $TRANS_TYPE_EXCEPTION,
+                            tid     => $trans->{tid},
+                            message => result [ 500, 'RPC is not supported' ],
+                        };
+
+                        if ($is_json) {
+                            $self->send_text( \$JSON->encode($result) );
+                        }
+                        else {
+                            $self->send_binary( \$CBOR->encode($result) );
+                        }
+                    }
+                }
+                else {
                     my $req = bless {}, 'Pcore::WebSocket::Protocol::pcore::Request';
 
                     # callback is required
@@ -344,9 +360,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 245                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
+## |    3 | 245                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (25)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 291, 306             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 287, 307, 322        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
