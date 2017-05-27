@@ -1,6 +1,9 @@
-- pcore.perl -> par.json;
-
 - review run_proc mem leaks;
+
+- PAR:
+    - PAR - DSO auto scan;
+    - remove pcore.perl;
+    - store only main module with uniq path as deps;
 
 - redesign error log;
 
@@ -40,9 +43,6 @@
 - websocket RPC bin protocol:
     - [headers length, cbor headers, cbor body];
     - allows to decode headers and return body to client;
-
-- PAR:
-    - PAR - DSO auto scan;
 
 - APP & APP API:
     - move roles and permissions from API to App;
