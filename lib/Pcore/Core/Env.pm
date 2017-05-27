@@ -303,13 +303,50 @@ sub DEMOLISH ( $self, $global ) {
 
         my $updated;
 
-        for my $pkg ( sort keys %INC ) {
-            if ( !exists $index->{$pkg} ) {
-                $updated = 1;
+        my $embedded_packages;
 
-                $index->{$pkg} = undef;
+        for my $module ( sort keys %INC ) {
+            if ( !exists $index->{$module} ) {
+                if ( $INC{$module} !~ /\Q$module\E\z/sm ) {
+                    $embedded_packages->{$module} = $INC{$module};
+                }
+                else {
+                    $updated = 1;
 
-                say qq[new deps found: $pkg];
+                    $index->{$module} = undef;
+
+                    say qq[new deps found: $module];
+                }
+            }
+        }
+
+        # find real module for embedded modules
+        if ($embedded_packages) {
+            for my $embedded_package ( keys $embedded_packages->%* ) {
+                my $added;
+
+                for my $module ( keys %INC ) {
+                    if ( $INC{$module} eq $embedded_packages->{$embedded_package} ) {
+
+                        # embedded package is already added
+                        if ( exists $index->{$module} ) {
+
+                            # say "$module ---> $embedded_package";
+
+                            $added = 1;
+
+                            last;
+                        }
+                    }
+                }
+
+                if ( !$added ) {
+                    $updated = 1;
+
+                    $index->{$embedded_package} = undef;
+
+                    say qq[new deps found: $embedded_package];
+                }
             }
         }
 
@@ -320,8 +357,6 @@ sub DEMOLISH ( $self, $global ) {
             seek $FH, 0, SEEK_SET or die;
 
             print {$FH} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode( [ sort keys $index->%* ] );
-
-            say "WRITE DEPS - $$";
         }
 
         close $FH or die;
@@ -341,7 +376,9 @@ sub DEMOLISH ( $self, $global ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 297                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 299, 322             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    3 | 332                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 299, 359             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 101                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
