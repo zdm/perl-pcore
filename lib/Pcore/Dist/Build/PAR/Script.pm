@@ -165,7 +165,6 @@ sub _add_modules ($self) {
 }
 
 # TODO add dso support for linux, look at Par::Packer/myldr/encode_append.pl
-# TODO REMOVE exclusion for multidimensional.xs.dll, that dependss on Check.xs.dll
 sub _add_shlib ($self) {
     die q[Currently on MSWIN platform is supported] if !$MSWIN;
 
@@ -183,7 +182,7 @@ sub _add_shlib ($self) {
         while ( $out =~ /^\s*DLL Name:\s*(\S+)/smg ) {
             my $so = $1;
 
-            # find so in path
+            # find so in $PATH
             if ( my $path = P->file->where($so) ) {
                 next if exists $dso->{$so};
 
@@ -193,14 +192,24 @@ sub _add_shlib ($self) {
 
                 __SUB__->( $path->to_string );
             }
+
+            # so wasn't found in $PATH
             else {
 
-                # TODO exclusion for multidimensional.xs.dll, that dependss on Check.xs.dll
-                next if $so eq 'Check.xs.dll';
+                # try to find so in modules shared deps
+                my $found;
 
-                $self->_error(qq["$so_path" dependency "$so" wasn't found]);
+                for my $mod_so_path ( values $self->{shared_objects}->%* ) {
+                    if ( $mod_so_path =~ /\Q$so\E\z/sm ) {
+                        $found = 1;
 
-                exit;
+                        $dso->{$so} = $mod_so_path;
+
+                        last;
+                    }
+                }
+
+                $self->_error(qq["$so_path" dependency "$so" wasn't found]) if !$found;
             }
         }
 
@@ -502,13 +511,13 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 282                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 291                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 372                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 381                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 457, 460             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 466, 469             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 389, 395             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 398, 404             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

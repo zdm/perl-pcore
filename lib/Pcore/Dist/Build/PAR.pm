@@ -68,8 +68,7 @@ sub run ($self) {
             next;
         }
 
-        # TODO review
-        # add pardeps.json modules, skip eval records
+        # add pardeps.json modules, skip eval modules
         $profile->{mod}->@{ grep { !/\A[(]eval\s/sm } $pardeps->@* } = ();
 
         # replace Inline.pm with Pcore/Core/Inline.pm

@@ -1,9 +1,3 @@
-- PAR:
-    - PAR - DSO auto scan;
-    - remove pcore.perl;
-    - store only main module with uniq path as deps;
-    - always pack perl to par;
-
 - review run_proc mem leaks;
 - proc should return result object on exit;
 - how to get all output after process was destroyed?;
