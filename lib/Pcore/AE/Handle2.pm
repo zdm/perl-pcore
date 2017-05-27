@@ -175,7 +175,7 @@ sub _error ( $self, $errno, $fatal = undef, $message = undef ) {
     elsif ( my $on_error = $self->{on_error} ) {
         $on_error->( $self, $fatal, $message );
 
-        # $self->destroy if $fatal;
+        $self->destroy if $fatal;
     }
     else {
         $self->destroy;
