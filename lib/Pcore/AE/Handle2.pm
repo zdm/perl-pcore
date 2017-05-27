@@ -173,9 +173,9 @@ sub _error ( $self, $errno, $fatal = undef, $message = undef ) {
         $on_connect_error->( $self, $message );
     }
     elsif ( my $on_error = $self->{on_error} ) {
-        $self->destroy if $fatal;
-
         $on_error->( $self, $fatal, $message );
+
+        # $self->destroy if $fatal;
     }
     else {
         $self->destroy;

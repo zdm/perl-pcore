@@ -1,9 +1,31 @@
-- review run_proc mem leaks;
-
 - PAR:
     - PAR - DSO auto scan;
     - remove pcore.perl;
     - store only main module with uniq path as deps;
+    - always pack perl to par;
+
+- review run_proc mem leaks;
+- proc should return result object on exit;
+
+
+- windows - create process + sockets for STD*;
+    - https://www.princexml.com/forum/topic/3545/read-from-stdin-socket;
+    - AnyEvent::Handle - works with windows pipes;
+		Actually, you can redirect IO to sockets. Just make sure you open the socket with WSASocket instead of socket(), and do NOT specify the WSA_FLAG_OVERLAPPED.
+
+		The reason for this is a bit involved.
+		Any "Standard Handles" that you supply to CreateProcess for I/O redirection must be non-overlapped (i.e, do not support overlapped I/O).
+		sockets on Windows are opened overlapped when created with socket() and non-overlapped if created as above with WSASocket.
+
+		Вызов функции socket эквивалентен вызову функции WSASocket с флагом WSA_FLAG_OVERLAPPED, который показывает, что данный сокет можно использовать для перекрытого ввода-вывода (см. разд. 2.2.9).
+
+# define SO_SYNCHRONOUS_ALERT        0x10
+# define SO_SYNCHRONOUS_NONALERT     0x20 <--- we need this option
+
+
+
+
+
 
 - redesign error log;
 

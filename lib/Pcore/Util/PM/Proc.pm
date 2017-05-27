@@ -32,6 +32,21 @@ has _blocking_cv => ( is => 'ro', isa => Object, init_arg => undef );
 
 our $CACHE = {};
 
+sub DEMOLISH ( $self, $global ) {
+    if ( $self->{pid} ) {
+
+        # kill process group, eg.: windows console subprocess
+        kill '-KILL', $self->{pid};                                                           ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+        # kill process, because -9 is ignoref by process itself
+        kill 'KILL', $self->{pid};                                                            ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    }
+
+    $self->_on_exit( 128 + 9 ) if !$global;
+
+    return;
+}
+
 around new => sub ( $orig, $self, $cmd, @ ) {
     $cmd = [$cmd] if !ref $cmd;
 
@@ -46,7 +61,7 @@ around new => sub ( $orig, $self, $cmd, @ ) {
         win32_cflags           => 0,        # NOTE not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
         win32_create_no_window => 0,        # NOTE preventing to redirect handles
         win32_alive_timeout    => 0.5,
-        splice @_, 3,
+        @_[ 3 .. $#_ ],
     );
 
     $args{win32_cflags} = Win32::Process::CREATE_NO_WINDOW() if $MSWIN && delete $args{win32_create_no_window};
@@ -243,21 +258,6 @@ sub _create_sigchild ( $self, $win32_alive_timeout ) {
             return;
         };
     }
-
-    return;
-}
-
-sub DEMOLISH ( $self, $global ) {
-    if ( $self->{pid} ) {
-
-        # kill process group, eg.: windows console subprocess
-        kill '-KILL', $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
-
-        # kill process, because -9 is ignoref by process itself
-        kill 'KILL', $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
-    }
-
-    $self->_on_exit( 128 + 9 ) if !$global;
 
     return;
 }
