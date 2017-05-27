@@ -145,8 +145,8 @@ sub connect_rpc ( $self, % ) {
                 listen_events  => $args{listen_events},
                 forward_events => $args{forward_events},
             },
-            on_connect_error => sub ($res) {
-                die $res;
+            on_connect_error => sub ($status) {
+                die "$status";
             },
             on_connect => sub ( $ws, $headers ) {
                 push $self->{connections}->@*, $ws;

@@ -1,6 +1,6 @@
 - websocket:
-    - rpc access token;
     - test rpc client demolish - on undef rpc - local rpc should be destroyed, remote handle should be demolished, pending callbacks called;
+	- test rpc events;
 
 - redesign error log;
 
