@@ -12,16 +12,16 @@ use Fcntl qw[:DEFAULT SEEK_END];
 
 has dist   => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],       required => 1 );
 has script => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'], required => 1 );
-has release => ( is => 'ro', isa => Bool,     required => 1 );
-has crypt   => ( is => 'ro', isa => Bool,     required => 1 );
-has clean   => ( is => 'ro', isa => Bool,     required => 1 );
-has mod     => ( is => 'ro', isa => HashRef,  required => 1 );
-has shlib   => ( is => 'ro', isa => ArrayRef, required => 1 );
+has release => ( is => 'ro', isa => Bool,    required => 1 );
+has crypt   => ( is => 'ro', isa => Bool,    required => 1 );
+has clean   => ( is => 'ro', isa => Bool,    required => 1 );
+has mod     => ( is => 'ro', isa => HashRef, required => 1 );
 
 has tree => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::Tree'], init_arg => undef );
-has par_suffix   => ( is => 'lazy', isa => Str,     init_arg => undef );
-has exe_filename => ( is => 'lazy', isa => Str,     init_arg => undef );
-has main_mod     => ( is => 'lazy', isa => HashRef, default  => sub { {} }, init_arg => undef );    # main modules, found during deps processing
+has par_suffix     => ( is => 'lazy', isa => Str,     init_arg => undef );
+has exe_filename   => ( is => 'lazy', isa => Str,     init_arg => undef );
+has main_mod       => ( is => 'lazy', isa => HashRef, default  => sub { {} }, init_arg => undef );    # main modules, found during deps processing
+has shared_objects => ( is => 'ro',   isa => HashRef, init_arg => undef );
 
 sub _build_tree ($self) {
     return Pcore::Util::File::Tree->new;
@@ -69,7 +69,7 @@ sub run ($self) {
 
     say 'done';
 
-    # process found main modules
+    # process found distributions
     $self->_process_main_modules;
 
     # add shlib
@@ -113,39 +113,6 @@ sub run ($self) {
     P->file->chmod( 'rwx------', $target_exe );
 
     say 'final binary size: ' . BLACK ON_GREEN . q[ ] . add_num_sep( -s $target_exe ) . q[ ] . RESET . ' bytes';
-
-    return;
-}
-
-sub _add_shlib ($self) {
-    for my $shlib ( $self->shlib->@* ) {
-        my $found;
-
-        if ( -f $shlib ) {
-            $found = $shlib;
-        }
-        else {
-            # find in the $ENV{PATH}, @INC
-            for my $path ( split( /$Config{path_sep}/sm, $ENV{PATH} ), grep { !ref } @INC ) {
-                if ( -f "$path/$shlib" ) {
-                    $found = "$path/$shlib";
-
-                    last;
-                }
-            }
-        }
-
-        if ($found) {
-            my $filename = P->path($shlib)->filename;
-
-            say qq[shlib added: "$filename"];
-
-            $self->tree->add_file( "shlib/$Config{archname}/$filename", $found );
-        }
-        else {
-            $self->_error(qq[shlib wasn't found: "$shlib"]);
-        }
-    }
 
     return;
 }
@@ -197,6 +164,71 @@ sub _add_modules ($self) {
     return;
 }
 
+# TODO add dso support for linux, look at Par::Packer/myldr/encode_append.pl
+# TODO REMOVE exclusion for multidimensional.xs.dll, that dependss on Check.xs.dll
+sub _add_shlib ($self) {
+    die q[Currently on MSWIN platform is supported] if !$MSWIN;
+
+    my $dso;
+
+    state $system_root = P->path( $ENV{SYSTEMROOT}, is_dir => 1 )->realpath;
+
+    state $is_system_lib = sub ($path) {
+        return $path =~ m[^\Q$system_root\E]smi ? 1 : 0;
+    };
+
+    my $find_dso = sub ( $so_path ) {
+        my $out = `objdump -ax $so_path`;
+
+        while ( $out =~ /^\s*DLL Name:\s*(\S+)/smg ) {
+            my $so = $1;
+
+            # find so in path
+            if ( my $path = P->file->where($so) ) {
+                next if exists $dso->{$so};
+
+                next if $is_system_lib->($path);
+
+                $dso->{$so} = $path->to_string;
+
+                __SUB__->( $path->to_string );
+            }
+            else {
+
+                # TODO exclusion for multidimensional.xs.dll, that dependss on Check.xs.dll
+                next if $so eq 'Check.xs.dll';
+
+                $self->_error(qq["$so_path" dependency "$so" wasn't found]);
+
+                exit;
+            }
+        }
+
+        return;
+    };
+
+    # scan deps for perl executalbe and modules shared objects
+    for my $path ( $^X, values $self->{shared_objects}->%* ) {
+        $find_dso->($path);
+    }
+
+    # add found deps
+    for my $filename ( keys $dso->%* ) {
+        $self->tree->add_file( "shlib/$Config{archname}/$filename", $dso->{$filename} );
+
+        say qq[shlib added: "$filename"];
+    }
+
+    # add perl executable
+    my $perl_filename = P->path($^X)->filename;
+
+    $self->tree->add_file( "shlib/$Config{archname}/$perl_filename", $^X );
+
+    say qq[shlib added: "$perl_filename"];
+
+    return;
+}
+
 sub _add_module ( $self, $module ) {
     $module = P->perl->module( $module, $self->dist->root . 'lib/' );
 
@@ -211,6 +243,8 @@ sub _add_module ( $self, $module ) {
         $target = "$Config{version}/$Config{archname}/";
 
         for my $deps ( keys $auto_deps->%* ) {
+            $self->{shared_objects}->{$deps} = $auto_deps->{$deps} if $auto_deps->{$deps} =~ /[.]$Config{dlext}\z/sm;
+
             $self->tree->add_file( $target . $deps, $auto_deps->{$deps} );
         }
     }
@@ -222,6 +256,27 @@ sub _add_module ( $self, $module ) {
     $self->_add_perl_source( $module->path, $target . $module->name, $module->is_cpan_module, $module->name );
 
     return 1;
+}
+
+sub _process_main_modules ($self) {
+
+    # add Pcore dist
+    $self->_add_dist( $ENV->pcore );
+
+    for my $main_mod ( keys $self->main_mod->%* ) {
+        next if $main_mod eq 'Pcore.pm' or $main_mod eq $self->dist->module->name;
+
+        my $dist = Pcore::Dist->new($main_mod);
+
+        $self->_error(qq[corrupted main module: "$main_mod"]) if !$dist;
+
+        $self->_add_dist($dist);
+    }
+
+    # add current dist, should be added last to preserve share libs order
+    $self->_add_dist( $self->dist );
+
+    return;
 }
 
 sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = undef ) {
@@ -276,27 +331,6 @@ sub _add_perl_source ( $self, $source, $target, $is_cpan_module = 0, $module = u
     }
 
     $self->tree->add_file( $target, $src );
-
-    return;
-}
-
-sub _process_main_modules ($self) {
-
-    # add Pcore dist
-    $self->_add_dist( $ENV->pcore );
-
-    for my $main_mod ( keys $self->main_mod->%* ) {
-        next if $main_mod eq 'Pcore.pm' or $main_mod eq $self->dist->module->name;
-
-        my $dist = Pcore::Dist->new($main_mod);
-
-        $self->_error(qq[corrupted main module: "$main_mod"]) if !$dist;
-
-        $self->_add_dist($dist);
-    }
-
-    # add current dist, should be added last to preserve share libs order
-    $self->_add_dist( $self->dist );
 
     return;
 }
@@ -468,13 +502,13 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 227                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 282                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 338                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 372                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 423, 426             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 457, 460             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 355, 361             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 389, 395             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
