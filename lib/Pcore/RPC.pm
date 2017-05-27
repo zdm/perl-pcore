@@ -110,6 +110,8 @@ sub connect_rpc ( $self, % ) {
         $args{token} = $self->token;
     }
     else {
+        $self = bless {}, $self;
+
         if ( ref $args{connect} eq 'HASH' ) {
             $args{token} = $args{connect}->{token} if exists $args{connect}->{token};
 
@@ -121,8 +123,6 @@ sub connect_rpc ( $self, % ) {
 
     die q[No addresses specified] if !$args{connect}->@*;
 
-    $self = bless {}, $self if !blessed $self;
-
     my $cv = AE::cv sub {
         $args{on_connect}->($self) if $args{on_connect};
 
@@ -133,7 +133,9 @@ sub connect_rpc ( $self, % ) {
 
     $cv->begin;
 
-    weaken $self;
+    my $self_weak = $self;
+
+    weaken $self_weak;
 
     for my $addr ( $args{connect}->@* ) {
         $cv->begin;
@@ -156,12 +158,12 @@ sub connect_rpc ( $self, % ) {
                 return;
             },
             on_disconnect => sub ( $ws, $status ) {
-                if ($self) {
+                if ($self_weak) {
 
                     # remove destroyed connection from cache
-                    for ( my $i = 0; $i <= $self->{connections}->$#*; $i++ ) {
-                        if ( $self->{connections}->[$i] eq $ws ) {
-                            splice $self->{connections}->@*, $i, 1, ();
+                    for ( my $i = 0; $i <= $self_weak->{connections}->$#*; $i++ ) {
+                        if ( $self_weak->{connections}->[$i] eq $ws ) {
+                            splice $self_weak->{connections}->@*, $i, 1, ();
 
                             last;
                         }
@@ -199,7 +201,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 75, 162              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 75, 164              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

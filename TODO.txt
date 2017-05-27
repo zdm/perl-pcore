@@ -1,6 +1,10 @@
 - websocket:
+    - rpc mem leak;
     - test rpc client demolish - on undef rpc - local rpc should be destroyed, remote handle should be demolished, pending callbacks called;
-	- test rpc events;
+    - test rpc events;
+
+- proxied on_connect, on_destroy, etc.. should called as $self;
+- pcore.perl -> par.json;
 
 - redesign error log;
 
