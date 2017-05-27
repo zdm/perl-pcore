@@ -67,7 +67,7 @@ const our $WEBSOCKET_STATUS_REASON => {
 
 sub DEMOLISH ( $self, $global ) {
     if ( !$global ) {
-        $self->disconnect( result 1001 );
+        $self->disconnect( result [ 1001, $WEBSOCKET_STATUS_REASON ] );
     }
 
     return;
@@ -291,7 +291,6 @@ sub _on_frame ( $self, $header, $payload_ref ) {
             undef $self->{_msg};
         }
 
-        # dispatch message
         # TEXT message
         if ( $header->{op} == $WEBSOCKET_OP_TEXT ) {
             if ($payload_ref) {
@@ -470,17 +469,17 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88, 94, 343          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 88, 94, 342          | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 134                  | * Subroutine "on_connect" with high complexity score (27)                                                      |
 ## |      | 252                  | * Subroutine "_on_frame" with high complexity score (30)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 404, 406             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 403, 405             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 39, 268              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 314                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 313                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
