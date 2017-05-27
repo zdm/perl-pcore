@@ -5,11 +5,15 @@ use Pcore::Util::Scalar qw[blessed weaken];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
+has token => ( is => 'ro', isa => Maybe [Str], init_arg => undef );
 has workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has connections => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 
 sub TO_DATA ( $self, ) {
-    return $self->get_connect;
+    return {
+        connect => $self->get_connect,
+        token   => $self->{token},
+    };
 }
 
 sub run_rpc ( $self, $class, @ ) {
@@ -18,6 +22,7 @@ sub run_rpc ( $self, $class, @ ) {
     my %args = (
         workers   => undef,    # FALSE - max. CPUs, -n - CPUs - n || 1
         listen    => undef,
+        token     => undef,
         buildargs => undef,    # Maybe[HashRef], RPC object constructor arguments
         on_ready  => undef,    # Maybe[CodeRef]
         @_[ 2 .. $#_ ],
@@ -33,7 +38,7 @@ sub run_rpc ( $self, $class, @ ) {
         $args{workers} = 1 if $args{workers} <= 0;
     }
 
-    my $rpc = bless {}, $self;
+    my $rpc = bless { token => $args{token} }, $self;
 
     my $cv = AE::cv sub {
         $args{on_ready}->($rpc) if $args{on_ready};
@@ -46,6 +51,7 @@ sub run_rpc ( $self, $class, @ ) {
     $cv->begin;
 
     my $weaken_rpc = $rpc;
+
     weaken $weaken_rpc;
 
     # create workers
@@ -54,6 +60,7 @@ sub run_rpc ( $self, $class, @ ) {
 
         Pcore::RPC::Proc->new(
             listen    => $args{listen},
+            token     => $args{token},
             class     => $class,
             buildargs => $args{buildargs},
             on_ready  => sub ($proc) {
@@ -89,23 +96,32 @@ sub connect_rpc ( $self, % ) {
 
     my %args = (
         connect        => undef,
+        token          => undef,
         listen_events  => undef,
         forward_events => undef,
         on_connect     => undef,
         @_[ 1 .. $#_ ],
     );
 
-    $self = bless {}, $self if !blessed $self;
-
     # parse connect
-    if ( !$args{connect} ) {
+    if ( blessed $self ) {
         $args{connect} = $self->get_connect;
+
+        $args{token} = $self->token;
     }
     else {
+        if ( ref $args{connect} eq 'HASH' ) {
+            $args{token} = $args{connect}->{token} if exists $args{connect}->{token};
+
+            $args{connect} = $args{connect}->{connect};
+        }
+
         $args{connect} = [ $args{connect} ] if ref $args{connect} ne 'ARRAY';
     }
 
     die q[No addresses specified] if !$args{connect}->@*;
+
+    $self = bless {}, $self if !blessed $self;
 
     my $cv = AE::cv sub {
         $args{on_connect}->($self) if $args{on_connect};
@@ -125,6 +141,7 @@ sub connect_rpc ( $self, % ) {
         Pcore::WebSocket->connect_ws(
             pcore          => "ws://$addr/",
             before_connect => {
+                token          => $args{token},
                 listen_events  => $args{listen_events},
                 forward_events => $args{forward_events},
             },
@@ -182,7 +199,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 68, 145              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 75, 162              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -34,7 +34,9 @@ sub run ( $self, $req ) {
                         $accept->(
                             max_message_size => $WS_MAX_MESSAGE_SIZE,
                             pong_interval    => $WS_PONG_INTERVAL,
-                            compression      => $WS_COMPRESSION,
+                            compression      => $WS_COMPRESSION,              #
+                            on_listen_event  => sub ( $ws, $ev ) {return},    # events currently are disabled
+                            on_fire_event    => sub ( $ws, $ev ) {return},    # events currently are disabled
                             before_connect   => undef,
                             on_connect       => sub ($ws) {
 

@@ -5,8 +5,8 @@ use Pcore::HTTP::Server;
 use Pcore::WebSocket;
 use if $MSWIN, 'Win32API::File';
 
-sub run ( $class, $RPC_BOOT_ARGS ) {
-    $ENV->scan_deps if $RPC_BOOT_ARGS->{scandeps};
+sub run ( $class, $rpc_boot_args ) {
+    $ENV->scan_deps if $rpc_boot_args->{scandeps};
 
     # ignore SIGINT
     $SIG->{INT} = AE::signal INT => sub {
@@ -21,7 +21,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
     my $cv = AE::cv;
 
     # create object
-    my $rpc = $class->new( $RPC_BOOT_ARGS->{buildargs} // () );
+    my $rpc = $class->new( $rpc_boot_args->{buildargs} // () );
 
     my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
     my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
@@ -29,7 +29,7 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
     # parse listen
     my $listen;
 
-    if ( !$RPC_BOOT_ARGS->{listen} ) {
+    if ( !$rpc_boot_args->{listen} ) {
 
         # for windows use TCP loopback
         if ($MSWIN) {
@@ -44,13 +44,13 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
     else {
 
         # host without port
-        if ( $RPC_BOOT_ARGS->{listen} !~ /:/sm ) {
-            $listen = "$RPC_BOOT_ARGS->{listen}:" . P->sys->get_free_port( $RPC_BOOT_ARGS->{listen} eq '*' ? () : $RPC_BOOT_ARGS->{listen} );
+        if ( $rpc_boot_args->{listen} !~ /:/sm ) {
+            $listen = "$rpc_boot_args->{listen}:" . P->sys->get_free_port( $rpc_boot_args->{listen} eq '*' ? () : $rpc_boot_args->{listen} );
         }
 
         # unix socket or fully qualified host:port
         else {
-            $listen = $RPC_BOOT_ARGS->{listen};
+            $listen = $rpc_boot_args->{listen};
         }
     }
 
@@ -82,12 +82,22 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
                 Pcore::WebSocket->accept_ws(
                     'pcore', $req,
                     sub ( $req, $accept, $reject ) {
+
+                        # check token
+                        if ( $rpc_boot_args->{token} && ( !$req->{env}->{HTTP_AUTHORIZATION} || $req->{env}->{HTTP_AUTHORIZATION} !~ /\bToken\s+$rpc_boot_args->{token}\b/smi ) ) {
+                            $reject->(401);
+
+                            return;
+                        }
+
                         no strict qw[refs];
 
                         $accept->(
-                            max_message_size => 1_024 * 1_024 * 100,    # 100 Mb
+                            max_message_size => 1_024 * 1_024 * 100,              # 100 Mb
                             pong_interval    => 50,
-                            compression      => 0,
+                            compression      => 0,                                #
+                            on_listen_event  => sub ( $ws, $ev ) { return 1 },    # events currently are enabled
+                            on_fire_event    => sub ( $ws, $ev ) { return 1 },    # events currently are enabled
                             before_connect   => {
                                 listen_events  => $listen_events,
                                 forward_events => ${"$class\::RPC_FORWARD_EVENTS"},
@@ -123,10 +133,10 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 
     # open control handle
     if ($MSWIN) {
-        Win32API::File::OsFHandleOpen( *FH, $RPC_BOOT_ARGS->{ctrl_fh}, 'w' ) or die $!;
+        Win32API::File::OsFHandleOpen( *FH, $rpc_boot_args->{ctrl_fh}, 'w' ) or die $!;
     }
     else {
-        open *FH, '>&=', $RPC_BOOT_ARGS->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+        open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
     }
 
     print {*FH} "LISTEN:$listen\x00";
@@ -145,11 +155,11 @@ sub run ( $class, $RPC_BOOT_ARGS ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (23)                       |
+## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (26)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 103                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 113                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 132                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 142                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
