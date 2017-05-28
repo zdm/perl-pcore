@@ -5,8 +5,8 @@ use Pcore -class, -ansi;
 with qw[Pcore::Util::Term::Progress::Indicator];
 
 our $PROGRESS_BAR_CHAR = q[■];
-our $MESS_COLOR        = BOLD . YELLOW;
-our $BAR_COLOR         = YELLOW;
+our $MESS_COLOR        = $BOLD . $YELLOW;
+our $BAR_COLOR         = $YELLOW;
 
 sub _draw ($self) {
     my $info = q[];
