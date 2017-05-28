@@ -1,5 +1,6 @@
 - redesign error log:
     - use events to route logs;
+	- format date;
 
 - proc:
     - proc should return result object on exit;
