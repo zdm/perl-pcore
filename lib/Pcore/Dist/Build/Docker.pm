@@ -163,13 +163,13 @@ sub report ( $self, $dockerhub_repo ) {
     for my $build ( $build_history->{data}->@* ) {
         if ( !exists $report->{ $build->dockertag_name }->{build_status} ) {
             if ( $build->build_status_name eq 'Error' ) {
-                $report->{ $build->dockertag_name }->{build_status} = BOLD WHITE ON_RED;
+                $report->{ $build->dockertag_name }->{build_status} = $BOLD . $WHITE . $ON_RED;
             }
             elsif ( $build->build_status_name eq 'Success' ) {
-                $report->{ $build->dockertag_name }->{build_status} = BLACK ON_GREEN;
+                $report->{ $build->dockertag_name }->{build_status} = $BLACK . $ON_GREEN;
             }
             else {
-                $report->{ $build->dockertag_name }->{build_status} = BLACK ON_WHITE;
+                $report->{ $build->dockertag_name }->{build_status} = $BLACK . $ON_WHITE;
             }
 
             $report->{ $build->dockertag_name }->{build_status} .= q[ ] . $build->build_status_name . q[ ] . $RESET;
