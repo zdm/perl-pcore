@@ -349,20 +349,20 @@ sub _report_file ( $self, $res, $max_path_len ) {
     if ( $res->severity_range_is('ERROR') ) {
         $self->_total_report->{severity_range}->{error}++;
 
-        $severity = BOLD WHITE ON_RED;
+        $severity = $BOLD . $WHITE . $ON_RED;
     }
     elsif ( $res->severity_range_is('WARNING') ) {
         $self->_total_report->{severity_range}->{warning}++;
 
-        $severity = YELLOW;
+        $severity = $YELLOW;
     }
     else {
         $self->_total_report->{severity_range}->{valid}++;
 
-        $severity = BOLD GREEN;
+        $severity = $BOLD . $GREEN;
     }
 
-    $severity .= q[ ] . $res->severity_range . q[: ] . $res->severity . q[ - ] . $reversed_severity->{ $res->severity } . q[ ] . RESET;
+    $severity .= q[ ] . $res->severity_range . q[: ] . $res->severity . q[ - ] . $reversed_severity->{ $res->severity } . q[ ] . $RESET;
 
     push @row, $severity;
 
@@ -373,14 +373,14 @@ sub _report_file ( $self, $res, $max_path_len ) {
     my $dif = $res->_out_size - $res->_in_size;
 
     if ( $dif > 0 ) {
-        push @row, BOLD RED . "+$dif bytes" . RESET;
+        push @row, $BOLD . $RED . "+$dif bytes" . $RESET;
     }
     else {
-        push @row, BOLD GREEN . "$dif bytes" . RESET;
+        push @row, $BOLD . $GREEN . "$dif bytes" . $RESET;
     }
 
     # modified
-    push @row, ( $res->was_changed ? BOLD WHITE ON_RED . ' modified ' . RESET : q[ - ] );
+    push @row, ( $res->was_changed ? $BOLD . $WHITE . $ON_RED . ' modified ' . $RESET : q[ - ] );
 
     print $self->{tbl}->render_row( \@row );
 
@@ -410,9 +410,9 @@ sub _report_total ($self) {
 
     print $tbl->render_header;
 
-    print $tbl->render_row( [ BOLD . GREEN . 'VALID' . RESET, BOLD . GREEN . ( $self->_total_report->{severity_range}->{valid} // 0 ) . RESET ] );
-    print $tbl->render_row( [ YELLOW . 'WARNING' . RESET, YELLOW . ( $self->_total_report->{severity_range}->{warning} // 0 ) . RESET ] );
-    print $tbl->render_row( [ BOLD . RED . 'ERROR' . RESET, BOLD . RED . ( $self->_total_report->{severity_range}->{error} // 0 ) . RESET ] );
+    print $tbl->render_row( [ $BOLD . $GREEN . 'VALID' . $RESET, $BOLD . $GREEN . ( $self->_total_report->{severity_range}->{valid} // 0 ) . $RESET ] );
+    print $tbl->render_row( [ $YELLOW . 'WARNING' . $RESET, $YELLOW . ( $self->_total_report->{severity_range}->{warning} // 0 ) . $RESET ] );
+    print $tbl->render_row( [ $BOLD . $RED . 'ERROR' . $RESET, $BOLD . $RED . ( $self->_total_report->{severity_range}->{error} // 0 ) . $RESET ] );
     print $tbl->render_row( [ 'Modified', $self->_total_report->{changed_files} // 0 ] );
 
     print $tbl->finish;
@@ -421,7 +421,7 @@ sub _report_total ($self) {
 }
 
 sub _wrap_color ( $self, $str, $color ) {
-    return $color . $str . RESET;
+    return $color . $str . $RESET;
 }
 
 1;

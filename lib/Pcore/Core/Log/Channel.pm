@@ -3,7 +3,7 @@ package Pcore::Core::Log::Channel;
 use Pcore -class, -ansi;
 
 has name => ( is => 'ro', isa => Str, required => 1 );
-has header => ( is => 'ro', isa => Maybe [Str], default => BOLD GREEN . '[<: $date.strftime("%H:%M:%S.%6N") :>]' . BOLD CYAN . '[<: $pid :>]' . BOLD YELLOW . '[<: $package :>]' . BOLD RED . '[<: $channel :>]' . RESET );
+has header => ( is => 'ro', isa => Maybe [Str], default => $BOLD . $GREEN . '[<: $date.strftime("%H:%M:%S.%6N") :>]' . $BOLD . $CYAN . '[<: $pid :>]' . $BOLD . $YELLOW . '[<: $package :>]' . $BOLD . $RED . '[<: $channel :>]' . $RESET );
 
 has pipe => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 

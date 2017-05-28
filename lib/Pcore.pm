@@ -178,9 +178,7 @@ sub import {
 
         # process -ansi pragma
         if ( $import->{pragma}->{ansi} ) {
-            state $ANSI_INIT = !!require Term::ANSIColor;
-
-            Term::ANSIColor->export_to_level( 1, undef, ':constants' );
+            Pcore::Core::Const->import( -caller => $caller, qw[:ANSI] );
         }
 
         # process -try pragma
@@ -655,21 +653,21 @@ sub fire_event ( $self, $event, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 108                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 275                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 273                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 350                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 470                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 348                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 468                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 382, 411, 414, 418,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 452, 455, 460, 463,  |                                                                                                                |
-## |      | 488, 507             |                                                                                                                |
+## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 450, 453, 458, 461,  |                                                                                                                |
+## |      | 486, 505             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 603                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 601                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 285                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 283                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 386                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 384                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
