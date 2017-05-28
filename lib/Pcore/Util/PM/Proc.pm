@@ -243,7 +243,7 @@ sub _create_sigchild ( $self, $win32_alive_timeout ) {
             if ( $status != Win32::Process::STILL_ACTIVE() ) {
                 undef $self->{_sigchild};    # remove timer
 
-                $self->_on_exit($status);
+                AE::postpone { $self->_on_exit($status) };
             }
 
             return;
@@ -253,7 +253,7 @@ sub _create_sigchild ( $self, $win32_alive_timeout ) {
         $self->{_sigchild} = AE::child $self->pid, sub ( $pid, $status ) {
             undef $self->{_sigchild};        # remove timer
 
-            $self->_on_exit( $status >> 8 );
+            AE::postpone { $self->_on_exit( $status >> 8 ) };
 
             return;
         };

@@ -3,6 +3,7 @@
 - how to get all output after process was destroyed?;
 
 
+
 - windows - create process + sockets for STD*;
     - https://www.princexml.com/forum/topic/3545/read-from-stdin-socket;
     - AnyEvent::Handle - works with windows pipes;
