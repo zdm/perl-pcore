@@ -54,7 +54,7 @@ sub _build_exe_filename ($self) {
 }
 
 sub run ($self) {
-    say qq[\nBuilding ] . ( $self->crypt ? BLACK ON_GREEN . ' crypted ' : BOLD WHITE ON_RED . q[ not crypted ] ) . RESET . q[ ] . BLACK ON_GREEN . ( $self->clean ? ' clean ' : ' cached ' ) . RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
+    say qq[\nBuilding ] . ( $self->crypt ? $BLACK . $ON_GREEN . ' crypted ' : $BOLD . $WHITE . $ON_RED . q[ not crypted ] ) . $RESET . q[ ] . $BLACK . $ON_GREEN . ( $self->clean ? ' clean ' : ' cached ' ) . $RESET . qq[ "@{[$self->exe_filename]}" for $Config{archname}$LF];
 
     # add main script
     $self->_add_perl_source( $self->script->realpath->to_string, 'script/main.pl' );
@@ -112,7 +112,7 @@ sub run ($self) {
 
     P->file->chmod( 'rwx------', $target_exe );
 
-    say 'final binary size: ' . BLACK ON_GREEN . q[ ] . add_num_sep( -s $target_exe ) . q[ ] . RESET . ' bytes';
+    say 'final binary size: ' . $BLACK . $ON_GREEN . q[ ] . add_num_sep( -s $target_exe ) . q[ ] . $RESET . ' bytes';
 
     return;
 }
@@ -470,7 +470,7 @@ sub _repack_parl ( $self, $parl_path, $zip ) {
 
     my $out_len = $fh->tell;
 
-    say 'done, ', BLACK ON_GREEN . q[ ] . add_num_sep( $out_len - $in_len ) . q[ ] . RESET . ' bytes';
+    say 'done, ', $BLACK . $ON_GREEN . q[ ] . add_num_sep( $out_len - $in_len ) . q[ ] . $RESET . ' bytes';
 
     say 'hash: ' . $hash;
 
@@ -499,7 +499,7 @@ sub _patch_icon ( $self, $path ) {
 }
 
 sub _error ( $self, $msg ) {
-    say BOLD . GREEN . 'PAR ERROR: ' . $msg . RESET;
+    say $BOLD . $GREEN . 'PAR ERROR: ' . $msg . $RESET;
 
     exit 5;
 }

@@ -1,6 +1,6 @@
 package Pcore::Src::File;
 
-use Pcore -class, -ansi, -try;
+use Pcore -class, -try;
 use Pcore::Util::Text qw[encode_utf8 decode_eol lcut_all rcut_all rtrim_multi remove_bom];
 
 require Pcore::Src;

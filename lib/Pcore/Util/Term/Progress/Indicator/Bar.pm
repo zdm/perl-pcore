@@ -92,7 +92,7 @@ sub _draw ($self) {
 
                 $bar .= $mess;
 
-                $bar .= RESET;
+                $bar .= $RESET;
 
                 $bar .= q[ ] x ( $bar_size - $current_pos );
             }
@@ -102,14 +102,14 @@ sub _draw ($self) {
 
                     $bar .= $mess;
 
-                    $bar .= RESET;
+                    $bar .= $RESET;
                 }
 
                 $bar .= $BAR_COLOR;
 
                 $bar .= $PROGRESS_BAR_CHAR x ( $current_pos - length $mess );
 
-                $bar .= RESET;
+                $bar .= $RESET;
 
                 $bar .= q[ ] x ( $bar_size - $current_pos );
             }
@@ -120,7 +120,7 @@ sub _draw ($self) {
 
                 $bar .= $mess_hl;
 
-                $bar .= RESET;
+                $bar .= $RESET;
 
                 $bar .= $mess;
 

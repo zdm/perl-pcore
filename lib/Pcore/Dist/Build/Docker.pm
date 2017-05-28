@@ -81,10 +81,10 @@ sub report ( $self, $dockerhub_repo ) {
                 align  => 1,
                 format => sub ( $val, $id, $row ) {
                     if ( !$val ) {
-                        return BOLD WHITE ON_RED . ' no ' . RESET;
+                        return $BOLD . $WHITE . $ON_RED . ' no ' . $RESET;
                     }
                     else {
-                        return BLACK ON_GREEN . q[ yes ] . RESET;
+                        return $BLACK . $ON_GREEN . q[ yes ] . $RESET;
                     }
                 }
             },
@@ -172,7 +172,7 @@ sub report ( $self, $dockerhub_repo ) {
                 $report->{ $build->dockertag_name }->{build_status} = BLACK ON_WHITE;
             }
 
-            $report->{ $build->dockertag_name }->{build_status} .= q[ ] . $build->build_status_name . q[ ] . RESET;
+            $report->{ $build->dockertag_name }->{build_status} .= q[ ] . $build->build_status_name . q[ ] . $RESET;
 
             $report->{ $build->dockertag_name }->{build_status_updated} = $build->last_updated;
         }

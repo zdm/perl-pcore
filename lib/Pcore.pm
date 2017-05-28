@@ -7,7 +7,7 @@ use Pcore::Core::Const qw[:CORE];
 
 # define %EXPORT_PRAGMA for exporter
 our $EXPORT_PRAGMA = {
-    ansi     => 0,    # re-export Term::ANSIColor qw[:constants]
+    ansi     => 0,    # export ANSI color variables
     autoload => 0,    # export AUTOLOAD
     class    => 0,    # package is a Moo class
     config   => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!

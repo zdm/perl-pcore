@@ -46,7 +46,7 @@ sub run ($self) {
         else {
             say qq["$pardeps_path" is not exists.];
 
-            say BOLD . RED . qq[Deps for script "$script" wasn't scanned.] . RESET;
+            say $BOLD . $RED . qq[Deps for script "$script" wasn't scanned.] . $RESET;
 
             say q[Run source scripts with --scan-deps option.];
 
@@ -63,7 +63,7 @@ sub run ($self) {
 
         # check, that script from par profile exists in filesystem
         if ( !-f $profile->{script} ) {
-            say BOLD . RED . qq[Script "$script" wasn't found.] . RESET;
+            say $BOLD . $RED . qq[Script "$script" wasn't found.] . $RESET;
 
             next;
         }
