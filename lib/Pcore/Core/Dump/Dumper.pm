@@ -1,11 +1,10 @@
 package Pcore::Core::Dump::Dumper;
 
-use Pcore -class;
+use Pcore -class, -ansi;
 use Pcore::Util::Scalar qw[refaddr isweak reftype blessed looks_like_number tainted];
 use Pcore::Util::Text qw[escape_scalar remove_ansi add_num_sep];
 use re qw[];
 use Sort::Naturally qw[nsort];
-use Term::ANSIColor qw[colored];
 use PerlIO::Layers qw[];
 
 has color => ( is => 'ro', isa => Bool, default => 1 );    # colorize dump
@@ -16,23 +15,23 @@ has _indent => ( is => 'lazy', isa => Str, default => sub { my $self = shift; re
 has _seen => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 our $COLOR = {
-    number  => 'bold cyan',                                                     # numbers
-    string  => 'bold yellow',                                                   # strings
-    class   => 'bold green',                                                    # class names
-    regex   => 'yellow',                                                        # regular expressions
-    code    => 'green',                                                         # code references
-    glob    => 'bold cyan',                                                     # globs (usually file handles)
-    vstring => 'bold yellow',                                                   # version strings (v5.16.0, etc)
-    format  => 'bold cyan',
+    number  => $BOLD . $CYAN,                                                   # numbers
+    string  => $BOLD . $YELLOW,                                                 # strings
+    class   => $BOLD . $GREEN,                                                  # class names
+    regex   => $YELLOW,                                                         # regular expressions
+    code    => $GREEN,                                                          # code references
+    glob    => $BOLD . $CYAN,                                                   # globs (usually file handles)
+    vstring => $BOLD . $YELLOW,                                                 # version strings (v5.16.0, etc)
+    format  => $BOLD . $CYAN,
 
-    array => 'white',                                                           # array index numbers
-    hash  => 'bold magenta',                                                    # hash keys
+    array => $WHITE,                                                            # array index numbers
+    hash  => $BOLD . $MAGENTA,                                                  # hash keys
 
-    refs    => 'bold white',
-    unknown => 'black on_yellow',                                               # potential new Perl datatypes
-    undef   => 'bold red',                                                      # the 'undef' value
-    escaped => 'bold red',                                                      # escaped characters (\t, \n, etc)
-    seen    => 'white on_red',                                                  # references to seen values
+    refs    => $BOLD . $WHITE,
+    unknown => $BLACK . $ON_YELLOW,                                             # potential new Perl datatypes
+    undef   => $BOLD . $RED,                                                    # the 'undef' value
+    escaped => $BOLD . $RED,                                                    # escaped characters (\t, \n, etc)
+    seen    => $WHITE . $ON_RED,                                                # references to seen values
 };
 
 our $DUMPERS = {
@@ -98,7 +97,7 @@ sub _dump ( $self, @ ) {
     my $res;
     my $tags;
     if ( $var_addr && exists $self->_seen->{$var_addr} ) {
-        $res = colored( $self->_seen->{$var_addr}, $COLOR->{seen} );
+        $res = $COLOR->{seen} . $self->_seen->{$var_addr} . $RESET;
     }
     else {
         $self->_seen->{$var_addr} = $args{path};
@@ -204,7 +203,7 @@ sub UNKNOWN {
         @_,
     );
 
-    return colored( 'unknown: ' . $args{var_type}, $COLOR->{unknown} );
+    return $COLOR->{unknown} . 'unknown: ' . $args{var_type} . $RESET;
 }
 
 sub BLESSED {
@@ -217,7 +216,7 @@ sub BLESSED {
 
     my $ref = ref $obj;
 
-    my $res = colored( $ref . ' {', $COLOR->{class} ) . qq[\n];
+    my $res = $COLOR->{class} . $ref . ' {' . $RESET . qq[\n];
 
     my $tags;
 
@@ -228,7 +227,7 @@ sub BLESSED {
         no strict qw[refs];
 
         if ( my @superclasses = @{ $ref . '::ISA' } ) {
-            $res .= $self->_indent . '@ISA: ' . join q[, ], map { colored( $_, $COLOR->{class} ) } @superclasses;
+            $res .= $self->_indent . '@ISA: ' . join q[, ], map { $COLOR->{class} . $_ . $RESET } @superclasses;
 
             $res .= qq[,\n];
         }
@@ -277,7 +276,7 @@ sub BLESSED {
         $res .= $self->_indent . $blessed;
     }
 
-    $res .= qq[\n] . colored( '}', $COLOR->{class} );
+    $res .= qq[\n] . $COLOR->{class} . '}' . $RESET;
 
     return $res, $tags;
 }
@@ -290,7 +289,7 @@ sub REF {
         @_,
     );
 
-    return colored( q[\\ ], $COLOR->{refs} ) . $self->_dump( ${$ref}, path => $args{path} . q[->$*] );
+    return $COLOR->{refs} . q[\\ ] . $RESET . $self->_dump( ${$ref}, path => $args{path} . q[->$*] );
 }
 
 sub SCALAR {
@@ -300,10 +299,10 @@ sub SCALAR {
     my $tags;
 
     if ( !defined $_[0] ) {    # undefined value
-        $res = colored( 'undef', $COLOR->{undef} );
+        $res = $COLOR->{undef} . 'undef' . $RESET;
     }
     elsif ( looks_like_number( $_[0] ) ) {
-        $res = colored( add_num_sep( $_[0] ), $COLOR->{number} );
+        $res = $COLOR->{number} . add_num_sep( $_[0] ) . $RESET;
     }
     else {
         my $item         = $_[0];                  # scalar become untied
@@ -335,7 +334,7 @@ sub SCALAR {
         push @{$tags}, q[bytes::len = ] . $bytes_length;
         push @{$tags}, q[tied to ] . ref tied $_[0] if tainted( $_[0] );
 
-        $res = q["] . colored( $item, $COLOR->{string} ) . q["];
+        $res = q["] . $COLOR->{string} . $item . $RESET . q["];
     }
 
     $self->_tied_to( tied $_[0], $tags );
@@ -354,15 +353,15 @@ sub ARRAY {
     my $res;
     my $tags;
     if ( !@{$array_ref} ) {
-        $res = colored( q[[]], $COLOR->{refs} );
+        $res = $COLOR->{refs} . q[[]] . $RESET;
     }
     else {
-        $res = colored( q{[}, $COLOR->{refs} ) . $LF;
+        $res = $COLOR->{refs} . q{[} . $RESET . $LF;
         my $max_index_length = length( $#{$array_ref} ) + 2;
 
         for my $i ( 0 .. $#{$array_ref} ) {
             my $index = sprintf( q[%-*s], $max_index_length, qq[[$i]] ) . q[ ];
-            $res .= $self->_indent . colored( $index, $COLOR->{array} );
+            $res .= $self->_indent . $COLOR->{array} . $index . $RESET;
 
             my $el = $self->_dump( $array_ref->[$i], path => $args{path} . "->[$i]" );
             $self->_indent_text($el);
@@ -371,7 +370,7 @@ sub ARRAY {
             $res .= qq[,\n] if $i != $#{$array_ref};    # not last array element
         }
 
-        $res .= $LF . colored( q{]}, $COLOR->{refs} );
+        $res .= $LF . $COLOR->{refs} . q{]} . $RESET;
     }
 
     $self->_tied_to( tied @{$array_ref}, $tags );
@@ -390,10 +389,10 @@ sub HASH {
     my $res;
     my $tags;
     if ( !keys %{$hash_ref} ) {
-        $res = colored( q[{}], $COLOR->{refs} );
+        $res = $COLOR->{refs} . q[{}] . $RESET;
     }
     else {
-        $res = colored( '{', $COLOR->{refs} ) . $LF;
+        $res = $COLOR->{refs} . '{' . $RESET . $LF;
         my $keys;
         my $max_length = 0;
         for ( nsort keys $hash_ref->%* ) {
@@ -416,7 +415,7 @@ sub HASH {
         my $indent = $max_length + 8;
 
         for my $i ( 0 .. $#{$keys} ) {
-            $res .= $self->_indent . q["] . colored( $keys->[$i]->{escaped_key}->$*, $COLOR->{hash} ) . q["];
+            $res .= $self->_indent . q["] . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET . q["];
             $res .= sprintf q[%*s], ( $max_length - $keys->[$i]->{escaped_key_nc_len} + 4 ), q[ => ];
 
             my $el = $self->_dump( $hash_ref->{ $keys->[$i]->{raw_key} }, path => $args{path} . '->{"' . $keys->[$i]->{escaped_key_nc} . '"}' );
@@ -426,7 +425,7 @@ sub HASH {
             $res .= qq[,\n] if $i != $#{$keys};    # not last hash key
         }
 
-        $res .= $LF . colored( '}', $COLOR->{refs} );
+        $res .= $LF . $COLOR->{refs} . '}' . $RESET;
     }
 
     $self->_tied_to( tied %{$hash_ref}, $tags );
@@ -437,7 +436,7 @@ sub HASH {
 sub VSTRING {
     my $self = shift;
 
-    return colored( version->declare( $_[0] )->normal, $COLOR->{vstring} );
+    return $COLOR->{vstring} . version->declare( $_[0] )->normal . $RESET;
 }
 
 sub GLOB {
@@ -475,7 +474,7 @@ sub GLOB {
     {
         no overloading;
 
-        $res = colored( "$_[0]", $COLOR->{glob} );
+        $res = $COLOR->{glob} . "$_[0]" . $RESET;
     }
 
     return $res, $tags;
@@ -491,7 +490,7 @@ sub IO {
 sub CODE {
     my $self = shift;
 
-    return colored( q[sub { ... }], $COLOR->{code} );
+    return $COLOR->{code} . q[sub { ... }] . $RESET;
 }
 
 sub REGEXP {
@@ -500,13 +499,13 @@ sub REGEXP {
     my ( $pat, $flags ) = re::regexp_pattern( $_[0] );
     $flags //= q[];
 
-    return colored( qq[qr/$pat/$flags], $COLOR->{regex} );
+    return $COLOR->{regex} . qq[qr/$pat/$flags] . $RESET;
 }
 
 sub FORMAT {
     my $self = shift;
 
-    return colored( 'FORMAT', $COLOR->{format} );
+    return $COLOR->{format} . 'FORMAT' . $RESET;
 }
 
 sub LVALUE {
@@ -525,7 +524,7 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 80, 231, 293         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 79, 230, 292         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
