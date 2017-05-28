@@ -53,7 +53,7 @@ for my $name ( keys $ANSI->%* ) {
 require Pcore::Core::Exporter;
 Pcore::Core::Exporter->import(
     -export => {
-        CORE    => [qw[$MSWIN $CRLF $LF $TRUE $FALSE $STDOUT_UTF8 $STDERR_UTF8]],
+        CORE    => [qw[$MSWIN $CRLF $LF $STDOUT_UTF8 $STDERR_UTF8]],
         DEFAULT => [':CORE'],
         ANSI    => [ map { '$' . $_ } keys $ANSI->%* ],
     }
@@ -65,10 +65,6 @@ our $STDERR_UTF8;
 const our $MSWIN => $^O =~ /MSWin/sm ? 1 : 0;
 const our $CRLF => qq[\x0D\x0A];    ## no critic qw[ValuesAndExpressions::ProhibitEscapedCharacters]
 const our $LF   => qq[\x0A];        ## no critic qw[ValuesAndExpressions::ProhibitEscapedCharacters]
-
-use Types::Serialiser qw[];
-const our $TRUE  => Types::Serialiser::true;
-const our $FALSE => Types::Serialiser::false;
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
