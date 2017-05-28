@@ -5,32 +5,32 @@ use Const::Fast qw[const];
 
 # <<<
 const our $ANSI => {
-    reset          => 0,
-    bold           => 1,
-    dark           => 2,
-    italic         => 3,
-    underline      => 4,
-    blink          => 5,
-    reverse        => 7,
-    concealed      => 8,
+    RESET          => 0,
+    BOLD           => 1,
+    DARK           => 2,
+    ITALIC         => 3,
+    UNDERLINE      => 4,
+    BLINK          => 5,
+    REVERSE        => 7,
+    CONCEALED      => 8,
 
-    black          => 30,   on_black          => 40,
-    red            => 31,   on_red            => 41,
-    green          => 32,   on_green          => 42,
-    yellow         => 33,   on_yellow         => 43,
-    blue           => 34,   on_blue           => 44,
-    magenta        => 35,   on_magenta        => 45,
-    cyan           => 36,   on_cyan           => 46,
-    white          => 37,   on_white          => 47,
+    BLACK          => 30,   ON_BLACK          => 40,
+    RED            => 31,   ON_RED            => 41,
+    GREEN          => 32,   ON_GREEN          => 42,
+    YELLOW         => 33,   ON_YELLOW         => 43,
+    BLUE           => 34,   ON_BLUE           => 44,
+    MAGENTA        => 35,   ON_MAGENTA        => 45,
+    CYAN           => 36,   ON_CYAN           => 46,
+    WHITE          => 37,   ON_WHITE          => 47,
 
-    bright_black   => 90,   on_bright_black   => 100,
-    bright_red     => 91,   on_bright_red     => 101,
-    bright_green   => 92,   on_bright_green   => 102,
-    bright_yellow  => 93,   on_bright_yellow  => 103,
-    bright_blue    => 94,   on_bright_blue    => 104,
-    bright_magenta => 95,   on_bright_magenta => 105,
-    bright_cyan    => 96,   on_bright_cyan    => 106,
-    bright_white   => 97,   on_bright_white   => 107,
+    BRIGHT_BLACK   => 90,   ON_BRIGHT_BLACK   => 100,
+    BRIGHT_RED     => 91,   ON_BRIGHT_RED     => 101,
+    BRIGHT_GREEN   => 92,   ON_BRIGHT_GREEN   => 102,
+    BRIGHT_YELLOW  => 93,   ON_BRIGHT_YELLOW  => 103,
+    BRIGHT_BLUE    => 94,   ON_BRIGHT_BLUE    => 104,
+    BRIGHT_MAGENTA => 95,   ON_BRIGHT_MAGENTA => 105,
+    BRIGHT_CYAN    => 96,   ON_BRIGHT_CYAN    => 106,
+    BRIGHT_WHITE   => 97,   ON_BRIGHT_WHITE   => 107,
 };
 # >>>
 
@@ -46,7 +46,7 @@ for my $name ( keys $ANSI->%* ) {
             };
         };
 
-        const our \$@{[ uc $name ]} => bless {}, '_Pcore::Core::Const::ANSI::$name';
+        const our \$$name => bless {}, '_Pcore::Core::Const::ANSI::$name';
     ];
 }
 
@@ -55,7 +55,7 @@ Pcore::Core::Exporter->import(
     -export => {
         CORE    => [qw[$MSWIN $CRLF $LF $TRUE $FALSE $STDOUT_UTF8 $STDERR_UTF8]],
         DEFAULT => [':CORE'],
-        ANSI    => [ map { '$' . uc } keys $ANSI->%* ],
+        ANSI    => [ map { '$' . $_ } keys $ANSI->%* ],
     }
 );
 
