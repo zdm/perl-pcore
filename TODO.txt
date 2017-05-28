@@ -1,14 +1,9 @@
-- review run_proc mem leaks;
-- proc should return result object on exit;
-- how to get all output after process was destroyed?;
-
+- redesign error log:
+    - use events to route logs;
 
 - proc:
+    - proc should return result object on exit;
     - reliable way to read stdout on proc exit;
-
-
-
-- redesign error log;
 
 - Pcore::AE::Handle2:
     - handle should return errors using standard result object;
