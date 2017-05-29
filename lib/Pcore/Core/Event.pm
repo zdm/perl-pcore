@@ -5,7 +5,9 @@ use Pcore::Util::Scalar qw[weaken];
 use Pcore::Core::Event::Listener;
 use Time::HiRes qw[];
 
-has listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has listeners    => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has senders      => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has listeners_re => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 sub listen_events ( $self, $events, $cb ) {
     $events = [$events] if ref $events ne 'ARRAY';
@@ -19,30 +21,81 @@ sub listen_events ( $self, $events, $cb ) {
 
     my $wantarray = defined wantarray;
 
-    for my $event ( $events->@* ) {
-        push $self->{listeners}->{$event}->@*, $listener;
+    for my $listen_ev ( $events->@* ) {
+        $self->{listeners}->{$listen_ev}->{ $listener->{id} } = $listener;
 
-        weaken $self->{listeners}->{$event}->[-1] if $wantarray;
+        weaken $self->{listeners}->{$listen_ev}->{ $listener->{id} } if $wantarray;
+
+        # add listener to matched senders
+        for my $send_ev ( keys $self->{senders}->%* ) {
+            if ( $self->_match_events( $listen_ev, $send_ev ) ) {
+                $self->{senders}->{$send_ev}->{ $listener->{id} } = $listener;
+
+                weaken $self->{senders}->{$send_ev}->{ $listener->{id} };
+            }
+        }
     }
 
     return $wantarray ? $listener : ();
 }
 
-sub has_listeners ( $self, $events ) {
-    $events = [$events] if ref $events ne 'ARRAY';
+sub has_listeners ( $self, $event ) {
+    $self->_register_sender($event) if !exists $self->{senders}->{$event};
 
-    for my $event ( $events->@* ) {
-        return 1 if exists $self->{listeners}->{$event};
+    return $self->{senders}->{$event}->%* ? 1 : 0;
+}
+
+sub _register_sender ( $self, $send_ev ) {
+    return if exists $self->{senders}->{$send_ev};
+
+    my $sender = $self->{senders}->{$send_ev} = {};
+
+    for my $listen_ev ( keys $self->{listeners}->%* ) {
+        if ( $self->_match_events( $listen_ev, $send_ev ) ) {
+            for my $listener ( values $self->{listeners}->{$listen_ev}->%* ) {
+                if ( !exists $sender->{ $listener->{id} } ) {
+                    $sender->{ $listener->{id} } = $listener;
+
+                    weaken $sender->{ $listener->{id} };
+                }
+            }
+        }
     }
 
-    return 0;
+    return;
+}
+
+# send_ev always without wildcards
+# listen_ev could contain wildcards:
+# * (star) can substitute for exactly one word
+# # (hash) can substitute for zero or more words
+# word = [^.]
+sub _match_events ( $self, $listen_ev, $send_ev ) {
+    if ( index( $listen_ev, '*' ) != -1 || index( $listen_ev, '#' ) != -1 ) {
+        if ( !exists $self->{listeners_re}->{$listen_ev} ) {
+            my $re = quotemeta $listen_ev;
+
+            $re =~ s/\\[#]/.*?/smg;
+
+            $re =~ s/\\[*]/[^.]+/smg;
+
+            $self->{listeners_re}->{$listen_ev} = qr/\A$re\z/sm;
+        }
+
+        return $send_ev =~ $self->{listeners_re}->{$listen_ev} ? 1 : 0;
+    }
+    elsif ( $listen_ev eq $send_ev ) {
+        return 1;
+    }
+
+    return;
 }
 
 sub fire_event ( $self, $event, $data = undef ) {
-    if ( my $listeners = $self->{listeners}->{$event} ) {
-        for my $listener ( $listeners->@* ) {
-            $listener->{cb}->( $event, $data );
-        }
+    $self->_register_sender($event) if !exists $self->{senders}->{$event};
+
+    for my $listener ( values $self->{senders}->{$event}->%* ) {
+        $listener->{cb}->( $event, $data );
     }
 
     return;
