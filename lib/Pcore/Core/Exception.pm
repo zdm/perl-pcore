@@ -48,35 +48,34 @@ sub SIGTERM {
 sub SIGDIE {
     my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
+    # error in AE callback
     if ( $^S && $e->is_ae_cb_error ) {
-
-        # error in AE callback
         {
             local $@;
 
-            eval { $e->sendlog( channel => 'FATAL', force => 1 ) };
+            eval { $e->sendlog('FATAL') };
         }
 
-        return CORE::die $e;    # set $@ = $e
+        return CORE::die $e;    # set $@ to $e
     }
-    elsif ( !defined $^S || $^S ) {
 
-        # ERROR, !defined $^S - parsing module, eval, or main program, true - executing an eval
+    # ERROR, !defined $^S - parsing module, eval, or main program, true - executing an eval
+    elsif ( !defined $^S || $^S ) {
         if ( !$IGNORE_ERRORS ) {
             local $@;
 
-            eval { $e->sendlog( channel => 'ERROR' ) };
+            eval { $e->sendlog('ERROR') };
         }
 
-        return CORE::die $e;    # set $@ = $e
+        return CORE::die $e;    # set $@ to $e
     }
-    else {
 
-        # FATAL
+    # FATAL
+    else {
         {
             local $@;
 
-            eval { $e->sendlog( channel => 'FATAL', force => 1 ); };
+            eval { $e->sendlog('FATAL') };
         }
 
         exit $e->exit_code;
@@ -93,7 +92,7 @@ sub SIGWARN {
     {
         local $@;
 
-        $e->sendlog( channel => 'WARN' );
+        $e->sendlog('WARN');
     }
 
     return;    # skip standard warn behaviour
@@ -207,9 +206,9 @@ sub catch ($code) : prototype(&) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 55, 66, 77, 94       | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 54, 65, 76, 93       | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 57, 68, 79           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 56, 67, 78           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

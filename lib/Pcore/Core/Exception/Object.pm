@@ -127,25 +127,20 @@ sub _build_to_string ($self) {
     return $self->{with_trace} ? $self->longmess : $self->{msg};
 }
 
-# TODO force - ???
-sub sendlog ( $self, @ ) {
-    my %args = (
-        force   => 0,                # force logging if already logged
-        channel => $self->{level},
-        @_[ 1 .. $#_ ],
-    );
+sub sendlog ( $self, $channel = undef ) {
+    return if $self->{is_logged};    # prevent logging the same exception twice
 
-    return 0 if $self->{is_logged} && !$args{force};    # prevent logging same exception twice
+    $channel //= $self->{level};
 
     $self->{is_logged} = 1;
 
     P->fire_event(
-        "LOG.EXCEPTION.$args{channel}",
+        "LOG.EXCEPTION.$channel",
         {   title      => $self->{msg},
             body       => [ map { $_->as_string } $self->{call_stack}->@* ],
             timestamp  => $self->{timestamp},
             channel    => 'EXCEPTION',
-            level      => $args{channel},
+            level      => $channel,
             package    => $self->{caller_frame}->{package},
             filename   => $self->{caller_frame}->{filename},
             line       => $self->{caller_frame}->{line},
