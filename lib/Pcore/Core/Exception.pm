@@ -12,7 +12,7 @@ our $IGNORE_ERRORS = 1;    # do not write errors to error log channel by default
 # needed to properly destruct TEMP_DIR
 $SIG->{INT} = AE::signal INT => \&SIGINT;
 
-# needed to properly destruct TEMP_DIR
+# required for properly remove TEMP_DIR
 $SIG->{TERM} = AE::signal TERM => \&SIGTERM;
 
 $SIG{__DIE__} = \&SIGDIE;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]

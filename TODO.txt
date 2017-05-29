@@ -1,9 +1,4 @@
-- review collect log data;
-
-- default severity for sendlog - INFO ???;
-
-
-- review create error log, collect tags;
+- do we need force???;
 
 - events routing, cache routes, drop, when something changed;
 - pcore - where to set default log pipes;

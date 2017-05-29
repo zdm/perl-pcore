@@ -127,6 +127,7 @@ sub _build_to_string ($self) {
     return $self->{with_trace} ? $self->longmess : $self->{msg};
 }
 
+# TODO force - ???
 sub sendlog ( $self, @ ) {
     my %args = (
         force   => 0,                # force logging if already logged
@@ -143,6 +144,7 @@ sub sendlog ( $self, @ ) {
         {   title      => $self->{msg},
             body       => [ map { $_->as_string } $self->{call_stack}->@* ],
             timestamp  => $self->{timestamp},
+            channel    => 'EXCEPTION',
             level      => $args{channel},
             package    => $self->{caller_frame}->{package},
             filename   => $self->{caller_frame}->{filename},

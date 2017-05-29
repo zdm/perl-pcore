@@ -659,6 +659,8 @@ sub has_listeners ( $self, $event ) {
 sub create_logpipe ( $self, $channel, @pipes ) {
     my $guard = defined wantarray ? [] : ();
 
+    $channel .= '.INFO' unless $channel =~ tr/././;
+
     my $event = ["LOG.$channel"];
 
     for my $pipe (@pipes) {
@@ -675,15 +677,17 @@ sub create_logpipe ( $self, $channel, @pipes ) {
             }
         }
         elsif ( ref $pipe eq 'ARRAY' ) {
-            my $uri = Pcore->uri( $pipe->[0] );
+            my ( $uri, %args ) = $pipe->@*;
 
-            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
+            $args{uri} = Pcore->uri($uri);
+
+            my $class = Pcore->class->load( $args{uri}->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
 
             if ($guard) {
-                push $guard->@*, listen_events( $self, $event, $class->new( { $pipe->@[ 1 .. $pipe->$#* ], uri => $uri } ) );    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+                push $guard->@*, listen_events( $self, $event, $class->new( \%args ) );
             }
             else {
-                listen_events( $self, $event, $class->new( { $pipe->@[ 1 .. $pipe->$#* ], uri => $uri } ) );                     ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+                listen_events( $self, $event, $class->new( \%args ) );
             }
         }
         elsif ( ref $pipe eq 'CODE' ) {
@@ -702,20 +706,18 @@ sub create_logpipe ( $self, $channel, @pipes ) {
     return $guard;
 }
 
-# TODO collect log attributes
-# TODO rename tags to data;
 # TODO seralize / dump refs;
-sub sendlog ( $self, $channel, $title, $body = undef, $tags = undef ) {
+sub sendlog ( $self, $channel, $title, $body = undef, $data = undef ) {
     return if !has_listeners( $self, "LOG.$channel" );
 
     state $init = !!require Time::HiRes;
 
     if ($body) {
         if ( ref $body eq 'HASH' ) {
-            $tags = $body;
+            $data = $body;
         }
         else {
-            $tags->{body} = $body;
+            $data->{body} = $body;
         }
     }
 
@@ -724,21 +726,21 @@ sub sendlog ( $self, $channel, $title, $body = undef, $tags = undef ) {
 
     my @caller = caller 0;
 
-    $tags->{title} = $title;
-    $tags->{timestamp} //= Time::HiRes::time();
-    $tags->{level} //= 'INFO';
-    $tags->{package}    = $caller[0];
-    $tags->{filename}   = $caller[1];
-    $tags->{line}       = $caller[2];
-    $tags->{subroutine} = $caller[3];
+    ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
 
-    # {   channel     => uc $self->name,
-    #     script_name => $ENV->{SCRIPT_NAME},
-    #     script_dir  => $ENV->{SCRIPT_DIR},
-    #     script_path => $ENV->{SCRIPT_PATH},
-    # };
+    $data->{title} = $title;
+    $data->{timestamp} //= Time::HiRes::time();
+    $data->{level} //= 'INFO';
+    $data->{package}    = $caller[0];
+    $data->{filename}   = $caller[1];
+    $data->{line}       = $caller[2];
+    $data->{subroutine} = $caller[3];    # always this sub, not needed
 
-    fire_event( $self, "LOG.$channel", $tags );
+    # script_name => $ENV->{SCRIPT_NAME},
+    # script_dir  => $ENV->{SCRIPT_DIR},
+    # script_path => $ENV->{SCRIPT_PATH},
+
+    fire_event( $self, "LOG.$channel", $data );
 
     return;
 }
@@ -762,7 +764,7 @@ sub sendlog ( $self, $channel, $title, $body = undef, $tags = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 450, 453, 458, 461,  |                                                                                                                |
-## |      | 486, 505, 698        |                                                                                                                |
+## |      | 486, 505, 702        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 601                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
