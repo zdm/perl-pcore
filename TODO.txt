@@ -1,6 +1,14 @@
-- defualt level - ???;
-- what is channel and level?;
-- events routing, cache routes, drop, when something changed;
+- events routing, cache routes, drop, when something changed:
+    - sendlog - always full route - LOG.EXCEPTION.DEBUG;
+    - listeners:
+        - LOG.EXCEPTION.DEBUG;
+        - LOG.EXCEPTION
+        - LOG.EXCEPTION.*
+        - LOG.*.DEBUG
+        - *.DEBUG
+    - precalculate routing map for sendlog keys;
+    - drop or refresh map when listeners keys added / removed;
+
 
 - pcore - how to remove pipes by type, eg: stderr;
 - do not send event to the same callback twice;

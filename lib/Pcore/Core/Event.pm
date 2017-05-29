@@ -52,8 +52,6 @@ sub fire_event ( $self, $event, $data = undef ) {
 sub create_logpipe ( $self, $channel, @pipes ) {
     my $guard = defined wantarray ? [] : ();
 
-    $channel .= '.INFO' unless $channel =~ tr/././;
-
     my $event = ["LOG.$channel"];
 
     for my $pipe (@pipes) {
@@ -102,18 +100,22 @@ sub create_logpipe ( $self, $channel, @pipes ) {
 sub sendlog ( $self, $channel, $title, $body = undef ) {
     return if !$self->has_listeners("LOG.$channel");
 
-    my $data = {
-        title     => $title,
-        timestamp => Time::HiRes::time(),
-        body      => $body,
-    };
+    my $data;
 
     ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
 
-    $data->{level} //= 'INFO';
+    die q[Log level must be specified] unless $data->{level};
 
-    # dump body, if reference
-    $data->{body} = dump $data->{body} if ref $data->{body};
+    \$data->{title} = \$title;
+
+    $data->{timestamp} = Time::HiRes::time();
+
+    if ( ref $body ) {
+        $data->{body} = dump $body;
+    }
+    else {
+        \$data->{body} = \$body;
+    }
 
     $self->fire_event( "LOG.$channel", $data );
 
