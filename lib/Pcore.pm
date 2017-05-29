@@ -642,6 +642,93 @@ sub fire_event ( $self, $event, $data = undef ) {
     return $ev->fire_event( $event, $data );
 }
 
+sub has_listeners ( $self, $event ) {
+    state $ev = do {
+        if ( !$EV ) {
+            require Pcore::Core::Event;
+
+            $EV = Pcore::Core::Event->new;
+        }
+
+        $EV;
+    };
+
+    return $ev->has_listeners($event);
+}
+
+sub create_logpipe ( $self, $channel, @pipes ) {
+    my $guard = defined wantarray ? [] : ();
+
+    my $event = ["LOG.$channel"];
+
+    for my $pipe (@pipes) {
+        if ( !ref $pipe ) {
+            my $uri = Pcore->uri($pipe);
+
+            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
+
+            if ($guard) {
+                push $guard->@*, listen_events( $self, $event, $class->new( { uri => $uri } ) );
+            }
+            else {
+                listen_events( $self, $event, $class->new( { uri => $uri } ) );
+            }
+        }
+        elsif ( ref $pipe eq 'CODE' ) {
+            if ($guard) {
+                push $guard->@*, listen_events( $self, $event, $pipe );
+            }
+            else {
+                listen_events( $self, $event, $pipe );
+            }
+        }
+        else {
+            die q[Invalid pipe type];
+        }
+    }
+
+    return $guard;
+}
+
+# TODO collect log attributes
+sub sendlog ( $self, $channel, $title, $body = undef, $tags = undef ) {
+    return if !has_listeners( $self, "LOG.$channel" );
+
+    state $init = !!require Time::HiRes;
+
+    if ($body) {
+        if ( ref $body eq 'HASH' ) {
+            $tags = $body;
+        }
+        else {
+            $tags->{body} = $body;
+        }
+    }
+
+    # dump ref
+    # $data = dump $data if ref $data;
+
+    my @caller = caller 0;
+
+    $tags->{title} = $title;
+    $tags->{timestamp} //= Time::HiRes::time();
+    $tags->{severity}  //= 'INFO';
+    $tags->{package}    = $caller[0];
+    $tags->{filename}   = $caller[1];
+    $tags->{line}       = $caller[2];
+    $tags->{subroutine} = $caller[3];
+
+    # {   channel     => uc $self->name,
+    #     script_name => $ENV->{SCRIPT_NAME},
+    #     script_dir  => $ENV->{SCRIPT_DIR},
+    #     script_path => $ENV->{SCRIPT_PATH},
+    # };
+
+    fire_event( $self, "LOG.$channel", $tags );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -661,7 +748,7 @@ sub fire_event ( $self, $event, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 450, 453, 458, 461,  |                                                                                                                |
-## |      | 486, 505             |                                                                                                                |
+## |      | 486, 505, 686        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 601                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

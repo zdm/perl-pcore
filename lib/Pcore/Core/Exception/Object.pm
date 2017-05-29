@@ -19,11 +19,13 @@ use overload    #
   fallback => undef;
 
 has msg => ( is => 'ro', isa => Str, required => 1 );
-has exit_code => ( is => 'lazy', isa => Int );
 has level => ( is => 'ro', isa => Enum [qw[ERROR WARN]], required => 1 );
-has trace => ( is => 'ro', isa => Bool, default => 1 );
 has call_stack => ( is => 'ro', isa => Maybe [ArrayRef], required => 1 );
-has caller_frame => ( is => 'lazy', isa => InstanceOf ['Devel::StackTrace::Frame'], required => 1 );
+has caller_frame => ( is => 'ro', isa => InstanceOf ['Devel::StackTrace::Frame'], required => 1 );
+has timestamp => ( is => 'ro', isa => Num, required => 1 );
+
+has exit_code => ( is => 'lazy', isa => Int );
+has trace => ( is => 'ro', isa => Bool, default => 1 );
 
 has is_ae_cb_error => ( is => 'lazy', isa => Bool, init_arg => undef );
 has longmess       => ( is => 'lazy', isa => Str,  init_arg => undef );
@@ -74,8 +76,12 @@ around new => sub ( $orig, $self, $msg, %args ) {
 
     $args{caller_frame} = shift $args{call_stack}->@*;
 
+    $args{timestamp} = Time::HiRes::time();
+
     # stringify $msg
-    return $self->$orig( { %args, msg => "$msg" } );         ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+    $args{msg} = "$msg";
+
+    return bless \%args, $self;
 };
 
 # CLASS METHODS
@@ -107,37 +113,45 @@ sub _build_exit_code ($self) {
     return 255;    # last resort
 }
 
+# TODO can be removed
 sub _build_longmess ($self) {
-    if ( $self->call_stack->@* ) {
-        return $self->msg . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->call_stack->@*;
+    if ( $self->{call_stack}->@* ) {
+        return $self->{msg} . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->{call_stack}->@*;
     }
     else {
-        return $self->msg;
+        return $self->{msg};
     }
 }
 
 sub _build_to_string ($self) {
-    return $self->trace ? $self->longmess : $self->msg;
+    return $self->{trace} ? $self->longmess : $self->{msg};
 }
 
 sub sendlog ( $self, @ ) {
     my %args = (
-        force      => 0,                                 # force logging if already logged
-        channel    => $self->level,
-        package    => $self->caller_frame->package,
-        filename   => $self->caller_frame->filename,
-        line       => $self->caller_frame->line,
-        subroutine => $self->caller_frame->subroutine,
-        splice @_, 1,
+        force   => 0,                # force logging if already logged
+        channel => $self->{level},
+        @_[ 1 .. $#_ ],
     );
 
-    return 0 if $self->{logged} && !delete $args{force};    # prevent logging same exception twice
+    return 0 if $self->{logged} && !$args{force};    # prevent logging same exception twice
 
     $self->{logged} = 1;
 
-    my $channel = lc delete $args{channel};
+    my $channel = uc $args{channel};
 
-    P->log->sendlog( $channel, $self->to_string, %args );
+    P->fire_event(
+        "LOG.$channel",
+        {   title      => $self->{msg},
+            body       => [ map { $_->as_string } $self->{call_stack}->@* ],
+            timestamp  => $self->{timestamp},
+            severity   => $channel,
+            package    => $self->{caller_frame}->{package},
+            filename   => $self->{caller_frame}->{filename},
+            line       => $self->{caller_frame}->{line},
+            subroutine => $self->{caller_frame}->{subroutine},
+        }
+    );
 
     return;
 }

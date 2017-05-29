@@ -5,7 +5,7 @@ use Pcore::Util::Scalar qw[refaddr];
 
 has broker => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Event'], required => 1 );
 has events => ( is => 'ro', isa => ArrayRef, required => 1 );
-has cb     => ( is => 'ro', isa => CodeRef,  required => 1 );
+has cb => ( is => 'ro', isa => CodeRef | Object, required => 1 );
 
 has _refaddr => ( is => 'ro', isa => Str, init_arg => undef );
 
