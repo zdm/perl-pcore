@@ -3,6 +3,7 @@ package Pcore::Core::Exception::Object;
 use Pcore -class;
 use Devel::StackTrace qw[];
 use Pcore::Util::Scalar qw[blessed];
+use Time::HiRes qw[];
 
 use overload    #
   q[""] => sub {
@@ -25,13 +26,13 @@ has caller_frame => ( is => 'ro', isa => InstanceOf ['Devel::StackTrace::Frame']
 has timestamp => ( is => 'ro', isa => Num, required => 1 );
 
 has exit_code => ( is => 'lazy', isa => Int );
-has trace => ( is => 'ro', isa => Bool, default => 1 );
+has with_trace => ( is => 'ro', isa => Bool, default => 1 );
 
 has is_ae_cb_error => ( is => 'lazy', isa => Bool, init_arg => undef );
 has longmess       => ( is => 'lazy', isa => Str,  init_arg => undef );
 has to_string      => ( is => 'lazy', isa => Str,  init_arg => undef );
 
-has logged => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
+has is_logged => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
 
 around new => sub ( $orig, $self, $msg, %args ) {
     $args{skip_frames} //= 0;
@@ -113,7 +114,6 @@ sub _build_exit_code ($self) {
     return 255;    # last resort
 }
 
-# TODO can be removed
 sub _build_longmess ($self) {
     if ( $self->{call_stack}->@* ) {
         return $self->{msg} . $LF . join $LF, map { q[ ] x 4 . $_->as_string } $self->{call_stack}->@*;
@@ -124,7 +124,7 @@ sub _build_longmess ($self) {
 }
 
 sub _build_to_string ($self) {
-    return $self->{trace} ? $self->longmess : $self->{msg};
+    return $self->{with_trace} ? $self->longmess : $self->{msg};
 }
 
 sub sendlog ( $self, @ ) {
@@ -134,18 +134,16 @@ sub sendlog ( $self, @ ) {
         @_[ 1 .. $#_ ],
     );
 
-    return 0 if $self->{logged} && !$args{force};    # prevent logging same exception twice
+    return 0 if $self->{is_logged} && !$args{force};    # prevent logging same exception twice
 
-    $self->{logged} = 1;
-
-    my $channel = uc $args{channel};
+    $self->{is_logged} = 1;
 
     P->fire_event(
-        "LOG.$channel",
+        "LOG.$args{channel}",
         {   title      => $self->{msg},
             body       => [ map { $_->as_string } $self->{call_stack}->@* ],
             timestamp  => $self->{timestamp},
-            severity   => $channel,
+            level      => $args{channel},
             package    => $self->{caller_frame}->{package},
             filename   => $self->{caller_frame}->{filename},
             line       => $self->{caller_frame}->{line},

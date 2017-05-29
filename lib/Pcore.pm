@@ -712,7 +712,7 @@ sub sendlog ( $self, $channel, $title, $body = undef, $tags = undef ) {
 
     $tags->{title} = $title;
     $tags->{timestamp} //= Time::HiRes::time();
-    $tags->{severity}  //= 'INFO';
+    $tags->{level} //= 'INFO';
     $tags->{package}    = $caller[0];
     $tags->{filename}   = $caller[1];
     $tags->{line}       = $caller[2];

@@ -15,7 +15,7 @@ sub sendlog ( $self, $ev, $data ) {
     if ( !exists $self->{tmpl} ) {
         $self->{tmpl} = P->tmpl;
 
-        my $header = $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>]' . $BOLD . $YELLOW . '[<: $package :>]' . $BOLD . $RED . '[<: $severity :>]' . $RESET;
+        my $header = $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>]' . $BOLD . $YELLOW . '[<: $package :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET;
 
         my $template = qq[$header <: \$title :>
 : for \$body -> \$line {

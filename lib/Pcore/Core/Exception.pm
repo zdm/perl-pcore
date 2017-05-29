@@ -46,7 +46,7 @@ sub SIGTERM {
 
 # SIGNALS
 sub SIGDIE {
-    my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, trace => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
     if ( $^S && $e->is_ae_cb_error ) {
 
@@ -54,9 +54,7 @@ sub SIGDIE {
         {
             local $@;
 
-            eval {    #
-                $e->sendlog( channel => 'fatal', force => 1 );
-            };
+            eval { $e->sendlog( channel => 'FATAL', force => 1 ) };
         }
 
         return CORE::die $e;    # set $@ = $e
@@ -64,12 +62,10 @@ sub SIGDIE {
     elsif ( !defined $^S || $^S ) {
 
         # ERROR, !defined $^S - parsing module, eval, or main program, true - executing an eval
-        {
+        if ( !$IGNORE_ERRORS ) {
             local $@;
 
-            eval {              #
-                $e->sendlog( channel => 'error' ) unless $IGNORE_ERRORS;
-            };
+            eval { $e->sendlog( channel => 'ERROR' ) };
         }
 
         return CORE::die $e;    # set $@ = $e
@@ -80,9 +76,7 @@ sub SIGDIE {
         {
             local $@;
 
-            eval {              #
-                $e->sendlog( channel => 'fatal', force => 1 );
-            };
+            eval { $e->sendlog( channel => 'FATAL', force => 1 ); };
         }
 
         exit $e->exit_code;
@@ -94,12 +88,12 @@ sub SIGWARN {
     # skip AE callback error warning
     return if $_[0] =~ /\AEV: error in callback/sm;
 
-    my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'WARN', skip_frames => 1, trace => 1 );
+    my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'WARN', skip_frames => 1, with_trace => 1 );
 
     {
         local $@;
 
-        $e->sendlog( channel => 'warn' );
+        $e->sendlog( channel => 'WARN' );
     }
 
     return;    # skip standard warn behaviour
@@ -124,7 +118,7 @@ sub croak {
         $msg = 'Died';
     }
 
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => 'ERROR', skip_frames => 1, trace => 0 );
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => 'ERROR', skip_frames => 1, with_trace => 0 );
 
     return CORE::die $e;
 }
@@ -148,7 +142,7 @@ sub cluck {
         $msg = q[Warning: something's wrong];
     }
 
-    my $e = Pcore::Core::Exception::Object->new( $msg, level => 'WARN', skip_frames => 1, trace => 0 );
+    my $e = Pcore::Core::Exception::Object->new( $msg, level => 'WARN', skip_frames => 1, with_trace => 0 );
 
     return CORE::warn $e;
 }
@@ -184,7 +178,7 @@ sub try ( $try, $catch = undef ) : prototype(&@) {
 
     # error handling
     if ($failed) {
-        my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 1, trace => 1 );
+        my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
         if ($catch) {
             if ($wantarray) {
@@ -213,9 +207,9 @@ sub catch ($code) : prototype(&) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 55, 68, 81, 100      | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 55, 66, 77, 94       | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 57, 70, 83           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 57, 68, 79           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

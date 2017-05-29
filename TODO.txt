@@ -1,11 +1,16 @@
-- review create error log;
 - namespace for log exceptions: LOG.EXCEPTION.$SEVERITY
 - default severity for sendlog - INFO ???;
+
+
+- review create error log, collect tags;
+
 - events routing, cache routes, drop, when something changed;
 - pcore - where to set default log pipes;
-- pcore - remove pipes by type, eg: stderr;
+- pcore - how to remove pipes by type, eg: stderr;
 - restore possibility to set log message header, store header in pipe attrs;
-- rename level -> severity;
+
+- remove P->log;
+- remove try / catch, it is slow and ugly???;
 
 - own stacktrace???
 
