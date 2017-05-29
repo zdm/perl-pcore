@@ -674,6 +674,18 @@ sub create_logpipe ( $self, $channel, @pipes ) {
                 listen_events( $self, $event, $class->new( { uri => $uri } ) );
             }
         }
+        elsif ( ref $pipe eq 'ARRAY' ) {
+            my $uri = Pcore->uri( $pipe->[0] );
+
+            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
+
+            if ($guard) {
+                push $guard->@*, listen_events( $self, $event, $class->new( { $pipe->@[ 1 .. $pipe->$#* ], uri => $uri } ) );    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+            }
+            else {
+                listen_events( $self, $event, $class->new( { $pipe->@[ 1 .. $pipe->$#* ], uri => $uri } ) );                     ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+            }
+        }
         elsif ( ref $pipe eq 'CODE' ) {
             if ($guard) {
                 push $guard->@*, listen_events( $self, $event, $pipe );
@@ -683,7 +695,7 @@ sub create_logpipe ( $self, $channel, @pipes ) {
             }
         }
         else {
-            die q[Invalid pipe type];
+            die q[Invalid log pipe type];
         }
     }
 
@@ -691,6 +703,8 @@ sub create_logpipe ( $self, $channel, @pipes ) {
 }
 
 # TODO collect log attributes
+# TODO rename tags to data;
+# TODO seralize / dump refs;
 sub sendlog ( $self, $channel, $title, $body = undef, $tags = undef ) {
     return if !has_listeners( $self, "LOG.$channel" );
 
@@ -748,7 +762,7 @@ sub sendlog ( $self, $channel, $title, $body = undef, $tags = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 450, 453, 458, 461,  |                                                                                                                |
-## |      | 486, 505, 686        |                                                                                                                |
+## |      | 486, 505, 698        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 601                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

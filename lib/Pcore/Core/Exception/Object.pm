@@ -139,7 +139,7 @@ sub sendlog ( $self, @ ) {
     $self->{is_logged} = 1;
 
     P->fire_event(
-        "LOG.$args{channel}",
+        "LOG.EXCEPTION.$args{channel}",
         {   title      => $self->{msg},
             body       => [ map { $_->as_string } $self->{call_stack}->@* ],
             timestamp  => $self->{timestamp},

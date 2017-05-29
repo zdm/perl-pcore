@@ -5,6 +5,8 @@ use Pcore::Util::Text qw[remove_ansi];
 
 with qw[Pcore::Core::Event::Log::Pipe];
 
+has header => ( is => 'ro', isa => Str, default => $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>]' . $BOLD . $YELLOW . '[<: $package :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET );
+
 has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
 has is_ansi => ( is => 'ro', isa => Bool, init_arg => undef );
 
@@ -15,9 +17,7 @@ sub sendlog ( $self, $ev, $data ) {
     if ( !exists $self->{tmpl} ) {
         $self->{tmpl} = P->tmpl;
 
-        my $header = $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>]' . $BOLD . $YELLOW . '[<: $package :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET;
-
-        my $template = qq[$header <: \$title :>
+        my $template = qq[$self->{header} <: \$title :>
 : for \$body -> \$line {
     <: \$line :>
 : }];
@@ -53,7 +53,7 @@ sub sendlog ( $self, $ev, $data ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 33                   | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 18                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 8                    | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

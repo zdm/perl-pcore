@@ -7,6 +7,8 @@ use IO::File;
 
 with qw[Pcore::Core::Event::Log::Pipe];
 
+has header => ( is => 'ro', isa => Str, default => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>][<: $package :>][<: $level :>]' );
+
 has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
 has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );
 has h    => ( is => 'ro', isa => InstanceOf ['IO::File'],              init_arg => undef );
@@ -17,9 +19,7 @@ sub sendlog ( $self, $ev, $data ) {
     if ( !exists $self->{tmpl} ) {
         $self->{tmpl} = P->tmpl;
 
-        my $header = '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>][<: $package :>][<: $level :>]';
-
-        my $template = qq[$header <: \$title :>
+        my $template = qq[$self->{header} <: \$title :>
 : for \$body -> \$line {
     <: \$line :>
 : }];
@@ -77,7 +77,7 @@ sub sendlog ( $self, $ev, $data ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 53                   | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 20                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 10                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

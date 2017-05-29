@@ -1,4 +1,5 @@
-- namespace for log exceptions: LOG.EXCEPTION.$SEVERITY
+- review collect log data;
+
 - default severity for sendlog - INFO ???;
 
 
@@ -7,10 +8,10 @@
 - events routing, cache routes, drop, when something changed;
 - pcore - where to set default log pipes;
 - pcore - how to remove pipes by type, eg: stderr;
-- restore possibility to set log message header, store header in pipe attrs;
 
 - remove P->log;
 - remove try / catch, it is slow and ugly???;
+- log namespace - LOG.$Dist-Name.$LEVEL
 
 - own stacktrace???
 
