@@ -3,6 +3,7 @@ package Pcore::Core::Event;
 use Pcore -class;
 use Pcore::Util::Scalar qw[weaken];
 use Pcore::Core::Event::Listener;
+use Time::HiRes qw[];
 
 has listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
@@ -43,6 +44,78 @@ sub fire_event ( $self, $event, $data = undef ) {
             $listener->{cb}->( $event, $data );
         }
     }
+
+    return;
+}
+
+# LOG namespace
+sub create_logpipe ( $self, $channel, @pipes ) {
+    my $guard = defined wantarray ? [] : ();
+
+    $channel .= '.INFO' unless $channel =~ tr/././;
+
+    my $event = ["LOG.$channel"];
+
+    for my $pipe (@pipes) {
+        if ( !ref $pipe ) {
+            my $uri = Pcore->uri($pipe);
+
+            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
+
+            if ($guard) {
+                push $guard->@*, $self->listen_events( $event, $class->new( { uri => $uri } ) );
+            }
+            else {
+                $self->listen_events( $event, $class->new( { uri => $uri } ) );
+            }
+        }
+        elsif ( ref $pipe eq 'ARRAY' ) {
+            my ( $uri, %args ) = $pipe->@*;
+
+            $args{uri} = Pcore->uri($uri);
+
+            my $class = Pcore->class->load( $args{uri}->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
+
+            if ($guard) {
+                push $guard->@*, $self->listen_events( $event, $class->new( \%args ) );
+            }
+            else {
+                $self->listen_events( $event, $class->new( \%args ) );
+            }
+        }
+        elsif ( ref $pipe eq 'CODE' ) {
+            if ($guard) {
+                push $guard->@*, $self->listen_events( $event, $pipe );
+            }
+            else {
+                $self->listen_events( $event, $pipe );
+            }
+        }
+        else {
+            die q[Invalid log pipe type];
+        }
+    }
+
+    return $guard;
+}
+
+sub sendlog ( $self, $channel, $title, $body = undef ) {
+    return if !$self->has_listeners("LOG.$channel");
+
+    my $data = {
+        title     => $title,
+        timestamp => Time::HiRes::time(),
+        body      => $body,
+    };
+
+    ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
+
+    $data->{level} //= 'INFO';
+
+    # dump body, if reference
+    $data->{body} = dump $data->{body} if ref $data->{body};
+
+    $self->fire_event( "LOG.$channel", $data );
 
     return;
 }

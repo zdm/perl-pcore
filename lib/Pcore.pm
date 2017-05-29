@@ -612,124 +612,60 @@ sub init_demolish ( $self, $class ) {
 }
 
 # EVENT
-our $EV;
-
-sub listen_events ( $self, $events, $cb ) {
+sub _init_ev {
     state $ev = do {
-        if ( !$EV ) {
-            require Pcore::Core::Event;
+        require Pcore::Core::Event;
 
-            $EV = Pcore::Core::Event->new;
+        my $EV = Pcore::Core::Event->new;
+
+        # set default log channels
+        if ( $ENV->dist ) {
+            $EV->create_logpipe( 'EXCEPTION.FATAL', 'stderr:', 'file:fatal.log' );
+            $EV->create_logpipe( 'EXCEPTION.ERROR', 'stderr:', 'file:error.log' );
+            $EV->create_logpipe( 'EXCEPTION.WARN',  'stderr:', 'file:warn.log' );
+        }
+
+        # file logs are disabled by default for scripts, that are not part of the distribution
+        else {
+            $EV->create_logpipe( 'EXCEPTION.FATAL', 'stderr:' );
+            $EV->create_logpipe( 'EXCEPTION.ERROR', 'stderr:' );
+            $EV->create_logpipe( 'EXCEPTION.WARN',  'stderr:' );
         }
 
         $EV;
     };
+
+    return $ev;
+}
+
+sub listen_events ( $self, $events, $cb ) {
+    state $ev = _init_ev();
 
     return $ev->listen_events( $events, $cb );
 }
 
 sub fire_event ( $self, $event, $data = undef ) {
-    state $ev = do {
-        if ( !$EV ) {
-            require Pcore::Core::Event;
-
-            $EV = Pcore::Core::Event->new;
-        }
-
-        $EV;
-    };
+    state $ev = _init_ev();
 
     return $ev->fire_event( $event, $data );
 }
 
 sub has_listeners ( $self, $event ) {
-    state $ev = do {
-        if ( !$EV ) {
-            require Pcore::Core::Event;
-
-            $EV = Pcore::Core::Event->new;
-        }
-
-        $EV;
-    };
+    state $ev = _init_ev();
 
     return $ev->has_listeners($event);
 }
 
 sub create_logpipe ( $self, $channel, @pipes ) {
-    my $guard = defined wantarray ? [] : ();
+    state $ev = _init_ev();
 
-    $channel .= '.INFO' unless $channel =~ tr/././;
-
-    my $event = ["LOG.$channel"];
-
-    for my $pipe (@pipes) {
-        if ( !ref $pipe ) {
-            my $uri = Pcore->uri($pipe);
-
-            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
-
-            if ($guard) {
-                push $guard->@*, listen_events( $self, $event, $class->new( { uri => $uri } ) );
-            }
-            else {
-                listen_events( $self, $event, $class->new( { uri => $uri } ) );
-            }
-        }
-        elsif ( ref $pipe eq 'ARRAY' ) {
-            my ( $uri, %args ) = $pipe->@*;
-
-            $args{uri} = Pcore->uri($uri);
-
-            my $class = Pcore->class->load( $args{uri}->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
-
-            if ($guard) {
-                push $guard->@*, listen_events( $self, $event, $class->new( \%args ) );
-            }
-            else {
-                listen_events( $self, $event, $class->new( \%args ) );
-            }
-        }
-        elsif ( ref $pipe eq 'CODE' ) {
-            if ($guard) {
-                push $guard->@*, listen_events( $self, $event, $pipe );
-            }
-            else {
-                listen_events( $self, $event, $pipe );
-            }
-        }
-        else {
-            die q[Invalid log pipe type];
-        }
-    }
-
-    return $guard;
+    return $ev->create_logpipe( $channel, @pipes );
 }
 
 sub sendlog ( $self, $channel, $title, $body = undef ) {
-    return if !has_listeners( $self, "LOG.$channel" );
+    state $ev = _init_ev();
 
-    state $init = !!require Time::HiRes;
-
-    my @caller = caller 0;
-
-    my $data = {
-        title     => $title,
-        timestamp => Time::HiRes::time(),
-        package   => $caller[0],
-        body      => $body,
-    };
-
-    ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
-
-    $data->{level} //= 'INFO';
-
-    # dump body, if reference
-    $data->{body} = Pcore::Core::Dump::dump( $data->{body} ) if ref $data->{body};
-
-    fire_event( $self, "LOG.$channel", $data );
-
-    return;
+    return $ev->sendlog( $channel, $title, $body );
 }
 
 1;
@@ -751,7 +687,7 @@ sub sendlog ( $self, $channel, $title, $body = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 450, 453, 458, 461,  |                                                                                                                |
-## |      | 486, 505, 702        |                                                                                                                |
+## |      | 486, 505             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 601                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
