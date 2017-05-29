@@ -1,3 +1,5 @@
+- own stacktrace???
+
 - what is channel and level?;
 
 - events routing, cache routes, drop, when something changed;
@@ -11,8 +13,6 @@
 
 - remove try / catch, it is slow and ugly???;
 - log namespace - LOG.$Dist-Name.$LEVEL
-
-- own stacktrace???
 
 
 

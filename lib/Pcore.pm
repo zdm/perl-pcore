@@ -706,38 +706,26 @@ sub create_logpipe ( $self, $channel, @pipes ) {
     return $guard;
 }
 
-# TODO seralize / dump refs;
-sub sendlog ( $self, $channel, $title, $body = undef, $data = undef ) {
+sub sendlog ( $self, $channel, $title, $body = undef ) {
     return if !has_listeners( $self, "LOG.$channel" );
 
     state $init = !!require Time::HiRes;
 
-    if ($body) {
-        if ( ref $body eq 'HASH' ) {
-            $data = $body;
-        }
-        else {
-            $data->{body} = $body;
-        }
-    }
-
-    # dump ref
-    # $data = dump $data if ref $data;
-
-    # convert body to arrayref
-
     my @caller = caller 0;
+
+    my $data = {
+        title     => $title,
+        timestamp => Time::HiRes::time(),
+        package   => $caller[0],
+        body      => $body,
+    };
 
     ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
 
-    $data->{timestamp} //= Time::HiRes::time();
     $data->{level} //= 'INFO';
-    $data->{title}   = $title;
-    $data->{package} = $caller[0];
 
-    # script_name => $ENV->{SCRIPT_NAME},
-    # script_dir  => $ENV->{SCRIPT_DIR},
-    # script_path => $ENV->{SCRIPT_PATH},
+    # dump body, if reference
+    $data->{body} = Pcore::Core::Dump::dump( $data->{body} ) if ref $data->{body};
 
     fire_event( $self, "LOG.$channel", $data );
 

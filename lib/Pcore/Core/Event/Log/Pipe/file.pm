@@ -24,9 +24,9 @@ sub sendlog ( $self, $ev, $data ) {
         # init template
         $self->{tmpl} = P->tmpl;
 
-        my $template = qq[$self->{header} <: \$title :>
-: for \$body -> \$line {
-    <: \$line :>
+        my $template = qq[$self->{header} <: \$title | raw :>
+: if \$body {
+<: \$body | raw :>
 : }];
 
         $self->{tmpl}->cache_string_tmpl( message => \$template );
@@ -55,6 +55,9 @@ sub sendlog ( $self, $ev, $data ) {
     {
         local $data->{date} = P->date->from_epoch( $data->{timestamp} );
 
+        # indent body
+        local $data->{body} = $data->{body} =~ s/^/    /smgr if $data->{body};
+
         my $message = $self->{tmpl}->render( 'message', $data );
 
         remove_ansi $message->$*;
@@ -78,7 +81,7 @@ sub sendlog ( $self, $ev, $data ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 27                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 56                   | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 56, 59               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 10                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

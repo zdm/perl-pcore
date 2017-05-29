@@ -137,7 +137,7 @@ sub sendlog ( $self, $channel = undef ) {
     P->fire_event(
         "LOG.EXCEPTION.$channel",
         {   title     => $self->{msg},
-            body      => [ map { $_->as_string } $self->{call_stack}->@* ],
+            body      => ( $self->{with_trace} ? join $LF, map { $_->as_string } $self->{call_stack}->@* : undef ),
             timestamp => $self->{timestamp},
             channel   => 'EXCEPTION',
             level     => $channel,
