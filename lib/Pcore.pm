@@ -724,17 +724,16 @@ sub sendlog ( $self, $channel, $title, $body = undef, $data = undef ) {
     # dump ref
     # $data = dump $data if ref $data;
 
+    # convert body to arrayref
+
     my @caller = caller 0;
 
     ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
 
-    $data->{title} = $title;
     $data->{timestamp} //= Time::HiRes::time();
     $data->{level} //= 'INFO';
-    $data->{package}    = $caller[0];
-    $data->{filename}   = $caller[1];
-    $data->{line}       = $caller[2];
-    $data->{subroutine} = $caller[3];    # always this sub, not needed
+    $data->{title}   = $title;
+    $data->{package} = $caller[0];
 
     # script_name => $ENV->{SCRIPT_NAME},
     # script_dir  => $ENV->{SCRIPT_DIR},

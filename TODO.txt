@@ -1,10 +1,14 @@
-- do we need force???;
+- what is channel and level?;
 
 - events routing, cache routes, drop, when something changed;
 - pcore - where to set default log pipes;
 - pcore - how to remove pipes by type, eg: stderr;
+- do not send event to the same callback twice;
 
-- remove P->log;
+- replace P->log->sendlog -> P->sendlog;
+- replace P->log->add -> P->create_logpipe;
+- remove other P->log;
+
 - remove try / catch, it is slow and ugly???;
 - log namespace - LOG.$Dist-Name.$LEVEL
 
