@@ -10,11 +10,16 @@ has header => ( is => 'ro', isa => Str, default => $BOLD . $GREEN . '[<: $date.s
 has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
 has is_ansi => ( is => 'ro', isa => Bool, init_arg => undef );
 
+has _init => ( is => 'ro', isa => Bool, init_arg => undef );
+
 sub sendlog ( $self, $ev, $data ) {
     return if $ENV->{LOG_STDERR_DISABLED};
 
-    # init template
-    if ( !exists $self->{tmpl} ) {
+    # init
+    if ( !$self->{_init} ) {
+        $self->{_init} = 1;
+
+        # init template
         $self->{tmpl} = P->tmpl;
 
         my $template = qq[$self->{header} <: \$title :>
@@ -23,10 +28,10 @@ sub sendlog ( $self, $ev, $data ) {
 : }];
 
         $self->{tmpl}->cache_string_tmpl( message => \$template );
-    }
 
-    # check ansi support
-    $self->{is_ansi} //= -t $STDERR_UTF8 ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
+        # check ansi support
+        $self->{is_ansi} //= -t $STDERR_UTF8 ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
+    }
 
     # sendlog
     {
@@ -49,9 +54,9 @@ sub sendlog ( $self, $ev, $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
+## |    3 | 25                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 33                   | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 38                   | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 8                    | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

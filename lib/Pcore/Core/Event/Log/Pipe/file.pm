@@ -13,10 +13,15 @@ has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg 
 has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );
 has h    => ( is => 'ro', isa => InstanceOf ['IO::File'],              init_arg => undef );
 
+has _init => ( is => 'ro', isa => Bool, init_arg => undef );
+
 sub sendlog ( $self, $ev, $data ) {
 
-    # init template
-    if ( !exists $self->{tmpl} ) {
+    # init
+    if ( !$self->{_init} ) {
+        $self->{_init} = 1;
+
+        # init template
         $self->{tmpl} = P->tmpl;
 
         my $template = qq[$self->{header} <: \$title :>
@@ -25,10 +30,8 @@ sub sendlog ( $self, $ev, $data ) {
 : }];
 
         $self->{tmpl}->cache_string_tmpl( message => \$template );
-    }
 
-    # init path
-    if ( !exists $self->{path} ) {
+        # init path
         if ( $self->{uri}->path->is_abs ) {
             P->file->mkpath( $self->{uri}->path->dirname );
 
@@ -41,7 +44,7 @@ sub sendlog ( $self, $ev, $data ) {
 
     # open filehandle
     if ( !-f $self->{path} || !$self->{h} ) {
-        $self->{h} = IO::File->new( $self->{path}, '>>', P->file->calc_chmod(q[rw-------]) ) or die q[Unable to open "] . $self->{path} . q["];
+        $self->{h} = IO::File->new( $self->{path}, '>>', P->file->calc_chmod(q[rw-------]) ) or die qq[Unable to open "$self->{path}"];
 
         $self->{h}->binmode(':encoding(UTF-8)');
 
@@ -73,9 +76,9 @@ sub sendlog ( $self, $ev, $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
+## |    3 | 27                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 53                   | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 56                   | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 10                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
