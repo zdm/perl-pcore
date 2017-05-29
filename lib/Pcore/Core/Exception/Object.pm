@@ -9,7 +9,7 @@ use overload    #
   q[""] => sub {
 
     # string overloading can happens only from perl internals calls, such as eval in "use" or "require" (or other compilation errors), or not handled "die", so we don't need full trace here
-    return $_[0]->msg . $LF;
+    return $_[0]->{msg} . $LF;
   },
   q[0+] => sub {
     return $_[0]->exit_code;
