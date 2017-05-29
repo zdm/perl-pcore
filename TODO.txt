@@ -1,7 +1,5 @@
 - RPC. APP. USER. LOG. ALL.
 
-- pipe package header, and remove from exception;
-
 - pcore - how to remove pipes by type, eg: stderr;
 
 - replace P->log->sendlog -> P->sendlog;

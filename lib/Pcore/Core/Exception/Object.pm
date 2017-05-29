@@ -141,7 +141,6 @@ sub sendlog ( $self, $channel = undef ) {
             timestamp => $self->{timestamp},
             channel   => 'EXCEPTION',
             level     => $channel,
-            package   => $self->{caller_frame}->{package},
         }
     );
 
