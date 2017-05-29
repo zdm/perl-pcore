@@ -1,19 +1,21 @@
-package Pcore::Core::Event::Log::Pipe::stderr;
+package Pcore::Core::Event::Listener::Pipe::file;
 
 use Pcore -class, -ansi;
 use Pcore::Util::Text qw[remove_ansi];
+use Fcntl qw[:flock];
+use IO::File;
 
-with qw[Pcore::Core::Event::Log::Pipe];
+with qw[Pcore::Core::Event::Listener::Pipe];
 
-has header => ( is => 'ro', isa => Str, default => $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>]' . $BOLD . $YELLOW . '[<: $package :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET );
+has header => ( is => 'ro', isa => Str, default => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>][<: $package :>][<: $level :>]' );
 
 has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
-has is_ansi => ( is => 'ro', isa => Bool, init_arg => undef );
+has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );
+has h    => ( is => 'ro', isa => InstanceOf ['IO::File'],              init_arg => undef );
 
 has _init => ( is => 'ro', isa => Bool, init_arg => undef );
 
 sub sendlog ( $self, $ev, $data ) {
-    return if $ENV->{LOG_STDERR_DISABLED};
 
     # init
     if ( !$self->{_init} ) {
@@ -29,8 +31,24 @@ sub sendlog ( $self, $ev, $data ) {
 
         $self->{tmpl}->cache_string_tmpl( message => \$template );
 
-        # check ansi support
-        $self->{is_ansi} //= -t $STDERR_UTF8 ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
+        # init path
+        if ( $self->{uri}->path->is_abs ) {
+            P->file->mkpath( $self->{uri}->path->dirname );
+
+            $self->{path} = $self->{uri}->path;
+        }
+        else {
+            $self->{path} = P->path( $ENV->{DATA_DIR} . $self->{uri}->path );
+        }
+    }
+
+    # open filehandle
+    if ( !-f $self->{path} || !$self->{h} ) {
+        $self->{h} = IO::File->new( $self->{path}, '>>', P->file->calc_chmod(q[rw-------]) ) or die qq[Unable to open "$self->{path}"];
+
+        $self->{h}->binmode(':encoding(UTF-8)');
+
+        $self->{h}->autoflush(1);
     }
 
     # sendlog
@@ -42,9 +60,13 @@ sub sendlog ( $self, $ev, $data ) {
 
         my $message = $self->{tmpl}->render( 'message', $data );
 
-        remove_ansi $message->$* if !$self->{is_ansi};
+        remove_ansi $message->$*;
 
-        print {$STDERR_UTF8} $message->$*;
+        flock $self->{h}, LOCK_EX or die;
+
+        print { $self->{h} } $message->$*;
+
+        flock $self->{h}, LOCK_UN or die;
     }
 
     return;
@@ -57,11 +79,11 @@ sub sendlog ( $self, $ev, $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 25                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
+## |    3 | 27                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 38, 41               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 56, 59               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 8                    | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 10                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -72,7 +94,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Event::Log::Pipe::stderr
+Pcore::Core::Event::Listener::Pipe::file
 
 =head1 SYNOPSIS
 

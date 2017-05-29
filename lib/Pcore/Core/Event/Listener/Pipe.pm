@@ -1,4 +1,4 @@
-package Pcore::Core::Event::Log::Pipe;
+package Pcore::Core::Event::Listener::Pipe;
 
 use Pcore -role;
 use overload    #
@@ -19,7 +19,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Core::Event::Log::Pipe
+Pcore::Core::Event::Listener::Pipe
 
 =head1 SYNOPSIS
 

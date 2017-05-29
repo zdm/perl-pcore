@@ -1,3 +1,5 @@
+- pipe package;
+
 - events routing, cache routes, drop, when something changed:
     - sendlog - always full route - LOG.EXCEPTION.DEBUG;
     - listeners:
@@ -21,6 +23,8 @@
 - log namespace - LOG.$Dist-Name.$LEVEL
 
 
+- anyevent XMPP + log bot;
+- smtp log bot;
 
 
 

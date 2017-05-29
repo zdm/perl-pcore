@@ -58,7 +58,7 @@ sub create_logpipe ( $self, $channel, @pipes ) {
         if ( !ref $pipe ) {
             my $uri = Pcore->uri($pipe);
 
-            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
+            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Listener::Pipe' );
 
             if ($guard) {
                 push $guard->@*, $self->listen_events( $event, $class->new( { uri => $uri } ) );
@@ -72,7 +72,7 @@ sub create_logpipe ( $self, $channel, @pipes ) {
 
             $args{uri} = Pcore->uri($uri);
 
-            my $class = Pcore->class->load( $args{uri}->scheme, ns => 'Pcore::Core::Event::Log::Pipe' );
+            my $class = Pcore->class->load( $args{uri}->scheme, ns => 'Pcore::Core::Event::Listener::Pipe' );
 
             if ($guard) {
                 push $guard->@*, $self->listen_events( $event, $class->new( \%args ) );
