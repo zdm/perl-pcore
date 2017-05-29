@@ -1,13 +1,14 @@
 - RPC. APP. USER. LOG. ALL.
 
-- pcore - how to remove pipes by type, eg: stderr;
+- test RPC events;
+
+- pcore - how to remove pipes by type, eg: stderr = $ENV->{LOG_STDERR_DISABLED};
 
 - replace P->log->sendlog -> P->sendlog;
 - replace P->log->add -> P->create_logpipe;
 - remove other P->log;
 
 - remove try / catch, it is slow and ugly???;
-- log namespace - LOG.$Dist-Name.$LEVEL
 
 
 - anyevent XMPP + log bot;

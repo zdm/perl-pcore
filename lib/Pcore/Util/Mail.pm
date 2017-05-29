@@ -60,25 +60,25 @@ sub get_mail {
     my $search_string = join q[ ], @search_string;
 
   REDO_SEARCH:
-    P->log->sendlog( 'IMAP', 'IMAP search: ' . $search_string );
+    P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP search: ' . $search_string );
 
     my $messages = [];
 
     for my $folder ( @{ $args{folders} } ) {
-        P->log->sendlog( 'IMAP', 'IMAP search in folder: ' . $folder );
+        P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP search in folder: ' . $folder );
 
         $imap->select($folder);
 
         if ( my $res = $imap->search($search_string) ) {
             if ( @{$res} ) {
-                P->log->sendlog( 'IMAP', 'IMAP found: ' . $res->@* );
+                P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP found: ' . $res->@* );
 
                 push $messages->@*, _get_messages( $imap, $folder, $res, $args{found_action} )->@*;
             }
         }
     }
     if ( @{$messages} ) {
-        P->log->sendlog( 'IMAP', 'IMAP total found: ' . $messages->@* );
+        P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP total found: ' . $messages->@* );
 
         $imap->disconnect;
 
@@ -86,7 +86,7 @@ sub get_mail {
     }
 
     if ( $args{retries} && --$args{retries} ) {
-        P->log->sendlog( 'IMAP', 'IMAP sleep: ' . $args{retries_timeout} );
+        P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP sleep: ' . $args{retries_timeout} );
 
         sleep $args{retries_timeout};
 
@@ -94,12 +94,12 @@ sub get_mail {
 
         $imap->reconnect;
 
-        P->log->sendlog( 'IMAP', 'IMAP run next search iteration: ' . $args{retries} );
+        P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP run next search iteration: ' . $args{retries} );
 
         goto REDO_SEARCH;
     }
 
-    P->log->sendlog( 'IMAP', 'IMAP nothing found' );
+    P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP nothing found' );
 
     $imap->disconnect;
 
@@ -122,13 +122,13 @@ sub _get_messages {
         push $bodies->@*, $body;
     }
     if ($found_action) {
-        P->log->sendlog( 'IMAP', 'IMAP apply found action: ' . $found_action );
+        P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP apply found action: ' . $found_action );
 
         my $method = $found_action;
 
         my $res = $imap->$method($messages);
 
-        P->log->sendlog( 'IMAP', 'IMAP messages, affected by action: ' . $res );
+        P->sendlog( 'Pcore-Util-Mail.DEBUG', 'IMAP messages, affected by action: ' . $res );
 
         $imap->expunge($folder);
     }
