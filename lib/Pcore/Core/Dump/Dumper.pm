@@ -170,7 +170,7 @@ sub _indent_text {
 sub _add_tags {
     my ( $self, $tags ) = splice @_, 0, 2;
 
-    $_[0] .= q[ # ] . join q[, ], $tags->@* if $tags && $tags->@*;
+    $_[0] .= q[, # ] . join q[, ], $tags->@* if $tags && $tags->@*;
 
     return;
 }
@@ -423,9 +423,9 @@ sub HASH {
         my $indent = $max_length + 8;
 
         for my $i ( 0 .. $keys->$#* ) {
-            $res .= $self->_indent . q["] . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET . q["];
+            $res .= $self->_indent . '"' . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET . '"';
 
-            $res .= sprintf q[%*s], ( $max_length - $keys->[$i]->{escaped_key_nc_len} + 4 ), q[ => ];
+            $res .= sprintf '%*s', ( $max_length - $keys->[$i]->{escaped_key_nc_len} + 4 ), ' => ';
 
             my $el = $self->_dump( $hash_ref->{ $keys->[$i]->{raw_key} }, path => $args{path} . '->{"' . $keys->[$i]->{escaped_key_nc} . '"}' );
 
