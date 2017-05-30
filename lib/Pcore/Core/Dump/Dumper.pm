@@ -334,7 +334,7 @@ sub SCALAR {
         push @{$tags}, q[bytes::len = ] . $bytes_length;
         push @{$tags}, q[tied to ] . ref tied $_[0] if tainted( $_[0] );
 
-        $res = q["] . $COLOR->{string} . $item . $RESET . q["];
+        $res = 'qq[' . $COLOR->{string} . $item . $RESET . ']';
     }
 
     $self->_tied_to( tied $_[0], $tags );

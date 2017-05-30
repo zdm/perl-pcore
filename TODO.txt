@@ -1,4 +1,3 @@
-- commit error, when committing not from root dir, eg. p doc -f devel from data dir;
 - use qq[] instead of " in Pcore dump to quote strings;
 - RPC not inherit parent process %ENV on windows - CHECK UNDER LINUX;
 - src report - show paths, related to start dir;
