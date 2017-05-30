@@ -1,12 +1,11 @@
-- enable forward events on api client by default;
-- test how I can get events from api client;
+- bench, remove try / catch, it is slow and ugly???;
+    - stacktrace;
+- src report - show paths, related to start dir;
 
 - anyevent XMPP + log bot;
 - smtp log bot;
 
 - RPC not inherit parent process %ENV on windows - CHECK UNDER LINUX;
-- src report - show paths, related to start dir;
-- bench, remove try / catch, it is slow and ugly???;
 - update POD template;
 
 - proc:
