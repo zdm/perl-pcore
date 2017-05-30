@@ -293,7 +293,7 @@ sub REF {
         @_,
     );
 
-    return $COLOR->{refs} . '\\ ' . $RESET . $self->_dump( $ref->$*, path => $args{path} . '->$*' );
+    return $COLOR->{refs} . '\\ --- ' . $RESET . $self->_dump( $ref->$*, path => $args{path} . '->$*' );
 }
 
 sub SCALAR {
