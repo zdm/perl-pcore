@@ -7,7 +7,7 @@ use IO::File;
 
 with qw[Pcore::Core::Event::Listener::Pipe];
 
-has header => ( is => 'ro', isa => Str, default => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%3N") :>][<: $channel :>][<: $level :>]' );
+has header => ( is => 'ro', isa => Str, default => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>][<: $channel :>][<: $level :>]' );
 
 has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
 has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );

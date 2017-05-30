@@ -1,18 +1,10 @@
-
-
-
-
-- add posibility to customize data for error log;
-
-- use env vars to disable DEBUG LOG, Pcore::DBH -> $ENV{PCORE_DBH_DEBUG_ENABLED} = 1
-
 - update log db struct and extjs log component;
-- move debug to log;
-
-- lazarus crawler - sendlog APP.DEBUG
 
 - anyevent XMPP + log bot;
 - smtp log bot;
+
+- enable forward events on api client by default;
+- test how I can get events from api client;
 
 - remove try / catch, it is slow and ugly???;
 - update POD template;
