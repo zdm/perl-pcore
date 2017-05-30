@@ -49,7 +49,7 @@ sub SIGDIE {
     my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
     # error in AE callback
-    if ( $^S && $e->is_ae_cb_error ) {
+    if ( $^S && $e->{is_ae_cb_error} ) {
         {
             local $@;
 
