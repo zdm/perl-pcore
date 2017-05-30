@@ -1,6 +1,6 @@
 package Pcore::Src;
 
-use Pcore -class, -ansi, -try, -const, -export => { CONST => [qw[$SRC_DECOMPRESS $SRC_COMPRESS $SRC_OBFUSCATE $SRC_COMMIT]] };
+use Pcore -class, -ansi, -const, -export => { CONST => [qw[$SRC_DECOMPRESS $SRC_COMPRESS $SRC_OBFUSCATE $SRC_COMMIT]] };
 use Pcore::Util::Text qw[decode_utf8];
 
 const our $SRC_DECOMPRESS => 'decompress';
@@ -100,7 +100,7 @@ TXT
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     P->file->chdir( $ENV->{START_DIR} );
 
-    my $exit_code = try {
+    my $exit_code = eval {
         my $src = Pcore::Src->new(
             {   interactive => 1,
                 path        => $arg->{path},
@@ -113,15 +113,14 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             }
         );
 
-        return $src->run;
-    }
-    catch {
-        my $e = shift;
+        $src->run;
+    };
 
-        say $e;
+    if ($@) {
+        say $@;
 
         return Pcore::Src::File->cfg->{EXIT_CODES}->{RUNTIME_ERROR};
-    };
+    }
 
     if ( $opt->{pause} ) {
         print 'Press ENTER to continue...';
@@ -431,7 +430,7 @@ sub _wrap_color ( $self, $str, $color ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 423                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
+## |    3 | 422                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

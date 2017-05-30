@@ -20,7 +20,6 @@ our $EXPORT_PRAGMA = {
     result   => 0,    # export Pcore::Util::Result qw[result]
     role     => 0,    # package is a Moo role
     rpc      => 0,    # run class as RPC server
-    try      => 0,    # export Pcore::Core::Exception qw[:DEFAULT try catch]
     types    => 0,    # export types
 };
 
@@ -181,13 +180,8 @@ sub import {
             Pcore::Core::Const->import( -caller => $caller, qw[:ANSI] );
         }
 
-        # process -try pragma
-        if ( $import->{pragma}->{try} ) {
-            Pcore::Core::Exception->import( -caller => $caller, qw[:DEFAULT try catch] );
-        }
-        else {
-            Pcore::Core::Exception->import( -caller => $caller );
-        }
+        # import exceptions
+        Pcore::Core::Exception->import( -caller => $caller );
 
         # process -result pragma
         if ( $import->{pragma}->{result} ) {
@@ -660,25 +654,25 @@ sub sendlog ( $self, $channel, $title, $body = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (26)                    |
+## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (24)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 108                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 107                  | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 273                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 267                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 348                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 468                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 342                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 462                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 450, 453, 458, 461,  |                                                                                                                |
-## |      | 486, 505, 645        |                                                                                                                |
+## |    3 | 374, 403, 406, 410,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 444, 447, 452, 455,  |                                                                                                                |
+## |      | 480, 499, 639        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 574                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 568                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 283                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 277                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 384                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 378                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,7 +2,6 @@ package Pcore::Core::Exception;
 
 use Pcore -export => {    #
     DEFAULT => [qw[croak cluck]],
-    TRY     => [qw[try catch]],
 };
 use Carp qw[];
 use Pcore::Core::Exception::Object;
@@ -146,59 +145,6 @@ sub cluck {
     return CORE::warn $e;
 }
 
-# TRY / CATCH
-sub try ( $try, $catch = undef ) : prototype(&@) {
-    my $wantarray = wantarray;
-
-    my $prev_error = $@;
-
-    my @res;
-
-    my $failed = not eval {
-
-        # we should create exception object manually, because __DIE__ will not work if try/catch will called from __DIE__ handler
-        local $SIG{__DIE__} = undef;
-
-        # make previous $@ accesible inside eval, eval clean $@ before start
-        $@ = $prev_error;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
-        if ($wantarray) {
-            @res = $try->();
-        }
-        elsif ( defined $wantarray ) {
-            $res[0] = $try->();
-        }
-        else {
-            $try->();
-        }
-
-        return 1;
-    };
-
-    # error handling
-    if ($failed) {
-        my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 1, with_trace => 1 );
-
-        if ($catch) {
-            if ($wantarray) {
-                @res = $catch->($e);
-            }
-            elsif ( defined $wantarray ) {
-                $res[0] = $catch->($e);
-            }
-            else {
-                $catch->($e);
-            }
-        }
-    }
-
-    return $wantarray ? @res : $res[0];
-}
-
-sub catch ($code) : prototype(&) {
-    return $code;
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -206,9 +152,9 @@ sub catch ($code) : prototype(&) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 54, 65, 76, 93       | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 53, 64, 75, 92       | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 56, 67, 78           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 55, 66, 77           | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

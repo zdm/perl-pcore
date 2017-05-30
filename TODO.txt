@@ -1,4 +1,3 @@
-- bench, remove try / catch, it is slow and ugly???;
 - src report - show paths, related to start dir;
 
 - anyevent XMPP + log bot;
