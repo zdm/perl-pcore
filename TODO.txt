@@ -1,10 +1,6 @@
-- src report - show paths, related to start dir;
-
-- anyevent XMPP + log bot;
-- smtp log bot;
-
 - RPC not inherit parent process %ENV on windows - CHECK UNDER LINUX;
 - update POD template;
+- src report - show paths, related to start dir;
 
 - proc:
     - proc should return result object on exit;
