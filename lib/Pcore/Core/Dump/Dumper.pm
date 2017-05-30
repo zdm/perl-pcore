@@ -170,7 +170,9 @@ sub _indent_text {
 sub _add_tags {
     my ( $self, $tags ) = splice @_, 0, 2;
 
-    $_[0] .= q[, # ] . join q[, ], $tags->@* if $tags && $tags->@*;
+    $_[0] .= ',';
+
+    $_[0] .= q[ # ] . join q[, ], $tags->@* if $tags && $tags->@*;
 
     return;
 }
@@ -373,10 +375,10 @@ sub ARRAY {
 
             $res .= $el;
 
-            $res .= ",\n" if $i != $array_ref->$#*;    # not last array element
+            $res .= "\n" if $i != $array_ref->$#*;    # not last array element
         }
 
-        $res .= $LF . $COLOR->{refs} . ']' . $RESET;
+        $res .= "\n" . $COLOR->{refs} . ']' . $RESET;
     }
 
     $self->_tied_to( tied $array_ref->@*, $tags );
@@ -433,7 +435,7 @@ sub HASH {
 
             $res .= $el;
 
-            $res .= qq[,\n] if $i != $keys->$#*;    # not last hash key
+            $res .= qq[\n] if $i != $keys->$#*;    # not last hash key
         }
 
         $res .= $LF . $COLOR->{refs} . '}' . $RESET;
@@ -467,7 +469,7 @@ sub GLOB {
 
         $layers .= "($_->[1])" if defined $_->[1];    # add layer encoding
 
-        $layers .= ':utf8' if q[UTF8] ~~ $_->[2];     # add :utf8 layer, if defined
+        $layers .= ':utf8' if 'UTF8' ~~ $_->[2];      # add :utf8 layer, if defined
     }
 
     my $fileno = eval { fileno $_[0] };
@@ -537,7 +539,7 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 79, 232, 294         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 79, 234, 296         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
