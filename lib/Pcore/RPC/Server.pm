@@ -96,8 +96,8 @@ sub run ( $class, $rpc_boot_args ) {
                             max_message_size => 1_024 * 1_024 * 100,              # 100 Mb
                             pong_interval    => 50,
                             compression      => 0,                                #
-                            on_listen_event  => sub ( $ws, $ev ) { return 1 },    # events currently are enabled
-                            on_fire_event    => sub ( $ws, $ev ) { return 1 },    # events currently are enabled
+                            on_listen_event  => sub ( $ws, $ev ) { return 1 },    # RPC client can listen server events
+                            on_fire_event    => sub ( $ws, $ev ) { return 1 },    # RPC client can fire server events
                             before_connect   => {
                                 listen_events  => $listen_events,
                                 forward_events => ${"$class\::RPC_FORWARD_EVENTS"},
