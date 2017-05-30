@@ -1,10 +1,17 @@
+
+
+
+
+- add posibility to customize data for error log;
+- add possibility to capture caller package;
+
+- use env vars to disable DEBUG LOG, Pcore::DBH -> $ENV{PCORE_DBH_DEBUG_ENABLED} = 1
+
 - lazarus server - do not listen debug log;
 - update log db struct and extjs log component;
 - move debug to log;
 
 - lazarus crawler - sendlog APP.DEBUG
-- add posibility to customize data for error log;
-- add possibility to capture caller package;
 
 - anyevent XMPP + log bot;
 - smtp log bot;

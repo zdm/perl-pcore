@@ -135,31 +135,6 @@ sub fire_event ( $self, $event, $data = undef ) {
     return;
 }
 
-sub sendlog ( $self, $channel, $title, $body = undef ) {
-    return if !$self->has_listeners("LOG.$channel");
-
-    my $data;
-
-    ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
-
-    die q[Log level must be specified] unless $data->{level};
-
-    \$data->{title} = \$title;
-
-    $data->{timestamp} = Time::HiRes::time();
-
-    if ( ref $body ) {
-        $data->{body} = dump $body;
-    }
-    else {
-        \$data->{body} = \$body;
-    }
-
-    $self->fire_event( "LOG.$channel", $data );
-
-    return;
-}
-
 1;
 __END__
 =pod

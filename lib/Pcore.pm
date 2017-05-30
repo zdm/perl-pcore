@@ -628,7 +628,28 @@ sub has_listeners ( $self, $event ) {
 sub sendlog ( $self, $channel, $title, $body = undef ) {
     state $ev = _init_ev();
 
-    return $ev->sendlog( $channel, $title, $body );
+    return if !$ev->has_listeners("LOG.$channel");
+
+    my $data;
+
+    ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
+
+    die q[Log level must be specified] unless $data->{level};
+
+    \$data->{title} = \$title;
+
+    $data->{timestamp} = Time::HiRes::time();
+
+    if ( ref $body ) {
+        $data->{body} = Pcore::Core::Dump::dump($body);
+    }
+    else {
+        \$data->{body} = \$body;
+    }
+
+    $ev->fire_event( "LOG.$channel", $data );
+
+    return;
 }
 
 1;
@@ -650,7 +671,7 @@ sub sendlog ( $self, $channel, $title, $body = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 450, 453, 458, 461,  |                                                                                                                |
-## |      | 486, 505             |                                                                                                                |
+## |      | 486, 505, 637        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 574                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
