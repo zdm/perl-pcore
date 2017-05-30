@@ -483,8 +483,10 @@ sub GLOB {
     {
         no overloading;
 
-        $res = $COLOR->{glob} . "$_[0]" . $RESET;
+        $res = $COLOR->{glob} . "$_[0]";
     }
+
+    $res .= $RESET;
 
     return $res, $tags;
 }
