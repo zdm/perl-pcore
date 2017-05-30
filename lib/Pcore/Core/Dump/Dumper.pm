@@ -111,7 +111,7 @@ sub _dump ( $self, @ ) {
     }
 
     # weak
-    push $tags->@*, q[weak] if isweak( $_[1] );
+    push $tags->@*, 'weak' if isweak( $_[1] );
 
     # add tags
     $self->_add_tags( $tags, $res );
