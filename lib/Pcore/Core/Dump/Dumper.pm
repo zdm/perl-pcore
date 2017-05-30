@@ -192,7 +192,8 @@ sub _tied_to {
 
     if ($tied) {
         $_[0] //= [];
-        push @{ $_[0] }, 'tied to ' . ref $tied;
+
+        push $_[0]->@*, 'tied to ' . ref $tied;
     }
 
     return;
@@ -534,7 +535,7 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 79, 231, 293         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 79, 232, 294         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
