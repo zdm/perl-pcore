@@ -3,11 +3,9 @@
 
 
 - add posibility to customize data for error log;
-- add possibility to capture caller package;
 
 - use env vars to disable DEBUG LOG, Pcore::DBH -> $ENV{PCORE_DBH_DEBUG_ENABLED} = 1
 
-- lazarus server - do not listen debug log;
 - update log db struct and extjs log component;
 - move debug to log;
 
@@ -20,7 +18,7 @@
 - update POD template;
 - src report - show paths, related to start dir;
 
-- RPC not inherit parent process %ENV;
+- RPC not inherit parent process %ENV on windows - CHECK UNDER LINUX;
 
 - proc:
     - proc should return result object on exit;

@@ -632,20 +632,21 @@ sub sendlog ( $self, $channel, $title, $body = undef ) {
 
     my $data;
 
+    if ( ref $title ) {
+        $data = $title;
+    }
+    else {
+        \$data->{title} = \$title;
+        \$data->{body}  = \$body;
+    }
+
     ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
 
     die q[Log level must be specified] unless $data->{level};
 
-    \$data->{title} = \$title;
+    $data->{timestamp} //= Time::HiRes::time();
 
-    $data->{timestamp} = Time::HiRes::time();
-
-    if ( ref $body ) {
-        $data->{body} = Pcore::Core::Dump::dump($body);
-    }
-    else {
-        \$data->{body} = \$body;
-    }
+    $data->{body} = Pcore::Core::Dump::dump( $data->{body} ) if ref $data->{body};
 
     $ev->fire_event( "LOG.$channel", $data );
 
@@ -671,7 +672,7 @@ sub sendlog ( $self, $channel, $title, $body = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 450, 453, 458, 461,  |                                                                                                                |
-## |      | 486, 505, 637        |                                                                                                                |
+## |      | 486, 505, 645        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 574                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
