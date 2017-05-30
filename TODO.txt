@@ -1,7 +1,8 @@
+- commit error, when committing not from root dir, eg. p doc -f devel from data dir;
+- use qq[] instead of " in Pcore dump to quote strings;
 - RPC not inherit parent process %ENV on windows - CHECK UNDER LINUX;
 - src report - show paths, related to start dir;
 - update POD template;
-- commit error, when committing not from root dir, eg. p doc -f devel from data dir;
 
 - proc:
     - proc should return result object on exit;
@@ -37,8 +38,6 @@
 
 -----------------------------------------------------------------------------------------------
 
-- use qq[] instead of " in Pcore dump to quote strings;
-
 - websocket RPC bin protocol:
     - [headers length, cbor headers, cbor body];
     - allows to decode headers and return body to client;
@@ -61,5 +60,5 @@
 - HANDLE and PROXY refactoring
     - rename -> timeout -> http_timeout, keepalive_timeout -> http_keep...;
 
-    - pcore::ae::handle - use reason instead of message in error callbacks;
+    - Pcore::AE::Handle - use reason instead of message in error callbacks;
     - http - do not use header object, use direct cache;
