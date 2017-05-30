@@ -76,7 +76,7 @@ sub run ( $self, @args ) {
 # INTERNAL METHODS
 sub _dump ( $self, @ ) {
     my %args = (
-        path    => q[$VAR],
+        path    => '$VAR',
         unbless => 0,
         splice @_, 2,
     );
@@ -86,7 +86,8 @@ sub _dump ( $self, @ ) {
     my ( $var_type, $blessed ) = $self->_var_type( $_[1], unbless => $args{unbless} );
 
     # detect var addr
-    my $var_addr = qq[${var_type}_];
+    my $var_addr = "${var_type}_";
+
     if ( ref $_[1] ) {
         $var_addr .= refaddr( $_[1] );
     }
@@ -94,21 +95,23 @@ sub _dump ( $self, @ ) {
         $var_addr .= refaddr( \$_[1] );
     }
 
-    my $res;
-    my $tags;
+    my ( $res, $tags );
+
     if ( $var_addr && exists $self->_seen->{$var_addr} ) {
         $res = $COLOR->{seen} . $self->_seen->{$var_addr} . $RESET;
     }
     else {
         $self->_seen->{$var_addr} = $args{path};
+
         my $dump_method = $blessed ? 'BLESSED' : $var_type;
+
         $dump_method = 'UNKNOWN' if !$self->can($dump_method);
 
         ( $res, $tags ) = $self->$dump_method( $_[1], path => $args{path}, var_type => $var_type );
     }
 
     # weak
-    push @{$tags}, q[weak] if isweak( $_[1] );
+    push $tags->@*, q[weak] if isweak( $_[1] );
 
     # add tags
     $self->_add_tags( $tags, $res );
@@ -158,16 +161,16 @@ sub _indent_text {
     my $self = shift;
 
     my $indent = $self->_indent;
+
     $_[0] =~ s/\n/\n$indent/smg;
 
     return;
 }
 
 sub _add_tags {
-    my $self = shift;
-    my $tags = shift;
+    my ( $self, $tags ) = splice @_, 0, 2;
 
-    $_[0] .= q[ # ] . join q[, ], $tags->@* if $tags && @{$tags};
+    $_[0] .= q[ # ] . join q[, ], $tags->@* if $tags && $tags->@*;
 
     return;
 }
@@ -216,11 +219,9 @@ sub BLESSED {
 
     my $ref = ref $obj;
 
-    my $res = $COLOR->{class} . $ref . ' {' . $RESET . qq[\n];
+    my $res = $COLOR->{class} . $ref . ' {' . $RESET . "\n";
 
-    my $tags;
-
-    my $dumped;
+    my ( $tags, $dumped );
 
     # @ISA
     {
@@ -229,12 +230,12 @@ sub BLESSED {
         if ( my @superclasses = @{ $ref . '::ISA' } ) {
             $res .= $self->_indent . '@ISA: ' . join q[, ], map { $COLOR->{class} . $_ . $RESET } @superclasses;
 
-            $res .= qq[,\n];
+            $res .= ",\n";
         }
     }
 
     # reafddr
-    $res .= $self->_indent . 'refaddr: ' . refaddr($obj) . qq[,\n];
+    $res .= $self->_indent . 'refaddr: ' . refaddr($obj) . ",\n";
 
     # class dump method
     if ( my $dump_method = $self->dump_method && $obj->can( $self->dump_method ) ) {
@@ -276,7 +277,7 @@ sub BLESSED {
         $res .= $self->_indent . $blessed;
     }
 
-    $res .= qq[\n] . $COLOR->{class} . '}' . $RESET;
+    $res .= "\n" . $COLOR->{class} . '}' . $RESET;
 
     return $res, $tags;
 }
@@ -289,14 +290,13 @@ sub REF {
         @_,
     );
 
-    return $COLOR->{refs} . q[\\ ] . $RESET . $self->_dump( ${$ref}, path => $args{path} . q[->$*] );
+    return $COLOR->{refs} . '\\ ' . $RESET . $self->_dump( $ref->$*, path => $args{path} . '->$*' );
 }
 
 sub SCALAR {
     my $self = shift;
 
-    my $res;
-    my $tags;
+    my ( $res, $tags );
 
     if ( !defined $_[0] ) {    # undefined value
         $res = $COLOR->{undef} . 'undef' . $RESET;
@@ -311,28 +311,29 @@ sub SCALAR {
         escape_scalar( $item, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{string} );
 
         if ( utf8::is_utf8($item) ) {              # characters
-            push @{$tags}, q[UTF8];
+            push $tags->@*, 'UTF8';
 
             if ( $bytes_length == $length ) {
-                push @{$tags}, q[single-byte, downgradable];    # ASCII-7bit (bytes in perl terminology), UTF8 flag can be dropped
+                push $tags->@*, 'single-byte, downgradable';    # ASCII-7bit (bytes in perl terminology), UTF8 flag can be dropped
             }
             else {
-                push @{$tags}, q[multi-byte];
+                push $tags->@*, 'multi-byte';
             }
 
-            push @{$tags}, q[len = ] . $length;
+            push $tags->@*, 'len = ' . $length;
         }
         else {                                                  # octets
             if ( $item =~ /[[:^ascii:]]/sm ) {                  # if has non-ASCII-7bit bytes - treats buffer as binary
-                push @{$tags}, q[latin1];
+                push $tags->@*, 'latin1';
             }
             else {                                              # if contains only ASCII-7bit bytes - treats buffer as string
-                push @{$tags}, q[ASCII];
+                push $tags->@*, 'ASCII';
             }
         }
 
-        push @{$tags}, q[bytes::len = ] . $bytes_length;
-        push @{$tags}, q[tied to ] . ref tied $_[0] if tainted( $_[0] );
+        push $tags->@*, 'bytes::len = ' . $bytes_length;
+
+        push $tags->@*, 'tied to ' . ref tied $_[0] if tainted( $_[0] );
 
         $res = 'qq[' . $COLOR->{string} . $item . $RESET . ']';
     }
@@ -350,30 +351,34 @@ sub ARRAY {
         @_,
     );
 
-    my $res;
-    my $tags;
-    if ( !@{$array_ref} ) {
-        $res = $COLOR->{refs} . q[[]] . $RESET;
+    my ( $res, $tags );
+
+    if ( !$array_ref->@* ) {
+        $res = $COLOR->{refs} . '[]' . $RESET;
     }
     else {
-        $res = $COLOR->{refs} . q{[} . $RESET . $LF;
+        $res = $COLOR->{refs} . '[' . $RESET . $LF;
+
         my $max_index_length = length( $#{$array_ref} ) + 2;
 
-        for my $i ( 0 .. $#{$array_ref} ) {
-            my $index = sprintf( q[%-*s], $max_index_length, qq[[$i]] ) . q[ ];
+        for my $i ( 0 .. $array_ref->$#* ) {
+            my $index = sprintf( '%-*s', $max_index_length, "[$i]" ) . q[ ];
+
             $res .= $self->_indent . $COLOR->{array} . $index . $RESET;
 
             my $el = $self->_dump( $array_ref->[$i], path => $args{path} . "->[$i]" );
+
             $self->_indent_text($el);
 
             $res .= $el;
-            $res .= qq[,\n] if $i != $#{$array_ref};    # not last array element
+
+            $res .= ",\n" if $i != $array_ref->$#*;    # not last array element
         }
 
-        $res .= $LF . $COLOR->{refs} . q{]} . $RESET;
+        $res .= $LF . $COLOR->{refs} . ']' . $RESET;
     }
 
-    $self->_tied_to( tied @{$array_ref}, $tags );
+    $self->_tied_to( tied $array_ref->@*, $tags );
 
     return $res, $tags;
 }
@@ -386,15 +391,17 @@ sub HASH {
         @_,
     );
 
-    my $res;
-    my $tags;
-    if ( !keys %{$hash_ref} ) {
-        $res = $COLOR->{refs} . q[{}] . $RESET;
+    my ( $res, $tags );
+
+    if ( !keys $hash_ref->%* ) {
+        $res = $COLOR->{refs} . '{}' . $RESET;
     }
     else {
         $res = $COLOR->{refs} . '{' . $RESET . $LF;
+
         my $keys;
         my $max_length = 0;
+
         for ( nsort keys $hash_ref->%* ) {
             my $indexed_key = {
                 raw_key     => $_,
@@ -407,28 +414,31 @@ sub HASH {
 
             $indexed_key->{escaped_key_nc_len} = length $indexed_key->{escaped_key_nc};
 
-            push @{$keys}, $indexed_key;
+            push $keys->@*, $indexed_key;
 
             $max_length = $indexed_key->{escaped_key_nc_len} if $indexed_key->{escaped_key_nc_len} > $max_length;
         }
 
         my $indent = $max_length + 8;
 
-        for my $i ( 0 .. $#{$keys} ) {
+        for my $i ( 0 .. $keys->$#* ) {
             $res .= $self->_indent . q["] . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET . q["];
+
             $res .= sprintf q[%*s], ( $max_length - $keys->[$i]->{escaped_key_nc_len} + 4 ), q[ => ];
 
             my $el = $self->_dump( $hash_ref->{ $keys->[$i]->{raw_key} }, path => $args{path} . '->{"' . $keys->[$i]->{escaped_key_nc} . '"}' );
+
             $self->_indent_text($el);
 
             $res .= $el;
-            $res .= qq[,\n] if $i != $#{$keys};    # not last hash key
+
+            $res .= qq[,\n] if $i != $keys->$#*;    # not last hash key
         }
 
         $res .= $LF . $COLOR->{refs} . '}' . $RESET;
     }
 
-    $self->_tied_to( tied %{$hash_ref}, $tags );
+    $self->_tied_to( tied $hash_ref->%*, $tags );
 
     return $res, $tags;
 }
@@ -442,9 +452,7 @@ sub VSTRING {
 sub GLOB {
     my $self = shift;
 
-    my $res;
-    my $tags;
-    my $i;
+    my ( $res, $tags, $i );
     my $flags  = [];
     my $layers = q[];
 
@@ -454,20 +462,20 @@ sub GLOB {
 
             $flags = $_->[2];
         }
-        $layers .= qq[:$_->[0]];
+        $layers .= ":$_->[0]";
 
-        $layers .= qq[($_->[1])] if defined $_->[1];    # add layer encoding
+        $layers .= "($_->[1])" if defined $_->[1];    # add layer encoding
 
-        $layers .= q[:utf8] if q[UTF8] ~~ $_->[2];      # add :utf8 layer, if defined
+        $layers .= ':utf8' if q[UTF8] ~~ $_->[2];     # add :utf8 layer, if defined
     }
 
     my $fileno = eval { fileno $_[0] };
 
-    push @{$tags}, nsort @{$flags};
+    push $tags->@*, nsort $flags->@*;
 
-    push @{$tags}, $layers if $layers;
+    push $tags->@*, $layers if $layers;
 
-    push @{$tags}, qq[fileno = $fileno] if defined $fileno;
+    push $tags->@*, "fileno = $fileno" if defined $fileno;
 
     $self->_tied_to( tied $_[0], $tags );
 
@@ -490,13 +498,14 @@ sub IO {
 sub CODE {
     my $self = shift;
 
-    return $COLOR->{code} . q[sub { ... }] . $RESET;
+    return $COLOR->{code} . 'sub { ... }' . $RESET;
 }
 
 sub REGEXP {
     my $self = shift;
 
     my ( $pat, $flags ) = re::regexp_pattern( $_[0] );
+
     $flags //= q[];
 
     return $COLOR->{regex} . qq[qr/$pat/$flags] . $RESET;
@@ -511,8 +520,9 @@ sub FORMAT {
 sub LVALUE {
     my $self = shift;
 
-    my ( $res, $tags ) = $self->SCALAR( ${ $_[0] } );
-    unshift @{$tags}, 'LVALUE';
+    my ( $res, $tags ) = $self->SCALAR( $_[0]->$* );
+
+    unshift $tags->@*, 'LVALUE';
 
     return $res, $tags;
 }
@@ -524,7 +534,7 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 79, 230, 292         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 79, 231, 293         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
