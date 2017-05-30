@@ -1,3 +1,18 @@
+v0.37.0 2017-05-30T15:35:28Z
+ - No issues on bugtracker were closed since the last release
+ - destroy handle after calling on_error callback
+ - PAR DSO scan
+ - scan deps improved to find embedded packages sources
+ - par helper file pcore.perl removed
+ - PAR so scan process improved
+ - use AE::postpone for callbacks in proc
+ - ANSI const added
+ - migrate to ANSI colors vars
+ - TRUE / FALSE const removed
+ - event-based log
+ - stack trace speed optimized
+ - try/catch removed
+
 v0.36.0 2017-05-27T09:49:39Z
  - No issues on bugtracker were closed since the last release
  - connect_ws on_error -> on_connect_error
