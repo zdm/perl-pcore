@@ -54,9 +54,9 @@ sub run ( $class, $rpc_boot_args ) {
         }
     }
 
-    # create RPC_TERM message listener
+    # create RPC.TERM event listener
     P->listen_events(
-        'RPC_TERM',
+        'RPC.TERM',
         sub ( $event, @ ) {
             $rpc->RPC_ON_TERM if $rpc->can('RPC_ON_TERM');
 
@@ -65,7 +65,7 @@ sub run ( $class, $rpc_boot_args ) {
     );
 
     # compose listen events
-    my $listen_events = ['RPC_TERM'];
+    my $listen_events = ['RPC.TERM'];
 
     {
         no strict qw[refs];

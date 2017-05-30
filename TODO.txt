@@ -1,24 +1,21 @@
-- RPC. APP. USER. LOG. ALL.
 
-- test RPC events;
 
-- pcore - how to remove pipes by type, eg: stderr = $ENV->{LOG_STDERR_DISABLED};
+- lazarus server - do not listen debug log;
+- update log db struct and extjs log component;
+- move debug to log;
 
-- replace P->log->sendlog -> P->sendlog;
-- replace P->log->add -> P->create_logpipe;
-- remove other P->log;
-
-- remove try / catch, it is slow and ugly???;
-
+- lazarus crawler - sendlog APP.DEBUG
+- add posibility to customize data for error log;
+- add possibility to capture caller package;
 
 - anyevent XMPP + log bot;
 - smtp log bot;
 
-
-
+- remove try / catch, it is slow and ugly???;
 - update POD template;
-
 - src report - show paths, related to start dir;
+
+- RPC not inherit parent process %ENV;
 
 - proc:
     - proc should return result object on exit;
