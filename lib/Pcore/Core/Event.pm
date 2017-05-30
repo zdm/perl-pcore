@@ -9,26 +9,60 @@ has listeners    => ( is => 'ro', isa => HashRef, default => sub { {} }, init_ar
 has senders      => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has listeners_re => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-sub listen_events ( $self, $events, $cb ) {
+sub listen_events ( $self, $events, @listeners ) {
+    my $guard = defined wantarray ? [] : ();
+
     $events = [$events] if ref $events ne 'ARRAY';
 
-    my $listener = Pcore::Core::Event::Listener->new(
-        {   broker => $self,
-            events => $events,
-            cb     => $cb,
-        }
-    );
-
-    my $wantarray = defined wantarray;
-
     for my $listen_ev ( $events->@* ) {
-        $self->{listeners}->{$listen_ev}->{ $listener->{id} } = $listener;
 
-        weaken $self->{listeners}->{$listen_ev}->{ $listener->{id} } if $wantarray;
+        # get matched senders
+        my $senders = [ grep { $self->_match_events( $listen_ev, $_ ) } keys $self->{senders}->%* ];
 
-        # add listener to matched senders
-        for my $send_ev ( keys $self->{senders}->%* ) {
-            if ( $self->_match_events( $listen_ev, $send_ev ) ) {
+        # create listeners
+        for my $listen (@listeners) {
+            my $cb;
+
+            if ( !ref $listen ) {
+                my $uri = Pcore->uri($listen);
+
+                my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Listener::Pipe' );
+
+                $cb = $class->new( { uri => $uri } );
+            }
+            elsif ( ref $listen eq 'ARRAY' ) {
+                my ( $uri, %args ) = $listen->@*;
+
+                $args{uri} = Pcore->uri($uri);
+
+                my $class = Pcore->class->load( $args{uri}->scheme, ns => 'Pcore::Core::Event::Listener::Pipe' );
+
+                $cb = $class->new( \%args );
+            }
+            elsif ( ref $listen eq 'CODE' ) {
+                $cb = $listen;
+            }
+            else {
+                die q[Invalid listener type];
+            }
+
+            my $listener = Pcore::Core::Event::Listener->new(
+                {   broker => $self,
+                    events => $events,
+                    cb     => $cb,
+                }
+            );
+
+            $self->{listeners}->{$listen_ev}->{ $listener->{id} } = $listener;
+
+            if ($guard) {
+                push $guard->@*, $listener;
+
+                weaken $self->{listeners}->{$listen_ev}->{ $listener->{id} };
+            }
+
+            # add listener to matched senders
+            for my $send_ev ( $senders->@* ) {
                 $self->{senders}->{$send_ev}->{ $listener->{id} } = $listener;
 
                 weaken $self->{senders}->{$send_ev}->{ $listener->{id} };
@@ -36,7 +70,7 @@ sub listen_events ( $self, $events, $cb ) {
         }
     }
 
-    return $wantarray ? $listener : ();
+    return $guard;
 }
 
 sub has_listeners ( $self, $event ) {
@@ -99,55 +133,6 @@ sub fire_event ( $self, $event, $data = undef ) {
     }
 
     return;
-}
-
-# LOG namespace
-sub create_logpipe ( $self, $channel, @pipes ) {
-    my $guard = defined wantarray ? [] : ();
-
-    my $event = ["LOG.$channel"];
-
-    for my $pipe (@pipes) {
-        if ( !ref $pipe ) {
-            my $uri = Pcore->uri($pipe);
-
-            my $class = Pcore->class->load( $uri->scheme, ns => 'Pcore::Core::Event::Listener::Pipe' );
-
-            if ($guard) {
-                push $guard->@*, $self->listen_events( $event, $class->new( { uri => $uri } ) );
-            }
-            else {
-                $self->listen_events( $event, $class->new( { uri => $uri } ) );
-            }
-        }
-        elsif ( ref $pipe eq 'ARRAY' ) {
-            my ( $uri, %args ) = $pipe->@*;
-
-            $args{uri} = Pcore->uri($uri);
-
-            my $class = Pcore->class->load( $args{uri}->scheme, ns => 'Pcore::Core::Event::Listener::Pipe' );
-
-            if ($guard) {
-                push $guard->@*, $self->listen_events( $event, $class->new( \%args ) );
-            }
-            else {
-                $self->listen_events( $event, $class->new( \%args ) );
-            }
-        }
-        elsif ( ref $pipe eq 'CODE' ) {
-            if ($guard) {
-                push $guard->@*, $self->listen_events( $event, $pipe );
-            }
-            else {
-                $self->listen_events( $event, $pipe );
-            }
-        }
-        else {
-            die q[Invalid log pipe type];
-        }
-    }
-
-    return $guard;
 }
 
 sub sendlog ( $self, $channel, $title, $body = undef ) {

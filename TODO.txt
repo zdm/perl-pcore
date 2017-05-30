@@ -1,5 +1,3 @@
-
-
 - lazarus server - do not listen debug log;
 - update log db struct and extjs log component;
 - move debug to log;

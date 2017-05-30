@@ -592,17 +592,13 @@ sub _init_ev {
         my $EV = Pcore::Core::Event->new;
 
         # set default log channels
-        if ( $ENV->dist ) {
-            $EV->create_logpipe( 'EXCEPTION.FATAL', 'stderr:', 'file:fatal.log' );
-            $EV->create_logpipe( 'EXCEPTION.ERROR', 'stderr:', 'file:error.log' );
-            $EV->create_logpipe( 'EXCEPTION.WARN',  'stderr:', 'file:warn.log' );
-        }
+        $EV->listen_events( 'LOG.EXCEPTION.*', 'stderr:' );
 
         # file logs are disabled by default for scripts, that are not part of the distribution
-        else {
-            $EV->create_logpipe( 'EXCEPTION.FATAL', 'stderr:' );
-            $EV->create_logpipe( 'EXCEPTION.ERROR', 'stderr:' );
-            $EV->create_logpipe( 'EXCEPTION.WARN',  'stderr:' );
+        if ( $ENV->dist ) {
+            $EV->listen_events( 'LOG.EXCEPTION.FATAL', 'file:fatal.log' );
+            $EV->listen_events( 'LOG.EXCEPTION.ERROR', 'file:error.log' );
+            $EV->listen_events( 'LOG.EXCEPTION.WARN',  'file:warn.log' );
         }
 
         $EV;
@@ -611,10 +607,10 @@ sub _init_ev {
     return $ev;
 }
 
-sub listen_events ( $self, $events, $cb ) {
+sub listen_events ( $self, $events, @listeners ) {
     state $ev = _init_ev();
 
-    return $ev->listen_events( $events, $cb );
+    return $ev->listen_events( $events, @listeners );
 }
 
 sub fire_event ( $self, $event, $data = undef ) {
@@ -627,12 +623,6 @@ sub has_listeners ( $self, $event ) {
     state $ev = _init_ev();
 
     return $ev->has_listeners($event);
-}
-
-sub create_logpipe ( $self, $channel, @pipes ) {
-    state $ev = _init_ev();
-
-    return $ev->create_logpipe( $channel, @pipes );
 }
 
 sub sendlog ( $self, $channel, $title, $body = undef ) {
