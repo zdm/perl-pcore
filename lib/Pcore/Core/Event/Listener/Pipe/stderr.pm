@@ -13,7 +13,7 @@ has is_ansi => ( is => 'ro', isa => Bool, init_arg => undef );
 has _init => ( is => 'ro', isa => Bool, init_arg => undef );
 
 sub sendlog ( $self, $ev, $data ) {
-    return if $ENV->{LOG_STDERR_DISABLED};
+    return if $ENV->{PCORE_LOG_STDERR_DISABLED};
 
     # init
     if ( !$self->{_init} ) {

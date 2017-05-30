@@ -1,6 +1,7 @@
 - RPC not inherit parent process %ENV on windows - CHECK UNDER LINUX;
-- update POD template;
 - src report - show paths, related to start dir;
+- update POD template;
+- commit error, when committing not from root dir, eg. p doc -f devel from data dir;
 
 - proc:
     - proc should return result object on exit;
@@ -20,7 +21,6 @@
 
 - error add/remove dist files after committing wiki;
 - docker API - Attempt to access disallowed key '2' in a restricted hash at d:/projects/pcore/lib/Pcore/API/DockerHub/Repository/Build.pm line 25.;
-- commit error, when committing not from root dir, eg. p doc -f devel from data dir;
 
 
 - rewiew API methods;
