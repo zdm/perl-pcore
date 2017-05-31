@@ -1,6 +1,3 @@
-- RPC not inherit parent process %ENV on windows - CHECK UNDER LINUX;
-- src report - show paths, related to start dir;
-
 - proc:
     - proc should return result object on exit;
     - reliable way to read stdout on proc exit;
