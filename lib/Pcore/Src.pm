@@ -170,8 +170,6 @@ sub _source_stdin_files ($self) {
     # index files, calculate max_path_len
     my @paths_to_process;
 
-    my $max_path_len = 0;
-
     for my $path ( $files->@* ) {
         $path = P->path( $path, is_dir => 0 );
 
@@ -180,25 +178,17 @@ sub _source_stdin_files ($self) {
         next if !$type || lc $type->{type} ne $self->type;    # skip file, if file type isn't supported
 
         push @paths_to_process, $path;
-
-        $max_path_len = length $path if length $path > $max_path_len;
     }
 
     # process files
-    my $filter_args = { $self->no_critic ? ( perl_critic => 0 ) : () };
-
-    for (@paths_to_process) {
-        $self->_process_file(
-            $max_path_len,
-            action      => $self->action,
-            path        => $_->to_string,
+    $self->_process_files(
+        \@paths_to_process,
+        {   action      => $self->action,
             is_realpath => 1,
             dry_run     => $self->dry_run,
-            filter_args => $filter_args,
-        );
-    }
-
-    $self->_report_total if $self->interactive;
+            filter_args => { $self->no_critic ? ( perl_critic => 0 ) : () },
+        }
+    );
 
     return;
 }
@@ -209,14 +199,18 @@ sub _source_stdin ($self) {
     # read STDIN
     my $in_buffer = P->file->read_bin(*STDIN);
 
-    my $res = $self->_process_file(
-        undef,
-        action      => $self->action,
-        path        => $self->filename,
-        is_realpath => 0,
-        in_buffer   => $in_buffer,
-        dry_run     => $self->dry_run,
-    );
+    my $path = ref $self->filename ? $self->filename : P->path( $self->filename );
+
+    my $res = Pcore::Src::File->new(
+        {   action      => $self->action,
+            path        => $path->encoded,
+            is_realpath => 0,
+            in_buffer   => $in_buffer,
+            dry_run     => $self->dry_run,
+        }
+    )->run;
+
+    $self->_set_exit_code( $res->severity_range_is('ERROR') ? Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_ERROR} : Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_VALID} );
 
     # write STDOUT
     print $res->out_buffer->$*;
@@ -229,8 +223,6 @@ sub _source_dir ($self) {
     # index files, calculate max_path_len
     my @paths_to_process;
 
-    my $max_path_len = 0;
-
     P->file->find(
         $self->path,
         dir => 0,
@@ -241,21 +233,70 @@ sub _source_dir ($self) {
 
             push @paths_to_process, $path;
 
-            $max_path_len = length $path if length $path > $max_path_len;
-
             return;
         }
     );
 
     # process indexed files
-    for (@paths_to_process) {
-        $self->_process_file(
-            $max_path_len,
-            action      => $self->action,
-            path        => $_,
+    $self->_process_files(
+        \@paths_to_process,
+        {   action      => $self->action,
             is_realpath => 1,
             dry_run     => $self->dry_run,
-        );
+        }
+    );
+
+    return;
+}
+
+sub _source_file ($self) {
+    $self->_process_files(
+        [ $self->path ],
+        {   action      => $self->action,
+            is_realpath => 1,
+            dry_run     => $self->dry_run,
+        }
+    );
+
+    return;
+}
+
+sub _process_files ( $self, $paths, $args ) {
+    my ( $prefix, $max_len, $use_prefix );
+
+    # find longest common prefix
+    for my $path ( $paths->@* ) {
+        $path = P->path($path) if !ref $path;
+
+        if ( !defined $prefix ) {
+            $prefix = $path;
+
+            $max_len = length $path;
+        }
+        else {
+            $max_len = length $path if length $path > $max_len;
+
+            if ( "$prefix\x00$path" =~ /^(.*).*\x00\1.*$/sm ) {
+                $prefix = $1;
+
+                $use_prefix = 1;
+            }
+        }
+    }
+
+    # find max. path length
+    $max_len -= length $prefix if $use_prefix;
+
+    for my $path ( $paths->@* ) {
+        my $report_path = $path->encoded;
+
+        $report_path = substr $report_path, length $prefix if $use_prefix;
+
+        my $res = Pcore::Src::File->new( { $args->%*, path => $path->encoded } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+
+        $self->_set_exit_code( $res->severity_range_is('ERROR') ? Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_ERROR} : Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_VALID} );
+
+        $self->_report_file( $res, $report_path, $max_len ) if $self->interactive;
     }
 
     $self->_report_total if $self->interactive;
@@ -263,45 +304,7 @@ sub _source_dir ($self) {
     return;
 }
 
-sub _source_file ($self) {
-    $self->_process_file(
-        length $self->path,
-        action      => $self->action,
-        path        => $self->path,
-        is_realpath => 1,
-        dry_run     => $self->dry_run,
-    );
-
-    print $self->{tbl}->finish if $self->interactive;
-
-    undef $self->{tbl};
-
-    return;
-}
-
-sub _throw_error ( $self, $msg = 'Unknown error' ) {
-    die $msg . $LF;
-}
-
-sub _set_exit_code ( $self, $exit_code ) {
-    $self->exit_code($exit_code) if $exit_code > $self->exit_code;
-
-    return $self->exit_code;
-}
-
-sub _process_file ( $self, $max_path_len, %args ) {
-    my $path = ref $args{path} ? $args{path} : P->path( $args{path} );
-
-    my $res = Pcore::Src::File->new( { %args, path => $path->encoded } )->run;    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
-
-    $self->_set_exit_code( $res->severity_range_is('ERROR') ? Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_ERROR} : Pcore::Src::File->cfg->{EXIT_CODES}->{SOURCE_VALID} );
-
-    $self->_report_file( $res, $max_path_len ) if $self->interactive;
-
-    return $res;
-}
-
-sub _report_file ( $self, $res, $max_path_len ) {
+sub _report_file ( $self, $res, $report_path, $max_path_len ) {
     if ( !$self->{tbl} ) {
         $self->{tbl} = P->text->table(
             style => 'compact',
@@ -338,7 +341,7 @@ sub _report_file ( $self, $res, $max_path_len ) {
     my @row;
 
     # path
-    push @row, decode_utf8( $res->path->to_string, encoding => $Pcore::WIN_ENC );
+    push @row, decode_utf8( $report_path, encoding => $Pcore::WIN_ENC );
 
     # severity
     my $severity;
@@ -419,8 +422,14 @@ sub _report_total ($self) {
     return;
 }
 
-sub _wrap_color ( $self, $str, $color ) {
-    return $color . $str . $RESET;
+sub _throw_error ( $self, $msg = 'Unknown error' ) {
+    die $msg . $LF;
+}
+
+sub _set_exit_code ( $self, $exit_code ) {
+    $self->exit_code($exit_code) if $exit_code > $self->exit_code;
+
+    return $self->exit_code;
 }
 
 1;
@@ -430,7 +439,9 @@ sub _wrap_color ( $self, $str, $color ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 422                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_wrap_color' declared but not used  |
+## |    3 | 307                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 279                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
