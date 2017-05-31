@@ -11,8 +11,8 @@ has color => ( is => 'ro', isa => Bool, default => 1 );    # colorize dump
 has dump_method => ( is => 'ro', isa => Maybe [Str], default => 'TO_DUMP' );    # dump method for objects, use "undef" to skip call
 has indent => ( is => 'ro', isa => Int, default => 4 );                         # indent spaces
 
-has _indent => ( is => 'lazy', isa => Str, default => sub { my $self = shift; return q[ ] x $self->indent; }, init_arg => undef );
-has _seen => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );
+has _indent => ( is => 'ro', isa => Str, init_arg => undef );
+has _seen => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 our $COLOR = {
     number  => $BOLD . $CYAN,                                                   # numbers
@@ -70,6 +70,8 @@ our $DUMPERS = {
 };
 
 sub run ( $self, @args ) {
+    $self->{_indent} = q[ ] x $self->{indent};
+
     return $self->_dump(@args);
 }
 
@@ -81,7 +83,7 @@ sub _dump ( $self, @ ) {
         splice @_, 2,
     );
 
-    local $ENV{ANSI_COLORS_DISABLED} = 1 unless $self->color;
+    local $ENV{ANSI_COLORS_DISABLED} = 1 if !$self->{color};
 
     my ( $var_type, $blessed ) = $self->_var_type( $_[1], unbless => $args{unbless} );
 
@@ -89,19 +91,19 @@ sub _dump ( $self, @ ) {
     my $var_addr = "${var_type}_";
 
     if ( ref $_[1] ) {
-        $var_addr .= refaddr( $_[1] );
+        $var_addr .= refaddr $_[1];
     }
     else {
-        $var_addr .= refaddr( \$_[1] );
+        $var_addr .= refaddr \$_[1];
     }
 
     my ( $res, $tags );
 
-    if ( $var_addr && exists $self->_seen->{$var_addr} ) {
-        $res = $COLOR->{seen} . $self->_seen->{$var_addr} . $RESET;
+    if ( $var_addr && exists $self->{_seen}->{$var_addr} ) {
+        $res = $COLOR->{seen} . $self->{_seen}->{$var_addr} . $RESET;
     }
     else {
-        $self->_seen->{$var_addr} = $args{path};
+        $self->{_seen}->{$var_addr} = $args{path};
 
         my $dump_method = $blessed ? 'BLESSED' : $var_type;
 
@@ -160,9 +162,7 @@ sub _var_type {
 sub _indent_text {
     my $self = shift;
 
-    my $indent = $self->_indent;
-
-    $_[0] =~ s/\n/\n$indent/smg;
+    $_[0] =~ s/\n/\n$self->{_indent}/smg;
 
     return;
 }
@@ -231,14 +231,14 @@ sub BLESSED {
         no strict qw[refs];
 
         if ( my @superclasses = @{ $ref . '::ISA' } ) {
-            $res .= $self->_indent . '@ISA: ' . join q[, ], map { $COLOR->{class} . $_ . $RESET } @superclasses;
+            $res .= $self->{_indent} . '@ISA: ' . join q[, ], map { $COLOR->{class} . $_ . $RESET } @superclasses;
 
             $res .= ",\n";
         }
     }
 
     # reafddr
-    $res .= $self->_indent . 'refaddr: ' . refaddr($obj) . ",\n";
+    $res .= $self->{_indent} . 'refaddr: ' . refaddr($obj) . ",\n";
 
     # class dump method
     if ( my $dump_method = $self->dump_method && $obj->can( $self->dump_method ) ) {
@@ -249,7 +249,7 @@ sub BLESSED {
 
             $self->_indent_text($dump);
 
-            $res .= $self->_indent . $dump;
+            $res .= $self->{_indent} . $dump;
         }
 
         push $tags->@*, $dump_tags->@* if $dump_tags;
@@ -264,7 +264,7 @@ sub BLESSED {
 
             $self->_indent_text($dump);
 
-            $res .= $self->_indent . $dump;
+            $res .= $self->{_indent} . $dump;
         }
 
         push $tags->@*, $dump_tags->@* if $dump_tags;
@@ -277,7 +277,7 @@ sub BLESSED {
 
         $self->_indent_text($blessed);
 
-        $res .= $self->_indent . $blessed;
+        $res .= $self->{_indent} . $blessed;
     }
 
     $res .= "\n" . $COLOR->{class} . '}' . $RESET;
@@ -293,7 +293,7 @@ sub REF {
         @_,
     );
 
-    return $COLOR->{refs} . '\\ --- ' . $RESET . $self->_dump( $ref->$*, path => $args{path} . '->$*' );
+    return $COLOR->{refs} . '\\ ' . $RESET . $self->_dump( $ref->$*, path => $args{path} . '->$*' );
 }
 
 sub SCALAR {
@@ -367,7 +367,7 @@ sub ARRAY {
         for my $i ( 0 .. $array_ref->$#* ) {
             my $index = sprintf( '%-*s', $max_index_length, "[$i]" ) . q[ ];
 
-            $res .= $self->_indent . $COLOR->{array} . $index . $RESET;
+            $res .= $self->{_indent} . $COLOR->{array} . $index . $RESET;
 
             my $el = $self->_dump( $array_ref->[$i], path => $args{path} . "->[$i]" );
 
@@ -425,7 +425,7 @@ sub HASH {
         my $indent = $max_length + 8;
 
         for my $i ( 0 .. $keys->$#* ) {
-            $res .= $self->_indent . '"' . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET . '"';
+            $res .= $self->{_indent} . '"' . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET . '"';
 
             $res .= sprintf '%*s', ( $max_length - $keys->[$i]->{escaped_key_nc_len} + 4 ), ' => ';
 
@@ -539,7 +539,7 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 79, 234, 296         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 81, 234, 296         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
