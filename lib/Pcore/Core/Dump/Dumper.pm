@@ -397,11 +397,17 @@ sub HASH {
         my $keys;
         my $max_length = 0;
 
+        # index hash keys
         for ( nsort keys $hash_ref->%* ) {
             my $indexed_key = {
                 raw_key     => $_,
                 escaped_key => \escape_scalar( $_, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{hash} ),
             };
+
+            # hash key requires to be quoted
+            if (/[^[:alnum:]_]/sm) {
+                $indexed_key->{escaped_key} = \( 'q[' . $indexed_key->{escaped_key}->$* . ']' );
+            }
 
             $indexed_key->{escaped_key_nc} = $indexed_key->{escaped_key}->$*;
 
@@ -417,7 +423,7 @@ sub HASH {
         my $indent = $max_length + 8;
 
         for my $i ( 0 .. $keys->$#* ) {
-            $res .= $self->{_indent} . '"' . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET . '"';
+            $res .= $self->{_indent} . $COLOR->{hash} . $keys->[$i]->{escaped_key}->$* . $RESET;
 
             $res .= sprintf '%*s', ( $max_length - $keys->[$i]->{escaped_key_nc_len} + 4 ), ' => ';
 
