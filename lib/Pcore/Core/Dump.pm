@@ -11,10 +11,10 @@ sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
         color       => 1,
         indent      => 4,
         dump_method => 'TO_DUMP',
-        splice( @_, 1 ),
+        @_[ 1 .. $#_ ],
     );
 
-    return q[$VAR = ] . Pcore::Core::Dump::Dumper->new( \%args )->run( $_[0] );
+    return '$VAR = ' . bless( \%args, 'Pcore::Core::Dump::Dumper' )->run( $_[0] );
 }
 
 1;

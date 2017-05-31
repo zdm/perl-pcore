@@ -7,7 +7,7 @@ use re qw[];
 use Sort::Naturally qw[nsort];
 use PerlIO::Layers qw[];
 
-has color => ( is => 'ro', isa => Bool, default => 1 );    # colorize dump
+has color => ( is => 'ro', isa => Bool, default => 0 );    # colorize dump
 has dump_method => ( is => 'ro', isa => Maybe [Str], default => 'TO_DUMP' );    # dump method for objects, use "undef" to skip call
 has indent => ( is => 'ro', isa => Int, default => 4 );                         # indent spaces
 
@@ -69,10 +69,15 @@ our $DUMPERS = {
     },
 };
 
-sub run ( $self, @args ) {
-    $self->{_indent} = q[ ] x $self->{indent};
+sub run ( $self, @ ) {
+    $self->{_indent} = q[ ] x ( $self->{indent} // 4 );
 
-    return $self->_dump(@args);
+    if ( !$self->{color} ) {
+        return remove_ansi $self->_dump( $_[1] );
+    }
+    else {
+        return $self->_dump( $_[1] );
+    }
 }
 
 # INTERNAL METHODS
@@ -537,7 +542,7 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 81, 226, 288         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 86, 231, 293         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
