@@ -128,9 +128,9 @@ sub _var_type {
         splice( @_, 1 ),
     );
 
-    my $ref_type = reftype( $_[0] );
+    my $ref_type = reftype $_[0];
 
-    if ( my $blessed = blessed( $_[0] ) ) {    # blessed
+    if ( my $blessed = blessed $_[0] ) {    # blessed
         if ( $args{unbless} ) {
             return $ref_type;
         }
@@ -146,7 +146,7 @@ sub _var_type {
     }
     else {
         if ( defined $ref_type ) {
-            if ( $ref_type ~~ [qw[SCALAR VSTRING GLOB]] ) {
+            if ( $ref_type eq 'SCALAR' || $ref_type eq 'VSTRING' || $ref_type eq 'GLOB' ) {
                 return 'REF';
             }
             else {
@@ -154,7 +154,7 @@ sub _var_type {
             }
         }
         else {
-            return CORE::ref( \$_[0] );
+            return CORE::ref \$_[0];
         }
     }
 }
