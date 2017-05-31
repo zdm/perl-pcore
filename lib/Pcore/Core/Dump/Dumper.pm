@@ -315,7 +315,7 @@ sub SCALAR {
                 push $tags->@*, 'multi-byte';
             }
 
-            push $tags->@*, 'len = ' . $length;
+            push $tags->@*, 'chars: ' . $length;
         }
         else {                                                  # octets
             if ( $item =~ /[[:^ascii:]]/sm ) {                  # if has non-ASCII-7bit bytes - treats buffer as binary
@@ -326,7 +326,7 @@ sub SCALAR {
             }
         }
 
-        push $tags->@*, 'bytes::len = ' . $bytes_length;
+        push $tags->@*, 'bytes: ' . $bytes_length;
 
         push $tags->@*, 'tied to ' . ref tied $_[0] if tainted $_[0];
 
@@ -476,7 +476,7 @@ sub GLOB {
 
     push $tags->@*, $layers if $layers;
 
-    push $tags->@*, "fileno = $fileno" if defined $fileno;
+    push $tags->@*, "fileno: $fileno" if defined $fileno;
 
     $self->_tied_to( tied $_[0], $tags );
 
