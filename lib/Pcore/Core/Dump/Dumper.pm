@@ -115,8 +115,10 @@ sub _dump ( $self, @ ) {
     # weak
     push $tags->@*, 'weak' if isweak( $_[1] );
 
+    $res .= ',';
+
     # add tags
-    $self->_add_tags( $tags, $res );
+    $res .= q[ # ] . join q[, ], $tags->@* if $tags;
 
     return $res;
 }
@@ -163,16 +165,6 @@ sub _indent_text {
     my $self = shift;
 
     $_[0] =~ s/\n/\n$self->{_indent}/smg;
-
-    return;
-}
-
-sub _add_tags {
-    my ( $self, $tags ) = splice @_, 0, 2;
-
-    $_[0] .= ',';
-
-    $_[0] .= q[ # ] . join q[, ], $tags->@* if $tags && $tags->@*;
 
     return;
 }
@@ -313,7 +305,7 @@ sub SCALAR {
         my $length       = length $item;
         escape_scalar( $item, esc_color => $COLOR->{escaped}, reset_color => $COLOR->{string} );
 
-        if ( utf8::is_utf8($item) ) {              # characters
+        if ( utf8::is_utf8 $item ) {               # characters
             push $tags->@*, 'UTF8';
 
             if ( $bytes_length == $length ) {
@@ -336,7 +328,7 @@ sub SCALAR {
 
         push $tags->@*, 'bytes::len = ' . $bytes_length;
 
-        push $tags->@*, 'tied to ' . ref tied $_[0] if tainted( $_[0] );
+        push $tags->@*, 'tied to ' . ref tied $_[0] if tainted $_[0];
 
         $res = 'qq[' . $COLOR->{string} . $item . $RESET . ']';
     }
@@ -435,7 +427,7 @@ sub HASH {
 
             $res .= $el;
 
-            $res .= qq[\n] if $i != $keys->$#*;    # not last hash key
+            $res .= "\n" if $i != $keys->$#*;    # not last hash key
         }
 
         $res .= $LF . $COLOR->{refs} . '}' . $RESET;
@@ -539,7 +531,7 @@ sub LVALUE {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 81, 234, 296         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 81, 226, 288         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
