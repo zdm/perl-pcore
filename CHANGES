@@ -1,3 +1,14 @@
+v0.38.0 2017-05-31T16:36:41Z
+ - No issues on bugtracker were closed since the last release
+ - renamed LOG_STDERR_DISABLED to PCORE_LOG_STDERR_DISABLED
+ - chdir to dist root when changing docker from tag
+ - quote strings using qq[] instead of " in dump
+ - dump improved
+ - docker perl updated to v5.26.0
+ - $ENV{ANSI_COLORS_DISABLED} removed
+ - handle perlcritic exceptions
+ - remove longest common prefix from paths in src report
+
 v0.37.0 2017-05-30T15:35:28Z
  - No issues on bugtracker were closed since the last release
  - destroy handle after calling on_error callback
