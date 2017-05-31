@@ -241,7 +241,7 @@ sub BLESSED {
     $res .= $self->{_indent} . 'refaddr: ' . refaddr($obj) . ",\n";
 
     # class dump method
-    if ( my $dump_method = $self->dump_method && $obj->can( $self->dump_method ) ) {
+    if ( my $dump_method = $self->{dump_method} && $obj->can( $self->{dump_method} ) ) {
         my ( $dump, $dump_tags ) = $obj->$dump_method( $self, path => $args{path} );
 
         if ($dump) {
