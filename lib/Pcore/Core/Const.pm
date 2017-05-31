@@ -35,19 +35,7 @@ const our $ANSI => {
 # >>>
 
 for my $name ( keys $ANSI->%* ) {
-    my $esc = "\e[$ANSI->{$name}m";
-
-    eval    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
-      qq[
-        package _Pcore::Core::Const::ANSI::$name {
-            use overload q[""] => sub {
-                if   ( !\$ENV{ANSI_COLORS_DISABLED} ) { return "$esc" }
-                else                                  { return q[] }
-            };
-        };
-
-        const our \$$name => bless {}, '_Pcore::Core::Const::ANSI::$name';
-    ];
+    eval qq[const our \$$name => "\e\[$ANSI->{$name}m"];    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 }
 
 require Pcore::Core::Exporter;
@@ -73,9 +61,7 @@ const our $LF   => qq[\x0A];        ## no critic qw[ValuesAndExpressions::Prohib
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 40                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 41                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
+## |    3 | 38                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 1                    | Modules::RequireVersionVar - No package-scoped "$VERSION" variable found                                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
