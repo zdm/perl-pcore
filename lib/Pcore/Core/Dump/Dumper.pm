@@ -119,13 +119,13 @@ sub _dump ( $self, @ ) {
 
     # weak
     push $tags->@*, 'weak' if isweak( $_[1] );
-
-    $res .= ',';
+    #
+    # $res .= ',';
 
     # add tags
-    $res .= q[ # ] . join q[, ], $tags->@* if $tags;
+    # $res .= q[ # ] . join q[, ], $tags->@* if $tags;
 
-    return $res;
+    return bless { text => \$res, tags => $tags }, 'Pcore::Core::Dump::Dumper::_Item';
 }
 
 sub _var_type {
@@ -290,7 +290,11 @@ sub REF {
         @_,
     );
 
-    return $COLOR->{refs} . '\\ ' . $RESET . $self->_dump( $ref->$*, path => $args{path} . '->$*' );
+    my $item = $self->_dump( $ref->$*, path => $args{path} . '->$*' );
+
+    $item->{prefix} = $COLOR->{refs} . '\\ ' . $RESET;
+
+    return "$item";
 }
 
 sub SCALAR {
@@ -368,14 +372,17 @@ sub ARRAY {
 
             my $el = $self->_dump( $array_ref->[$i], path => $args{path} . "->[$i]" );
 
+            # not last array element
+            if ( $i != $array_ref->$#* ) {
+                $el->{sep} = ',';
+            }
+
             $self->_indent_text($el);
 
-            $res .= $el;
-
-            $res .= "\n" if $i != $array_ref->$#*;    # not last array element
+            $res .= "$el\n";
         }
 
-        $res .= "\n" . $COLOR->{refs} . ']' . $RESET;
+        $res .= $COLOR->{refs} . ']' . $RESET;
     }
 
     $self->_tied_to( tied $array_ref->@*, $tags );
@@ -434,14 +441,17 @@ sub HASH {
 
             my $el = $self->_dump( $hash_ref->{ $keys->[$i]->{raw_key} }, path => $args{path} . '->{"' . $keys->[$i]->{escaped_key_nc} . '"}' );
 
+            # not last hash key
+            if ( $i != $keys->$#* ) {
+                $el->{sep} = ',';
+            }
+
             $self->_indent_text($el);
 
-            $res .= $el;
-
-            $res .= "\n" if $i != $keys->$#*;    # not last hash key
+            $res .= "$el\n";
         }
 
-        $res .= $LF . $COLOR->{refs} . '}' . $RESET;
+        $res .= $COLOR->{refs} . '}' . $RESET;
     }
 
     $self->_tied_to( tied $hash_ref->%*, $tags );
@@ -533,6 +543,18 @@ sub LVALUE {
     unshift $tags->@*, 'LVALUE';
 
     return $res, $tags;
+}
+
+package Pcore::Core::Dump::Dumper::_Item {
+    use overload    #
+      q[""] => sub {
+        if ( $_[0]->{tags} ) {
+            return ( $_[0]->{prefix} // q[] ) . $_[0]->{text}->$* . ( $_[0]->{sep} // q[] ) . ' # ' . join q[, ], $_[0]->{tags}->@*;
+        }
+        else {
+            return ( $_[0]->{prefix} // q[] ) . $_[0]->{text}->$* . ( $_[0]->{sep} // q[] );
+        }
+      };
 }
 
 1;

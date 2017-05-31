@@ -23,15 +23,19 @@ sub run {
         undef                      => undef,
         qq[key_with\n\n\n_escapes] => qq[sca\nlar-русский],
         array                      => [ 1 .. 12 ],
-        datetime1                  => \$obj1,
-        'obj"2'                    => $obj2,
-        obj3                       => \$obj3,
-        code                       => sub { },
-        fh1                        => $fh1,
-        vstring                    => v1.2.3,
-        regexp                     => qr/^as\nма\\d$/sm,
-        lvalue                     => \substr( q[lvalue scalar], 0, 13 ),
-        io                         => *STDOUT{IO},
+        hash                       => {
+            aa => $obj1,
+            bb => 2,
+        },
+        datetime1 => \$obj1,
+        'obj"2'   => $obj2,
+        obj3      => \$obj3,
+        code      => sub { },
+        fh1       => $fh1,
+        vstring   => \\\v1.2.3,
+        regexp    => qr/^as\nма\\d$/sm,
+        lvalue    => \substr( q[lvalue scalar], 0, 13 ),
+        io        => *STDOUT{IO},
     };
 
     P->scalar->weaken( $data->{obj3} );
@@ -172,7 +176,7 @@ sub TO_DUMP {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 115, 121, 127, 133   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
+## |    2 | 119, 125, 131, 137   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
