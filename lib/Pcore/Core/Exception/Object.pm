@@ -128,16 +128,7 @@ sub sendlog ( $self, $level = undef ) {
 
     $self->{is_logged} = 1;
 
-    P->fire_event(
-        "LOG.EXCEPTION.$level",
-        {   id        => P->uuid->str,
-            timestamp => $self->{timestamp},
-            channel   => 'EXCEPTION',
-            level     => $level,
-            title     => $self->{msg},
-            data      => ( $self->{with_trace} ? $self->{call_stack}->$* : undef ),
-        }
-    );
+    P->sendlog( "LOG.EXCEPTION.$level", $self->{msg}, $self->{with_trace} ? $self->{call_stack}->$* : undef );
 
     return;
 }

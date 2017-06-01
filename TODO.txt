@@ -1,3 +1,7 @@
+- exception - use sendlog interface;
+
+
+
 - event as single hash:
     - key - automatically added;
 	
