@@ -1,9 +1,13 @@
-- remove dump TO_DUMP method;
-
 - unclear, how to serialize dump objects;
     - bench dump / yaml;
     - always assign event id, bench time/hires time/ no time;
     - pck / unpack CBOR object;
+
+- xmpp - do not use handle interface;
+    - test multiple accounts;
+    - test messages;
+    - create command interface for lazarus crawler server;
+
 
 - smtp tls_ctx high not works under linux, but works under windows;
 

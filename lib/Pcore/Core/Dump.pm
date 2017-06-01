@@ -8,11 +8,10 @@ use Pcore::Core::Dump::Dumper;
 
 sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     my %args = (
-        color       => 1,
-        tags        => 1,
-        indent      => 4,
-        dump_method => 'TO_DUMP',
-        var         => '$VAR',
+        color  => 1,
+        tags   => 1,
+        indent => 4,
+        var    => '$VAR',
         @_[ 1 .. $#_ ],
     );
 
@@ -26,9 +25,9 @@ sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 19                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 18                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 15                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 14                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

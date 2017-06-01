@@ -7,33 +7,32 @@ use re qw[];
 use Sort::Naturally qw[nsort];
 use PerlIO::Layers qw[];
 
-has color => ( is => 'ro', isa => Bool, default => 0 );        # colorize dump
-has tags  => ( is => 'ro', isa => Bool, default => 0 );        # do not add tags
-has var   => ( is => 'ro', isa => Bool, default => '$VAR' );
-has dump_method => ( is => 'ro', isa => Maybe [Str], default => 'TO_DUMP' );    # dump method for objects, use "undef" to skip call
-has indent => ( is => 'ro', isa => Int, default => 4 );                         # indent spaces
+has color  => ( is => 'ro', isa => Bool, default => 0 );        # colorize dump
+has tags   => ( is => 'ro', isa => Bool, default => 0 );        # do not add tags
+has var    => ( is => 'ro', isa => Bool, default => '$VAR' );
+has indent => ( is => 'ro', isa => Int,  default => 4 );        # indent spaces
 
 has _indent => ( is => 'ro', isa => Str, init_arg => undef );
 has _seen => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 our $COLOR = {
-    number  => $BOLD . $CYAN,                                                   # numbers
-    string  => $BOLD . $YELLOW,                                                 # strings
-    class   => $BOLD . $GREEN,                                                  # class names
-    regex   => $YELLOW,                                                         # regular expressions
-    code    => $GREEN,                                                          # code references
-    glob    => $BOLD . $CYAN,                                                   # globs (usually file handles)
-    vstring => $BOLD . $YELLOW,                                                 # version strings (v5.16.0, etc)
+    number  => $BOLD . $CYAN,                                   # numbers
+    string  => $BOLD . $YELLOW,                                 # strings
+    class   => $BOLD . $GREEN,                                  # class names
+    regex   => $YELLOW,                                         # regular expressions
+    code    => $GREEN,                                          # code references
+    glob    => $BOLD . $CYAN,                                   # globs (usually file handles)
+    vstring => $BOLD . $YELLOW,                                 # version strings (v5.16.0, etc)
     format  => $BOLD . $CYAN,
 
-    array => $WHITE,                                                            # array index numbers
-    hash  => $BOLD . $MAGENTA,                                                  # hash keys
+    array => $WHITE,                                            # array index numbers
+    hash  => $BOLD . $MAGENTA,                                  # hash keys
 
     refs    => $BOLD . $WHITE,
-    unknown => $BLACK . $ON_YELLOW,                                             # potential new Perl datatypes
-    undef   => $BOLD . $RED,                                                    # the 'undef' value
-    escaped => $BOLD . $RED,                                                    # escaped characters (\t, \n, etc)
-    seen    => $WHITE . $ON_RED,                                                # references to seen values
+    unknown => $BLACK . $ON_YELLOW,                             # potential new Perl datatypes
+    undef   => $BOLD . $RED,                                    # the 'undef' value
+    escaped => $BOLD . $RED,                                    # escaped characters (\t, \n, etc)
+    seen    => $WHITE . $ON_RED,                                # references to seen values
 };
 
 our $DUMPERS = {
@@ -242,8 +241,8 @@ sub BLESSED {
     $res .= $self->{_indent} . 'refaddr: ' . refaddr($obj) . ",\n";
 
     # class dump method
-    if ( my $dump_method = $self->{dump_method} && $obj->can( $self->{dump_method} ) ) {
-        my ( $dump, $dump_tags ) = $obj->$dump_method( $self, path => $args{path} );
+    if ( my $to_dump = $obj->can('TO_DUMP') ) {
+        my ( $dump, $dump_tags ) = $to_dump->( $obj, $self, path => $args{path} );
 
         if ($dump) {
             $dumped = 1;
@@ -568,9 +567,9 @@ package Pcore::Core::Dump::Dumper::_Item {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 77, 90               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 76, 89               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 12, 235, 297         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 12, 234, 296         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
