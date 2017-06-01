@@ -5,19 +5,19 @@ use Pcore::Util::Scalar qw[weaken];
 use Pcore::Core::Event::Listener;
 use Time::HiRes qw[];
 
-has listeners    => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has senders      => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has listeners_re => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has senders   => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+has mask_re   => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-sub listen_events ( $self, $events, @listeners ) {
+sub listen_events ( $self, $masks, @listeners ) {
     my $guard = defined wantarray ? [] : ();
 
-    $events = [$events] if ref $events ne 'ARRAY';
+    $masks = [$masks] if ref $masks ne 'ARRAY';
 
-    for my $listen_ev ( $events->@* ) {
+    for my $mask ( $masks->@* ) {
 
         # get matched senders
-        my $senders = [ grep { $self->_match_events( $listen_ev, $_ ) } keys $self->{senders}->%* ];
+        my $senders = [ grep { $self->_match_events( $mask, $_ ) } keys $self->{senders}->%* ];
 
         # create listeners
         for my $listen (@listeners) {
@@ -48,24 +48,24 @@ sub listen_events ( $self, $events, @listeners ) {
 
             my $listener = Pcore::Core::Event::Listener->new(
                 {   broker => $self,
-                    events => $events,
+                    masks  => $masks,
                     cb     => $cb,
                 }
             );
 
-            $self->{listeners}->{$listen_ev}->{ $listener->{id} } = $listener;
+            $self->{listeners}->{$mask}->{ $listener->{id} } = $listener;
 
             if ($guard) {
                 push $guard->@*, $listener;
 
-                weaken $self->{listeners}->{$listen_ev}->{ $listener->{id} };
+                weaken $self->{listeners}->{$mask}->{ $listener->{id} };
             }
 
             # add listener to matched senders
-            for my $send_ev ( $senders->@* ) {
-                $self->{senders}->{$send_ev}->{ $listener->{id} } = $listener;
+            for my $key ( $senders->@* ) {
+                $self->{senders}->{$key}->{ $listener->{id} } = $listener;
 
-                weaken $self->{senders}->{$send_ev}->{ $listener->{id} };
+                weaken $self->{senders}->{$key}->{ $listener->{id} };
             }
         }
     }
@@ -73,20 +73,20 @@ sub listen_events ( $self, $events, @listeners ) {
     return $guard;
 }
 
-sub has_listeners ( $self, $event ) {
-    $self->_register_sender($event) if !exists $self->{senders}->{$event};
+sub has_listeners ( $self, $key ) {
+    $self->_register_sender($key) if !exists $self->{senders}->{$key};
 
-    return $self->{senders}->{$event}->%* ? 1 : 0;
+    return $self->{senders}->{$key}->%* ? 1 : 0;
 }
 
-sub _register_sender ( $self, $send_ev ) {
-    return if exists $self->{senders}->{$send_ev};
+sub _register_sender ( $self, $key ) {
+    return if exists $self->{senders}->{$key};
 
-    my $sender = $self->{senders}->{$send_ev} = {};
+    my $sender = $self->{senders}->{$key} = {};
 
-    for my $listen_ev ( keys $self->{listeners}->%* ) {
-        if ( $self->_match_events( $listen_ev, $send_ev ) ) {
-            for my $listener ( values $self->{listeners}->{$listen_ev}->%* ) {
+    for my $mask ( keys $self->{listeners}->%* ) {
+        if ( $self->_match_events( $mask, $key ) ) {
+            for my $listener ( values $self->{listeners}->{$mask}->%* ) {
                 if ( !exists $sender->{ $listener->{id} } ) {
                     $sender->{ $listener->{id} } = $listener;
 
@@ -104,27 +104,28 @@ sub _register_sender ( $self, $send_ev ) {
 # * (star) can substitute for exactly one word
 # # (hash) can substitute for zero or more words
 # word = [^.]
-sub _match_events ( $self, $listen_ev, $send_ev ) {
-    if ( index( $listen_ev, '*' ) != -1 || index( $listen_ev, '#' ) != -1 ) {
-        if ( !exists $self->{listeners_re}->{$listen_ev} ) {
-            my $re = quotemeta $listen_ev;
+sub _match_events ( $self, $mask, $key ) {
+    if ( index( $mask, '*' ) != -1 || index( $mask, '#' ) != -1 ) {
+        if ( !exists $self->{mask_re}->{$mask} ) {
+            my $re = quotemeta $mask;
 
             $re =~ s/\\[#]/.*?/smg;
 
             $re =~ s/\\[*]/[^.]+/smg;
 
-            $self->{listeners_re}->{$listen_ev} = qr/\A$re\z/sm;
+            $self->{mask_re}->{$mask} = qr/\A$re\z/sm;
         }
 
-        return $send_ev =~ $self->{listeners_re}->{$listen_ev} ? 1 : 0;
+        return $key =~ $self->{mask_re}->{$mask};
     }
-    elsif ( $listen_ev eq $send_ev ) {
-        return 1;
+    else {
+        return $mask eq $key;
     }
 
     return;
 }
 
+# TODO remove key from listener call
 sub forward_event ( $self, $ev ) {
     $self->_register_sender( $ev->{key} ) if !exists $self->{senders}->{ $ev->{key} };
 
