@@ -116,12 +116,15 @@ sub listen_events ( $self, $events ) {
     return;
 }
 
-sub fire_remote_event ( $self, $event, $data = undef ) {
+sub fire_remote_event ( $self, $key, $data = undef ) {
     my $msg = {
-        type  => $TX_TYPE_EVENT,
-        event => $event,
-        data  => $data,
+        type => $TX_TYPE_EVENT,
+        ev   => {                 #
+            key => $key,
+        },
     };
+
+    \$msg->{ev}->{data} = \$data;
 
     $self->send_binary( \$CBOR->encode($msg) );
 
@@ -272,9 +275,9 @@ sub _on_message ( $self, $msg, $is_json ) {
         if ( $tx->{type} eq $TX_TYPE_EVENT ) {
 
             # ignore event, if not authorized
-            next if $self->{on_fire_event} && !$self->{on_fire_event}->( $self, $tx->{event} );
+            next if $self->{on_fire_event} && !$self->{on_fire_event}->( $self, $tx->{ev}->{key} );
 
-            P->fire_event( $tx->{event}, $tx->{data} );
+            P->forward_event( $tx->{ev} );
 
             next;
         }
@@ -383,9 +386,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 258                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
+## |    3 | 261                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 308, 330, 345        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 311, 333, 348        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
