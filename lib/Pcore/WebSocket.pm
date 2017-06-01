@@ -5,7 +5,7 @@ use Pcore::Util::Scalar qw[refaddr];
 use Pcore::Util::Data qw[to_b64];
 use Pcore::Util::List qw[pairs];
 use Pcore::WebSocket::Handle;
-use Pcore::AE::Handle2 qw[:TLS_CTX];
+use Pcore::AE::Handle qw[:TLS_CTX];
 
 our $HANDLE = {};
 
@@ -161,7 +161,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
         $connect = $uri;
     }
 
-    Pcore::AE::Handle2->new(
+    Pcore::AE::Handle->new(
         connect         => $connect,
         connect_timeout => $args{connect_timeout},
         tls_ctx         => $args{tls_ctx},

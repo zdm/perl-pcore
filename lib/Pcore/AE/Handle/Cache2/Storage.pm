@@ -1,4 +1,4 @@
-package Pcore::AE::Handle::Cache::Storage;
+package Pcore::AE::Handle::Cache2::Storage;
 
 use Pcore;
 
@@ -130,7 +130,7 @@ __END__
 
 =head1 NAME
 
-Pcore::AE::Handle::Cache::Storage
+Pcore::AE::Handle::Cache2::Storage
 
 =head1 SYNOPSIS
 
