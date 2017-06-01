@@ -144,9 +144,9 @@ sub forward_remote_event ( $self, $ev ) {
 
 sub before_connect_server ( $self, $env, $args ) {
     if ( $env->{HTTP_PCORE_LISTEN_EVENTS} ) {
-        my $events = [ map { trim $_} split /,/sm, $env->{HTTP_PCORE_LISTEN_EVENTS} ];
+        my $masks = [ map { trim $_} split /,/sm, $env->{HTTP_PCORE_LISTEN_EVENTS} ];
 
-        $self->_set_listeners($events) if $events->@*;
+        $self->_set_listeners($masks) if $masks->@*;
     }
 
     if ( $args->{forward_events} ) {
@@ -160,9 +160,9 @@ sub before_connect_server ( $self, $env, $args ) {
     }
 
     if ( $args->{listen_events} ) {
-        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
+        my $masks = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
 
-        push $headers->@*, 'Pcore-Listen-Events', join ',', $events->@*;
+        push $headers->@*, 'Pcore-Listen-Events', join ',', $masks->@*;
     }
 
     return $headers;
@@ -180,9 +180,9 @@ sub before_connect_client ( $self, $args ) {
     }
 
     if ( $args->{listen_events} ) {
-        my $events = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
+        my $masks = ref $args->{listen_events} eq 'ARRAY' ? $args->{listen_events} : [ $args->{listen_events} ];
 
-        push $headers->@*, 'Pcore-Listen-Events:' . join ',', $events->@*;
+        push $headers->@*, 'Pcore-Listen-Events:' . join ',', $masks->@*;
     }
 
     if ( $args->{token} ) {
@@ -198,9 +198,9 @@ sub on_connect_server ( $self ) {
 
 sub on_connect_client ( $self, $headers ) {
     if ( $headers->{PCORE_LISTEN_EVENTS} ) {
-        my $events = [ map { trim $_} split /,/sm, $headers->{PCORE_LISTEN_EVENTS} ];
+        my $masks = [ map { trim $_} split /,/sm, $headers->{PCORE_LISTEN_EVENTS} ];
 
-        $self->_set_listeners($events) if $events->@*;
+        $self->_set_listeners($masks) if $masks->@*;
     }
 
     return;
