@@ -610,7 +610,18 @@ sub listen_events ( $self, $masks, @listeners ) {
 sub fire_event ( $self, $key, $data = undef ) {
     state $broker = _init_ev();
 
-    return $broker->fire_event( $key, $data );
+    my $ev = {
+        key  => $key,
+        data => $data,
+    };
+
+    return $broker->forward_event($ev);
+}
+
+sub forward_event ( $self, $ev ) {
+    state $broker = _init_ev();
+
+    return $broker->forward_event($ev);
 }
 
 sub has_listeners ( $self, $key ) {
@@ -630,11 +641,12 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 
     die q[Log level must be specified] unless $ev->{level};
 
+    $ev->{key}       = "LOG.$key";
     $ev->{timestamp} = Time::HiRes::time();
     \$ev->{title} = \$title;
     \$ev->{data}  = \$data;
 
-    $broker->fire_event( "LOG.$key", $ev );
+    $broker->forward_event($ev);
 
     return;
 }
@@ -658,7 +670,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 374, 403, 406, 410,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 444, 447, 452, 455,  |                                                                                                                |
-## |      | 480, 499, 631        |                                                                                                                |
+## |      | 480, 499, 642        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 568                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
