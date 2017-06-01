@@ -150,7 +150,7 @@ sub connect_rpc ( $self, % ) {
             on_listen_event => sub ( $ws, $mask ) {    # RPC server can listen client event
                 return 1;
             },
-            on_fire_event => sub ( $ws, $ev ) {        # RPC server can fire client event
+            on_fire_event => sub ( $ws, $key ) {       # RPC server can fire client event
                 return 1;
             },
             on_connect_error => sub ($status) {

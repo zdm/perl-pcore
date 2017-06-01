@@ -11,8 +11,8 @@ use Pcore::Util::Scalar qw[blessed weaken];
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
 has on_rpc          => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $req, $tx)
-has on_listen_event => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $ev), should return true if operation is allowed
-has on_fire_event   => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $ev), should return true if operation is allowed
+has on_listen_event => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $mask), should return true if operation is allowed
+has on_fire_event   => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $key), should return true if operation is allowed
 
 has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );

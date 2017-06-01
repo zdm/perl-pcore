@@ -38,8 +38,8 @@ sub run ( $self, $req ) {
                             on_listen_event  => sub ( $ws, $mask ) {
                                 return $self->on_listen_event( $ws, $mask );
                             },
-                            on_fire_event => sub ( $ws, $ev ) {
-                                return $self->on_fire_event( $ws, $ev );
+                            on_fire_event => sub ( $ws, $key ) {
+                                return $self->on_fire_event( $ws, $key );
                             },
                             before_connect => undef,
                             on_connect     => sub ($ws) {
@@ -239,7 +239,7 @@ sub on_listen_event ( $self, $ws, $mask ) {
     return;
 }
 
-sub on_fire_event ( $self, $ws, $ev ) {
+sub on_fire_event ( $self, $ws, $key ) {
     return;
 }
 

@@ -97,7 +97,7 @@ sub run ( $class, $rpc_boot_args ) {
                             pong_interval    => 50,
                             compression      => 0,                                  #
                             on_listen_event  => sub ( $ws, $mask ) { return 1 },    # RPC client can listen server events
-                            on_fire_event    => sub ( $ws, $ev ) { return 1 },      # RPC client can fire server events
+                            on_fire_event    => sub ( $ws, $key ) { return 1 },     # RPC client can fire server events
                             before_connect   => {
                                 listen_events  => $listen_events,
                                 forward_events => ${"$class\::RPC_FORWARD_EVENTS"},
