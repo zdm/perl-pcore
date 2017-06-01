@@ -100,7 +100,7 @@ sub rpc_call ( $self, $method, @ ) {
 }
 
 sub forward_events ( $self, $masks ) {
-    $self->_set_listeners($mask);
+    $self->_set_listeners($masks);
 
     return;
 }
