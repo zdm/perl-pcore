@@ -195,10 +195,10 @@ sub _get_ws ( $self, $cb ) {
                 listen_events  => $self->{listen_events},
                 forward_events => $self->{forward_events},
             },
-            on_listen_event => sub ( $ws, $ev ) {    # API server can listen client events
+            on_listen_event => sub ( $ws, $mask ) {    # API server can listen client events
                 return 1;
             },
-            on_fire_event => sub ( $ws, $ev ) {      # API server can fire client events
+            on_fire_event => sub ( $ws, $ev ) {        # API server can fire client events
                 return 1;
             },
             on_connect_error => sub ($res) {

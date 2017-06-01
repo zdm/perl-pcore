@@ -3,7 +3,7 @@
 
 - listeners->($ev);
 
-- on_fire_event->($ev), 
+- on_fire_event->($ev),
 - on_listen_event->($mask);
 
 - laz serv log rpc - rename body to data;
@@ -23,6 +23,11 @@
 - error in anyevent xmpp on destroy;
 - dumper cant dump \"\n\naaaaaa\n\n\n";
 
+- invalid common longest prefix for:
+    M lib/Lazarus/Crawler/Client.pm
+    M lib/Lazarus/Crawler/Client/RPC/Crawler.pm
+    M lib/Lazarus/Crawler/Client/RPC/DNS.pm
+    M lib/Lazarus/Crawler/Client/RPC/Web2.pm
 
 - smtp tls_ctx high not works under linux, but works under windows;
 

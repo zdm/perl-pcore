@@ -147,10 +147,10 @@ sub connect_rpc ( $self, % ) {
                 listen_events  => $args{listen_events},
                 forward_events => $args{forward_events},
             },
-            on_listen_event => sub ( $ws, $ev ) {    # RPC server can listen client event
+            on_listen_event => sub ( $ws, $mask ) {    # RPC server can listen client event
                 return 1;
             },
-            on_fire_event => sub ( $ws, $ev ) {      # RPC server can fire client event
+            on_fire_event => sub ( $ws, $ev ) {        # RPC server can fire client event
                 return 1;
             },
             on_connect_error => sub ($status) {

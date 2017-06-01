@@ -35,8 +35,8 @@ sub run ( $self, $req ) {
                             max_message_size => $WS_MAX_MESSAGE_SIZE,
                             pong_interval    => $WS_PONG_INTERVAL,
                             compression      => $WS_COMPRESSION,
-                            on_listen_event  => sub ( $ws, $ev ) {
-                                return $self->on_listen_event( $ws, $ev );
+                            on_listen_event  => sub ( $ws, $mask ) {
+                                return $self->on_listen_event( $ws, $mask );
                             },
                             on_fire_event => sub ( $ws, $ev ) {
                                 return $self->on_fire_event( $ws, $ev );
@@ -235,7 +235,7 @@ sub on_connect ( $self, $ws ) {
     return;
 }
 
-sub on_listen_event ( $self, $ws, $ev ) {
+sub on_listen_event ( $self, $ws, $mask ) {
     return;
 }
 
