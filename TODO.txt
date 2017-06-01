@@ -1,27 +1,22 @@
 - event as single hash:
-	- key - automatically added;
+    - key - automatically added;
+	
+
+
+- changes:
+    - listen_events -> header -> tmpl;
+    - lazarus server log rpc - serialize data before put to DB;
+    - sendlog - always specify 'LOG.' prefix???;
 
 - test stderr, stderr -> file, file, xmpp. smtp;
     - data -> reference;
     - data -> reference with objects;
     - data -> undef;
     - data -> q[];
-- sendlog - always specify 'LOG.' prefix???;
-
-
-
-event - single hash;
- - route;
- - id;
-
-sendlog:
-    - lazarus crawler - send data im message body;
-    - rename body to data;
-    - full template custolization;
-
 
 
 - error in anyevent xmpp on destroy;
+- dumper cant dump \"\n\naaaaaa\n\n\n";
 
 
 - smtp tls_ctx high not works under linux, but works under windows;
