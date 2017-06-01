@@ -607,6 +607,18 @@ sub listen_events ( $self, $masks, @listeners ) {
     return $broker->listen_events( $masks, @listeners );
 }
 
+sub has_listeners ( $self, $key ) {
+    state $broker = _init_ev();
+
+    return $broker->has_listeners($key);
+}
+
+sub forward_event ( $self, $ev ) {
+    state $broker = _init_ev();
+
+    return $broker->forward_event($ev);
+}
+
 sub fire_event ( $self, $key, $data = undef ) {
     state $broker = _init_ev();
 
@@ -616,18 +628,6 @@ sub fire_event ( $self, $key, $data = undef ) {
     };
 
     return $broker->forward_event($ev);
-}
-
-sub forward_event ( $self, $ev ) {
-    state $broker = _init_ev();
-
-    return $broker->forward_event($ev);
-}
-
-sub has_listeners ( $self, $key ) {
-    state $broker = _init_ev();
-
-    return $broker->has_listeners($key);
 }
 
 sub sendlog ( $self, $key, $title, $data = undef ) {
