@@ -105,10 +105,10 @@ sub forward_events ( $self, $masks ) {
     return;
 }
 
-sub listen_events ( $self, $events ) {
+sub listen_events ( $self, $masks ) {
     my $msg = {
-        type   => $TX_TYPE_LISTEN,
-        events => $events,
+        type  => $TX_TYPE_LISTEN,
+        masks => $masks,
     };
 
     $self->send_binary( \$CBOR->encode($msg) );
@@ -125,6 +125,17 @@ sub fire_remote_event ( $self, $key, $data = undef ) {
     };
 
     \$msg->{ev}->{data} = \$data;
+
+    $self->send_binary( \$CBOR->encode($msg) );
+
+    return;
+}
+
+sub forward_remote_event ( $self, $ev ) {
+    my $msg = {
+        type => $TX_TYPE_EVENT,
+        ev   => $ev,
+    };
 
     $self->send_binary( \$CBOR->encode($msg) );
 
@@ -234,21 +245,22 @@ sub on_binary ( $self, $data_ref ) {
     return;
 }
 
-sub _set_listeners ( $self, $events ) {
-    $events = [$events] if ref $events ne 'ARRAY';
+# TODO remove $key from listener
+sub _set_listeners ( $self, $masks ) {
+    $masks = [$masks] if ref $masks ne 'ARRAY';
 
     weaken $self;
 
-    for my $event ( $events->@* ) {
-        next if exists $self->{_listeners}->{$event};
+    for my $mask ( $masks->@* ) {
+        next if exists $self->{_listeners}->{$mask};
 
         # do not set event listener, if not authorized
-        next if $self->{on_listen_event} && !$self->{on_listen_event}->( $self, $event );
+        next if $self->{on_listen_event} && !$self->{on_listen_event}->( $self, $mask );
 
-        $self->{_listeners}->{$event} = P->listen_events(
-            $event,
-            sub ( $event, $data ) {
-                $self->fire_remote_event( $event, $data ) if $self;
+        $self->{_listeners}->{$mask} = P->listen_events(
+            $mask,
+            sub ( $key, $ev ) {
+                $self->forward_remote_event($ev) if $self;
 
                 return;
             }
@@ -266,7 +278,7 @@ sub _on_message ( $self, $msg, $is_json ) {
 
         # forward local events to remote peer
         if ( $tx->{type} eq $TX_TYPE_LISTEN ) {
-            $self->_set_listeners( $tx->{events} );
+            $self->_set_listeners( $tx->{masks} );
 
             next;
         }
@@ -386,9 +398,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 261                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
+## |    3 | 273                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 311, 333, 348        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 323, 345, 360        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
