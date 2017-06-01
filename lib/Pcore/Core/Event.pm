@@ -17,7 +17,7 @@ sub listen_events ( $self, $masks, @listeners ) {
     for my $mask ( $masks->@* ) {
 
         # get matched senders
-        my $senders = [ grep { $self->_match_events( $mask, $_ ) } keys $self->{senders}->%* ];
+        my $senders = [ grep { $self->_compare( $_, $mask ) } keys $self->{senders}->%* ];
 
         # create listeners
         for my $listen (@listeners) {
@@ -85,7 +85,7 @@ sub _register_sender ( $self, $key ) {
     my $sender = $self->{senders}->{$key} = {};
 
     for my $mask ( keys $self->{listeners}->%* ) {
-        if ( $self->_match_events( $mask, $key ) ) {
+        if ( $self->_compare( $key, $mask ) ) {
             for my $listener ( values $self->{listeners}->{$mask}->%* ) {
                 if ( !exists $sender->{ $listener->{id} } ) {
                     $sender->{ $listener->{id} } = $listener;
@@ -99,12 +99,12 @@ sub _register_sender ( $self, $key ) {
     return;
 }
 
-# send_ev always without wildcards
-# listen_ev could contain wildcards:
+# key always without wildcards
+# mask could contain wildcards:
 # * (star) can substitute for exactly one word
 # # (hash) can substitute for zero or more words
 # word = [^.]
-sub _match_events ( $self, $mask, $key ) {
+sub _compare ( $self, $key, $mask ) {
     if ( index( $mask, '*' ) != -1 || index( $mask, '#' ) != -1 ) {
         if ( !exists $self->{mask_re}->{$mask} ) {
             my $re = quotemeta $mask;
