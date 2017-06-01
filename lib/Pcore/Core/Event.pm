@@ -125,11 +125,11 @@ sub _match_events ( $self, $listen_ev, $send_ev ) {
     return;
 }
 
-sub fire_event ( $self, $event, $data = undef ) {
-    $self->_register_sender($event) if !exists $self->{senders}->{$event};
+sub fire_event ( $self, $key, $ev = undef ) {
+    $self->_register_sender($key) if !exists $self->{senders}->{$key};
 
-    for my $listener ( values $self->{senders}->{$event}->%* ) {
-        $listener->{cb}->( $event, $data );
+    for my $listener ( values $self->{senders}->{$key}->%* ) {
+        $listener->{cb}->( $key, $ev );
     }
 
     return;

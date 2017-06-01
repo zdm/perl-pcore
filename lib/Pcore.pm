@@ -580,62 +580,61 @@ sub init_demolish ( $self, $class ) {
 
 # EVENT
 sub _init_ev {
-    state $ev = do {
+    state $broker = do {
         require Pcore::Core::Event;
 
-        my $EV = Pcore::Core::Event->new;
+        my $_broker = Pcore::Core::Event->new;
 
         # set default log channels
-        $EV->listen_events( 'LOG.EXCEPTION.*', 'stderr:' );
+        $_broker->listen_events( 'LOG.EXCEPTION.*', 'stderr:' );
 
         # file logs are disabled by default for scripts, that are not part of the distribution
         if ( $ENV->dist ) {
-            $EV->listen_events( 'LOG.EXCEPTION.FATAL', 'file:fatal.log' );
-            $EV->listen_events( 'LOG.EXCEPTION.ERROR', 'file:error.log' );
-            $EV->listen_events( 'LOG.EXCEPTION.WARN',  'file:warn.log' );
+            $_broker->listen_events( 'LOG.EXCEPTION.FATAL', 'file:fatal.log' );
+            $_broker->listen_events( 'LOG.EXCEPTION.ERROR', 'file:error.log' );
+            $_broker->listen_events( 'LOG.EXCEPTION.WARN',  'file:warn.log' );
         }
 
-        $EV;
+        $_broker;
     };
 
-    return $ev;
+    return $broker;
 }
 
-sub listen_events ( $self, $events, @listeners ) {
-    state $ev = _init_ev();
+sub listen_events ( $self, $masks, @listeners ) {
+    state $broker = _init_ev();
 
-    return $ev->listen_events( $events, @listeners );
+    return $broker->listen_events( $masks, @listeners );
 }
 
-sub fire_event ( $self, $event, $data = undef ) {
-    state $ev = _init_ev();
+sub fire_event ( $self, $key, $data = undef ) {
+    state $broker = _init_ev();
 
-    return $ev->fire_event( $event, $data );
+    return $broker->fire_event( $key, $data );
 }
 
-sub has_listeners ( $self, $event ) {
-    state $ev = _init_ev();
+sub has_listeners ( $self, $key ) {
+    state $broker = _init_ev();
 
-    return $ev->has_listeners($event);
+    return $broker->has_listeners($key);
 }
 
-sub sendlog ( $self, $channel, $title, $data = undef ) {
-    state $ev = _init_ev();
+sub sendlog ( $self, $key, $title, $data = undef ) {
+    state $broker = _init_ev();
 
-    return if !$ev->has_listeners("LOG.$channel");
+    return if !$broker->has_listeners("LOG.$key");
 
-    my $event;
+    my $ev;
 
-    ( $event->{channel}, $event->{level} ) = split /[.]/sm, $channel, 2;
+    ( $ev->{channel}, $ev->{level} ) = split /[.]/sm, $key, 2;
 
-    die q[Log level must be specified] unless $event->{level};
+    die q[Log level must be specified] unless $ev->{level};
 
-    $event->{id}        = Pcore->uuid->str;
-    $event->{timestamp} = Time::HiRes::time();
-    \$event->{title} = \$title;
-    \$event->{data}  = \$data;
+    $ev->{timestamp} = Time::HiRes::time();
+    \$ev->{title} = \$title;
+    \$ev->{data}  = \$data;
 
-    $ev->fire_event( "LOG.$channel", $event );
+    $broker->fire_event( "LOG.$key", $ev );
 
     return;
 }

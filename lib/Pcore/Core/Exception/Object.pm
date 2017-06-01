@@ -128,7 +128,7 @@ sub sendlog ( $self, $level = undef ) {
 
     $self->{is_logged} = 1;
 
-    P->sendlog( "LOG.EXCEPTION.$level", $self->{msg}, $self->{with_trace} ? $self->{call_stack}->$* : undef );
+    P->sendlog( "EXCEPTION.$level", $self->{msg}, $self->{with_trace} ? $self->{call_stack}->$* : undef );
 
     return;
 }

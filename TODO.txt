@@ -1,5 +1,5 @@
-- exception - use sendlog interface;
-
+- event hash -> $ev;
+- key, masks;
 
 
 - event as single hash:
