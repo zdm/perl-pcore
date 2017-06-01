@@ -7,8 +7,8 @@ with qw[Pcore::Core::Event::Listener::Pipe];
 
 has header => ( is => 'ro', isa => Str, default => $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>]' . $BOLD . $YELLOW . '[<: $channel :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET );
 
-has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
-has is_ansi => ( is => 'ro', isa => Bool, init_arg => undef );
+has _tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
+has _is_ansi => ( is => 'ro', isa => Bool, init_arg => undef );
 
 has _init => ( is => 'ro', isa => Bool, init_arg => undef );
 
@@ -20,17 +20,17 @@ sub sendlog ( $self, $ev, $data ) {
         $self->{_init} = 1;
 
         # init template
-        $self->{tmpl} = P->tmpl;
+        $self->{_tmpl} = P->tmpl;
 
         my $template = qq[$self->{header} <: \$title | raw :>
 : if \$body {
 <: \$body | raw :>
 : }];
 
-        $self->{tmpl}->cache_string_tmpl( message => \$template );
+        $self->{_tmpl}->cache_string_tmpl( message => \$template );
 
         # check ansi support
-        $self->{is_ansi} //= -t $STDERR_UTF8 ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
+        $self->{_is_ansi} //= -t $STDERR_UTF8 ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
     }
 
     # sendlog
@@ -40,9 +40,9 @@ sub sendlog ( $self, $ev, $data ) {
         # indent body
         local $data->{body} = $data->{body} =~ s/^/    /smgr if $data->{body};
 
-        my $message = $self->{tmpl}->render( 'message', $data );
+        my $message = $self->{_tmpl}->render( 'message', $data );
 
-        remove_ansi $message->$* if !$self->{is_ansi};
+        remove_ansi $message->$* if !$self->{_is_ansi};
 
         print {$STDERR_UTF8} $message->$*;
     }

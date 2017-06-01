@@ -9,9 +9,9 @@ with qw[Pcore::Core::Event::Listener::Pipe];
 
 has header => ( is => 'ro', isa => Str, default => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>][<: $channel :>][<: $level :>]' );
 
-has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
-has path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );
-has h    => ( is => 'ro', isa => InstanceOf ['IO::File'],              init_arg => undef );
+has _tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
+has _path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );
+has _h    => ( is => 'ro', isa => InstanceOf ['IO::File'],              init_arg => undef );
 
 has _init => ( is => 'ro', isa => Bool, init_arg => undef );
 
@@ -22,33 +22,33 @@ sub sendlog ( $self, $ev, $data ) {
         $self->{_init} = 1;
 
         # init template
-        $self->{tmpl} = P->tmpl;
+        $self->{_tmpl} = P->tmpl;
 
         my $template = qq[$self->{header} <: \$title | raw :>
 : if \$body {
 <: \$body | raw :>
 : }];
 
-        $self->{tmpl}->cache_string_tmpl( message => \$template );
+        $self->{_tmpl}->cache_string_tmpl( message => \$template );
 
         # init path
         if ( $self->{uri}->path->is_abs ) {
             P->file->mkpath( $self->{uri}->path->dirname );
 
-            $self->{path} = $self->{uri}->path;
+            $self->{_path} = $self->{uri}->path;
         }
         else {
-            $self->{path} = P->path( $ENV->{DATA_DIR} . $self->{uri}->path );
+            $self->{_path} = P->path( $ENV->{DATA_DIR} . $self->{uri}->path );
         }
     }
 
     # open filehandle
-    if ( !-f $self->{path} || !$self->{h} ) {
-        $self->{h} = IO::File->new( $self->{path}, '>>', P->file->calc_chmod(q[rw-------]) ) or die qq[Unable to open "$self->{path}"];
+    if ( !-f $self->{_path} || !$self->{_h} ) {
+        $self->{_h} = IO::File->new( $self->{path}, '>>', P->file->calc_chmod(q[rw-------]) ) or die qq[Unable to open "$self->{path}"];
 
-        $self->{h}->binmode(':encoding(UTF-8)');
+        $self->{_h}->binmode(':encoding(UTF-8)');
 
-        $self->{h}->autoflush(1);
+        $self->{_h}->autoflush(1);
     }
 
     # sendlog
@@ -58,15 +58,15 @@ sub sendlog ( $self, $ev, $data ) {
         # indent body
         local $data->{body} = $data->{body} =~ s/^/    /smgr if $data->{body};
 
-        my $message = $self->{tmpl}->render( 'message', $data );
+        my $message = $self->{_tmpl}->render( 'message', $data );
 
         remove_ansi $message->$*;
 
-        flock $self->{h}, LOCK_EX or die;
+        flock $self->{_h}, LOCK_EX or die;
 
-        print { $self->{h} } $message->$*;
+        print { $self->{_h} } $message->$*;
 
-        flock $self->{h}, LOCK_UN or die;
+        flock $self->{_h}, LOCK_UN or die;
     }
 
     return;

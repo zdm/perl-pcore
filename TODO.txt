@@ -1,3 +1,5 @@
+- smtp tls_ctx high not works under linux, but works under windows;
+
 - proc:
     - proc should return result object on exit;
     - reliable way to read stdout on proc exit;
