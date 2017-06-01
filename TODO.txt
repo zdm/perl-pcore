@@ -1,13 +1,24 @@
 - unclear, how to serialize dump objects;
-    - bench dump / yaml;
-    - always assign event id, bench time/hires time/ no time;
-    - pck / unpack CBOR object;
+    - standard event structure:
+        {
+            id => uuid_str,
+            timestamp => Time::HiRes::time(),
+            name => '', # event name
+            data => {},
+        }
 
-- xmpp - do not use handle interface;
-    - test multiple accounts;
-    - test messages;
-    - create command interface for lazarus crawler server;
+        for log event data => {
+            title => '',
+            data  => '',
+            tags => {
+                key => value,
+                ...
+            },
+        },
 
+    - bench dump / yaml - serialize text to json, readable;
+    - always assign event id, bench time/hires time/ no time - time hires is not very slow;
+    - pack / unpack CBOR object - need to set TO_DATA method;
 
 - smtp tls_ctx high not works under linux, but works under windows;
 
