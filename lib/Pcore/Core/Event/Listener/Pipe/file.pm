@@ -1,7 +1,7 @@
 package Pcore::Core::Event::Listener::Pipe::file;
 
 use Pcore -class, -ansi;
-use Pcore::Util::Text qw[remove_ansi];
+use Pcore::Util::Data qw[to_json];
 use Fcntl qw[:flock];
 use IO::File;
 
@@ -15,7 +15,7 @@ has _h    => ( is => 'ro', isa => InstanceOf ['IO::File'],              init_arg
 
 has _init => ( is => 'ro', isa => Bool, init_arg => undef );
 
-sub sendlog ( $self, $ev, $data ) {
+sub sendlog ( $self, $ev, $event ) {
 
     # init
     if ( !$self->{_init} ) {
@@ -25,8 +25,8 @@ sub sendlog ( $self, $ev, $data ) {
         $self->{_tmpl} = P->tmpl;
 
         my $template = qq[$self->{header} <: \$title | raw :>
-: if \$body {
-<: \$body | raw :>
+: if \$data {
+<: \$data | raw :>
 : }];
 
         $self->{_tmpl}->cache_string_tmpl( message => \$template );
@@ -53,14 +53,19 @@ sub sendlog ( $self, $ev, $data ) {
 
     # sendlog
     {
-        local $data->{date} = P->date->from_epoch( $data->{timestamp} );
+        # prepare date object
+        local $event->{date} = P->date->from_epoch( $event->{timestamp} );
 
-        # indent body
-        local $data->{body} = $data->{body} =~ s/^/    /smgr if $data->{body};
+        # prepare data
+        local $event->{data} = $event->{data};
 
-        my $message = $self->{_tmpl}->render( 'message', $data );
+        # serialize reference
+        $event->{data} = to_json( $event->{data}, readable => 1 )->$* if ref $event->{data};
 
-        remove_ansi $message->$*;
+        # indent
+        $event->{data} =~ s/^/    /smg if defined $event->{data};
+
+        my $message = $self->{_tmpl}->render( 'message', $event );
 
         flock $self->{_h}, LOCK_EX or die;
 
@@ -81,7 +86,7 @@ sub sendlog ( $self, $ev, $data ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 27                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 56, 59               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 57, 60               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 10                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

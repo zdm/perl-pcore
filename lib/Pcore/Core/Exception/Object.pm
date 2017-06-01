@@ -121,20 +121,21 @@ sub _build_to_string ($self) {
     return $self->{with_trace} ? $self->longmess : $self->{msg};
 }
 
-sub sendlog ( $self, $channel = undef ) {
+sub sendlog ( $self, $level = undef ) {
     return if $self->{is_logged};    # prevent logging the same exception twice
 
-    $channel //= $self->{level};
+    $level //= $self->{level};
 
     $self->{is_logged} = 1;
 
     P->fire_event(
-        "LOG.EXCEPTION.$channel",
-        {   title     => $self->{msg},
-            body      => ( $self->{with_trace} ? $self->{call_stack}->$* : undef ),
+        "LOG.EXCEPTION.$level",
+        {   id        => P->uuid->str,
             timestamp => $self->{timestamp},
             channel   => 'EXCEPTION',
-            level     => $channel,
+            level     => $level,
+            title     => $self->{msg},
+            data      => ( $self->{with_trace} ? $self->{call_stack}->$* : undef ),
         }
     );
 

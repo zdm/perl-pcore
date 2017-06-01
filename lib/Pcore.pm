@@ -619,33 +619,23 @@ sub has_listeners ( $self, $event ) {
     return $ev->has_listeners($event);
 }
 
-sub sendlog ( $self, $channel, $title, $body = undef ) {
+sub sendlog ( $self, $channel, $title, $data = undef ) {
     state $ev = _init_ev();
 
     return if !$ev->has_listeners("LOG.$channel");
 
-    my $data;
+    my $event;
 
-    if ( ref $title ) {
-        $data = $title;
-    }
-    else {
-        \$data->{title} = \$title;
-        \$data->{body}  = \$body;
-    }
+    ( $event->{channel}, $event->{level} ) = split /[.]/sm, $channel, 2;
 
-    ( $data->{channel}, $data->{level} ) = split /[.]/sm, $channel, 2;
+    die q[Log level must be specified] unless $event->{level};
 
-    die q[Log level must be specified] unless $data->{level};
+    $event->{id}        = Pcore->uuid->str;
+    $event->{timestamp} = Time::HiRes::time();
+    \$event->{title} = \$title;
+    \$event->{data}  = \$data;
 
-    $data->{timestamp} //= Time::HiRes::time();
-
-    $data->{body} = Pcore::Core::Dump::dump( $data->{body}, tags => 0, var => undef ) if ref $data->{body};
-
-    # $data->{body} = Pcore->data->to_yaml( $data->{body}, readable => 1 )->$* if ref $data->{body};
-    # $data->{body} = Pcore->data->to_json( $data->{body}, readable => 1 )->$* if ref $data->{body};
-
-    $ev->fire_event( "LOG.$channel", $data );
+    $ev->fire_event( "LOG.$channel", $event );
 
     return;
 }
@@ -669,7 +659,7 @@ sub sendlog ( $self, $channel, $title, $body = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 374, 403, 406, 410,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 444, 447, 452, 455,  |                                                                                                                |
-## |      | 480, 499, 639        |                                                                                                                |
+## |      | 480, 499, 631        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 568                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
