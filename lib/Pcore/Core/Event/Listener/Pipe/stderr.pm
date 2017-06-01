@@ -1,17 +1,19 @@
 package Pcore::Core::Event::Listener::Pipe::stderr;
 
-use Pcore -class, -ansi;
+use Pcore -class, -ansi, -const;
 use Pcore::Util::Text qw[remove_ansi];
 use Pcore::Util::Data qw[to_json];
 
 with qw[Pcore::Core::Event::Listener::Pipe];
 
-has header => ( is => 'ro', isa => Str, default => $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>]' . $BOLD . $YELLOW . '[<: $channel :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET );
+has tmpl => ( is => 'ro', isa => Str, default => $BOLD . $GREEN . '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>]' . $BOLD . $YELLOW . '[<: $channel :>]' . $BOLD . $RED . '[<: $level :>]' . $RESET . ' <: $title | raw :><: $text | raw :>' );
 
 has _tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
 has _is_ansi => ( is => 'ro', isa => Bool, init_arg => undef );
 
 has _init => ( is => 'ro', isa => Bool, init_arg => undef );
+
+const our $INDENT => q[ ] x 4;
 
 sub sendlog ( $self, $ev, $event ) {
     return if $ENV->{PCORE_LOG_STDERR_DISABLED};
@@ -23,12 +25,7 @@ sub sendlog ( $self, $ev, $event ) {
         # init template
         $self->{_tmpl} = P->tmpl;
 
-        my $template = qq[$self->{header} <: \$title | raw :>
-: if \$data {
-<: \$data | raw :>
-: }];
-
-        $self->{_tmpl}->cache_string_tmpl( message => \$template );
+        $self->{_tmpl}->cache_string_tmpl( message => \"$self->{tmpl}$LF" );
 
         # check ansi support
         $self->{_is_ansi} //= -t $STDERR_UTF8 ? 1 : 0;    ## no critic qw[InputOutput::ProhibitInteractiveTest]
@@ -39,14 +36,22 @@ sub sendlog ( $self, $ev, $event ) {
         # prepare date object
         local $event->{date} = P->date->from_epoch( $event->{timestamp} );
 
-        # prepare data
-        local $event->{data} = $event->{data};
+        # prepare text
+        local $event->{text};
 
-        # serialize reference
-        $event->{data} = to_json( $event->{data}, readable => 1 )->$* if ref $event->{data};
+        if ( defined $event->{data} ) {
 
-        # indent
-        $event->{data} =~ s/^/    /smg if defined $event->{data};
+            # serialize reference
+            $event->{text} = $LF . ( ref $event->{data} ? to_json( $event->{data}, readable => 1 )->$* : $event->{data} );
+
+            # indent
+            $event->{text} =~ s/^/$INDENT/smg;
+
+            # remove all trailing "\n"
+            local $/ = '';
+
+            chomp $event->{text};
+        }
 
         my $message = $self->{_tmpl}->render( 'message', $event );
 
@@ -65,9 +70,11 @@ sub sendlog ( $self, $ev, $event ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 26                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
+## |    3 | 40                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 40, 43               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 37, 40               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 51                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 9                    | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

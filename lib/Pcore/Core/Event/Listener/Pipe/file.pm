@@ -1,19 +1,21 @@
 package Pcore::Core::Event::Listener::Pipe::file;
 
-use Pcore -class, -ansi;
+use Pcore -class, -ansi, -const;
 use Pcore::Util::Data qw[to_json];
 use Fcntl qw[:flock];
 use IO::File;
 
 with qw[Pcore::Core::Event::Listener::Pipe];
 
-has header => ( is => 'ro', isa => Str, default => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>][<: $channel :>][<: $level :>]' );
+has tmpl => ( is => 'ro', isa => Str, default => '[<: $date.strftime("%Y-%m-%d %H:%M:%S.%4N") :>][<: $channel :>][<: $level :>] <: $title | raw :><: $text | raw :>' );
 
 has _tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
 has _path => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Path'],     init_arg => undef );
 has _h    => ( is => 'ro', isa => InstanceOf ['IO::File'],              init_arg => undef );
 
 has _init => ( is => 'ro', isa => Bool, init_arg => undef );
+
+const our $INDENT => q[ ] x 4;
 
 sub sendlog ( $self, $ev, $event ) {
 
@@ -24,12 +26,7 @@ sub sendlog ( $self, $ev, $event ) {
         # init template
         $self->{_tmpl} = P->tmpl;
 
-        my $template = qq[$self->{header} <: \$title | raw :>
-: if \$data {
-<: \$data | raw :>
-: }];
-
-        $self->{_tmpl}->cache_string_tmpl( message => \$template );
+        $self->{_tmpl}->cache_string_tmpl( message => \"$self->{tmpl}$LF" );
 
         # init path
         if ( $self->{uri}->path->is_abs ) {
@@ -44,7 +41,7 @@ sub sendlog ( $self, $ev, $event ) {
 
     # open filehandle
     if ( !-f $self->{_path} || !$self->{_h} ) {
-        $self->{_h} = IO::File->new( $self->{path}, '>>', P->file->calc_chmod(q[rw-------]) ) or die qq[Unable to open "$self->{path}"];
+        $self->{_h} = IO::File->new( $self->{_path}, '>>', P->file->calc_chmod('rw-------') ) or die qq[Unable to open "$self->{_path}"];
 
         $self->{_h}->binmode(':encoding(UTF-8)');
 
@@ -56,14 +53,22 @@ sub sendlog ( $self, $ev, $event ) {
         # prepare date object
         local $event->{date} = P->date->from_epoch( $event->{timestamp} );
 
-        # prepare data
-        local $event->{data} = $event->{data};
+        # prepare text
+        local $event->{text};
 
-        # serialize reference
-        $event->{data} = to_json( $event->{data}, readable => 1 )->$* if ref $event->{data};
+        if ( defined $event->{data} ) {
 
-        # indent
-        $event->{data} =~ s/^/    /smg if defined $event->{data};
+            # serialize reference
+            $event->{text} = $LF . ( ref $event->{data} ? to_json( $event->{data}, readable => 1 )->$* : $event->{data} );
+
+            # indent
+            $event->{text} =~ s/^/$INDENT/smg;
+
+            # remove all trailing "\n"
+            local $/ = '';
+
+            chomp $event->{text};
+        }
 
         my $message = $self->{_tmpl}->render( 'message', $event );
 
@@ -84,9 +89,11 @@ sub sendlog ( $self, $ev, $event ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 27                   | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
+## |    3 | 57                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 57, 60               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |    2 | 54, 57               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 68                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 10                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
