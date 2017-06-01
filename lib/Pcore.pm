@@ -640,7 +640,10 @@ sub sendlog ( $self, $channel, $title, $body = undef ) {
 
     $data->{timestamp} //= Time::HiRes::time();
 
-    $data->{body} = Pcore::Core::Dump::dump( $data->{body} ) if ref $data->{body};
+    $data->{body} = Pcore::Core::Dump::dump( $data->{body}, tags => 0, var => undef ) if ref $data->{body};
+
+    # $data->{body} = Pcore->data->to_yaml( $data->{body}, readable => 1 )->$* if ref $data->{body};
+    # $data->{body} = Pcore->data->to_json( $data->{body}, readable => 1 )->$* if ref $data->{body};
 
     $ev->fire_event( "LOG.$channel", $data );
 

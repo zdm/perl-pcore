@@ -7,7 +7,9 @@ use re qw[];
 use Sort::Naturally qw[nsort];
 use PerlIO::Layers qw[];
 
-has color => ( is => 'ro', isa => Bool, default => 0 );    # colorize dump
+has color => ( is => 'ro', isa => Bool, default => 0 );        # colorize dump
+has tags  => ( is => 'ro', isa => Bool, default => 0 );        # do not add tags
+has var   => ( is => 'ro', isa => Bool, default => '$VAR' );
 has dump_method => ( is => 'ro', isa => Maybe [Str], default => 'TO_DUMP' );    # dump method for objects, use "undef" to skip call
 has indent => ( is => 'ro', isa => Int, default => 4 );                         # indent spaces
 
@@ -72,18 +74,20 @@ our $DUMPERS = {
 sub run ( $self, @ ) {
     $self->{_indent} = q[ ] x ( $self->{indent} // 4 );
 
+    $self->{var} //= '';
+
     if ( !$self->{color} ) {
         return remove_ansi $self->_dump( $_[1] );
     }
     else {
-        return $self->_dump( $_[1] );
+        return $self->_dump( $_[1], path => $self->{var} );
     }
 }
 
 # INTERNAL METHODS
 sub _dump ( $self, @ ) {
     my %args = (
-        path    => '$VAR',
+        path    => '',
         unbless => 0,
         splice @_, 2,
     );
@@ -125,7 +129,7 @@ sub _dump ( $self, @ ) {
     # add tags
     # $res .= q[ # ] . join q[, ], $tags->@* if $tags;
 
-    return bless { text => \$res, tags => $tags }, 'Pcore::Core::Dump::Dumper::_Item';
+    return bless { text => \$res, tags => $self->{tags} && $tags }, 'Pcore::Core::Dump::Dumper::_Item';
 }
 
 sub _var_type {
@@ -564,7 +568,9 @@ package Pcore::Core::Dump::Dumper::_Item {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 86, 231, 293         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    2 | 77, 90               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 12, 235, 297         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
