@@ -125,12 +125,11 @@ sub _compare ( $self, $key, $mask ) {
     return;
 }
 
-# TODO remove key from listener call
 sub forward_event ( $self, $ev ) {
     $self->_register_sender( $ev->{key} ) if !exists $self->{senders}->{ $ev->{key} };
 
     for my $listener ( values $self->{senders}->{ $ev->{key} }->%* ) {
-        $listener->{cb}->( $ev->{key}, $ev );
+        $listener->{cb}->($ev);
     }
 
     return;

@@ -245,7 +245,6 @@ sub on_binary ( $self, $data_ref ) {
     return;
 }
 
-# TODO remove $key from listener
 sub _set_listeners ( $self, $masks ) {
     $masks = [$masks] if ref $masks ne 'ARRAY';
 
@@ -259,7 +258,7 @@ sub _set_listeners ( $self, $masks ) {
 
         $self->{_listeners}->{$mask} = P->listen_events(
             $mask,
-            sub ( $key, $ev ) {
+            sub ( $ev ) {
                 $self->forward_remote_event($ev) if $self;
 
                 return;
@@ -398,9 +397,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 273                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
+## |    3 | 272                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 323, 345, 360        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 322, 344, 359        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

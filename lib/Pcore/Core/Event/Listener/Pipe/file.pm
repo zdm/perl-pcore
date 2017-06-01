@@ -17,7 +17,7 @@ has _init => ( is => 'ro', isa => Bool, init_arg => undef );
 
 const our $INDENT => q[ ] x 4;
 
-sub sendlog ( $self, $ev, $event ) {
+sub sendlog ( $self, $ev ) {
 
     # init
     if ( !$self->{_init} ) {
@@ -51,26 +51,26 @@ sub sendlog ( $self, $ev, $event ) {
     # sendlog
     {
         # prepare date object
-        local $event->{date} = P->date->from_epoch( $event->{timestamp} );
+        local $ev->{date} = P->date->from_epoch( $ev->{timestamp} );
 
         # prepare text
-        local $event->{text};
+        local $ev->{text};
 
-        if ( defined $event->{data} ) {
+        if ( defined $ev->{data} ) {
 
             # serialize reference
-            $event->{text} = $LF . ( ref $event->{data} ? to_json( $event->{data}, readable => 1 )->$* : $event->{data} );
+            $ev->{text} = $LF . ( ref $ev->{data} ? to_json( $ev->{data}, readable => 1 )->$* : $ev->{data} );
 
             # indent
-            $event->{text} =~ s/^/$INDENT/smg;
+            $ev->{text} =~ s/^/$INDENT/smg;
 
             # remove all trailing "\n"
             local $/ = '';
 
-            chomp $event->{text};
+            chomp $ev->{text};
         }
 
-        my $message = $self->{_tmpl}->render( 'message', $event );
+        my $message = $self->{_tmpl}->render( 'message', $ev );
 
         flock $self->{_h}, LOCK_EX or die;
 

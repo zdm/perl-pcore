@@ -1,10 +1,10 @@
 - event hash -> $ev;
 - key, masks;
 
+- listeners->($ev);
 
-- event as single hash:
-    - key - automatically added;
-	
+- on_fire_event->($ev), 
+- on_listen_event->($mask);
 
 
 - changes:
