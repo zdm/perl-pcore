@@ -11,11 +11,10 @@ sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
         color  => 1,
         tags   => 1,
         indent => 4,
-        var    => '$VAR',
         @_[ 1 .. $#_ ],
     );
 
-    return ( $args{var} ? "$args{var} = " : '' ) . bless( \%args, 'Pcore::Core::Dump::Dumper' )->run( $_[0] );
+    return '$VAR = ' . bless( \%args, 'Pcore::Core::Dump::Dumper' )->run( $_[0] );
 }
 
 1;
@@ -25,9 +24,7 @@ sub dump {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 18                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 14                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 17                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -7,32 +7,31 @@ use re qw[];
 use Sort::Naturally qw[nsort];
 use PerlIO::Layers qw[];
 
-has color  => ( is => 'ro', isa => Bool, default => 0 );        # colorize dump
-has tags   => ( is => 'ro', isa => Bool, default => 0 );        # do not add tags
-has var    => ( is => 'ro', isa => Bool, default => '$VAR' );
-has indent => ( is => 'ro', isa => Int,  default => 4 );        # indent spaces
+has color  => ( is => 'ro', isa => Bool, default => 0 );    # colorize dump
+has tags   => ( is => 'ro', isa => Bool, default => 0 );    # do not add tags
+has indent => ( is => 'ro', isa => Int,  default => 4 );    # indent spaces
 
 has _indent => ( is => 'ro', isa => Str, init_arg => undef );
 has _seen => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 our $COLOR = {
-    number  => $BOLD . $CYAN,                                   # numbers
-    string  => $BOLD . $YELLOW,                                 # strings
-    class   => $BOLD . $GREEN,                                  # class names
-    regex   => $YELLOW,                                         # regular expressions
-    code    => $GREEN,                                          # code references
-    glob    => $BOLD . $CYAN,                                   # globs (usually file handles)
-    vstring => $BOLD . $YELLOW,                                 # version strings (v5.16.0, etc)
+    number  => $BOLD . $CYAN,                               # numbers
+    string  => $BOLD . $YELLOW,                             # strings
+    class   => $BOLD . $GREEN,                              # class names
+    regex   => $YELLOW,                                     # regular expressions
+    code    => $GREEN,                                      # code references
+    glob    => $BOLD . $CYAN,                               # globs (usually file handles)
+    vstring => $BOLD . $YELLOW,                             # version strings (v5.16.0, etc)
     format  => $BOLD . $CYAN,
 
-    array => $WHITE,                                            # array index numbers
-    hash  => $BOLD . $MAGENTA,                                  # hash keys
+    array => $WHITE,                                        # array index numbers
+    hash  => $BOLD . $MAGENTA,                              # hash keys
 
     refs    => $BOLD . $WHITE,
-    unknown => $BLACK . $ON_YELLOW,                             # potential new Perl datatypes
-    undef   => $BOLD . $RED,                                    # the 'undef' value
-    escaped => $BOLD . $RED,                                    # escaped characters (\t, \n, etc)
-    seen    => $WHITE . $ON_RED,                                # references to seen values
+    unknown => $BLACK . $ON_YELLOW,                         # potential new Perl datatypes
+    undef   => $BOLD . $RED,                                # the 'undef' value
+    escaped => $BOLD . $RED,                                # escaped characters (\t, \n, etc)
+    seen    => $WHITE . $ON_RED,                            # references to seen values
 };
 
 our $DUMPERS = {
@@ -73,13 +72,11 @@ our $DUMPERS = {
 sub run ( $self, @ ) {
     $self->{_indent} = q[ ] x ( $self->{indent} // 4 );
 
-    $self->{var} //= '';
-
     if ( !$self->{color} ) {
-        return remove_ansi $self->_dump( $_[1] );
+        return remove_ansi $self->_dump( $_[1], path => '$VAR' );
     }
     else {
-        return $self->_dump( $_[1], path => $self->{var} );
+        return $self->_dump( $_[1], path => '$VAR' );
     }
 }
 
@@ -567,9 +564,9 @@ package Pcore::Core::Dump::Dumper::_Item {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 76, 89               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 86                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 12, 234, 296         | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 76, 79, 231, 293     | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
