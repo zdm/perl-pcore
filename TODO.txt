@@ -6,6 +6,7 @@
 - on_fire_event->($ev), 
 - on_listen_event->($mask);
 
+- laz serv log rpc - rename body to data;
 
 - changes:
     - listen_events -> header -> tmpl;

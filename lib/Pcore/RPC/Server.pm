@@ -57,7 +57,7 @@ sub run ( $class, $rpc_boot_args ) {
     # create RPC.TERM event listener
     P->listen_events(
         'RPC.TERM',
-        sub ( $event, @ ) {
+        sub ( $ev ) {
             $rpc->RPC_ON_TERM if $rpc->can('RPC_ON_TERM');
 
             exit;
