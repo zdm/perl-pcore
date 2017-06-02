@@ -75,11 +75,6 @@ sub import {
         # store -embedded pragma
         $EMBEDDED = 1 if $import->{pragma}->{embedded};
 
-        # TODO remove, when following issues will be resolved
-        # https://github.com/steve-m-hay/Filter-Crypto/issues/1
-        # https://rt.cpan.org/Public/Bug/Display.html?id=102788
-        require Filter::Crypto::Decrypt if !$EMBEDDED;
-
         require Import::Into;
         require B::Hooks::AtRuntime;
         require B::Hooks::EndOfScope::XS;
@@ -641,25 +636,25 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (22)                    |
+## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (21)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 90                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 85                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 250                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 245                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 325                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 445                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 320                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 440                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 357, 386, 389, 393,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 427, 430, 435, 438,  |                                                                                                                |
-## |      | 463, 482, 625        |                                                                                                                |
+## |    3 | 352, 381, 384, 388,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 422, 425, 430, 433,  |                                                                                                                |
+## |      | 458, 477, 620        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 551                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 546                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 260                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 255                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 361                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 356                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
