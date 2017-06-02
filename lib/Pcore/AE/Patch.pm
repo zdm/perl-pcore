@@ -24,6 +24,8 @@ our $SOCKADDR_CACHE = {};
     *AnyEvent::Socket::tcp_connect      = \&tcp_connect;
 }
 
+# support for abstract linux sockets
+# cache requests
 sub resolve_sockaddr ( $node, $service, $proto, $family, $type, $cb ) : prototype($$$$$$) {
     state $callback = {};
 
@@ -79,6 +81,8 @@ sub resolve_sockaddr ( $node, $service, $proto, $family, $type, $cb ) : prototyp
     return;
 }
 
+# add "\x00" to relative socket path
+# do not unlink abstract unix socket
 sub _tcp_bind ( $host, $service, $done, $prepare = undef ) : prototype($$$;$) {
 
     # hook for Linux abstract Unix Domain Sockets (UDS)
@@ -114,6 +118,7 @@ sub _tcp_bind ( $host, $service, $done, $prepare = undef ) : prototype($$$;$) {
     return;
 }
 
+# eval {$prepare->()} patched
 sub tcp_connect ( $host, $port, $connect, $prepare = undef ) : prototype($$$;$) {
 
     # see http://cr.yp.to/docs/connect.html for some tricky aspects
@@ -248,15 +253,15 @@ sub tcp_connect ( $host, $port, $connect, $prepare = undef ) : prototype($$$;$) 
 ## |======+======================+================================================================================================================|
 ## |    3 | 16, 23               | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 27                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 29                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 112                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 116                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 117                  | Subroutines::ProhibitExcessComplexity - Subroutine "tcp_connect" with high complexity score (24)               |
+## |    3 | 122                  | Subroutines::ProhibitExcessComplexity - Subroutine "tcp_connect" with high complexity score (24)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 216                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 221                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 36, 89               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 38, 93               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
