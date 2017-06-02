@@ -1,12 +1,9 @@
-- test lazarus server;
-
 - dumper can't dump \"\n\naaaaaa\n\n\n";
 - invalid common longest prefix for:
     M lib/Lazarus/Crawler/Client.pm
     M lib/Lazarus/Crawler/Client/RPC/Crawler.pm
     M lib/Lazarus/Crawler/Client/RPC/DNS.pm
     M lib/Lazarus/Crawler/Client/RPC/Web2.pm
-- error in anyevent xmpp on destroy;
 
 - smtp $TLS_CTX_HIGH peer verification not works under linux, but works under windows;
 
