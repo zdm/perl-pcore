@@ -1,3 +1,22 @@
+v0.39.0 2017-06-02T07:47:22Z
+ - No issues on bugtracker were closed since the last release
+ - Pcore::AE::Handle <-> Pcore::AE::Handle2
+ - log pipes attrs changed to private
+ - dump() tags attr added
+ - dump() TO_DUMP method name is hardcoded
+ - dump() improved
+ - log pipes serialize event data manually
+ - event log pipes improved
+ - exception fire events via sendlog
+ - forward event interface
+ - pcore websocket uses forward_event interface
+ - websocket event message format changed
+ - event variables renamed
+ - event listener get single $ev argument
+ - on_listen_event get mask as argument
+ - on_fire_event get key as argument
+ - invalid common longest prefix in src report fixed
+
 v0.38.0 2017-05-31T16:36:41Z
  - No issues on bugtracker were closed since the last release
  - renamed LOG_STDERR_DISABLED to PCORE_LOG_STDERR_DISABLED
