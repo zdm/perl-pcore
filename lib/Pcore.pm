@@ -78,7 +78,7 @@ sub import {
         # TODO remove, when following issues will be resolved
         # https://github.com/steve-m-hay/Filter-Crypto/issues/1
         # https://rt.cpan.org/Public/Bug/Display.html?id=102788
-        # require Filter::Crypto::Decrypt if !$EMBEDDED;
+        require Filter::Crypto::Decrypt if !$EMBEDDED;
 
         require Import::Into;
         require B::Hooks::AtRuntime;
@@ -641,7 +641,7 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (21)                    |
+## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (22)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 90                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
