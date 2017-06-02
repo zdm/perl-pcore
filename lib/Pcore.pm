@@ -75,27 +75,10 @@ sub import {
         # store -embedded pragma
         $EMBEDDED = 1 if $import->{pragma}->{embedded};
 
-        # initialize Net::SSLeay, effective only for MSWin and if Pcore is not -embedded
-        if ( $^O =~ /MSWin/sm && !$EMBEDDED ) {
-            require Net::SSLeay;
-
-            Net::SSLeay::initialize();
-
-            {
-                no warnings qw[redefine prototype];
-
-                # we don't need to call Net::SSLeay::randomize several times
-                *Net::SSLeay::randomize = sub { };
-            }
-
-            # initialize OpenSSL internal rand. num. generator, RAND_poll() is called automatically on first RAND_bytes() call
-            Net::SSLeay::RAND_bytes( my $buf, 1 );    ## no critic qw[Variables::ProhibitUnusedVariables]
-        }
-
         # TODO remove, when following issues will be resolved
         # https://github.com/steve-m-hay/Filter-Crypto/issues/1
         # https://rt.cpan.org/Public/Bug/Display.html?id=102788
-        require Filter::Crypto::Decrypt if !$EMBEDDED;
+        # require Filter::Crypto::Decrypt if !$EMBEDDED;
 
         require Import::Into;
         require B::Hooks::AtRuntime;
@@ -658,25 +641,25 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (24)                    |
+## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (21)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 107                  | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 90                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 267                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 250                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 342                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 462                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 325                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 445                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 374, 403, 406, 410,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 444, 447, 452, 455,  |                                                                                                                |
-## |      | 480, 499, 642        |                                                                                                                |
+## |    3 | 357, 386, 389, 393,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 427, 430, 435, 438,  |                                                                                                                |
+## |      | 463, 482, 625        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 568                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 551                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 277                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 260                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 378                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 361                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
