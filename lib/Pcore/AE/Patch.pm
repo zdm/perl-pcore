@@ -118,7 +118,7 @@ sub _tcp_bind ( $host, $service, $done, $prepare = undef ) : prototype($$$;$) {
     return;
 }
 
-# eval {$prepare->()} patched
+# eval $prepare->()
 sub tcp_connect ( $host, $port, $connect, $prepare = undef ) : prototype($$$;$) {
 
     # see http://cr.yp.to/docs/connect.html for some tricky aspects
