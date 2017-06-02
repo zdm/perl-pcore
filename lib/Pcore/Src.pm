@@ -268,15 +268,17 @@ sub _process_files ( $self, $paths, $args ) {
     for my $path ( $paths->@* ) {
         $path = P->path($path) if !ref $path;
 
+        my $dirname = $path->dirname;
+
         if ( !defined $prefix ) {
-            $prefix = $path;
+            $prefix = $dirname;
 
             $max_len = length $path;
         }
         else {
             $max_len = length $path if length $path > $max_len;
 
-            if ( "$prefix\x00$path" =~ /^(.*).*\x00\1.*$/sm ) {
+            if ( "$prefix\x00$dirname" =~ /^(.*).*\x00\1.*$/sm ) {
                 $prefix = $1;
 
                 $use_prefix = 1;
@@ -439,9 +441,9 @@ sub _set_exit_code ( $self, $exit_code ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 307                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 309                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 279                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 281                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
