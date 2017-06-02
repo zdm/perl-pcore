@@ -16,7 +16,7 @@ has _init => ( is => 'ro', isa => Bool, init_arg => undef );
 const our $INDENT => q[ ] x 4;
 
 sub sendlog ( $self, $ev ) {
-    return if $ENV->{PCORE_LOG_STDERR_DISABLED};
+    return if $ENV->{PCORE_LOG_STDERR_DISABLED} || !defined $STDERR_UTF8;
 
     # init
     if ( !$self->{_init} ) {
