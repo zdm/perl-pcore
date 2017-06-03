@@ -148,7 +148,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
     if ( $uri =~ m[\Awss?://unix:(.+)?/]sm ) {
         $connect = [ 'unix/', $1 ];
 
-        $uri = Pcore->uri($uri) if !ref $uri;
+        $uri = P->uri($uri) if !ref $uri;
     }
     elsif ( $uri =~ m[\A(wss?)://[*]:(.+)]sm ) {
         $uri = P->uri("$1://127.0.0.1:$2");
@@ -156,7 +156,7 @@ sub connect_ws ( $self, $protocol, $uri, @ ) {
         $connect = $uri;
     }
     else {
-        $uri = Pcore->uri($uri) if !ref $uri;
+        $uri = P->uri($uri) if !ref $uri;
 
         $connect = $uri;
     }

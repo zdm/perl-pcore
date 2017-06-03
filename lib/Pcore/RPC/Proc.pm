@@ -115,8 +115,7 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
         fh         => $ctrl_fh,
         on_connect => sub ( $h, @ ) {
             $h->push_read(
-                line => "\n",
-                sub ( $h1, $line, $eol ) {
+                line => sub ( $h1, $line, $eol ) {
 
                     # destroy control fh
                     $h->destroy;
