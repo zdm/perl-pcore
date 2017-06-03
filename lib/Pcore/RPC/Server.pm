@@ -38,7 +38,7 @@ sub run ( $class, $rpc_boot_args ) {
 
         # for linux use abstract UDS
         else {
-            $listen = "unix:pcore-rpc-$$";
+            $listen = "unix:\x00pcore-rpc-$$";
         }
     }
     else {
@@ -139,7 +139,7 @@ sub run ( $class, $rpc_boot_args ) {
         open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
     }
 
-    print {*FH} "LISTEN:$listen\x00";
+    print {*FH} "LISTEN:$listen\n";
 
     close *FH or die;
 
@@ -159,7 +159,7 @@ sub run ( $class, $rpc_boot_args ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 113                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 142                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 41                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

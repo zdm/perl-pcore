@@ -115,7 +115,7 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
         fh         => $ctrl_fh,
         on_connect => sub ( $h, @ ) {
             $h->push_read(
-                line => "\x00",
+                line => "\n",
                 sub ( $h1, $line, $eol ) {
 
                     # destroy control fh
@@ -142,16 +142,6 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    2 | 118                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
