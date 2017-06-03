@@ -1,3 +1,7 @@
+v0.40.1 2017-06-03T15:55:02Z
+ - No issues on bugtracker were closed since the last release
+ - RPC protocol fix for windows
+
 v0.40.0 2017-06-03T14:15:26Z
  - No issues on bugtracker were closed since the last release
  - Net::SSLeay init removed
