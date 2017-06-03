@@ -152,7 +152,18 @@ sub new ( $self, @ ) {
                 return;
             },
             sub ($fh) {
-                bind $fh, $connect_args->{bind_ip} or die $! if $connect_args->{bind_ip};
+                if ( $connect_args->{bind_ip} ) {
+                    bind $fh, $connect_args->{bind_ip} or do {
+
+                        # replace $fh with $fake_fh to interrupt connection process
+                        # this can be removed, when original AnyEvent::Socket::tcp_connect will handle exceptions in this call
+                        open my $fake_fh, '+<', \'' or die;    ## no critic qw[InputOutput::RequireBriefOpen]
+
+                        $_[0] = $fake_fh;
+
+                        return;
+                    };
+                }
 
                 return $connect_args->{connect_timeout};
             }
@@ -565,23 +576,25 @@ sub get_connect ($connect) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 198                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
-## |      | 324                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
+## |      | 209                  | * Subroutine "read_http_res_headers" with high complexity score (22)                                           |
+## |      | 335                  | * Subroutine "read_http_body" with high complexity score (29)                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 234, 235             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 245, 246             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 48                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 271                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 160                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 282                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 591                  | * Link L<AnyEvent::Handle> on line 597 does not specify text                                                   |
-## |      | 591                  | * Link L<AnyEvent::Handle> on line 605 does not specify text                                                   |
-## |      | 591                  | * Link L<AnyEvent::Handle> on line 633 does not specify text                                                   |
-## |      | 591                  | * Link L<AnyEvent::Handle> on line 649 does not specify text                                                   |
-## |      | 591                  | * Link L<AnyEvent::Socket> on line 649 does not specify text                                                   |
-## |      | 591, 591             | * Link L<Pcore::Proxy> on line 615 does not specify text                                                       |
-## |      | 591                  | * Link L<Pcore::Proxy> on line 649 does not specify text                                                       |
+## |      | 604                  | * Link L<AnyEvent::Handle> on line 610 does not specify text                                                   |
+## |      | 604                  | * Link L<AnyEvent::Handle> on line 618 does not specify text                                                   |
+## |      | 604                  | * Link L<AnyEvent::Handle> on line 646 does not specify text                                                   |
+## |      | 604                  | * Link L<AnyEvent::Handle> on line 662 does not specify text                                                   |
+## |      | 604                  | * Link L<AnyEvent::Socket> on line 662 does not specify text                                                   |
+## |      | 604, 604             | * Link L<Pcore::Proxy> on line 628 does not specify text                                                       |
+## |      | 604                  | * Link L<Pcore::Proxy> on line 662 does not specify text                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 44, 49               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
