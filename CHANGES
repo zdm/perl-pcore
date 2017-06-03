@@ -1,3 +1,12 @@
+v0.40.0 2017-06-03T14:15:26Z
+ - No issues on bugtracker were closed since the last release
+ - Net::SSLeay init removed
+ - Filter::Crypto  preload removed
+ - stderr pipe return if stderr handle is closed
+ - AE::Handle support for linux abstract UDS improved
+ - AE::Socket::tcp_connect patch removed
+ - perl v5.26.0
+
 v0.39.0 2017-06-02T07:47:22Z
  - No issues on bugtracker were closed since the last release
  - Pcore::AE::Handle <-> Pcore::AE::Handle2
