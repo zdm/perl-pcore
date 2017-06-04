@@ -15,7 +15,8 @@ WORKDIR $DIST_PATH
 
 # --develop
 RUN /bin/bash -c ' \
-    cpan-outdated | cpanm \
+    source <( wget --no-verbose -O - https://dl.dropbox.com/s/8xiejrcn0hxobmt/install-perl-exclusions.sh ) \
+    && cpan-outdated | cpanm \
     && cpanm --with-feature linux --with-recommends --with-suggests --installdeps . \
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
