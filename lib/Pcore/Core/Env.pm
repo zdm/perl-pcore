@@ -285,25 +285,26 @@ sub scan_deps ($self) {
 
 sub DEMOLISH ( $self, $global ) {
     if ( $self->{SCAN_DEPS} ) {
-        my $index;
+        my ( $fh, $index );
 
-        my $mode = -e $self->{SCAN_DEPS} ? '+<:raw' : '>:raw';
+        if ( -f $self->{SCAN_DEPS} ) {
+            open $fh, '+<:raw', $self->{SCAN_DEPS} or die;    ## no critic qw[InputOutput::RequireBriefOpen]
 
-        open my $FH, $mode, $self->{SCAN_DEPS} or die;    ## no critic qw[InputOutput::RequireBriefOpen]
+            flock $fh, LOCK_EX or die;
 
-        flock $FH, LOCK_EX or die;
-
-        {
             local $/;
 
-            my $deps = JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->decode(<$FH>);
+            my $deps = JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->decode(<$fh>);
 
             $index->@{ $deps->@* } = ();
         }
+        else {
+            open $fh, '>:raw', $self->{SCAN_DEPS} or die;     ## no critic qw[InputOutput::RequireBriefOpen]
 
-        my $updated;
+            flock $fh, LOCK_EX or die;
+        }
 
-        my $embedded_packages;
+        my ( $updated, $embedded_packages );
 
         for my $module ( sort keys %INC ) {
             if ( !exists $index->{$module} ) {
@@ -352,14 +353,14 @@ sub DEMOLISH ( $self, $global ) {
 
         # store deps
         if ($updated) {
-            truncate $FH, 0 or die;
+            truncate $fh, 0 or die;
 
-            seek $FH, 0, SEEK_SET or die;
+            seek $fh, 0, SEEK_SET or die;
 
-            print {$FH} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode( [ sort keys $index->%* ] );
+            print {$fh} JSON::XS->new->ascii(0)->latin1(0)->utf8(1)->pretty(1)->canonical(1)->encode( [ sort keys $index->%* ] );
         }
 
-        close $FH or die;
+        close $fh or die;
     }
 
     return;
@@ -374,11 +375,13 @@ sub DEMOLISH ( $self, $global ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 278                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 297                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 286                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 332                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 295                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 299, 359             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
+## |    3 | 333                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 297, 360             | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 7                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 101                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
