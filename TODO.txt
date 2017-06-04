@@ -1,3 +1,4 @@
+--version command is broken in docker container
 - smtp $TLS_CTX_HIGH peer verification not works under linux, but works under windows;
 
 - proc:
