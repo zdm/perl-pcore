@@ -136,8 +136,10 @@ sub run ( $class, $rpc_boot_args ) {
         Win32API::File::OsFHandleOpen( *FH, $rpc_boot_args->{ctrl_fh}, 'w' ) or die $!;
     }
     else {
-        open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
+        open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;
     }
+
+    binmode *FH or die;
 
     print {*FH} "LISTEN:$listen\n";
 
@@ -155,7 +157,7 @@ sub run ( $class, $rpc_boot_args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (26)                       |
+## |    3 | 8                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 113                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
