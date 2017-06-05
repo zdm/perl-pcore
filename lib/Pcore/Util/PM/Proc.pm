@@ -1,6 +1,7 @@
 package Pcore::Util::PM::Proc;
 
 use Pcore -class;
+use Config;
 use Pcore::AE::Handle;
 use Pcore::Util::Scalar qw[refcount weaken blessed];
 use AnyEvent::Util qw[portable_socketpair];
@@ -151,6 +152,11 @@ sub _redirect_std ( $self, $args ) {
 }
 
 sub _create_process ( $self, $win32_cflags, @cmd ) {
+
+    # prepare environment
+    local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
+    local $ENV{PATH} = "$ENV{PATH}$Config{path_sep}$ENV{PAR_TEMP}" if $ENV->is_par;
+
     my $proc = bless {}, $self;
 
     # run process

@@ -2,7 +2,6 @@ package Pcore::RPC::Proc;
 
 use Pcore -class;
 use Fcntl;
-use Config;
 use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_socketpair];
 use if $MSWIN, 'Win32API::File';
@@ -68,9 +67,6 @@ around new => sub ( $orig, $self, @ ) {
     else {
         push $cmd->@*, $perl, "-M$args{class}";
     }
-
-    # needed for PAR, pass current @INC libs to child process via $ENV{PERL5LIB}
-    local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
 
     my $weaken_self = $self;
 
