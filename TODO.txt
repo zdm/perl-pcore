@@ -1,8 +1,9 @@
-- par.perl -> par.json or ini;
+- par.perl -> par.ini;
+- src - cut to base dir;
+
 - dist.perl -> dist.ini;
 --version command is broken in docker container;
 - smtp $TLS_CTX_HIGH peer verification not works under linux, but works under windows;
-- src - cut to base dir;
 
 https://metacpan.org/pod/Tie::Hash::LRU
 
