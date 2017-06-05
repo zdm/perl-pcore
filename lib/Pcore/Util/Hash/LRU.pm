@@ -1,4 +1,4 @@
-package Pcore::Util::Hash::Limited::_CONST;
+package Pcore::Util::Hash::LRU::_CONST;
 
 use Pcore -const, -export => { CONST => [qw[$HASH $TIED_HASH $FIRST $LAST $ATTRS $KEY $VAL $PREV $LAST]] };
 
@@ -13,11 +13,11 @@ const our $VAL  => 1;
 const our $PREV => 2;
 const our $NEXT => 3;
 
-package Pcore::Util::Hash::Limited;
+package Pcore::Util::Hash::LRU;
 
 use Pcore;
 
-Pcore::Util::Hash::Limited::_CONST->import(qw[:CONST]);
+Pcore::Util::Hash::LRU::_CONST->import(qw[:CONST]);
 
 our $INSIDEOUT = {};
 
@@ -52,7 +52,7 @@ sub new ( $self, $max_size ) {
 
     $INSIDEOUT->{$self} = $data;
 
-    tie $data->[$TIED_HASH]->%*, 'Pcore::Util::Hash::Limited::_HASH', $data;
+    tie $data->[$TIED_HASH]->%*, 'Pcore::Util::Hash::LRU::_HASH', $data;
 
     return $self;
 }
@@ -102,12 +102,12 @@ sub TO_DUMP ( $self, $dumper, @ ) {
     return $res, $tags;
 }
 
-package Pcore::Util::Hash::Limited::_HASH;
+package Pcore::Util::Hash::LRU::_HASH;
 
 use Pcore;
 use Pcore::Util::Scalar qw[weaken];
 
-Pcore::Util::Hash::Limited::_CONST->import(qw[:CONST]);
+Pcore::Util::Hash::LRU::_CONST->import(qw[:CONST]);
 
 sub TIEHASH ( $self, $data_ref ) {
     weaken $data_ref;
@@ -394,7 +394,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Hash::Limited
+Pcore::Util::Hash::LRU
 
 =head1 SYNOPSIS
 
