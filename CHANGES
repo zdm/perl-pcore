@@ -1,3 +1,15 @@
+v0.40.2 2017-06-05T11:49:28Z
+ - No issues on bugtracker were closed since the last release
+ - install perl exclusions before update cpan
+ - use binmode for RPC control FH
+ - scan deps fixed when pardeps is not exists
+ - fixed %ENV before run external process
+ - PAR shlib do not add perl interptreter twice
+ - PAR do not add perl dso twice
+ - PAR fixed invalid path in zip
+ - PAR do not write tree to temp dir
+ - PAR drop read-only attr
+
 v0.40.1 2017-06-03T15:55:02Z
  - No issues on bugtracker were closed since the last release
  - RPC protocol fix for windows
