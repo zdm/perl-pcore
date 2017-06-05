@@ -1,4 +1,3 @@
-- par.perl -> par.ini;
 - src - cut to base dir;
 
 - dist.perl -> dist.ini;
