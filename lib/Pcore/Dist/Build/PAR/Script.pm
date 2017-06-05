@@ -81,8 +81,10 @@ sub run ($self) {
     my $zip = Archive::Zip->new;
 
     for my $file ( values $self->tree->{files}->%* ) {
+        my $member;
+
         if ( ref $file->{content} ) {
-            $zip->addString(
+            $member = $zip->addString(
                 {   string           => $file->{content},
                     zipName          => $file->{path},
                     compressionLevel => 9,
@@ -90,13 +92,15 @@ sub run ($self) {
             );
         }
         else {
-            $zip->addFile(
+            $member = $zip->addFile(
                 {   filename         => $file->{source_path},
                     zipName          => $file->{path},
                     compressionLevel => 9,
                 }
             );
         }
+
+        $member->unixFileAttributes( oct 666 );
     }
 
     my $zip_path = P->file->temppath( suffix => 'zip' );
@@ -523,13 +527,13 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 303                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 307                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 393                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 397                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 478, 481             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 482, 485             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 410, 416             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 414, 420             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
