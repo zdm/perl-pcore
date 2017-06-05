@@ -168,15 +168,13 @@ sub _add_modules ($self) {
 sub _add_shlib ($self) {
     die q[Currently on MSWIN platform is supported] if !$MSWIN;
 
-    my $dso;
-
     state $system_root = P->path( $ENV{SYSTEMROOT}, is_dir => 1 )->realpath;
 
     state $is_system_lib = sub ($path) {
         return $path =~ m[^\Q$system_root\E]smi ? 1 : 0;
     };
 
-    my $find_dso = sub ( $so_path ) {
+    my $find_dso = sub ( $dso, $so_path ) {
         my $out = `objdump -ax $so_path`;
 
         while ( $out =~ /^\s*DLL Name:\s*(\S+)/smg ) {
@@ -190,7 +188,7 @@ sub _add_shlib ($self) {
 
                 $dso->{$so} = $path->to_string;
 
-                __SUB__->( $path->to_string );
+                __SUB__->( $dso, $path->to_string );
             }
 
             # so wasn't found in $PATH
@@ -217,9 +215,16 @@ sub _add_shlib ($self) {
     };
 
     # scan deps for perl executalbe and modules shared objects
+    my $dso = {};
+
     for my $path ( $^X, values $self->{shared_objects}->%* ) {
-        $find_dso->($path);
+        $find_dso->( $dso, $path );
     }
+
+    # do not add perl deps, because they are already packed to parl
+    $find_dso->( my $perl_dso = {}, $^X );
+
+    delete $dso->@{ keys $perl_dso->%* };
 
     my $perl_path = P->path($^X);
 
@@ -508,13 +513,13 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 288                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 293                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 378                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 383                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 463, 466             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 468, 471             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 395, 401             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 400, 406             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
