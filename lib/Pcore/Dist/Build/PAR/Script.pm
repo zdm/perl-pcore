@@ -350,7 +350,7 @@ sub _add_dist ( $self, $dist ) {
     if ( $dist->name eq $self->dist->name ) {
 
         # add main dist share
-        $self->tree->add_dir( $dist->share_dir, '/share/' );
+        $self->tree->add_dir( $dist->share_dir, 'share/' );
 
         # add main dist dist-id.json
         $self->tree->add_file( 'share/dist-id.json', P->data->to_json( $dist->id, readable => 1 ) );
