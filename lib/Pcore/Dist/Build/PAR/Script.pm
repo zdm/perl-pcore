@@ -221,19 +221,16 @@ sub _add_shlib ($self) {
         $find_dso->($path);
     }
 
+    my $perl_path = P->path($^X);
+
+    $dso->{ $perl_path->filename } = "$perl_path";
+
     # add found deps
-    for my $filename ( keys $dso->%* ) {
+    for my $filename ( sort keys $dso->%* ) {
         $self->tree->add_file( "shlib/$Config{archname}/$filename", $dso->{$filename} );
 
-        say qq[shlib added: "$filename"];
+        say sprintf 'shlib added: %-30s %s', $filename, $dso->{$filename};
     }
-
-    # add perl executable
-    my $perl_filename = P->path($^X)->filename;
-
-    $self->tree->add_file( "shlib/$Config{archname}/$perl_filename", $^X );
-
-    say qq[shlib added: "$perl_filename"];
 
     return;
 }
@@ -511,13 +508,13 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 291                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 288                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 381                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 378                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 466, 469             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 463, 466             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 398, 404             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 395, 401             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
