@@ -80,25 +80,35 @@ sub run ($self) {
     # create zipped par
     my $zip = Archive::Zip->new;
 
-    $zip->addTree(
-        {   root             => $temp->path,
-            zipName          => q[],
-            compressionLevel => 9,
+    for my $file ( values $self->tree->{files}->%* ) {
+        if ( ref $file->{content} ) {
+            $zip->addString(
+                {   string           => $file->{content},
+                    zipName          => $file->{path},
+                    compressionLevel => 9,
+                }
+            );
         }
-    );
+        else {
+            $zip->addFile(
+                {   filename         => $file->{source_path},
+                    zipName          => $file->{path},
+                    compressionLevel => 9,
+                }
+            );
+        }
+    }
 
-    my $zip_fh = P->file->tempfile( suffix => 'zip' );
+    my $zip_path = P->file->temppath( suffix => 'zip' );
 
-    $zip->writeToFileHandle($zip_fh);
-
-    $zip_fh->close;
+    $zip->writeToFileNamed("$zip_path");
 
     # create parl executable
     my $parl_path = P->file->temppath( suffix => $self->par_suffix );
 
     print 'writing parl ... ';
 
-    my $cmd = qq[parl -B -O$parl_path ] . $zip_fh->path;
+    my $cmd = qq[parl -B -O"$parl_path" "$zip_path"];
 
     `$cmd` or die;
 
@@ -513,13 +523,13 @@ sub _error ( $self, $msg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 293                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 303                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 383                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
+## |    3 | 393                  | RegularExpressions::ProhibitCaptureWithoutTest - Capture variable used outside conditional                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 468, 471             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 478, 481             | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 400, 406             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 410, 416             | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
