@@ -1,7 +1,7 @@
 package Pcore::Util::File;
 
 use Pcore;
-use Pcore::Util::Scalar qw[is_globref is_ioref];
+use Pcore::Util::Scalar qw[is_glob];
 use Fcntl qw[:DEFAULT];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Config;
@@ -419,7 +419,7 @@ sub get_fh ( $path, $mode, @ ) {
         splice @_, 2,
     );
 
-    if ( is_globref $path || is_ioref $path ) {
+    if ( is_glob $path ) {
         return $path;
     }
     else {
