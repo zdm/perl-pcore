@@ -4,7 +4,7 @@ use Pcore -class;
 
 has pool_id => ( is => 'ro', isa => Int, required => 1 );
 
-has dbh => ( is => 'lazy', isa => InstanceOf ['Pcore::Handle::sqlite'], init_arg => undef );
+has dbh => ( is => 'lazy', isa => InstanceOf ['Pcore::Handle::sqlite1'], init_arg => undef );
 has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 sub _build_dbh ($self) {
