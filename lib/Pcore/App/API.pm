@@ -96,7 +96,15 @@ sub connect_api ( $self, $cb ) {
 
     print q[Creating API backend ... ];
 
-    if ( $auth_uri->scheme eq 'sqlite' || $auth_uri->scheme eq 'pgsql' ) {
+    # TODO remove sqlite1
+    if ( $auth_uri->scheme eq 'sqlite1' ) {
+        my $dbh = P->handle($auth_uri);
+
+        my $class = P->class->load( 'sqlite', ns => 'Pcore::App::API::Backend::Local' );
+
+        $self->{backend} = $class->new( { app => $self->app, dbh => $dbh } );
+    }
+    elsif ( $auth_uri->scheme eq 'sqlite1' || $auth_uri->scheme eq 'pgsql' ) {
         my $dbh = P->handle($auth_uri);
 
         my $class = P->class->load( $dbh->uri->scheme, ns => 'Pcore::App::API::Backend::Local' );
@@ -659,9 +667,11 @@ sub remove_user_session ( $self, $user_session_id, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 60                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 225, 495, 516, 576   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 92                   | Subroutines::ProhibitExcessComplexity - Subroutine "connect_api" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 258                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 233, 503, 524, 584   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 266                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
