@@ -8,7 +8,7 @@ has dbh => ( is => 'lazy', isa => InstanceOf ['Pcore::Handle::sqlite1'], init_ar
 has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 sub _build_dbh ($self) {
-    my $dbh = P->handle('sqlite:');
+    my $dbh = P->handle('sqlite1:');
 
     my $ddl = $dbh->ddl;
 
