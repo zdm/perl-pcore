@@ -12,7 +12,12 @@ sub is_glob : prototype($) {
 
     # return is_blessed_ref $_[0] && ( $_[0]->isa('GLOB') || $_[0]->isa('IO') );
 
-    return is_blessed_globref $_[0] || is_globref $_[0] || is_ioref $_[0];
+    if ( !is_ref $_[0] ) {
+        return is_globref \$_[0];
+    }
+    else {
+        return is_blessed_globref $_[0] || is_globref $_[0] || is_ioref $_[0];
+    }
 }
 
 sub on_destroy ( $scalar, $cb ) {
