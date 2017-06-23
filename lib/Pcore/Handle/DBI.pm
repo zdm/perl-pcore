@@ -145,6 +145,15 @@ sub prepare ( $self, $query ) {
     return $sth;
 }
 
+# TODO return $query, $bind
+sub prepare_query ( $self, $query ) {
+    my ( $sql, $bind );
+
+    ...;
+
+    return $sql, $bind;
+}
+
 # SCHEMA PATCH
 sub add_schema_patch ( $self, $id, $query ) {
     die qq[Schema patch id "$id" already exists] if exists $self->{_schema_patch}->{$id};
@@ -387,6 +396,16 @@ sub rollback ( $self, $cb ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 152                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
