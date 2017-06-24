@@ -83,7 +83,7 @@ const our $SQL_WVARCHAR                     => -9;
 sub _get_dbh ( $self, $cb ) {
     while ( my $dbh = shift $self->{_dbh_pool}->@* ) {
         if ( $self->_dbh_is_ready($dbh) ) {
-            $cb->($dbh);
+            $cb->( result(200), $dbh );
 
             return;
         }
@@ -92,7 +92,11 @@ sub _get_dbh ( $self, $cb ) {
         }
     }
 
-    die 'DBH is busy' if $self->{_get_dbh_queue}->@* > $self->{backlog};
+    if ( $self->{_get_dbh_queue}->@* > $self->{backlog} ) {
+        $cb->( result( [ 500, 'DBH is busy' ] ), undef );
+
+        return;
+    }
 
     push $self->{_get_dbh_queue}->@*, $cb;
 
@@ -106,7 +110,7 @@ sub push_dbh ( $self, $dbh ) {
     # dbh is ready for query
     if ( $self->_dbh_is_ready($dbh) ) {
         if ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
-            $cb->($dbh);
+            $cb->( result(200), $dbh );
         }
         else {
             push $self->{_dbh_pool}->@*, $dbh;
@@ -180,13 +184,18 @@ sub upgrade_schema ( $self, $cb ) {
             );
         }
         else {
-            $dbh->rollback(
-                sub ( $dbh, $status1 ) {
-                    $cb->($status);
+            if ( !$dbh ) {
+                $cb->($status);
+            }
+            else {
+                $dbh->rollback(
+                    sub ( $dbh, $status1 ) {
+                        $cb->($status);
 
-                    return;
-                }
-            );
+                        return;
+                    }
+                );
+            }
         }
 
         return;
@@ -268,131 +277,51 @@ sub _apply_patch ( $self, $dbh, $cb ) {
 }
 
 # DBI METHODS
-sub do ( $self, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->do(@args);
+for my $method (qw[do selectall selectall_arrayref selectrow selectrow_arrayref selectcol selectval]) {
+    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+        *$method = sub ( \$self, \@args ) {
+            \$self->_get_dbh(
+                sub ( \$status, \$dbh ) {
+                    if (!\$status) {
+                        \$args[-1]->(undef, \$status, undef);
+                    }
+                    else {
+                        \$dbh->$method(\@args);
+                    }
+
+                    return;
+                }
+            );
 
             return;
         }
-    );
-
-    return;
+PERL
 }
 
-*selectall_hashref = \&selectall;
-
-sub selectall ( $self, @args ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->selectall_hashref(@args);
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub selectall_arrayref ( $self, @args ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->selectall_arrayref(@args);
-
-            return;
-        }
-    );
-
-    return;
-}
-
-*selectrow_hashref = \&selectrow;
-
-sub selectrow ( $self, @args ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->selectrow_hashref(@args);
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub selectrow_arrayref ( $self, @args ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->selectrow_arrayref(@args);
-
-            return;
-        }
-    );
-
-    return;
-}
-
+*selectall_hashref  = \&selectall;
+*selectrow_hashref  = \&selectrow;
 *selectcol_arrayref = \&selectcol;
 
-sub selectcol ( $self, @args ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->selectcol_arrayref(@args);
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub selectval ( $self, @args ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->selectval(@args);
-
-            return;
-        }
-    );
-
-    return;
-}
-
 # TRANSACTIONS
-sub begin_work ( $self, $cb ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->begin_work($cb);
+for my $method (qw[begin_work commit rollback]) {
+    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+        *$method = sub ( \$self, \@args ) {
+            \$self->_get_dbh(
+                sub ( \$status, \$dbh ) {
+                    if (!\$status) {
+                        \$args[-1]->(undef, \$status);
+                    }
+                    else {
+                        \$dbh->$method(\@args);
+                    }
+
+                    return;
+                }
+            );
 
             return;
         }
-    );
-
-    return;
-}
-
-sub commit ( $self, $cb ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->commit($cb);
-
-            return;
-        }
-    );
-
-    return;
-}
-
-sub rollback ( $self, $cb ) {
-    $self->_get_dbh(
-        sub ($dbh) {
-            $dbh->rollback($cb);
-
-            return;
-        }
-    );
-
-    return;
+PERL
 }
 
 1;
@@ -402,7 +331,11 @@ sub rollback ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 152                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 83                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_dbh' declared but not used     |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 156                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 281, 307             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
