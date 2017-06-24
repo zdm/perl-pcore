@@ -1,23 +1,14 @@
 package Pcore::Handle::DBI;
 
-use Pcore -role, -result, -const, -export => { TYPES => [qw[$SQL_ALL_TYPES $SQL_ARRAY $SQL_ARRAY_LOCATOR $SQL_BIGINT $SQL_BINARY $SQL_BIT $SQL_BLOB $SQL_BLOB_LOCATOR $SQL_BOOLEAN $SQL_CHAR $SQL_CLOB $SQL_CLOB_LOCATOR $SQL_DATE $SQL_DATETIME $SQL_DECIMAL $SQL_DOUBLE $SQL_FLOAT $SQL_GUID $SQL_INTEGER $SQL_INTERVAL $SQL_INTERVAL_DAY $SQL_INTERVAL_DAY_TO_HOUR $SQL_INTERVAL_DAY_TO_MINUTE $SQL_INTERVAL_DAY_TO_SECOND $SQL_INTERVAL_HOUR $SQL_INTERVAL_HOUR_TO_MINUTE $SQL_INTERVAL_HOUR_TO_SECOND $SQL_INTERVAL_MINUTE $SQL_INTERVAL_MINUTE_TO_SECOND $SQL_INTERVAL_MONTH $SQL_INTERVAL_SECOND $SQL_INTERVAL_YEAR $SQL_INTERVAL_YEAR_TO_MONTH $SQL_LONGVARBINARY $SQL_LONGVARCHAR $SQL_MULTISET $SQL_MULTISET_LOCATOR $SQL_NUMERIC $SQL_REAL $SQL_REF $SQL_ROW $SQL_SMALLINT $SQL_TIME $SQL_TIMESTAMP $SQL_TINYINT $SQL_TYPE_DATE $SQL_TYPE_TIME $SQL_TYPE_TIMESTAMP $SQL_TYPE_TIMESTAMP_WITH_TIMEZONE $SQL_TYPE_TIME_WITH_TIMEZONE $SQL_UDT $SQL_UDT_LOCATOR $SQL_UNKNOWN_TYPE $SQL_VARBINARY $SQL_VARCHAR $SQL_WCHAR $SQL_WLONGVARCHAR $SQL_WVARCHAR]], };
-use Pcore::Handle::DBI::STH;
-use Pcore::Util::UUID qw[uuid_str];
-use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_hashref is_plain_arrayref];
+use Pcore -role, -const, -result, -export => { TYPES => [qw[$SQL_ALL_TYPES $SQL_ARRAY $SQL_ARRAY_LOCATOR $SQL_BIGINT $SQL_BINARY $SQL_BIT $SQL_BLOB $SQL_BLOB_LOCATOR $SQL_BOOLEAN $SQL_CHAR $SQL_CLOB $SQL_CLOB_LOCATOR $SQL_DATE $SQL_DATETIME $SQL_DECIMAL $SQL_DOUBLE $SQL_FLOAT $SQL_GUID $SQL_INTEGER $SQL_INTERVAL $SQL_INTERVAL_DAY $SQL_INTERVAL_DAY_TO_HOUR $SQL_INTERVAL_DAY_TO_MINUTE $SQL_INTERVAL_DAY_TO_SECOND $SQL_INTERVAL_HOUR $SQL_INTERVAL_HOUR_TO_MINUTE $SQL_INTERVAL_HOUR_TO_SECOND $SQL_INTERVAL_MINUTE $SQL_INTERVAL_MINUTE_TO_SECOND $SQL_INTERVAL_MONTH $SQL_INTERVAL_SECOND $SQL_INTERVAL_YEAR $SQL_INTERVAL_YEAR_TO_MONTH $SQL_LONGVARBINARY $SQL_LONGVARCHAR $SQL_MULTISET $SQL_MULTISET_LOCATOR $SQL_NUMERIC $SQL_REAL $SQL_REF $SQL_ROW $SQL_SMALLINT $SQL_TIME $SQL_TIMESTAMP $SQL_TINYINT $SQL_TYPE_DATE $SQL_TYPE_TIME $SQL_TYPE_TIMESTAMP $SQL_TYPE_TIMESTAMP_WITH_TIMEZONE $SQL_TYPE_TIME_WITH_TIMEZONE $SQL_UDT $SQL_UDT_LOCATOR $SQL_UNKNOWN_TYPE $SQL_VARBINARY $SQL_VARCHAR $SQL_WCHAR $SQL_WLONGVARCHAR $SQL_WVARCHAR]], };
 
 with qw[Pcore::Handle];
 
-requires qw[_dbh_is_ready _create_dbh _get_schema_patch_table_query quote_id];
+requires qw[_get_schema_patch_table_query quote_id];
 
-has max_dbh => ( is => 'ro', isa => PositiveInt, default => 1 );
-has backlog => ( is => 'ro', isa => PositiveInt, default => 1_000 );
 has on_connect => ( is => 'ro', isa => Maybe [CodeRef] );
 
 has _schema_patch => ( is => 'ro', isa => HashRef, init_arg => undef );
-
-has active_dbh => ( is => 'ro', isa => Int, default => 0, init_arg => undef );
-has _dbh_pool => ( is => 'ro', isa => ArrayRef, init_arg => undef );
-has _get_dbh_queue => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 
 const our $SCHEMA_PATCH_TABLE_NAME => '__schema_patch';
 
@@ -79,76 +70,6 @@ const our $SQL_VARCHAR                      => 12;
 const our $SQL_WCHAR                        => -8;
 const our $SQL_WLONGVARCHAR                 => -10;
 const our $SQL_WVARCHAR                     => -9;
-
-# DBH POOL METHODS
-sub _get_dbh ( $self, $cb ) {
-    while ( my $dbh = shift $self->{_dbh_pool}->@* ) {
-        if ( $self->_dbh_is_ready($dbh) ) {
-            $cb->( result(200), $dbh );
-
-            return;
-        }
-        else {
-            $self->{active_dbh}--;
-        }
-    }
-
-    if ( $self->{_get_dbh_queue}->@* > $self->{backlog} ) {
-        $cb->( result( [ 500, 'DBH is busy' ] ), undef );
-
-        return;
-    }
-
-    push $self->{_get_dbh_queue}->@*, $cb;
-
-    $self->_create_dbh if $self->{active_dbh} < $self->{max_dbh};
-
-    return;
-}
-
-sub push_dbh ( $self, $dbh ) {
-
-    # dbh is ready for query
-    if ( $self->_dbh_is_ready($dbh) ) {
-        if ( my $cb = shift $self->{_get_dbh_queue}->@* ) {
-            $cb->( result(200), $dbh );
-        }
-        else {
-            push $self->{_dbh_pool}->@*, $dbh;
-        }
-
-    }
-
-    # dbh is disconnected or in transaction state
-    else {
-        $self->{active_dbh}--;
-
-        $self->_create_dbh if $self->{_get_dbh_queue}->@* && $self->{active_dbh} < $self->{max_dbh};
-    }
-
-    return;
-}
-
-# STH
-sub prepare ( $self, $query ) {
-    utf8::encode $query if utf8::is_utf8 $query;
-
-    # convert "?" placeholders to "$1" style
-    if ( index( $query, '?' ) != -1 ) {
-        my $i;
-
-        $query =~ s/[?]/'$' . ++$i/smge;
-    }
-
-    my $sth = bless {
-        IS_STH => 1,
-        id     => uuid_str,
-        query  => $query,
-      },
-      'Pcore::Handle::DBI::STH';
-
-    return $sth;
-}
 
 # TODO "VALUES" context
 sub prepare_query ( $self, $query ) {
@@ -349,54 +270,6 @@ sub _apply_patch ( $self, $dbh, $cb ) {
     return;
 }
 
-# DBI METHODS
-for my $method (qw[do selectall selectall_arrayref selectrow selectrow_arrayref selectcol selectval]) {
-    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
-        *$method = sub ( \$self, \@args ) {
-            \$self->_get_dbh(
-                sub ( \$status, \$dbh ) {
-                    if (!\$status) {
-                        \$args[-1]->(undef, \$status, undef);
-                    }
-                    else {
-                        \$dbh->$method(\@args);
-                    }
-
-                    return;
-                }
-            );
-
-            return;
-        }
-PERL
-}
-
-*selectall_hashref  = \&selectall;
-*selectrow_hashref  = \&selectrow;
-*selectcol_arrayref = \&selectcol;
-
-# TRANSACTIONS
-for my $method (qw[begin_work commit rollback]) {
-    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
-        *$method = sub ( \$self, \@args ) {
-            \$self->_get_dbh(
-                sub ( \$status, \$dbh ) {
-                    if (!\$status) {
-                        \$args[-1]->(undef, \$status);
-                    }
-                    else {
-                        \$dbh->$method(\@args);
-                    }
-
-                    return;
-                }
-            );
-
-            return;
-        }
-PERL
-}
-
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -404,15 +277,11 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 84                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_get_dbh' declared but not used     |
+## |    3 | 124                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 203                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    2 | 93, 118              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 354, 380             | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 172, 197             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 158                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 79                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
