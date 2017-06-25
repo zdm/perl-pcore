@@ -165,12 +165,12 @@ sub add_schema_patch ( $self, $id, $query ) {
 }
 
 sub upgrade_schema ( $self, $cb ) {
-    my $on_finish = sub ( $dbh, $status ) {
+    my $on_finish = sub ( $status, $dbh ) {
         delete $self->{_schema_patch};
 
         if ($status) {
             $dbh->commit(
-                sub ( $dbh, $status ) {
+                sub ( $status, $dbh ) {
                     $cb->($status);
 
                     return;
@@ -183,7 +183,7 @@ sub upgrade_schema ( $self, $cb ) {
             }
             else {
                 $dbh->rollback(
-                    sub ( $dbh, $status1 ) {
+                    sub ( $status1, $dbh ) {
                         $cb->($status);
 
                         return;
@@ -197,19 +197,19 @@ sub upgrade_schema ( $self, $cb ) {
 
     # start transaction
     $self->begin_work(
-        sub ( $dbh, $status ) {
-            return $on_finish->( $dbh, $status ) if !$status;
+        sub ( $status, $dbh ) {
+            return $on_finish->( $status, $dbh ) if !$status;
 
             # create patch table
             $dbh->do(
                 $self->_get_schema_patch_table_query($SCHEMA_PATCH_TABLE_NAME),
-                sub ( $dbh, $status, $data ) {
-                    return $on_finish->( $dbh, $status ) if !$status;
+                sub ( $status, $dbh, $data ) {
+                    return $on_finish->( $status, $dbh ) if !$status;
 
                     $self->_apply_patch(
                         $dbh,
                         sub ($status) {
-                            return $on_finish->( $dbh, $status );
+                            return $on_finish->( $status, $dbh );
                         }
                     );
                 }
@@ -232,7 +232,7 @@ sub _apply_patch ( $self, $dbh, $cb ) {
     $dbh->selectrow(
         qq[SELECT "id" FROM "$SCHEMA_PATCH_TABLE_NAME" WHERE "id" = \$1],
         [ $patch->{id} ],
-        sub ( $dbh, $status, $data ) {
+        sub ( $status, $dbh, $data ) {
             return $cb->($status) if !$status;
 
             # patch is already exists
@@ -245,14 +245,14 @@ sub _apply_patch ( $self, $dbh, $cb ) {
             # apply patch
             $dbh->do(
                 $patch->{query},
-                sub ( $dbh, $status, $data ) {
+                sub ( $status, $dbh, $data ) {
                     return $cb->( result [ 500, qq[Failed to apply schema patch "$id": $status->{reason}] ] ) if !$status;
 
                     # register patch
                     $dbh->do(
                         qq[INSERT INTO "$SCHEMA_PATCH_TABLE_NAME" ("id") VALUES (\$1)],
                         [ $patch->{id} ],
-                        sub ( $dbh, $status, $data ) {
+                        sub ( $status, $dbh, $data ) {
                             return $cb->( result [ 500, qq[Failed to register patch "$id": $status->{reason}] ] ) if !$status;
 
                             AE::postpone { $self->_apply_patch( $dbh, $cb ) };
