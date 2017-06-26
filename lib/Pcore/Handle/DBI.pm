@@ -1,6 +1,7 @@
 package Pcore::Handle::DBI;
 
 use Pcore -role, -const, -result, -export => { TYPES => [qw[$SQL_ALL_TYPES $SQL_ARRAY $SQL_ARRAY_LOCATOR $SQL_BIGINT $SQL_BINARY $SQL_BIT $SQL_BLOB $SQL_BLOB_LOCATOR $SQL_BOOLEAN $SQL_CHAR $SQL_CLOB $SQL_CLOB_LOCATOR $SQL_DATE $SQL_DATETIME $SQL_DECIMAL $SQL_DOUBLE $SQL_FLOAT $SQL_GUID $SQL_INTEGER $SQL_INTERVAL $SQL_INTERVAL_DAY $SQL_INTERVAL_DAY_TO_HOUR $SQL_INTERVAL_DAY_TO_MINUTE $SQL_INTERVAL_DAY_TO_SECOND $SQL_INTERVAL_HOUR $SQL_INTERVAL_HOUR_TO_MINUTE $SQL_INTERVAL_HOUR_TO_SECOND $SQL_INTERVAL_MINUTE $SQL_INTERVAL_MINUTE_TO_SECOND $SQL_INTERVAL_MONTH $SQL_INTERVAL_SECOND $SQL_INTERVAL_YEAR $SQL_INTERVAL_YEAR_TO_MONTH $SQL_LONGVARBINARY $SQL_LONGVARCHAR $SQL_MULTISET $SQL_MULTISET_LOCATOR $SQL_NUMERIC $SQL_REAL $SQL_REF $SQL_ROW $SQL_SMALLINT $SQL_TIME $SQL_TIMESTAMP $SQL_TINYINT $SQL_TYPE_DATE $SQL_TYPE_TIME $SQL_TYPE_TIMESTAMP $SQL_TYPE_TIMESTAMP_WITH_TIMEZONE $SQL_TYPE_TIME_WITH_TIMEZONE $SQL_UDT $SQL_UDT_LOCATOR $SQL_UNKNOWN_TYPE $SQL_VARBINARY $SQL_VARCHAR $SQL_WCHAR $SQL_WLONGVARCHAR $SQL_WVARCHAR]], };
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_hashref is_plain_arrayref];
 
 with qw[Pcore::Handle];
 
@@ -277,11 +278,11 @@ sub _apply_patch ( $self, $dbh, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 124                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 125                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 93, 118              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 94, 119              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 79                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 80                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
