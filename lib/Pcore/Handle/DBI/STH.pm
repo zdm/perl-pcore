@@ -14,7 +14,7 @@ sub DEMOLISH ( $self, $global ) {
         for my $dbh ( $self->{dbh}->@* ) {
             my $id = $self->{id};
 
-            $dbh->remove_sth($id) if defined $dbh;
+            $dbh->destroy_sth($id) if defined $dbh;
         }
     }
 
