@@ -79,9 +79,9 @@ SQL
 
 # PROXY METHODS
 sub add_proxy ( $self, $proxy ) {
-    state $q1 = $self->dbh->query(q[INSERT INTO "proxy" ("id", "hostport", "source_id", "source_enabled", "weight") VALUES (?, ?, ?, ?, ?)]);
+    state $sth = $self->dbh->prepare(q[INSERT INTO "proxy" ("id", "hostport", "source_id", "source_enabled", "weight") VALUES (?, ?, ?, ?, ?)]);
 
-    $q1->do( [ $proxy->id, $proxy->hostport, $proxy->source->id, $proxy->source->can_connect, $proxy->weight ] );
+    $self->dbh->do( $sth, [ $proxy->id, $proxy->hostport, $proxy->source->id, $proxy->source->can_connect, $proxy->weight ] );
 
     return;
 }
