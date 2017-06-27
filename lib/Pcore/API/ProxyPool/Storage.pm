@@ -79,7 +79,7 @@ SQL
 
 # PROXY METHODS
 sub add_proxy ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('INSERT INTO `proxy` (`id`, `hostport`, `source_id`, `source_enabled`, `weight`) VALUES (?, ?, ?, ?, ?)');
+    state $q1 = $self->dbh->query(q[INSERT INTO "proxy" ("id", "hostport", "source_id", "source_enabled", "weight") VALUES (?, ?, ?, ?, ?)]);
 
     $q1->do( [ $proxy->id, $proxy->hostport, $proxy->source->id, $proxy->source->can_connect, $proxy->weight ] );
 
@@ -87,7 +87,7 @@ sub add_proxy ( $self, $proxy ) {
 }
 
 sub remove_proxy ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('DELETE FROM `proxy` WHERE `id` = ?');
+    state $q1 = $self->dbh->query(q[DELETE FROM "proxy" WHERE "id" = ?]);
 
     $q1->do( [ $proxy->id ] );
 
@@ -95,7 +95,7 @@ sub remove_proxy ( $self, $proxy ) {
 }
 
 sub ban_proxy ( $self, $proxy, $ban_id, $release_time ) {
-    state $q1 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_ban` (`proxy_id`, `ban_id`, `release_time`) VALUES (?, ?, ?)');
+    state $q1 = $self->dbh->query(q[INSERT OR REPLACE INTO "proxy_ban" ("proxy_id", "ban_id", "release_time") VALUES (?, ?, ?)]);
 
     $q1->do( [ $proxy->id, $ban_id, $release_time ] );
 
@@ -103,9 +103,9 @@ sub ban_proxy ( $self, $proxy, $ban_id, $release_time ) {
 }
 
 sub set_connect_error ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 1, `connect_error_time` = ? WHERE `id` = ?');
+    state $q1 = $self->dbh->query(q[UPDATE "proxy" SET "connect_error" = 1, "connect_error_time" = ? WHERE "id" = ?]);
 
-    state $q2 = $self->dbh->query('DELETE FROM `proxy_connect` WHERE `proxy_id` = ?');
+    state $q2 = $self->dbh->query(q[DELETE FROM "proxy_connect" WHERE "proxy_id" = ?]);
 
     $q1->do( [ $proxy->{connect_error_time}, $proxy->id ] );
 
@@ -115,7 +115,7 @@ sub set_connect_error ( $self, $proxy ) {
 }
 
 sub update_weight ( $self, $proxy ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `weight` = ? WHERE `id` = ?');
+    state $q1 = $self->dbh->query(q[UPDATE "proxy" SET "weight" = ? WHERE "id" = ?]);
 
     $q1->do( [ $proxy->weight, $proxy->id ] );
 
@@ -124,14 +124,14 @@ sub update_weight ( $self, $proxy ) {
 
 sub set_connection_test_results ( $self, $proxy, $connect_id, $proxy_type ) {
     if ( !$self->_connect_id->{$connect_id} ) {
-        state $q1 = $self->dbh->query('INSERT INTO `connect` (`name`) VALUES (?)');
+        state $q1 = $self->dbh->query(q[INSERT INTO "connect" ("name") VALUES (?)]);
 
         $q1->do( [$connect_id] );
 
         $self->{_connect_id}->{$connect_id} = $self->dbh->last_insert_id;
     }
 
-    state $q2 = $self->dbh->query('INSERT OR REPLACE INTO `proxy_connect` (`proxy_id`, `connect_id`, `proxy_type`) VALUES (?, ?, ?)');
+    state $q2 = $self->dbh->query(q[INSERT OR REPLACE INTO "proxy_connect" ("proxy_id", "connect_id", "proxy_type") VALUES (?, ?, ?)]);
 
     $q2->do( [ $proxy->id, $self->{_connect_id}->{$connect_id}, $proxy_type ] );
 
@@ -140,7 +140,7 @@ sub set_connection_test_results ( $self, $proxy, $connect_id, $proxy_type ) {
 
 # SOURCE METHODS
 sub update_source_status ( $self, $source, $status ) {
-    state $q1 = $self->dbh->query('UPDATE `proxy` SET `source_enabled` = ? WHERE `source_id` = ?');
+    state $q1 = $self->dbh->query(q[UPDATE "proxy" SET "source_enabled" = ? WHERE "source_id" = ?]);
 
     $q1->do( [ $status, $source->id ] );
 
@@ -149,9 +149,9 @@ sub update_source_status ( $self, $source, $status ) {
 
 # MAINTENANCE METHODS
 sub release_connect_error ( $self, $time ) {
-    state $q1 = $self->dbh->query('SELECT `hostport` FROM `proxy` WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
+    state $q1 = $self->dbh->query(q[SELECT "hostport" FROM "proxy" WHERE "connect_error" = 1 AND "connect_error_time" <= ?]);
 
-    state $q2 = $self->dbh->query('UPDATE `proxy` SET `connect_error` = 0, `connect_error_time` = 0 WHERE `connect_error` = 1 AND `connect_error_time` <= ?');
+    state $q2 = $self->dbh->query(q[UPDATE "proxy" SET "connect_error" = 0, "connect_error_time" = 0 WHERE "connect_error" = 1 AND "connect_error_time" <= ?]);
 
     if ( my $res = $q1->selectcol( [$time] ) ) {
         $q2->do( [$time] );
@@ -172,7 +172,7 @@ sub release_ban ( $self, $time ) {
 SQL
     );
 
-    state $q2 = $self->dbh->query('DELETE FROM `proxy_ban` WHERE `release_time` <= ?');
+    state $q2 = $self->dbh->query(q[DELETE FROM "proxy_ban" WHERE "release_time" <= ?]);
 
     if ( my $res = $q1->selectall( [$time] ) ) {
         $q2->do( [$time] );
