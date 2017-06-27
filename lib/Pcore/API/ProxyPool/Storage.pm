@@ -4,68 +4,75 @@ use Pcore -class;
 
 has pool_id => ( is => 'ro', isa => Int, required => 1 );
 
-has dbh => ( is => 'lazy', isa => InstanceOf ['Pcore::Handle::sqlite1'], init_arg => undef );
+has dbh => ( is => 'lazy', isa => InstanceOf ['Pcore::Handle::sqlite'], init_arg => undef );
 has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
+# TODO upgrade schema
 sub _build_dbh ($self) {
-    my $dbh = P->handle('sqlite1:');
+    my $dbh = P->handle('sqlite:');
 
-    my $ddl = $dbh->ddl;
-
-    $ddl->add_changeset(
-        id  => 1,
-        sql => <<'SQL'
-            CREATE TABLE IF NOT EXISTS `proxy` (
-                `id` INTEGER PRIMARY KEY NOT NULL,
-                `hostport` TEXT NOT NULL,
-                `source_id` INTEGER NOT NULL,
-                `source_enabled` INTEGER NOT NULL,
-                `connect_error` INTEGER NOT NULL DEFAULT 0,
-                `connect_error_time` INTEGER NOT NULL DEFAULT 0,
-                `weight` INTEGER NOT NULL
+    $dbh->add_schema_patch(
+        1 => <<'SQL'
+            CREATE TABLE IF NOT EXISTS "proxy" (
+                "id" INTEGER PRIMARY KEY NOT NULL,
+                "hostport" TEXT NOT NULL,
+                "source_id" INTEGER NOT NULL,
+                "source_enabled" INTEGER NOT NULL,
+                "connect_error" INTEGER NOT NULL DEFAULT 0,
+                "connect_error_time" INTEGER NOT NULL DEFAULT 0,
+                "weight" INTEGER NOT NULL
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS `idx_proxy_hostport` ON `proxy` (`hostport` ASC);
+            CREATE UNIQUE INDEX IF NOT EXISTS "idx_proxy_hostport" ON "proxy" ("hostport" ASC);
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_source_id` ON `proxy` (`source_id` ASC);
+            CREATE INDEX IF NOT EXISTS "idx_proxy_source_id" ON "proxy" ("source_id" ASC);
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_source_enabled` ON `proxy` (`source_enabled` DESC);
+            CREATE INDEX IF NOT EXISTS "idx_proxy_source_enabled" ON "proxy" ("source_enabled" DESC);
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_connect_error_time` ON `proxy` (`connect_error` DESC, `connect_error_time` ASC);
+            CREATE INDEX IF NOT EXISTS "idx_proxy_connect_error_time" ON "proxy" ("connect_error" DESC, "connect_error_time" ASC);
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_weight` ON `proxy` (`weight` ASC);
+            CREATE INDEX IF NOT EXISTS "idx_proxy_weight" ON "proxy" ("weight" ASC);
 
-            CREATE TABLE IF NOT EXISTS `connect` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `name` TEXT NOT NULL
+            CREATE TABLE IF NOT EXISTS "connect" (
+                "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                "name" TEXT NOT NULL
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS `idx_connect_name` ON `connect` (`name` ASC);
+            CREATE UNIQUE INDEX IF NOT EXISTS "idx_connect_name" ON "connect" ("name" ASC);
 
-            CREATE TABLE IF NOT EXISTS `proxy_connect` (
-                `proxy_id` INTEGER NOT NULL,
-                `connect_id` INTEGER NOT NULL,
-                `proxy_type` INTEGER NOT NULL,
-                PRIMARY KEY (`proxy_id`, `connect_id`),
-                FOREIGN KEY(`proxy_id`) REFERENCES `proxy`(`id`) ON DELETE CASCADE,
-                FOREIGN KEY(`connect_id`) REFERENCES `connect`(`id`) ON DELETE CASCADE
+            CREATE TABLE IF NOT EXISTS "proxy_connect" (
+                "proxy_id" INTEGER NOT NULL,
+                "connect_id" INTEGER NOT NULL,
+                "proxy_type" INTEGER NOT NULL,
+                PRIMARY KEY ("proxy_id", "connect_id"),
+                FOREIGN KEY("proxy_id") REFERENCES "proxy"("id") ON DELETE CASCADE,
+                FOREIGN KEY("connect_id") REFERENCES "connect"("id") ON DELETE CASCADE
             );
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_connect_proxy_type` ON `proxy_connect` (`proxy_type` ASC);
+            CREATE INDEX IF NOT EXISTS "idx_proxy_connect_proxy_type" ON "proxy_connect" ("proxy_type" ASC);
 
-            CREATE TABLE IF NOT EXISTS `proxy_ban` (
-                `proxy_id` INTEGER NOT NULL,
-                `ban_id` TEXT NOT NULL,
-                `release_time` INTEGER NOT NULL,
-                PRIMARY KEY (`proxy_id`, `ban_id`),
-                FOREIGN KEY(`proxy_id`) REFERENCES `proxy`(`id`) ON DELETE CASCADE
+            CREATE TABLE IF NOT EXISTS "proxy_ban" (
+                "proxy_id" INTEGER NOT NULL,
+                "ban_id" TEXT NOT NULL,
+                "release_time" INTEGER NOT NULL,
+                PRIMARY KEY ("proxy_id", "ban_id"),
+                FOREIGN KEY("proxy_id") REFERENCES "proxy"("id") ON DELETE CASCADE
             );
 
-            CREATE INDEX IF NOT EXISTS `idx_proxy_ban_release_time` ON `proxy_ban` (`release_time` ASC);
+            CREATE INDEX IF NOT EXISTS "idx_proxy_ban_release_time" ON "proxy_ban" ("release_time" ASC);
 SQL
     );
 
-    $ddl->upgrade;
+    # TODO
+    $dbh->upgrade_schema(
+        sub ($status) {
+            say "DDL: $status";
+
+            $cv->send;
+
+            return;
+        }
+    );
 
     return $dbh;
 }
@@ -183,7 +190,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 90, 118              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 97, 125              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
