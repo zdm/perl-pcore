@@ -239,9 +239,9 @@ sub _apply_patch ( $self, $dbh, $cb ) {
 
             # patch is already exists
             if ($data) {
-                AE::postpone { $self->_apply_patch( $dbh, $cb ) };
+                @_ = ( $self, $dbh, $cb );
 
-                return;
+                goto $self->can('_apply_patch');
             }
 
             # apply patch
@@ -257,9 +257,10 @@ sub _apply_patch ( $self, $dbh, $cb ) {
                         sub ( $status, $dbh, $data ) {
                             return $cb->( result [ 500, qq[Failed to register patch "$id": $status->{reason}] ] ) if !$status;
 
-                            AE::postpone { $self->_apply_patch( $dbh, $cb ) };
+                            # patch registered successfully
+                            @_ = ( $self, $dbh, $cb );
 
-                            return;
+                            goto $self->can('_apply_patch');
                         }
                     );
                 }

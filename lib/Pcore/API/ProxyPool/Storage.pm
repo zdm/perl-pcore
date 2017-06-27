@@ -7,7 +7,6 @@ has pool_id => ( is => 'ro', isa => Int, required => 1 );
 has dbh => ( is => 'lazy', isa => InstanceOf ['Pcore::Handle::sqlite'], init_arg => undef );
 has _connect_id => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
-# TODO upgrade schema
 sub _build_dbh ($self) {
     my $dbh = P->handle('sqlite:');
 
@@ -63,12 +62,9 @@ sub _build_dbh ($self) {
 SQL
     );
 
-    # TODO
     $dbh->upgrade_schema(
         sub ($status) {
-            say "DDL: $status";
-
-            $cv->send;
+            die $status if !$status;
 
             return;
         }
@@ -190,7 +186,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 97, 125              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 93, 121              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
