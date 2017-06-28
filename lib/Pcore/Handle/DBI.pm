@@ -1,12 +1,12 @@
 package Pcore::Handle::DBI;
 
 use Pcore -role, -const, -result, -export => { TYPES => [qw[$SQL_ALL_TYPES $SQL_ARRAY $SQL_ARRAY_LOCATOR $SQL_BIGINT $SQL_BINARY $SQL_BIT $SQL_BLOB $SQL_BLOB_LOCATOR $SQL_BOOLEAN $SQL_CHAR $SQL_CLOB $SQL_CLOB_LOCATOR $SQL_DATE $SQL_DATETIME $SQL_DECIMAL $SQL_DOUBLE $SQL_FLOAT $SQL_GUID $SQL_INTEGER $SQL_INTERVAL $SQL_INTERVAL_DAY $SQL_INTERVAL_DAY_TO_HOUR $SQL_INTERVAL_DAY_TO_MINUTE $SQL_INTERVAL_DAY_TO_SECOND $SQL_INTERVAL_HOUR $SQL_INTERVAL_HOUR_TO_MINUTE $SQL_INTERVAL_HOUR_TO_SECOND $SQL_INTERVAL_MINUTE $SQL_INTERVAL_MINUTE_TO_SECOND $SQL_INTERVAL_MONTH $SQL_INTERVAL_SECOND $SQL_INTERVAL_YEAR $SQL_INTERVAL_YEAR_TO_MONTH $SQL_LONGVARBINARY $SQL_LONGVARCHAR $SQL_MULTISET $SQL_MULTISET_LOCATOR $SQL_NUMERIC $SQL_REAL $SQL_REF $SQL_ROW $SQL_SMALLINT $SQL_TIME $SQL_TIMESTAMP $SQL_TINYINT $SQL_TYPE_DATE $SQL_TYPE_TIME $SQL_TYPE_TIMESTAMP $SQL_TYPE_TIMESTAMP_WITH_TIMEZONE $SQL_TYPE_TIME_WITH_TIMEZONE $SQL_UDT $SQL_UDT_LOCATOR $SQL_UNKNOWN_TYPE $SQL_VARBINARY $SQL_VARCHAR $SQL_WCHAR $SQL_WLONGVARCHAR $SQL_WVARCHAR]], };
-use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_hashref is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_hashref is_plain_arrayref is_plain_refref];
 use Pcore::Handle::DBI::STH;
 
 with qw[Pcore::Handle];
 
-requires qw[_get_schema_patch_table_query prepare quote_id];
+requires qw[_get_schema_patch_table_query prepare quote quote_id];
 
 has on_connect => ( is => 'ro', isa => Maybe [CodeRef] );
 
@@ -73,7 +73,6 @@ const our $SQL_WCHAR                        => -8;
 const our $SQL_WLONGVARCHAR                 => -10;
 const our $SQL_WVARCHAR                     => -9;
 
-# TODO "VALUES" context
 sub prepare_query ( $self, $query ) {
     state $context_re = do {
         my @keywords = qw[SET VALUES WHERE];
@@ -83,7 +82,7 @@ sub prepare_query ( $self, $query ) {
         qr/(?:(?<=\A)|(?<=\s))(?:$context_keywords_prepared)(?=\s|\z)/smi;
     };
 
-    my ( $sql, $bind, $i, $last_not_ref, $context );
+    my ( @sql, $bind, $i, $last_not_ref, $context );
 
     for my $arg ( $query->@* ) {
         if ( !is_ref $arg ) {
@@ -92,7 +91,7 @@ sub prepare_query ( $self, $query ) {
             $last_not_ref = 1;
 
             # trim
-            $sql .= ' ' . $arg =~ s/\A\s+|\s+\z//smgr;
+            push @sql, $arg =~ s/\A\s+|\s+\z//smgr;
 
             # analyse context
             if ( my $last_kw = ( $arg =~ /$context_re/smgi )[-1] ) {
@@ -103,11 +102,13 @@ sub prepare_query ( $self, $query ) {
             $last_not_ref = 0;
 
             if ( is_plain_scalarref $arg) {
-                $sql .= ' $' . ++$i;
+                push @sql, '$' . ++$i;
 
                 push $bind->@*, $arg->$*;
             }
             else {
+
+                # SET context
                 if ( $context eq 'SET' ) {
                     my @fields;
 
@@ -117,8 +118,10 @@ sub prepare_query ( $self, $query ) {
                         push $bind->@*, $arg->{$field};
                     }
 
-                    $sql .= ' ' . join q[, ], @fields;
+                    push @sql, join q[, ], @fields;
                 }
+
+                # WHERE context
                 elsif ( $context eq 'WHERE' ) {
                     if ( is_plain_hashref $arg) {
                         my @fields;
@@ -129,10 +132,10 @@ sub prepare_query ( $self, $query ) {
                             push $bind->@*, $arg->{$field};
                         }
 
-                        $sql .= ' (' . join( ' AND ', @fields ) . ')';
+                        push @sql, '(' . join( ' AND ', @fields ) . ')';
                     }
                     elsif ( is_plain_arrayref $arg) {
-                        $sql .= ' (' . join( ', ', map { '$' . ++$i } $arg->@* ) . ')';
+                        push @sql, '(' . join( ', ', map { '$' . ++$i } $arg->@* ) . ')';
 
                         push $bind->@*, $arg->@*;
                     }
@@ -140,9 +143,54 @@ sub prepare_query ( $self, $query ) {
                         die q[SQL "WHERE" context support only HashRef or ArrayReh arguments];
                     }
                 }
-                elsif ( $context eq 'VALUES' ) {
 
-                    # TODO
+                # VALUES context
+                elsif ( $context eq 'VALUES' ) {
+                    my ( $fields, $rows );
+
+                    if ( is_plain_hashref $arg) {
+                        $arg = [$arg];
+                    }
+
+                    my $is_first_row = 1;
+
+                    for my $row ( $arg->@* ) {
+                        if ($is_first_row) {
+                            $is_first_row = 0;
+
+                            # first argument is fields, must be \[]
+                            if ( is_plain_refref $row ) {
+                                $fields = $row->$*;
+
+                                next;
+                            }
+                            elsif ( is_plain_hashref $row) {
+                                $fields = [ sort keys $row->%* ];
+                            }
+                        }
+
+                        if ( is_plain_hashref $row) {
+                            die 'Fields names are not specified' if !defined $fields;
+
+                            push $rows->@*, '(' . join( ', ', map { $self->quote( is_plain_arrayref $_ ? $_->@* : $_ ) } $row->@{ $fields->@* } ) . ')';
+                        }
+
+                        # TODO fill rest of columns with undef if number of columns is known
+                        elsif ( is_plain_arrayref $row) {
+                            push $rows->@*, '(' . join( ', ', map { $self->quote( is_plain_arrayref $_ ? $_->@* : $_ ) } $row->@* ) . ')';
+                        }
+                        else {
+                            die 'Unsupported row format';
+                        }
+                    }
+
+                    if ($fields) {
+                        my $values_sql = '(' . join( ', ', map { $self->quote_id($_) } $fields->@* ) . ') VALUES';
+
+                        $sql[-1] =~ s/VALUES.*\z/$values_sql/smi;
+                    }
+
+                    push @sql, join ', ', $rows->@*;
                 }
                 else {
                     die 'Unknown SQL context';
@@ -151,7 +199,7 @@ sub prepare_query ( $self, $query ) {
         }
     }
 
-    return $sql, $bind;
+    return join( q[ ], @sql ), $bind;
 }
 
 # SCHEMA PATCH
@@ -280,11 +328,11 @@ sub _apply_patch ( $self, $dbh, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 126                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 76                   | Subroutines::ProhibitExcessComplexity - Subroutine "prepare_query" with high complexity score (29)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 95, 120              | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    3 | 129, 158, 162, 172   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 81                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 80                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
