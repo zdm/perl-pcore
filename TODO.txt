@@ -1,7 +1,18 @@
+- create API Auth functions documentations:
+    - what each function do;
+    - what it should do internally (flush cache, etc...);
+
+- rewiew API methods;
+- auth cache + EventBus;
+- authentication tags;
+
+---------------------------------------------------
+
+
 - src - cut to base dir;
 
 - dist.perl -> dist.ini;
---version command is broken in docker container;
+- --version command is broken in docker container;
 - smtp $TLS_CTX_HIGH peer verification not works under linux, but works under windows;
 
 https://metacpan.org/pod/Tie::Hash::LRU
@@ -24,12 +35,6 @@ https://metacpan.org/pod/Tie::Hash::LRU
 
 - error add/remove dist files after committing wiki;
 - docker API - Attempt to access disallowed key '2' in a restricted hash at d:/projects/pcore/lib/Pcore/API/DockerHub/Repository/Build.pm line 25.;
-
-
-- rewiew API methods;
-- auth cache + EventBus;
-- authentication tags;
-
 
 - API applications connector;
 
