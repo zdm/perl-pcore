@@ -40,11 +40,11 @@ sub bin {
 }
 
 sub str {
-    return $UUID->create_str;
+    return lc $UUID->create_str;
 }
 
 sub hex {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return $UUID->create_hex;
+    return lc $UUID->create_hex;
 }
 
 1;
