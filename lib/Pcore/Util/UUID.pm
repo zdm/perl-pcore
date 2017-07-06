@@ -1,6 +1,6 @@
 package Pcore::Util::UUID;
 
-use Pcore -export => { ALL => [qw[is_uuid_str uuid_bin uuid_str uuid_hex create_uuid create_uuid_from_bin create_uuid_from_str create_uuid_from_hex]] };
+use Pcore -export => { ALL => [qw[looks_like_uuid uuid_bin uuid_str uuid_hex create_uuid create_uuid_from_bin create_uuid_from_str create_uuid_from_hex]] };
 use Pcore::Util::UUID::Obj;
 use Data::UUID qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
@@ -15,7 +15,7 @@ our $UUID = Data::UUID->new;
 *uuid_str = \&str;
 *uuid_hex = \&hex;
 
-sub is_uuid_str ($str) {
+sub looks_like_uuid ($str) {
     return $str =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm;
 }
 
