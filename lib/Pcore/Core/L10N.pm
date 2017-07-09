@@ -1,7 +1,7 @@
 package Pcore::Core::L10N;
 
 use Pcore -export => {    #
-    DEFAULT => [qw[l10n l10np l10n_ l10np_]],
+    DEFAULT => [qw[l10n l10np l10n_ l10np_ $l10n]],
 };
 use Pcore::Util::Scalar qw[is_plain_hashref];
 
@@ -10,7 +10,7 @@ our $DEFAULT_LOCALE     = undef;
 our $MESSAGES           = {};
 our $LOCALE_PLURAL_FORM = {};
 
-# TODO tied hash;
+tie our $l10n->%*, 'Pcore::Core::L10N::_l10n';
 
 sub set_locale ($locale = undef) {
     $DEFAULT_LOCALE = $locale if @_;
@@ -179,6 +179,17 @@ package Pcore::Core::L10N::_deferred {
     }
 }
 
+package Pcore::Core::L10N::_l10n {
+
+    sub TIEHASH ( $self, @args ) {
+        return bless {}, $self;
+    }
+
+    sub FETCH {
+        return Pcore::Core::L10N::l10n $_[1], $DEFAULT_LOCALE, $PACKAGE_DOMAIN->{ caller() };
+    }
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -188,7 +199,9 @@ package Pcore::Core::L10N::_deferred {
 ## |======+======================+================================================================================================================|
 ## |    3 | 37, 74               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 30, 40, 68, 80       | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    2 | 13                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 30, 40, 68, 80, 189  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

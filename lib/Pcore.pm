@@ -482,7 +482,7 @@ sub _CORE_RUN {
 sub set_locale ( $self, $locale = undef ) {
     state $L10N_INIT = !!require Pcore::Core::L10N;
 
-    return Pcore::Core::L10N->set_locale($locale);
+    return Pcore::Core::L10N::set_locale($locale);
 }
 
 # AUTOLOAD
