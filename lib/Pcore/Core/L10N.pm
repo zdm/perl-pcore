@@ -24,66 +24,7 @@ sub register_package_domain ( $package, $domain ) {
     return;
 }
 
-sub l10n ( $msgid, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($;$$) {
-    return $msgid if !defined $locale;
-
-    $domain //= $PACKAGE_DOMAIN->{ caller() };
-
-    _load_domain_locale_po( $domain, $locale ) if !exists $MESSAGES->{$domain}->{$locale};
-
-    return $MESSAGES->{$domain}->{$locale}->{$msgid}->[0] // $msgid;
-}
-
-sub l10np ( $msgid, $msgid_plural, $num, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($$$;$$) {
-    goto ENGLISH if !defined $locale;
-
-    $domain //= $PACKAGE_DOMAIN->{ caller() };
-
-    _load_domain_locale_po( $domain, $locale ) if !exists $MESSAGES->{$domain}->{$locale};
-
-    goto ENGLISH if !defined $LOCALE_PLURAL_FORM->{$locale}->{code};
-
-    my $idx = $LOCALE_PLURAL_FORM->{$locale}->{code}->( $num // 1 );
-
-    return $MESSAGES->{$domain}->{$locale}->{$msgid}->[$idx] if defined $MESSAGES->{$domain}->{$locale}->{$msgid}->[$idx];
-
-  ENGLISH:
-    if ( !defined $num ) {
-        return $msgid;
-    }
-    elsif ( $num == 1 ) {
-        return $msgid;
-    }
-    else {
-        return $msgid_plural;
-    }
-
-    return;
-}
-
-sub l10n_ ( $msgid, $locale = undef, $domain = undef ) : prototype($;$$) {
-    return bless {
-        is_plural => 0,
-        msgid     => $msgid,
-        domain    => $domain // $PACKAGE_DOMAIN->{ caller() },
-        locale    => $locale,
-      },
-      'Pcore::Core::L10N::_deferred';
-}
-
-sub l10np_ ( $msgid, $msgid_plural, $num, $locale = undef, $domain = undef ) : prototype($$$;$$) {
-    return bless {
-        is_plural    => 1,
-        msgid        => $msgid,
-        msgid_plural => $msgid_plural,
-        num          => $num,
-        domain       => $domain // $PACKAGE_DOMAIN->{ caller() },
-        locale       => $locale,
-      },
-      'Pcore::Core::L10N::_deferred';
-}
-
-sub _load_domain_locale_po ( $domain, $locale ) {
+sub load_domain_locale ( $domain, $locale ) : prototype($$) {
     my $dist = $ENV->{_dist_idx}->{$domain};
 
     die qq[l10n domain "$domain" is not registered] if !$domain;
@@ -144,9 +85,68 @@ sub _load_domain_locale_po ( $domain, $locale ) {
     return;
 }
 
+sub l10n ( $msgid, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($;$$) {
+    return $msgid if !defined $locale;
+
+    $domain //= $PACKAGE_DOMAIN->{ caller() };
+
+    load_domain_locale $domain, $locale if !exists $MESSAGES->{$domain}->{$locale};
+
+    return $MESSAGES->{$domain}->{$locale}->{$msgid}->[0] // $msgid;
+}
+
+sub l10np ( $msgid, $msgid_plural, $num, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($$$;$$) {
+    goto ENGLISH if !defined $locale;
+
+    $domain //= $PACKAGE_DOMAIN->{ caller() };
+
+    load_domain_locale $domain, $locale if !exists $MESSAGES->{$domain}->{$locale};
+
+    goto ENGLISH if !defined $LOCALE_PLURAL_FORM->{$locale}->{code};
+
+    my $idx = $LOCALE_PLURAL_FORM->{$locale}->{code}->( $num // 1 );
+
+    return $MESSAGES->{$domain}->{$locale}->{$msgid}->[$idx] if defined $MESSAGES->{$domain}->{$locale}->{$msgid}->[$idx];
+
+  ENGLISH:
+    if ( !defined $num ) {
+        return $msgid;
+    }
+    elsif ( $num == 1 ) {
+        return $msgid;
+    }
+    else {
+        return $msgid_plural;
+    }
+
+    return;
+}
+
+sub l10n_ ( $msgid, $locale = undef, $domain = undef ) : prototype($;$$) {
+    return bless {
+        is_plural => 0,
+        msgid     => $msgid,
+        domain    => $domain // $PACKAGE_DOMAIN->{ caller() },
+        locale    => $locale,
+      },
+      'Pcore::Core::L10N::_deferred';
+}
+
+sub l10np_ ( $msgid, $msgid_plural, $num, $locale = undef, $domain = undef ) : prototype($$$;$$) {
+    return bless {
+        is_plural    => 1,
+        msgid        => $msgid,
+        msgid_plural => $msgid_plural,
+        num          => $num,
+        domain       => $domain // $PACKAGE_DOMAIN->{ caller() },
+        locale       => $locale,
+      },
+      'Pcore::Core::L10N::_deferred';
+}
+
 package Pcore::Core::L10N::_deferred {
     use Pcore -class;
-    use overload                                                                    #
+    use overload    #
       q[""] => sub {
         if ( $_[0]->{is_plural} ) {
             return l10np $_[0]->{msgid}, $_[0]->{msgid_plural}, $_[0]->{num}, $_[0]->{locale}, $_[0]->{domain};
@@ -197,11 +197,12 @@ package Pcore::Core::L10N::_l10n {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 37, 74               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 98, 135              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 13                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 30, 40, 68, 80, 189  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 91, 101, 129, 141,   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 189                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
