@@ -17,6 +17,9 @@
 - create app templates repository;
     - init user table with root user;
 
+- [DOCKER]:
+    - disable possibility to release from :latest tag;
+
 - src - cut to base dir;
 
 - dist.perl -> dist.ini;
