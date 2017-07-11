@@ -10,6 +10,12 @@
 
 ---------------------------------------------------
 
+- check how to use centos .pem certificates;
+    - google certificate is not works with standard certs;
+    - enable tls_ctx in recaptcha and smtp;
+
+- create app templates repository;
+    - init user table with root user;
 
 - src - cut to base dir;
 
