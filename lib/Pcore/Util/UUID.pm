@@ -15,7 +15,7 @@ our $UUID = Data::UUID->new;
 *uuid_str = \&str;
 *uuid_hex = \&hex;
 
-sub looks_like_uuid ($str) {
+sub looks_like_uuid ($str) : prototype($) {
     return $str =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm;
 }
 
@@ -23,15 +23,15 @@ sub create {
     return bless { bin => $UUID->create_bin }, 'Pcore::Util::UUID::Obj';
 }
 
-sub create_from_bin ($bin) {
+sub create_from_bin ($bin) : prototype($) {
     return bless { bin => $bin }, 'Pcore::Util::UUID::Obj';
 }
 
-sub create_from_str ($str) {
+sub create_from_str ($str) : prototype($) {
     return bless { str => $str }, 'Pcore::Util::UUID::Obj';
 }
 
-sub create_from_hex ($hex) {
+sub create_from_hex ($hex) : prototype($) {
     return bless { hex => $hex }, 'Pcore::Util::UUID::Obj';
 }
 
