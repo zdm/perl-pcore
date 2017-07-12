@@ -1,3 +1,7 @@
+v0.43.1 2017-07-12T21:02:10Z
+ - No issues on bugtracker were closed since the last release
+ - prototypes added to uuid functions
+
 v0.43.0 2017-07-11T13:13:45Z
  - No issues on bugtracker were closed since the last release
  - api auth pgsql backend proto added
