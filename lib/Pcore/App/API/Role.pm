@@ -56,9 +56,15 @@ sub _create_sql_filter ( $self, $dbh, $filter ) {
 }
 
 sub _create_sql_order ( $self, $dbh, $order ) {
-    return if !exists $SQL_SORT_ORDER->{ lc $order->[1] };
+    my @order;
 
-    return 'ORDER BY ' . $dbh->quote_id( $order->[0] ) . ' ' . $SQL_SORT_ORDER->{ lc $order->[1] };
+    for my $sort ( $order->@* ) {
+        return if !exists $SQL_SORT_ORDER->{ lc $sort->[1] };
+
+        push @order, $dbh->quote_id( $sort->[0] ) . ' ' . $SQL_SORT_ORDER->{ lc $sort->[1] };
+    }
+
+    return 'ORDER BY ' . join q[, ], @order;
 }
 
 1;
@@ -72,7 +78,7 @@ sub _create_sql_order ( $self, $dbh, $order ) {
 ## |      | 29                   | * Private subroutine/method '_create_sql_filter' declared but not used                                         |
 ## |      | 58                   | * Private subroutine/method '_create_sql_order' declared but not used                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 34, 61               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 34, 64               | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
