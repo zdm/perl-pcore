@@ -1,3 +1,7 @@
+v0.43.2 2017-07-13T08:22:22Z
+ - No issues on bugtracker were closed since the last release
+ - api role order sql method now accepts array
+
 v0.43.1 2017-07-12T21:02:10Z
  - No issues on bugtracker were closed since the last release
  - prototypes added to uuid functions
