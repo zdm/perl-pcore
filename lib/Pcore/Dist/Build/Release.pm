@@ -267,6 +267,7 @@ sub _can_release ($self) {
         return if P->term->prompt( q[No changes since last release. Continue?], [qw[yes no]], enter => 1 ) eq 'no';
     }
 
+    # check parent docker repo tag
     if ( $self->dist->docker ) {
         if ( !$ENV->user_cfg->{DOCKERHUB}->{username} || !$ENV->user_cfg->{DOCKERHUB}->{password} ) {
             say q[You need to specify DockerHub credentials.];
@@ -276,11 +277,8 @@ sub _can_release ($self) {
 
         say qq[Docker base image is "@{[$self->dist->docker->{from}]}".];
 
-        if ( $self->dist->docker->{from_tag} eq 'latest' ) {
-            return if P->term->prompt( 'Are you sure to continue release with the "latest" tag?', [qw[yes no]], enter => 1 ) eq 'no';
-        }
-        elsif ( $self->dist->docker->{from_tag} !~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
-            say q[Docker base image tag can be "latest" or "vx.x.x". Use "pcore docker --from <TAG>" to set needed tag.];
+        if ( $self->dist->docker->{from_tag} !~ /\Av\d+[.]\d+[.]\d+\z/sm ) {
+            say q[Docker base image tag must be set to "vx.x.x". Use "pcore docker --from <TAG>" to set needed tag.];
 
             return;
         }
@@ -460,7 +458,7 @@ TXT
 ## |      | 143, 162, 219, 224,  |                                                                                                                |
 ## |      | 229, 234             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 391                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 389                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
