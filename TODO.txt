@@ -3,8 +3,8 @@
     - upstream should retrieve local SCM type, because it is impossible to detect it by clone url only;
     - terminology: owner/slug = name;
 - in docker API:
-	- use new terminology;
-	- add possibility to specify slug in docker.json;
+    - use new terminology;
+    - add possibility to specify slug in docker.json;
 
 ----------------------------------------------------
 
