@@ -322,7 +322,7 @@ sub _build_docker ($self) {
     if ( $self->docker_cfg && -f $self->root . 'Dockerfile' ) {
         my $docker = {
             namespace      => $self->docker_cfg->{namespace},
-            repo_name      => lc $self->name,
+            repo_name      => $self->docker_cfg->{slug} // lc $self->name,
             from_repo_name => undef,
             from_tag       => undef,
         };
