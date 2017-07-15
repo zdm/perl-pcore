@@ -1,7 +1,3 @@
-- [DOCKER] - disable possibility to release from :latest tag;
-    release all exists projects, using new rules;
-- release - disable issues tracker support;
-- relesae - disable milestones and versions support;
 - review SCM:
     - upstream - parse and generate urls correctly;
     - upstream should retrieve local SCM type, because it is impossible to detect it by clone url only;
