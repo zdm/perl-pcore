@@ -1,13 +1,3 @@
-- review SCM:
-    - upstream - parse and generate urls correctly;
-    - upstream should retrieve local SCM type, because it is impossible to detect it by clone url only;
-    - terminology: owner/slug = name;
-- in docker API:
-    - use new terminology;
-    - add possibility to specify slug in docker.json;
-
-----------------------------------------------------
-
 - create API Auth functions documentations:
     - what each function do;
     - what it should do internally (flush cache, etc...);
@@ -20,18 +10,10 @@
 
 ---------------------------------------------------
 
-- check how to use centos .pem certificates;
-    - google certificate is not works with standard certs;
-    - enable tls_ctx in recaptcha and smtp;
-
-- create app templates repository;
-    - init user table with root user;
-
 - src - cut to base dir;
 
-- dist.perl -> dist.ini;
+- dist.perl -> dist.ini - ??? - will be impossible to use functions;
 - --version command is broken in docker container;
-- smtp $TLS_CTX_HIGH peer verification not works under linux, but works under windows;
 
 https://metacpan.org/pod/Tie::Hash::LRU
 
