@@ -31,7 +31,6 @@ https://metacpan.org/pod/Tie::Hash::LRU
     - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
 
 - error add/remove dist files after committing wiki;
-- docker API - Attempt to access disallowed key '2' in a restricted hash at d:/projects/pcore/lib/Pcore/API/DockerHub/Repository/Build.pm line 25.;
 
 - API applications connector;
 
@@ -54,12 +53,6 @@ https://metacpan.org/pod/Tie::Hash::LRU
     - blocking api call;
     - api client - blocking call;
     - blocking api auth methods;
-
-- SQL:
-    - error handling;
-    - return API response;
-    - handy way to specify bind param type for execeute;
-        - update SQLite BLOB fields;
 
 - HANDLE and PROXY refactoring
     - rename -> timeout -> http_timeout, keepalive_timeout -> http_keep...;
