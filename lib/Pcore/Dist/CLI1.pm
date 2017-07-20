@@ -1,11 +1,9 @@
-package Pcore::Dist::CLI;
+package Pcore::Dist::CLI1;
 
 use Pcore -role;
 use Pcore::Dist;
 
 with qw[Pcore::Core::CLI::Cmd];
-
-has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], init_arg => undef );
 
 sub get_dist ($self) {
     if ( my $dist = Pcore::Dist->new( $ENV->{START_DIR} ) ) {
@@ -18,19 +16,6 @@ sub get_dist ($self) {
     }
 }
 
-around run => sub ( $orig, $self, @args ) {
-    if ( my $dist = Pcore::Dist->new( $ENV->{START_DIR} ) ) {
-        $self->{dist} = $dist;
-    }
-    else {
-        say 'Pcore distribution was not found' . $LF;
-
-        exit 3;
-    }
-
-    return $self->$orig(@args);
-};
-
 1;
 __END__
 =pod
@@ -39,7 +24,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI
+Pcore::Dist::CLI1
 
 =head1 SYNOPSIS
 

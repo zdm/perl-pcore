@@ -5,12 +5,6 @@ use Pcore::API::DockerHub;
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'], required => 1 );
 
-around new => sub ( $orig, $self, $args ) {
-    return if !$args->{dist}->docker;
-
-    return $self->$orig($args);
-};
-
 sub run ( $self, $args ) {
     return $self->update_from_tag( $args->{from} ) if $args->{from};
 
@@ -27,6 +21,129 @@ sub run ( $self, $args ) {
     $self->report($dockerhub_repo);
 
     return;
+}
+
+sub init ( $self, $args ) {
+    if ( $self->{dist}->docker ) {
+        say qq[Dist is already linked to "$self->{dist}->{docker}->{repo_name}"];
+
+        exit 3;
+    }
+
+    my $repo_owner = $args->{owner} || $ENV->user_cfg->{DOCKERHUB}->{default_repo_owner} || $ENV->user_cfg->{DOCKERHUB}->{username};
+
+    if ( !$repo_owner ) {
+        say 'DockerHub repo owner is not defined';
+
+        exit 3;
+    }
+
+    my $repo_slug = $args->{slug} || lc $self->dist->name;
+
+    my $confirm = P->term->prompt( qq[Create DockerHub repository "$repo_owner/$repo_slug"?], [qw[yes no]], enter => 1 );
+
+    if ( $confirm eq 'no' ) {
+        exit 3;
+    }
+
+    require Pcore::API::DockerHub;
+
+    my $api = Pcore::API::DockerHub->new( { namespace => $repo_owner } );
+
+    my $upstream = $self->dist->scm->upstream;
+
+    print q[Creating DockerHub repository ... ];
+
+    my $res = $api->create_automated_build(    #
+        $repo_slug,                            #
+        $upstream->hosting == $Pcore::API::SCM::Upstream::SCM_HOSTING_BITBUCKET ? $Pcore::API::DockerHub::DOCKERHUB_PROVIDER_BITBUCKET : $Pcore::API::DockerHub::DOCKERHUB_PROVIDER_GITHUB,
+        "@{[$upstream->namespace]}/@{[$upstream->repo_name]}",
+        $self->dist->module->abstract || $self->dist->name,
+        private => 0,
+        active  => 1
+    );
+
+    say $res->reason;
+
+    if ( !$res->is_success ) {
+        exit 3;
+    }
+    else {
+        require Pcore::Util::File::Tree;
+
+        # copy files
+        my $files = Pcore::Util::File::Tree->new;
+
+        $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/docker/' );
+
+        $files->render_tmpl(
+            {   author                    => $self->dist->cfg->{author},
+                dist_path                 => lc $self->dist->name,
+                dockerhub_dist_repo_owner => $repo_owner,
+                dockerhub_dist_repo_slug  => $repo_slug,
+                dockerhub_pcore_repo_name => $ENV->pcore->docker->{repo_name},
+            }
+        );
+
+        $files->write_to( $self->dist->root );
+    }
+
+    return;
+}
+
+# TODO
+sub trigger_build ( $self, $tag ) {
+    print qq[Triggering build for tag "$tag" ... ];
+
+    return;
+
+    # my $res = $dockerhub_repo->trigger_build($tag);
+    #
+    # if ( $res->is_success ) {
+    #     say 'OK';
+    #
+    #     return 1;
+    # }
+    # else {
+    #     say $res->reason;
+    #
+    #     return 0;
+    # }
+}
+
+# TODO
+sub create_tag ( $self, $tag ) {
+    print qq[Creating build tag "$tag" ... ];
+
+    return;
+
+    # my $build_settings = $dockerhub_repo->build_settings;
+    #
+    # if ( !$build_settings ) {
+    #     say $build_settings->reason;
+    # }
+    # else {
+    #     for ( values $build_settings->{data}->{build_tags}->%* ) {
+    #         if ( $_->name eq $tag || $_->source_name eq $tag ) {
+    #             say q[tag already exists];
+    #
+    #             return 1;
+    #         }
+    #     }
+    # }
+    #
+    # my $res = $dockerhub_repo->create_build_tag( name => $tag, source_name => $tag );
+    #
+    # if ( $res->status ) {
+    #     say 'OK';
+    #
+    #     return 1;
+    # }
+    # else {
+    #     say $res->reason;
+    #
+    #     return 0;
+    # }
 }
 
 sub report ( $self, $dockerhub_repo ) {
@@ -201,7 +318,7 @@ sub report ( $self, $dockerhub_repo ) {
     return;
 }
 
-sub update_from_tag ( $self, $tag ) {
+sub set_from_tag ( $self, $tag ) {
     my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
 
     if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$tag/sm ) {
@@ -232,97 +349,49 @@ sub update_from_tag ( $self, $tag ) {
     return;
 }
 
-sub create_build_tag ( $self, $dockerhub_repo, $tag ) {
-    print qq[Creating build tag "$tag" ... ];
-
-    my $build_settings = $dockerhub_repo->build_settings;
-
-    if ( !$build_settings ) {
-        say $build_settings->reason;
-    }
-    else {
-        for ( values $build_settings->{data}->{build_tags}->%* ) {
-            if ( $_->name eq $tag || $_->source_name eq $tag ) {
-                say q[tag already exists];
-
-                return 1;
-            }
-        }
-    }
-
-    my $res = $dockerhub_repo->create_build_tag( name => $tag, source_name => $tag );
-
-    if ( $res->status ) {
-        say 'OK';
-
-        return 1;
-    }
-    else {
-        say $res->reason;
-
-        return 0;
-    }
-}
-
-sub trigger_build ( $self, $dockerhub_repo, $tag ) {
-    print qq[Triggering build for tag "$tag" ... ];
-
-    my $res = $dockerhub_repo->trigger_build($tag);
-
-    if ( $res->is_success ) {
-        say 'OK';
-
-        return 1;
-    }
-    else {
-        say $res->reason;
-
-        return 0;
-    }
-}
-
-sub remove_tag ( $self, $dockerhub_repo, $tag ) {
+# TODO
+sub remove_tag ( $self, $tag ) {
     print qq[Removing tag "$tag" ... ];
 
-    my $tags = $dockerhub_repo->tags;
-
-    if ( !$tags->{data}->{$tag} ) {
-        say 'Tag does not exists';
-    }
-    else {
-        my $res = $tags->{data}->{$tag}->remove;
-
-        say $res->status ? 'OK' : $res->reason;
-    }
-
-    # remove build tag
-    print qq[Removing build tag "$tag" ... ];
-
-    my $build_settings = $dockerhub_repo->build_settings;
-
-    if ( !$build_settings ) {
-        say $build_settings->reason;
-    }
-    else {
-        my $build_tag;
-
-        for ( values $build_settings->{data}->{build_tags}->%* ) {
-            if ( $_->name eq $tag ) {
-                $build_tag = $_;
-
-                last;
-            }
-        }
-
-        if ( !$build_tag ) {
-            say 'Tag does not exists';
-        }
-        else {
-            my $res1 = $build_tag->remove;
-
-            say $res1->status ? 'OK' : $res1->reason;
-        }
-    }
+    # my $tags = $dockerhub_repo->tags;
+    #
+    # if ( !$tags->{data}->{$tag} ) {
+    #     say 'Tag does not exists';
+    # }
+    # else {
+    #     my $res = $tags->{data}->{$tag}->remove;
+    #
+    #     say $res->status ? 'OK' : $res->reason;
+    # }
+    #
+    # # remove build tag
+    # print qq[Removing build tag "$tag" ... ];
+    #
+    # my $build_settings = $dockerhub_repo->build_settings;
+    #
+    # if ( !$build_settings ) {
+    #     say $build_settings->reason;
+    # }
+    # else {
+    #     my $build_tag;
+    #
+    #     for ( values $build_settings->{data}->{build_tags}->%* ) {
+    #         if ( $_->name eq $tag ) {
+    #             $build_tag = $_;
+    #
+    #             last;
+    #         }
+    #     }
+    #
+    #     if ( !$build_tag ) {
+    #         say 'Tag does not exists';
+    #     }
+    #     else {
+    #         my $res1 = $build_tag->remove;
+    #
+    #         say $res1->status ? 'OK' : $res1->reason;
+    #     }
+    # }
 
     return;
 }
@@ -334,9 +403,9 @@ sub remove_tag ( $self, $dockerhub_repo, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 32                   | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (23)                    |
+## |    3 | 149                  | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (23)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 209                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 326                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

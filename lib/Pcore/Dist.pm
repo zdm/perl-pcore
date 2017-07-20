@@ -321,13 +321,16 @@ sub version_string ($self) {
 sub _build_docker ($self) {
     if ( $self->docker_cfg && -f $self->root . 'Dockerfile' ) {
         my $docker = {
-            namespace      => $self->docker_cfg->{namespace},
-            repo_name      => $self->docker_cfg->{slug} // lc $self->name,
+            repo_owner     => $self->docker_cfg->{repo_owner},
+            repo_slug      => $self->docker_cfg->{repo_slug},
+            repo_name      => undef,
             from_repo_name => undef,
             from_tag       => undef,
         };
 
-        $docker->{id} = "$docker->{namespace}/$docker->{repo_name}";
+        return if !$docker->{repo_owner} || !$docker->{repo_slug};
+
+        $docker->{repo_name} = "$docker->{repo_owner}/$docker->{repo_slug}";
 
         my $dockerfile = P->file->read_bin( $self->root . 'Dockerfile' );
 
@@ -341,7 +344,7 @@ sub _build_docker ($self) {
             return $docker;
         }
         else {
-            die q[Can't parse Dockerfile.];
+            die q[Error parsing "FROM" command in Dockerfile];
         }
     }
     else {
