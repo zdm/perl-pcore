@@ -110,13 +110,16 @@ sub set_from_tag ( $self, $tag ) {
 }
 
 sub status ( $self ) {
-    my $cv = AE::cv;
-
     my ( $tags, $build_history, $build_settings );
 
+    my $cv = AE::cv;
+
     $cv->begin;
-    $self->dockerhub_repo->tags(
-        cb => sub ($res) {
+
+    $cv->begin;
+    $self->dockerhub_api->get_tags(
+        $self->dist->docker->{repo_id},
+        sub ($res) {
             $tags = $res;
 
             $cv->end;
@@ -126,8 +129,9 @@ sub status ( $self ) {
     );
 
     $cv->begin;
-    $self->dockerhub_repo->build_history(
-        cb => sub ($res) {
+    $self->dockerhub_api->get_build_history(
+        $self->dist->docker->{repo_id},
+        sub ($res) {
             $build_history = $res;
 
             $cv->end;
@@ -137,8 +141,9 @@ sub status ( $self ) {
     );
 
     $cv->begin;
-    $self->dockerhub_repo->build_settings(
-        cb => sub ($res) {
+    $self->dockerhub_api->get_autobuild_settings(
+        $self->dist->docker->{repo_id},
+        sub ($res) {
             $build_settings = $res;
 
             $cv->end;
@@ -146,6 +151,8 @@ sub status ( $self ) {
             return;
         }
     );
+
+    $cv->end;
 
     $cv->recv;
 
@@ -155,10 +162,10 @@ sub status ( $self ) {
                 title => 'TAG NAME',
                 width => 15,
             },
-            is_build_tag => {
-                title  => "BUILD\nTAG",
-                width  => 7,
-                align  => 1,
+            is_autobuild_tag => {
+                title  => "AUTOBUILD\nTAG",
+                width  => 11,
+                align  => -1,
                 format => sub ( $val, $id, $row ) {
                     if ( !$val ) {
                         return $BOLD . $WHITE . $ON_RED . ' no ' . $RESET;
@@ -184,7 +191,7 @@ sub status ( $self ) {
                     return $val ? P->date->from_string($val)->to_http_date : q[-];
                 }
             },
-            build_status => {
+            status_text => {
                 title  => 'LATEST BUILD STATUS',
                 width  => 15,
                 format => sub ( $val, $id, $row ) {
@@ -228,33 +235,33 @@ sub status ( $self ) {
 
     # index tags
     for my $tag ( values $tags->{data}->%* ) {
-        $report->{ $tag->name } = {
-            size         => $tag->full_size,
-            last_updated => $tag->last_updated,
+        $report->{ $tag->{name} } = {
+            size         => $tag->{full_size},
+            last_updated => $tag->{last_updated},
         };
     }
 
-    # index build tags
-    for my $build_tag ( values $build_settings->{data}->{build_tags}->%* ) {
-        $report->{ $build_tag->name }->{is_build_tag} = 1 if $build_tag->name ne '{sourceref}';
+    # index autobuild tags
+    for my $autobuild_tag ( $build_settings->{data}->{build_tags}->@* ) {
+        $report->{ $autobuild_tag->{name} }->{is_autobuild_tag} = 1 if $autobuild_tag->{name} ne '{sourceref}';
     }
 
     # index builds
-    for my $build ( $build_history->{data}->@* ) {
-        if ( !exists $report->{ $build->dockertag_name }->{build_status} ) {
-            if ( $build->build_status_name eq 'Error' ) {
-                $report->{ $build->dockertag_name }->{build_status} = $BOLD . $WHITE . $ON_RED;
+    for my $build ( sort { $b->{id} <=> $a->{id} } values $build_history->{data}->%* ) {
+        if ( !exists $report->{ $build->{dockertag_name} }->{status_text} ) {
+            if ( $build->{status_text} eq 'error' ) {
+                $report->{ $build->{dockertag_name} }->{status_text} = $BOLD . $WHITE . $ON_RED;
             }
-            elsif ( $build->build_status_name eq 'Success' ) {
-                $report->{ $build->dockertag_name }->{build_status} = $BLACK . $ON_GREEN;
+            elsif ( $build->{status_text} eq 'success' ) {
+                $report->{ $build->{dockertag_name} }->{status_text} = $BLACK . $ON_GREEN;
             }
             else {
-                $report->{ $build->dockertag_name }->{build_status} = $BLACK . $ON_WHITE;
+                $report->{ $build->{dockertag_name} }->{status_text} = $BLACK . $ON_WHITE;
             }
 
-            $report->{ $build->dockertag_name }->{build_status} .= q[ ] . $build->build_status_name . q[ ] . $RESET;
+            $report->{ $build->{dockertag_name} }->{status_text} .= q[ ] . $build->{status_text} . q[ ] . $RESET;
 
-            $report->{ $build->dockertag_name }->{build_status_updated} = $build->last_updated;
+            $report->{ $build->{dockertag_name} }->{build_status_updated} = $build->{last_updated};
         }
     }
 
@@ -281,17 +288,17 @@ sub status ( $self ) {
     return;
 }
 
-sub create_tag ( $self, $tag ) {
-    print qq[Creating build tag "$tag" ... ];
+sub create_tag ( $self, $tag_name ) {
+    print qq[Creating autobuild tag "$tag_name" ... ];
 
-    my $build_settings = $self->dockerhub_repo->build_settings;
+    my $autobuild_tags = $self->dockerhub_api->get_autobuild_tags( $self->dist->docker->{repo_id} );
 
-    if ( !$build_settings ) {
-        say $build_settings->reason;
+    if ( !$autobuild_tags ) {
+        say $autobuild_tags->reason;
     }
     else {
-        for ( values $build_settings->{data}->{build_tags}->%* ) {
-            if ( $_->name eq $tag || $_->source_name eq $tag ) {
+        for my $autobuild_tag ( values $autobuild_tags->{data}->%* ) {
+            if ( $autobuild_tag->{name} eq $tag_name ) {
                 say q[tag already exists];
 
                 $self->status;
@@ -301,7 +308,7 @@ sub create_tag ( $self, $tag ) {
         }
     }
 
-    my $res = $self->dockerhub_repo->create_build_tag( name => $tag, source_name => $tag );
+    my $res = $self->dockerhub_api->create_autobuild_tag( $self->dist->docker->{repo_id}, $tag_name, $tag_name, $DOCKERHUB_SOURCE_TYPE_TAG );
 
     if ( $res->status ) {
         say 'OK';
@@ -394,6 +401,8 @@ sub trigger_build ( $self, $tag ) {
 ## |    3 | 86                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 112                  | Subroutines::ProhibitExcessComplexity - Subroutine "status" with high complexity score (23)                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 250                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -73,7 +73,9 @@ sub _login ( $self, $cb ) {
                 $self->{_login_token} = delete $res->{data}->{token};
             }
 
-            $cb->($res);
+            while ( my $cb = shift $self->{_req_queue}->{$endpoint}->@* ) {
+                $cb->($res);
+            }
 
             return;
         }
@@ -405,7 +407,7 @@ sub trigger_autobuild ( $self, $repo_id, $source_name, $source_type, $cb = undef
     );
 }
 
-sub get_autobuild_details ( $self, $repo_id, $cb = undef ) {
+sub get_autobuild_settings ( $self, $repo_id, $cb = undef ) {
     return $self->_req( 'get', "/repositories/$repo_id/autobuild/", 1, undef, $cb );
 }
 
@@ -433,14 +435,14 @@ sub get_autobuild_tags ( $self, $repo_id, $cb = undef ) {
     );
 }
 
-sub create_autobuild_tag ( $self, $repo_id, $source_name, $source_type, $cb = undef ) {
+sub create_autobuild_tag ( $self, $repo_id, $tag_name, $source_name, $source_type, $cb = undef ) {
     my ( $namespace, $name ) = split m[/]sm, $repo_id;
 
     return $self->_req(
         'post',
-        "/repositories/$repo_id/autobuid/tags/",
+        "/repositories/$repo_id/autobuild/tags/",
         1,
-        {   name                => 1,
+        {   name                => $tag_name,
             dockerfile_location => '/',
             source_name         => $source_name,
             source_type         => $DOCKERHUB_SOURCE_TYPE_NAME->{$source_type},
@@ -463,11 +465,11 @@ sub delete_autobuild_tag ( $self, $repo_id, $autobuild_tag_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 83, 171, 305, 315,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 332, 360, 364, 395,  |                                                                                                                |
-## |      | 436, 455             |                                                                                                                |
+## |    3 | 85, 173, 307, 317,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 334, 362, 366, 397,  |                                                                                                                |
+## |      | 438, 457             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 149                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 151                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

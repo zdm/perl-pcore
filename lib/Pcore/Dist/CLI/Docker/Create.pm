@@ -6,7 +6,7 @@ with qw[Pcore::Dist::CLI1];
 
 sub CLI ($self) {
     return {
-        abstract => 'create tag',
+        abstract => 'create autobuild tag',
         arg      => [
             tag => {
                 desc => 'tag',
@@ -32,7 +32,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Docker::Create - create tag
+Pcore::Dist::CLI::Docker::Create - create autobuild tag
 
 =head1 SYNOPSIS
 
