@@ -1,4 +1,4 @@
-package Pcore::Dist::CLI::Docker::Info;
+package Pcore::Dist::CLI::Docker::Status;
 
 use Pcore -class;
 
@@ -24,7 +24,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Docker::Info - get DockerHub repository info
+Pcore::Dist::CLI::Docker::Status - get DockerHub repository status
 
 =head1 SYNOPSIS
 
