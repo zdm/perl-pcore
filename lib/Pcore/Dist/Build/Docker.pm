@@ -78,62 +78,38 @@ sub init ( $self, $args ) {
     return;
 }
 
-sub trigger_build ( $self, $tag ) {
-    print qq[Triggering build for tag "$tag" ... ];
+sub set_from_tag ( $self, $tag ) {
+    my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
 
-    my $res = $self->dockerhub_api->trigger_autobuild( $self->dist->docker->{repo_id}, $tag );
+    if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$tag/sm ) {
+        if ( "$1$2" eq "$1:$tag" ) {
+            say qq[Docker base image wasn't changed];
+        }
+        else {
+            P->file->write_bin( $self->dist->root . 'Dockerfile', $dockerfile );
 
-    if ( $res->is_success ) {
-        say 'OK';
+            {
+                # cd to repo root
+                my $chdir_guard = P->file->chdir( $self->dist->root );
 
-        $self->report;
+                my $res = $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$tag"], 'Dockerfile' );
 
-        return 1;
-    }
-    else {
-        say $res->reason;
-
-        return 0;
-    }
-}
-
-sub create_tag ( $self, $tag ) {
-    print qq[Creating build tag "$tag" ... ];
-
-    my $build_settings = $self->dockerhub_repo->build_settings;
-
-    if ( !$build_settings ) {
-        say $build_settings->reason;
-    }
-    else {
-        for ( values $build_settings->{data}->{build_tags}->%* ) {
-            if ( $_->name eq $tag || $_->source_name eq $tag ) {
-                say q[tag already exists];
-
-                $self->report;
-
-                return 1;
+                die "$res" if !$res;
             }
+
+            $self->dist->clear_docker;
+
+            say qq[Docker base image changed from "$1$2" to "$1:$tag"];
         }
     }
-
-    my $res = $self->dockerhub_repo->create_build_tag( name => $tag, source_name => $tag );
-
-    if ( $res->status ) {
-        say 'OK';
-
-        $self->report;
-
-        return 1;
-    }
     else {
-        say $res->reason;
-
-        return 0;
+        say q[Error updating docker base image];
     }
+
+    return;
 }
 
-sub report ( $self ) {
+sub status ( $self ) {
     my $cv = AE::cv;
 
     my ( $tags, $build_history, $build_settings );
@@ -305,35 +281,40 @@ sub report ( $self ) {
     return;
 }
 
-sub set_from_tag ( $self, $tag ) {
-    my $dockerfile = P->file->read_bin( $self->dist->root . 'Dockerfile' );
+sub create_tag ( $self, $tag ) {
+    print qq[Creating build tag "$tag" ... ];
 
-    if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$tag/sm ) {
-        if ( "$1$2" eq "$1:$tag" ) {
-            say qq[Docker base image wasn't changed];
-        }
-        else {
-            P->file->write_bin( $self->dist->root . 'Dockerfile', $dockerfile );
+    my $build_settings = $self->dockerhub_repo->build_settings;
 
-            {
-                # cd to repo root
-                my $chdir_guard = P->file->chdir( $self->dist->root );
-
-                my $res = $self->dist->scm->scm_commit( qq[Docker base image changed from "$1$2" to "$1:$tag"], 'Dockerfile' );
-
-                die "$res" if !$res;
-            }
-
-            $self->dist->clear_docker;
-
-            say qq[Docker base image changed from "$1$2" to "$1:$tag"];
-        }
+    if ( !$build_settings ) {
+        say $build_settings->reason;
     }
     else {
-        say q[Error updating docker base image];
+        for ( values $build_settings->{data}->{build_tags}->%* ) {
+            if ( $_->name eq $tag || $_->source_name eq $tag ) {
+                say q[tag already exists];
+
+                $self->status;
+
+                return 1;
+            }
+        }
     }
 
-    return;
+    my $res = $self->dockerhub_repo->create_build_tag( name => $tag, source_name => $tag );
+
+    if ( $res->status ) {
+        say 'OK';
+
+        $self->status;
+
+        return 1;
+    }
+    else {
+        say $res->reason;
+
+        return 0;
+    }
 }
 
 sub remove_tag ( $self, $tag ) {
@@ -379,9 +360,28 @@ sub remove_tag ( $self, $tag ) {
         }
     }
 
-    $self->report;
+    $self->status;
 
     return;
+}
+
+sub trigger_build ( $self, $tag ) {
+    print qq[Triggering build for tag "$tag" ... ];
+
+    my $res = $self->dockerhub_api->trigger_autobuild( $self->dist->docker->{repo_id}, $tag );
+
+    if ( $res->is_success ) {
+        say 'OK';
+
+        $self->status;
+
+        return 1;
+    }
+    else {
+        say $res->reason;
+
+        return 0;
+    }
 }
 
 1;
@@ -391,9 +391,9 @@ sub remove_tag ( $self, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 136                  | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (23)                    |
+## |    3 | 86                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 313                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 112                  | Subroutines::ProhibitExcessComplexity - Subroutine "status" with high complexity score (23)                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
