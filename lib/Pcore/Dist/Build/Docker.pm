@@ -1,54 +1,49 @@
 package Pcore::Dist::Build::Docker;
 
 use Pcore -class, -ansi;
-use Pcore::API::DockerHub;
+use Pcore::API::DockerHub qw[:CONST];
 
-has dist           => ( is => 'ro',   isa => InstanceOf ['Pcore::Dist'],                       required => 1 );
-has dockerhub_api  => ( is => 'lazy', isa => InstanceOf ['Pcore::API::DockerHub'],             init_arg => undef );
-has dockerhub_repo => ( is => 'lazy', isa => InstanceOf ['Pcore::API::DockerHub::Repository'], init_arg => undef );
+has dist          => ( is => 'ro',   isa => InstanceOf ['Pcore::Dist'],           required => 1 );
+has dockerhub_api => ( is => 'lazy', isa => InstanceOf ['Pcore::API::DockerHub'], init_arg => undef );
 
 sub _build_dockerhub_api($self) {
-    return Pcore::API::DockerHub->new( { namespace => $self->dist->docker->{repo_owner} } );
-}
-
-sub _build_dockerhub_repo ($self) {
-    return $self->dockerhub_api->get_repo( $self->dist->docker->{repo_slug} );
+    return Pcore::API::DockerHub->new;
 }
 
 sub init ( $self, $args ) {
     if ( $self->{dist}->docker ) {
-        say qq[Dist is already linked to "$self->{dist}->{docker}->{repo_name}"];
+        say qq[Dist is already linked to "$self->{dist}->{docker}->{repo_id}"];
 
         exit 3;
     }
 
-    my $repo_owner = $args->{owner} || $ENV->user_cfg->{DOCKERHUB}->{default_repo_owner} || $ENV->user_cfg->{DOCKERHUB}->{username};
+    my $repo_namespace = $args->{namespace} || $ENV->user_cfg->{DOCKERHUB}->{default_namespace} || $ENV->user_cfg->{DOCKERHUB}->{username};
 
-    if ( !$repo_owner ) {
-        say 'DockerHub repo owner is not defined';
+    if ( !$repo_namespace ) {
+        say 'DockerHub repo namespace is not defined';
 
         exit 3;
     }
 
-    my $repo_slug = $args->{slug} || lc $self->dist->name;
+    my $repo_name = $args->{name} || lc $self->dist->name;
 
-    my $confirm = P->term->prompt( qq[Create DockerHub repository "$repo_owner/$repo_slug"?], [qw[yes no]], enter => 1 );
+    my $repo_id = "$repo_namespace/$repo_name";
+
+    my $confirm = P->term->prompt( qq[Create DockerHub repository "$repo_id"?], [qw[yes no]], enter => 1 );
 
     if ( $confirm eq 'no' ) {
         exit 3;
     }
 
-    require Pcore::API::DockerHub;
-
-    my $api = Pcore::API::DockerHub->new( { namespace => $repo_owner } );
+    my $api = $self->dockerhub_api;
 
     my $upstream = $self->dist->scm->upstream;
 
     print q[Creating DockerHub repository ... ];
 
-    my $res = $api->create_automated_build(    #
-        $repo_slug,                            #
-        $upstream->hosting == $Pcore::API::SCM::Upstream::SCM_HOSTING_BITBUCKET ? $Pcore::API::DockerHub::DOCKERHUB_PROVIDER_BITBUCKET : $Pcore::API::DockerHub::DOCKERHUB_PROVIDER_GITHUB,
+    my $res = $api->create_autobuild(    #
+        $repo_id,                        #
+        $upstream->hosting == $Pcore::API::SCM::Upstream::SCM_HOSTING_BITBUCKET ? $DOCKERHUB_PROVIDER_BITBUCKET : $DOCKERHUB_PROVIDER_GITHUB,
         "@{[$upstream->namespace]}/@{[$upstream->repo_name]}",
         $self->dist->module->abstract || $self->dist->name,
         private => 0,
@@ -69,11 +64,11 @@ sub init ( $self, $args ) {
         $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/docker/' );
 
         $files->render_tmpl(
-            {   author                    => $self->dist->cfg->{author},
-                dist_path                 => lc $self->dist->name,
-                dockerhub_dist_repo_owner => $repo_owner,
-                dockerhub_dist_repo_slug  => $repo_slug,
-                dockerhub_pcore_repo_name => $ENV->pcore->docker->{repo_name},
+            {   author                        => $self->dist->cfg->{author},
+                dist_path                     => lc $self->dist->name,
+                dockerhub_dist_repo_namespace => $repo_namespace,
+                dockerhub_dist_repo_name      => $repo_name,
+                dockerhub_pcore_repo_id       => $ENV->pcore->docker->{repo_id},
             }
         );
 
@@ -86,7 +81,7 @@ sub init ( $self, $args ) {
 sub trigger_build ( $self, $tag ) {
     print qq[Triggering build for tag "$tag" ... ];
 
-    my $res = $self->dockerhub_repo->trigger_build($tag);
+    my $res = $self->dockerhub_api->trigger_autobuild( $self->dist->docker->{repo_id}, $tag );
 
     if ( $res->is_success ) {
         say 'OK';
@@ -396,9 +391,9 @@ sub remove_tag ( $self, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 141                  | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (23)                    |
+## |    3 | 136                  | Subroutines::ProhibitExcessComplexity - Subroutine "report" with high complexity score (23)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 318                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 313                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -1,4 +1,4 @@
-FROM <: $dockerhub_pcore_repo_name | raw :>:devel
+FROM <: $dockerhub_pcore_repo_id | raw :>:devel
 
 MAINTAINER <: $author | raw :>
 

@@ -1,4 +1,4 @@
 {
-   "repo_owner": "<: $dockerhub_dist_repo_owner | raw :>",
-   "repo_slug": "<: $dockerhub_dist_repo_slug | raw :>"
+   "namespace": "<: $dockerhub_dist_repo_namespace | raw :>",
+   "name": "<: $dockerhub_dist_repo_name | raw :>"
 }

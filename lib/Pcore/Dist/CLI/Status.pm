@@ -1,11 +1,11 @@
-package Pcore::Dist::CLI::Ls;
+package Pcore::Dist::CLI::Status;
 
 use Pcore -class, -ansi;
 
-with qw[Pcore::Dist::CLI];
+with qw[Pcore::Dist::CLI1];
 
 sub CLI ($self) {
-    return { abstract => 'list installed distributions' };
+    return { abstract => 'get installed distributions statuses' };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
@@ -97,10 +97,6 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     return;
 }
 
-sub run ( $self ) {
-    return;
-}
-
 1;
 __END__
 =pod
@@ -109,7 +105,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Ls - list installed ditributions
+Pcore::Dist::CLI::Status - get installed distributions statuses
 
 =head1 SYNOPSIS
 

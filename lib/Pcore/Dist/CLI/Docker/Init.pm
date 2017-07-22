@@ -8,13 +8,14 @@ sub CLI ($self) {
     return {
         abstract => 'create and link to the DockerHub repository',
         opt      => {
-            owner => {
-                desc => 'repository owner',
-                type => 'STR',
-                isa  => 'Str',
+            namespace => {
+                short => 'N',
+                desc  => 'repository namespace',
+                type  => 'STR',
+                isa   => 'Str',
             },
-            slug => {
-                desc => 'repository slug',
+            name => {
+                desc => 'repository name',
                 type => 'STR',
                 isa  => 'Str',
             },

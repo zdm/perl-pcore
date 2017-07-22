@@ -1,6 +1,6 @@
-package Pcore::API::DockerHub1;
+package Pcore::API::DockerHub;
 
-use Pcore -const, -class, -result, -export => [ CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TYPE_TAG $DOCKERHUB_SOURCE_TYPE_BRANCH]] ];
+use Pcore -const, -class, -result, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TYPE_TAG $DOCKERHUB_SOURCE_TYPE_BRANCH]] };
 use Pcore::Util::Scalar qw[is_plain_coderef];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -168,7 +168,7 @@ sub create_repo ( $self, $repo_id, $desc, @args ) {
     );
 }
 
-sub create_autobuild ( $self, $repo_id, $scm_provider, $scm_repo_name, $desc, @args ) {
+sub create_autobuild ( $self, $repo_id, $scm_provider, $scm_repo_id, $desc, @args ) {
     my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
     my %args = (
@@ -203,7 +203,7 @@ sub create_autobuild ( $self, $repo_id, $scm_provider, $scm_repo_name, $desc, @a
         }
     }
 
-    return $self->request(
+    return $self->_req(
         'post',
         "/repositories/$repo_id/autobuild/",
         1,
@@ -214,7 +214,7 @@ sub create_autobuild ( $self, $repo_id, $scm_provider, $scm_repo_name, $desc, @a
             active              => $args{active} ? \1 : \0,
             dockerhub_repo_name => $repo_id,
             provider            => $DOCKERHUB_PROVIDER_NAME->{$scm_provider},
-            vcs_repo_name       => $scm_repo_name,
+            vcs_repo_name       => $scm_repo_id,
             description         => $desc,
             build_tags          => $build_tags,
         },
@@ -478,7 +478,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::DockerHub1
+Pcore::API::DockerHub
 
 =head1 SYNOPSIS
 

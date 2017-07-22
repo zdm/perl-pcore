@@ -5,13 +5,13 @@ use Pcore -class;
 with qw[Pcore::Dist::CLI1];
 
 sub CLI ($self) {
-    return { abstract => 'get DockerHub repository info', };
+    return { abstract => 'get DockerHub repository status', };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     my $dist = $self->get_dist;
 
-    $dist->build->docker->report;
+    $dist->build->docker->status;
 
     return;
 }

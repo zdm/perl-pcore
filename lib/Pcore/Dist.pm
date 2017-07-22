@@ -321,21 +321,22 @@ sub version_string ($self) {
 sub _build_docker ($self) {
     if ( $self->docker_cfg && -f $self->root . 'Dockerfile' ) {
         my $docker = {
-            repo_owner     => $self->docker_cfg->{repo_owner},
-            repo_slug      => $self->docker_cfg->{repo_slug},
-            repo_name      => undef,
-            from_repo_name => undef,
+            repo_namespace => $self->docker_cfg->{repo_namespace},
+            repo_name      => $self->docker_cfg->{repo_name},
+            repo_id        => undef,
+            from           => undef,
+            from_repo_id   => undef,
             from_tag       => undef,
         };
 
-        return if !$docker->{repo_owner} || !$docker->{repo_slug};
+        return if !$docker->{repo_namespace} || !$docker->{repo_name};
 
-        $docker->{repo_name} = "$docker->{repo_owner}/$docker->{repo_slug}";
+        $docker->{repo_id} = "$docker->{repo_namespace}/$docker->{repo_name}";
 
         my $dockerfile = P->file->read_bin( $self->root . 'Dockerfile' );
 
         if ( $dockerfile->$* =~ /^FROM\s+([^:]+):?(.*?)$/sm ) {
-            $docker->{from_repo_name} = $1;
+            $docker->{from_repo_id} = $1;
 
             $docker->{from_tag} = $2 // 'latest';
 
