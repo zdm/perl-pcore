@@ -340,7 +340,7 @@ sub _build_docker ($self) {
 
             $docker->{from_tag} = $2 // 'latest';
 
-            $docker->{from} = "$docker->{from_repo_name}:$docker->{from_tag}";
+            $docker->{from} = "$docker->{from_repo_id}:$docker->{from_tag}";
 
             return $docker;
         }
