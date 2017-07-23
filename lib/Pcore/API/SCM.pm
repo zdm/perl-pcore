@@ -1,11 +1,8 @@
 package Pcore::API::SCM;
 
-use Pcore -const, -class, -export => { CONST => [qw[$SCM_TYPE_HG $SCM_TYPE_GIT]] };
-
-const our $SCM_TYPE_HG  => 1;
-const our $SCM_TYPE_GIT => 2;
-
-require Pcore::API::SCM::Upstream;
+use Pcore -class;
+use Pcore::API::SCM::Const qw[:ALL];
+use Pcore::API::SCM::Upstream;
 
 has type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], required => 1 );
 has root => ( is => 'ro', isa => Str, required => 1 );
@@ -212,7 +209,7 @@ sub _request ( $self, $method, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 54                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 51                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

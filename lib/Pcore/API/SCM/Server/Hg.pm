@@ -1,7 +1,7 @@
 package Pcore::API::SCM::Server::Hg;
 
 use Pcore -class, -result;
-use Pcore::API::SCM qw[:CONST];
+use Pcore::API::SCM::Const qw[:ALL];
 use Pcore::Util::Text qw[decode_utf8];
 use Pcore::API::SCM::Upstream;
 use Pcore::Util::Scalar qw[weaken];

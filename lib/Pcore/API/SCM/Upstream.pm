@@ -1,20 +1,7 @@
 package Pcore::API::SCM::Upstream;
 
 use Pcore -const, -class;
-use Pcore::API::SCM qw[:CONST];
-
-const our $SCM_HOSTING_BITBUCKET => 1;
-const our $SCM_HOSTING_GITHUB    => 2;
-
-const our $SCM_HOSTING_HOST => {
-    $SCM_HOSTING_BITBUCKET => 'bitbucket.org',
-    $SCM_HOSTING_GITHUB    => 'github.com',
-};
-
-const our $SCM_HOSTING_CLASS => {
-    $SCM_HOSTING_BITBUCKET => 'Pcore::API::Bitbucket',
-    $SCM_HOSTING_GITHUB    => 'Pcore::API::GitHub',
-};
+use Pcore::API::SCM::Const qw[:ALL];
 
 has local_scm_type  => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG,           $SCM_TYPE_GIT ] );
 has remote_scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG,           $SCM_TYPE_GIT ], required => 1 );
@@ -86,7 +73,7 @@ sub BUILDARGS ( $self, $args ) {
                         $args->{remote_scm_type} = $SCM_TYPE_HG;
                     }
                     else {
-                        if ( $args->{local_scm_type} && $args->{local_scm_type} == $SCM_TYPE_GIT ) {
+                        if ( $args->{local_scm_type} && $args->{local_scm_type} eq $SCM_TYPE_GIT ) {
                             $args->{remote_scm_type} = $SCM_TYPE_GIT;
                         }
                         else {
@@ -113,14 +100,14 @@ sub BUILDARGS ( $self, $args ) {
     return $args;
 }
 
-sub get_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG ) {
-    die q[scheme is invalid] if $scheme ne 'ssh' && $scheme ne 'https';
+sub get_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_type = $SCM_TYPE_HG ) {
+    die q[SCM URL type is invalid] if $scm_url_type ne $SCM_URL_TYPE_SSH && $scm_url_type ne $SCM_URL_TYPE_HTTPS;
 
-    if ( $local_scm_type == $SCM_TYPE_HG ) {
-        if ( $self->{remote_scm_type} == $SCM_TYPE_GIT ) {
+    if ( $local_scm_type eq $SCM_TYPE_HG ) {
+        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh hggit
-            if ( $scheme eq 'ssh' ) {
+            if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
                 return "git+ssh://git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$self->{repo_id}.git";
             }
 
@@ -132,7 +119,7 @@ sub get_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG ) {
         else {
 
             # ssh hg
-            if ( $scheme eq 'ssh' ) {
+            if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
                 return "ssh://hg\@$SCM_HOSTING_HOST->{$self->{hosting}}/$self->{repo_id}";
             }
 
@@ -142,11 +129,11 @@ sub get_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG ) {
             }
         }
     }
-    elsif ( $local_scm_type == $SCM_TYPE_GIT ) {
-        if ( $self->{remote_scm_type} == $SCM_TYPE_GIT ) {
+    elsif ( $local_scm_type eq $SCM_TYPE_GIT ) {
+        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh git
-            if ( $scheme eq 'ssh' ) {
+            if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
                 return "git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$self->{repo_id}.git";
             }
 
@@ -166,16 +153,16 @@ sub get_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG ) {
     return;
 }
 
-sub get_wiki_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG ) {
-    die q[scheme is invalid] if $scheme ne 'ssh' && $scheme ne 'https';
+sub get_wiki_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_type = $SCM_TYPE_HG ) {
+    die q[SCM URL type is invalid] if $scm_url_type ne $SCM_URL_TYPE_SSH && $scm_url_type ne $SCM_URL_TYPE_HTTPS;
 
-    my $repo_id = $self->{hosting} == $SCM_HOSTING_BITBUCKET ? "$self->{repo_id}/wiki" : "$self->{repo_id}.wiki";
+    my $repo_id = $self->{hosting} eq $SCM_HOSTING_BITBUCKET ? "$self->{repo_id}/wiki" : "$self->{repo_id}.wiki";
 
-    if ( $local_scm_type == $SCM_TYPE_HG ) {
-        if ( $self->{remote_scm_type} == $SCM_TYPE_GIT ) {
+    if ( $local_scm_type eq $SCM_TYPE_HG ) {
+        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh hggit
-            if ( $scheme eq 'ssh' ) {
+            if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
                 return "git+ssh://git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$self->{repo_id}.git";
             }
 
@@ -187,7 +174,7 @@ sub get_wiki_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG 
         else {
 
             # ssh hg
-            if ( $scheme eq 'ssh' ) {
+            if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
                 return "ssh://hg\@$SCM_HOSTING_HOST->{$self->{hosting}}/$self->{repo_id}";
             }
 
@@ -197,11 +184,11 @@ sub get_wiki_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG 
             }
         }
     }
-    elsif ( $local_scm_type == $SCM_TYPE_GIT ) {
-        if ( $self->{remote_scm_type} == $SCM_TYPE_GIT ) {
+    elsif ( $local_scm_type eq $SCM_TYPE_GIT ) {
+        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh git
-            if ( $scheme eq 'ssh' ) {
+            if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
                 return "git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$self->{repo_id}.git";
             }
 
@@ -228,11 +215,11 @@ sub get_wiki_clone_url ( $self, $scheme = 'ssh', $local_scm_type = $SCM_TYPE_HG 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 60                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 47                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 89                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 76                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 116, 169             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 103, 156             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
