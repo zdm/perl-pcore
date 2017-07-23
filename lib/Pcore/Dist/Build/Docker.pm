@@ -195,7 +195,20 @@ sub status ( $self ) {
                 title  => 'LATEST BUILD STATUS',
                 width  => 15,
                 format => sub ( $val, $id, $row ) {
-                    return $val || q[-];
+                    if ( $val eq 'error' || $val eq 'cancelled' ) {
+                        $val = $BOLD . $WHITE . $ON_RED . " $val " . $RESET;
+                    }
+                    elsif ( $val eq 'success' ) {
+                        $val = $BLACK . $ON_GREEN . " $val " . $RESET;
+                    }
+                    elsif ( $val eq 'queued' ) {
+                        $val = $BLACK . $ON_YELLOW . " $val " . $RESET;
+                    }
+                    else {
+                        $val = $BLACK . $ON_WHITE . " $val " . $RESET;
+                    }
+
+                    return $val;
                 }
             },
             build_status_updated => {
@@ -249,17 +262,7 @@ sub status ( $self ) {
     # index builds
     for my $build ( sort { $b->{id} <=> $a->{id} } values $build_history->{data}->%* ) {
         if ( !exists $report->{ $build->{dockertag_name} }->{status_text} ) {
-            if ( $build->{status_text} eq 'error' || $build->{status_text} eq 'cancelled' ) {
-                $report->{ $build->{dockertag_name} }->{status_text} = $BOLD . $WHITE . $ON_RED;
-            }
-            elsif ( $build->{status_text} eq 'success' ) {
-                $report->{ $build->{dockertag_name} }->{status_text} = $BLACK . $ON_GREEN;
-            }
-            else {
-                $report->{ $build->{dockertag_name} }->{status_text} = $BLACK . $ON_WHITE;
-            }
-
-            $report->{ $build->{dockertag_name} }->{status_text} .= q[ ] . $build->{status_text} . q[ ] . $RESET;
+            $report->{ $build->{dockertag_name} }->{status_text} = $build->{status_text};
 
             $report->{ $build->{dockertag_name} }->{build_status_updated} = $build->{last_updated};
         }
@@ -381,8 +384,15 @@ sub build_status ( $self ) {
     my $tbl = P->text->table(
         cols => [
             build_id => {
-                title => 'REPO BUILD TAG',
-                width => 60,
+                title  => 'REPO BUILD TAG',
+                width  => 60,
+                format => sub ( $val, $id, $row ) {
+                    if ( $val =~ /(.+:?)(v[\d.]+)\z/sm ) {
+                        $val = $1 . $BLACK . $ON_GREEN . $2 . $RESET;
+                    }
+
+                    return $val;
+                }
             },
             status_text => {
                 title  => 'LATEST BUILD STATUS',
@@ -393,6 +403,9 @@ sub build_status ( $self ) {
                     }
                     elsif ( $val eq 'success' ) {
                         $val = $BLACK . $ON_GREEN . " $val " . $RESET;
+                    }
+                    elsif ( $val eq 'queued' ) {
+                        $val = $BLACK . $ON_YELLOW . " $val " . $RESET;
                     }
                     else {
                         $val = $BLACK . $ON_WHITE . " $val " . $RESET;
@@ -520,11 +533,11 @@ sub trigger_build ( $self, $tag ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 112                  | * Subroutine "status" with high complexity score (24)                                                          |
-## |      | 291                  | * Subroutine "build_status" with high complexity score (24)                                                    |
+## |      | 294                  | * Subroutine "build_status" with high complexity score (26)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 442                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 455                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 250, 339             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 263, 342             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
