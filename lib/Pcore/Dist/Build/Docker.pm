@@ -3,7 +3,7 @@ package Pcore::Dist::Build::Docker;
 use Pcore -class, -ansi;
 use Pcore::API::DockerHub qw[:CONST];
 
-has dist          => ( is => 'ro',   isa => InstanceOf ['Pcore::Dist'],           required => 1 );
+has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
 has dockerhub_api => ( is => 'lazy', isa => InstanceOf ['Pcore::API::DockerHub'], init_arg => undef );
 
 sub _build_dockerhub_api($self) {
@@ -346,6 +346,7 @@ sub build_status ( $self ) {
                             $build_history->{$build_id} = $autobuild;
 
                             $autobuild->{build_id} = $build_id;
+                            $autobuild->{repo_id}  = $repo_id;
                         }
                     }
                 }
@@ -383,12 +384,19 @@ sub build_status ( $self ) {
 
     my $tbl = P->text->table(
         cols => [
-            build_id => {
-                title  => 'REPO BUILD TAG',
-                width  => 60,
+            repo_id => {
+                title => 'REPO ID',
+                width => 50,
+            },
+            dockertag_name => {
+                title  => 'BUILD TAG',
+                width  => 15,
                 format => sub ( $val, $id, $row ) {
-                    if ( $val =~ /(.+:?)(v[\d.]+)\z/sm ) {
-                        $val = $1 . $BLACK . $ON_GREEN . $2 . $RESET;
+                    if ( $val =~ /\Av[\d.]+\z/sm ) {
+                        $val = $BLACK . $ON_CYAN . " $val " . $RESET;
+                    }
+                    else {
+                        $val = $BLACK . $ON_GREEN . " $val " . $RESET;
                     }
 
                     return $val;
@@ -531,9 +539,9 @@ sub trigger_build ( $self, $tag ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 112                  | * Subroutine "status" with high complexity score (24)                                                          |
-## |      | 294                  | * Subroutine "build_status" with high complexity score (26)                                                    |
+## |      | 294                  | * Subroutine "build_status" with high complexity score (27)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 455                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 463                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 263, 342             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
