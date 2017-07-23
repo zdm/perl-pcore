@@ -10,38 +10,34 @@ sub CLI ($self) {
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    $self->new->run($opt);
+    my $dist = $self->get_dist;
 
-    return;
-}
-
-sub run ( $self, $args ) {
-    if ( !-d $self->dist->root . 'wiki/' ) {
+    if ( !-d $dist->root . 'wiki/' ) {
         my $confirm = P->term->prompt( qq[Wiki wasn't found. Clone upstream wiki?], [qw[yes no]], enter => 1 );
 
         exit 3 if $confirm eq 'no';
 
-        exit 3 if !$self->_clone_upstream_wiki;
+        exit 3 if !$self->_clone_upstream_wiki($dist);
     }
 
-    $self->dist->build->wiki->run;
+    $dist->build->wiki->run;
 
     return;
 }
 
-sub _clone_upstream_wiki ($self) {
-    if ( !$self->dist->scm ) {
+sub _clone_upstream_wiki ( $self, $dist ) {
+    if ( !$dist->scm ) {
         say q[SCM wasn't found];
 
         return;
     }
-    elsif ( !$self->dist->scm->upstream || !$self->dist->scm->upstream->hosting_api_class ) {
+    elsif ( !$dist->scm->upstream || !$dist->scm->upstream->hosting_api_class ) {
         say q[Invalid SCM upstream];
 
         return;
     }
 
-    my $upstream = $self->dist->scm->upstream;
+    my $upstream = $dist->scm->upstream;
 
     my $upstream_api = $upstream->hosting_api;
 
@@ -57,7 +53,7 @@ sub _clone_upstream_wiki ($self) {
 
     print qq[Cloning upstream wiki "$clone_uri" ... ];
 
-    if ( my $res = Pcore::API::SCM->scm_clone( $self->dist->root . '/wiki/', $clone_uri, update => 'tip' ) ) {
+    if ( my $res = Pcore::API::SCM->scm_clone( $dist->root . '/wiki/', $clone_uri, update => 'tip' ) ) {
         say 'done';
 
         return 1;
@@ -76,9 +72,7 @@ sub _clone_upstream_wiki ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 27, 38               | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    3 | 16                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

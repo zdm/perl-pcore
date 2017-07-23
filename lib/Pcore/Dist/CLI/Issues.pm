@@ -25,13 +25,9 @@ sub CLI ($self) {
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    $self->new->run( $opt, $arg );
+    my $dist = $self->get_dist;
 
-    return;
-}
-
-sub run ( $self, $opt, $arg ) {
-    if ( $self->dist->build->issues ) {
+    if ( $dist->build->issues ) {
         my $issues = $self->dist->build->issues->get(
             id => $arg->{id},
             $opt->%*,
@@ -41,14 +37,14 @@ sub run ( $self, $opt, $arg ) {
 
             # issue status changed, show only issue header, without content
             if ($issues) {
-                $self->dist->build->issues->print_issues( $issues->{data}, 0 );
+                $dist->build->issues->print_issues( $issues->{data}, 0 );
             }
             else {
                 say 'Error update issue status: ' . $issues;
             }
         }
         else {
-            $self->dist->build->issues->print_issues( $issues->{data}, 1 );
+            $dist->build->issues->print_issues( $issues->{data}, 1 );
         }
     }
     else {
@@ -65,7 +61,7 @@ sub run ( $self, $opt, $arg ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 35, 44, 51           | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 31                   | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -2,7 +2,7 @@ package Pcore::Dist::CLI::Status;
 
 use Pcore -class, -ansi;
 
-with qw[Pcore::Dist::CLI1];
+with qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
     return { abstract => 'get installed distributions statuses' };

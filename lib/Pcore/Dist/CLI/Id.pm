@@ -32,19 +32,13 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
             $dist = Pcore::Dist->new( $arg->{dist} );
         }
     }
+    else {
+        $dist = $self->get_dist;
+    }
 
     if ($dist) {
         $self->_show_dist_info($dist);
     }
-    else {
-        $self->new->run;
-    }
-
-    return;
-}
-
-sub run ( $self ) {
-    $self->_show_dist_info( $self->dist );
 
     return;
 }

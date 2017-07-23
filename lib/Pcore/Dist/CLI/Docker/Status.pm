@@ -2,7 +2,7 @@ package Pcore::Dist::CLI::Docker::Status;
 
 use Pcore -class;
 
-with qw[Pcore::Dist::CLI1];
+with qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
     return { abstract => 'get DockerHub repository status', };
