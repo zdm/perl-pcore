@@ -9,9 +9,9 @@ sub CLI ($self) {
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    my $dist = $self->get_dist;
+    require Pcore::Dist::Build::Docker;
 
-    $dist->build->docker->status;
+    Pcore::Dist::Build::Docker->new->build_status;
 
     return;
 }

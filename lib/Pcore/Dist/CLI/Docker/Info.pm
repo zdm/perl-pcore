@@ -1,17 +1,17 @@
-package Pcore::Dist::CLI::Docker::BS;
+package Pcore::Dist::CLI::Docker::Info;
 
 use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
-    return { abstract => 'get DockerHub build status', };
+    return { abstract => 'show DockerHub repository info', };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    require Pcore::Dist::Build::Docker;
+    my $dist = $self->get_dist;
 
-    Pcore::Dist::Build::Docker->new->build_status;
+    $dist->build->docker->status;
 
     return;
 }
@@ -24,7 +24,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Docker::BS - get DockerHub build status
+Pcore::Dist::CLI::Docker::Info - show DockerHub repository info
 
 =head1 SYNOPSIS
 
