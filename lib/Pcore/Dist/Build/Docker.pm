@@ -17,6 +17,14 @@ sub init ( $self, $args ) {
         exit 3;
     }
 
+    my $scm_upstream = $self->dist->scm ? $self->dist->scm->upstream : undef;
+
+    if ( !$scm_upstream ) {
+        say qq[Dist has no upstream repository"];
+
+        exit 3;
+    }
+
     my $repo_namespace = $args->{namespace} || $ENV->user_cfg->{DOCKERHUB}->{default_namespace} || $ENV->user_cfg->{DOCKERHUB}->{username};
 
     if ( !$repo_namespace ) {
@@ -37,14 +45,12 @@ sub init ( $self, $args ) {
 
     my $api = $self->dockerhub_api;
 
-    my $upstream = $self->dist->scm->upstream;
-
     print q[Creating DockerHub repository ... ];
 
     my $res = $api->create_autobuild(    #
         $repo_id,                        #
-        $upstream->hosting == $Pcore::API::SCM::Upstream::SCM_HOSTING_BITBUCKET ? $DOCKERHUB_PROVIDER_BITBUCKET : $DOCKERHUB_PROVIDER_GITHUB,
-        "@{[$upstream->namespace]}/@{[$upstream->repo_name]}",
+        $scm_upstream->hosting == $Pcore::API::SCM::Upstream::SCM_HOSTING_BITBUCKET ? $DOCKERHUB_PROVIDER_BITBUCKET : $DOCKERHUB_PROVIDER_GITHUB,
+        $scm_upstream->{repo_id},
         $self->dist->module->abstract || $self->dist->name,
         private => 0,
         active  => 1
@@ -537,13 +543,15 @@ sub trigger_build ( $self, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
+## |    3 | 23                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 112                  | * Subroutine "status" with high complexity score (24)                                                          |
-## |      | 294                  | * Subroutine "build_status" with high complexity score (27)                                                    |
+## |      | 118                  | * Subroutine "status" with high complexity score (24)                                                          |
+## |      | 300                  | * Subroutine "build_status" with high complexity score (27)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 463                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 469                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 263, 342             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 269, 348             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

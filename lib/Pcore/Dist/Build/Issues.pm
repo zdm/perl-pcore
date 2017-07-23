@@ -21,8 +21,8 @@ sub _build_api ($self) {
     my $scm_upstream = $self->dist->scm->upstream;
 
     return Pcore::API::Bitbucket->new(
-        {   namespace => $scm_upstream->namespace,
-            repo_name => $scm_upstream->repo_name,
+        {   namespace => $scm_upstream->{repo_namespace},
+            repo_name => $scm_upstream->{repo_name},
         }
     );
 }

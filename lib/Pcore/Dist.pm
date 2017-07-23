@@ -160,8 +160,8 @@ sub dir_is_dist_root ( $self, $path ) {
 }
 
 # CONSTRUCTOR
-sub create ( $self, @args ) {
-    return P->class->load('Pcore::Dist::Build')->new->create(@args);
+sub create ( $self, $args ) {
+    return P->class->load('Pcore::Dist::Build')->new->create($args);
 }
 
 # BUILDERS

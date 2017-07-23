@@ -83,6 +83,7 @@ sub scm_init ( $self, $root, $type = $SCM_TYPE_HG, $cb = undef ) {
 }
 
 # SCM CLONE
+# TODO
 sub scm_clone ( $self, $root, $uri, @args ) {
     my $cb = ref $args[-1] eq 'CODE' ? pop @args : undef;
 

@@ -15,24 +15,32 @@ sub CLI ($self) {
                 desc    => 'create CPAN distribution',
                 default => 0,
             },
-            upstream => {
-                desc    => 'create upstream repository',
+            hosting => {
+                short   => undef,
+                desc    => q[define hosting for upstream repository. Possible values: 'bitbucket', 'github'],
                 isa     => [qw[bitbucket github]],
                 default => 'bitbucket',
-            },
-            upstream_namespace => {
-                short => 'N',
-                desc  => 'upstream repository namespace',
-                isa   => 'Str',
             },
             private => {
                 desc    => 'upstream repository is private',
                 default => 0,
             },
-            scm => {
-                desc    => 'SCM type for upstream',
-                isa     => [qw[hg git hggit]],
+            upstream_scm_type => {
+                short   => undef,
+                desc    => q[upstream repository SCM type. Possible values: 'hg', 'git'],
+                isa     => [qw[hg git]],
                 default => 'hg',
+            },
+            local_scm_type => {
+                short   => undef,
+                desc    => q[local repository SCM type. Possible values: 'hg', 'git'],
+                isa     => [qw[hg git]],
+                default => 'hg',
+            },
+            upstream_namespace => {
+                short => undef,
+                desc  => 'upstream repository namespace',
+                isa   => 'Str',
             },
         },
         arg => [    #
@@ -42,11 +50,11 @@ sub CLI ($self) {
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    $opt->{namespace} = $arg->{namespace};
+    $opt->{dist_name} = $arg->{namespace};
 
     $opt->{base_path} = $ENV->{START_DIR};
 
-    if ( my $dist = Pcore::Dist->create( $opt->%* ) ) {
+    if ( my $dist = Pcore::Dist->create($opt) ) {
         return;
     }
     else {
