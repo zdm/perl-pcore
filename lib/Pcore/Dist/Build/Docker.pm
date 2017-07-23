@@ -83,7 +83,7 @@ sub set_from_tag ( $self, $tag ) {
 
     if ( $dockerfile->$* =~ s/^FROM\s+([^:]+)(.*?)$/FROM $1:$tag/sm ) {
         if ( "$1$2" eq "$1:$tag" ) {
-            say qq[Docker base image wasn't changed];
+            say q[Docker base image wasn't changed];
         }
         else {
             P->file->write_bin( $self->dist->root . 'Dockerfile', $dockerfile );
@@ -529,8 +529,6 @@ sub trigger_build ( $self, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 86                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 112                  | * Subroutine "status" with high complexity score (24)                                                          |
 ## |      | 294                  | * Subroutine "build_status" with high complexity score (26)                                                    |
