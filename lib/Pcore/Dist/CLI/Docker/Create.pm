@@ -7,7 +7,26 @@ with qw[Pcore::Dist::CLI1];
 sub CLI ($self) {
     return {
         abstract => 'create autobuild tag',
-        arg      => [
+        opt      => {
+            type => {
+                desc    => q[scm tag type, allowed values: 'tag', 'branch'],
+                type    => 'STR',
+                isa     => [ 'tag', 'branch' ],
+                default => 'tag',
+            },
+            name => {
+                desc => q[scm source tag name],
+                type => 'STR',
+                isa  => 'Str',
+            },
+            dockerfile_location => {
+                desc    => q[Dockerfile location],
+                type    => 'STR',
+                isa     => 'Str',
+                default => '/',
+            },
+        },
+        arg => [
             tag => {
                 desc => 'tag',
                 isa  => 'Str',
@@ -19,7 +38,7 @@ sub CLI ($self) {
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
     my $dist = $self->get_dist;
 
-    $dist->build->docker->create_tag( $arg->{tag} );
+    $dist->build->docker->create_tag( $arg->{tag}, $opt->{name} // $opt->{type}, $opt->{type}, $opt->{dockerfile_location} );
 
     return;
 }

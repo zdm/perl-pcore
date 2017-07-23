@@ -249,7 +249,7 @@ sub status ( $self ) {
     # index builds
     for my $build ( sort { $b->{id} <=> $a->{id} } values $build_history->{data}->%* ) {
         if ( !exists $report->{ $build->{dockertag_name} }->{status_text} ) {
-            if ( $build->{status_text} eq 'error' ) {
+            if ( $build->{status_text} eq 'error' || $build->{status_text} eq 'cancelled' ) {
                 $report->{ $build->{dockertag_name} }->{status_text} = $BOLD . $WHITE . $ON_RED;
             }
             elsif ( $build->{status_text} eq 'success' ) {
@@ -288,7 +288,158 @@ sub status ( $self ) {
     return;
 }
 
-sub create_tag ( $self, $tag_name ) {
+sub build_status ( $self ) {
+    my $orgs = $self->dockerhub_api->get_user_orgs;
+
+    my $namespaces = [ $self->dockerhub_api->{username} ];
+
+    push $namespaces->@*, keys $orgs->{data}->%* if $orgs && $orgs->{data};
+
+    my $repos;
+
+    my $cv = AE::cv;
+
+    $cv->begin;
+
+    for my $namespace ( $namespaces->@* ) {
+        $cv->begin;
+
+        $self->dockerhub_api->get_all_repos(
+            $namespace,
+            sub ($res) {
+                if ( $res && $res->{data} ) {
+                    push $repos->@*, keys $res->{data}->%*;
+                }
+
+                $cv->end;
+
+                return;
+            }
+        );
+    }
+
+    $cv->end;
+
+    $cv->recv;
+
+    return if !$repos;
+
+    my ( $build_history, $autobuild_tags );
+
+    $cv = AE::cv;
+
+    $cv->begin;
+
+    for my $repo_id ( $repos->@* ) {
+        $cv->begin;
+        $self->dockerhub_api->get_build_history(
+            $repo_id,
+            sub ($res) {
+                if ( $res && $res->{data} ) {
+                    for my $autobuild ( sort { $b->{id} <=> $a->{id} } values $res->{data}->%* ) {
+                        my $build_id = "$repo_id:$autobuild->{dockertag_name}";
+
+                        if ( !exists $build_history->{$build_id} ) {
+                            $build_history->{$build_id} = $autobuild;
+
+                            $autobuild->{build_id} = $build_id;
+                        }
+                    }
+                }
+
+                $cv->end;
+
+                return;
+            }
+        );
+
+        $cv->begin;
+        $self->dockerhub_api->get_autobuild_tags(
+            $repo_id,
+            sub ($res) {
+                if ( $res && $res->{data} ) {
+                    for my $autobuild_tag ( values $res->{data}->%* ) {
+                        $autobuild_tags->{"$repo_id:$autobuild_tag->{name}"} = undef;
+                    }
+                }
+
+                $cv->end;
+
+                return;
+            }
+        );
+    }
+
+    $cv->end;
+
+    $cv->recv;
+
+    for my $repo_tag ( keys $build_history->%* ) {
+        delete $build_history->{$repo_tag} if !exists $autobuild_tags->{$repo_tag};
+    }
+
+    my $tbl = P->text->table(
+        cols => [
+            build_id => {
+                title => 'BUILD ID',
+                width => 60,
+            },
+            status_text => {
+                title  => 'LATEST BUILD STATUS',
+                width  => 15,
+                format => sub ( $val, $id, $row ) {
+                    if ( $val eq 'error' || $val eq 'cancelled' ) {
+                        $val = $BOLD . $WHITE . $ON_RED . $val . $RESET;
+                    }
+                    elsif ( $val eq 'success' ) {
+                        $val = $BLACK . $ON_GREEN . $val . $RESET;
+                    }
+                    else {
+                        $val = $BLACK . $ON_WHITE . $val . $RESET;
+                    }
+
+                    return $val;
+                }
+            },
+            created_date => {
+                title  => 'CREATED DATE',
+                width  => 35,
+                align  => 1,
+                format => sub ( $val, $id, $row ) {
+                    return q[-] if !$val;
+
+                    my $now = P->date->now_utc;
+
+                    my $date = P->date->from_string($val);
+
+                    my $delta_minutes = $date->delta_minutes($now);
+
+                    my $minutes = $delta_minutes % 60;
+
+                    my $delta_hours = int( $delta_minutes / 60 );
+
+                    my $hours = $delta_hours % 24;
+
+                    my $days = int( $delta_hours / 24 );
+
+                    my $res = q[];
+
+                    $res .= "$days days " if $days;
+
+                    $res .= "$hours hours " if $hours;
+
+                    return "${res}$minutes minutes ago";
+                }
+            },
+        ],
+    );
+
+    print $tbl->render_all( [ sort { $a->{created_date} cmp $b->{created_date} } values $build_history->%* ] );
+
+    return;
+}
+
+sub create_tag ( $self, $tag_name, $source_name, $source_type, $dockerfile_location ) {
     print qq[Creating autobuild tag "$tag_name" ... ];
 
     my $autobuild_tags = $self->dockerhub_api->get_autobuild_tags( $self->dist->docker->{repo_id} );
@@ -308,18 +459,16 @@ sub create_tag ( $self, $tag_name ) {
         }
     }
 
-    my $res = $self->dockerhub_api->create_autobuild_tag( $self->dist->docker->{repo_id}, $tag_name, $tag_name, $DOCKERHUB_SOURCE_TYPE_TAG );
+    my $res = $self->dockerhub_api->create_autobuild_tag( $self->dist->docker->{repo_id}, $tag_name, $source_name, $source_type, $dockerfile_location );
+
+    say $res->reason;
 
     if ( $res->status ) {
-        say 'OK';
-
         $self->status;
 
         return 1;
     }
     else {
-        say $res->reason;
-
         return 0;
     }
 }
@@ -327,47 +476,18 @@ sub create_tag ( $self, $tag_name ) {
 sub remove_tag ( $self, $tag ) {
     print qq[Removing tag "$tag" ... ];
 
-    my $tags = $self->dockerhub_repo->tags;
+    my $res = $self->dockerhub_api->unlink_tag( $self->dist->docker->{repo_id}, $tag );
 
-    if ( !$tags->{data}->{$tag} ) {
-        say 'Tag does not exists';
+    say $res->reason;
+
+    if ($res) {
+        $self->status;
+
+        return 1;
     }
     else {
-        my $res = $tags->{data}->{$tag}->remove;
-
-        say $res->status ? 'OK' : $res->reason;
+        return 0;
     }
-
-    # remove build tag
-    print qq[Removing build tag "$tag" ... ];
-
-    my $build_settings = $self->dockerhub_repo->build_settings;
-
-    if ( !$build_settings ) {
-        say $build_settings->reason;
-    }
-    else {
-        my $build_tag;
-
-        for ( values $build_settings->{data}->{build_tags}->%* ) {
-            if ( $_->name eq $tag ) {
-                $build_tag = $_;
-
-                last;
-            }
-        }
-
-        if ( !$build_tag ) {
-            say 'Tag does not exists';
-        }
-        else {
-            my $res1 = $build_tag->remove;
-
-            say $res1->status ? 'OK' : $res1->reason;
-        }
-    }
-
-    $self->status;
 
     return;
 }
@@ -375,18 +495,16 @@ sub remove_tag ( $self, $tag ) {
 sub trigger_build ( $self, $tag ) {
     print qq[Triggering build for tag "$tag" ... ];
 
-    my $res = $self->dockerhub_api->trigger_autobuild( $self->dist->docker->{repo_id}, $tag );
+    my $res = $self->dockerhub_api->trigger_autobuild_by_tag_name( $self->dist->docker->{repo_id}, $tag );
 
-    if ( $res->is_success ) {
-        say 'OK';
+    say $res->reason;
 
+    if ($res) {
         $self->status;
 
         return 1;
     }
     else {
-        say $res->reason;
-
         return 0;
     }
 }
@@ -400,9 +518,13 @@ sub trigger_build ( $self, $tag ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 86                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 112                  | Subroutines::ProhibitExcessComplexity - Subroutine "status" with high complexity score (23)                    |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 112                  | * Subroutine "status" with high complexity score (24)                                                          |
+## |      | 291                  | * Subroutine "build_status" with high complexity score (24)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 250                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    3 | 442                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 250, 339             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -25,6 +25,8 @@ const our $DOCKERHUB_SOURCE_TYPE_BRANCH => 2;
 const our $DOCKERHUB_SOURCE_TYPE_NAME => {
     $DOCKERHUB_SOURCE_TYPE_TAG    => 'Tag',
     $DOCKERHUB_SOURCE_TYPE_BRANCH => 'Branch',
+    tag                           => 'Tag',
+    branch                        => 'Branch',
 };
 
 const our $DEF_PAGE_SIZE => 250;
@@ -144,6 +146,29 @@ sub get_user_registry_settings ( $self, $username, $cb = undef ) {
     return $self->_req( 'get', "/users/$username/registry-settings/", 1, undef, $cb );
 }
 
+sub get_user_orgs ( $self, $cb = undef ) {
+    return $self->_req(
+        'get',
+        "/user/orgs/?page_size=$DEF_PAGE_SIZE&page=1",
+        1, undef,
+        sub ($res) {
+            if ($res) {
+                my $data;
+
+                for my $org ( $res->{data}->{results}->@* ) {
+                    $data->{ $org->{orgname} } = $org;
+                }
+
+                $res->{data} = $data;
+            }
+
+            $cb->($res) if $cb;
+
+            return;
+        }
+    );
+}
+
 # CREATE REPO / AUTOMATED BUILD
 sub create_repo ( $self, $repo_id, $desc, @args ) {
     my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
@@ -199,7 +224,7 @@ sub create_autobuild ( $self, $repo_id, $scm_provider, $scm_repo_id, $desc, @arg
         for ( $args{build_tags}->@* ) {
             my %build_tags = $_->%*;
 
-            $build_tags{source_type} = $DOCKERHUB_SOURCE_TYPE_NAME->{ $build_tags{source_type} };
+            $build_tags{source_type} = $DOCKERHUB_SOURCE_TYPE_NAME->{ lc $build_tags{source_type} };
 
             push $build_tags->@*, \%build_tags;
         }
@@ -394,21 +419,56 @@ sub get_build_history ( $self, $repo_id, $cb = undef ) {
     );
 }
 
-sub trigger_autobuild ( $self, $repo_id, $source_name, $source_type, $cb = undef ) {
-    return $self->_req(
-        'post',
-        "/repositories/$repo_id/autobuild/trigger-build/",
-        1,
-        {   source_name         => $source_name,
-            source_type         => $DOCKERHUB_SOURCE_TYPE_NAME->{$source_type},
-            dockerfile_location => '/',
-        },
-        $cb
-    );
-}
-
 sub get_autobuild_settings ( $self, $repo_id, $cb = undef ) {
     return $self->_req( 'get', "/repositories/$repo_id/autobuild/", 1, undef, $cb );
+}
+
+sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my ( $delete_autobuild_tag_status, $delete_tag_status );
+
+    my $cv = AE::cv {
+        my $res = result [ 200, "autobuild: $delete_autobuild_tag_status->{reason}, tag: $delete_tag_status->{reason}" ];
+
+        $cb->($res) if $cb;
+
+        $blocking_cv->($res) if $blocking_cv;
+
+        return;
+    };
+
+    $cv->begin;
+
+    $cv->begin;
+    $self->delete_autobuild_tag_by_name(
+        $repo_id,
+        $tag_name,
+        sub ($res) {
+            $delete_autobuild_tag_status = $res;
+
+            $cv->end;
+
+            return;
+        }
+    );
+
+    $cv->begin;
+    $self->delete_tag(
+        $repo_id,
+        $tag_name,
+        sub ($res) {
+            $delete_tag_status = $res;
+
+            $cv->end;
+
+            return;
+        }
+    );
+
+    $cv->end;
+
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 # AUTOBUILD TAGS
@@ -435,7 +495,7 @@ sub get_autobuild_tags ( $self, $repo_id, $cb = undef ) {
     );
 }
 
-sub create_autobuild_tag ( $self, $repo_id, $tag_name, $source_name, $source_type, $cb = undef ) {
+sub create_autobuild_tag ( $self, $repo_id, $tag_name, $source_name, $source_type, $dockerfile_location, $cb = undef ) {
     my ( $namespace, $name ) = split m[/]sm, $repo_id;
 
     return $self->_req(
@@ -443,9 +503,9 @@ sub create_autobuild_tag ( $self, $repo_id, $tag_name, $source_name, $source_typ
         "/repositories/$repo_id/autobuild/tags/",
         1,
         {   name                => $tag_name,
-            dockerfile_location => '/',
+            dockerfile_location => $dockerfile_location // '/',
             source_name         => $source_name,
-            source_type         => $DOCKERHUB_SOURCE_TYPE_NAME->{$source_type},
+            source_type         => $DOCKERHUB_SOURCE_TYPE_NAME->{ lc $source_type },
             isNew               => \1,
             repoName            => $name,
             namespace           => $namespace,
@@ -454,8 +514,109 @@ sub create_autobuild_tag ( $self, $repo_id, $tag_name, $source_name, $source_typ
     );
 }
 
-sub delete_autobuild_tag ( $self, $repo_id, $autobuild_tag_id, $cb = undef ) {
-    return $self->_req( 'delete', "/repositories/$repo_id/autobuid/$autobuild_tag_id/", 1, undef, $cb );
+sub delete_autobuild_tag_by_id ( $self, $repo_id, $autobuild_tag_id, $cb = undef ) {
+    return $self->_req( 'delete', "/repositories/$repo_id/autobuild/tags/$autobuild_tag_id/", 1, undef, $cb );
+}
+
+sub delete_autobuild_tag_by_name ( $self, $repo_id, $autobuild_tag_name, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my $on_finish = sub ($res) {
+        $cb->($res) if $cb;
+
+        $blocking_cv->($res) if $blocking_cv;
+
+        return;
+    };
+
+    # get autobuild tags
+    $self->get_autobuild_tags(
+        $repo_id,
+        sub ($res) {
+            if ( !$res ) {
+                $on_finish->($res);
+            }
+            else {
+                my $found_autobuild_tag;
+
+                for my $autobuild_tag ( values $res->{data}->%* ) {
+                    if ( $autobuild_tag->{name} eq $autobuild_tag_name ) {
+                        $found_autobuild_tag = $autobuild_tag;
+
+                        last;
+                    }
+                }
+
+                if ( !$found_autobuild_tag ) {
+                    $on_finish->( result [ 404, 'Autobuild tag was not found' ] );
+                }
+                else {
+                    $self->delete_autobuild_tag_by_id( $repo_id, $found_autobuild_tag->{id}, $on_finish );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub trigger_autobuild ( $self, $repo_id, $source_name, $source_type, $cb = undef ) {
+    return $self->_req(
+        'post',
+        "/repositories/$repo_id/autobuild/trigger-build/",
+        1,
+        {   source_name         => $source_name,
+            source_type         => $DOCKERHUB_SOURCE_TYPE_NAME->{ lc $source_type },
+            dockerfile_location => '/',
+        },
+        $cb
+    );
+}
+
+sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my $on_finish = sub ($res) {
+        $cb->($res) if $cb;
+
+        $blocking_cv->($res) if $blocking_cv;
+
+        return;
+    };
+
+    # get autobuild tags
+    $self->get_autobuild_tags(
+        $repo_id,
+        sub ($res) {
+            if ( !$res ) {
+                $on_finish->($res);
+            }
+            else {
+                my $found_autobuild_tag;
+
+                for my $autobuild_tag ( values $res->{data}->%* ) {
+                    if ( $autobuild_tag->{name} eq $autobuild_tag_name ) {
+                        $found_autobuild_tag = $autobuild_tag;
+
+                        last;
+                    }
+                }
+
+                if ( !$found_autobuild_tag ) {
+                    $on_finish->( result [ 404, 'Autobuild tag was not found' ] );
+                }
+                else {
+                    $self->trigger_autobuild( $repo_id, $found_autobuild_tag->{source_name}, $found_autobuild_tag->{source_type}, $on_finish );
+                }
+            }
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 1;
@@ -465,11 +626,12 @@ sub delete_autobuild_tag ( $self, $repo_id, $autobuild_tag_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 85, 173, 307, 317,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 334, 362, 366, 397,  |                                                                                                                |
-## |      | 438, 457             |                                                                                                                |
+## |    3 | 87, 198, 332, 342,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 359, 387, 391, 426,  |                                                                                                                |
+## |      | 498, 517, 521, 565,  |                                                                                                                |
+## |      | 578                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 151                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 176                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
