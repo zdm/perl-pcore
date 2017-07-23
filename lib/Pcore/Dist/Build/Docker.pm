@@ -381,7 +381,7 @@ sub build_status ( $self ) {
     my $tbl = P->text->table(
         cols => [
             build_id => {
-                title => 'BUILD ID',
+                title => 'REPO BUILD TAG',
                 width => 60,
             },
             status_text => {
@@ -389,13 +389,13 @@ sub build_status ( $self ) {
                 width  => 15,
                 format => sub ( $val, $id, $row ) {
                     if ( $val eq 'error' || $val eq 'cancelled' ) {
-                        $val = $BOLD . $WHITE . $ON_RED . $val . $RESET;
+                        $val = $BOLD . $WHITE . $ON_RED . " $val " . $RESET;
                     }
                     elsif ( $val eq 'success' ) {
-                        $val = $BLACK . $ON_GREEN . $val . $RESET;
+                        $val = $BLACK . $ON_GREEN . " $val " . $RESET;
                     }
                     else {
-                        $val = $BLACK . $ON_WHITE . $val . $RESET;
+                        $val = $BLACK . $ON_WHITE . " $val " . $RESET;
                     }
 
                     return $val;
