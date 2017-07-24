@@ -49,7 +49,11 @@ sub _build_tmpl_params ($self) {
 
 sub run ($self) {
     if ( -e $self->target_path ) {
-        return result [ 500, 'Target path already exists' ];
+        my $res = result [ 500, 'Target path already exists' ];
+
+        say $res;
+
+        return $res;
     }
 
     # create upstream repo
@@ -87,7 +91,7 @@ sub run ($self) {
     # update dist after create
     $dist->build->update;
 
-    return result(200), $dist;
+    return result 200;
 }
 
 sub _create_upstream_repo ($self) {

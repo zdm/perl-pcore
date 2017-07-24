@@ -99,14 +99,7 @@ sub scm_clone ( $self, $root, $uri, $local_scm_type, @args ) {
     $server->scm_clone(
         $root,
         sub ($res) {
-            if ($res) {
-                P->file->move( $temp->path, $root );
-
-                $res = $self->new($root);
-            }
-            else {
-                undef $root;
-            }
+            P->file->move( $temp->path, $root ) if $res;
 
             $cb->($res) if $cb;
 

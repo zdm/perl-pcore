@@ -57,7 +57,7 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
     require Pcore::Dist::Build;
 
-    my ( $status, $dist ) = Pcore::Dist::Build->new->create($opt);
+    my $status = Pcore::Dist::Build->new->create($opt);
 
     exit 3 if !$status;
 
