@@ -77,6 +77,7 @@ sub BUILDARGS ( $self, $args ) {
                             $args->{remote_scm_type} = $SCM_TYPE_GIT;
                         }
                         else {
+
                             # NOTE uri is ambiguous, better is to use .git suffix for git repositories
                             $args->{remote_scm_type} = $SCM_TYPE_HG;
                         }
@@ -219,7 +220,7 @@ sub get_wiki_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_ty
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 76                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 103, 156             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 104, 157             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
