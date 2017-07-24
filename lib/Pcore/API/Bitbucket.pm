@@ -2,13 +2,13 @@ package Pcore::API::Bitbucket;
 
 use Pcore -class, -result;
 use Pcore::API::Bitbucket::Issue;
-use Pcore::API::SCM qw[:CONST];
+use Pcore::API::SCM::Const qw[:ALL];
 
 has username  => ( is => 'ro', isa => Str, required => 1 );
 has password  => ( is => 'ro', isa => Str, required => 1 );
 has repo_name => ( is => 'ro', isa => Str, required => 1 );
 
-has namespace => ( is => 'lazy', isa => Str );
+has repo_namespace => ( is => 'lazy', isa => Str );
 has scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
 
 has id   => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -30,17 +30,17 @@ sub BUILDARGS ( $self, $args = undef ) {
 
     $args->{password} ||= $ENV->user_cfg->{BITBUCKET}->{password} if $ENV->user_cfg->{BITBUCKET}->{password};
 
-    $args->{namespace} ||= $ENV->user_cfg->{BITBUCKET}->{namespace} if $ENV->user_cfg->{BITBUCKET}->{namespace};
+    $args->{repo_namespace} ||= $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace} if $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace};
 
     return $args;
 }
 
-sub _build_namespace ($self) {
+sub _build_repo_namespace ($self) {
     return $self->username;
 }
 
 sub _build_id ($self) {
-    return $self->namespace . q[/] . $self->repo_name;
+    return $self->repo_namespace . q[/] . $self->repo_name;
 }
 
 sub _build_auth ($self) {

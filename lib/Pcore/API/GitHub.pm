@@ -5,7 +5,7 @@ use Pcore -class, -result;
 has api_username => ( is => 'ro', isa => Str, required => 1 );
 has api_token    => ( is => 'ro', isa => Str, required => 1 );
 has repo_name    => ( is => 'ro', isa => Str, required => 1 );
-has namespace => ( is => 'lazy', isa => Str );
+has repo_namespace => ( is => 'lazy', isa => Str );
 
 has id => ( is => 'lazy', isa => Str, init_arg => undef );
 
@@ -25,17 +25,17 @@ sub BUILDARGS ( $self, $args = undef ) {
 
     $args->{api_token} ||= $ENV->user_cfg->{GITHUB}->{token} if $ENV->user_cfg->{GITHUB}->{token};
 
-    $args->{namespace} ||= $ENV->user_cfg->{GITHUB}->{namespace} if $ENV->user_cfg->{GITHUB}->{namespace};
+    $args->{repo_namespace} ||= $ENV->user_cfg->{GITHUB}->{default_repo_namespace} if $ENV->user_cfg->{GITHUB}->{default_repo_namespace};
 
     return $args;
 }
 
-sub _build_namespace ($self) {
+sub _build_repo_namespace ($self) {
     return $self->api_username;
 }
 
 sub _build_id ($self) {
-    return $self->namespace . q[/] . $self->repo_name;
+    return $self->repo_namespace . q[/] . $self->repo_name;
 }
 
 # CLONE URL BUILDERS

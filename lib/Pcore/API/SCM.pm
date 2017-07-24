@@ -80,8 +80,7 @@ sub scm_init ( $self, $root, $type = $SCM_TYPE_HG, $cb = undef ) {
 }
 
 # SCM CLONE
-# TODO
-sub scm_clone ( $self, $root, $uri, @args ) {
+sub scm_clone ( $self, $root, $uri, $local_scm_type, @args ) {
     my $cb = ref $args[-1] eq 'CODE' ? pop @args : undef;
 
     # can't clone to existed directory
@@ -91,9 +90,7 @@ sub scm_clone ( $self, $root, $uri, @args ) {
         return;
     }
 
-    my $upstream = Pcore::API::SCM::Upstream->new( { uri => $uri } );
-
-    my $server = $self->_get_server( $upstream->local_scm_type );
+    my $server = $self->_get_server($local_scm_type);
 
     my $temp = P->file->tempdir;
 
@@ -102,7 +99,7 @@ sub scm_clone ( $self, $root, $uri, @args ) {
     $server->scm_clone(
         $root,
         sub ($res) {
-            if ( $res->is_success ) {
+            if ($res) {
                 P->file->move( $temp->path, $root );
 
                 $res = $self->new($root);
@@ -117,19 +114,19 @@ sub scm_clone ( $self, $root, $uri, @args ) {
 
             return;
         },
-        [ $temp->path, $uri, @args, ]
+        [ $temp->path, $uri, @args ]
     );
 
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 sub _get_server ( $self, $type ) {
-    if ( $type == $SCM_TYPE_HG ) {
+    if ( $type eq $SCM_TYPE_HG ) {
         require Pcore::API::SCM::Server::Hg;
 
         return Pcore::API::SCM::Server::Hg->new;
     }
-    elsif ( $type == $SCM_TYPE_GIT ) {
+    elsif ( $type eq $SCM_TYPE_GIT ) {
         require Pcore::API::SCM::Server::Git;
 
         return Pcore::API::SCM::Server::Git->new;
@@ -209,7 +206,7 @@ sub _request ( $self, $method, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 51                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 51, 83               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

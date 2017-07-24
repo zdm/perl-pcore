@@ -159,11 +159,6 @@ sub dir_is_dist_root ( $self, $path ) {
     return -f $path . '/share/dist.perl' ? 1 : 0;
 }
 
-# CONSTRUCTOR
-sub create ( $self, $args ) {
-    return P->class->load('Pcore::Dist::Build')->new->create($args);
-}
-
 # BUILDERS
 sub _build_module ($self) {
     my $module_name = $self->name =~ s[-][/]smgr . '.pm';

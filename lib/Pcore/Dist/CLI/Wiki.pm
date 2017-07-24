@@ -1,7 +1,7 @@
 package Pcore::Dist::CLI::Wiki;
 
 use Pcore -class;
-use Pcore::API::SCM qw[:CONST];
+use Pcore::API::SCM::Const qw[:ALL];
 
 with qw[Pcore::Dist::CLI];
 

@@ -1,54 +1,42 @@
 package Pcore::Dist::Build::Create;
 
-use Pcore -const, -class;
+use Pcore -class, -result;
 use Pcore::Dist;
-use Pcore::API::SCM;
 use Pcore::Util::File::Tree;
-use Pcore::API::SCM qw[:CONST];
+use Pcore::API::SCM::Const qw[:ALL];
+use Pcore::API::SCM;
+use Pcore::API::SCM::Upstream;
 
-const our $SCM_NAME_TYPE => {
-    hg    => $SCM_TYPE_HG,
-    git   => $SCM_TYPE_GIT,
-    hggit => $SCM_TYPE_GIT,
-};
+has base_path      => ( is => 'ro', isa => Str, required => 1 );
+has dist_namespace => ( is => 'ro', isa => Str, required => 1 );    # Dist::Name
+has dist_name      => ( is => 'ro', isa => Str, required => 1 );    # Dist-Name
 
-has build => ( is => 'ro', isa => InstanceOf ['Pcore::Dist::Build'], required => 1 );
+has cpan => ( is => 'ro', isa => Bool, default => 0 );
+has hosting => ( is => 'ro', isa => Enum [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ], default => $SCM_HOSTING_BITBUCKET );
+has private => ( is => 'ro', isa => Bool, default => 0 );
+has upstream_scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
+has local_scm_type    => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
+has upstream_namespace => ( is => 'ro', isa => Str );
 
-has base_path => ( is => 'ro', isa => Str,  required => 1 );
-has namespace => ( is => 'ro', isa => Str,  required => 1 );    # Dist::Name
-has cpan      => ( is => 'ro', isa => Bool, default  => 0 );
-has upstream => ( is => 'ro', isa => Enum [qw[bitbucket github]], default => 'bitbucket' );    # create upstream repository
-has upstream_namespace => ( is => 'ro', isa => Str );                                                  # upstream repository namespace
-has private            => ( is => 'ro', isa => Bool, default => 0 );
-has scm                => ( is => 'ro', isa => Enum [ keys $SCM_NAME_TYPE->%* ], default => 'hg' );    # SCM for upstream repository
-
-has scm_type => ( is => 'lazy', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], init_arg => undef );
 has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
-has upstream_api => ( is => 'ro', isa => Object, init_arg => undef );
-
-our $ERROR;
-
 sub BUILDARGS ( $self, $args ) {
-    $args->{namespace} =~ s/-/::/smg if $args->{namespace};
+    $args->{dist_namespace} =~ s/-/::/smg;
+    $args->{dist_name} = $args->{dist_namespace} =~ s/::/-/smgr;
 
     return $args;
 }
 
-sub _build_scm_type ($self) {
-    return $SCM_NAME_TYPE->{ $self->scm };
-}
-
 sub _build_target_path ($self) {
-    return P->path( $self->base_path, is_dir => 1 )->realpath->to_string . lc( $self->namespace =~ s[::][-]smgr );
+    return P->path( $self->base_path, is_dir => 1 )->realpath->to_string . lc $self->{dist_name};
 }
 
 sub _build_tmpl_params ($self) {
     return {
-        dist_name         => $self->namespace =~ s/::/-/smgr,                                            # Package-Name
-        dist_path         => lc $self->namespace =~ s/::/-/smgr,                                         # package-name
-        module_name       => $self->namespace,                                                           # Package::Name
+        dist_name         => $self->{dist_name},                                                         # Package-Name
+        dist_path         => lc $self->{dist_name},                                                      # package-name
+        module_name       => $self->{dist_namespace},                                                    # Package::Name
         author            => $ENV->user_cfg->{_}->{author},
         author_email      => $ENV->user_cfg->{_}->{email},
         copyright_year    => P->date->now->year,
@@ -61,20 +49,14 @@ sub _build_tmpl_params ($self) {
 
 sub run ($self) {
     if ( -e $self->target_path ) {
-        $ERROR = 'Target path already exists';
-
-        return;
-    }
-
-    if ( $self->upstream eq 'github' ) {
-
-        # GitHub support only git SCM
-        $self->{scm} = 'git' if $self->{scm} eq 'hg';
+        return result [ 500, 'Target path already exists' ];
     }
 
     # create upstream repo
-    if ( $self->upstream ) {
-        return if !$self->_create_upstream_repo;
+    if ( $self->{hosting} ) {
+        my $res = $self->_create_upstream_repo;
+
+        return $res if !$res;
     }
 
     # copy files
@@ -82,16 +64,16 @@ sub run ($self) {
 
     $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/dist/' );
 
-    if ( $self->upstream ) {
-        if ( $self->scm_type == $SCM_TYPE_HG ) {
+    if ( $self->{hosting} ) {
+        if ( $self->{local_scm_type} eq $SCM_TYPE_HG ) {
             $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/hg/' );
         }
-        elsif ( $self->scm_type == $SCM_TYPE_GIT ) {
+        elsif ( $self->{local_scm_type} eq $SCM_TYPE_GIT ) {
             $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/git/' );
         }
     }
 
-    $files->move_file( 'lib/_MainModule.pm', 'lib/' . $self->namespace =~ s[::][/]smgr . '.pm' );
+    $files->move_file( 'lib/_MainModule.pm', 'lib/' . ( $self->{dist_name} =~ s[-][/]smgr ) . '.pm' );
 
     # rename share/_dist.perl -> share/dist.perl
     $files->move_file( 'share/_dist.perl', 'share/dist.perl' );
@@ -105,80 +87,74 @@ sub run ($self) {
     # update dist after create
     $dist->build->update;
 
-    return $dist;
+    return result(200), $dist;
 }
 
 sub _create_upstream_repo ($self) {
-    if ( $self->upstream eq 'bitbucket' ) {
+    my ( $upstream_api, $repo_namespace );
+
+    if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
         require Pcore::API::Bitbucket;
 
-        $self->{upstream_api} = Pcore::API::Bitbucket->new(
-            {   repo_name => lc $self->namespace =~ s[::][-]smgr,
-                namespace => $self->upstream_namespace || $ENV->user_cfg->{BITBUCKET}->{namespace},
-                scm_type  => $self->scm_type,
+        $repo_namespace = $self->{upstream_namespace} // $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace};
+
+        $upstream_api = Pcore::API::Bitbucket->new(
+            {   repo_namespace => $repo_namespace,
+                repo_name      => lc $self->{dist_name},
+                scm_type       => $self->{upstream_scm_type},
             }
         );
     }
-    elsif ( $self->upstream eq 'github' ) {
+    elsif ( $self->upstream eq $SCM_HOSTING_GITHUB ) {
         require Pcore::API::GitHub;
 
-        $self->{upstream_api} = Pcore::API::GitHub->new(
-            {   repo_name => lc $self->namespace =~ s[::][-]smgr,
-                namespace => $self->upstream_namespace || $ENV->user_cfg->{GITHUB}->{namespace},
+        $repo_namespace = $self->{upstream_namespace} // $ENV->user_cfg->{GITHUB}->{default_repo_namespace};
+
+        $upstream_api = Pcore::API::GitHub->new(
+            {   repo_namespace => $repo_namespace,
+                repo_name      => lc $self->{dist_name},
             }
         );
     }
 
-    my $confirm = P->term->prompt( qq[Create upstream repository "@{[$self->{upstream_api}->id]}" on @{[$self->upstream]}?], [qw[yes no exit]], enter => 1 );
+    my $confirm = P->term->prompt( qq[Create upstream repository "@{[$upstream_api->id]}" on $self->{hosting}?], [qw[yes no exit]], enter => 1 );
 
     if ( $confirm eq 'no' ) {
-        return 1;
+        return result 200;
     }
     elsif ( $confirm eq 'exit' ) {
-        $ERROR = 'Error creating upstream repository';
-
-        return;
+        return result [ 500, 'Creating upstream repository cancelled' ];
     }
 
     print 'Creating upstream repository ... ';
 
-    my $res = $self->{upstream_api}->create_repo( is_private => $self->private );
+    my $res = $upstream_api->create_repo( is_private => $self->{private} );
 
-    if ( !$res->is_success ) {
-        $ERROR = $res->reason;
+    say $res;
 
-        say 'error';
+    return $res if !$res;
 
-        return;
-    }
-
-    say 'done';
-
-    return if !$self->_clone_upstream_repo;
-
-    return 1;
+    return $self->_clone_upstream_repo($repo_namespace);
 }
 
-sub _clone_upstream_repo ($self) {
-    my $clone_uri;
+sub _clone_upstream_repo ( $self, $repo_namespace ) {
+    my $scm_upstream = Pcore::API::SCM::Upstream->new(
+        {   remote_scm_type => $self->{upstream_scm_type},
+            hosting         => $self->{hosting},
+            repo_namespace  => $repo_namespace,
+            repo_name       => lc $self->{dist_name},
+        }
+    );
 
-    if   ( $self->scm eq 'hggit' ) { $clone_uri = $self->upstream_api->clone_uri_ssh_hggit }
-    else                           { $clone_uri = $self->upstream_api->clone_uri_ssh }
+    my $clone_uri = $scm_upstream->get_clone_url( $SCM_URL_TYPE_SSH, $self->{local_scm_type} );
 
     print qq[Cloning upstream repository "$clone_uri" ... ];
 
-    if ( my $res = Pcore::API::SCM->scm_clone( $self->target_path, $clone_uri ) ) {
-        say 'done';
+    my $res = Pcore::API::SCM->scm_clone( $self->target_path, $clone_uri, $self->{local_scm_type} );
 
-        return 1;
-    }
-    else {
-        $ERROR = $res->reason;
+    say $res;
 
-        say 'error';
-
-        return;
-    }
+    return $res;
 }
 
 1;

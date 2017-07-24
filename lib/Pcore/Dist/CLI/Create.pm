@@ -2,6 +2,7 @@ package Pcore::Dist::CLI::Create;
 
 use Pcore -class;
 use Pcore::Dist;
+use Pcore::API::SCM::Const qw[:ALL];
 
 with qw[Pcore::Core::CLI::Cmd];
 
@@ -17,9 +18,9 @@ sub CLI ($self) {
             },
             hosting => {
                 short   => undef,
-                desc    => q[define hosting for upstream repository. Possible values: 'bitbucket', 'github'],
-                isa     => [qw[bitbucket github]],
-                default => 'bitbucket',
+                desc    => qq[define hosting for upstream repository. Possible values: '$SCM_HOSTING_BITBUCKET', '$SCM_HOSTING_GITHUB'],
+                isa     => [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ],
+                default => $SCM_HOSTING_BITBUCKET,
             },
             private => {
                 desc    => 'upstream repository is private',
@@ -27,15 +28,15 @@ sub CLI ($self) {
             },
             upstream_scm_type => {
                 short   => undef,
-                desc    => q[upstream repository SCM type. Possible values: 'hg', 'git'],
-                isa     => [qw[hg git]],
-                default => 'hg',
+                desc    => qq[upstream repository SCM type. Possible values: '$SCM_TYPE_HG', '$SCM_TYPE_GIT'],
+                isa     => [ $SCM_TYPE_HG, $SCM_TYPE_GIT ],
+                default => $SCM_TYPE_HG,
             },
             local_scm_type => {
                 short   => undef,
-                desc    => q[local repository SCM type. Possible values: 'hg', 'git'],
-                isa     => [qw[hg git]],
-                default => 'hg',
+                desc    => qq[local repository SCM type. Possible values: '$SCM_TYPE_HG', '$SCM_TYPE_GIT'],
+                isa     => [ $SCM_TYPE_HG, $SCM_TYPE_GIT ],
+                default => $SCM_TYPE_HG,
             },
             upstream_namespace => {
                 short => undef,
@@ -44,24 +45,23 @@ sub CLI ($self) {
             },
         },
         arg => [    #
-            namespace => { type => 'Str', },
+            dist_namespace => { type => 'Str', },
         ],
     };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    $opt->{dist_name} = $arg->{namespace};
+    $opt->{dist_namespace} = $arg->{dist_namespace};
 
     $opt->{base_path} = $ENV->{START_DIR};
 
-    if ( my $dist = Pcore::Dist->create($opt) ) {
-        return;
-    }
-    else {
-        say $Pcore::Dist::Build::Create::ERROR;
+    require Pcore::Dist::Build;
 
-        exit 3;
-    }
+    my ( $status, $dist ) = Pcore::Dist::Build->new->create($opt);
+
+    exit 3 if !$status;
+
+    return;
 }
 
 1;

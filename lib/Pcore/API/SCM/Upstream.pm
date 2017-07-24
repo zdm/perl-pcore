@@ -1,6 +1,6 @@
 package Pcore::API::SCM::Upstream;
 
-use Pcore -const, -class;
+use Pcore -class;
 use Pcore::API::SCM::Const qw[:ALL];
 
 has local_scm_type  => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG,           $SCM_TYPE_GIT ] );
