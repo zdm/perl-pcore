@@ -1,83 +1,48 @@
-package Pcore::API::Bitbucket;
+package Pcore::API::BitBucket;
 
 use Pcore -class, -result;
 use Pcore::Util::Scalar qw[is_plain_coderef];
 use Pcore::API::Bitbucket::Issue;
 use Pcore::API::SCM::Const qw[:ALL];
 
-has username  => ( is => 'ro', isa => Str, required => 1 );
-has password  => ( is => 'ro', isa => Str, required => 1 );
-has repo_name => ( is => 'ro', isa => Str, required => 1 );
+has username => ( is => 'ro', isa => Str, required => 1 );
+has password => ( is => 'ro', isa => Str, required => 1 );
 
-has repo_namespace => ( is => 'lazy', isa => Str );
-has scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
-
-has id   => ( is => 'lazy', isa => Str, init_arg => undef );
-has auth => ( is => 'lazy', isa => Str, init_arg => undef );
+has _auth => ( is => 'lazy', isa => Str, init_arg => undef );
 
 sub BUILDARGS ( $self, $args = undef ) {
     $args->{username} ||= $ENV->user_cfg->{BITBUCKET}->{username} if $ENV->user_cfg->{BITBUCKET}->{username};
 
     $args->{password} ||= $ENV->user_cfg->{BITBUCKET}->{password} if $ENV->user_cfg->{BITBUCKET}->{password};
 
-    $args->{repo_namespace} ||= $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace} if $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace};
-
     return $args;
 }
 
-sub _build_repo_namespace ($self) {
-    return $self->username;
-}
-
-sub _build_id ($self) {
-    return $self->repo_namespace . q[/] . $self->repo_name;
-}
-
-sub _build_auth ($self) {
-    return 'Basic ' . P->data->to_b64( $self->username . q[:] . $self->password, q[] );
+sub _build__auth ($self) {
+    return 'Basic ' . P->data->to_b64( "$self->{username}:$self->{password}", q[] );
 }
 
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D#post
-sub create_repo ( $self, @ ) {
+sub create_repo ( $self, $repo_id, @args ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    my $cb;
+    my $cb = is_plain_coderef @args[-1] ? pop @args : undef;
 
     my $args = {
-        scm_type    => $self->scm_type,
+        scm         => $SCM_TYPE_HG,
         is_private  => 0,
         description => undef,
-        fork_police => 'allow_forks',     # allow_forks, no_public_forks, no_forks
+        fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
         language    => 'perl',
         has_issues  => 1,
         has_wiki    => 1,
+        @args
     };
 
-    if ( ref $_[-1] eq 'CODE' ) {
-        $cb = $_[-1];
-
-        if ( @_ > 2 ) {
-            my %args = @_[ 1 .. $#_ - 1 ];
-
-            $args->@{ keys %args } = values %args;
-        }
-    }
-    elsif ( @_ > 1 ) {
-        my %args = @_[ 1 .. $#_ ];
-
-        $args->@{ keys %args } = values %args;
-    }
-
-    given ( delete $args->{scm_type} ) {
-        when ($SCM_TYPE_HG)  { $args->{scm} = 'hg' }
-        when ($SCM_TYPE_GIT) { $args->{scm} = 'git' }
-        default              { die 'Invalid SCM type' }
-    }
-
-    P->http->post(    #
-        "https://api.bitbucket.org/2.0/repositories/@{[$self->id]}",
+    P->http->post(                       #
+        "https://api.bitbucket.org/2.0/repositories/$repo_id",
         headers => {
-            AUTHORIZATION => $self->auth,
+            AUTHORIZATION => $self->_auth,
             CONTENT_TYPE  => 'application/json',
         },
         body      => P->data->to_json($args),
@@ -99,7 +64,7 @@ sub create_repo ( $self, @ ) {
                 my $data = eval { P->data->from_json( $res->body ) };
 
                 if ($@) {
-                    $done->( result [ 500, 'Error decoding respnse' ] );
+                    $done->( result [ 500, 'Error decoding response' ] );
                 }
                 else {
                     $done->( result 201, $data );
@@ -402,7 +367,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Bitbucket
+Pcore::API::BitBucket
 
 =head1 SYNOPSIS
 

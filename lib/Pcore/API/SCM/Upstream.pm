@@ -242,6 +242,21 @@ sub get_cpan_meta ( $self) {
     return $cpan_meta;
 }
 
+sub get_upstream_api ( $self, $args = undef ) {
+    if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
+        require Pcore::API::Bitbucket;
+
+        return Pcore::API::Bitbucket->new( $args // () );
+    }
+    elsif ( $self->{hosting} eq $SCM_HOSTING_GITHUB ) {
+        require Pcore::API::GitHub;
+
+        return Pcore::API::GitHub->new( $args // () );
+    }
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
