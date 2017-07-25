@@ -16,7 +16,7 @@ has upstream_hosting => ( is => 'ro', isa => Enum [ $SCM_HOSTING_BITBUCKET, $SCM
 has is_private => ( is => 'ro', isa => Bool, default => 0 );
 has upstream_scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
 has local_scm_type    => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
-has upstream_repo_namespace => ( is => 'ro', isa => Str );
+has upstream_repo_namespace => ( is => 'ro', isa => Maybe [Str] );
 
 has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
