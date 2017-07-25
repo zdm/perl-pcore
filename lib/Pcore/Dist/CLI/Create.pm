@@ -17,31 +17,31 @@ sub CLI ($self) {
                 default => 0,
             },
             hosting => {
-                short   => undef,
-                desc    => qq[define hosting for upstream repository. Possible values: '$SCM_HOSTING_BITBUCKET', '$SCM_HOSTING_GITHUB'],
+                short   => 'H',
+                desc    => qq[define hosting for upstream repository. Possible values: "$SCM_HOSTING_BITBUCKET", "$SCM_HOSTING_GITHUB"],
                 isa     => [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ],
                 default => $SCM_HOSTING_BITBUCKET,
             },
             private => {
-                desc    => 'upstream repository is private',
+                desc    => 'create private upstream repository',
                 default => 0,
             },
-            upstream_scm_type => {
-                short   => undef,
-                desc    => qq[upstream repository SCM type. Possible values: '$SCM_TYPE_HG', '$SCM_TYPE_GIT'],
+            scm => {
+                short   => 'S',
+                desc    => qq[upstream repository SCM type. Applied only for "bitbucket". Possible values: "$SCM_TYPE_HG", "$SCM_TYPE_GIT"],
                 isa     => [ $SCM_TYPE_HG, $SCM_TYPE_GIT ],
                 default => $SCM_TYPE_HG,
             },
-            local_scm_type => {
-                short   => undef,
-                desc    => qq[local repository SCM type. Possible values: '$SCM_TYPE_HG', '$SCM_TYPE_GIT'],
-                isa     => [ $SCM_TYPE_HG, $SCM_TYPE_GIT ],
-                default => $SCM_TYPE_HG,
-            },
-            upstream_namespace => {
-                short => undef,
+            namespace => {
+                short => 'N',
                 desc  => 'upstream repository namespace',
                 isa   => 'Str',
+            },
+            local_scm => {
+                short   => 's',
+                desc    => qq[local repository SCM type. Applied only if remote SCM is "git". Possible values: "$SCM_TYPE_HG", "$SCM_TYPE_GIT"],
+                isa     => [ $SCM_TYPE_HG, $SCM_TYPE_GIT ],
+                default => $SCM_TYPE_HG,
             },
         },
         arg => [    #
@@ -51,13 +51,19 @@ sub CLI ($self) {
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
-    $opt->{dist_namespace} = $arg->{dist_namespace};
-
-    $opt->{base_path} = $ENV->{START_DIR};
-
     require Pcore::Dist::Build;
 
-    my $status = Pcore::Dist::Build->new->create($opt);
+    my $status = Pcore::Dist::Build->new->create(
+        {   base_path               => $ENV->{START_DIR},
+            dist_namespace          => $arg->{dist_namespace},
+            is_cpan                 => $opt->{cpan},
+            upstream_hosting        => $opt->{hosting},
+            is_private              => $opt->{private},
+            upstream_scm_type       => $opt->{scm},
+            local_scm_type          => $opt->{local_scm},
+            upstream_repo_namespace => $opt->{namespace},
+        }
+    );
 
     exit 3 if !$status;
 

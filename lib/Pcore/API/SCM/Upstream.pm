@@ -3,9 +3,9 @@ package Pcore::API::SCM::Upstream;
 use Pcore -class;
 use Pcore::API::SCM::Const qw[:ALL];
 
-has local_scm_type  => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG,           $SCM_TYPE_GIT ] );
-has remote_scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG,           $SCM_TYPE_GIT ], required => 1 );
-has hosting         => ( is => 'ro', isa => Enum [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ], required => 1 );
+has local_scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG,           $SCM_TYPE_GIT ] );
+has scm_type       => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG,           $SCM_TYPE_GIT ], required => 1 );
+has hosting        => ( is => 'ro', isa => Enum [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ], required => 1 );
 
 has repo_namespace => ( is => 'ro', isa => Str, required => 1 );
 has repo_name      => ( is => 'ro', isa => Str, required => 1 );
@@ -52,34 +52,34 @@ sub BUILDARGS ( $self, $args ) {
             $args->{repo_id}        = "$2/$3";
 
             if ( $1 eq 'github.com' ) {
-                $args->{hosting}         = $SCM_HOSTING_GITHUB;
-                $args->{remote_scm_type} = $SCM_TYPE_GIT;
+                $args->{hosting}  = $SCM_HOSTING_GITHUB;
+                $args->{scm_type} = $SCM_TYPE_GIT;
             }
             else {
                 $args->{hosting} = $SCM_HOSTING_BITBUCKET;
 
-                if ( !$args->{remote_scm_type} ) {
+                if ( !$args->{scm_type} ) {
                     if ($has_git_suffix) {
-                        $args->{remote_scm_type} = $SCM_TYPE_GIT;
+                        $args->{scm_type} = $SCM_TYPE_GIT;
                     }
 
                     # git_ssh://, git://, git@
                     elsif ( substr( $args->{uri}, 0, 3 ) eq 'git' ) {
-                        $args->{remote_scm_type} = $SCM_TYPE_GIT;
+                        $args->{scm_type} = $SCM_TYPE_GIT;
                     }
 
                     # ssh://
                     elsif ( substr( $args->{uri}, 0, 6 ) eq 'ssh://' ) {
-                        $args->{remote_scm_type} = $SCM_TYPE_HG;
+                        $args->{scm_type} = $SCM_TYPE_HG;
                     }
                     else {
                         if ( $args->{local_scm_type} && $args->{local_scm_type} eq $SCM_TYPE_GIT ) {
-                            $args->{remote_scm_type} = $SCM_TYPE_GIT;
+                            $args->{scm_type} = $SCM_TYPE_GIT;
                         }
                         else {
 
                             # NOTE uri is ambiguous, better is to use .git suffix for git repositories
-                            $args->{remote_scm_type} = $SCM_TYPE_HG;
+                            $args->{scm_type} = $SCM_TYPE_HG;
                         }
                     }
                 }
@@ -90,7 +90,7 @@ sub BUILDARGS ( $self, $args ) {
         }
     }
     else {
-        $args->{remote_scm_type} = $SCM_TYPE_GIT if $args->{hosting} eq $SCM_HOSTING_GITHUB;
+        $args->{scm_type} = $SCM_TYPE_GIT if $args->{hosting} eq $SCM_HOSTING_GITHUB;
 
         if ( $args->{repo_id} ) {
             ( $args->{repo_namespace}, $args->{repo_name} ) = split m[/]sm, $args->{repo_id};
@@ -107,7 +107,7 @@ sub get_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_type = 
     die q[SCM URL type is invalid] if $scm_url_type ne $SCM_URL_TYPE_SSH && $scm_url_type ne $SCM_URL_TYPE_HTTPS;
 
     if ( $local_scm_type eq $SCM_TYPE_HG ) {
-        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
+        if ( $self->{scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh hggit
             if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
@@ -133,7 +133,7 @@ sub get_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_type = 
         }
     }
     elsif ( $local_scm_type eq $SCM_TYPE_GIT ) {
-        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
+        if ( $self->{scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh git
             if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
@@ -162,7 +162,7 @@ sub get_wiki_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_ty
     my $repo_id = $self->{hosting} eq $SCM_HOSTING_BITBUCKET ? "$self->{repo_id}/wiki" : "$self->{repo_id}.wiki";
 
     if ( $local_scm_type eq $SCM_TYPE_HG ) {
-        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
+        if ( $self->{scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh hggit
             if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
@@ -188,7 +188,7 @@ sub get_wiki_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_ty
         }
     }
     elsif ( $local_scm_type eq $SCM_TYPE_GIT ) {
-        if ( $self->{remote_scm_type} eq $SCM_TYPE_GIT ) {
+        if ( $self->{scm_type} eq $SCM_TYPE_GIT ) {
 
             # ssh git
             if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
@@ -221,8 +221,8 @@ sub get_cpan_meta ( $self) {
                 web => "https://bitbucket.org/$self->{repo_id}/issues?status=new&status=open",
             },
             repository => {
-                type => $self->{remote_scm_type},
-                url  => $self->get_clone_url( $SCM_URL_TYPE_HTTPS, $self->{remote_scm_type} ),
+                type => $self->{scm_type},
+                url  => $self->get_clone_url( $SCM_URL_TYPE_HTTPS, $self->{scm_type} ),
                 web  => "https://bitbucket.org/$self->{repo_id}/overview",
             },
         };

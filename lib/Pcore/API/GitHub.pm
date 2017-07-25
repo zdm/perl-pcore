@@ -21,14 +21,23 @@ sub create_repo ( $self, $repo_id, @args ) {
     my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
     my %args = (
-        description   => undef,
+
+        # common attrs
+        description => undef,
+        has_issues  => 1,
+        has_wiki    => 1,
+        is_private  => 0,
+
+        # github attrs
         homepage      => undef,
-        private       => \0,
-        has_issues    => \1,
-        has_wiki      => \1,
-        has_downloads => \1,
+        has_downloads => 1,
         @args
     );
+
+    $args{private}       = delete $args{is_private} ? \1 : \0;
+    $args{has_issues}    = $args{has_issues}        ? \1 : \0;
+    $args{has_wiki}      = $args{has_wiki}          ? \1 : \0;
+    $args{has_downloads} = $args{has_downloads}     ? \1 : \0;
 
     ( my $repo_namespace, $args{name} ) = split m[/]sm, $repo_id;
 
@@ -51,13 +60,20 @@ sub create_repo ( $self, $repo_id, @args ) {
         on_finish => sub ($res) {
             my $api_res;
 
-            if ( $res->status != 200 ) {
-                $api_res = result [ $res->status, $res->reason ];
+            if ( !$res ) {
+                my $json = P->data->from_json( $res->body );
+
+                if ( $json->{message} ) {
+                    $api_res = result [ $res->status, $json->{message} ];
+                }
+                else {
+                    $api_res = result [ $res->status, $res->reason ];
+                }
             }
             else {
                 my $json = P->data->from_json( $res->body );
 
-                if ( $json->{error} ) {
+                if ( $json->{message} ) {
                     $api_res = result [ 200, $json->{message} ];
                 }
                 else {

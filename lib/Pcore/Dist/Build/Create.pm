@@ -11,12 +11,12 @@ has base_path      => ( is => 'ro', isa => Str, required => 1 );
 has dist_namespace => ( is => 'ro', isa => Str, required => 1 );    # Dist::Name
 has dist_name      => ( is => 'ro', isa => Str, required => 1 );    # Dist-Name
 
-has cpan => ( is => 'ro', isa => Bool, default => 0 );
-has hosting => ( is => 'ro', isa => Enum [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ], default => $SCM_HOSTING_BITBUCKET );
-has private => ( is => 'ro', isa => Bool, default => 0 );
+has is_cpan => ( is => 'ro', isa => Bool, default => 0 );
+has upstream_hosting => ( is => 'ro', isa => Enum [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ], default => $SCM_HOSTING_BITBUCKET );
+has is_private => ( is => 'ro', isa => Bool, default => 0 );
 has upstream_scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
 has local_scm_type    => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
-has upstream_namespace => ( is => 'ro', isa => Str );
+has upstream_repo_namespace => ( is => 'ro', isa => Str );
 
 has target_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has tmpl_params => ( is => 'lazy', isa => HashRef, init_arg => undef );
@@ -42,7 +42,7 @@ sub _build_tmpl_params ($self) {
         copyright_year    => P->date->now->year,
         copyright_holder  => $ENV->user_cfg->{_}->{copyright_holder} || $ENV->user_cfg->{_}->{author},
         license           => $ENV->user_cfg->{_}->{license},
-        cpan_distribution => $self->cpan,
+        cpan_distribution => $self->{is_cpan},
         pcore_version     => $ENV->pcore->version->normal,
     };
 }
@@ -57,7 +57,7 @@ sub run ($self) {
     }
 
     # create upstream repo
-    if ( $self->{hosting} ) {
+    if ( $self->{upstream_hosting} ) {
         my $res = $self->_create_upstream_repo;
 
         return $res if !$res;
@@ -68,7 +68,7 @@ sub run ($self) {
 
     $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/dist/' );
 
-    if ( $self->{hosting} ) {
+    if ( $self->{upstream_hosting} ) {
         if ( $self->{local_scm_type} eq $SCM_TYPE_HG ) {
             $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/hg/' );
         }
@@ -95,11 +95,11 @@ sub run ($self) {
 }
 
 sub _create_upstream_repo ($self) {
-    my $upstream_repo_namespace = $self->{upstream_namespace} // ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ? $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace} : $ENV->user_cfg->{GITHUB}->{default_repo_namespace} );
+    my $upstream_repo_namespace = $self->{upstream_repo_namespace} // ( $self->{upstream_hosting} eq $SCM_HOSTING_BITBUCKET ? $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace} : $ENV->user_cfg->{GITHUB}->{default_repo_namespace} );
 
     my $upstream_repo_id = "$upstream_repo_namespace/" . lc $self->{dist_name};
 
-    my $confirm = P->term->prompt( qq[Create upstream repository "$upstream_repo_id" on $self->{hosting}?], [qw[yes no exit]], enter => 1 );
+    my $confirm = P->term->prompt( qq[Create upstream $self->{upstream_scm_type} repository "$upstream_repo_id" on $self->{upstream_hosting}?], [qw[yes no exit]], enter => 1 );
 
     if ( $confirm eq 'no' ) {
         return result 200;
@@ -111,15 +111,15 @@ sub _create_upstream_repo ($self) {
     print 'Creating upstream repository ... ';
 
     my $scm_upstream = Pcore::API::SCM::Upstream->new(
-        {   remote_scm_type => $self->{upstream_scm_type},
-            hosting         => $self->{hosting},
-            repo_id         => $upstream_repo_id,
+        {   scm_type => $self->{upstream_scm_type},
+            hosting  => $self->{upstream_hosting},
+            repo_id  => $upstream_repo_id,
         }
     );
 
     my $upstream_api = $scm_upstream->get_upstream_api;
 
-    my $create_res = $upstream_api->create_repo( $upstream_repo_id, is_private => $self->{private} );
+    my $create_res = $upstream_api->create_repo( $upstream_repo_id, is_private => $self->{is_private}, scm => $self->{upstream_scm_type} );
 
     say $create_res;
 

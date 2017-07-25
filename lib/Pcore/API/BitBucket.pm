@@ -27,16 +27,20 @@ sub create_repo ( $self, $repo_id, @args ) {
 
     my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
-    my $args = {
-        scm         => $SCM_TYPE_HG,
-        is_private  => 0,
+    my %args = (
+
+        # common atts
         description => undef,
-        fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
-        language    => 'perl',
         has_issues  => 1,
         has_wiki    => 1,
+        is_private  => 0,
+
+        # bitbucket attrs
+        scm         => $SCM_TYPE_HG,
+        fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
+        language    => 'perl',
         @args
-    };
+    );
 
     P->http->post(
         "https://api.bitbucket.org/2.0/repositories/$repo_id",
@@ -44,7 +48,7 @@ sub create_repo ( $self, $repo_id, @args ) {
             AUTHORIZATION => $self->_auth,
             CONTENT_TYPE  => 'application/json',
         },
-        body      => P->data->to_json($args),
+        body      => P->data->to_json( \%args ),
         on_finish => sub ($res) {
             my $done = sub ($res) {
                 $cb->($res) if $cb;
@@ -394,6 +398,16 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    1 | 30                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
