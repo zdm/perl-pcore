@@ -14,10 +14,41 @@ sub BUILDARGS ( $self, $args = undef ) {
     return $args;
 }
 
-# https://developer.github.com/v3/repos/#create
-sub create_repo ( $self, $repo_id, @args ) {
+sub _req ( $self, $method, $endpoint, $data, $cb ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
+    P->http->$method(
+        'https://api.github.com' . $endpoint,
+        headers => {
+            AUTHORIZATION => "token $self->{token}",
+            CONTENT_TYPE  => 'application/json',
+        },
+        body => $data ? P->data->to_json($data) : undef,
+        on_finish => sub ($res) {
+            my $data = $res->body && $res->body->$* ? P->data->from_json( $res->body ) : undef;
+
+            my $api_res;
+
+            if ( !$res ) {
+                $api_res = result [ $res->status, $data->{message} // $res->reason ];
+            }
+            else {
+                $api_res = result 200, $data;
+            }
+
+            $cb->($api_res) if $cb;
+
+            $blocking_cv->send($api_res) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+# https://developer.github.com/v3/repos/#create
+sub create_repo ( $self, $repo_id, @args ) {
     my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
     my %args = (
@@ -41,92 +72,21 @@ sub create_repo ( $self, $repo_id, @args ) {
 
     ( my $repo_namespace, $args{name} ) = split m[/]sm, $repo_id;
 
-    my $url;
+    my $endpoint;
 
     if ( $repo_namespace eq $self->{username} ) {
-        $url = 'https://api.github.com/user/repos';
+        $endpoint = '/user/repos';
     }
     else {
-        $url = "https://api.github.com/orgs/$repo_namespace/repos";
+        $endpoint = "/orgs/$repo_namespace/repos";
     }
 
-    P->http->post(    #
-        $url,
-        headers => {
-            AUTHORIZATION => "token $self->{token}",
-            CONTENT_TYPE  => 'application/json',
-        },
-        body      => P->data->to_json( \%args ),
-        on_finish => sub ($res) {
-            my $api_res;
-
-            if ( !$res ) {
-                my $json = P->data->from_json( $res->body );
-
-                if ( $json->{message} ) {
-                    $api_res = result [ $res->status, $json->{message} ];
-                }
-                else {
-                    $api_res = result [ $res->status, $res->reason ];
-                }
-            }
-            else {
-                my $json = P->data->from_json( $res->body );
-
-                if ( $json->{message} ) {
-                    $api_res = result [ 200, $json->{message} ];
-                }
-                else {
-                    $api_res = result 200;
-                }
-            }
-
-            $cb->($api_res) if $cb;
-
-            $blocking_cv->send($api_res) if $blocking_cv;
-
-            return;
-        },
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $self->_req( 'post', $endpoint, \%args, $cb );
 }
 
 # https://developer.github.com/v3/repos/#delete-a-repository
 sub delete_repo ( $self, $repo_id, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    P->http->delete(    #
-        "https://api.github.com/repos/$repo_id",
-        headers => {    #
-            AUTHORIZATION => "token $self->{token}",
-        },
-        on_finish => sub ($res) {
-            my $api_res;
-
-            if ( $res->status != 200 ) {
-                $api_res = result [ $res->status, $res->reason ];
-            }
-            else {
-                my $json = P->data->from_json( $res->body );
-
-                if ( $json->{error} ) {
-                    $api_res = result [ 200, $json->{message} ];
-                }
-                else {
-                    $api_res = result 200;
-                }
-            }
-
-            $cb->($api_res) if $cb;
-
-            $blocking_cv->send($api_res) if $blocking_cv;
-
-            return;
-        },
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $self->_req( 'delete', "/repos/$repo_id", undef, $cb );
 }
 
 1;
@@ -136,7 +96,7 @@ sub delete_repo ( $self, $repo_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 23                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 54                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
