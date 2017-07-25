@@ -33,7 +33,7 @@ sub _req ( $self, $method, $endpoint, $data, $cb ) {
                 $api_res = result [ $res->status, $data->{message} // $res->reason ];
             }
             else {
-                $api_res = result 200, $data;
+                $api_res = result $res->status, $data;
             }
 
             $cb->($api_res) if $cb;

@@ -21,6 +21,72 @@ sub _build__auth ($self) {
     return 'Basic ' . P->data->to_b64( "$self->{username}:$self->{password}", q[] );
 }
 
+sub _req1 ( $self, $method, $endpoint, $data, $cb ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    P->http->$method(
+        'https://bitbucket.org/api/1.0' . $endpoint,
+        headers => {
+            AUTHORIZATION => $self->_auth,
+            CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
+        },
+        body => $data ? P->data->to_uri($data) : undef,
+        on_finish => sub ($res) {
+            my $api_res;
+
+            if ( !$res ) {
+                $api_res = result [ $res->status, $res->reason ], $res->body;
+            }
+            else {
+                my $data = $res->body && $res->body->$* ? P->data->from_json( $res->body ) : undef;
+
+                $api_res = result $res->status, $data;
+            }
+
+            $cb->($api_res) if $cb;
+
+            $blocking_cv->send($api_res) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+sub _req2 ( $self, $method, $endpoint, $data, $cb ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    P->http->$method(
+        'https://api.bitbucket.org/2.0' . $endpoint,
+        headers => {
+            AUTHORIZATION => $self->_auth,
+            CONTENT_TYPE  => 'application/json',
+        },
+        body => $data ? P->data->to_json($data) : undef,
+        on_finish => sub ($res) {
+            my $data = $res->body && $res->body->$* ? P->data->from_json( $res->body ) : undef;
+
+            my $api_res;
+
+            if ( !$res ) {
+                $api_res = result [ $res->status, $data->{error}->{message} // $res->reason ];
+            }
+            else {
+                $api_res = result $res->status, $data;
+            }
+
+            $cb->($api_res) if $cb;
+
+            $blocking_cv->send($api_res) if $blocking_cv;
+
+            return;
+        }
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D#post
 sub create_repo ( $self, $repo_id, @args ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
@@ -42,104 +108,49 @@ sub create_repo ( $self, $repo_id, @args ) {
         @args
     );
 
-    P->http->post(
-        "https://api.bitbucket.org/2.0/repositories/$repo_id",
-        headers => {
-            AUTHORIZATION => $self->_auth,
-            CONTENT_TYPE  => 'application/json',
-        },
-        body      => P->data->to_json( \%args ),
-        on_finish => sub ($res) {
-            my $done = sub ($res) {
-                $cb->($res) if $cb;
-
-                $blocking_cv->send($res) if $blocking_cv;
-
-                return;
-            };
-
-            if ( !$res ) {
-                my $data = eval { P->data->from_json( $res->body ) };
-
-                $done->( result [ $res->status, $data->{error}->{message} || $res->reason ] );
-            }
-            else {
-                my $data = eval { P->data->from_json( $res->body ) };
-
-                if ($@) {
-                    $done->( result [ 500, 'Error decoding response' ] );
-                }
-                else {
-                    $done->( result 201, $data );
-                }
-            }
-
-            return;
-        },
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $self->_req2( 'post', "/repositories/$repo_id", \%args, $cb );
 }
 
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D#delete
 sub delete_repo ( $self, $repo_id, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    P->http->delete(
-        "https://api.bitbucket.org/2.0/repositories/$repo_id",
-        headers => {
-            AUTHORIZATION => $self->_auth,
-            CONTENT_TYPE  => 'application/json',
-        },
-        on_finish => sub ($res) {
-            my $done = sub ($res) {
-                $cb->($res) if $cb;
-
-                $blocking_cv->send($res) if $blocking_cv;
-
-                return;
-            };
-
-            if ( !$res ) {
-                my $data = eval { P->data->from_json( $res->body ) };
-
-                $done->( result [ $res->status, $data->{error}->{message} || $res->reason ] );
-            }
-            else {
-                $done->( result [ $res->status, $res->reason ] );
-            }
-
-            return;
-        },
-    );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $self->_req2( 'delete', "/repositories/$repo_id", undef, $cb );
 }
 
 # VERSIONS
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/versions
-sub get_versions ( $self, $cb ) {
+sub get_versions ( $self, $repo_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
     my $versions;
 
-    state $get = sub ( $url, $cb ) {
-        P->http->get(
-            $url,
-            headers => {    #
-                AUTHORIZATION => $self->auth,
-            },
-            on_finish => sub ($res) {
-                if ( !$res ) {
-                    $cb->( result [ $res->status, $res->reason ] );
-                }
-                else {
-                    my $data = eval { P->data->from_json( $res->body->$* ) };
+    my $get = sub ($page) {
+        my $sub = __SUB__;
 
-                    if ($@) {
-                        $cb->( result [ 500, 'Error decoding content' ] );
+        $self->_req2(
+            'get',
+            "/repositories/$repo_id/versions?page=$page&pagelen=100",
+            undef,
+            sub ($res) {
+                if ($res) {
+                    for my $ver ( $res->{data}->{values}->@* ) {
+                        $versions->{ $ver->{name} } = $ver->{links}->{self}->{href};
+                    }
+
+                    if ( $res->{data}->{next} ) {
+                        $sub->( ++$page );
                     }
                     else {
-                        $cb->( result 200, $data );
+                        my $api_res = result 200, $versions;
+
+                        $cb->($api_res) if $cb;
+
+                        $blocking_cv->($api_res) if $blocking_cv;
                     }
+                }
+                else {
+                    $cb->($res) if $cb;
+
+                    $blocking_cv->($res) if $blocking_cv;
                 }
 
                 return;
@@ -149,93 +160,64 @@ sub get_versions ( $self, $cb ) {
         return;
     };
 
-    my $process = sub ($res) {
-        if ( !$res ) {
-            $cb->($res);
-        }
-        else {
-            for my $ver ( $res->{data}->{values}->@* ) {
-                $versions->{ $ver->{name} } = $ver->{links}->{self}->{href};
-            }
+    $get->(1);
 
-            if ( $res->{data}->{next} ) {
-                $get->( $res->{data}->{next}, __SUB__ );
-            }
-            else {
-                $cb->( result 200, $versions );
-            }
-        }
-
-        return;
-    };
-
-    $get->( "https://api.bitbucket.org/2.0/repositories/@{[$self->id]}/versions", $process );
-
-    return;
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-POSTanewversion
-sub create_version ( $self, $ver, $cb ) {
-    $ver = version->parse($ver)->normal;
-
-    P->http->post(    #
-        "https://api.bitbucket.org/1.0/repositories/@{[$self->id]}/issues/versions",
-        headers => {
-            AUTHORIZATION => $self->auth,
-            CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
-        },
-        body      => P->data->to_uri( { name => $ver } ),
-        on_finish => sub ($res) {
-            if ( !$res ) {
-                if ( $res->body->$* =~ /already exists/sm ) {
-                    $cb->( result 200, { name => $ver } );
-                }
-                else {
-                    $cb->( result [ $res->status, $res->reason ] );
-                }
+sub create_version ( $self, $repo_id, $ver, $cb = undef ) {
+    return $self->_req1(
+        'post',
+        "/repositories/$repo_id/issues/versions",
+        { name => version->parse($ver)->normal },
+        sub ($res) {
+            if ( !$res && $res->{data}->$* =~ /already exists/sm ) {
+                $res->set_status(200);
             }
-            else {
-                my $data = eval { P->data->from_json( $res->body->$* ) };
 
-                if ($@) {
-                    $cb->( result [ 500, 'Error decoding content' ] );
-                }
-                else {
-                    $cb->( result 201, $data );
-                }
-            }
+            $cb->($res) if $cb;
 
             return;
-        },
+        }
     );
-
-    return;
 }
 
 # MILESTONES
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/milestones
-sub get_milestones ( $self, $cb ) {
-    my $milestones;
+sub get_milestones ( $self, $repo_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    state $get = sub ( $url, $cb ) {
-        P->http->get(
-            $url,
-            headers => {    #
-                AUTHORIZATION => $self->auth,
-            },
-            on_finish => sub ($res) {
-                if ( !$res ) {
-                    $cb->( result [ $res->status, $res->reason ] );
-                }
-                else {
-                    my $data = eval { P->data->from_json( $res->body->$* ) };
+    my $versions;
 
-                    if ($@) {
-                        $cb->( result [ 500, 'Error decoding content' ] );
+    my $get = sub ($page) {
+        my $sub = __SUB__;
+
+        $self->_req2(
+            'get',
+            "/repositories/$repo_id/milestones?page=$page&pagelen=100",
+            undef,
+            sub ($res) {
+                if ($res) {
+                    for my $ver ( $res->{data}->{values}->@* ) {
+                        $versions->{ $ver->{name} } = $ver->{links}->{self}->{href};
+                    }
+
+                    if ( $res->{data}->{next} ) {
+                        $sub->( ++$page );
                     }
                     else {
-                        $cb->( result 200, $data );
+                        my $api_res = result 200, $versions;
+
+                        $cb->($api_res) if $cb;
+
+                        $blocking_cv->($api_res) if $blocking_cv;
                     }
+                }
+                else {
+                    $cb->($res) if $cb;
+
+                    $blocking_cv->($res) if $blocking_cv;
                 }
 
                 return;
@@ -245,70 +227,30 @@ sub get_milestones ( $self, $cb ) {
         return;
     };
 
-    my $process = sub ($res) {
-        if ( !$res ) {
-            $cb->($res);
-        }
-        else {
-            for my $ver ( $res->{data}->{values}->@* ) {
-                $milestones->{ $ver->{name} } = $ver->{links}->{self}->{href};
-            }
+    $get->(1);
 
-            if ( $res->{data}->{next} ) {
-                $get->( $res->{data}->{next}, __SUB__ );
-            }
-            else {
-                $cb->( result 200, $milestones );
-            }
-        }
-
-        return;
-    };
-
-    $get->( "https://api.bitbucket.org/2.0/repositories/@{[$self->id]}/milestones", $process );
-
-    return;
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-POSTanewmilestone
-sub create_milestone ( $self, $ver, $cb ) {
-    $ver = version->parse($ver)->normal;
-
-    P->http->post(    #
-        "https://api.bitbucket.org/1.0/repositories/@{[$self->id]}/issues/milestones",
-        headers => {
-            AUTHORIZATION => $self->auth,
-            CONTENT_TYPE  => 'application/x-www-form-urlencoded; charset=UTF-8',
-        },
-        body      => P->data->to_uri( { name => $ver } ),
-        on_finish => sub ($res) {
-            if ( !$res ) {
-                if ( $res->body->$* =~ /already exists/sm ) {
-                    $cb->( result 200, { name => $ver } );
-                }
-                else {
-                    $cb->( result [ $res->status, $res->reason ] );
-                }
+sub create_milestone ( $self, $repo_id, $ver, $cb = undef ) {
+    return $self->_req1(
+        'post',
+        "/repositories/$repo_id/issues/milestones",
+        { name => version->parse($ver)->normal },
+        sub ($res) {
+            if ( !$res && $res->{data}->$* =~ /already exists/sm ) {
+                $res->set_status(200);
             }
-            else {
-                my $data = eval { P->data->from_json( $res->body->$* ) };
 
-                if ($@) {
-                    $cb->( result [ 500, 'Error decoding content' ] );
-                }
-                else {
-                    $cb->( result 201, $data );
-                }
-            }
+            $cb->($res) if $cb;
 
             return;
-        },
+        }
     );
-
-    return;
 }
 
-# ISSUES
+# TODO ISSUES
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
 sub get_issues ( $self, @ ) {
     my $cb = $_[-1];
@@ -404,7 +346,7 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 30                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 96                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
