@@ -10,12 +10,12 @@ sub CLI ($self) {
         opt      => {
             namespace => {
                 short => 'N',
-                desc  => 'repository namespace',
+                desc  => 'DockerHub repository namespace',
                 type  => 'STR',
                 isa   => 'Str',
             },
             name => {
-                desc => 'repository name',
+                desc => 'DockerHub repository name',
                 type => 'STR',
                 isa  => 'Str',
             },

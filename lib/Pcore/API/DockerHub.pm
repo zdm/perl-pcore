@@ -1,6 +1,6 @@
 package Pcore::API::DockerHub;
 
-use Pcore -const, -class, -result, -export => { CONST => [qw[$DOCKERHUB_PROVIDER_BITBUCKET $DOCKERHUB_PROVIDER_GITHUB $DOCKERHUB_SOURCE_TYPE_TAG $DOCKERHUB_SOURCE_TYPE_BRANCH]] };
+use Pcore -const, -class, -result, -export => { DOCKERHUB_SOURCE_TYPE => [qw[$DOCKERHUB_SOURCE_TYPE_TAG $DOCKERHUB_SOURCE_TYPE_BRANCH]] };
 use Pcore::Util::Scalar qw[is_plain_coderef];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -11,22 +11,12 @@ has _reg_queue => ( is => 'ro', isa => HashRef [ArrayRef], init_arg => undef );
 
 const our $BASE_URL => 'https://hub.docker.com/v2';
 
-const our $DOCKERHUB_PROVIDER_BITBUCKET => 1;
-const our $DOCKERHUB_PROVIDER_GITHUB    => 2;
-
-const our $DOCKERHUB_PROVIDER_NAME => {
-    $DOCKERHUB_PROVIDER_BITBUCKET => 'bitbucket',
-    $DOCKERHUB_PROVIDER_GITHUB    => 'github',
-};
-
-const our $DOCKERHUB_SOURCE_TYPE_TAG    => 1;
-const our $DOCKERHUB_SOURCE_TYPE_BRANCH => 2;
+const our $DOCKERHUB_SOURCE_TYPE_TAG    => 'tag';
+const our $DOCKERHUB_SOURCE_TYPE_BRANCH => 'branch';
 
 const our $DOCKERHUB_SOURCE_TYPE_NAME => {
     $DOCKERHUB_SOURCE_TYPE_TAG    => 'Tag',
     $DOCKERHUB_SOURCE_TYPE_BRANCH => 'Branch',
-    tag                           => 'Tag',
-    branch                        => 'Branch',
 };
 
 const our $DEF_PAGE_SIZE => 250;
@@ -240,7 +230,7 @@ sub create_autobuild ( $self, $repo_id, $scm_provider, $scm_repo_id, $desc, @arg
             is_private          => $args{private} ? \1 : \0,
             active              => $args{active} ? \1 : \0,
             dockerhub_repo_name => $repo_id,
-            provider            => $DOCKERHUB_PROVIDER_NAME->{$scm_provider},
+            provider            => $scm_provider,
             vcs_repo_name       => $scm_repo_id,
             description         => $desc,
             build_tags          => $build_tags,
@@ -626,12 +616,12 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 87, 198, 332, 342,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 359, 387, 391, 426,  |                                                                                                                |
-## |      | 498, 517, 521, 565,  |                                                                                                                |
-## |      | 578                  |                                                                                                                |
+## |    3 | 77, 188, 322, 332,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 349, 377, 381, 416,  |                                                                                                                |
+## |      | 488, 507, 511, 555,  |                                                                                                                |
+## |      | 568                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 176                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 166                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

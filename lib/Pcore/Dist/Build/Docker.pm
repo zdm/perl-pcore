@@ -1,7 +1,6 @@
 package Pcore::Dist::Build::Docker;
 
 use Pcore -class, -ansi;
-use Pcore::API::DockerHub qw[:CONST];
 
 has dist => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'] );
 has dockerhub_api => ( is => 'lazy', isa => InstanceOf ['Pcore::API::DockerHub'], init_arg => undef );
@@ -47,9 +46,9 @@ sub init ( $self, $args ) {
 
     print q[Creating DockerHub repository ... ];
 
-    my $res = $api->create_autobuild(    #
-        $repo_id,                        #
-        $scm_upstream->hosting == $Pcore::API::SCM::Upstream::SCM_HOSTING_BITBUCKET ? $DOCKERHUB_PROVIDER_BITBUCKET : $DOCKERHUB_PROVIDER_GITHUB,
+    my $res = $api->create_autobuild(
+        $repo_id,
+        $scm_upstream->{hosting},
         $scm_upstream->{repo_id},
         $self->dist->module->abstract || $self->dist->name,
         private => 0,
@@ -543,15 +542,15 @@ sub trigger_build ( $self, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 23                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 22                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 118                  | * Subroutine "status" with high complexity score (24)                                                          |
-## |      | 300                  | * Subroutine "build_status" with high complexity score (27)                                                    |
+## |      | 117                  | * Subroutine "status" with high complexity score (24)                                                          |
+## |      | 299                  | * Subroutine "build_status" with high complexity score (27)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 469                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 468                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 269, 348             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 268, 347             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

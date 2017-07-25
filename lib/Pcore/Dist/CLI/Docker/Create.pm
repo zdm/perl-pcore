@@ -1,6 +1,7 @@
 package Pcore::Dist::CLI::Docker::Create;
 
 use Pcore -class;
+use Pcore::API::DockerHub qw[:DOCKERHUB_SOURCE_TYPE];
 
 with qw[Pcore::Dist::CLI];
 
@@ -9,9 +10,9 @@ sub CLI ($self) {
         abstract => 'create autobuild tag',
         opt      => {
             type => {
-                desc    => q[scm tag type, allowed values: 'tag', 'branch'],
+                desc    => qq[scm tag type, allowed values: "$DOCKERHUB_SOURCE_TYPE_TAG", "$DOCKERHUB_SOURCE_TYPE_BRANCH"],
                 type    => 'STR',
-                isa     => [ 'tag', 'branch' ],
+                isa     => [ $DOCKERHUB_SOURCE_TYPE_TAG, $DOCKERHUB_SOURCE_TYPE_BRANCH ],
                 default => 'tag',
             },
             name => {
