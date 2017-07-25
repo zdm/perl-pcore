@@ -1,4 +1,4 @@
-package Pcore::API::Bitbucket::Issue;
+package Pcore::API::BitBucket::Issue;
 
 use Pcore -class, -const, -ansi, -result;
 
@@ -47,7 +47,7 @@ const our $STATUS_COLOR => {
     wontfix   => $WHITE . $ON_BLUE,
 };
 
-has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::Bitbucket'], required => 1 );
+has api => ( is => 'ro', isa => InstanceOf ['Pcore::API::BitBucket'], required => 1 );
 
 has priority_id => ( is => 'lazy', isa => Enum [ values $PRIORITY->%* ], init_arg => undef );
 has priority_color => ( is => 'lazy', isa => Str, init_arg => undef );
@@ -151,7 +151,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::Bitbucket::Issue
+Pcore::API::BitBucket::Issue
 
 =head1 SYNOPSIS
 
