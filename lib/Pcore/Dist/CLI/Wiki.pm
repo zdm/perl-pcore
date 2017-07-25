@@ -26,43 +26,21 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 }
 
 sub _clone_upstream_wiki ( $self, $dist ) {
-    if ( !$dist->scm ) {
+    if ( !$dist->scm || !$dist->scm->upstream ) {
         say q[SCM wasn't found];
 
         return;
     }
-    elsif ( !$dist->scm->upstream || !$dist->scm->upstream->hosting_api_class ) {
-        say q[Invalid SCM upstream];
 
-        return;
-    }
-
-    my $upstream = $dist->scm->upstream;
-
-    my $upstream_api = $upstream->hosting_api;
-
-    my $clone_uri;
-
-    if ( $upstream->local_scm_type == $SCM_TYPE_HG ) {
-        if   ( $upstream->remote_scm_type == $SCM_TYPE_HG ) { $clone_uri = $upstream_api->clone_uri_wiki_ssh }
-        else                                                { $clone_uri = $upstream_api->clone_uri_wiki_ssh_hggit }
-    }
-    else {
-        $clone_uri = $upstream_api->clone_uri_wiki_ssh;
-    }
+    my $clone_uri = $dist->scm->upstream->get_wiki_clone_url;
 
     print qq[Cloning upstream wiki "$clone_uri" ... ];
 
-    if ( my $res = Pcore::API::SCM->scm_clone( $dist->root . '/wiki/', $clone_uri, update => 'tip' ) ) {
-        say 'done';
+    my $res = Pcore::API::SCM->scm_clone( $dist->root . '/wiki/', $clone_uri, $SCM_TYPE_HG, update => 'tip' );
 
-        return 1;
-    }
-    else {
-        say $res->reason;
+    say $res;
 
-        return;
-    }
+    return $res;
 }
 
 1;

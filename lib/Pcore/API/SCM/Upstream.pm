@@ -166,24 +166,24 @@ sub get_wiki_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_ty
 
             # ssh hggit
             if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
-                return "git+ssh://git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$self->{repo_id}.git";
+                return "git+ssh://git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$repo_id.git";
             }
 
             # https hggit
             else {
-                return "git://$SCM_HOSTING_HOST->{$self->{hosting}}/$self->{repo_id}.git";
+                return "git://$SCM_HOSTING_HOST->{$self->{hosting}}/$repo_id.git";
             }
         }
         else {
 
             # ssh hg
             if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
-                return "ssh://hg\@$SCM_HOSTING_HOST->{$self->{hosting}}/$self->{repo_id}";
+                return "ssh://hg\@$SCM_HOSTING_HOST->{$self->{hosting}}/$repo_id";
             }
 
             # https hg
             else {
-                return "https://$SCM_HOSTING_HOST->{$self->{hosting}}/$self->{repo_id}";
+                return "https://$SCM_HOSTING_HOST->{$self->{hosting}}/$repo_id";
             }
         }
     }
@@ -192,12 +192,12 @@ sub get_wiki_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_ty
 
             # ssh git
             if ( $scm_url_type eq $SCM_URL_TYPE_SSH ) {
-                return "git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$self->{repo_id}.git";
+                return "git\@$SCM_HOSTING_HOST->{$self->{hosting}}:$repo_id.git";
             }
 
             # https git
             else {
-                return "https://$SCM_HOSTING_HOST->{$self->{hosting}}/$self->{repo_id}.git";
+                return "https://$SCM_HOSTING_HOST->{$self->{hosting}}/$repo_id.git";
             }
         }
         else {
