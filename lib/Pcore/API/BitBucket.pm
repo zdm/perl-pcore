@@ -26,7 +26,7 @@ sub _build__auth ($self) {
 sub create_repo ( $self, $repo_id, @args ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
-    my $cb = is_plain_coderef @args[-1] ? pop @args : undef;
+    my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
     my $args = {
         scm         => $SCM_TYPE_HG,
@@ -39,7 +39,7 @@ sub create_repo ( $self, $repo_id, @args ) {
         @args
     };
 
-    P->http->post(                       #
+    P->http->post(
         "https://api.bitbucket.org/2.0/repositories/$repo_id",
         headers => {
             AUTHORIZATION => $self->_auth,
@@ -69,6 +69,41 @@ sub create_repo ( $self, $repo_id, @args ) {
                 else {
                     $done->( result 201, $data );
                 }
+            }
+
+            return;
+        },
+    );
+
+    return $blocking_cv ? $blocking_cv->recv : ();
+}
+
+# https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D#delete
+sub delete_repo ( $self, $repo_id, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    P->http->delete(
+        "https://api.bitbucket.org/2.0/repositories/$repo_id",
+        headers => {
+            AUTHORIZATION => $self->_auth,
+            CONTENT_TYPE  => 'application/json',
+        },
+        on_finish => sub ($res) {
+            my $done = sub ($res) {
+                $cb->($res) if $cb;
+
+                $blocking_cv->send($res) if $blocking_cv;
+
+                return;
+            };
+
+            if ( !$res ) {
+                my $data = eval { P->data->from_json( $res->body ) };
+
+                $done->( result [ $res->status, $data->{error}->{message} || $res->reason ] );
+            }
+            else {
+                $done->( result [ $res->status, $res->reason ] );
             }
 
             return;
