@@ -1,6 +1,7 @@
 package Pcore::API::Bitbucket;
 
 use Pcore -class, -result;
+use Pcore::Util::Scalar qw[is_plain_coderef];
 use Pcore::API::Bitbucket::Issue;
 use Pcore::API::SCM::Const qw[:ALL];
 
@@ -13,17 +14,6 @@ has scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], defau
 
 has id   => ( is => 'lazy', isa => Str, init_arg => undef );
 has auth => ( is => 'lazy', isa => Str, init_arg => undef );
-
-has clone_uri_https            => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_https_hggit      => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_ssh              => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_ssh_hggit        => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_https       => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
-
-has cpan_meta => ( is => 'lazy', isa => HashRef, init_arg => undef );
 
 sub BUILDARGS ( $self, $args = undef ) {
     $args->{username} ||= $ENV->user_cfg->{BITBUCKET}->{username} if $ENV->user_cfg->{BITBUCKET}->{username};
@@ -45,83 +35,6 @@ sub _build_id ($self) {
 
 sub _build_auth ($self) {
     return 'Basic ' . P->data->to_b64( $self->username . q[:] . $self->password, q[] );
-}
-
-# CLONE URL BUILDERS
-sub _build_clone_uri_https ($self) {
-    my $url = "https://bitbucket.org/@{[$self->id]}";
-
-    $url .= '.git' if $self->scm_type == $SCM_TYPE_GIT;
-
-    return $url;
-}
-
-sub _build_clone_uri_https_hggit ($self) {
-    if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_uri_https;
-    }
-    else {
-        return 'git+' . $self->clone_uri_https;
-    }
-}
-
-sub _build_clone_uri_ssh ($self) {
-    if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return "ssh://hg\@bitbucket.org/@{[$self->id]}";
-    }
-    else {
-        return "ssh://git\@bitbucket.org/@{[$self->id]}.git";
-    }
-}
-
-sub _build_clone_uri_ssh_hggit ($self) {
-    if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_uri_ssh;
-    }
-    else {
-        return 'git+' . $self->clone_uri_ssh;
-    }
-}
-
-sub _build_clone_uri_wiki_https ($self) {
-    return $self->clone_uri_https . '/wiki';
-}
-
-sub _build_clone_uri_wiki_https_hggit ($self) {
-    if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_uri_wiki_https;
-    }
-    else {
-        return 'git+' . $self->clone_uri_wiki_https;
-    }
-}
-
-sub _build_clone_uri_wiki_ssh ($self) {
-    return $self->clone_uri_ssh . '/wiki';
-}
-
-sub _build_clone_uri_wiki_ssh_hggit ($self) {
-    if ( $self->scm_type == $SCM_TYPE_HG ) {
-        return $self->clone_uri_wiki_ssh;
-    }
-    else {
-        return 'git+' . $self->clone_uri_wiki_ssh;
-    }
-}
-
-# CPAN META
-sub _build_cpan_meta ($self) {
-    return {
-        homepage   => "https://bitbucket.org/@{[$self->id]}/overview",
-        bugtracker => {                                                  #
-            web => "https://bitbucket.org/@{[$self->id]}/issues?status=new&status=open",
-        },
-        repository => {
-            type => $self->scm_type == $SCM_TYPE_HG ? 'hg' : 'git',
-            url  => $self->clone_uri_https,
-            web  => "https://bitbucket.org/@{[$self->id]}/overview",
-        },
-    };
 }
 
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D#post

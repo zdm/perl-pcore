@@ -209,6 +209,39 @@ sub get_wiki_clone_url ( $self, $scm_url_type = $SCM_URL_TYPE_SSH, $local_scm_ty
     return;
 }
 
+sub get_cpan_meta ( $self) {
+    my $cpan_meta;
+
+    if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
+        $cpan_meta = {
+            homepage   => "https://bitbucket.org/$self->{repo_id}/overview",
+            bugtracker => {                                                    #
+                web => "https://bitbucket.org/$self->{repo_id}/issues?status=new&status=open",
+            },
+            repository => {
+                type => $self->{remote_scm_type},
+                url  => $self->get_clone_url( $SCM_URL_TYPE_HTTPS, $self->{remote_scm_type} ),
+                web  => "https://bitbucket.org/$self->{repo_id}/overview",
+            },
+        };
+    }
+    elsif ( $self->{hosting} eq $SCM_HOSTING_GITHUB ) {
+        $cpan_meta = {
+            homepage   => "https://github.com/$self->{repo_id}",
+            bugtracker => {                                        #
+                web => "https://github.com/$self->{repo_id}/issues?q=is%3Aopen+is%3Aissue",
+            },
+            repository => {
+                type => 'git',
+                url  => $self->get_clone_url( $SCM_URL_TYPE_HTTPS, $SCM_TYPE_GIT ),
+                web  => "https://github.com/$self->{repo_id}",
+            },
+        };
+    }
+
+    return $cpan_meta;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##

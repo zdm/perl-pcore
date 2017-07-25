@@ -1,114 +1,38 @@
 package Pcore::API::GitHub;
 
 use Pcore -class, -result;
+use Pcore::Util::Scalar qw[is_plain_coderef];
 
-has api_username => ( is => 'ro', isa => Str, required => 1 );
-has api_token    => ( is => 'ro', isa => Str, required => 1 );
-has repo_name    => ( is => 'ro', isa => Str, required => 1 );
-has repo_namespace => ( is => 'lazy', isa => Str );
-
-has id => ( is => 'lazy', isa => Str, init_arg => undef );
-
-has clone_uri_https            => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_https_hggit      => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_ssh              => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_ssh_hggit        => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_https       => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_https_hggit => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_ssh         => ( is => 'lazy', isa => Str, init_arg => undef );
-has clone_uri_wiki_ssh_hggit   => ( is => 'lazy', isa => Str, init_arg => undef );
-
-has cpan_meta => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has username => ( is => 'ro', isa => Str, required => 1 );
+has token    => ( is => 'ro', isa => Str, required => 1 );
 
 sub BUILDARGS ( $self, $args = undef ) {
-    $args->{api_username} ||= $ENV->user_cfg->{GITHUB}->{username} if $ENV->user_cfg->{GITHUB}->{username};
+    $args->{username} ||= $ENV->user_cfg->{GITHUB}->{username} if $ENV->user_cfg->{GITHUB}->{username};
 
-    $args->{api_token} ||= $ENV->user_cfg->{GITHUB}->{token} if $ENV->user_cfg->{GITHUB}->{token};
-
-    $args->{repo_namespace} ||= $ENV->user_cfg->{GITHUB}->{default_repo_namespace} if $ENV->user_cfg->{GITHUB}->{default_repo_namespace};
+    $args->{token} ||= $ENV->user_cfg->{GITHUB}->{token} if $ENV->user_cfg->{GITHUB}->{token};
 
     return $args;
 }
 
-sub _build_repo_namespace ($self) {
-    return $self->api_username;
-}
-
-sub _build_id ($self) {
-    return $self->repo_namespace . q[/] . $self->repo_name;
-}
-
-# CLONE URL BUILDERS
-sub _build_clone_uri_https ($self) {
-    return "https://github.com/@{[$self->id]}.git";
-}
-
-sub _build_clone_uri_https_hggit ($self) {
-    return 'git+' . $self->clone_uri_https;
-}
-
-sub _build_clone_uri_ssh ($self) {
-    return "ssh://git\@github.com/@{[$self->id]}.git";
-}
-
-sub _build_clone_uri_ssh_hggit ($self) {
-    return 'git+' . $self->clone_uri_ssh;
-}
-
-sub _build_clone_uri_wiki_https ($self) {
-    return "https://github.com/@{[$self->id]}.wiki.git";
-}
-
-sub _build_clone_uri_wiki_https_hggit ($self) {
-    return 'git+' . $self->clone_uri_wiki_https;
-}
-
-sub _build_clone_uri_wiki_ssh ($self) {
-    return "ssh://git\@github.com/@{[$self->id]}.wiki.git";
-}
-
-sub _build_clone_uri_wiki_ssh_hggit ($self) {
-    return 'git+' . $self->clone_uri_wiki_ssh;
-}
-
-# CPAN META
-sub _build_cpan_meta ($self) {
-    return {
-        homepage   => "https://github.com/@{[$self->id]}",
-        bugtracker => {                                      #
-            web => "https://github.com/@{[$self->id]}/issues?q=is%3Aopen+is%3Aissue",
-        },
-        repository => {
-            type => 'git',
-            url  => $self->clone_uri_https,
-            web  => "https://github.com/@{[$self->id]}",
-        },
-    };
-}
-
-sub create_repo ( $self, @ ) {
+sub create_repo ( $self, $repo_id, @args ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
+    my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
+
     my %args = (
-        cb            => undef,
-        name          => $self->repo_name,
         description   => undef,
         homepage      => undef,
         private       => \0,
         has_issues    => \1,
         has_wiki      => \1,
         has_downloads => \1,
-        splice @_, 1
+        @args
     );
 
-    my $cb = delete $args{cb};
-
-    my $url = "https://api.github.com/user/repos";
-
     P->http->post(    #
-        $url,
+        'https://api.github.com/user/repos',
         headers => {
-            AUTHORIZATION => 'token ' . $self->api_token,
+            AUTHORIZATION => "token $self->{token}",
             CONTENT_TYPE  => 'application/json',
         },
         body      => P->data->to_json( \%args ),
@@ -147,9 +71,7 @@ sub create_repo ( $self, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 106                  | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 92                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 22                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
