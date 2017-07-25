@@ -8,9 +8,12 @@ sub CLI ($self) {
     return {
         abstract => 'release distribution',
         opt      => {
-            major  => { short => 'M', desc => 'increment major version' },
-            minor  => { desc  => 'increment minor version', },
-            bugfix => { desc  => 'increment bugfix version', },
+            major => {
+                short => 'M',
+                desc  => 'increment major version',
+            },
+            minor  => { desc => 'increment minor version', },
+            bugfix => { desc => 'increment bugfix version', },
         },
     };
 }
