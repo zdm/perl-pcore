@@ -90,6 +90,8 @@ sub BUILDARGS ( $self, $args ) {
         }
     }
     else {
+        $args->{remote_scm_type} = $SCM_TYPE_GIT if $args->{hosting} eq $SCM_HOSTING_GITHUB;
+
         if ( $args->{repo_id} ) {
             ( $args->{repo_namespace}, $args->{repo_name} ) = split m[/]sm, $args->{repo_id};
         }
@@ -244,9 +246,9 @@ sub get_cpan_meta ( $self) {
 
 sub get_upstream_api ( $self, $args = undef ) {
     if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
-        require Pcore::API::Bitbucket;
+        require Pcore::API::BitBucket;
 
-        return Pcore::API::Bitbucket->new( $args // () );
+        return Pcore::API::BitBucket->new( $args // () );
     }
     elsif ( $self->{hosting} eq $SCM_HOSTING_GITHUB ) {
         require Pcore::API::GitHub;
@@ -268,7 +270,7 @@ sub get_upstream_api ( $self, $args = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 76                   | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 104, 157             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 106, 159             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

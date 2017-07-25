@@ -2,8 +2,7 @@ package Pcore::API::BitBucket;
 
 use Pcore -class, -result;
 use Pcore::Util::Scalar qw[is_plain_coderef];
-use Pcore::API::Bitbucket::Issue;
-use Pcore::API::SCM::Const qw[:ALL];
+use Pcore::API::SCM::Const qw[:SCM_TYPE];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
 has password => ( is => 'ro', isa => Str, required => 1 );

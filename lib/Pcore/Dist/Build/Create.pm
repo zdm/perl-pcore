@@ -95,33 +95,11 @@ sub run ($self) {
 }
 
 sub _create_upstream_repo ($self) {
-    my ( $upstream_api, $repo_namespace );
+    my $upstream_repo_namespace = $self->{upstream_namespace} // ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ? $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace} : $ENV->user_cfg->{GITHUB}->{default_repo_namespace} );
 
-    if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
-        require Pcore::API::Bitbucket;
+    my $upstream_repo_id = "$upstream_repo_namespace/" . lc $self->{dist_name};
 
-        $repo_namespace = $self->{upstream_namespace} // $ENV->user_cfg->{BITBUCKET}->{default_repo_namespace};
-
-        $upstream_api = Pcore::API::Bitbucket->new(
-            {   repo_namespace => $repo_namespace,
-                repo_name      => lc $self->{dist_name},
-                scm_type       => $self->{upstream_scm_type},
-            }
-        );
-    }
-    elsif ( $self->upstream eq $SCM_HOSTING_GITHUB ) {
-        require Pcore::API::GitHub;
-
-        $repo_namespace = $self->{upstream_namespace} // $ENV->user_cfg->{GITHUB}->{default_repo_namespace};
-
-        $upstream_api = Pcore::API::GitHub->new(
-            {   repo_namespace => $repo_namespace,
-                repo_name      => lc $self->{dist_name},
-            }
-        );
-    }
-
-    my $confirm = P->term->prompt( qq[Create upstream repository "@{[$upstream_api->id]}" on $self->{hosting}?], [qw[yes no exit]], enter => 1 );
+    my $confirm = P->term->prompt( qq[Create upstream repository "$upstream_repo_id" on $self->{hosting}?], [qw[yes no exit]], enter => 1 );
 
     if ( $confirm eq 'no' ) {
         return result 200;
@@ -132,33 +110,31 @@ sub _create_upstream_repo ($self) {
 
     print 'Creating upstream repository ... ';
 
-    my $res = $upstream_api->create_repo( is_private => $self->{private} );
-
-    say $res;
-
-    return $res if !$res;
-
-    return $self->_clone_upstream_repo($repo_namespace);
-}
-
-sub _clone_upstream_repo ( $self, $repo_namespace ) {
     my $scm_upstream = Pcore::API::SCM::Upstream->new(
         {   remote_scm_type => $self->{upstream_scm_type},
             hosting         => $self->{hosting},
-            repo_namespace  => $repo_namespace,
-            repo_name       => lc $self->{dist_name},
+            repo_id         => $upstream_repo_id,
         }
     );
 
+    my $upstream_api = $scm_upstream->get_upstream_api;
+
+    my $create_res = $upstream_api->create_repo( $upstream_repo_id, is_private => $self->{private} );
+
+    say $create_res;
+
+    return $create_res if !$create_res;
+
+    # clone repo
     my $clone_uri = $scm_upstream->get_clone_url( $SCM_URL_TYPE_SSH, $self->{local_scm_type} );
 
     print qq[Cloning upstream repository "$clone_uri" ... ];
 
-    my $res = Pcore::API::SCM->scm_clone( $self->target_path, $clone_uri, $self->{local_scm_type} );
+    my $clone_res = Pcore::API::SCM->scm_clone( $self->target_path, $clone_uri, $self->{local_scm_type} );
 
-    say $res;
+    say $clone_res;
 
-    return $res;
+    return $clone_res;
 }
 
 1;
