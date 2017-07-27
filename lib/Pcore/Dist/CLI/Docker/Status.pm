@@ -1,11 +1,11 @@
-package Pcore::Dist::CLI::Docker::Info;
+package Pcore::Dist::CLI::Docker::Status;
 
 use Pcore -class;
 
 with qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
-    return { abstract => 'show DockerHub repository info', };
+    return { abstract => 'show DockerHub repository status', };
 }
 
 sub CLI_RUN ( $self, $opt, $arg, $rest ) {
@@ -24,7 +24,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Dist::CLI::Docker::Info - show DockerHub repository info
+Pcore::Dist::CLI::Docker::Status - show DockerHub repository status
 
 =head1 SYNOPSIS
 

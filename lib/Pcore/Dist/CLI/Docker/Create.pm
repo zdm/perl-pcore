@@ -41,6 +41,8 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
     $dist->build->docker->create_tag( $arg->{tag}, $opt->{name} // $opt->{type}, $opt->{type}, $opt->{dockerfile_location} );
 
+    $dist->build->docker->status;
+
     return;
 }
 

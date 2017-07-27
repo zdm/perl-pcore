@@ -21,6 +21,8 @@ sub CLI_RUN ( $self, $opt, $arg, $rest ) {
 
     $dist->build->docker->remove_tag( $arg->{tag} );
 
+    $dist->build->docker->status;
+
     return;
 }
 

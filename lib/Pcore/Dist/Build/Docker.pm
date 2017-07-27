@@ -480,16 +480,14 @@ sub create_tag ( $self, $tag_name, $source_name, $source_type, $dockerfile_locat
             if ( $autobuild_tag->{name} eq $tag_name ) {
                 say q[tag already exists];
 
-                $self->status;
-
-                return 1;
+                return $autobuild_tag;
             }
         }
     }
 
     my $res = $self->dockerhub_api->create_autobuild_tag( $self->dist->docker->{repo_id}, $tag_name, $source_name, $source_type, $dockerfile_location );
 
-    say $res->reason;
+    say $res;
 
     return $res;
 }
@@ -499,7 +497,7 @@ sub remove_tag ( $self, $tag ) {
 
     my $res = $self->dockerhub_api->unlink_tag( $self->dist->docker->{repo_id}, $tag );
 
-    say $res->reason;
+    say $res;
 
     return $res;
 }
@@ -509,7 +507,7 @@ sub trigger_build ( $self, $tag ) {
 
     my $res = $self->dockerhub_api->trigger_autobuild_by_tag_name( $self->dist->docker->{repo_id}, $tag );
 
-    say $res->reason;
+    say $res;
 
     return $res;
 }
