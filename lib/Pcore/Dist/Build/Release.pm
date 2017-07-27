@@ -215,12 +215,12 @@ sub run ($self) {
         my $dockerhub_api = Pcore::API::DockerHub->new;
 
       CREATE_DOCKERHUB_VERSION_TAG:
-        if ( !$self->dist->build->docker->create_tag( $self->dist->docker->{id}, $new_ver, $new_ver, $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TYPE_TAG, '/' ) ) {
+        if ( !$self->dist->build->docker->create_autobuild_tag( $self->dist->docker->{id}, $new_ver, $new_ver, $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TYPE_TAG, '/' ) ) {
             goto CREATE_DOCKERHUB_VERSION_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       CREATE_DOCKERHUB_LATEST_TAG:
-        if ( !$self->dist->build->docker->create_tag( $self->dist->docker->{id}, 'latest', 'latest', $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TYPE_TAG, '/' ) ) {
+        if ( !$self->dist->build->docker->create_autobuild_tag( $self->dist->docker->{id}, 'latest', 'latest', $Pcore::API::DockerHub::DOCKERHUB_SOURCE_TYPE_TAG, '/' ) ) {
             goto CREATE_DOCKERHUB_LATEST_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
