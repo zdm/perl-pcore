@@ -491,14 +491,7 @@ sub create_tag ( $self, $tag_name, $source_name, $source_type, $dockerfile_locat
 
     say $res->reason;
 
-    if ( $res->status ) {
-        $self->status;
-
-        return 1;
-    }
-    else {
-        return 0;
-    }
+    return $res;
 }
 
 sub remove_tag ( $self, $tag ) {
@@ -508,16 +501,7 @@ sub remove_tag ( $self, $tag ) {
 
     say $res->reason;
 
-    if ($res) {
-        $self->status;
-
-        return 1;
-    }
-    else {
-        return 0;
-    }
-
-    return;
+    return $res;
 }
 
 sub trigger_build ( $self, $tag ) {
@@ -527,14 +511,7 @@ sub trigger_build ( $self, $tag ) {
 
     say $res->reason;
 
-    if ($res) {
-        $self->status;
-
-        return 1;
-    }
-    else {
-        return 0;
-    }
+    return $res;
 }
 
 1;
