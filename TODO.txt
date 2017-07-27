@@ -16,6 +16,7 @@
 - --version command is broken in docker container;
 
 https://metacpan.org/pod/Tie::Hash::LRU
+use Cpanel::JSON::XS instead of JSON::XS;
 
 - proc:
     - proc should return result object on exit;
