@@ -462,7 +462,23 @@ sub build_status ( $self ) {
         ],
     );
 
-    print $tbl->render_all( [ sort { $a->{created_date} cmp $b->{created_date} } values $build_history->%* ] );
+    my ( $report1, $report2, $report3 );
+
+    for my $build ( sort { $a->{created_date} cmp $b->{created_date} } values $build_history->%* ) {
+        if ( $build->{status_text} eq 'building' ) {
+            push $report3->@*, $build;
+        }
+        elsif ( $build->{status_text} eq 'queued' ) {
+            push $report2->@*, $build;
+        }
+        else {
+            push $report1->@*, $build;
+        }
+    }
+
+    $report2 = [ sort { $b->{created_date} cmp $a->{created_date} } $report2->@* ];
+
+    print $tbl->render_all( [ $report1->@*, $report2->@*, $report3->@* ] );
 
     return;
 }
@@ -523,11 +539,11 @@ sub trigger_build ( $self, $tag ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 117                  | * Subroutine "status" with high complexity score (25)                                                          |
-## |      | 301                  | * Subroutine "build_status" with high complexity score (27)                                                    |
+## |      | 301                  | * Subroutine "build_status" with high complexity score (31)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 470                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 486                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 270, 349             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 270, 349, 479        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
