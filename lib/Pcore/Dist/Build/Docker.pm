@@ -200,6 +200,8 @@ sub status ( $self ) {
                 title  => 'LATEST BUILD STATUS',
                 width  => 15,
                 format => sub ( $val, $id, $row ) {
+                    return if !defined $val;
+
                     if ( $val eq 'error' || $val eq 'cancelled' ) {
                         $val = $BOLD . $WHITE . $ON_RED . " $val " . $RESET;
                     }
@@ -545,12 +547,12 @@ sub trigger_build ( $self, $tag ) {
 ## |    3 | 22                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 117                  | * Subroutine "status" with high complexity score (24)                                                          |
-## |      | 299                  | * Subroutine "build_status" with high complexity score (27)                                                    |
+## |      | 117                  | * Subroutine "status" with high complexity score (25)                                                          |
+## |      | 301                  | * Subroutine "build_status" with high complexity score (27)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 468                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 470                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 268, 347             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 270, 349             | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

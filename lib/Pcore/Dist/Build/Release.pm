@@ -225,12 +225,12 @@ sub run ($self) {
         }
 
       TRIGGER_BUILD_VERSION_TAG:
-        if ( !$self->dist->build->docker->trigger_autobuild_by_tag_name( $self->dist->docker->{id}, $new_ver ) ) {
+        if ( !$self->dist->build->docker->trigger_build($new_ver) ) {
             goto TRIGGER_BUILD_VERSION_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
 
       TRIGGER_BUILD_LATEST_TAG:
-        if ( !$self->dist->build->docker->trigger_autobuild_by_tag_name( $self->dist->docker->{id}, 'latest' ) ) {
+        if ( !$self->dist->build->docker->trigger_build('latest') ) {
             goto TRIGGER_BUILD_LATEST_TAG if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
         }
     }
