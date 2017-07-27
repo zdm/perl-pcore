@@ -462,7 +462,7 @@ sub build_status ( $self ) {
         ],
     );
 
-    my ( $report1, $report2, $report3 );
+    my ( $report1, $report2, $report3 ) = ( [], [], [] );
 
     for my $build ( sort { $a->{created_date} cmp $b->{created_date} } values $build_history->%* ) {
         if ( $build->{status_text} eq 'building' ) {
