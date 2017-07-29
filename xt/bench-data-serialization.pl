@@ -5,8 +5,8 @@ package main v0.1.0;
 use Pcore -const;
 use Benchmark qw[];
 use Storable qw[];
-use Data::Dumper qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-use JSON::XS qw[];        ## no critic qw[Modules::ProhibitEvilModules]
+use Data::Dumper qw[];        ## no critic qw[Modules::ProhibitEvilModules]
+use Cpanel::JSON::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Data::MessagePack qw[];
 use CBOR::XS qw[];
 
@@ -60,7 +60,7 @@ my %json_args = (
     allow_tags      => 0,    # use FREEZE / THAW
 );
 
-my $json_precached = JSON::XS->new;
+my $json_precached = Cpanel::JSON::XS->new;
 
 for ( keys %json_args ) {
     $json_precached->$_( $json_args{$_} );
@@ -113,7 +113,7 @@ sub serializer_data_dumper_compressed {
 }
 
 sub json_raw {
-    my $json = JSON::XS->new;
+    my $json = Cpanel::JSON::XS->new;
     for ( keys %json_args ) {
         $json->$_( $json_args{$_} );
     }
