@@ -105,7 +105,7 @@ sub create_repo ( $self, $repo_id, @args ) {
         scm         => $SCM_TYPE_HG,
         fork_police => 'allow_forks',    # allow_forks, no_public_forks, no_forks
         language    => 'perl',
-        @args
+        @args,
     );
 
     return $self->_req2( 'post', "/repositories/$repo_id", \%args, $cb );
@@ -250,93 +250,70 @@ sub create_milestone ( $self, $repo_id, $ver, $cb = undef ) {
     );
 }
 
-# TODO ISSUES
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
-sub get_issues ( $self, @ ) {
-    my $cb = $_[-1];
+sub get_issues ( $self, $repo_id, @args ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my $cb = is_plain_coderef $args[-1] ? pop @args : undef;
 
     my %args = (
-        limit     => 50,
-        sort      => 'priority',    # priority, kind, version, component, milestone
-        status    => undef,
-        milestone => undef,
-        @_[ 1 .. $#_ - 1 ],
+        sort   => 'priority',    # priority, kind, version, component, milestone
+        status => undef,
+        start  => 0,
+        limit  => 50,            # 50 - max.
+        @args,
     );
 
-    P->http->get(                   #
-        "https://bitbucket.org/api/1.0/repositories/@{[$self->id]}/issues/?" . P->data->to_uri( \%args ),
-        headers   => { AUTHORIZATION => $self->auth },
-        on_finish => sub ($res) {
-            if ( !$res ) {
-                my $data = eval { P->data->from_json( $res->body ) };
+    # remove undefined args
+    for ( keys %args ) { delete $args{$_} if !defined $args{$_} }
 
-                $cb->( result [ $res->status, $data->{error}->{message} || $res->reason ] );
-            }
-            else {
-                my $data = eval { P->data->from_json( $res->body ) };
+    my $issues;
 
-                if ($@) {
-                    $cb->( result [ 500, 'Error decoding respnse' ] );
-                }
-                else {
-                    my $issues;
+    my $get = sub ($page) {
+        my $sub = __SUB__;
 
-                    for my $issue ( $data->{issues}->@* ) {
-                        $issue->{api} = $self;
-
-                        push $issues->@*, bless $issue, 'Pcore::API::Bitbucket::Issue';
+        $self->_req1(
+            'get',
+            "/repositories/$repo_id/issues?" . P->data->to_uri( \%args ),
+            undef,
+            sub ($res) {
+                if ($res) {
+                    for my $issue ( $res->{data}->{issues}->@* ) {
+                        $issues->{ $issue->{local_id} } = $issue;
                     }
 
-                    $cb->( result 200, $issues );
+                    my $api_res = result 200, data => $issues, total => $res->{data}->{count};
+
+                    $cb->($api_res) if $cb;
+
+                    $blocking_cv->($api_res) if $blocking_cv;
                 }
+                else {
+                    $cb->($res) if $cb;
+
+                    $blocking_cv->($res) if $blocking_cv;
+                }
+
+                return;
             }
+        );
 
-            return;
-        },
-    );
+        return;
+    };
 
-    return;
+    $get->(1);
+
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETanindividualissue
-sub get_issue ( $self, $id, $cb ) {
-    P->http->get(
-        "https://bitbucket.org/api/1.0/repositories/@{[$self->id]}/issues/$id",
-        headers   => { AUTHORIZATION => $self->auth },
-        on_finish => sub ($res) {
-            if ( !$res ) {
-                my $data = eval { P->data->from_json( $res->body ) };
-
-                $cb->( result [ $res->status, $data->{error}->{message} || $res->reason ] );
-            }
-            else {
-                my $data = eval { P->data->from_json( $res->body ) };
-
-                if ($@) {
-                    $cb->( result [ 500, 'Error decoding respnse' ] );
-                }
-                else {
-                    $data->{api} = $self;
-
-                    $cb->( result 200, bless $data, 'Pcore::API::Bitbucket::Issue' );
-                }
-            }
-
-            return;
-        },
-    );
-
-    return;
+sub get_issue ( $self, $repo_id, $issue_id, $cb = undef ) {
+    return $self->_req1( 'get', "/repositories/$repo_id/issues/$issue_id", undef, $cb );
 }
 
-sub set_issue_status ( $self, $id, $status, $cb ) {
-    my $issue = Pcore::API::Bitbucket::Issue->new( { api => $self } );
-
-    $issue->{local_id} = $id;
-
-    $issue->set_status( $status, $cb );
-
-    return;
+# https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-Updateanexistingissue
+sub update_issue ( $self, $repo_id, $issue_id, $data, $cb = undef ) {
+    return $self->_req1( 'put', "/repositories/$repo_id/issues/$issue_id", $data, $cb );
 }
 
 1;
@@ -346,7 +323,7 @@ sub set_issue_status ( $self, $id, $status, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 96                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    3 | 310, 315             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
