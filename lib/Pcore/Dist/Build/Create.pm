@@ -117,9 +117,9 @@ sub _create_upstream_repo ($self) {
         }
     );
 
-    my $upstream_api = $scm_upstream->get_upstream_api;
+    my $hosting_api = $scm_upstream->get_hosting_api;
 
-    my $create_res = $upstream_api->create_repo( $upstream_repo_id, is_private => $self->{is_private}, scm => $self->{upstream_scm_type} );
+    my $create_res = $hosting_api->create_repo( $upstream_repo_id, is_private => $self->{is_private}, scm => $self->{upstream_scm_type} );
 
     say $create_res;
 

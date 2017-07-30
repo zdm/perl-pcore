@@ -60,7 +60,7 @@ around new => sub ( $orig, $self, $args ) {
 sub search_issues ( $self, $filters ) {
     my $upstream = $self->{dist}->scm->upstream;
 
-    my $api = $upstream->get_upstream_api;
+    my $api = $upstream->get_hosting_api;
 
     my $status;
 
@@ -121,7 +121,7 @@ sub print_issues ( $self, $issues ) {
 sub get_issue ( $self, $id ) {
     my $upstream = $self->{dist}->scm->upstream;
 
-    my $api = $upstream->get_upstream_api;
+    my $api = $upstream->get_hosting_api;
 
     return $api->get_issue( $upstream->{repo_id}, $id );
 }
@@ -166,7 +166,7 @@ sub print_issue ( $self, $issue, $print_content = 1 ) {
 sub set_issue_status ( $self, $id, $status ) {
     my $upstream = $self->{dist}->scm->upstream;
 
-    my $api = $upstream->get_upstream_api;
+    my $api = $upstream->get_hosting_api;
 
     return $api->update_issue( $upstream->{repo_id}, $id, { status => $status } );
 }

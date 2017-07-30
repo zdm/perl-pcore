@@ -244,7 +244,7 @@ sub get_cpan_meta ( $self) {
     return $cpan_meta;
 }
 
-sub get_upstream_api ( $self, $args = undef ) {
+sub get_hosting_api ( $self, $args = undef ) {
     if ( $self->{hosting} eq $SCM_HOSTING_BITBUCKET ) {
         require Pcore::API::BitBucket;
 
