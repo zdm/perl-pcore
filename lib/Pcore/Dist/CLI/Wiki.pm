@@ -36,7 +36,7 @@ sub _clone_upstream_wiki ( $self, $dist ) {
 
     print qq[Cloning upstream wiki "$clone_uri" ... ];
 
-    my $res = Pcore::API::SCM->scm_clone( $dist->root . '/wiki/', $clone_uri, $SCM_TYPE_HG, update => 'tip' );
+    my $res = Pcore::API::SCM->scm_clone( $clone_uri, $dist->root . '/wiki/', $SCM_TYPE_HG );
 
     say $res;
 

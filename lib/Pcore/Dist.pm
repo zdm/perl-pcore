@@ -15,7 +15,7 @@ has par_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );     
 has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                               # Dist-Name
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
 has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );                # main process dist
-has scm => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::SCM'] ], init_arg => undef );
+has scm => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::API::SCM'] ], init_arg => undef );
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
 has id      => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
 has version => ( is => 'lazy', isa => Object,  clearer => 1, init_arg => undef );

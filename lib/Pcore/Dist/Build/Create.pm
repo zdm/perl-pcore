@@ -130,7 +130,7 @@ sub _create_upstream_repo ($self) {
 
     print qq[Cloning upstream repository "$clone_uri" ... ];
 
-    my $clone_res = Pcore::API::SCM->scm_clone( $self->target_path, $clone_uri, $self->{local_scm_type} );
+    my $clone_res = Pcore::API::SCM->scm_clone( $clone_uri, $self->target_path, $self->{local_scm_type} );
 
     say $clone_res;
 
