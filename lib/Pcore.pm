@@ -1,4 +1,4 @@
-package Pcore v0.45.6;
+package Pcore v0.46.0;
 
 use v5.26.0;
 use common::header;
