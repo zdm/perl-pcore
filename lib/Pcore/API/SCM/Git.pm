@@ -2,6 +2,7 @@ package Pcore::API::SCM::Git;
 
 use Pcore -class, -result;
 use Pcore::API::SCM::Const qw[:SCM_TYPE];
+use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 with qw[Pcore::API::SCM];
 
@@ -86,7 +87,7 @@ sub scm_addremove ( $self, $cb = undef ) {
     return;
 }
 
-sub scm_commit ( $self, $msg, $cb = undef ) {
+sub scm_commit ( $self, $msg, $args = undef, $cb = undef ) {
     ...;
 
     return;
@@ -98,7 +99,7 @@ sub scm_push ( $self, $cb = undef ) {
     return;
 }
 
-sub scm_set_tag ( $self, $tags, $cb = undef ) {
+sub scm_set_tag ( $self, $tags, $force = undef, $cb = undef ) {
     ...;
 
     return;
@@ -117,8 +118,8 @@ sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66, 72, 78, 84, 90,  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
-## |      | 96, 102, 108         |                                                                                                                |
+## |    3 | 67, 73, 79, 85, 91,  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |      | 97, 103, 109         |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

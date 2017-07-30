@@ -153,7 +153,6 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-# TODO review calls, cam should be ArrayRef
 sub scm_cmd ( $self, $cmd, $cb = undef ) {
     return $self->_scm_cmd( $cmd, $self->{root}, $cb );
 }
@@ -237,18 +236,16 @@ sub scm_addremove ( $self, $cb = undef ) {
     return $self->scm_cmd( [qw[addremove --subrepos]], $cb );
 }
 
-# TODO review usage
-sub scm_commit ( $self, $msg, $cb = undef ) {
-    return $self->scm_cmd( [ qw[commit --subrepos -m], $msg ], $cb );
+sub scm_commit ( $self, $msg, $args = undef, $cb = undef ) {
+    return $self->scm_cmd( [ qw[commit --subrepos -m], $msg, $args ? $args->@* : () ], $cb );
 }
 
 sub scm_push ( $self, $cb = undef ) {
     return $self->scm_cmd( ['push'], $cb );
 }
 
-# TODO review usage
-sub scm_set_tag ( $self, $tags, $cb = undef ) {
-    return $self->scm_cmd( [ 'tag', is_plain_arrayref $tags ? $tags->@* : $tags ], $cb );
+sub scm_set_tag ( $self, $tags, $force = undef, $cb = undef ) {
+    return $self->scm_cmd( [ 'tag', $force ? '--force' : (), is_plain_arrayref $tags ? $tags->@* : $tags, ], $cb );
 }
 
 sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
@@ -299,7 +296,7 @@ sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    2 | 105, 107, 113        | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 171                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 170                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

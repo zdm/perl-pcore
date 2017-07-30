@@ -189,7 +189,7 @@ sub run ($self) {
     {
         print 'Setting tags ... ';
 
-        my $res = $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], force => 1 );
+        my $res = $self->dist->scm->scm_set_tag( [ 'latest', $new_ver ], 1 );
 
         say $res && return if !$res;
 
