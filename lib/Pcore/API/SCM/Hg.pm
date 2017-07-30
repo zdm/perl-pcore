@@ -1,21 +1,28 @@
-package Pcore::API::SCM::Server::Hg;
+package Pcore::API::SCM::Hg;
 
 use Pcore -class, -result;
-use Pcore::API::SCM::Const qw[:ALL];
+use Pcore::API::SCM::Const qw[:SCM_TYPE];
 use Pcore::Util::Text qw[decode_utf8];
-use Pcore::API::SCM::Upstream;
-use Pcore::Util::Scalar qw[weaken];
+use Pcore::Util::Scalar qw[weaken is_plain_arrayref];
 
-with qw[Pcore::API::SCM::Server];
+with qw[Pcore::API::SCM];
 
 has capabilities => ( is => 'ro', isa => Str, init_arg => undef );
-
 has _server_proc => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 
 our $SERVER_PROC;
 
-# https://www.mercurial-scm.org/wiki/CommandServer
+sub _build_upstream ($self) {
+    if ( -f "$self->{root}/.hg/hgrc" ) {
+        my $hgrc = P->file->read_text("$self->{root}/.hg/hgrc");
 
+        return Pcore::API::SCM::Upstream->new( { uri => $1, local_scm_type => $SCM_TYPE_HG } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
+    }
+
+    return;
+}
+
+# https://www.mercurial-scm.org/wiki/CommandServer
 sub _server ( $self, $cb ) {
     if ( exists $self->{_server_proc} ) {
         $cb->( $self->{_server_proc} );
@@ -91,19 +98,11 @@ sub _read ( $self, $cb ) {
     return;
 }
 
-sub scm_upstream ( $self, $root ) {
-    if ( -f "$root/.hg/hgrc" ) {
-        my $hgrc = P->file->read_text("$root/.hg/hgrc");
-
-        return Pcore::API::SCM::Upstream->new( { uri => $1, local_scm_type => $SCM_TYPE_HG } ) if $hgrc->$* =~ /default\s*=\s*(.+?)$/sm;
-    }
-
-    return;
-}
-
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
-sub scm_cmd ( $self, $root, $cb, $cmd ) {
-    my $buf = join qq[\x00], $cmd->@*;
+sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
+    my $blocking_cv = defined wantarray ? AE::cv : undef;
+
+    my $buf = join "\x00", $cmd->@*;
 
     $buf .= "\x00--repository\x00$root" if $root;
 
@@ -128,12 +127,18 @@ sub scm_cmd ( $self, $root, $cb, $cmd ) {
 
                 # "r" channel - request is finished
                 else {
+                    my $result;
+
                     if ( exists $res->{e} ) {
-                        $cb->( result [ 500, join q[ ], $res->{e}->@* ] );
+                        $result = result [ 500, join q[ ], $res->{e}->@* ];
                     }
                     else {
-                        $cb->( result 200, $res->{o} );
+                        $result = result 200, $res->{o};
                     }
+
+                    $cb->($result) if $cb;
+
+                    $blocking_cv->($result) if $blocking_cv;
                 }
 
                 return;
@@ -145,14 +150,27 @@ sub scm_cmd ( $self, $root, $cb, $cmd ) {
         }
     );
 
-    return;
+    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-sub scm_id ( $self, $root, $cb, $args ) {
-    $self->scm_cmd(
-        $root,
+# TODO review calls, cam should be ArrayRef
+sub scm_cmd ( $self, $cmd, $cb = undef ) {
+    return $self->_scm_cmd( $cmd, $self->{root}, $cb );
+}
+
+sub scm_init ( $self, $root, $cb = undef ) {
+    return $self->_scm_cmd( [ 'init', $root ], undef, $cb );
+}
+
+sub scm_clone ( $self, $root, $uri, $cb = undef ) {
+    return $self->_scm_cmd( [ 'clone', $uri, $root ], undef, $cb );
+}
+
+sub scm_id ( $self, $cb = undef ) {
+    return $self->scm_cmd(
+        [ qw[log -r . --template], q[{node|short}\n{phase}\n{join(tags,'\x00')}\n{activebookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ],
         sub ($res) {
-            if ( $res->is_success ) {
+            if ($res) {
                 my %res = (
                     node             => undef,
                     phase            => undef,
@@ -178,119 +196,66 @@ sub scm_id ( $self, $root, $cb, $args ) {
                 $res->{data} = \%res;
             }
 
-            $cb->($res);
+            $cb->($res) if $cb;
 
             return;
         },
-        [ qw[log -r . --template], q[{node|short}\n{phase}\n{join(tags,'\x00')}\n{activebookmark}\n{branch}\n{desc}\n{date|rfc3339date}\n{latesttag('re:^v\d+[.]\d+[.]\d+$') % '{tag}\x00{distance}'}] ]
     );
-
-    return;
 }
 
-sub scm_init ( $self, $root, $cb, $args = undef ) {
-    $self->scm_cmd( undef, $cb, [ qw[init], $root ] );
-
-    return;
-}
-
-sub scm_clone ( $self, $root, $cb, $args ) {
-    my ( $path, $uri, %args ) = $args->@*;
-
-    my @cmd = qw[clone];
-
-    if ( $args{update} ) {
-        push @cmd, '--updaterev', $args{update} if $args{update} ne '1';
-    }
-    else {
-        push @cmd, '--noupdate';
-    }
-
-    push @cmd, $uri, $path;
-
-    $self->scm_cmd( undef, $cb, \@cmd );
-
-    return;
-}
-
-sub scm_releases ( $self, $root, $cb, $args ) {
-    $self->scm_cmd(
-        $root,
+sub scm_releases ( $self, $cb = undef ) {
+    return $self->scm_cmd(
+        [qw[tags --template {tag}]],
         sub ($res) {
-            if ( $res->is_success ) {
+            if ($res) {
                 $res->{data} = [ sort grep {/\Av\d+[.]\d+[.]\d+\z/sm} $res->{data}->@* ];
             }
 
-            $cb->($res);
+            $cb->($res) if $cb;
 
             return;
         },
-        [qw[tags --template {tag}]]
     );
-
-    return;
 }
 
-sub scm_is_commited ( $self, $root, $cb, $args ) {
-    $self->scm_cmd(
-        $root,
+sub scm_is_commited ( $self, $cb = undef ) {
+    return $self->scm_cmd(
+        [qw[status -mardu --subrepos]],
         sub ($res) {
-            if ( $res->is_success ) {
+            if ($res) {
                 $res->{data} = defined $res->{data} ? 0 : 1;
             }
 
-            $cb->($res);
+            $cb->($res) if $cb;
 
             return;
         },
-        [qw[status -mardu --subrepos]]
     );
-
-    return;
 }
 
-sub scm_addremove ( $self, $root, $cb, $args ) {
-    $self->scm_cmd( $root, $cb, [qw[addremove --subrepos]] );
-
-    return;
+sub scm_addremove ( $self, $cb = undef ) {
+    return $self->scm_cmd( [qw[addremove --subrepos]], $cb );
 }
 
-sub scm_commit ( $self, $root, $cb, $args ) {
-    $self->scm_cmd( $root, $cb, [ qw[commit --subrepos -m], $args->@* ] );
-
-    return;
+# TODO review usage
+sub scm_commit ( $self, $msg, $cb = undef ) {
+    return $self->scm_cmd( [ qw[commit --subrepos -m], $msg ], $cb );
 }
 
-sub scm_push ( $self, $root, $cb, $args ) {
-    $self->scm_cmd( $root, $cb, [qw[push]] );
-
-    return;
+sub scm_push ( $self, $cb = undef ) {
+    return $self->scm_cmd( ['push'], $cb );
 }
 
-sub scm_set_tag ( $self, $root, $cb, $args ) {
-    my ( $tag, %args ) = $args->@*;
-
-    $tag = [$tag] if !ref $tag;
-
-    my @cmd = ( 'tag', $tag->@* );
-
-    push @cmd, '--force' if $args{force};
-
-    $self->scm_cmd( $root, $cb, \@cmd );
-
-    return;
+# TODO review usage
+sub scm_set_tag ( $self, $tags, $cb = undef ) {
+    return $self->scm_cmd( [ 'tag', is_plain_arrayref $tags ? $tags->@* : $tags ], $cb );
 }
 
-sub scm_get_changesets ( $self, $root, $cb, $args ) {
-    my @cmd = $args->[0] ? ( 'log', '-r', "$args->[0]:" ) : ('log');
-
-    $self->scm_cmd(
-        $root,
+sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
+    return $self->scm_cmd(
+        [ $tag ? ( 'log', '-r', "$tag:" ) : 'log' ],
         sub ($res) {
-            if ( !$res ) {
-                $cb->($res);
-            }
-            else {
+            if ($res) {
                 my $data;
 
                 for my $line ( $res->{data}->@* ) {
@@ -315,15 +280,14 @@ sub scm_get_changesets ( $self, $root, $cb, $args ) {
                     push $data->@*, $changeset;
                 }
 
-                $cb->( result 200, $data );
+                $res->{data} = $data;
             }
+
+            $cb->($res) if $cb;
 
             return;
         },
-        \@cmd
     );
-
-    return;
 }
 
 1;
@@ -333,9 +297,9 @@ sub scm_get_changesets ( $self, $root, $cb, $args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 106, 108, 114        | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 105, 107, 113        | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 185                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 171                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -346,7 +310,7 @@ __END__
 
 =head1 NAME
 
-Pcore::API::SCM::Server::Hg
+Pcore::API::SCM::Hg
 
 =head1 SYNOPSIS
 
