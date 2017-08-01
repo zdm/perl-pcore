@@ -102,7 +102,7 @@ sub l10n ( $msgid, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($;$$
 
 sub l10np ( $msgid, $msgid_plural, $num = undef, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($$;$$$) {
     if ( ref $msgid eq 'Pcore::Core::L10N::_deferred' ) {
-        ( $msgid, $msgid_plural, $num, $domain ) = ( $msgid->{msgid}, $msgid->{msgid_plural}, $msgid_plural, $msgid->{domain} );
+        ( $msgid, $msgid_plural, $num, $locale, $domain ) = ( $msgid->{msgid}, $msgid->{msgid_plural}, $msgid_plural, $num // $DEFAULT_LOCALE, $msgid->{domain} );
     }
     else {
         $domain //= $PACKAGE_DOMAIN->{ caller() };
@@ -180,24 +180,22 @@ package Pcore::Core::L10N::_l10n {
     }
 
     sub FETCH {
+
+        ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+
         if ( is_plain_arrayref $_[1] ) {
             if ( $_[1]->[0]->{is_plural} ) {
-                if ( $_[1]->@* == 1 ) {
-                    return &Pcore::Core::L10N::l10np( $_[1]->@*, 1 );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
-                }
-                else {
-                    return &Pcore::Core::L10N::l10np( $_[1]->@* );       ## no critic qw[Subroutines::ProhibitAmpersandSigils]
-                }
+                return &Pcore::Core::L10N::l10np( $_[1]->[0], $_[1]->[1], $_[1]->[2] );
             }
             else {
-                return &Pcore::Core::L10N::l10n( $_[1]->@* );            ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+                return &Pcore::Core::L10N::l10n( $_[1]->[0], $_[1]->[1] );
             }
         }
         elsif ( ref $_[1] eq 'Pcore::Core::L10N::_deferred' ) {
-            return &Pcore::Core::L10N::l10n( $_[1] );                    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+            return &Pcore::Core::L10N::l10n( $_[1] );
         }
         else {
-            return &Pcore::Core::L10N::l10n( $_[1], undef, $PACKAGE_DOMAIN->{ caller() } )    ## no critic qw[Subroutines::ProhibitAmpersandSigils];
+            return &Pcore::Core::L10N::l10n( $_[1], undef, $PACKAGE_DOMAIN->{ caller() } );
         }
     }
 }
@@ -214,7 +212,7 @@ package Pcore::Core::L10N::_l10n {
 ## |    2 | 13                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 93, 108, 138, 148,   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 200                  |                                                                                                                |
+## |      | 198                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
