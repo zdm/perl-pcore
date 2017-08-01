@@ -154,12 +154,7 @@ package Pcore::Core::L10N::_deferred {
     use Pcore -class;
     use overload    #
       q[""] => sub {
-        if ( $_[0]->{is_plural} ) {
-            return &Pcore::Core::L10N::l10np( $_[0], 1 );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
-        }
-        else {
-            return &Pcore::Core::L10N::l10n( $_[0] );        ## no critic qw[Subroutines::ProhibitAmpersandSigils]
-        }
+        return &Pcore::Core::L10N::l10n( $_[0] );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
       },
       bool => sub {
         return 1;
@@ -168,7 +163,7 @@ package Pcore::Core::L10N::_deferred {
 
     has is_plural => ( is => 'ro', isa => Bool, required => 1 );
     has msgid     => ( is => 'ro', isa => Str,  required => 1 );
-    has domain    => ( is => 'ro', isa => Str );
+    has domain    => ( is => 'ro', isa => Str,  required => 1 );
     has msgid_plural => ( is => 'ro', isa => Maybe [Str] );
 }
 
@@ -212,7 +207,7 @@ package Pcore::Core::L10N::_l10n {
 ## |    2 | 13                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 93, 108, 138, 148,   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 198                  |                                                                                                                |
+## |      | 193                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
