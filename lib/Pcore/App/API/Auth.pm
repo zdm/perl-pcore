@@ -7,13 +7,12 @@ use Pcore::Util::Scalar qw[blessed];
 
 use overload    #
   q[bool] => sub {
-    return $_[0]->{id} && $_[0]->{app}->{api}->{auth_cache}->{auth}->{ $_[0]->{id} };
+    return $_[0]->{private_token} ? 1 : 0;
   },
   fallback => undef;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has id            => ( is => 'ro', isa => Maybe [Str] );
 has private_token => ( is => 'ro', isa => Maybe [ArrayRef] );    # [ $token_type, $token_id, $token_hash ]
 
 has is_user   => ( is => 'ro', isa => Bool );
@@ -26,87 +25,51 @@ has app_id          => ( is => 'ro', isa => Maybe [Str] );
 has app_instance_id => ( is => 'ro', isa => Maybe [Str] );
 
 has permissions => ( is => 'ro', isa => Maybe [HashRef] );
+has depends_on  => ( is => 'ro', isa => Maybe [ArrayRef] );
 
 sub TO_DATA ($self) {
     die q[Direct auth object serialization is impossible for security reasons];
 }
 
 sub api_can_call ( $self, $method_id, $cb ) {
-    my $auth_cache = $self->{app}->{api}->{auth_cache};
 
-    state $check_permissions = sub ( $auth, $method_id, $cb ) {
+    # find method
+    my $method_cfg = $self->{app}->{api}->{map}->{method}->{$method_id};
 
-        # find method
-        my $method_cfg = $auth->{app}->{api}->{map}->{method}->{$method_id};
-
-        # method wasn't found
-        if ( !$method_cfg ) {
-            $cb->( result [ 404, qq[Method "$method_id" was not found] ] );
-        }
-
-        # method was found
-        else {
-
-            # user is root, method authentication is not required
-            if ( $auth->{is_root} ) {
-                $cb->( result 200 );
-            }
-
-            # method has no permissions, authorization is not required
-            elsif ( !$method_cfg->{permissions} ) {
-                $cb->( result 200 );
-            }
-
-            # auth has no permisisons, api call is forbidden
-            elsif ( !$auth->{permissions} ) {
-                $cb->( result [ 403, qq[Insufficient permissions for method "$method_id"] ] );
-            }
-
-            # compare permissions
-            else {
-                for my $role_name ( $method_cfg->{permissions}->@* ) {
-                    if ( exists $auth->{permissions}->{$role_name} ) {
-                        $cb->( result 200 );
-
-                        return;
-                    }
-                }
-
-                $cb->( result [ 403, qq[Insufficient permissions for method "$method_id"] ] );
-            }
-        }
-
-        return;
-    };
-
-    # token is not authenticated
-    if ( !$self->{private_token} ) {
-        $check_permissions->( $self, $method_id, $cb );
+    # method wasn't found
+    if ( !$method_cfg ) {
+        $cb->( result [ 404, qq[Method "$method_id" was not found] ] );
     }
 
-    # token is authenticated
+    # method was found
     else {
 
-        # get auth_id from cache
-        my $auth_id = $auth_cache->{private_token}->{ $self->{private_token}->[2] };
-
-        # token is authenticated
-        if ( $auth_id && $auth_cache->{auth}->{$auth_id} ) {
-            $check_permissions->( $self, $method_id, $cb );
+        # user is root, method authentication is not required
+        if ( $self->{is_root} ) {
+            $cb->( result 200 );
         }
 
-        # token was invalidated
-        else {
+        # method has no permissions, authorization is not required
+        elsif ( !$method_cfg->{permissions} ) {
+            $cb->( result 200 );
+        }
 
-            # re-authenticate token
-            $self->{app}->{api}->authenticate_private(
-                $self->{private_token},
-                sub ($auth) {
-                    $check_permissions->( $auth, $method_id, $cb );
+        # auth has no permisisons, api call is forbidden
+        elsif ( !$self->{permissions} ) {
+            $cb->( result [ 403, qq[Insufficient permissions for method "$method_id"] ] );
+        }
+
+        # compare permissions
+        else {
+            for my $role_name ( $method_cfg->{permissions}->@* ) {
+                if ( exists $self->{permissions}->{$role_name} ) {
+                    $cb->( result 200 );
 
                     return;
                 }
-            );
+            }
+
+            $cb->( result [ 403, qq[Insufficient permissions for method "$method_id"] ] );
         }
     }
 
@@ -173,7 +136,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 157                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 120                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
