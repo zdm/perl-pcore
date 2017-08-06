@@ -1,9 +1,7 @@
-- drop persistent connections on AUTH events;
-    - maybe do not drop???;
-
-- drop auth cache on API disconnect;
 - user token management;
 - user permissions management;
+
+- drop auth cache on API disconnect;
 
 
 - create API Auth functions documentations:
@@ -11,10 +9,7 @@
     - what it should do internally (flush cache, etc...);
 
 - remove basic auth;
-
 - rewiew API methods;
-- auth cache + EventBus;
-- authentication tags;
 
 ---------------------------------------------------
 
