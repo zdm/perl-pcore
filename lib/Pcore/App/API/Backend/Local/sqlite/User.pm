@@ -412,13 +412,15 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
                 return;
             }
 
-            if ( !!$enabled ^ $user->{data}->{enabled} ) {
-                if ( $self->dbh->do( q[UPDATE OR IGNORE api_user SET enabled = ? WHERE id = ?], [ !!$enabled, $user->{data}->{id} ] ) ) {
+            $enabled = 0+ !!$enabled;
+
+            if ( $enabled ^ $user->{data}->{enabled} ) {
+                if ( $self->dbh->do( q[UPDATE OR IGNORE "api_user" SET "enabled" = ? WHERE "id" = ?], [ $enabled, $user->{data}->{id} ] ) ) {
 
                     # fire AUTH event if user was disabled
                     P->fire_event( 'AUTH', $user->{data}->{id} ) if !$enabled;
 
-                    $cb->( result 200 );
+                    $cb->( result 200, { enabled => $enabled } );
                 }
                 else {
                     $cb->( result [ 500, 'Error set user enabled' ] );
@@ -427,7 +429,7 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
             else {
 
                 # not modified
-                $cb->( result 304 );
+                $cb->( result 200, { enabled => $enabled } );
             }
 
             return;

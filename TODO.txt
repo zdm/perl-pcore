@@ -1,7 +1,7 @@
 - drop persistent connections on AUTH events;
     - maybe do not drop???;
+
 - drop auth cache on API disconnect;
-- enable/disable user;
 - user token management;
 - user permissions management;
 

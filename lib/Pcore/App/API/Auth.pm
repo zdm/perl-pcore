@@ -32,6 +32,24 @@ sub TO_DATA ($self) {
 }
 
 sub api_can_call ( $self, $method_id, $cb ) {
+    if ( !$self->{private_token} ) {
+        $self->_check_permissions( $method_id, $cb );
+    }
+    else {
+        $self->{app}->{api}->authenticate_private(
+            $self->{private_token},
+            sub ($auth) {
+                $auth->_check_permissions( $method_id, $cb );
+
+                return;
+            }
+        );
+    }
+
+    return;
+}
+
+sub _check_permissions ( $self, $method_id, $cb ) {
 
     # find method
     my $method_cfg = $self->{app}->{api}->{map}->{method}->{$method_id};
@@ -136,7 +154,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 120                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 138                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
