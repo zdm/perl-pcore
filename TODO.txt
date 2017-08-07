@@ -1,5 +1,3 @@
-- replace blessed with is_blessed_ref;
-
 - user token management;
 - user permissions management;
 
