@@ -311,11 +311,16 @@ sub authenticate_private ( $self, $private_token, $cb ) {
             # authentication error
             if ( !$res ) {
 
-                # invalidate private token
-                $self->{auth_cache}->invalidate_private_token( $private_token->[2] );
+                # delete private token
+                $self->{auth_cache}->delete_private_token( $private_token->[2] );
 
                 # return new unauthenticated auth object
-                $auth = bless { app => $self->{app} }, 'Pcore::App::API::Auth';
+                $auth = bless {
+                    app              => $self->{app},
+                    is_authenticated => 0,
+                    private_token    => $private_token,
+                  },
+                  'Pcore::App::API::Auth';
             }
 
             # authenticated
@@ -324,10 +329,12 @@ sub authenticate_private ( $self, $private_token, $cb ) {
                 # create auth
                 $auth = bless $res->{data}, 'Pcore::App::API::Auth';
 
-                $auth->{app} = $self->{app};
+                $auth->{app}              = $self->{app};
+                $auth->{is_authenticated} = 1;
+                $auth->{private_token}    = $private_token;
 
                 # store in cache
-                $self->{auth_cache}->store( $private_token, $auth );
+                $self->{auth_cache}->store($auth);
             }
 
             # call callbacks
@@ -368,13 +375,6 @@ sub remove_app ( $self, $app_id, $cb = undef ) {
     $self->{backend}->remove_app(
         $app_id,
         sub ( $res ) {
-
-            # invalidate app cache on success
-            if ($res) {
-
-                # $self->_invalidate_app_cache($app_id);
-            }
-
             $cb->($res) if $cb;
 
             $blocking_cv->($res) if $blocking_cv;
@@ -410,13 +410,6 @@ sub remove_app_instance ( $self, $app_instance_id, $cb = undef ) {
     $self->{backend}->remove_app_instance(
         $app_instance_id,
         sub ( $res ) {
-
-            # invalidate app instance cache on success
-            if ($res) {
-
-                # $self->_invalidate_app_instance_cache($app_instance_id);
-            }
-
             $cb->($res) if $cb;
 
             $blocking_cv->($res) if $blocking_cv;
@@ -429,6 +422,7 @@ sub remove_app_instance ( $self, $app_instance_id, $cb = undef ) {
 }
 
 # USER
+# TODO rename -> search users;
 sub get_users ( $self, $cb = undef ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
@@ -490,13 +484,6 @@ sub set_user_password ( $self, $user_id, $user_password_utf8, $cb = undef ) {
         $user_id,
         encode_utf8($user_password_utf8),
         sub ($res) {
-
-            # invalidate user cache on success
-            if ($res) {
-
-                # $self->on_user_password_change($user_id);
-            }
-
             $cb->($res) if $cb;
 
             $blocking_cv->($res) if $blocking_cv;
@@ -542,8 +529,7 @@ sub remove_user ( $self, $user_id, $cb = undef ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 }
 
-# TODO
-# - update user token permissions;
+# TODO - update user token permissions;
 sub set_user_permissions ($self) {
     ...;
 
@@ -575,13 +561,6 @@ sub remove_user_token ( $self, $user_token_id, $cb = undef ) {
     $self->{backend}->remove_user_token(
         $user_token_id,
         sub ( $res ) {
-
-            # invalidate user token cache on success
-            if ($res) {
-
-                # $self->_invalidate_user_token_cache($token_id);
-            }
-
             $cb->($res) if $cb;
 
             $blocking_cv->($res) if $blocking_cv;
@@ -635,11 +614,11 @@ sub remove_user_session ( $self, $user_session_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 225, 465, 486, 554   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 225, 459, 480, 540   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 258                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 548                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 534                  | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

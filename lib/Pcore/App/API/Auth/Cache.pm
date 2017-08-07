@@ -9,18 +9,6 @@ has private_token => ( is => 'ro', isa => HashRef, default => sub { {} }, init_a
 has _depends_on => ( is => 'ro', isa => HashRef, init_arg => undef );
 has _auth_ev => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Event::Listener'], init_arg => undef );
 
-# AUTH EVENTS:
-# - on_user_removed($user_id), on_user_disabled($user_id);
-#     - remove all tokens by user id;
-#     - drop persistent connections by user id;
-# - on_user_permissions_changed($user_id);
-#     - drop persistent connections???;
-# - on_user_password_changed($user_id);
-#     - remove all password tokens by user id;
-#
-# - on_user_token_removed($user_token_id);
-# - on_user_session_removed($user_session_id);
-
 # listen AUTH events
 sub BUILD ( $self, $args ) {
     weaken $self;
@@ -45,10 +33,8 @@ sub drop_cache ($self) {
     return;
 }
 
-sub store ( $self, $private_token, $auth ) {
-    $auth->{private_token} = $private_token;
-
-    my $private_token_hash = $private_token->[2];
+sub store ( $self, $auth ) {
+    my $private_token_hash = $auth->{private_token}->[2];
 
     $self->{private_token}->{$private_token_hash} = $auth;
 
@@ -61,7 +47,7 @@ sub store ( $self, $private_token, $auth ) {
     return;
 }
 
-sub invalidate_private_token ( $self, $private_token_hash ) {
+sub delete_private_token ( $self, $private_token_hash ) {
     if ( my $auth = delete $self->{private_token}->{$private_token_hash} ) {
 
         if ( $auth->{depends_on} ) {
@@ -79,7 +65,7 @@ sub invalidate_private_token ( $self, $private_token_hash ) {
 sub on_auth_event ( $self, $ev ) {
     if ( my $priv_tokens = delete $self->{_depends_on}->{ $ev->{data} } ) {
         for my $private_token_hash ( keys $priv_tokens->%* ) {
-            $self->invalidate_private_token($private_token_hash);
+            $self->delete_private_token($private_token_hash);
         }
     }
 

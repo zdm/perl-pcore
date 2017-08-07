@@ -3,15 +3,16 @@ package Pcore::App::API::Auth;
 use Pcore -class, -result;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
-use Pcore::Util::Scalar qw[blessed];
+use Pcore::Util::Scalar qw[is_blessed_ref];
 
 use overload    #
   q[bool] => sub {
-    return $_[0]->{private_token} ? 1 : 0;
+    return $_[0]->{is_authenticated};
   },
   fallback => undef;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+has is_authenticated => ( is => 'ro', isa => bool, required => 1 );
 
 has private_token => ( is => 'ro', isa => Maybe [ArrayRef] );    # [ $token_type, $token_id, $token_hash ]
 
@@ -32,10 +33,7 @@ sub TO_DATA ($self) {
 }
 
 sub api_can_call ( $self, $method_id, $cb ) {
-    if ( !$self->{private_token} ) {
-        $self->_check_permissions( $method_id, $cb );
-    }
-    else {
+    if ( $self->{is_authenticated} ) {
         $self->{app}->{api}->authenticate_private(
             $self->{private_token},
             sub ($auth) {
@@ -44,6 +42,9 @@ sub api_can_call ( $self, $method_id, $cb ) {
                 return;
             }
         );
+    }
+    else {
+        $self->_check_permissions( $method_id, $cb );
     }
 
     return;
@@ -98,7 +99,7 @@ sub api_call ( $self, $method_id, @ ) {
     my ( $cb, $args );
 
     # parse $args and $cb
-    if ( ref $_[-1] eq 'CODE' or ( blessed $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
+    if ( ref $_[-1] eq 'CODE' or ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
         $cb = $_[-1];
 
         $args = [ @_[ 2 .. $#_ - 1 ] ] if @_ > 3;
@@ -135,9 +136,9 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
                   'Pcore::App::API::Auth::Request';
 
                 # call method
-                eval { $obj->$method_name( $req, $args ? $args->@* : () ) };
-
-                $@->sendlog if $@;
+                if ( !eval { $obj->$method_name( $req, $args ? $args->@* : () ); 1 } ) {
+                    $@->sendlog if $@;
+                }
             }
 
             return;
@@ -148,16 +149,6 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 138                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

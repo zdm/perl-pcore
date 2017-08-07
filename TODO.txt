@@ -1,7 +1,11 @@
+- replace blessed with is_blessed_ref;
+
 - user token management;
 - user permissions management;
 
-- drop auth cache on API disconnect;
+- API::Backend::Remote:
+    - drop auth cache on API disconnect;
+    - listen for AUTH events;
 
 
 - create API Auth functions documentations:
@@ -19,7 +23,6 @@
 - --version command is broken in docker container;
 
 https://metacpan.org/pod/Tie::Hash::LRU
-use Cpanel::JSON::XS instead of JSON::XS;
 
 - proc:
     - proc should return result object on exit;
