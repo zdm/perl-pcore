@@ -2,7 +2,7 @@ package Pcore::Util::Path;
 
 use Pcore -class;
 use Storable qw[];
-use Pcore::Util::Scalar qw[blessed];
+use Pcore::Util::Scalar qw[is_blessed_ref];
 use Pcore::Util::URI;
 
 use overload    #
@@ -53,7 +53,7 @@ around new => sub ( $orig, $self, $path = q[], @ ) {
         splice @_, 3,
     );
 
-    $self = ref $self if blessed $self;
+    $self = ref $self if is_blessed_ref $self;
 
     my $path_args = {
         path   => $path,

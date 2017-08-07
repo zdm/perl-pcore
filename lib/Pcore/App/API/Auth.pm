@@ -12,7 +12,7 @@ use overload    #
   fallback => undef;
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
-has is_authenticated => ( is => 'ro', isa => bool, required => 1 );
+has is_authenticated => ( is => 'ro', isa => Bool, required => 1 );
 
 has private_token => ( is => 'ro', isa => Maybe [ArrayRef] );    # [ $token_type, $token_id, $token_hash ]
 
@@ -99,7 +99,7 @@ sub api_call ( $self, $method_id, @ ) {
     my ( $cb, $args );
 
     # parse $args and $cb
-    if ( ref $_[-1] eq 'CODE' or ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
+    if ( ref $_[-1] eq 'CODE' || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
         $cb = $_[-1];
 
         $args = [ @_[ 2 .. $#_ - 1 ] ] if @_ > 3;

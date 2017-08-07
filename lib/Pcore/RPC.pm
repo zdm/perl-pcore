@@ -1,7 +1,7 @@
 package Pcore::RPC;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[blessed weaken];
+use Pcore::Util::Scalar qw[is_blessed_ref weaken];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
@@ -104,7 +104,7 @@ sub connect_rpc ( $self, % ) {
     );
 
     # parse connect
-    if ( blessed $self ) {
+    if ( is_blessed_ref $self ) {
         $args{connect} = $self->get_connect;
 
         $args{token} = $self->token;
