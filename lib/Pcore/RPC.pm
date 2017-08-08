@@ -1,7 +1,7 @@
 package Pcore::RPC;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[is_blessed_ref weaken];
+use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref weaken];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
@@ -118,7 +118,7 @@ sub connect_rpc ( $self, % ) {
             $args{connect} = $args{connect}->{connect};
         }
 
-        $args{connect} = [ $args{connect} ] if ref $args{connect} ne 'ARRAY';
+        $args{connect} = [ $args{connect} ] if !is_plain_arrayref $args{connect};
     }
 
     die q[No addresses specified] if !$args{connect}->@*;

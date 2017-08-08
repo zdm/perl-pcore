@@ -2,7 +2,7 @@ package Pcore::API::Client;
 
 use Pcore -class, -result;
 use Pcore::WebSocket;
-use Pcore::Util::Scalar qw[is_blessed_ref weaken];
+use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref weaken];
 use Pcore::Util::Data qw[to_cbor from_cbor];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::HTTP qw[:TLS_CTX];
@@ -136,7 +136,7 @@ sub _send_http ( $self, $method, @ ) {
                     $cb->( result [ 500, 'Error decoding response' ] ) if $cb;
                 }
                 elsif ($cb) {
-                    my $tx = ref $msg eq 'ARRAY' ? $msg->[0] : $msg;
+                    my $tx = is_plain_arrayref $msg ? $msg->[0] : $msg;
 
                     if ( $tx->{type} eq 'exception' ) {
                         $cb->( bless $tx->{message}, 'Pcore::Util::Result' );

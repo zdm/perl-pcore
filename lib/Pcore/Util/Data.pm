@@ -18,7 +18,7 @@ use Pcore -const, -export,
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
 use Pcore::Util::List qw[pairs];
 use Sort::Naturally qw[nsort];
-use Pcore::Util::Scalar qw[is_blessed_ref];
+use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 const our $DATA_TYPE_PERL => 1;
@@ -205,7 +205,7 @@ sub encode_data ( $type, $data, @ ) {
     if ( defined $args{secret} ) {
         my $secret;
 
-        if ( ref $args{secret} eq 'ARRAY' ) {
+        if ( is_plain_arrayref $args{secret} ) {
             $secret = $args{secret}->[ $args{secret_index} ];
         }
         else {
@@ -302,7 +302,7 @@ sub decode_data ( $type, @ ) {
     if ( $args{cipher} && defined $args{secret} ) {
         my $secret;
 
-        if ( ref $args{secret} eq 'ARRAY' ) {
+        if ( is_plain_arrayref $args{secret} ) {
             $secret = $args{secret}->[ $args{secret_index} ];
         }
         else {
@@ -581,7 +581,7 @@ sub to_uri {
 
         my @res;
 
-        if ( ref $data eq 'ARRAY' ) {
+        if ( is_plain_arrayref $data ) {
             for ( my $i = 0; $i <= $data->$#*; $i += 2 ) {
                 push @res, join q[=], defined $data->[$i] ? URI::Escape::XS::encodeURIComponent( $data->[$i] ) : q[], defined $data->[ $i + 1 ] ? URI::Escape::XS::encodeURIComponent( $data->[ $i + 1 ] ) : ();
             }

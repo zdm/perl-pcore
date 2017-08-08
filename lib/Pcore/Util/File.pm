@@ -1,7 +1,7 @@
 package Pcore::Util::File;
 
 use Pcore;
-use Pcore::Util::Scalar qw[is_glob];
+use Pcore::Util::Scalar qw[is_glob is_plain_arrayref];
 use Fcntl qw[:DEFAULT];
 use Cwd qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 use Config;
@@ -457,7 +457,7 @@ sub _write_to_fh {
     my $fh = shift;
 
     for my $str (@_) {
-        if ( ref $str eq 'ARRAY' ) {
+        if ( is_plain_arrayref $str ) {
             for my $line ( $str->@* ) {
                 print {$fh} $line, qq[\n];
             }

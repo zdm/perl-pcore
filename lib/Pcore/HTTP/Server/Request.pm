@@ -1,7 +1,7 @@
 package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const, -result;
-use Pcore::Util::Scalar qw[is_blessed_ref];
+use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref];
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
 
@@ -118,7 +118,7 @@ sub _respond ( $self, @ ) {
         elsif ( $body_ref eq 'SCALAR' ) {
             $buf .= sprintf( '%x', bytes::length $body->$* ) . $CRLF . encode_utf8( $body->$* ) . $CRLF;
         }
-        elsif ( $body_ref eq 'ARRAY' ) {
+        elsif ( is_plain_arrayref $body_ref ) {
             my $buf1 = join q[], map { encode_utf8 $_} $body->@*;
 
             $buf .= sprintf( '%x', bytes::length $buf1 ) . $CRLF . $buf1 . $CRLF;
