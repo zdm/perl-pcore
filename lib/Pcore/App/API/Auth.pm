@@ -3,7 +3,7 @@ package Pcore::App::API::Auth;
 use Pcore -class, -result;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
-use Pcore::Util::Scalar qw[is_blessed_ref];
+use Pcore::Util::Scalar qw[is_blessed_ref is_plain_coderef];
 
 use overload    #
   q[bool] => sub {
@@ -99,7 +99,7 @@ sub api_call ( $self, $method_id, @ ) {
     my ( $cb, $args );
 
     # parse $args and $cb
-    if ( ref $_[-1] eq 'CODE' || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
+    if ( is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
         $cb = $_[-1];
 
         $args = [ @_[ 2 .. $#_ - 1 ] ] if @_ > 3;

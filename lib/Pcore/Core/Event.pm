@@ -1,7 +1,7 @@
 package Pcore::Core::Event;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[weaken is_ref is_plain_arrayref];
+use Pcore::Util::Scalar qw[weaken is_ref is_plain_arrayref is_plain_coderef];
 use Pcore::Core::Event::Listener;
 use Time::HiRes qw[];
 
@@ -39,7 +39,7 @@ sub listen_events ( $self, $masks, @listeners ) {
 
                 $cb = $class->new( \%args );
             }
-            elsif ( ref $listen eq 'CODE' ) {
+            elsif ( is_plain_coderef $listen ) {
                 $cb = $listen;
             }
             else {

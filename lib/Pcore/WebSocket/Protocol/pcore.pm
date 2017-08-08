@@ -6,7 +6,7 @@ use CBOR::XS qw[];
 use Pcore::Util::UUID qw[uuid_str];
 use Pcore::WebSocket::Protocol::pcore::Request;
 use Pcore::Util::Text qw[trim];
-use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref weaken];
+use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref weaken is_plain_coderef];
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
@@ -83,7 +83,7 @@ sub rpc_call ( $self, $method, @ ) {
     };
 
     # detect callback
-    if ( ref $_[-1] eq 'CODE' || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
+    if ( is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
         $msg->{data} = [ @_[ 2 .. $#_ - 1 ] ];
 
         $msg->{tid} = uuid_str();
