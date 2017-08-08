@@ -3,7 +3,7 @@ package Pcore::Core::CLI::Opt;
 # NOTE http://docopt.org/
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[is_ref is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref];
 
 with qw[Pcore::Core::CLI::Type];
 
@@ -55,7 +55,7 @@ sub BUILD ( $self, $args ) {
         }
         else {
             if ( $self->hash ) {
-                die qq[Option "$name", default value must be a hash for hash option] if ref $self->default ne 'HASH';
+                die qq[Option "$name", default value must be a hash for hash option] if !is_plain_hashref $self->default;
             }
             elsif ( $self->is_repeatable ) {
                 die qq[Option "$name", default value must be a array for repeatable option] if !is_plain_arrayref $self->default;
@@ -261,7 +261,7 @@ sub validate ( $self, $opt ) {
         elsif ( is_plain_arrayref $opt->{$name} ) {
             $count = scalar $opt->{$name}->@*;
         }
-        elsif ( ref $opt->{$name} eq 'HASH' ) {
+        elsif ( is_plain_hashref $opt->{$name} ) {
             $count = scalar keys $opt->{$name}->%*;
         }
 
