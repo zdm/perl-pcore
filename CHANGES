@@ -1,3 +1,7 @@
+v0.48.0 2017-08-12T09:36:24Z
+ - app->{cfg} renamed to instance_auth
+ - pcore-vim-rpc script
+
 v0.47.0 2017-08-08T16:33:08Z
  - app API auth events
  - reauthenticare auth token on api call
