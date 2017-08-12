@@ -18,8 +18,6 @@ AnyEvent::Socket::tcp_server( '127.0.0.1', 55_555, \&on_accept );
 $cv->recv;
 
 sub on_accept ( $fh, $host, $port ) {
-    say "$host $port";
-
     Pcore::AE::Handle->new(
         fh         => $fh,
         on_connect => sub ( $h, @ ) {
