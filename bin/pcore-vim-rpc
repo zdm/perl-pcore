@@ -93,58 +93,46 @@ sub CMD_src ( $self, $h, $id, $args ) {
     return;
 }
 
-# TODO
 sub CMD_browser_print ( $self, $h, $id, $args ) {
 
-    #     # only MSWIN currently supported
-    #     return if !$MSWIN;
-    #
-    #     my $buf_lines_count = $main::curbuf->Count;
-    #
-    #     my $buf = join qq[\n], $main::curbuf->Get( 0 .. $buf_lines_count );
-    #
-    #     # do nothing if buffer is empty
-    #     return if !$buf;
-    #
-    #     $buf .= qq[\n];
-    #
-    #     $buf =~ s/\t/    /smg;
-    #     $buf =~ s/&/&amp;/smg;
-    #     $buf =~ s/</&lt;/smg;
-    #     $buf =~ s/>/&gt;/smg;
-    #     $buf =~ s/"/&quot;/smg;
-    #     $buf =~ s/'/&#39;/smg;
-    #
-    #     my $temp = $ENV->{TEMP_DIR} . q[vim-browserprint.html];
-    #
-    #     my $encoding = VIM::Eval('&encoding');
-    #
-    #     my $font = VIM::Eval('&gfn') // q[];
-    #
-    #     $font = [ split /:/sm, VIM::Eval('&gfn') ]->[0] =~ s/_/ /smgr if $font;
-    #
-    #     my $header = <<"EOF";
-    # <html>
-    # <head>
-    # <meta http-equiv="Content-Type" content="text/html; charset=$encoding">
-    # </head>
-    # <body>
-    # <pre style="font-family: '$font' !important; font-size: 12pt; white-space: pre-wrap;">
-    # EOF
-    #
-    #     state $footer = <<'EOF';
-    # </pre>
-    # </body>
-    # </html>
-    # EOF
-    #
-    #     P->file->write_bin( $temp, $header, $buf, $footer );
-    #
-    #     if ($MSWIN) {
-    #         require Win32::Process;
-    #
-    #         Win32::Process::Create( my $process_obj, $ENV{COMSPEC}, qq[/C start file://$temp], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
-    #     }
+    # only MSWIN currently supported
+    return if !$MSWIN;
+
+    $args->{content} =~ s/\t/    /smg;
+    $args->{content} =~ s/&/&amp;/smg;
+    $args->{content} =~ s/</&lt;/smg;
+    $args->{content} =~ s/>/&gt;/smg;
+    $args->{content} =~ s/"/&quot;/smg;
+    $args->{content} =~ s/'/&#39;/smg;
+
+    my $temp = $ENV->{TEMP_DIR} . q[vim-browserprint.html];
+
+    $args->{font} = [ split /:/sm, $args->{font} ]->[0] =~ s/_/ /smgr if $args->{font};
+
+    my $header = <<"EOF";
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=$args->{encoding}">
+</head>
+<body>
+<pre style="font-family: '$args->{font}' !important; font-size: 12pt; white-space: pre-wrap;">
+EOF
+
+    state $footer = <<'EOF';
+</pre>
+</body>
+</html>
+EOF
+
+    P->file->write_text( $temp, $header, $args->{content}, $footer );
+
+    if ($MSWIN) {
+        require Win32::Process;
+
+        my $proc;
+
+        Win32::Process::Create( $proc, $ENV{COMSPEC}, qq[/C start file://$temp], 0, Win32::Process::CREATE_NO_WINDOW(), q[.] ) || die;
+    }
 
     return;
 }
