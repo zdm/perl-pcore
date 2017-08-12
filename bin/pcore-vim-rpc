@@ -65,7 +65,16 @@ sub on_accept ( $fh, $host, $port ) {
 }
 
 sub CMD_src ( $self, $h, $id, $args ) {
-    my $path = ( $args->{path} // 'temp' ) . ( $args->{ft} ? ".$args->{ft}" : q[] );
+    my $path = $args->{path} // 'temp';
+
+    if ( $args->{ft} ) {
+        if ( $args->{ft} eq 'perl' ) {
+            $path .= '.perl' if !defined $args->{path};
+        }
+        else {
+            $path .= ".$args->{ft}";
+        }
+    }
 
     my $res = Pcore::Src::File->new(
         {   action      => $args->{action},
