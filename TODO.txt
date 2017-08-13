@@ -1,5 +1,3 @@
-- test pcore devel commmit;
-
 - user token management;
 - user permissions management;
 
