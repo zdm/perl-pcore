@@ -36,11 +36,29 @@ our $CACHE = {};
 sub DEMOLISH ( $self, $global ) {
     if ( $self->{pid} ) {
 
-        # kill process group, eg.: windows console subprocess
-        kill '-KILL', $self->{pid};                                                          ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        if ($MSWIN) {
 
-        # kill process, because -9 is ignoref by process itself
-        kill 'KILL', $self->{pid};                                                           ## no critic qw[InputOutput::RequireCheckedSyscalls]
+            # https://perldoc.perl.org/perlport.html#DOS-and-Derivatives
+            #
+            # (Win32) kill doesn't send a signal to the identified process like it does on Unix platforms.
+            # Instead kill($sig, $pid) terminates the process identified by $pid , and makes it exit immediately with exit status $sig.
+            # As in Unix, if $sig is 0 and the specified process exists, it returns true without actually terminating it.
+            #
+            # (Win32) kill(-9, $pid) will terminate the process specified by $pid and recursively all child processes owned by it.
+            # This is different from the Unix semantics, where the signal will be delivered to all processes in the same process group as the process specified by $pid.
+
+            kill '-KILL', $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+            # term process, because -SIG is ignored by process itself
+            kill 'KILL', $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        }
+        else {
+            # term process group, eg.: windows console subprocess
+            kill '-TERM', $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+            # term process, because -SIG is ignored by process itself
+            kill 'TERM', $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        }
     }
 
     $self->_on_exit( 128 + 9 ) if !$global;
@@ -178,6 +196,10 @@ sub _create_process ( $self, $win32_cflags, @cmd ) {
     }
     else {
         unless ( $proc->{pid} = fork ) {
+
+            # run process in own PGRP
+            setpgrp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
             exec @cmd or die $!;
         }
     }
