@@ -1,3 +1,8 @@
+v0.48.3 2017-08-21T06:37:50Z
+ - trigger docker latest tag first on release
+ - send SIGTERM instead of SIGKILL to child processes. Run child processes
+   in own PRGP
+
 v0.48.2 2017-08-15T11:57:11Z
  - pcore-vim-rpc renamed
 
