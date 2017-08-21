@@ -47,16 +47,15 @@ sub DEMOLISH ( $self, $global ) {
             # (Win32) kill(-9, $pid) will terminate the process specified by $pid and recursively all child processes owned by it.
             # This is different from the Unix semantics, where the signal will be delivered to all processes in the same process group as the process specified by $pid.
 
+            # kill process group, eg.: windows console subprocess
             kill '-KILL', $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
-            # term process, because -SIG is ignored by process itself
+            # kill process, because -SIG is ignored by process itself
             kill 'KILL', $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
         }
         else {
-            # term process group, eg.: windows console subprocess
-            kill '-TERM', $self->{pid};    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
-            # term process, because -SIG is ignored by process itself
+            # term process
             kill 'TERM', $self->{pid};     ## no critic qw[InputOutput::RequireCheckedSyscalls]
         }
     }
