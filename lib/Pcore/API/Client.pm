@@ -185,7 +185,8 @@ sub _get_ws ( $self, $cb ) {
         weaken $self;
 
         Pcore::WebSocket->connect_ws(
-            pcore            => $self->uri,
+            $self->uri,
+            protocol         => 'pcore',
             max_message_size => 0,
             compression      => $self->{compression},
             connect_timeout  => $self->{connect_timeout},
