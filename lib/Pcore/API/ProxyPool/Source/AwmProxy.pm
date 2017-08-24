@@ -25,7 +25,7 @@ sub load ( $self, $cb ) {
         sub ($res) {
             my $proxies;
 
-            if ( $res->status == 200 && $res->has_body ) {
+            if ( $res->status == 200 && $res->{body} ) {
                 decode_eol $res->body->$*;
 
                 for my $addr ( split /\n/sm, $res->body->$* ) {

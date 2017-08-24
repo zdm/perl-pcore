@@ -266,7 +266,7 @@ sub request {
     $args{on_finish} = sub {
 
         # rewind body fh
-        $res->body->seek( 0, 0 ) if $res->has_body && is_glob $res->body;
+        $res->body->seek( 0, 0 ) if $res->{body} && is_glob $res->{body};
 
         # before_finish callback
         $before_finish->($res) if $before_finish;
