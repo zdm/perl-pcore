@@ -13,7 +13,7 @@ has buf_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # wri
 has version => ( is => 'ro', isa => Num, init_arg => undef );
 has headers => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Headers'], init_arg => undef );
 has body => ( is => 'ro', isa => Ref, predicate => 1, init_arg => undef );
-has path => ( is => 'ro', isa => Str, writer => 'set_path', predicate => 1, init_arg => undef );
+has path => ( is => 'ro', isa => Str, init_arg => undef );
 
 has content_length => ( is => 'rwp', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 
