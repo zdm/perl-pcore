@@ -1,3 +1,8 @@
+v0.48.6 2017-08-24T09:25:00Z
+ - proc - properly quote cmd under windows
+ - proc - _create_proccess args changed
+ - connect_ws - protocol moved to args hash key
+
 v0.48.5 2017-08-22T20:14:46Z
  - AE tcp_bind return guard
 
