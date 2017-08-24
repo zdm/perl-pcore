@@ -181,7 +181,7 @@ sub _create_process ( $self, $win32_cflags, @cmd ) {
         Win32::Process::Create(    #
             my $win32_proc,
             $ENV{COMSPEC},
-            join( q[ ], '/D /C', @cmd ),
+            q[/D /C "] . join( q[ ], @cmd ) . q["],
             1,                     # inherit STD* handles
             $win32_cflags,
             q[.]
