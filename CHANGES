@@ -1,3 +1,12 @@
+v0.49.0 2017-08-24T20:02:36Z
+ - HTTP methods parse last CodeRef arg as on_finish callback
+ - HTTP response set_version method removed
+ - HTTP response set_body method removed
+ - HTTP response set_path, has_path methods removed
+ - HTTP response has_body method removed
+ - to_psgi methods removed
+ - dockerfile MAINTAINER replaced with LABEL
+
 v0.48.6 2017-08-24T09:25:00Z
  - proc - properly quote cmd under windows
  - proc - _create_proccess args changed
