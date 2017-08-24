@@ -39,21 +39,6 @@ sub _build_decoded_body ($self) {
     return HTTP::Message->new( [ 'Content-Type' => $self->{headers}->{CONTENT_TYPE} ], $self->{body}->$* )->decoded_content( raise_error => 1, ref => 1 );
 }
 
-# TO_PSGI
-sub to_psgi ($self) {
-    if ( $self->{body} && is_plain_coderef $self->{body} ) {
-        return $self->{body};
-    }
-    else {
-        return [ $self->status, $self->{headers}->to_psgi, $self->_body_to_psgi ];
-    }
-}
-
-# TODO
-sub _body_to_psgi ($self) {
-    return [];
-}
-
 1;
 __END__
 =pod
