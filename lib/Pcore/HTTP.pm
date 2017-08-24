@@ -123,26 +123,30 @@ PERL
     P->class->set_subname( 'Pcore::HTTP::' . $sub_name, \&{$sub_name} );
 }
 
-# mirror($target_path, $url, $params) or mirror($target_path, $method, $url, $params)
+# mirror($target_path, $url, $params) or mirror($target_path, $url, $args)
 # additional params supported:
 # no_cache => 1;
-sub mirror ( $target, @ ) {
-    my ( $method, $url, %args );
+sub mirror ( $target, $url, @args ) {
+    my ( $on_finish, %args );
 
-    if ( exists $HTTP_METHODS->{ $_[1] } ) {
-        ( $method, $url, %args ) = splice @_, 1;
+    if ( @args % 2 ) {
+        $on_finish = pop @args;
+
+        %args = @args;
     }
     else {
-        $method = 'GET';
+        %args = @args;
 
-        ( $url, %args ) = splice @_, 1;
+        $on_finish = delete $args{on_finish};
     }
+
+    $args{url} = $url;
+
+    $args{method} ||= 'GET';
 
     $args{buf_size} = 1;
 
     $args{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
-
-    my $on_finish = delete $args{on_finish};
 
     $args{on_finish} = sub ($res) {
         if ( $res->status == 200 ) {
@@ -160,7 +164,7 @@ sub mirror ( $target, @ ) {
         return;
     };
 
-    return request( %args, method => $method, url => $url );
+    return request(%args);
 }
 
 sub request {
@@ -309,9 +313,9 @@ sub _get_on_progress_cb (%args) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 106                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (33)                   |
+## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (33)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 152                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |    2 | 156                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
