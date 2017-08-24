@@ -124,8 +124,8 @@ sub _send_http ( $self, $method, @ ) {
             AUTHORIZATION => "Token $self->{token}",
             CONTENT_TYPE  => 'application/cbor',
         },
-        body      => to_cbor($payload),
-        on_finish => sub ($res) {
+        body => to_cbor($payload),
+        sub ($res) {
             if ( !$res ) {
                 $cb->( result [ $res->status, $res->reason ] ) if $cb;
             }

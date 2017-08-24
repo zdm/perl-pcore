@@ -21,8 +21,8 @@ sub BUILD ( $self, $args ) {
 sub load ( $self, $cb ) {
     P->http->get(
         'http://awmproxy.com/allproxy.php?full=1',
-        timeout   => $self->http_timeout,
-        on_finish => sub ($res) {
+        timeout => $self->http_timeout,
+        sub ($res) {
             my $proxies;
 
             if ( $res->status == 200 && $res->has_body ) {
