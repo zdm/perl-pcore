@@ -87,7 +87,7 @@ around new => sub ( $orig, $self, $cmd, @ ) {
     my $hdl = $self->_redirect_std( \%args );
 
     # create process
-    my $proc = $self->_create_process( $args{win32_cflags}, $cmd->@* );
+    my $proc = $self->_create_process( $args{win32_cflags}, $cmd );
 
     # restore old STD* handles
     open STDIN,  '<&', $hdl->{old_in}  or die if $hdl->{old_in};
@@ -168,7 +168,7 @@ sub _redirect_std ( $self, $args ) {
     return $hdl;
 }
 
-sub _create_process ( $self, $win32_cflags, @cmd ) {
+sub _create_process ( $self, $win32_cflags, $cmd ) {
 
     # prepare environment
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
@@ -181,7 +181,7 @@ sub _create_process ( $self, $win32_cflags, @cmd ) {
         Win32::Process::Create(    #
             my $win32_proc,
             $ENV{COMSPEC},
-            q[/D /C "] . join( q[ ], @cmd ) . q["],
+            q[/D /C "] . join( q[ ], $cmd->@* ) . q["],
             1,                     # inherit STD* handles
             $win32_cflags,
             q[.]
@@ -199,7 +199,7 @@ sub _create_process ( $self, $win32_cflags, @cmd ) {
             # run process in own PGRP
             setpgrp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
-            exec @cmd or die $!;
+            exec $cmd->@* or die $!;
         }
     }
 
