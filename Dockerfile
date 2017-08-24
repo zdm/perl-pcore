@@ -1,6 +1,6 @@
 FROM softvisio/perl:v5.26.0
 
-MAINTAINER zdm <zdm@softvisio.net>
+LABEL maintainer="zdm <zdm@softvisio.net>"
 
 USER root
 
