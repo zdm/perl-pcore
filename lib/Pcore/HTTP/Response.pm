@@ -10,7 +10,7 @@ with qw[Pcore::Util::Result::Status];
 has url => ( is => 'ro', isa => Str | Object, writer => 'set_url' );
 has buf_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );    # write body to fh if body length > this value, 0 - always store in memory, 1 - always store to file
 
-has version => ( is => 'ro', isa => Num, writer => 'set_version', init_arg => undef );
+has version => ( is => 'ro', isa => Num, init_arg => undef );
 has headers => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Headers'], init_arg => undef );
 has body => ( is => 'ro', isa => Ref, writer => 'set_body', predicate => 1, init_arg => undef );
 has path => ( is => 'ro', isa => Str, writer => 'set_path', predicate => 1, init_arg => undef );

@@ -396,7 +396,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
                 # fill response object with HTTP response headers data
                 $runtime->{res}->{headers} = $res->{headers};
 
-                $runtime->{res}->set_version("1.$res->{minor_version}");
+                $runtime->{res}->{version} = "1.$res->{minor_version}";
 
                 $runtime->{res}->set_status( $res->{status}, $res->{reason} );
             }
