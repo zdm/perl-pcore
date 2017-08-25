@@ -1,3 +1,6 @@
+v0.50.0 2017-08-25T09:27:04Z
+ - SQL functions returns $dbh as first arg
+
 v0.49.0 2017-08-24T20:02:36Z
  - HTTP methods parse last CodeRef arg as on_finish callback
  - HTTP response set_version method removed
