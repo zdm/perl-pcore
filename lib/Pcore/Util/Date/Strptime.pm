@@ -385,7 +385,7 @@ const our $STRPTIME_TOKEN => {
         '\$args{hour} = \$1',
     ],
     m => [    # month of the year (01..12)
-        '(\d\d)',
+        '(\d\d?)',
         '\$args{month} = \$1',
     ],
     M => [    # minute of the hour (00..59)
