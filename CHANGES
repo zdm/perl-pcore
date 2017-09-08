@@ -1,3 +1,11 @@
+v0.51.0 2017-09-08T16:14:54Z
+ - SCM upstream fix for support _ in repo name
+ - default docker pcore tag changed to latest
+ - date strp %e pattern added
+ - strptime %m parse single-digit month
+ - exception obj longmess fixed
+ - http headers to string improved
+
 v0.50.0 2017-08-25T09:27:04Z
  - SQL functions returns $dbh as first arg
 
