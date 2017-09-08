@@ -15,10 +15,8 @@
 
 ---------------------------------------------------
 
-- src - cut to base dir;
-
+- pcore.perl - pcore.ini???;
 - dist.perl -> dist.ini - ??? - will be impossible to use functions;
-- --version command is broken in docker container;
 
 https://metacpan.org/pod/Tie::Hash::LRU
 
@@ -30,8 +28,6 @@ https://metacpan.org/pod/Tie::Hash::LRU
     - handle should return errors using standard result object;
 
 - redesign HTTP ua;
-    - cookies - remove support for pub. suffixes, this is useless overhead;
-    - headers shoud be always ArrayRef and in 'Header-Name' format;
     - http_timeout works incorrectly, should be timeout for whole request, currently only timeout between read operation;
     - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
 
