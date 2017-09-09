@@ -124,9 +124,7 @@ sub encode_data ( $type, $data, @ ) {
         $res = to_json( $data, $args{json}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
-        state $cbor = _get_cbor_obj();
-
-        $res = \$cbor->encode($data);
+        $res = to_cbor($data);
     }
     elsif ( $type == $DATA_TYPE_YAML ) {
         state $init = !!require YAML::XS;
@@ -344,9 +342,7 @@ CODE
         $res = from_json( $data_ref, $args{json}->%* );
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
-        state $cbor = _get_cbor_obj();
-
-        $res = $cbor->decode( $data_ref->$* );
+        $res = from_cbor($data_ref);
     }
     elsif ( $type == $DATA_TYPE_YAML ) {
         state $init = !!require YAML::XS;
@@ -402,6 +398,26 @@ sub from_perl {
 }
 
 # JSON
+sub get_json ( @args ) {
+    my %args = (
+        allow_nonref    => 1,
+        allow_blessed   => 1,
+        convert_blessed => 1,
+        allow_bignum    => 1,
+        escape_slash    => 1,
+        relaxed         => 1,
+        @args,
+    );
+
+    state $init = !!require Cpanel::JSON::XS;
+
+    my $json = Cpanel::JSON::XS->new;
+
+    $json->$_( $args{$_} ) for keys %args;
+
+    return $json;
+}
+
 sub to_json ( $data, %args ) {
     my $readable = delete $args{readable};
 
@@ -431,50 +447,39 @@ sub from_json ( $data, %args ) {
     }
 }
 
-sub get_json ( @args ) {
+# CBOR
+sub get_cbor ( @args ) {
     my %args = (
-        allow_nonref    => 1,
-        allow_blessed   => 1,
-        convert_blessed => 1,
-        allow_bignum    => 1,
-        escape_slash    => 1,
-        relaxed         => 1,
+        max_depth     => 512,
+        max_size      => 0,       # max. string size is unlimited
+        allow_unknown => 0,
+        allow_sharing => 1,
+        allow_cycles  => 1,
+        pack_strings  => 0,       # set to 1 affect speed, but makes size smaller
+        validate_utf8 => 0,
+        filter        => undef,
         @args,
     );
 
-    state $init = !!require Cpanel::JSON::XS;
-
-    my $json = Cpanel::JSON::XS->new;
-
-    $json->$_( $args{$_} ) for keys %args;
-
-    return $json;
-}
-
-# CBOR
-sub _get_cbor_obj {
     state $init = !!require CBOR::XS;
 
     my $cbor = CBOR::XS->new;
 
-    $cbor->max_depth(512);
-    $cbor->max_size(0);    # max. string size is unlimited
-    $cbor->allow_unknown(0);
-    $cbor->allow_sharing(1);
-    $cbor->allow_cycles(1);
-    $cbor->pack_strings(0);    # set to 1 affect speed, but makes size smaller
-    $cbor->validate_utf8(0);
-    $cbor->filter(undef);
+    $cbor->$_( $args{$_} ) for keys %args;
 
     return $cbor;
 }
 
-sub to_cbor {
-    return encode_data( $DATA_TYPE_CBOR, @_ );
+sub to_cbor ( $data, @ ) {
+    state $cbor = get_cbor();
+
+    return \$cbor->encode($data);
 }
 
-sub from_cbor {
-    return decode_data( $DATA_TYPE_CBOR, @_ );
+sub from_cbor ( $data, @ ) {
+    state $cbor = get_cbor();
+
+    return $cbor->decode( is_plain_scalarref $data ? $data->$* : $data );
 }
 
 # YAML
@@ -706,13 +711,13 @@ sub to_xor ( $buf, $mask ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 49                   | * Subroutine "encode_data" with high complexity score (32)                                                     |
-## |      | 240                  | * Subroutine "decode_data" with high complexity score (31)                                                     |
+## |      | 238                  | * Subroutine "decode_data" with high complexity score (31)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 449                  | * Postfix control "for" used                                                                                   |
-## |      | 691                  | * Postfix control "while" used                                                                                 |
+## |      | 416, 468             | * Postfix control "for" used                                                                                   |
+## |      | 696                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 555                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 560                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
