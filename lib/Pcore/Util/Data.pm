@@ -18,7 +18,7 @@ use Pcore -const, -export,
 use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
 use Pcore::Util::List qw[pairs];
 use Sort::Naturally qw[nsort];
-use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_blessed_ref is_plain_scalarref is_plain_arrayref];
 use URI::Escape::XS qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 const our $DATA_TYPE_PERL => 1;
@@ -121,21 +121,7 @@ sub encode_data ( $type, $data, @ ) {
         }
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
-        if ( $args{json} ) {
-            my $json = _get_json_obj( $args{json}->%* );
-
-            $res = \$json->encode($data);
-        }
-        elsif ( $args{readable} ) {
-            state $json = _get_json_obj( ascii => 0, latin1 => 0, utf8 => 1, canonical => 1, indent => 1, space_before => 0, space_after => 1 );
-
-            $res = \$json->encode($data);
-        }
-        else {
-            state $json = _get_json_obj( ascii => 1, latin1 => 0, utf8 => 1, pretty => 0 );
-
-            $res = \$json->encode($data);
-        }
+        $res = to_json( $data, $args{json}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
         state $cbor = _get_cbor_obj();
@@ -250,7 +236,7 @@ sub encode_data ( $type, $data, @ ) {
 }
 
 # JSON data should be without UTF8 flag
-# objects isn't deserialized automatically from JSON
+# objects aren't deserialized automatically from JSON
 sub decode_data ( $type, @ ) {
     my $data_ref = ref $_[1] ? $_[1] : \$_[1];
 
@@ -355,18 +341,7 @@ CODE
         die q[Config must return value] unless $res;
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
-        if ( $args{json} ) {
-            my $json = _get_json_obj( $args{json}->%* );
-
-            $res = $json->decode( $data_ref->$* );
-        }
-        else {
-            state $json = _get_json_obj( utf8 => 1 );
-
-            # $res = $json->decode_prefix( $data_ref->$* );
-
-            $res = $json->decode( $data_ref->$* );
-        }
+        $res = from_json( $data_ref, $args{json}->%* );
     }
     elsif ( $type == $DATA_TYPE_CBOR ) {
         state $cbor = _get_cbor_obj();
@@ -427,58 +402,53 @@ sub from_perl {
 }
 
 # JSON
-sub _get_json_obj {
+sub to_json ( $data, %args ) {
+    my $readable = delete $args{readable};
+
+    if (%args) {
+        return \get_json(%args)->encode($data);
+    }
+    elsif ($readable) {
+        state $json = get_json( utf8 => 1, canonical => 1, indent => 1, space_after => 1 );
+
+        return \$json->encode($data);
+    }
+    else {
+        state $json = get_json( ascii => 1, utf8 => 1 );
+
+        return \$json->encode($data);
+    }
+}
+
+sub from_json ( $data, %args ) {
+    if (%args) {
+        return get_json(%args)->decode( is_plain_scalarref $data ? $data->$* : $data );
+    }
+    else {
+        state $json = get_json( utf8 => 1 );
+
+        return $json->decode( is_plain_scalarref $data ? $data->$* : $data );
+    }
+}
+
+sub get_json ( @args ) {
     my %args = (
-
-        # COMMON
-        utf8         => 1,
-        allow_nonref => 1,    # allow scalars
-        allow_tags   => 0,    # use FREEZE / THAW, we don't use this, because non-standard JSON will be generated, use CBOR instead to serialize objects
-
-        # shrink                        => 0,
-        # max_depth                     => 512,
-
-        # DECODE
-        relaxed => 1,    # allows commas and # - style comments
-
-        # filter_json_object            => undef,
-        # filter_json_single_key_object => undef,
-        # max_size                      => 0,
-
-        # ENCODE
-        ascii  => 1,
-        latin1 => 0,
-
-        # pretty       => 0,    # set indent, space_before, space_after
-        canonical    => 0,    # sort hash keys, slow
-        indent       => 0,
-        space_before => 0,    # put a space before the ":" separating key from values
-        space_after  => 0,    # put a space after the ":" separating key from values, and after "," separating key-value pairs
-
-        allow_unknown   => 0, # throw exception if can't encode item
-        allow_blessed   => 1, # allow blessed objects
-        convert_blessed => 1, # use TO_JSON method of blessed objects
-
-        @_,
+        allow_nonref    => 1,
+        allow_blessed   => 1,
+        convert_blessed => 1,
+        allow_bignum    => 1,
+        escape_slash    => 1,
+        relaxed         => 1,
+        @args,
     );
 
     state $init = !!require Cpanel::JSON::XS;
 
     my $json = Cpanel::JSON::XS->new;
 
-    for ( keys %args ) {
-        $json->$_( $args{$_} );
-    }
+    $json->$_( $args{$_} ) for keys %args;
 
     return $json;
-}
-
-sub to_json ( $data, @ ) {
-    return encode_data( $DATA_TYPE_JSON, @_ );
-}
-
-sub from_json ( $data, @ ) {
-    return decode_data( $DATA_TYPE_JSON, @_ );
 }
 
 # CBOR
@@ -735,12 +705,14 @@ sub to_xor ( $buf, $mask ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 49                   | * Subroutine "encode_data" with high complexity score (35)                                                     |
-## |      | 254                  | * Subroutine "decode_data" with high complexity score (33)                                                     |
+## |      | 49                   | * Subroutine "encode_data" with high complexity score (32)                                                     |
+## |      | 240                  | * Subroutine "decode_data" with high complexity score (31)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 585                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
+## |      | 449                  | * Postfix control "for" used                                                                                   |
+## |      | 691                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 721                  | ControlStructures::ProhibitPostfixControls - Postfix control "while" used                                      |
+## |    2 | 555                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
