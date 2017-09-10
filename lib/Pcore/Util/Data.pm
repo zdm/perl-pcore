@@ -15,7 +15,7 @@ use Pcore -const, -export,
     CONST => [qw[$DATA_ENC_B64 $DATA_ENC_HEX $DATA_ENC_B85 $DATA_COMPRESS_ZLIB $DATA_CIPHER_DES]],
     TYPE  => [qw[$DATA_TYPE_PERL $DATA_TYPE_JSON $DATA_TYPE_CBOR $DATA_TYPE_YAML $DATA_TYPE_XML $DATA_TYPE_INI]],
   };
-use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar];
+use Pcore::Util::Text qw[decode_utf8 encode_utf8 escape_scalar trim];
 use Pcore::Util::List qw[pairs];
 use Sort::Naturally qw[nsort];
 use Pcore::Util::Scalar qw[is_blessed_ref is_plain_scalarref is_plain_arrayref];
@@ -107,9 +107,7 @@ sub encode_data ( $type, $data, @ ) {
         $res = \$xml_obj->hash2xml( $data->{$root}, root => $root, indent => $args{readable} ? 4 : 0 );
     }
     elsif ( $type == $DATA_TYPE_INI ) {
-        state $init = !!require Pcore::Util::Config::INI;
-
-        $res = Pcore::Util::Config::INI::to_ini($data);
+        $res = to_ini($data);
     }
     else {
         die qq[Unknown serializer "$type"];
@@ -299,9 +297,7 @@ sub decode_data ( $type, @ ) {
         $res = $xml_obj->xml2hash($data_ref);
     }
     elsif ( $type == $DATA_TYPE_INI ) {
-        state $init = !!require Pcore::Util::Config::INI;
-
-        $res = Pcore::Util::Config::INI::from_ini( $data_ref->$* );
+        $res = from_ini($data_ref);
     }
     else {
         die qq[Unknown serializer "$type"];
@@ -508,12 +504,78 @@ sub from_xml {
 }
 
 # INI
-sub to_ini {
-    return encode_data( $DATA_TYPE_INI, @_ );
+sub to_ini ( $data, @ ) {
+    my $str = q[];
+
+    state $write_section = sub ( $str_ref, $section, $data ) {
+        if ($section) {
+            $str_ref->$* .= "\n" x 2 if $str_ref->$*;
+
+            $str_ref->$* .= "[$section]";
+        }
+
+        for my $key ( sort keys $data->%* ) {
+            $str_ref->$* .= "\n" if $str_ref->$*;
+
+            $str_ref->$* .= "$key = " . ( defined $data->{$key} ? "$data->{$key}" : q[] );
+        }
+
+        return;
+    };
+
+    if ( exists $data->{_} ) {
+        $write_section->( \$str, q[], $data->{_} );
+    }
+
+    for my $section ( sort grep { $_ ne '_' } keys $data->%* ) {
+        $write_section->( \$str, $section, $data->{$section} );
+    }
+
+    encode_utf8 $str;
+
+    return \$str;
 }
 
-sub from_ini {
-    return decode_data( $DATA_TYPE_INI, @_ );
+sub from_ini ( $data, @ ) {
+    my $cfg;
+
+    my $section = '_';
+
+    my @lines = grep { $_ ne q[] } map { trim $_} split /\n/sm, decode_utf8 is_plain_scalarref $data ? $data->$* : $data;
+
+    for my $line (@lines) {
+
+        # section
+        if ( $line =~ /\A\[(.+)\]\z/sm ) {
+            $section = $1;
+
+            $cfg->{$section} = {} if !exists $cfg->{$section};
+        }
+
+        # not a section
+        else {
+
+            # comment
+            if ( $line =~ /\A;/sm ) {
+                next;
+            }
+
+            # variable
+            else {
+                my ( $key, $val ) = split /=/sm, $line, 2;
+
+                if ( defined $val ) {
+                    trim $val;
+
+                    $val = undef if $val eq q[];
+                }
+
+                $cfg->{$section}->{ trim $key} = $val;
+            }
+        }
+    }
+
+    return $cfg;
 }
 
 # BASE64
@@ -718,13 +780,13 @@ sub to_xor ( $buf, $mask ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 49                   | * Subroutine "encode_data" with high complexity score (28)                                                     |
-## |      | 185                  | * Subroutine "decode_data" with high complexity score (28)                                                     |
+## |      | 183                  | * Subroutine "decode_data" with high complexity score (28)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 410, 463             | * Postfix control "for" used                                                                                   |
-## |      | 703                  | * Postfix control "while" used                                                                                 |
+## |      | 406, 459             | * Postfix control "for" used                                                                                   |
+## |      | 765                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 567                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 629                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
