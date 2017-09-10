@@ -80,13 +80,7 @@ sub encode_data ( $type, $data, @ ) {
         $res = to_cbor($data);
     }
     elsif ( $type == $DATA_TYPE_YAML ) {
-        state $init = !!require YAML::XS;
-
-        local $YAML::XS::UseCode  = 0;
-        local $YAML::XS::DumpCode = 0;
-        local $YAML::XS::LoadCode = 0;
-
-        $res = \YAML::XS::Dump($data);
+        $res = to_yaml($data);
     }
     elsif ( $type == $DATA_TYPE_XML ) {
         state $init = !!require XML::Hash::XS;
@@ -284,13 +278,7 @@ sub decode_data ( $type, @ ) {
         $res = from_cbor($data_ref);
     }
     elsif ( $type == $DATA_TYPE_YAML ) {
-        state $init = !!require YAML::XS;
-
-        local $YAML::XS::UseCode  = 0;
-        local $YAML::XS::DumpCode = 0;
-        local $YAML::XS::LoadCode = 0;
-
-        $res = YAML::XS::Load( $data_ref->$* );
+        $res = from_yaml($data_ref);
     }
     elsif ( $type == $DATA_TYPE_XML ) {
         state $init = !!require XML::Hash::XS;
@@ -490,12 +478,24 @@ sub from_cbor ( $data, @ ) {
 }
 
 # YAML
-sub to_yaml {
-    return encode_data( $DATA_TYPE_YAML, @_ );
+sub to_yaml ( $data, @ ) {
+    state $init = !!require YAML::XS;
+
+    local $YAML::XS::UseCode  = 0;
+    local $YAML::XS::DumpCode = 0;
+    local $YAML::XS::LoadCode = 0;
+
+    return \YAML::XS::Dump($data);
 }
 
-sub from_yaml {
-    return decode_data( $DATA_TYPE_YAML, @_ );
+sub from_yaml ( $data, @ ) {
+    state $init = !!require YAML::XS;
+
+    local $YAML::XS::UseCode  = 0;
+    local $YAML::XS::DumpCode = 0;
+    local $YAML::XS::LoadCode = 0;
+
+    return YAML::XS::Load( is_plain_scalarref $data ? $data->$* : $data );
 }
 
 # XML
@@ -718,10 +718,10 @@ sub to_xor ( $buf, $mask ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 49                   | * Subroutine "encode_data" with high complexity score (28)                                                     |
-## |      | 191                  | * Subroutine "decode_data" with high complexity score (28)                                                     |
+## |      | 185                  | * Subroutine "decode_data" with high complexity score (28)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 422, 475             | * Postfix control "for" used                                                                                   |
+## |      | 410, 463             | * Postfix control "for" used                                                                                   |
 ## |      | 703                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 567                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
