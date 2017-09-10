@@ -71,54 +71,7 @@ sub encode_data ( $type, $data, @ ) {
 
     # encode
     if ( $type == $DATA_TYPE_PERL ) {
-        state $init = !!require Data::Dumper;
-
-        state $sort_keys = sub {
-            return [ nsort keys $_[0]->%* ];
-        };
-
-        local $Data::Dumper::Indent     = 0;
-        local $Data::Dumper::Purity     = 1;
-        local $Data::Dumper::Pad        = q[];
-        local $Data::Dumper::Terse      = 1;
-        local $Data::Dumper::Deepcopy   = 0;
-        local $Data::Dumper::Quotekeys  = 0;
-        local $Data::Dumper::Pair       = '=>';
-        local $Data::Dumper::Maxdepth   = 0;
-        local $Data::Dumper::Deparse    = 0;
-        local $Data::Dumper::Sparseseen = 1;
-        local $Data::Dumper::Useperl    = 1;
-        local $Data::Dumper::Useqq      = 1;
-        local $Data::Dumper::Sortkeys   = $args{readable} ? $sort_keys : 0;
-
-        if ( !defined $data ) {
-            $res = \'undef';
-        }
-        else {
-            no warnings qw[redefine];
-
-            local *Data::Dumper::qquote = sub {
-                return q["] . encode_utf8( escape_scalar $_[0] ) . q["];
-            };
-
-            $res = \Data::Dumper->Dump( [$data] );
-        }
-
-        if ( $args{readable} ) {
-            state $init1 = !!require Pcore::Src::File;
-
-            $res = Pcore::Src::File->new(
-                {   action      => $Pcore::Src::SRC_DECOMPRESS,
-                    path        => 'config.perl',                 # mark file as perl config
-                    is_realpath => 0,
-                    in_buffer   => $res,
-                    filter_args => {
-                        perl_tidy   => '--comma-arrow-breakpoints=0',
-                        perl_critic => 0,
-                    },
-                }
-            )->run->out_buffer;
-        }
+        $res = to_perl( $data, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
         $res = to_json( $data, $args{json}->%*, readable => $args{readable} );
@@ -322,21 +275,7 @@ sub decode_data ( $type, @ ) {
     my $res;
 
     if ( $type == $DATA_TYPE_PERL ) {
-        my $ns = $args{perl_ns} || '_Pcore::CONFIG::SANDBOX';
-
-        decode_utf8 $data_ref->$*;
-
-        ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
-        $res = eval <<"CODE";
-package $ns;
-
-use Pcore -config;
-
-$data_ref->$*
-CODE
-        die $@ if $@;
-
-        die q[Config must return value] unless $res;
+        $res = from_perl( $data_ref, perl_ns => $args{perl_ns} );
     }
     elsif ( $type == $DATA_TYPE_JSON ) {
         $res = from_json( $data_ref, $args{json}->%* );
@@ -389,12 +328,79 @@ CODE
 }
 
 # PERL
-sub to_perl {
-    return encode_data( $DATA_TYPE_PERL, @_ );
+sub to_perl ( $data, %args ) {
+    state $init = !!require Data::Dumper;
+
+    state $sort_keys = sub {
+        return [ nsort keys $_[0]->%* ];
+    };
+
+    local $Data::Dumper::Indent     = 0;
+    local $Data::Dumper::Purity     = 1;
+    local $Data::Dumper::Pad        = q[];
+    local $Data::Dumper::Terse      = 1;
+    local $Data::Dumper::Deepcopy   = 0;
+    local $Data::Dumper::Quotekeys  = 0;
+    local $Data::Dumper::Pair       = '=>';
+    local $Data::Dumper::Maxdepth   = 0;
+    local $Data::Dumper::Deparse    = 0;
+    local $Data::Dumper::Sparseseen = 1;
+    local $Data::Dumper::Useperl    = 1;
+    local $Data::Dumper::Useqq      = 1;
+    local $Data::Dumper::Sortkeys   = $args{readable} ? $sort_keys : 0;
+
+    my $res;
+
+    if ( !defined $data ) {
+        $res = \'undef';
+    }
+    else {
+        no warnings qw[redefine];
+
+        local *Data::Dumper::qquote = sub {
+            return q["] . encode_utf8( escape_scalar $_[0] ) . q["];
+        };
+
+        $res = \Data::Dumper->Dump( [$data] );
+    }
+
+    if ( $args{readable} ) {
+        state $init1 = !!require Pcore::Src::File;
+
+        $res = Pcore::Src::File->new(
+            {   action      => $Pcore::Src::SRC_DECOMPRESS,
+                path        => 'config.perl',                 # mark file as perl config
+                is_realpath => 0,
+                in_buffer   => $res,
+                filter_args => {
+                    perl_tidy   => '--comma-arrow-breakpoints=0',
+                    perl_critic => 0,
+                },
+            }
+        )->run->out_buffer;
+    }
+
+    return $res;
 }
 
-sub from_perl {
-    return decode_data( $DATA_TYPE_PERL, @_ );
+sub from_perl ( $data, %args ) {
+    my $ns = $args{perl_ns} || '_Pcore::CONFIG::SANDBOX';
+
+    $data = decode_utf8 is_plain_scalarref $data ? $data->$* : $data;
+
+    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+    my $res = eval <<"CODE";
+package $ns;
+
+use Pcore -config;
+
+$data
+CODE
+    die $@ if $@;
+
+    die q[Config must return value] unless $res;
+
+    return $res;
 }
 
 # JSON
@@ -711,14 +717,14 @@ sub to_xor ( $buf, $mask ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 49                   | * Subroutine "encode_data" with high complexity score (32)                                                     |
-## |      | 238                  | * Subroutine "decode_data" with high complexity score (31)                                                     |
+## |      | 49                   | * Subroutine "encode_data" with high complexity score (28)                                                     |
+## |      | 191                  | * Subroutine "decode_data" with high complexity score (28)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 416, 469             | * Postfix control "for" used                                                                                   |
-## |      | 697                  | * Postfix control "while" used                                                                                 |
+## |      | 422, 475             | * Postfix control "for" used                                                                                   |
+## |      | 703                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 561                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 567                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
