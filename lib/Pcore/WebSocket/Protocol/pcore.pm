@@ -1,10 +1,11 @@
 package Pcore::WebSocket::Protocol::pcore;
 
 use Pcore -class, -result, -const;
+use Pcore::Util::Data;
 use Pcore::Util::UUID qw[uuid_str];
-use Pcore::WebSocket::Protocol::pcore::Request;
 use Pcore::Util::Text qw[trim];
 use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref weaken is_plain_coderef];
+use Pcore::WebSocket::Protocol::pcore::Request;
 
 has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
 
@@ -22,8 +23,8 @@ const our $TX_TYPE_EVENT     => 'event';
 const our $TX_TYPE_RPC       => 'rpc';
 const our $TX_TYPE_EXCEPTION => 'exception';
 
-my $CBOR = Pcore::Uitl::Data::get_cbor();
-my $JSON = Pcore::Uitl::Data::get_json();
+my $CBOR = Pcore::Util::Data::get_cbor();
+my $JSON = Pcore::Util::Data::get_json( utf8 => 1 );
 
 sub rpc_call ( $self, $method, @ ) {
     my $msg = {
@@ -338,9 +339,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 215                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
+## |    3 | 216                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 263, 285, 300        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 264, 286, 301        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
