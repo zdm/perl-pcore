@@ -399,17 +399,17 @@ sub from_perl {
 
 # JSON
 sub get_json ( @args ) {
+    state $init = !!require Cpanel::JSON::XS;
+
     my %args = (
-        allow_nonref    => 1,
-        allow_blessed   => 1,
-        convert_blessed => 1,
+        allow_nonref    => 1,    # allow scalars
+        allow_blessed   => 1,    # allow blessed objects
+        convert_blessed => 1,    # use TO_JSON method of blessed objects
         allow_bignum    => 1,
         escape_slash    => 1,
         relaxed         => 1,
         @args,
     );
-
-    state $init = !!require Cpanel::JSON::XS;
 
     my $json = Cpanel::JSON::XS->new;
 
@@ -449,6 +449,8 @@ sub from_json ( $data, %args ) {
 
 # CBOR
 sub get_cbor ( @args ) {
+    state $init = !!require CBOR::XS;
+
     my %args = (
         max_depth      => 512,
         max_size       => 1024 * 1024 * 100,         # max. string size is unlimited
@@ -461,8 +463,6 @@ sub get_cbor ( @args ) {
         filter         => \&CBOR::XS::safe_filter,
         @args,
     );
-
-    state $init = !!require CBOR::XS;
 
     my $cbor = CBOR::XS->new;
 
