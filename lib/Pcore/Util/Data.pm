@@ -450,14 +450,15 @@ sub from_json ( $data, %args ) {
 # CBOR
 sub get_cbor ( @args ) {
     my %args = (
-        max_depth     => 512,
-        max_size      => 0,       # max. string size is unlimited
-        allow_unknown => 0,
-        allow_sharing => 1,
-        allow_cycles  => 1,
-        pack_strings  => 0,       # set to 1 affect speed, but makes size smaller
-        validate_utf8 => 0,
-        filter        => undef,
+        max_depth      => 512,
+        max_size       => 1024 * 1024 * 100,         # max. string size is unlimited
+        allow_unknown  => 0,
+        allow_sharing  => 0,                         # must be disable for compatibility with JS CBOR
+        allow_cycles   => 1,
+        pack_strings   => 0,                         # set to 1 affect speed, but makes size smaller
+        validate_utf8  => 0,
+        forbid_objects => 0,
+        filter         => \&CBOR::XS::safe_filter,
         @args,
     );
 
@@ -714,10 +715,10 @@ sub to_xor ( $buf, $mask ) {
 ## |      | 238                  | * Subroutine "decode_data" with high complexity score (31)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 416, 468             | * Postfix control "for" used                                                                                   |
-## |      | 696                  | * Postfix control "while" used                                                                                 |
+## |      | 416, 469             | * Postfix control "for" used                                                                                   |
+## |      | 697                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 560                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 561                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
