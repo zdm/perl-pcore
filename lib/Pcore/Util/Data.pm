@@ -57,6 +57,7 @@ sub encode_data ( $type, $data, @ ) {
         compress_threshold => 100,                 # min data length in bytes to perform compression, only if compress = 1
         cipher             => $DATA_CIPHER_DES,    # cipher to use
         json               => undef,               # HashRef with additional params for Cpanel::JSON::XS
+        xml                => undef,               # HashRef with additional params for XML::Hash::XS
         splice @_, 2,
     );
 
@@ -83,28 +84,7 @@ sub encode_data ( $type, $data, @ ) {
         $res = to_yaml($data);
     }
     elsif ( $type == $DATA_TYPE_XML ) {
-        state $init = !!require XML::Hash::XS;
-
-        state $xml_args = {
-            root      => 'root',
-            version   => '1.0',
-            encode    => 'UTF-8',
-            output    => undef,
-            canonical => 0,            # sort hash keys
-            use_attr  => 1,
-            content   => 'content',    # if defined that the key name for the text content(used only if use_attr=1)
-            xml_decl  => 1,
-            trim      => 1,
-            utf8      => 0,
-            buf_size  => 4096,
-            method    => 'NATIVE',
-        };
-
-        state $xml_obj = XML::Hash::XS->new( $xml_args->%* );
-
-        my $root = [ keys $data->%* ]->[0];
-
-        $res = \$xml_obj->hash2xml( $data->{$root}, root => $root, indent => $args{readable} ? 4 : 0 );
+        $res = to_xml( $data, $args{xml}->%*, readable => $args{readable} );
     }
     elsif ( $type == $DATA_TYPE_INI ) {
         $res = to_ini($data);
@@ -191,6 +171,7 @@ sub decode_data ( $type, @ ) {
         encode       => undef,              # 0, 1 = 'hex', 'hex', 'b64'
         perl_ns      => undef,              # for PERL only, namespace for data evaluation
         json         => undef,              # HashRef with additional params for Cpanel::JSON::XS
+        xml          => undef,              # HashRef with additional params for XML::Hash::XS
         return_token => 0,                  # return token
         splice( @_, 2 ),
         type => $type,
@@ -279,22 +260,7 @@ sub decode_data ( $type, @ ) {
         $res = from_yaml($data_ref);
     }
     elsif ( $type == $DATA_TYPE_XML ) {
-        state $init = !!require XML::Hash::XS;
-
-        state $xml_args = {
-            encoding      => 'UTF-8',
-            utf8          => 1,
-            max_depth     => 1024,
-            buf_size      => 4096,
-            force_array   => 1,
-            force_content => 1,
-            merge_text    => 1,
-            keep_root     => 1,
-        };
-
-        state $xml_obj = XML::Hash::XS->new( $xml_args->%* );
-
-        $res = $xml_obj->xml2hash($data_ref);
+        $res = from_xml( $data_ref, $args{xml}->%* );
     }
     elsif ( $type == $DATA_TYPE_INI ) {
         $res = from_ini($data_ref);
@@ -495,12 +461,62 @@ sub from_yaml ( $data, @ ) {
 }
 
 # XML
-sub to_xml {
-    return encode_data( $DATA_TYPE_XML, @_ );
+sub get_xml (@args) {
+    state $init = !!require XML::Hash::XS;
+
+    my %args = (
+        buf_size => 4096,         # buffer size for reading end encoding data
+        content  => 'content',    # if defined that the key name for the text content(used only if use_attr=1)
+        encoding => 'UTF-8',
+        trim     => 1,            # trim leading and trailing whitespace from text nodes
+
+        # to_xml
+        canonical => 0,           # sort hash keys
+        indent    => 0,
+        method    => 'NATIVE',
+        output    => undef,
+        root      => 'root',
+        use_attr  => 1,
+        version   => '1.0',
+        xml_decl  => 1,
+
+        # from_xml
+        force_array   => 1,
+        force_content => 1,
+        keep_root     => 1,
+        max_depth     => 1_024,    # maximum recursion depth
+        merge_text    => 1,
+
+        @args,
+    );
+
+    return XML::Hash::XS->new(%args);
 }
 
-sub from_xml {
-    return decode_data( $DATA_TYPE_XML, @_ );
+sub to_xml ( $data, %args ) {
+    state $xml = get_xml();
+
+    my $readable = delete $args{readable};
+
+    if (%args) {
+        return \$xml->hash2xml( $data, %args );
+    }
+    else {
+        my $root = ( keys $data->%* )[0];
+
+        return \$xml->hash2xml( $data->{$root}, root => $root, utf8 => 0, $readable ? ( canonical => 1, indent => 4 ) : () );
+    }
+}
+
+sub from_xml ( $data, %args ) {
+    state $xml = get_xml();
+
+    if (%args) {
+        return $xml->xml2hash( $data, %args );
+    }
+    else {
+        return $xml->xml2hash( $data, utf8 => 1 );
+    }
 }
 
 # INI
@@ -779,14 +795,14 @@ sub to_xor ( $buf, $mask ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 49                   | * Subroutine "encode_data" with high complexity score (28)                                                     |
-## |      | 183                  | * Subroutine "decode_data" with high complexity score (28)                                                     |
+## |      | 49                   | * Subroutine "encode_data" with high complexity score (27)                                                     |
+## |      | 163                  | * Subroutine "decode_data" with high complexity score (28)                                                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | ControlStructures::ProhibitPostfixControls                                                                     |
-## |      | 406, 459             | * Postfix control "for" used                                                                                   |
-## |      | 765                  | * Postfix control "while" used                                                                                 |
+## |      | 372, 425             | * Postfix control "for" used                                                                                   |
+## |      | 781                  | * Postfix control "while" used                                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 629                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 645                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
