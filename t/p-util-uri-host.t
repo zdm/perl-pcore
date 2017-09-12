@@ -78,7 +78,7 @@ for my $method ( sort keys $test_data->%* ) {
         my $res2 = $test->[1] // q[];
 
         if ( $res1 ne $res2 ) {
-            say qq["$res1" ne "$res2"];
+            say qq[RESULT: "$res1", EXPECTED: "$res2"];
         }
 
         ok( $res1 eq $res2, $method . '_' . $host->name );
