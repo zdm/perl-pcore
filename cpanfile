@@ -135,6 +135,9 @@ feature windows => sub {
 # Pcore::Util::Random
 requires 'Net::SSLeay';
 
+# Pcore::Util::Regexp
+requires 'Regexp::Util';
+
 # Pcore::Util::Scalar
 requires 'Devel::Refcount';
 requires 'Ref::Util';

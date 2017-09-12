@@ -1,41 +1,69 @@
 package Pcore::Util::IDN;
 
-use Pcore -export => [qw[domain_to_ascii domain_to_utf8]];
+use Pcore -const, -inline, -export => [qw[domain_to_ascii domain_to_utf8 $IDN2_NFC_INPUT $IDN2_ALABEL_ROUNDTRIP $IDN2_TRANSITIONAL $IDN2_NONTRANSITIONAL]];
 
-eval { require Net::LibIDN };
+# https://libidn.gitlab.io/libidn2/manual/libidn2.html
 
-if ($@) {
-    require Pcore::Util::IDN::PP;
+const our $IDN2_NFC_INPUT            => 1;    # apply NFC normalization on input
+const our $IDN2_ALABEL_ROUNDTRIP     => 2;    # apply additional round-trip conversion of A-label inputs
+const our $IDN2_TRANSITIONAL         => 4;    # perform Unicode TR46 transitional processing
+const our $IDN2_NONTRANSITIONAL      => 8;    # perform Unicode TR46 non-transitional processing
+const our $IDN2_ALLOW_UNASSIGNED     => 16;
+const our $IDN2_USE_STD3_ASCII_RULES => 32;
 
-    *domain_to_ascii = \&Pcore::Util::IDN::PP::domain_to_ascii;
+use Inline(
+    C => <<'C',
+SV* domain_to_utf8 ( char* domain ) {
+    char *output;
+    int rc;
 
-    *domain_to_utf8 = \&Pcore::Util::IDN::PP::domain_to_utf8;
+    // Function: int idn2_to_ascii_8z (const char *input, char **output, int flags)
+    //    input: zero terminated input UTF-8 string.
+    //    output: pointer to newly allocated output string.
+    //    flags: optional idn2_flags to modify behaviour.
+    rc = idn2_to_unicode_8z8z( domain, &output, 0 );
+
+    if (rc == IDNA_SUCCESS) {
+        SV *res = newSVpvn_flags( output, strlen(output), SVf_UTF8 );
+
+        idn2_free(output);
+
+        return res;
+    }
+    else {
+        croak("IDN2: %s", idn2_strerror (rc));
+    }
 }
-else {
-    *domain_to_ascii = sub {
-        return Net::LibIDN::idn_to_ascii( $_[0], 'utf-8' ) || die q[Can't convert IDN to ASCII];
-    };
 
-    *domain_to_utf8 = sub {
-        my $str = Net::LibIDN::idn_to_unicode( $_[0], 'utf-8' ) || die q[Can't convert IDN to UTF-8];
+SV* domain_to_ascii ( char* domain ) {
+    char *output;
+    int rc;
 
-        utf8::decode($str) or die q[Can't decode to UTF-8];
+    // Function: int idn2_to_unicode_8z8z (const char *input, char **output, int flags)
+    //    input: Input zero-terminated UTF-8 string.
+    //    output: Newly allocated UTF-8 output string.
+    //    flags: optional idn2_flags to modify behaviour.
+    rc = idn2_to_ascii_8z(domain, &output, IDN2_NONTRANSITIONAL);
+    // rc = idn2_to_ascii_8z(domain, &output, 0);
 
-        return $str;
-    };
+    if (rc == IDNA_SUCCESS) {
+        SV *res = newSVpvn(output, strlen(output));
+
+        idn2_free(output);
+
+        return res;
+    }
+    else {
+        croak("IDN2: %s", idn2_strerror (rc));
+    }
 }
+C
+    auto_include => q[# include "idn2.h"],
+    libs         => '-lidn2',
+    ccflagsex    => '-Wall -Wextra -O3',
+);
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    3 | 5                    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
@@ -43,7 +71,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::IDN
+Pcore::Util::IDN - libidn2 bindings
 
 =head1 SYNOPSIS
 
