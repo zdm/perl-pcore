@@ -55,65 +55,10 @@ sub to_w3cdtf ($self) {
     return $self->strftime('%Y-%m-%dT%H:%M:%S%Z');
 }
 
-# DURATION METHODS
-sub duration_ms ( $self, $start, $end ) {
-    my $delta = $start->delta_seconds($end);
+sub duration ( $self, $start, $end ) {
+    state $init = !!require Pcore::Util::Date::Duration;
 
-    my $minutes = int $delta / 60;
-
-    return $minutes, $delta - $minutes * 60;
-}
-
-sub duration_hm ( $self, $start, $end ) {
-    my $delta = $start->delta_minutes($end);
-
-    my $hours = int $delta / 60;
-
-    return $hours, $delta - $hours * 60;
-}
-
-sub duration_hms ( $self, $start, $end ) {
-    my $delta_sec = $start->delta_seconds($end);
-
-    my $hours = int $delta_sec / 3_600;
-
-    $delta_sec -= $hours * 3_600;
-
-    my $minutes = int $delta_sec / 60;
-
-    my $seconds = $delta_sec - $minutes * 60;
-
-    return $hours, $minutes, $seconds;
-}
-
-sub duration_dhms ( $self, $start, $end ) {
-    my $delta_sec = $start->delta_seconds($end);
-
-    my $days = int $delta_sec / 86_400;
-
-    $delta_sec -= $days * 86_400;
-
-    my $hours = int $delta_sec / 3600;
-
-    $delta_sec -= $hours * 3600;
-
-    my $minutes = int $delta_sec / 60;
-
-    my $seconds = $delta_sec - $minutes * 60;
-
-    return $days, $hours, $minutes, $seconds;
-}
-
-sub duration_dhm ( $self, $start, $end ) {
-    my $delta = $start->delta_minutes($end);
-
-    my $days = int $delta / 1_440;
-
-    $delta -= $days * 1_440;
-
-    my $hours = int $delta / 60;
-
-    return $days, $hours, $delta - $hours * 60;
+    return Pcore::Util::Date::Duration->new( { start => $start, end => $end } );
 }
 
 1;

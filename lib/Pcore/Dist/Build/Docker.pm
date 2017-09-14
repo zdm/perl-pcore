@@ -226,20 +226,16 @@ sub status ( $self ) {
                 format => sub ( $val, $id, $row ) {
                     return q[-] if !$val;
 
-                    my $duration = [ P->date->duration_dhm( P->date->from_string($val), P->date->now_utc ) ];
+                    my $duration = P->date->duration( P->date->from_string($val), P->date->now_utc );
 
-                    if ( $duration->[0] ) {
-                        return sprintf '%d days %d hours %d minutes ago', $duration->@*;
+                    if ( $duration->days ) {
+                        return sprintf '%d days %d hours %d minutes ago', $duration->dhm->@*;
                     }
-                    elsif ( $duration->[1] ) {
-                        shift $duration->@*;
-
-                        return sprintf '%d hours %d minutes ago', $duration->@*;
+                    elsif ( $duration->hours ) {
+                        return sprintf '%d hours %d minutes ago', $duration->hm->@*;
                     }
                     else {
-                        splice $duration->@*, 0, 2, ();
-
-                        return sprintf '%d hours %d minutes ago', $duration->@*;
+                        return sprintf '%d minutes ago', $duration->minutes;
                     }
                 }
             },
@@ -540,11 +536,11 @@ sub trigger_build ( $self, $tag ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 118                  | * Subroutine "status" with high complexity score (26)                                                          |
-## |      | 296                  | * Subroutine "build_status" with high complexity score (31)                                                    |
+## |      | 292                  | * Subroutine "build_status" with high complexity score (31)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 481                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 477                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 265, 344, 474        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 261, 340, 470        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
