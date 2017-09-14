@@ -55,6 +55,38 @@ sub to_w3cdtf ($self) {
     return $self->strftime('%Y-%m-%dT%H:%M:%S%Z');
 }
 
+sub duration_hms ( $self, $start, $end ) {
+    my $delta_sec = $start->delta_seconds($end);
+
+    my $hours = int $delta_sec / 3_600;
+
+    $delta_sec -= $hours * 3_600;
+
+    my $minutes = int $delta_sec / 60;
+
+    my $seconds = $delta_sec - $minutes * 60;
+
+    return $hours, $minutes, $seconds;
+}
+
+sub duration_dhms ( $self, $start, $end ) {
+    my $delta_sec = $start->delta_seconds($end);
+
+    my $days = int $delta_sec / 86_400;
+
+    $delta_sec -= $days * 86_400;
+
+    my $hours = int $delta_sec / 3600;
+
+    $delta_sec -= $hours * 3600;
+
+    my $minutes = int $delta_sec / 60;
+
+    my $seconds = $delta_sec - $minutes * 60;
+
+    return $days, $hours, $minutes, $seconds;
+}
+
 1;
 __END__
 =pod
