@@ -2,6 +2,7 @@ package Pcore::Src::Filter::JS;
 
 use Pcore -class;
 use Pcore::Util::Text qw[rcut_all encode_utf8];
+use Pcore::Util::PM::Proc;
 
 with qw[Pcore::Src::Filter];
 
@@ -23,7 +24,7 @@ sub decompress ( $self, % ) {
 
     syswrite $temp, $self->buffer->$* or die;
 
-    P->pm->run_proc( [ 'js-beautify', $js_beautify_args, '--replace', qq["$temp"] ], win32_create_no_window => 1 ) or die;
+    my $proc = Pcore::Util::PM::Proc->new_blocking( [ 'js-beautify', $js_beautify_args, '--replace', qq["$temp"] ], win32_create_no_window => 1 );
 
     $self->buffer->$* = P->file->read_bin( $temp->path )->$*;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
@@ -110,7 +111,7 @@ sub run_js_hint ($self) {
 
     my $out_temp = $ENV->{TEMP_DIR} . 'tmp-jshint-' . int rand 99_999;
 
-    P->pm->run_proc( [ 'jshint', $js_hint_args, qq["$in_temp">], qq["$out_temp"] ], win32_create_no_window => 1 ) or 1;
+    my $proc = Pcore::Util::PM::Proc->new_blocking( [ 'jshint', $js_hint_args, qq["$in_temp">], qq["$out_temp"] ], win32_create_no_window => 1 );
 
     $jshint_output = P->file->read_lines($out_temp);
 
@@ -153,7 +154,7 @@ sub run_js_hint ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 79                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 80                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

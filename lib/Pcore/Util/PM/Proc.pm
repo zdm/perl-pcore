@@ -128,6 +128,48 @@ around new => sub ( $orig, $self, $cmd, @ ) {
     return $blocking_cv ? $blocking_cv->recv : ();
 };
 
+sub new_blocking ( $self, $cmd, @ ) {
+    $cmd = [$cmd] if !ref $cmd;
+
+    my %args = (
+        stdin                  => 0,
+        stdout                 => 0,
+        stderr                 => 0,     # NOTE 2 - merge STDERR with STDOUT
+        win32_cflags           => 0,     # NOTE not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
+        win32_create_no_window => 0,     # NOTE preventing to redirect handles
+        win32_alive_timeout    => 0.5,
+        @_[ 2 .. $#_ ],
+    );
+
+    $args{win32_cflags} = Win32::Process::CREATE_NO_WINDOW() if $MSWIN && delete $args{win32_create_no_window};
+
+    my $hdl = $self->_redirect_std( \%args );
+
+    # create process
+    my $proc = $self->_create_process_blocking( $args{win32_cflags}, $cmd );
+
+    # restore old STD* handles
+    open STDIN,  '<&', $hdl->{old_in}  or die if $hdl->{old_in};
+    open STDOUT, '>&', $hdl->{old_out} or die if $hdl->{old_out};
+    open STDERR, '>&', $hdl->{old_err} or die if $hdl->{old_err};
+
+    # handle error creating process
+    # if ( !$proc->pid ) {
+    #     $proc->{status} = -1;
+    #
+    #     $proc->{reason} = 'Error creating process';
+    #
+    #     if ( defined wantarray ) {
+    #         return $proc;
+    #     }
+    #     else {
+    #         die $proc->{reason};
+    #     }
+    # }
+
+    return $proc;
+}
+
 sub _redirect_std ( $self, $args ) {
     my $hdl;
 
@@ -201,6 +243,41 @@ sub _create_process ( $self, $win32_cflags, $cmd ) {
 
             exec $cmd->@* or die $!;
         }
+    }
+
+    return $proc;
+}
+
+sub _create_process_blocking ( $self, $win32_cflags, $cmd ) {
+
+    # prepare environment
+    local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
+    local $ENV{PATH} = "$ENV{PATH}$Config{path_sep}$ENV{PAR_TEMP}" if $ENV->is_par;
+
+    my $proc = bless {}, $self;
+
+    # run process
+    if ($MSWIN) {
+        Win32::Process::Create(    #
+            my $win32_proc,
+            $ENV{COMSPEC},
+            q[/D /C "] . join( q[ ], $cmd->@* ) . q["],
+            1,                     # inherit STD* handles
+            $win32_cflags,
+            q[.]
+        );
+
+        if ($win32_proc) {
+            $win32_proc->Wait( Win32::Process::INFINITE() );
+
+            $win32_proc->GetExitCode( $proc->{status} );
+        }
+        else {
+            $proc->{status} = -1;
+        }
+    }
+    else {
+        $proc->{status} = system join ' ', $cmd->@*;
     }
 
     return $proc;
@@ -343,6 +420,8 @@ sub _on_exit ( $self, $status ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (21)                               |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 280                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
