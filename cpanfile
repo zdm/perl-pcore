@@ -1,4 +1,4 @@
-requires 'perl', v5.26.0;
+requires 'perl', v5.26.1;
 
 # Pcore::Core
 requires 'multidimensional';
