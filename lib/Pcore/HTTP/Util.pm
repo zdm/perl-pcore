@@ -70,8 +70,8 @@ sub http_request ($args) {
                 $persistent ? $runtime->{h}->store($persistent) : $runtime->{h}->destroy;
 
                 # process redirect
-                if ( $runtime->{redirect} && $args->{recurse} > 0 ) {
-                    $args->{recurse}--;
+                if ( $runtime->{redirect} && $args->{max_redirects} > 0 ) {
+                    $args->{max_redirects}--;
 
                     # redirect type may require to switch request method during redirect
                     if ( $REDIRECT->{ $res->status } ) {
