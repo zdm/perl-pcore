@@ -190,9 +190,6 @@ sub request {
         $args{headers} = Pcore::HTTP::Headers->new( $args{headers} );
     }
 
-    # create empty HTTP response object
-    $args{res} = Pcore::HTTP::Response->new( { status => 0 } );
-
     # resolve cookies shortcut
     if ( $args{cookies} && !is_blessed_ref $args{cookies} ) {
 
@@ -261,9 +258,7 @@ sub request {
 
     my $on_finish = delete $args{on_finish};
 
-    my $res = $args{res};
-
-    $args{on_finish} = sub {
+    $args{on_finish} = sub ($res) {
 
         # rewind body fh
         $res->body->seek( 0, 0 ) if $res->{body} && is_glob $res->{body};
