@@ -8,7 +8,7 @@ has name => ( is => 'lazy', isa => Str );
 has desc => ( is => 'lazy', isa => Str );
 
 # API settings
-has auth => ( is => 'ro', isa => Str, required => 1 );    # db, http or was uri
+has auth => ( is => 'ro', isa => Str, required => 1 );    # db, http or wss uri
 
 has devel => ( is => 'ro', isa => Bool, default => 0 );
 
