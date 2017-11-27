@@ -20,9 +20,9 @@ sub upload ( $self, $path, $cb = undef ) {
         $cb->($res) if $cb;
 
         $blocking_cv->($res) if $blocking_cv;
-      }
+    };
 
-      my $body;
+    my $body;
 
     $path = P->path($path);
 
