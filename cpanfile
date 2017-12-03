@@ -126,9 +126,6 @@ requires 'File::Copy::Recursive';
 requires 'List::Util::XS';
 requires 'List::AllUtils';
 
-# Pcore::Util::Mail
-requires 'Mail::IMAPClient';
-
 # Pcore::Util::PM
 feature windows => sub {
     requires 'Win32::Process';
