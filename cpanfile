@@ -70,8 +70,9 @@ on develop => sub {
 };
 
 # Pcore::HTTP
-requires 'HTTP::Parser::XS';
-requires 'HTTP::Message';
+requires 'HTML::TreeBuilder::LibXML', v0.26.0;
+requires 'HTTP::Parser::XS',          v0.17.0;
+requires 'HTTP::Message',             v6.13.0;
 
 # Pcore::Src
 requires 'Perl::Tidy';
