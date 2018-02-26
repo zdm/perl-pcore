@@ -18,31 +18,32 @@ sub init_db ( $self, $cb ) {
 
     $dbh->add_schema_patch(
         1 => <<"SQL"
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
             --- APP
             CREATE TABLE IF NOT EXISTS "api_app" (
-                "id" BLOB PRIMARY KEY NOT NULL,
-                "name" BLOB NOT NULL UNIQUE,
+                "id" UUID PRIMARY KEY NOT NULL,
+                "name" TEXT NOT NULL UNIQUE,
                 "desc" TEXT NOT NULL,
-                "created_ts" INTEGER NOT NULL
+                "created_ts" INT8 NOT NULL
             );
 
             --- APP INSTANCE
             CREATE TABLE IF NOT EXISTS "api_app_instance" (
-                "id" BLOB PRIMARY KEY NOT NULL,
-                "app_id" BLOB NOT NULL REFERENCES "api_app" ("id") ON DELETE RESTRICT,
-                "version" BLOB NOT NULL,
-                "host" BLOB NOT NULL,
-                "created_ts" INTEGER NOT NULL,
-                "last_connected_ts" INTEGER,
-                "hash" BLOB NOT NULL
+                "id" UUID PRIMARY KEY NOT NULL,
+                "app_id" UUID NOT NULL REFERENCES "api_app" ("id") ON DELETE RESTRICT,
+                "version" TEXT NOT NULL,
+                "host" TEXT NOT NULL,
+                "created_ts" INT8 NOT NULL,
+                "last_connected_ts" INT8,
+                "hash" TEXT NOT NULL
             );
 
             --- APP ROLE
             CREATE TABLE IF NOT EXISTS "api_app_role" (
-                "id" BLOB PRIMARY KEY NOT NULL,
-                "app_id" BLOB NOT NULL REFERENCES "api_app" ("id") ON DELETE CASCADE,
-                "name" BLOB NOT NULL,
+                "id" UUID PRIMARY KEY NOT NULL,
+                "app_id" UUID NOT NULL REFERENCES "api_app" ("id") ON DELETE CASCADE,
+                "name" TEXT NOT NULL,
                 "desc" TEXT NOT NULL
             );
 
@@ -50,56 +51,56 @@ sub init_db ( $self, $cb ) {
 
             --- APP PERMISSION
             CREATE TABLE IF NOT EXISTS "api_app_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL,
-                "app_id" BLOB NOT NULL REFERENCES "api_app" ("id") ON DELETE CASCADE, --- remove role assoc., on app delete
-                "app_role_id" BLOB NOT NULL REFERENCES "api_app_role" ("id") ON DELETE RESTRICT, --- prevent deleting role, if has assigned apps
-                "approved" INTEGER NOT NULL DEFAULT 0
+                "id" UUID PRIMARY KEY NOT NULL,
+                "app_id" UUID NOT NULL REFERENCES "api_app" ("id") ON DELETE CASCADE, --- remove role assoc., on app delete
+                "app_role_id" UUID NOT NULL REFERENCES "api_app_role" ("id") ON DELETE RESTRICT, --- prevent deleting role, if has assigned apps
+                "approved" INT2 NOT NULL DEFAULT 0
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_app_permission" ON "api_app_permission" ("app_id", "app_role_id");
 
             --- USER
             CREATE TABLE IF NOT EXISTS "api_user" (
-                "id" BLOB PRIMARY KEY NOT NULL,
+                "id" UUID PRIMARY KEY NOT NULL,
                 "name" TEXT NOT NULL UNIQUE,
-                "created_ts" INTEGER,
-                "enabled" INTEGER NOT NULL DEFAULT 0,
-                "hash" BLOB NOT NULL
+                "created_ts" INT8,
+                "enabled" INT8 NOT NULL DEFAULT 0,
+                "hash" TEXT NOT NULL
             );
 
             --- USER PERMISSION
             CREATE TABLE IF NOT EXISTS "api_user_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL,
-                "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE, --- remove role assoc., on user delete
-                "app_role_id" BLOB NOT NULL REFERENCES "api_app_role" ("id") ON DELETE RESTRICT --- prevent deleting role, if has assigned users
+                "id" UUID PRIMARY KEY NOT NULL,
+                "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE, --- remove role assoc., on user delete
+                "app_role_id" UUID NOT NULL REFERENCES "api_app_role" ("id") ON DELETE RESTRICT --- prevent deleting role, if has assigned users
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_user_permission" ON "api_user_permission" ("user_id", "app_role_id");
 
             --- USER TOKEN
             CREATE TABLE IF NOT EXISTS "api_user_token" (
-                "id" BLOB PRIMARY KEY NOT NULL, --- UUID hex
-                "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
+                "id" UUID PRIMARY KEY NOT NULL, --- UUID hex
+                "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "desc" TEXT,
-                "created_ts" INTEGER,
-                "hash" BLOB NOT NULL
+                "created_ts" INT8,
+                "hash" TEXT NOT NULL
             );
 
             --- USER TOKEN PERMISSION
             CREATE TABLE IF NOT EXISTS "api_user_token_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL,
-                "user_token_id" BLOB NOT NULL REFERENCES "api_user_token" ("id") ON DELETE CASCADE,
-                "user_permission_id" BLOB NOT NULL REFERENCES "api_user_permission" ("id") ON DELETE CASCADE
+                "id" UUID PRIMARY KEY NOT NULL,
+                "user_token_id" UUID NOT NULL REFERENCES "api_user_token" ("id") ON DELETE CASCADE,
+                "user_permission_id" UUID NOT NULL REFERENCES "api_user_permission" ("id") ON DELETE CASCADE
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_user_token_permission" ON "api_user_token_permission" ("user_token_id", "user_permission_id");
 
             --- USER SESSION
             CREATE TABLE IF NOT EXISTS "api_user_session" (
-                "id" BLOB PRIMARY KEY NOT NULL, --- UUID hex
-                "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
-                "created_ts" INTEGER,
-                "hash" BLOB NOT NULL
+                "id" UUID PRIMARY KEY NOT NULL, --- UUID hex
+                "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
+                "created_ts" INT8,
+                "hash" TEXT NOT NULL
             );
 SQL
     );
