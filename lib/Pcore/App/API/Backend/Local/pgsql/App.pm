@@ -140,12 +140,20 @@ sub check_app_permissions_approved ( $self, $app_id, $cb ) {
         return;
     }
 
-    if ( $self->dbh->selectall( q[SELECT * FROM api_app_permission WHERE app_id = ? AND approved = 0], [$app_id] ) ) {
-        $cb->( result [ 400, 'App permissions are not approved' ] );
-    }
-    else {
-        $cb->( result 200 );
-    }
+    $self->dbh->selectall(
+        q[SELECT * FROM "api_app_permission" WHERE "app_id" = ? AND "approved" = 0],
+        [$app_id],
+        sub ( $dbh, $res, $data ) {
+            if ($data) {
+                $cb->( result [ 400, 'App permissions are not approved' ] );
+            }
+            else {
+                $cb->( result 200 );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -162,14 +170,16 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
                 # index roles by role_id
                 $roles = $roles->{data};
 
-                my $modified;
+                $self->dbh->do(
+                    [ 'INSERT INTO "api_app_permissions" ("id", "app_id", "app_role_id", "approved") VALUES', [ map { [ uuid_str, $app_id, $_, 0 ] } keys $roles->%* ], 'ON CONFLICT DO NOTHING' ],
+                    sub ( $dbh, $res, $data ) {
 
-                # add app permissions
-                for my $role_id ( keys $roles->%* ) {
-                    $modified = 1 if $self->dbh->do( q[INSERT OR IGNORE INTO api_app_permissions (id, app_id, app_role_id, approved) VALUE (?, ?, ?, 0)], [ uuid_str, $app_id, $role_id ] );
-                }
+                        # TODO replace $res with modified rows
+                        $cb->( result $res ? 200 : 304 );
 
-                $cb->( result $modified ? 200 : 304 );
+                        return;
+                    }
+                );
             }
 
             return;
@@ -179,6 +189,7 @@ sub add_app_permissions ( $self, $app_id, $app_permissions, $cb ) {
     return;
 }
 
+# TODO
 sub add_app_roles ( $self, $app_id, $app_roles, $cb ) {
 
     # validate identifiers
@@ -221,12 +232,20 @@ sub get_app_role ( $self, $role_id, $cb ) {
 
     # $role_id is role id
     if ( $role_id =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm ) {
-        if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE id = ?], [$role_id] ) ) {
-            $cb->( result 200, $role );
-        }
-        else {
-            $cb->( result [ 404, qq[App role "$role_id" not found] ] );
-        }
+        $self->dbh->selectrow(
+            q[SELECT * FROM "api_app_role" WHERE "id" = ?],
+            [$role_id],
+            sub ( $dbh, $res, $data ) {
+                if ($data) {
+                    $cb->( result 200, $data );
+                }
+                else {
+                    $cb->( result [ 404, qq[App role "$role_id" not found] ] );
+                }
+
+                return;
+            }
+        );
     }
 
     # $role id is app_id/role_name
@@ -235,22 +254,38 @@ sub get_app_role ( $self, $role_id, $cb ) {
 
         # $app_id is app id
         if ( $app_id =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm ) {
-            if ( my $role = $self->dbh->selectrow( q[SELECT * FROM api_app_role WHERE app_id = ? AND name = ?], [ $app_id, $role_name ] ) ) {
-                $cb->( result 200, $role );
-            }
-            else {
-                $cb->( result [ 404, qq[App role "$role_id" not found] ] );
-            }
+            $self->dbh->selectrow(
+                q[SELECT * FROM "api_app_role" WHERE "app_id" = ? AND "name" = ?],
+                [ $app_id, $role_name ],
+                sub ( $dbh, $res, $data ) {
+                    if ($data) {
+                        $cb->( result 200, $data );
+                    }
+                    else {
+                        $cb->( result [ 404, qq[App role "$role_id" not found] ] );
+                    }
+
+                    return;
+                }
+            );
         }
 
         # $app_id is app name
         else {
-            if ( my $role = $self->dbh->selectrow( q[SELECT api_app_role.* FROM api_app, api_app_role WHERE api_app.name = ? AND api_app.id = api_app_role.app_id AND api_app_role.name = ?], [ $app_id, $role_name ] ) ) {
-                $cb->( result 200, $role );
-            }
-            else {
-                $cb->( result [ 404, qq[App role "$role_id" not found] ] );
-            }
+            $self->dbh->selectrow(
+                q[SELECT "api_app_role".* FROM "api_app", "api_app_role" WHERE "api_app"."name" = ? AND "api_app"."id" = "api_app_role"."app_id" AND "api_app_role"."name" = ?],
+                [ $app_id, $role_name ],
+                sub ( $dbh, $res, $data ) {
+                    if ($data) {
+                        $cb->( result 200, $data );
+                    }
+                    else {
+                        $cb->( result [ 404, qq[App role "$role_id" not found] ] );
+                    }
+
+                    return;
+                }
+            );
         }
     }
 
@@ -309,9 +344,15 @@ sub get_app_roles ( $self, $app_id, $cb ) {
                 $cb->($app);
             }
             else {
-                my $roles = $self->dbh->selectall( q[SELECT * FROM api_app_role WHERE app_id = ?], [ $app->{data}->{id} ] );
+                $self->dbh->selectall(
+                    q[SELECT * FROM "api_app_role" WHERE "app_id" = ?],
+                    [ $app->{data}->{id} ],
+                    sub ( $dbh, $res, $data ) {
+                        $cb->( 200, $data // [] );
 
-                $cb->( 200, $roles // [] );
+                        return;
+                    }
+                );
             }
 
             return;
@@ -328,9 +369,9 @@ sub get_app_roles ( $self, $app_id, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15, 223, 237         | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 15, 234, 256         | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 153, 182             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 161, 193             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
