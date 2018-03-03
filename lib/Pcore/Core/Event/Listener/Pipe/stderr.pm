@@ -50,7 +50,7 @@ sub sendlog ( $self, $ev ) {
             $ev->{text} =~ s/^/$INDENT/smg;
 
             # remove all trailing "\n"
-            local $/ = '';
+            local $/ = q[];
 
             chomp $ev->{text};
         }
@@ -75,8 +75,6 @@ sub sendlog ( $self, $ev ) {
 ## |    3 | 42                   | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 39, 42               | Variables::ProhibitLocalVars - Variable declared as "local"                                                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 53                   | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 11                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
