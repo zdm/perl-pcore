@@ -20,6 +20,16 @@
         eol         => $LF,
     );
 
+=head1 PostgreSQL
+
+=head2 uuid
+
+L<https://www.postgresql.org/docs/current/static/uuid-ossp.html>
+
+	CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+	"id" UUID PRIMARY KEY NOT NULL
+
 =head1 MySQL
 
 =head2 connect
