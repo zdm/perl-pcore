@@ -1,3 +1,9 @@
+v0.56.8 2018-03-13T18:45:26Z
+ - POD updated
+ - $SQL_BLOB removed
+ - SQLite types moved
+ - DBI query builder - support for specify data type added
+
 v0.56.7 2018-03-12T09:19:15Z
  - pcore docker from command updated
  - src use json::xs for .json
