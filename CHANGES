@@ -1,3 +1,7 @@
+v0.57.0 2018-03-14T11:41:34Z
+ - POD updated
+ - new app api architecture
+
 v0.56.9 2018-03-13T19:00:16Z
  - ca_file.pem updated
 
