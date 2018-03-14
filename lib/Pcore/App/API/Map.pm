@@ -139,7 +139,9 @@ sub init ($self) {
         }
     }
 
-    return $method;
+    $self->{method} = $method;
+
+    return;
 }
 
 sub get_method ( $self, $method_id ) {
