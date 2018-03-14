@@ -22,7 +22,7 @@ sub _build_method ($self) {
           }
     };
 
-    my $ns_path = ( ref( $self->app ) =~ s[::][/]smgr ) . '/API';
+    my $ns_path = ( ref( $self->{app} ) =~ s[::][/]smgr ) . '/API';
 
     my $class;
 
@@ -55,7 +55,7 @@ sub _build_method ($self) {
                     if ( $path->suffix eq 'pm' ) {
 
                         # API class must be located in V\d+ directory
-                        return if $path !~ m[\AV\d+/]sm;
+                        return if $path !~ m[\Av\d+/]sm;
 
                         my $route = $path->dirname . $path->filename_base;
 
@@ -79,7 +79,7 @@ sub _build_method ($self) {
         $class_path =~ s/\AV/v/sm;
 
         # create API object and store in cache
-        my $obj = $self->{obj}->{$class_name} = $class_name->new( { app => $self->app } );
+        my $obj = $self->{obj}->{$class_name} = $class_name->new( { app => $self->{app} } );
 
         my $obj_map = $obj->api_map;
 

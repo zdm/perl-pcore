@@ -1,6 +1,7 @@
 package Pcore::App::API;
 
 use Pcore -role, -result, -const, -export => { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
+use Pcore::App::API::Map;
 use Pcore::App::API::Auth;
 use Pcore::Util::Data qw[from_b64 from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
@@ -8,6 +9,8 @@ use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[create_uuid_from_bin];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+
+has map => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
 
 has _auth_cb_queue => ( is => 'ro', isa => HashRef, init_arg => undef );
 has _auth_cache    => ( is => 'ro', isa => HashRef, init_arg => undef );
@@ -45,6 +48,13 @@ sub new ( $self, $app ) {
 
 # setup events listeners
 around init => sub ( $orig, $self, $cb ) {
+
+    # build map
+    # using class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
+    $self->{map} = 'Pcore::App::API::Map'->new( { app => $self->{app} } );
+
+    # init map
+    $self->{map}->method;
 
     # setup events listeners
     P->listen_events(
@@ -199,9 +209,9 @@ around authenticate_private => sub ( $orig, $self, $private_token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 76                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 99                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 109                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
