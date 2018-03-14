@@ -9,6 +9,7 @@ use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[create_uuid_from_bin];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+has connect => ( is => 'ro', isa => Str );    # db, http or wss uri
 
 has map => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
 
@@ -26,8 +27,8 @@ const our $TOKEN_TYPE => {
     $TOKEN_TYPE_USER_SESSION  => undef,
 };
 
-sub new ( $self, $app ) {
-    my $uri = P->uri( $app->{auth} );
+sub new ( $self, $app, $connect ) {
+    my $uri = P->uri($connect);
 
     state $scheme_class = {
         sqlite => 'Pcore::App::API::Local::sqlite',
@@ -37,7 +38,7 @@ sub new ( $self, $app ) {
     };
 
     if ( my $class = $scheme_class->{ $uri->scheme } ) {
-        return P->class->load($class)->new( { app => $app } );
+        return P->class->load($class)->new( { app => $app, connect => $connect } );
     }
     else {
         die 'Unknown API scheme';
@@ -211,9 +212,9 @@ around authenticate_private => sub ( $orig, $self, $private_token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 78                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 79                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 112                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

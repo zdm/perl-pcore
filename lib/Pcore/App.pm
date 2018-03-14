@@ -5,9 +5,6 @@ use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
 
-# API settings
-has auth => ( is => 'ro', isa => Maybe [Str] );    # db, http or wss uri
-
 has devel => ( is => 'ro', isa => Bool, default => 0 );
 
 # HTTP server settings
@@ -22,6 +19,9 @@ sub BUILD ( $self, $args ) {
 
     # create HTTP router
     $self->{router} = Pcore::App::Router->new( { hosts => $args->{hosts} // { '*' => ref $self }, app => $self } );
+
+    # init api
+    $self->{api} = Pcore::App::API->new( $self, $args->{auth} ) if $args->{auth};
 
     return;
 }
@@ -51,14 +51,9 @@ around run => sub ( $orig, $self, $cb = undef ) {
         return;
     };
 
-    # init api
-    if ( $self->{auth} ) {
-        $self->{api} = Pcore::App::API->new($self);
-    }
-
     # scan router classes
     print 'Scanning HTTP controllers ... ';
-    $self->router->map;
+    $self->{router}->init;
     say 'done';
 
     if ( $self->{api} ) {

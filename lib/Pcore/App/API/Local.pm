@@ -22,7 +22,7 @@ sub init ( $self, $cb ) {
     $self->{_hash_cache} = P->hash->limited( $self->{_hash_cache_size} );
 
     # create DBH
-    $self->{dbh} = P->handle( $self->{app}->{auth} );
+    $self->{dbh} = P->handle( $self->{connect} );
 
     # update schema
     $self->_db_add_schema_patch( $self->{dbh} );
