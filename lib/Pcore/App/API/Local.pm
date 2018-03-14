@@ -14,15 +14,12 @@ has _hash_rpc   => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::RPC'],    
 has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], init_arg => undef );
 has _hash_cache_size => ( is => 'ro', isa => PositiveInt, default => 10_000 );
 
-const our $RPC_WORKERS_NUM => 1;    # TODO
-
-# TODO roles are hardcoded
 sub init ( $self, $cb ) {
 
     $self->{_hash_cache} = P->hash->limited( $self->{_hash_cache_size} );
 
     # create DBH
-    $self->{dbh} = P->handle( $self->{connect} );
+    $self->{dbh} = P->handle( $self->{app}->{app_cfg}->{api}->{connect} );
 
     # update schema
     $self->_db_add_schema_patch( $self->{dbh} );
@@ -59,13 +56,9 @@ sub init ( $self, $cb ) {
                     print 'Starting API RPC ... ';
                     P->pm->run_rpc(
                         'Pcore::App::API::RPC::Hash',
-                        workers   => $RPC_WORKERS_NUM,
-                        buildargs => {
-                            argon2_time        => 3,
-                            argon2_memory      => '64M',
-                            argon2_parallelism => 1,
-                        },
-                        on_ready => sub ($rpc) {
+                        workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
+                        buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
+                        on_ready  => sub ($rpc) {
                             $self->{_hash_rpc} = $rpc;
 
                             $rpc->connect_rpc(
@@ -1166,9 +1159,9 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 139, 161, 211, 319,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 525, 738, 821, 905,  |                                                                                                                |
-## |      | 928, 1130            |                                                                                                                |
+## |    3 | 132, 154, 204, 312,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 518, 731, 814, 898,  |                                                                                                                |
+## |      | 921, 1123            |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

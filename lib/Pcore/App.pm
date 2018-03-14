@@ -5,23 +5,25 @@ use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
 
-has devel => ( is => 'ro', isa => Bool, default => 0 );
+has app_cfg => ( is => 'ro', isa => HashRef, required => 1 );
+has devel   => ( is => 'ro', isa => Bool,    default  => 0 );
 
-# HTTP server settings
-has listen => ( is => 'ro', isa => Str, required => 1 );
-has keepalive_timeout => ( is => 'ro', isa => PositiveOrZeroInt, default => 60 );
-
-has router => ( is => 'ro', isa => InstanceOf ['Pcore::App::Router'], init_arg => undef );
+has server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
+has router => ( is => 'ro', isa => InstanceOf ['Pcore::App::Router'],  init_arg => undef );
 has api => ( is => 'ro', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
-has http_server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
 
 sub BUILD ( $self, $args ) {
 
     # create HTTP router
-    $self->{router} = Pcore::App::Router->new( { hosts => $args->{hosts} // { '*' => ref $self }, app => $self } );
+    $self->{app_cfg}->{router} //= { '*' => ref $self };
+
+    $self->{router} = Pcore::App::Router->new( {
+        app   => $self,
+        hosts => $self->{app_cfg}->{router},
+    } );
 
     # init api
-    $self->{api} = Pcore::App::API->new( $self, $args->{auth} ) if $args->{auth};
+    $self->{api} = Pcore::App::API->new($self) if $self->{app_cfg}->{api}->{connect};
 
     return;
 }
@@ -32,15 +34,14 @@ around run => sub ( $orig, $self, $cb = undef ) {
         $self->$orig( sub {
 
             # start HTTP server
-            $self->{http_server} = Pcore::HTTP::Server->new( {
-                listen            => $self->listen,
-                keepalive_timeout => $self->keepalive_timeout,
-                app               => $self->router,
+            $self->{server} = Pcore::HTTP::Server->new( {
+                $self->{app_cfg}->{server}->%*,    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+                app => $self->{router}
             } );
 
-            $self->{http_server}->run;
+            $self->{server}->run;
 
-            say qq[Listen: @{[$self->listen]}] if $self->listen;
+            say qq[Listen: $self->{app_cfg}->{server}->{listen}];
             say qq[App "@{[ref $self]}" started];
 
             $cb->($self) if $cb;
@@ -79,11 +80,6 @@ around run => sub ( $orig, $self, $cb = undef ) {
 
     return $self;
 };
-
-# this method can be overloaded in subclasses
-sub run ($self) {
-    return;
-}
 
 1;
 __END__
