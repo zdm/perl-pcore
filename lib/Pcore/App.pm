@@ -93,6 +93,36 @@ Pcore::App
 
 =head1 SYNOPSIS
 
+    my $app = Test::App->new( {    #
+        app_cfg => {
+            server => {            # passed directly to the Pcore::HTTP::Server constructor
+                listen            => '*:80',    # 'unix:/var/run/test.sock'
+                keepalive_timeout => 180,
+            },
+            router => {                         # passed directly to the Pcore::App::Router
+                '*'         => undef,
+                'host1.com' => 'Test::App::App1',
+                'host2.com' => 'Test::App::App2',
+            },
+            api => {
+                connect => "sqlite:$ENV->{DATA_DIR}auth.sqlite",
+                rpc => {
+                    workers => undef,           # Maybe[Int]
+                    argon   => {
+                        argon2_time        => 3,
+                        argon2_memory      => '64M',
+                        argon2_parallelism => 1,
+                    },
+                },
+            }
+        },
+        devel => $ENV->cli->{opt}->{devel},
+    } );
+
+    $app->run( sub ($res) {
+        return;
+    } );
+
 =head1 DESCRIPTION
 
 =head1 ATTRIBUTES
