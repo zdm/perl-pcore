@@ -103,6 +103,24 @@ Pcore::App
 
 =head1 METHODS
 
+=head1 API METHOD PERMISSSIONS
+
+=over
+
+=item undef
+
+allows to call API method without authentication.
+
+=item "*"
+
+allows any authenticated user.
+
+=item ArrayRef[Str]
+
+array of roles names, that are allowed to run this method.
+
+=back
+
 =head1 SEE ALSO
 
 =cut
