@@ -65,7 +65,9 @@ around run => sub ( $orig, $self, $cb = undef ) {
 
         # connect api
         $self->{api}->init( sub ($res) {
-            exit if !$res;
+            say 'API initialization ... ' . $res;
+
+            exit 3 if !$res;
 
             $cv->send;
 

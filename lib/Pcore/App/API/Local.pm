@@ -27,7 +27,10 @@ sub init ( $self, $cb ) {
     # update schema
     $self->_db_add_schema_patch( $self->{dbh} );
 
+    print 'Upgrading API DB scema ... ';
     $self->{dbh}->upgrade_schema( sub ($status) {
+        say $status;
+
         if ( !$status ) {
             $cb->($status);
         }
@@ -53,6 +56,7 @@ sub init ( $self, $cb ) {
                     }
 
                     # run hash RPC
+                    print 'Starting API RPC ... ';
                     P->pm->run_rpc(
                         'Pcore::App::API::RPC::Hash',
                         workers   => $RPC_WORKERS_NUM,
@@ -66,7 +70,23 @@ sub init ( $self, $cb ) {
 
                             $rpc->connect_rpc(
                                 on_connect => sub ($rpc) {
-                                    $cb->( result 200 );
+                                    say 'done';
+
+                                    print 'Creating root user ... ';
+                                    my $root_password = P->random->bytes_hex(32);
+
+                                    $self->create_user(
+                                        'root',
+                                        $root_password,
+                                        1, undef,
+                                        sub($res) {
+                                            say $res . ( $res ? ", password: $root_password" : q[] );
+
+                                            $cb->( result 200 );
+
+                                            return;
+                                        }
+                                    );
 
                                     return;
                                 }
@@ -503,6 +523,12 @@ sub set_user_permissions ( $self, $user_id, $permissions, $cb ) {
 }
 
 sub _set_user_permissions ( $self, $dbh, $user_id, $permissions, $cb ) {
+    if ( !$permissions || !$permissions->@* ) {
+        $cb->( result 204 );    # not modified
+
+        return;
+    }
+
     $self->_db_get_roles(
         $dbh,
         sub ($roles) {
@@ -1140,9 +1166,9 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 119, 141, 191, 299,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 505, 712, 795, 879,  |                                                                                                                |
-## |      | 902, 1104            |                                                                                                                |
+## |    3 | 139, 161, 211, 319,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 525, 738, 821, 905,  |                                                                                                                |
+## |      | 928, 1130            |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

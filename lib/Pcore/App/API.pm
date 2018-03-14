@@ -54,7 +54,9 @@ around init => sub ( $orig, $self, $cb ) {
     $self->{map} = 'Pcore::App::API::Map'->new( { app => $self->{app} } );
 
     # init map
+    print 'Scanning API classes ... ';
     $self->{map}->init;
+    say 'done';
 
     # setup events listeners
     P->listen_events(
@@ -209,9 +211,9 @@ around authenticate_private => sub ( $orig, $self, $private_token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 76                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 78                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 109                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
