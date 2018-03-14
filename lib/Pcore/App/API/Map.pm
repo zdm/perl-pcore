@@ -5,12 +5,12 @@ use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
-has method => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has method => ( is => 'ro', isa => HashRef, init_arg => undef );
 has obj => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
 
 # TODO https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
 
-sub _build_method ($self) {
+sub init ($self) {
     my $method = {};
 
     # read api roles

@@ -54,7 +54,7 @@ around init => sub ( $orig, $self, $cb ) {
     $self->{map} = 'Pcore::App::API::Map'->new( { app => $self->{app} } );
 
     # init map
-    $self->{map}->method;
+    $self->{map}->init;
 
     # setup events listeners
     P->listen_events(
