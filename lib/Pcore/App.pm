@@ -28,9 +28,14 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-# TODO init appliacation
 around run => sub ( $orig, $self, $cb = undef ) {
     my $cv = AE::cv sub {
+
+        # scan HTTP controllers
+        print 'Scanning HTTP controllers ... ';
+        $self->{router}->init;
+        say 'done';
+
         $self->$orig( sub {
 
             # start HTTP server
@@ -51,11 +56,6 @@ around run => sub ( $orig, $self, $cb = undef ) {
 
         return;
     };
-
-    # scan router classes
-    print 'Scanning HTTP controllers ... ';
-    $self->{router}->init;
-    say 'done';
 
     if ( $self->{api} ) {
 
