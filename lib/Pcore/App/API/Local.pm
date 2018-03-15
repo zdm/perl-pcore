@@ -920,7 +920,7 @@ sub update_user_session ( $self, $user_sid, $ip, $agent, $cb ) {
 # DB METHODS
 sub _db_get_users ( $self, $dbh, $cb ) {
     $dbh->selectall(
-        q[SELECT "id", "name", "enabled", "created_ts" FROM "api_user"],
+        q[SELECT "id", "name", "enabled", "created" FROM "api_user"],
         sub ( $dbh, $res, $users ) {
             if ( !$res ) {
                 $cb->( result 500 );
@@ -940,7 +940,7 @@ sub _db_get_user ( $self, $dbh, $user_id, $cb ) {
     my $is_uuid = looks_like_uuid $user_id;
 
     $dbh->selectrow(
-        qq[SELECT "id", "name", "enabled", "created_ts" FROM "api_user" WHERE "@{[$is_uuid ? 'id' : 'name']}" = ?],
+        qq[SELECT "id", "name", "enabled", "created" FROM "api_user" WHERE "@{[$is_uuid ? 'id' : 'name']}" = ?],
         $is_uuid ? [ [ $user_id, $SQL_UUID ] ] : [$user_id],
         sub ( $dbh, $res, $user ) {
 

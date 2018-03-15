@@ -22,7 +22,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "name" TEXT NOT NULL UNIQUE,
                 "hash" BYTEA NOT NULL,
                 "enabled" BOOLEAN NOT NULL DEFAULT FALSE,
-                "created_ts" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())
+                "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())
             );
 
             -- USER PERMISSION
@@ -40,7 +40,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "hash" BYTEA NOT NULL,
                 "desc" TEXT,
-                "created_ts" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())
+                "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW())
             );
 
             -- USER TOKEN PERMISSION
@@ -56,8 +56,8 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
                 "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "hash" BYTEA NOT NULL,
-                "created_ts" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()),
-                "updated_ts" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()),
+                "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()),
+                "updated" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()),
                 "ip" BYTEA NOT NULL,
                 "agent" TEXT NOT NULL
             );
