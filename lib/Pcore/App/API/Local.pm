@@ -917,113 +917,6 @@ sub update_user_session ( $self, $user_sid, $ip, $agent, $cb ) {
     return;
 }
 
-# USER CTOKENS
-sub create_user_ctoken16 ( $self, $user_id, $ctoken_type, $remove_old, $cb ) {
-
-    # resolve user
-    $self->_db_get_user(
-        $self->{dbh},
-        $user_id,
-        sub ($user) {
-
-            # user wasn't found
-            if ( !$user ) {
-                $cb->($user);
-            }
-            else {
-                $self->{dbh}->begin_work(
-                    sub ( $dbh, $res ) {
-                        if ( !$res ) {
-                            $cb->( result 500 );
-                        }
-                        else {
-                            my $on_finish = sub ($res) {
-                                if ($res) {
-                                    $dbh->commit(
-                                        sub ( $dbh, $res1 ) {
-                                            if ( !$res1 ) {
-                                                $cb->( result 500 );
-                                            }
-                                            else {
-                                                $cb->($res);
-                                            }
-
-                                            return;
-                                        }
-                                    );
-                                }
-                                else {
-                                    $dbh->rollback(
-                                        sub ( $dbh, $res1 ) {
-                                            $cb->($res);
-
-                                            return;
-                                        }
-                                    );
-                                }
-
-                                return;
-                            };
-
-                            my $create_token = sub {
-                                my $token = P->random->bytes_hex(16);
-
-                                $dbh->do(
-                                    'INSERT INTO "api_user_ctoken16" ("token", "type", "user_id") VALUES (?, ?, ?)',
-                                    [ [ $token, $SQL_BYTEA ], $ctoken_type, [ $user->{data}->{id}, $SQL_UUID ] ],
-                                    sub ( $dbh, $res, $data ) {
-                                        if ( !$res->{rows} ) {
-                                            $on_finish->( result 500 );
-                                        }
-                                        else {
-                                            $on_finish->( result 200, { token => $token } );
-                                        }
-
-                                        return;
-                                    }
-                                );
-
-                                return;
-                            };
-
-                            if ( !$remove_old ) {
-                                $create_token->();
-                            }
-                            else {
-                                $dbh->do(
-                                    'DELETE FROM "api_user_ctoken16" WHERE "user_id" = ? AND "type" = ?',
-                                    [ [ $user->{data}->{id}, $SQL_UUID ], $ctoken_type ],
-                                    sub ( $dbh, $res, $data ) {
-                                        if ($res) {
-                                            $create_token->();
-                                        }
-                                        else {
-                                            $on_finish->( result 500 );
-                                        }
-
-                                        return;
-                                    }
-                                );
-                            }
-                        }
-
-                        return;
-                    }
-                );
-            }
-
-            return;
-        }
-    );
-
-    return;
-}
-
-# TODO
-sub validate_user_ctoken16 ( $self, $token, $cb ) {
-    return;
-}
-
 # DB METHODS
 sub _db_get_users ( $self, $dbh, $cb ) {
     $dbh->selectall(
@@ -1161,7 +1054,7 @@ SQL
 ## |======+======================+================================================================================================================|
 ## |    3 | 132, 154, 204, 312,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |      | 518, 731, 814, 898,  |                                                                                                                |
-## |      | 921, 1123            |                                                                                                                |
+## |      | 1016                 |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

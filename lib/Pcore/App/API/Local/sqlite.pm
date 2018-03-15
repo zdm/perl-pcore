@@ -60,14 +60,6 @@ sub _db_add_schema_patch ( $self, $dbh ) {
                 "ip" BLOB NOT NULL,
                 "agent" TEXT NOT NULL
             );
-
-            --- USER CTOKEN
-            CREATE TABLE IF NOT EXISTS "api_user_ctoken16" (
-                "token" BLOB PRIMARY KEY NOT NULL,
-                "type" INTEGER NOT NULL,
-                "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,"
-                created_ts" INTEGER NOT NULL DEFAULT(CAST(STRFTIME('%s', 'now') AS INT))
-            );
 SQL
     );
 
@@ -160,11 +152,11 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 77                   | * Private subroutine/method '_db_add_roles' declared but not used                                              |
-## |      | 90                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
-## |      | 111                  | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
+## |      | 69                   | * Private subroutine/method '_db_add_roles' declared but not used                                              |
+## |      | 82                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
+## |      | 103                  | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 90, 111              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 82, 103              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
