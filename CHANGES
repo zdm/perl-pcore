@@ -1,3 +1,7 @@
+v0.57.1 2018-03-15T11:49:11Z
+ - POD
+ - app ctoken api removed
+
 v0.57.0 2018-03-14T11:41:34Z
  - POD updated
  - new app api architecture
