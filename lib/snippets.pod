@@ -28,7 +28,13 @@ L<https://www.postgresql.org/docs/current/static/uuid-ossp.html>
 
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-    "id" UUID PRIMARY KEY NOT NULL
+    # use UUID v1 - based on MAC addr.
+    "id" UUID PRIMARY KEY NOT NULL DEFAULT uuid_generate_v1()
+
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+    # use UUID v5 - random
+    "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid()
 
 =head1 MySQL
 
