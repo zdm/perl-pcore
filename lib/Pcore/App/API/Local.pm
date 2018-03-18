@@ -24,7 +24,7 @@ sub init ( $self, $cb ) {
     # update schema
     $self->_db_add_schema_patch( $self->{dbh} );
 
-    print 'Upgrading API DB scema ... ';
+    print 'Upgrading API DB schema ... ';
     $self->{dbh}->upgrade_schema( sub ($status) {
         say $status;
 
