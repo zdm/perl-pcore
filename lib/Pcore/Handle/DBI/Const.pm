@@ -1,6 +1,10 @@
 package Pcore::Handle::DBI::Const;
 
-use Pcore -const, -export => { TYPES => [qw[$SQL_ABSTIME $SQL_ABSTIMEARRAY $SQL_ACLITEM $SQL_ACLITEMARRAY $SQL_ANY $SQL_ANYARRAY $SQL_ANYELEMENT $SQL_ANYENUM $SQL_ANYNONARRAY $SQL_ANYRANGE $SQL_BIT $SQL_BITARRAY $SQL_BOOL $SQL_BOOLARRAY $SQL_BOX $SQL_BOXARRAY $SQL_BPCHAR $SQL_BPCHARARRAY $SQL_BYTEA $SQL_BYTEAARRAY $SQL_CHAR $SQL_CHARARRAY $SQL_CID $SQL_CIDARRAY $SQL_CIDR $SQL_CIDRARRAY $SQL_CIRCLE $SQL_CIRCLEARRAY $SQL_CSTRING $SQL_CSTRINGARRAY $SQL_DATE $SQL_DATEARRAY $SQL_DATERANGE $SQL_DATERANGEARRAY $SQL_EVENT_TRIGGER $SQL_FDW_HANDLER $SQL_FLOAT4 $SQL_FLOAT4ARRAY $SQL_FLOAT8 $SQL_FLOAT8ARRAY $SQL_GTSVECTOR $SQL_GTSVECTORARRAY $SQL_INDEX_AM_HANDLER $SQL_INET $SQL_INETARRAY $SQL_INT2 $SQL_INT2ARRAY $SQL_INT2VECTOR $SQL_INT2VECTORARRAY $SQL_INT4 $SQL_INT4ARRAY $SQL_INT4RANGE $SQL_INT4RANGEARRAY $SQL_INT8 $SQL_INT8ARRAY $SQL_INT8RANGE $SQL_INT8RANGEARRAY $SQL_INTERNAL $SQL_INTERVAL $SQL_INTERVALARRAY $SQL_JSON $SQL_JSONARRAY $SQL_JSONB $SQL_JSONBARRAY $SQL_LANGUAGE_HANDLER $SQL_LINE $SQL_LINEARRAY $SQL_LSEG $SQL_LSEGARRAY $SQL_MACADDR $SQL_MACADDRARRAY $SQL_MONEY $SQL_MONEYARRAY $SQL_NAME $SQL_NAMEARRAY $SQL_NUMERIC $SQL_NUMERICARRAY $SQL_NUMRANGE $SQL_NUMRANGEARRAY $SQL_OID $SQL_OIDARRAY $SQL_OIDVECTOR $SQL_OIDVECTORARRAY $SQL_OPAQUE $SQL_PATH $SQL_PATHARRAY $SQL_PG_ATTRIBUTE $SQL_PG_CLASS $SQL_PG_DDL_COMMAND $SQL_PG_LSN $SQL_PG_LSNARRAY $SQL_PG_NODE_TREE $SQL_PG_PROC $SQL_PG_TYPE $SQL_POINT $SQL_POINTARRAY $SQL_POLYGON $SQL_POLYGONARRAY $SQL_RECORD $SQL_RECORDARRAY $SQL_REFCURSOR $SQL_REFCURSORARRAY $SQL_REGCLASS $SQL_REGCLASSARRAY $SQL_REGCONFIG $SQL_REGCONFIGARRAY $SQL_REGDICTIONARY $SQL_REGDICTIONARYARRAY $SQL_REGNAMESPACE $SQL_REGNAMESPACEARRAY $SQL_REGOPER $SQL_REGOPERARRAY $SQL_REGOPERATOR $SQL_REGOPERATORARRAY $SQL_REGPROC $SQL_REGPROCARRAY $SQL_REGPROCEDURE $SQL_REGPROCEDUREARRAY $SQL_REGROLE $SQL_REGROLEARRAY $SQL_REGTYPE $SQL_REGTYPEARRAY $SQL_RELTIME $SQL_RELTIMEARRAY $SQL_SMGR $SQL_TEXT $SQL_TEXTARRAY $SQL_TID $SQL_TIDARRAY $SQL_TIME $SQL_TIMEARRAY $SQL_TIMESTAMP $SQL_TIMESTAMPARRAY $SQL_TIMESTAMPTZ $SQL_TIMESTAMPTZARRAY $SQL_TIMETZ $SQL_TIMETZARRAY $SQL_TINTERVAL $SQL_TINTERVALARRAY $SQL_TRIGGER $SQL_TSM_HANDLER $SQL_TSQUERY $SQL_TSQUERYARRAY $SQL_TSRANGE $SQL_TSRANGEARRAY $SQL_TSTZRANGE $SQL_TSTZRANGEARRAY $SQL_TSVECTOR $SQL_TSVECTORARRAY $SQL_TXID_SNAPSHOT $SQL_TXID_SNAPSHOTARRAY $SQL_UNKNOWN $SQL_UUID $SQL_UUIDARRAY $SQL_VARBIT $SQL_VARBITARRAY $SQL_VARCHAR $SQL_VARCHARARRAY $SQL_VOID $SQL_XID $SQL_XIDARRAY $SQL_XML $SQL_XMLARRAY]], };
+use Pcore -const,
+  -export => {
+    TYPES => [qw[$SQL_ABSTIME $SQL_ABSTIMEARRAY $SQL_ACLITEM $SQL_ACLITEMARRAY $SQL_ANY $SQL_ANYARRAY $SQL_ANYELEMENT $SQL_ANYENUM $SQL_ANYNONARRAY $SQL_ANYRANGE $SQL_BIT $SQL_BITARRAY $SQL_BOOL $SQL_BOOLARRAY $SQL_BOX $SQL_BOXARRAY $SQL_BPCHAR $SQL_BPCHARARRAY $SQL_BYTEA $SQL_BYTEAARRAY $SQL_CHAR $SQL_CHARARRAY $SQL_CID $SQL_CIDARRAY $SQL_CIDR $SQL_CIDRARRAY $SQL_CIRCLE $SQL_CIRCLEARRAY $SQL_CSTRING $SQL_CSTRINGARRAY $SQL_DATE $SQL_DATEARRAY $SQL_DATERANGE $SQL_DATERANGEARRAY $SQL_EVENT_TRIGGER $SQL_FDW_HANDLER $SQL_FLOAT4 $SQL_FLOAT4ARRAY $SQL_FLOAT8 $SQL_FLOAT8ARRAY $SQL_GTSVECTOR $SQL_GTSVECTORARRAY $SQL_INDEX_AM_HANDLER $SQL_INET $SQL_INETARRAY $SQL_INT2 $SQL_INT2ARRAY $SQL_INT2VECTOR $SQL_INT2VECTORARRAY $SQL_INT4 $SQL_INT4ARRAY $SQL_INT4RANGE $SQL_INT4RANGEARRAY $SQL_INT8 $SQL_INT8ARRAY $SQL_INT8RANGE $SQL_INT8RANGEARRAY $SQL_INTERNAL $SQL_INTERVAL $SQL_INTERVALARRAY $SQL_JSON $SQL_JSONARRAY $SQL_JSONB $SQL_JSONBARRAY $SQL_LANGUAGE_HANDLER $SQL_LINE $SQL_LINEARRAY $SQL_LSEG $SQL_LSEGARRAY $SQL_MACADDR $SQL_MACADDRARRAY $SQL_MONEY $SQL_MONEYARRAY $SQL_NAME $SQL_NAMEARRAY $SQL_NUMERIC $SQL_NUMERICARRAY $SQL_NUMRANGE $SQL_NUMRANGEARRAY $SQL_OID $SQL_OIDARRAY $SQL_OIDVECTOR $SQL_OIDVECTORARRAY $SQL_OPAQUE $SQL_PATH $SQL_PATHARRAY $SQL_PG_ATTRIBUTE $SQL_PG_CLASS $SQL_PG_DDL_COMMAND $SQL_PG_LSN $SQL_PG_LSNARRAY $SQL_PG_NODE_TREE $SQL_PG_PROC $SQL_PG_TYPE $SQL_POINT $SQL_POINTARRAY $SQL_POLYGON $SQL_POLYGONARRAY $SQL_RECORD $SQL_RECORDARRAY $SQL_REFCURSOR $SQL_REFCURSORARRAY $SQL_REGCLASS $SQL_REGCLASSARRAY $SQL_REGCONFIG $SQL_REGCONFIGARRAY $SQL_REGDICTIONARY $SQL_REGDICTIONARYARRAY $SQL_REGNAMESPACE $SQL_REGNAMESPACEARRAY $SQL_REGOPER $SQL_REGOPERARRAY $SQL_REGOPERATOR $SQL_REGOPERATORARRAY $SQL_REGPROC $SQL_REGPROCARRAY $SQL_REGPROCEDURE $SQL_REGPROCEDUREARRAY $SQL_REGROLE $SQL_REGROLEARRAY $SQL_REGTYPE $SQL_REGTYPEARRAY $SQL_RELTIME $SQL_RELTIMEARRAY $SQL_SMGR $SQL_TEXT $SQL_TEXTARRAY $SQL_TID $SQL_TIDARRAY $SQL_TIME $SQL_TIMEARRAY $SQL_TIMESTAMP $SQL_TIMESTAMPARRAY $SQL_TIMESTAMPTZ $SQL_TIMESTAMPTZARRAY $SQL_TIMETZ $SQL_TIMETZARRAY $SQL_TINTERVAL $SQL_TINTERVALARRAY $SQL_TRIGGER $SQL_TSM_HANDLER $SQL_TSQUERY $SQL_TSQUERYARRAY $SQL_TSRANGE $SQL_TSRANGEARRAY $SQL_TSTZRANGE $SQL_TSTZRANGEARRAY $SQL_TSVECTOR $SQL_TSVECTORARRAY $SQL_TXID_SNAPSHOT $SQL_TXID_SNAPSHOTARRAY $SQL_UNKNOWN $SQL_UUID $SQL_UUIDARRAY $SQL_VARBIT $SQL_VARBITARRAY $SQL_VARCHAR $SQL_VARCHARARRAY $SQL_VOID $SQL_XID $SQL_XIDARRAY $SQL_XML $SQL_XMLARRAY]],
+    QUERY => [qw[SET VALUES WHERE IN ORDER_BY]],
+  };
 
 # POSTGRES TYPES
 const our $SQL_ABSTIME            => 702;
@@ -167,7 +171,408 @@ const our $SQL_XIDARRAY           => 1011;
 const our $SQL_XML                => 142;
 const our $SQL_XMLARRAY           => 143;
 
+# QUERY BUILDER
+sub SET {
+    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_SET';
+}
+
+sub VALUES {
+    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_VALUES';
+}
+
+sub WHERE {
+    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_WHERE';
+}
+
+sub IN {
+    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_IN';
+}
+
+sub ORDER_BY {
+    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_ORDER_BY';
+}
+
+# SET
+package Pcore::Handle::DBI::_SET;
+
+use Pcore;
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_hashref];
+
+sub get_query ( $self, $dbh, $final, $i ) {
+    my ( @sql, @bind );
+
+    for my $token ( $self->{buf}->@* ) {
+
+        # skip undefined values
+        next if !defined $token;
+
+        # Scalar value is processed as SQL
+        if ( !is_ref $token ) {
+            push @sql, $token;
+        }
+
+        # ScalarRef value is processed as parameter
+        elsif ( is_plain_scalarref $token ) {
+            push @sql, '$' . $i->$*++;
+
+            push @bind, $token->$*;
+        }
+
+        # ArrayRef value is processed as parameter [$value, $type]
+        elsif ( is_plain_arrayref $token ) {
+            push @sql, '$' . $i->$*++;
+
+            push @bind, $token;
+        }
+
+        # HashRf value
+        elsif ( is_plain_hashref $token ) {
+            my @sql1;
+
+            for my $field ( keys $token->%* ) {
+                push @sql1, $dbh->quote_id($field) . ' = $' . $i->$*++;
+
+                # Scalar or ArrayRef values are processed as parameters
+                if ( !is_ref $token->{$field} || is_plain_arrayref $token->{$field} ) {
+                    push @bind, $token->{$field};
+                }
+
+                # ScalarRef value is processed as parameter
+                elsif ( is_plain_scalarref $token->{$field} ) {
+                    push @bind, $token->{$field}->$*;
+                }
+                else {
+                    die 'Unsupported ref type';
+                }
+            }
+
+            if (@sql1) {
+                $sql[-1] .= q[,] if @sql;
+
+                push @sql, join q[, ], @sql1;
+            }
+        }
+        else {
+            die 'Unsupported ref type';
+        }
+    }
+
+    if ( !@sql ) {
+        return;
+    }
+    else {
+        return ( $final ? 'SET ' : q[] ) . join( q[ ], @sql ), \@bind;
+    }
+}
+
+# VALUES
+package Pcore::Handle::DBI::_VALUES;
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_hashref];
+
+use Pcore;
+
+sub get_query ( $self, $dbh, $final, $i ) {
+    my ( @sql, @idx );
+
+    for my $token ( $self->{buf}->@* ) {
+
+        # skip undefined values
+        next if !defined $token;
+
+        # HashRef prosessed as values set
+        if ( is_plain_hashref $token) {
+            @idx = sort keys $token->%* if !@idx;
+
+            my @row;
+
+            for my $field (@idx) {
+
+                # Scalar value is processed as parameter
+                if ( !is_ref $token->{$field} ) {
+                    push @row, $dbh->quote( $token->{$field} );
+                }
+
+                # ArrayRef value is processed as parameter
+                elsif ( is_plain_arrayref $token->{$field} ) {
+                    push @row, $dbh->quote( $token->{$field}->@* );
+                }
+
+                # ScalarRef value is processed as parameter
+                elsif ( is_plain_scalarref $token ) {
+                    push @row, $dbh->quote( $token->{$field}->$* );
+                }
+                else {
+                    die 'Unsupported ref type';
+                }
+
+            }
+
+            push @sql, '(' . join( ', ', @row ) . ')' if @row;
+        }
+        else {
+            die 'Unsupported ref type';
+        }
+    }
+
+    return '(' . join( ', ', map { $dbh->quote_id($_) } @idx ) . ') VALUES ' . join( ', ', @sql ), undef;
+}
+
+# WHERE
+package Pcore::Handle::DBI::_WHERE;
+
+use Pcore -const;
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_hashref is_blessed_ref];
+
+use overload    #
+  q[&] => sub {
+    my $w0_is_empty = !$_[0]->_is_not_empty;
+    my $w1_is_empty = !$_[1]->_is_not_empty;
+
+    if ( $w0_is_empty && $w1_is_empty ) {
+        return bless {}, __PACKAGE__;
+    }
+    elsif ( !$w0_is_empty && $w1_is_empty ) {
+        return $_[0];
+    }
+    elsif ( $w0_is_empty && !$w1_is_empty ) {
+        return $_[1];
+    }
+    else {
+        return bless { buf => [ '(', $_[0]->{buf}->@*, ') AND (', $_[1]->{buf}->@*, ')' ] }, __PACKAGE__;
+    }
+  },
+  q[|] => sub {
+    my $w0_is_empty = !$_[0]->_is_not_empty;
+    my $w1_is_empty = !$_[1]->_is_not_empty;
+
+    if ( $w0_is_empty && $w1_is_empty ) {
+        return bless {}, __PACKAGE__;
+    }
+    elsif ( !$w0_is_empty && $w1_is_empty ) {
+        return $_[0];
+    }
+    elsif ( $w0_is_empty && !$w1_is_empty ) {
+        return $_[1];
+    }
+    else {
+        return bless { buf => [ '(', $_[0]->{buf}->@*, ') OR (', $_[1]->{buf}->@*, ')' ] }, __PACKAGE__;
+    }
+  },
+  fallback => undef;
+
+const our $SQL_COMPARISON_OPERATOR => {
+    '<'    => '<',
+    '<='   => '<=',
+    '='    => '=',
+    '>='   => '>=',
+    '>'    => '>',
+    '!='   => '!=',
+    'like' => 'LIKE',
+
+    # TODO not yet supported
+    'is null'     => undef,    # 'IS NULL', # automatically use this operator, if value in undef
+    'is not null' => undef,    # 'IS NOT NULL',
+    'in'          => undef,    # 'IN',
+    'notin'       => undef,    # 'NOT IN',
+    'not in'      => undef,    # 'NOT IN',
+};
+
+sub _is_not_empty ($self) {
+    return if !defined $self->{buf} || !$self->{buf}->@*;
+
+    for ( $self->{buf}->@* ) {
+        next if !defined;
+
+        # empty HashRef
+        next if is_plain_hashref $_ && !keys $_->%*;
+
+        return 1;
+    }
+
+    return;
+}
+
+sub get_query ( $self, $dbh, $final, $i ) {
+    my ( @sql, @bind );
+
+    for my $token ( $self->{buf}->@* ) {
+
+        # skip undefined values
+        next if !defined $token;
+
+        # Scalar value is processed as SQL
+        if ( !is_ref $token ) {
+            push @sql, $token;
+        }
+
+        # ScalarRef value is processed as parameter
+        elsif ( is_plain_scalarref $token) {
+            push @sql, '$' . $i->$*++;
+
+            push @bind, $token->$*;
+        }
+
+        # ArrayRef value is processed as parameter
+        elsif ( is_plain_arrayref $token) {
+            push @sql, '$' . $i->$*++;
+
+            push @bind, $token;
+        }
+
+        # HashRef value
+        elsif ( is_plain_hashref $token) {
+            my @buf;
+
+            for my $field ( keys $token->%* ) {
+
+                # quote field name
+                my $quoted_field = $dbh->quote_id($field);
+
+                # Scalar value is processed as parameter
+                if ( !is_ref $token->{$field} ) {
+                    push @buf, $quoted_field . ' = $' . $i->$*++;
+
+                    push @bind, $token->{$field};
+                }
+
+                # ScalarRef value is processed as parameter
+                elsif ( is_plain_scalarref $token->{$field} ) {
+                    push @buf, $quoted_field . ' = $' . $i->$*++;
+
+                    push @bind, $token->{$field}->$*;
+                }
+
+                # ArrayRef value is processed as parameter
+                elsif ( is_plain_arrayref $token->{$field} ) {
+                    if ( $token->{$field}->@* == 1 ) {
+                        push @buf, $quoted_field . ' = $' . $i->$*++;
+
+                        push @bind, $token->{$field}->[0];
+                    }
+                    else {
+
+                        # validate operator
+                        my $operator = $SQL_COMPARISON_OPERATOR->{ lc $token->{$field}->[0] } or die qq[SQL opertaor "$token->{$field}->[0]" is not allowed];
+
+                        push @buf, $quoted_field . ' ' . $operator . ' $' . $i->$*++;
+
+                        push @bind, $token->{$field}->[1];
+                    }
+                }
+                else {
+                    die 'Unsupported ref type';
+                }
+            }
+
+            push @sql, '(' . join( ' AND ', @buf ) . ')' if @buf;
+        }
+
+        # Object
+        elsif ( is_blessed_ref $token) {
+            my ( $sql, $bind ) = $token->get_query( $dbh, 0, $i );
+
+            if ( defined $sql ) {
+                push @sql, $sql;
+
+                push @bind, $bind->@* if defined $bind;
+            }
+        }
+        else {
+            die 'Unsupported ref type';
+        }
+    }
+
+    if (@sql) {
+        return ( $final ? 'WHERE ' : q[] ) . join( q[ ], @sql ), \@bind;
+    }
+    else {
+        return;
+    }
+}
+
+# IN
+package Pcore::Handle::DBI::_IN;
+
+use Pcore;
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
+
+sub get_query ( $self, $dbh, $final, $i ) {
+    my ( @sql, @bind );
+
+    for my $token ( $self->{buf}->@* ) {
+
+        # Scalar or ArrayRef values are processed as parameters
+        if ( !is_ref $token || is_plain_arrayref $token) {
+            push @sql, '$' . $i->$*++;
+
+            push @bind, $token;
+        }
+
+        # ScalarRef value is processed as parameter
+        elsif ( is_plain_scalarref $token ) {
+            push @sql, '$' . $i->$*++;
+
+            push @bind, $token->$*;
+        }
+        else {
+            die 'Unsupported ref type';
+        }
+    }
+
+    return @sql ? ( 'IN (' . join( q[, ], @sql ) . ')', \@bind ) : ( undef, undef );
+}
+
+# ORDER_BY
+package Pcore::Handle::DBI::_ORDER_BY;
+
+use Pcore -const;
+use Pcore::Util::Scalar qw[is_ref is_plain_arrayref];
+
+const our $SQL_SORT_ORDER => {
+    asc  => 'ASC',
+    desc => 'DESC',
+};
+
+sub get_query ( $self, $dbh, $final, $i ) {
+    my @sql;
+
+    for my $token ( $self->{buf}->@* ) {
+
+        # skip undefined values
+        next if !defined $token;
+
+        # Scalar value is processed as SQL
+        if ( !is_ref $token) {
+            push @sql, $dbh->quote_id($token);
+        }
+
+        # ArrayRef value is processed as [$field, $order]
+        elsif ( is_plain_arrayref $token) {
+            my $sort_order = $SQL_SORT_ORDER->{ lc $token->[1] } or die qq[SQL sort order "$token->[1]" is invalid];
+
+            push @sql, $dbh->quote_id( $token->[0] ) . ' ' . $sort_order;
+        }
+        else {
+            die 'Unsupported ref type';
+        }
+    }
+
+    return @sql ? ( 'ORDER BY ' . join( q[, ], @sql ), undef ) : ( undef, undef );
+}
+
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 395                  | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (23)                 |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 457, 553             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

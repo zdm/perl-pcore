@@ -177,7 +177,7 @@ sub import {
         if ( $import->{pragma}->{sql} ) {
             state $SQL_INIT = !!require Pcore::Handle::DBI::Const;
 
-            Pcore::Handle::DBI::Const->import( -caller => $caller, qw[:TYPES] );
+            Pcore::Handle::DBI::Const->import( -caller => $caller, qw[:TYPES :QUERY] );
         }
 
         # re-export Moo
