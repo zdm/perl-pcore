@@ -174,11 +174,11 @@ const our $SQL_XMLARRAY           => 143;
 
 # QUERY BUILDER
 sub SET {
-    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_SET';
+    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_SET';
 }
 
 sub VALUES {
-    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_VALUES';
+    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_VALUES';
 }
 
 sub WHERE {
@@ -188,16 +188,16 @@ sub WHERE {
         return $_[0];
     }
     else {
-        return bless { buf => \@_ }, 'Pcore::Handle::DBI::_WHERE';
+        return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_WHERE';
     }
 }
 
 sub IN {
-    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_IN';
+    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_IN';
 }
 
 sub ORDER_BY {
-    return bless { buf => \@_ }, 'Pcore::Handle::DBI::_ORDER_BY';
+    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_ORDER_BY';
 }
 
 # SET
@@ -211,7 +211,7 @@ has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @bind );
 
-    for my $token ( $self->{buf}->@* ) {
+    for my $token ( $self->{_buf}->@* ) {
 
         # skip undefined values
         next if !defined $token;
@@ -286,7 +286,7 @@ has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @idx );
 
-    for my $token ( $self->{buf}->@* ) {
+    for my $token ( $self->{_buf}->@* ) {
 
         # skip undefined values
         next if !defined $token;
@@ -344,13 +344,13 @@ use overload    #
         return bless {}, __PACKAGE__;
     }
     elsif ( !$w0_is_empty && $w1_is_empty ) {
-        return bless { buf => $_[0]->{buf}->@* }, __PACKAGE__;
+        return bless { _buf => $_[0]->{_buf}->@* }, __PACKAGE__;
     }
     elsif ( $w0_is_empty && !$w1_is_empty ) {
-        return bless { buf => $_[1]->{buf}->@* }, __PACKAGE__;
+        return bless { _buf => $_[1]->{_buf}->@* }, __PACKAGE__;
     }
     else {
-        return bless { buf => [ '(', $_[0]->{buf}->@*, ') AND (', $_[1]->{buf}->@*, ')' ] }, __PACKAGE__;
+        return bless { _buf => [ '(', $_[0]->{_buf}->@*, ') AND (', $_[1]->{_buf}->@*, ')' ] }, __PACKAGE__;
     }
   },
   q[|] => sub {
@@ -361,13 +361,13 @@ use overload    #
         return bless {}, __PACKAGE__;
     }
     elsif ( !$w0_is_empty && $w1_is_empty ) {
-        return bless { buf => $_[0]->{buf}->@* }, __PACKAGE__;
+        return bless { _buf => $_[0]->{_buf}->@* }, __PACKAGE__;
     }
     elsif ( $w0_is_empty && !$w1_is_empty ) {
-        return bless { buf => $_[1]->{buf}->@* }, __PACKAGE__;
+        return bless { _buf => $_[1]->{_buf}->@* }, __PACKAGE__;
     }
     else {
-        return bless { buf => [ '(', $_[0]->{buf}->@*, ') OR (', $_[1]->{buf}->@*, ')' ] }, __PACKAGE__;
+        return bless { _buf => [ '(', $_[0]->{_buf}->@*, ') OR (', $_[1]->{_buf}->@*, ')' ] }, __PACKAGE__;
     }
   },
   fallback => undef;
@@ -392,9 +392,9 @@ const our $SQL_COMPARISON_OPERATOR => {
 };
 
 sub _is_not_empty ($self) {
-    return if !defined $self->{buf} || !$self->{buf}->@*;
+    return if !defined $self->{_buf} || !$self->{_buf}->@*;
 
-    for ( $self->{buf}->@* ) {
+    for ( $self->{_buf}->@* ) {
         next if !defined;
 
         # empty HashRef
@@ -409,7 +409,7 @@ sub _is_not_empty ($self) {
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @bind );
 
-    for my $token ( $self->{buf}->@* ) {
+    for my $token ( $self->{_buf}->@* ) {
 
         # skip undefined values
         next if !defined $token;
@@ -515,7 +515,7 @@ has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @bind );
 
-    for my $token ( $self->{buf}->@* ) {
+    for my $token ( $self->{_buf}->@* ) {
 
         # Scalar or ArrayRef values are processed as parameters
         if ( !is_ref $token || is_plain_arrayref $token) {
@@ -554,7 +554,7 @@ const our $SQL_SORT_ORDER => {
 sub get_query ( $self, $dbh, $final, $i ) {
     my @sql;
 
-    for my $token ( $self->{buf}->@* ) {
+    for my $token ( $self->{_buf}->@* ) {
 
         # skip undefined values
         next if !defined $token;
