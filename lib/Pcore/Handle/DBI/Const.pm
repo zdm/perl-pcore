@@ -173,31 +173,31 @@ const our $SQL_XML                => 142;
 const our $SQL_XMLARRAY           => 143;
 
 # QUERY BUILDER
-sub SET {
-    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_SET';
+sub SET : prototype(;$) {
+    return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::_SET';
 }
 
-sub VALUES {
-    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_VALUES';
+sub VALUES : prototype(;$) {
+    return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::_VALUES';
 }
 
-sub WHERE {
+sub WHERE : prototype(;$) {
 
     # Pcore::Handle::DBI::_WHERE
-    if ( @_ == 1 && is_blessed_ref $_[0] ) {
+    if ( defined $_[0] && is_blessed_ref $_[0] ) {
         return $_[0];
     }
     else {
-        return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_WHERE';
+        return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::_WHERE';
     }
 }
 
-sub IN {
-    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_IN';
+sub IN : prototype(;$) {
+    return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::_IN';
 }
 
-sub ORDER_BY {
-    return bless { _buf => \@_ }, 'Pcore::Handle::DBI::_ORDER_BY';
+sub ORDER_BY : prototype(;$) {
+    return bless { _buf => $_[0] }, 'Pcore::Handle::DBI::_ORDER_BY';
 }
 
 # SET
@@ -344,10 +344,10 @@ use overload    #
         return bless {}, __PACKAGE__;
     }
     elsif ( !$w0_is_empty && $w1_is_empty ) {
-        return bless { _buf => $_[0]->{_buf}->@* }, __PACKAGE__;
+        return bless { _buf => [ $_[0]->{_buf}->@* ] }, __PACKAGE__;
     }
     elsif ( $w0_is_empty && !$w1_is_empty ) {
-        return bless { _buf => $_[1]->{_buf}->@* }, __PACKAGE__;
+        return bless { _buf => [ $_[1]->{_buf}->@* ] }, __PACKAGE__;
     }
     else {
         return bless { _buf => [ '(', $_[0]->{_buf}->@*, ') AND (', $_[1]->{_buf}->@*, ')' ] }, __PACKAGE__;
@@ -361,10 +361,10 @@ use overload    #
         return bless {}, __PACKAGE__;
     }
     elsif ( !$w0_is_empty && $w1_is_empty ) {
-        return bless { _buf => $_[0]->{_buf}->@* }, __PACKAGE__;
+        return bless { _buf => [ $_[0]->{_buf}->@* ] }, __PACKAGE__;
     }
     elsif ( $w0_is_empty && !$w1_is_empty ) {
-        return bless { _buf => $_[1]->{_buf}->@* }, __PACKAGE__;
+        return bless { _buf => [ $_[1]->{_buf}->@* ] }, __PACKAGE__;
     }
     else {
         return bless { _buf => [ '(', $_[0]->{_buf}->@*, ') OR (', $_[1]->{_buf}->@*, ')' ] }, __PACKAGE__;
