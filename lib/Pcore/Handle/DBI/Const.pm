@@ -203,8 +203,10 @@ sub ORDER_BY {
 # SET
 package Pcore::Handle::DBI::_SET;
 
-use Pcore;
+use Pcore -class;
 use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_hashref];
+
+has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @bind );
@@ -275,9 +277,11 @@ sub get_query ( $self, $dbh, $final, $i ) {
 
 # VALUES
 package Pcore::Handle::DBI::_VALUES;
+
+use Pcore -class;
 use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_hashref];
 
-use Pcore;
+has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @idx );
@@ -328,7 +332,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
 # WHERE
 package Pcore::Handle::DBI::_WHERE;
 
-use Pcore -const;
+use Pcore -const, -class;
 use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_hashref is_blessed_ref];
 
 use overload    #
@@ -367,6 +371,8 @@ use overload    #
     }
   },
   fallback => undef;
+
+has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 const our $SQL_COMPARISON_OPERATOR => {
     '<'    => '<',
@@ -501,8 +507,10 @@ sub get_query ( $self, $dbh, $final, $i ) {
 # IN
 package Pcore::Handle::DBI::_IN;
 
-use Pcore;
+use Pcore -class;
 use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref];
+
+has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 sub get_query ( $self, $dbh, $final, $i ) {
     my ( @sql, @bind );
@@ -533,8 +541,10 @@ sub get_query ( $self, $dbh, $final, $i ) {
 # ORDER_BY
 package Pcore::Handle::DBI::_ORDER_BY;
 
-use Pcore -const;
+use Pcore -const, -class;
 use Pcore::Util::Scalar qw[is_ref is_plain_arrayref];
+
+has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 
 const our $SQL_SORT_ORDER => {
     asc  => 'ASC',
@@ -575,9 +585,9 @@ sub get_query ( $self, $dbh, $final, $i ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 403                  | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (23)                 |
+## |    3 | 409                  | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (23)                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 465, 561             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
+## |    2 | 471, 571             | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
