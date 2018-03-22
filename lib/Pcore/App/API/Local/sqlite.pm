@@ -68,7 +68,7 @@ SQL
 
 sub _db_add_roles ( $self, $dbh, $roles, $cb ) {
     $dbh->do(
-        [ q[INSERT OR IGNORE INTO "api_role" VALUES], [ map { { id => uuid_str, name => $_ } } $roles->@* ] ],
+        [ q[INSERT OR IGNORE INTO "api_role"], VALUES( map { { id => uuid_str, name => $_ } } $roles->@* ) ],
         sub ( $dbh, $res, $data ) {
             $cb->($res);
 
@@ -104,7 +104,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids, $cb ) {
     my $modified;
 
     $dbh->do(
-        [ 'INSERT OR IGNORE INTO "api_user_permission" VALUES', [ map { { role_id => $_, user_id => [ $user_id, $SQL_UUID ] } } $roles_ids->@* ] ],
+        [ 'INSERT OR IGNORE INTO "api_user_permission"', VALUES( map { { role_id => $_, user_id => [ $user_id, $SQL_UUID ] } } $roles_ids->@* ) ],
         sub ( $dbh, $res, $data ) {
             $modified += $res->{rows};
 
@@ -115,7 +115,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids, $cb ) {
             # remove permissions
             else {
                 $dbh->do(
-                    [ 'DELETE FROM "api_user_permission" WHERE "user_id" =', \[ $user_id, $SQL_UUID ], 'AND "role_id" NOT IN', $roles_ids ],
+                    [ 'DELETE FROM "api_user_permission" WHERE "user_id" =', [ $user_id, $SQL_UUID ], 'AND "role_id" NOT IN', $roles_ids ],
                     sub ( $dbh, $res, $data ) {
                         if ( !$res ) {
                             $cb->( result 500 );
