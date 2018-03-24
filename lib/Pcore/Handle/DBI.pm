@@ -2,7 +2,7 @@ package Pcore::Handle::DBI;
 
 use Pcore -role, -const, -result;
 use Pcore::Handle::DBI::STH;
-use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_blessed_ref];
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_blessed_arrayref is_blessed_hashref];
 
 with qw[Pcore::Handle];
 
@@ -177,15 +177,15 @@ sub prepare_query ( $self, $query ) {
             push @bind, $token->$*;
         }
 
-        # ArrayRef value is processed as parameter
-        elsif ( is_plain_arrayref $token ) {
+        # blessed ArrayRef value is processed as parameter with type
+        elsif ( is_blessed_arrayref $token ) {
             push @sql, '$' . $i++;
 
             push @bind, $token;
         }
 
         # Object value
-        elsif ( is_blessed_ref $token) {
+        elsif ( is_blessed_hashref $token) {
             my ( $sql, $bind ) = $token->get_query( $self, 1, \$i );
 
             if ( defined $sql ) {
