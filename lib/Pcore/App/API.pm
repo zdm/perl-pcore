@@ -6,7 +6,7 @@ use Pcore::App::API::Auth;
 use Pcore::Util::Data qw[from_b64 from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
-use Pcore::Util::UUID qw[create_uuid_from_bin];
+use Pcore::Util::UUID qw[uuid_from_bin];
 
 has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
 
@@ -115,7 +115,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
             $token_type = unpack 'C', $token_bin;
 
             # unpack token id
-            $token_id = create_uuid_from_bin( substr $token_bin, 1, 16 )->str;
+            $token_id = uuid_from_bin( substr $token_bin, 1, 16 )->str;
 
             $private_token_hash = sha3_512 $token;
         };
