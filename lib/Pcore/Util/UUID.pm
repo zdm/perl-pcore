@@ -7,16 +7,16 @@ use Pcore -export => {
     V4     => [qw[uuid_v4 uuid_v4_bin uuid_v4_str uuid_v4_hex]],
 };
 use Pcore::Util::UUID::Obj;
-use Data::UUID qw[];    ## no critic qw[Modules::ProhibitEvilModules]
-use Net::SSLeay qw[];
-
-our $UUID = Data::UUID->new;
+use Data::UUID qw[];        ## no critic qw[Modules::ProhibitEvilModules]
+use Data::UUID::MT qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 sub looks_like_uuid ($str) : prototype($) {
     return $str =~ /\A[[:xdigit:]]{8}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{4}-[[:xdigit:]]{12}\z/sm;
 }
 
 # UUID v1mc
+my $UUID_V1 = Data::UUID->new;
+
 *uuid_v1mc     = \&v1mc;
 *uuid_v1mc_bin = \&v1mc_bin;
 *uuid_v1mc_str = \&v1mc_str;
@@ -27,63 +27,39 @@ sub v1mc : prototype() {
 }
 
 sub v1mc_bin : prototype() {
-    return $UUID->create_bin;
+    return $UUID_V1->create_bin;
 }
 
 sub v1mc_str : prototype() {
-    return lc $UUID->create_str;
+    return lc $UUID_V1->create_str;
 }
 
 sub v1mc_hex : prototype() {
-    return lc $UUID->create_hex;
+    return lc $UUID_V1->create_hex;
 }
 
 # UUID v4
-# https://tools.ietf.org/html/rfc4122.html#page-13
+my $UUID_V4 = Data::UUID::MT->new( version => 4 )->iterator;
+
 *uuid_v4     = \&v4;
 *uuid_v4_bin = \&v4_bin;
 *uuid_v4_str = \&v4_str;
 *uuid_v4_hex = \&v4_hex;
 
 sub v4 : prototype() {
-    return bless { bin => v4_bin() }, 'Pcore::Util::UUID::Obj';
+    return bless { bin => $UUID_V4->() }, 'Pcore::Util::UUID::Obj';
 }
 
-sub v4_bin : prototype() {
-    Net::SSLeay::RAND_bytes( my $uuid, 16 );
-
-    # set UUID version
-    vec( $uuid, 13, 4 ) = 0x4;
-    vec( $uuid, 35, 2 ) = 0x2;
-
-    return $uuid;
+sub v4_bin {
+    return $UUID_V4->();
 }
 
-sub v4_str : prototype() {
-    Net::SSLeay::RAND_bytes( my $uuid, 16 );
-
-    # set UUID version
-    vec( $uuid, 13, 4 ) = 0x4;
-    vec( $uuid, 35, 2 ) = 0x2;
-
-    $uuid = unpack 'h*', $uuid;
-
-    substr $uuid, 8,  0, '-';
-    substr $uuid, 13, 0, '-';
-    substr $uuid, 18, 0, '-';
-    substr $uuid, 23, 0, '-';
-
-    return $uuid;
+sub v4_str {
+    return join '-', unpack 'H8H4H4H4H12', $UUID_V4->();
 }
 
 sub v4_hex : prototype() {
-    Net::SSLeay::RAND_bytes( my $uuid, 16 );
-
-    # set UUID version
-    vec( $uuid, 13, 4 ) = 0x4;
-    vec( $uuid, 35, 2 ) = 0x2;
-
-    return unpack 'h*', $uuid;
+    return unpack 'h*', $UUID_V4->();
 }
 
 # OBJECT
@@ -110,7 +86,7 @@ sub from_hex ($hex) : prototype($) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 16                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 14                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
