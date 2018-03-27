@@ -1,10 +1,16 @@
-package Pcore::App::API::Remote;
+package Pcore::App::API::LocalNoAuth;
 
-use Pcore -class;
+use Pcore -class, -result;
 
 with qw[Pcore::App::API];
 
 sub init ( $self, $cb ) {
+    $cb->( result 200 );
+
+    return;
+}
+
+sub authenticate_private ( $self, $private_token, $cb ) {
     ...;
 
     return;
@@ -17,7 +23,7 @@ sub init ( $self, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 8                    | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |    3 | 14                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -28,7 +34,7 @@ __END__
 
 =head1 NAME
 
-Pcore::App::API::Remote
+Pcore::App::API::LocalNoAuth
 
 =head1 SYNOPSIS
 

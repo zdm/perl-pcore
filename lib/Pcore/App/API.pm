@@ -27,8 +27,6 @@ const our $TOKEN_TYPE => {
 };
 
 sub new ( $self, $app ) {
-    my $uri = P->uri( $app->{app_cfg}->{api}->{connect} );
-
     state $scheme_class = {
         sqlite => 'Pcore::App::API::Local::sqlite',
         pgsql  => 'Pcore::App::API::Local::pgsql',
@@ -36,14 +34,19 @@ sub new ( $self, $app ) {
         wss    => 'Pcore::App::API::Local::Remote',
     };
 
-    if ( my $class = $scheme_class->{ $uri->scheme } ) {
-        return P->class->load($class)->new( { app => $app } );
+    if ( defined $app->{app_cfg}->{api}->{connect} ) {
+        my $uri = P->uri( $app->{app_cfg}->{api}->{connect} );
+
+        if ( my $class = $scheme_class->{ $uri->scheme } ) {
+            return P->class->load($class)->new( { app => $app } );
+        }
+        else {
+            die 'Unknown API scheme';
+        }
     }
     else {
-        die 'Unknown API scheme';
+        return P->class->load('Pcore::App::API::LocalNoAuth')->new( { app => $app } );
     }
-
-    return;
 }
 
 # setup events listeners
@@ -211,9 +214,9 @@ around authenticate_private => sub ( $orig, $self, $private_token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 78                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 81                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 114                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
