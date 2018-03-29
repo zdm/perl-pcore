@@ -100,7 +100,7 @@ sub init ( $self, $cb ) {
 }
 
 # AUTHENTICATE
-sub authenticate_private ( $self, $private_token, $cb ) {
+sub do_authenticate_private ( $self, $private_token, $cb ) {
     if ( $private_token->[0] == $TOKEN_TYPE_USER_PASSWORD ) {
         $self->_auth_user_password( $private_token, $cb );
     }

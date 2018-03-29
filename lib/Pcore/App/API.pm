@@ -143,7 +143,7 @@ sub authenticate ( $self, $user_name_utf8, $token, $cb ) {
     return;
 }
 
-around authenticate_private => sub ( $orig, $self, $private_token, $cb ) {
+sub authenticate_private ( $self, $private_token, $cb ) {
 
     # try to find token in cache
     my $auth = $self->{_auth_cache}->{ $private_token->[2] };
@@ -160,7 +160,7 @@ around authenticate_private => sub ( $orig, $self, $private_token, $cb ) {
     return if $self->{_auth_cb_queue}->{ $private_token->[2] }->@* > 1;
 
     # authenticate on backend
-    $self->$orig(
+    $self->do_authenticate_private(
         $private_token,
         sub ( $res ) {
 
@@ -205,7 +205,7 @@ around authenticate_private => sub ( $orig, $self, $private_token, $cb ) {
     );
 
     return;
-};
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
