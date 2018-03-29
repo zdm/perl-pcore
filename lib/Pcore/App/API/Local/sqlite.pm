@@ -1,7 +1,7 @@
 package Pcore::App::API::Local::sqlite;
 
 use Pcore -class, -result, -sql;
-use Pcore::Util::UUID qw[uuid_v1mc_str];
+use Pcore::Util::UUID qw[uuid_v4_str];
 
 with qw[Pcore::App::API::Local];
 
@@ -11,13 +11,13 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             -- ROLE
             CREATE TABLE IF NOT EXISTS "api_role" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v1mc()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
                 "name" BLOB NOT NULL UNIQUE
             );
 
             -- USER
             CREATE TABLE IF NOT EXISTS "api_user" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v1mc()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
                 "name" TEXT NOT NULL UNIQUE,
                 "hash" BLOB NOT NULL,
                 "enabled" INTEGER NOT NULL DEFAULT 0,
@@ -26,7 +26,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             -- USER PERMISSION
             CREATE TABLE IF NOT EXISTS "api_user_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v1mc()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
                 "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE, -- remove role assoc., on user delete
                 "role_id" BLOB NOT NULL REFERENCES "api_role" ("id") ON DELETE RESTRICT -- prevent deleting role, if has assigned users
             );
@@ -35,7 +35,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             -- USER TOKEN
             CREATE TABLE IF NOT EXISTS "api_user_token" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v1mc()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
                 "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "hash" BLOB NOT NULL,
                 "desc" TEXT,
@@ -52,7 +52,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             --- USER SESSION
             CREATE TABLE IF NOT EXISTS "api_user_session" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v1mc()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
                 "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "hash" BLOB NOT NULL,
                 "created" INTEGER NOT NULL DEFAULT(CAST(STRFTIME('%s', 'now') AS INT)),
@@ -68,7 +68,7 @@ SQL
 
 sub _db_add_roles ( $self, $dbh, $roles, $cb ) {
     $dbh->do(
-        [ q[INSERT OR IGNORE INTO "api_role"], VALUES [ map { { id => uuid_v1mc_str, name => $_ } } $roles->@* ] ],
+        [ q[INSERT OR IGNORE INTO "api_role"], VALUES [ map { { id => uuid_v4_str, name => $_ } } $roles->@* ] ],
         sub ( $dbh, $res, $data ) {
             $cb->($res);
 
@@ -80,7 +80,7 @@ sub _db_add_roles ( $self, $dbh, $roles, $cb ) {
 }
 
 sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled, $cb ) {
-    my $user_id = uuid_v1mc_str;
+    my $user_id = uuid_v4_str;
 
     $dbh->do(
         'INSERT OR IGNORE INTO "api_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?)',
