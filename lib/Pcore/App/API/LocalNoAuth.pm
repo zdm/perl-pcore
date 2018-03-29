@@ -29,6 +29,15 @@ sub do_authenticate_private ( $self, $private_token, $cb ) {
     return;
 }
 
+# USER
+sub create_user ( $self, $user_name, $password, $enabled, $permissions, $cb ) {
+
+    # user already exists
+    $cb->( result [ 400, 'Auth backend is not available' ] );
+
+    return;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -36,7 +45,7 @@ sub do_authenticate_private ( $self, $private_token, $cb ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 14, 33               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
