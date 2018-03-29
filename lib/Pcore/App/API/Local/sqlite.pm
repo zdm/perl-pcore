@@ -68,7 +68,7 @@ SQL
 
 sub _db_add_roles ( $self, $dbh, $roles, $cb ) {
     $dbh->do(
-        [ q[INSERT OR IGNORE INTO "api_role"], VALUES [ map { { id => uuid_v4_str, name => $_ } } $roles->@* ] ],
+        [ q[INSERT OR IGNORE INTO "api_role"], VALUES [ map { { name => $_ } } $roles->@* ] ],
         sub ( $dbh, $res, $data ) {
             $cb->($res);
 

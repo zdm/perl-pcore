@@ -69,7 +69,7 @@ SQL
 
 sub _db_add_roles ( $self, $dbh, $roles, $cb ) {
     $dbh->do(
-        [ q[INSERT INTO "api_role"], VALUES [ map { { id => uuid_v4_str, name => $_ } } $roles->@* ], 'ON CONFLICT DO NOTHING' ],
+        [ q[INSERT INTO "api_role"], VALUES [ map { { name => $_ } } $roles->@* ], 'ON CONFLICT DO NOTHING' ],
         sub ( $dbh, $res, $data ) {
             $cb->($res);
 
