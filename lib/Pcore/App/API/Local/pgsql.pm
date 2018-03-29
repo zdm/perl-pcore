@@ -85,7 +85,7 @@ sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled, $cb ) {
 
     $dbh->do(
         'INSERT INTO "api_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING',
-        [ SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ],
+        [ SQL_UUID $user_id, SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ],
         sub ( $dbh, $res, $data ) {
             if ( !$res->{rows} ) {
                 $cb->( result 500 );
