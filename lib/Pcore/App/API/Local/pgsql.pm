@@ -105,7 +105,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids, $cb ) {
     my $modified;
 
     $dbh->do(
-        [ 'INSERT INTO "api_user_permission"', VALUES [ map { { role_id => $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ], 'ON CONFLICT DO NOTHING' ],
+        [ 'INSERT INTO "api_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ], 'ON CONFLICT DO NOTHING' ],
         sub ( $dbh, $res, $data ) {
             if ( !$res ) {
                 $cb->( result 500 );

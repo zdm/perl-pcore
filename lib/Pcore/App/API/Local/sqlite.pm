@@ -11,13 +11,13 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             -- ROLE
             CREATE TABLE IF NOT EXISTS "api_role" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "name" BLOB NOT NULL UNIQUE
             );
 
             -- USER
             CREATE TABLE IF NOT EXISTS "api_user" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "name" TEXT NOT NULL UNIQUE,
                 "hash" BLOB NOT NULL,
                 "enabled" INTEGER NOT NULL DEFAULT 0,
@@ -26,7 +26,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             -- USER PERMISSION
             CREATE TABLE IF NOT EXISTS "api_user_permission" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE, -- remove role assoc., on user delete
                 "role_id" BLOB NOT NULL REFERENCES "api_role" ("id") ON DELETE RESTRICT -- prevent deleting role, if has assigned users
             );
@@ -35,7 +35,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             -- USER TOKEN
             CREATE TABLE IF NOT EXISTS "api_user_token" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "hash" BLOB NOT NULL,
                 "desc" TEXT,
@@ -52,7 +52,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             --- USER SESSION
             CREATE TABLE IF NOT EXISTS "api_user_session" (
-                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(uuid_generate_v4()),
+                "id" BLOB PRIMARY KEY NOT NULL DEFAULT(CAST(uuid_generate_v4() AS BLOB)),
                 "user_id" BLOB NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "hash" BLOB NOT NULL,
                 "created" INTEGER NOT NULL DEFAULT(CAST(STRFTIME('%s', 'now') AS INT)),
@@ -104,7 +104,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids, $cb ) {
     my $modified;
 
     $dbh->do(
-        [ 'INSERT OR IGNORE INTO "api_user_permission"', VALUES [ map { { role_id => $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ] ],
+        [ 'INSERT OR IGNORE INTO "api_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ] ],
         sub ( $dbh, $res, $data ) {
             $modified += $res->{rows};
 
@@ -115,7 +115,7 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids, $cb ) {
             # remove permissions
             else {
                 $dbh->do(
-                    [ 'DELETE FROM "api_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN $roles_ids ],
+                    [ 'DELETE FROM "api_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN [ map { SQL_UUID $_} $roles_ids->@* ] ],
                     sub ( $dbh, $res, $data ) {
                         if ( !$res ) {
                             $cb->( result 500 );
