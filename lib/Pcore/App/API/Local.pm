@@ -760,32 +760,83 @@ sub create_user_token ( $self, $user_id, $desc, $permissions, $cb ) {
                                 $user->{data}->{id},
                                 sub ($user_permissions) {
 
-                                    # insert token
-                                    $self->{dbh}->do(
-                                        'INSERT INTO "api_user_token" ("id", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?)',
-                                        [ SQL_UUID $token->{data}->{id}, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ],
-                                        sub ( $dbh, $res, $data ) {
-                                            if ( !$res->{rows} ) {
-                                                $cb->( result 500 );
-                                            }
-                                            else {
+                                    # error
+                                    if ( !$user_permissions ) {
+                                        $cb->($user_permissions);
 
-                                                # insert user token permissions
-                                                $dbh->do(
-                                                    [ q[INSERT INTO "api_user_token_permission"], VALUES [] ],
-                                                    sub () {
-                                                        return;
-                                                    }
-                                                );
+                                        return;
+                                    }
 
-                                                $cb->(
-                                                    result 200,
-                                                    {   id    => $token->{data}->{id},
-                                                        type  => $TOKEN_TYPE_USER_SESSION,
-                                                        token => $token->{data}->{token},
-                                                    }
-                                                );
+                                    # begin transaction
+                                    $self->{dbh}->begin_work(
+                                        sub ( $dbh, $res ) {
+
+                                            # error
+                                            if ( !$res ) {
+                                                $cb->($res);
+
+                                                return;
                                             }
+
+                                            my $on_finish = sub ($res) {
+                                                if ( !$res ) {
+                                                    $dbh->rollback(
+                                                        sub ( $dbh, $res ) {
+                                                            $cb->( result 500 );
+
+                                                            return;
+                                                        }
+                                                    );
+                                                }
+                                                else {
+                                                    $dbh->commit(
+                                                        sub ( $dbh, $res1 ) {
+                                                            if ( !$res1 ) {
+                                                                $cb->( result 500 );
+                                                            }
+                                                            else {
+                                                                $cb->(
+                                                                    result 200,
+                                                                    {   id    => $token->{data}->{id},
+                                                                        type  => $TOKEN_TYPE_USER_SESSION,
+                                                                        token => $token->{data}->{token},
+                                                                    }
+                                                                );
+                                                            }
+
+                                                            return;
+                                                        }
+                                                    );
+                                                }
+
+                                                return;
+                                            };
+
+                                            # insert token
+                                            $dbh->do(
+                                                'INSERT INTO "api_user_token" ("id", "user_id", "hash", "desc" ) VALUES (?, ?, ?, ?)',
+                                                [ SQL_UUID $token->{data}->{id}, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash}, $desc ],
+                                                sub ( $dbh, $res, $data ) {
+                                                    if ( !$res ) {
+                                                        $on_finish->($res);
+                                                    }
+                                                    else {
+
+                                                        # insert user token permissions
+                                                        $dbh->do(
+                                                            [ q[INSERT INTO "api_user_token_permission"], VALUES [ map { { user_token_id => SQL_UUID $token->{data}->{id}, user_permission_id => SQL_UUID $_->{id} } } $user_permissions->{data}->@* ] ],
+                                                            sub ( $dbh, $res, $data ) {
+                                                                $on_finish->($res);
+
+                                                                return;
+                                                            }
+                                                        );
+
+                                                    }
+
+                                                    return;
+                                                }
+                                            );
 
                                             return;
                                         }
@@ -1129,8 +1180,8 @@ SQL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 131, 153, 203, 311,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 517, 730, 890, 974,  |                                                                                                                |
-## |      | 1092                 |                                                                                                                |
+## |      | 517, 730, 941, 1025, |                                                                                                                |
+## |      |  1143                |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
