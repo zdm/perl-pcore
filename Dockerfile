@@ -15,10 +15,19 @@ WORKDIR $DIST_PATH
 
 # --develop
 RUN /bin/bash -c ' \
-    source <( wget --no-verbose -O - https://dl.dropbox.com/s/8xiejrcn0hxobmt/install-perl-exclusions.sh ) \
+
+    # setup build environment
+    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-setup.sh ) \
+
+    # update perl packages
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/install-perl-exclusions.sh ) \
     && cpan-outdated | cpanm \
+
+    # deploy pcore
     && cpanm --with-feature linux --with-recommends --with-suggests --installdeps . \
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
-    && rm -rf ~/.cpanm \
+
+    # cleanup build environment
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-cleanup.sh ) \
 '

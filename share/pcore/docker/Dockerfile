@@ -11,9 +11,16 @@ ADD . $DIST_PATH
 WORKDIR $DIST_PATH
 
 RUN /bin/bash -c ' \
-    pcore deploy --recommends --suggests \
+
+    # setup build environment
+    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-setup.sh ) \
+
+    # deploy project
+    && pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
-    && rm -rf ~/.cpanm \
+
+    # cleanup build environment
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-cleanup.sh ) \
 '
 
 ENTRYPOINT ["bin/main.pl"]
