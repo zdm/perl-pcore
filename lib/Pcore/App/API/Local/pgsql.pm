@@ -37,6 +37,7 @@ sub _db_add_schema_patch ( $self, $dbh ) {
             -- USER TOKEN
             CREATE TABLE IF NOT EXISTS "api_user_token" (
                 "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+                "type" INT2 NOT NULL,
                 "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
                 "hash" BYTEA NOT NULL,
                 "desc" TEXT,
@@ -45,22 +46,12 @@ sub _db_add_schema_patch ( $self, $dbh ) {
 
             -- USER TOKEN PERMISSION
             CREATE TABLE IF NOT EXISTS "api_user_token_permission" (
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
                 "user_token_id" UUID NOT NULL REFERENCES "api_user_token" ("id") ON DELETE CASCADE,
                 "user_permission_id" UUID NOT NULL REFERENCES "api_user_permission" ("id") ON DELETE CASCADE
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS "idx_uniq_api_user_token_permission" ON "api_user_token_permission" ("user_token_id", "user_permission_id");
-
-            --- USER SESSION
-            CREATE TABLE IF NOT EXISTS "api_user_session" (
-                "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-                "user_id" UUID NOT NULL REFERENCES "api_user" ("id") ON DELETE CASCADE,
-                "hash" BYTEA NOT NULL,
-                "created" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()),
-                "updated" INT8 NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()),
-                "ip" BYTEA NOT NULL,
-                "agent" TEXT NOT NULL
-            );
 SQL
     );
 
@@ -153,11 +144,11 @@ sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 8                    | * Private subroutine/method '_db_add_schema_patch' declared but not used                                       |
-## |      | 70                   | * Private subroutine/method '_db_add_roles' declared but not used                                              |
-## |      | 83                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
-## |      | 104                  | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
+## |      | 61                   | * Private subroutine/method '_db_add_roles' declared but not used                                              |
+## |      | 74                   | * Private subroutine/method '_db_create_user' declared but not used                                            |
+## |      | 95                   | * Private subroutine/method '_db_set_user_permissions' declared but not used                                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 83, 104              | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 74, 95               | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
