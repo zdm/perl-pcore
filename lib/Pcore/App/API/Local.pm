@@ -108,7 +108,7 @@ sub do_authenticate_private ( $self, $private_token, $cb ) {
         $self->_auth_user_token( $private_token, $cb );
     }
     elsif ( $private_token->[0] == $TOKEN_TYPE_USER_SESSION ) {
-        $self->_auth_user_session( $private_token, $cb );
+        $self->_auth_user_token( $private_token, $cb );
     }
     else {
         $cb->( result [ 400, 'Invalid token type' ] );
@@ -907,60 +907,6 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 }
 
 # USER SESSION
-sub _auth_user_session ( $self, $private_token, $cb ) {
-
-    # get user session
-    $self->{dbh}->selectrow(
-        <<'SQL',
-            SELECT
-                "api_user"."id" AS "user_id",
-                "api_user"."name" AS "user_name",
-                "api_user"."enabled" AS "user_enabled",
-                "api_user_token"."hash" AS "user_token_hash"
-            FROM
-                "api_user",
-                "api_user_token"
-            WHERE
-                "api_user"."id" = "api_user_token"."user_id"
-                AND "api_user_token"."id" = ?
-SQL
-        [ SQL_UUID $private_token->[1] ],
-        sub ( $dbh, $res, $user_token ) {
-
-            # user is disabled
-            if ( !$user_token->{user_enabled} ) {
-                $cb->( result 404 );
-
-                return;
-            }
-
-            # verify token
-            $self->_verify_token_hash(
-                $private_token->[2],
-                $user_token->{user_token_hash},
-                sub ($status) {
-
-                    # token is not valid
-                    if ( !$status ) {
-                        $cb->($status);
-                    }
-
-                    # token is valid
-                    else {
-                        $self->_return_auth( $private_token, $user_token->{user_id}, $user_token->{user_name}, $cb );
-                    }
-
-                    return;
-                }
-            );
-
-            return;
-        }
-    );
-
-    return;
-}
-
 sub create_user_session ( $self, $user_id, $cb ) {
     my $type = $TOKEN_TYPE_USER_SESSION;
 
@@ -1182,7 +1128,7 @@ SQL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 131, 153, 203, 311,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 517, 729, 1145       |                                                                                                                |
+## |      | 517, 729, 1091       |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
