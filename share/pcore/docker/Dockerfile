@@ -12,15 +12,15 @@ WORKDIR $DIST_PATH
 
 RUN /bin/bash -c ' \
 
-    # setup build environment
-    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-setup.sh ) \
+    # setup perl build env
+    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) setup \
 
     # deploy project
     && pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
 
-    # cleanup build environment
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-cleanup.sh ) \
+    # cleanup perl build env
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) cleanup \
 '
 
 ENTRYPOINT ["bin/main.pl"]

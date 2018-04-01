@@ -16,11 +16,11 @@ WORKDIR $DIST_PATH
 # --develop
 RUN /bin/bash -c ' \
 
-    # setup build environment
-    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-setup.sh ) \
+    # setup perl build env
+    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) setup \
 
     # update perl packages
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/install-perl-exclusions.sh ) \
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh ) \
     && cpan-outdated | cpanm \
 
     # deploy pcore
@@ -28,6 +28,6 @@ RUN /bin/bash -c ' \
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
 
-    # cleanup build environment
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/build-env-cleanup.sh ) \
+    # cleanup perl build env
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) cleanup \
 '
