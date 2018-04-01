@@ -540,7 +540,7 @@ sub remove_tag ( $self, $keep, $tags ) {
                     $tags = [ map {"$_"} reverse sort map { version->new($_) } @vers ];
 
                     # keep last releases
-                    splice $tags->@*, $keep, $tags->$#*, () if $keep <= $tags->$#*;
+                    splice $tags->@*, 0, $keep, ();
 
                     $cv->();
                 }
