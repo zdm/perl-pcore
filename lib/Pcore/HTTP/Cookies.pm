@@ -50,18 +50,21 @@ sub parse_cookies ( $self, $url, $set_cookie_header ) {
                         # a cover domain should not contain a leading dot, like in .cats.com; if it does, the client should remove the leading do
                         $cover_domain =~ s/\A[.]+//sm;
 
-                        # the cover domain must cover (be a substring) the origin domain
-                        if ( ".$origin_domain" =~ /\Q.$cover_domain\E\z/sm ) {
-                            $domain = ".$cover_domain";
-                        }
-                        else {
+                        if ( $cover_domain ne q[] ) {
 
-                            # if a cookie's cover domain is set illegally or incorrectly, the client should ignore the cookie entirely.
-                            next COOKIE;
+                            # the cover domain must cover (be a substring) the origin domain
+                            if ( ".$origin_domain" =~ /\Q.$cover_domain\E\z/sm ) {
+                                $domain = ".$cover_domain";
+                            }
+                            else {
+
+                                # if a cookie's cover domain is set illegally or incorrectly, the client should ignore the cookie entirely.
+                                next COOKIE;
+                            }
                         }
                     }
                     elsif ( $key eq 'path' ) {
-                        $path = $1;
+                        $path = $1 if $1 ne q[];
                     }
                     elsif ( $key eq 'expires' ) {
                         if ( !defined $cookie->[$COOKIE_EXPIRES] ) {    # do not process expires attribute, if expires is already set by expires or max-age
@@ -173,9 +176,9 @@ sub remove_cookie ( $self, $domain, $path, $name ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (25)             |
+## |    3 | 14                   | Subroutines::ProhibitExcessComplexity - Subroutine "parse_cookies" with high complexity score (27)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 54, 67, 68           | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 53, 56, 70, 71       | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
