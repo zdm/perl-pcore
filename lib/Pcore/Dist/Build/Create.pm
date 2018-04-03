@@ -10,8 +10,8 @@ use Pcore::API::SCM::Upstream;
 has base_path      => ( is => 'ro', isa => Str, required => 1 );
 has dist_namespace => ( is => 'ro', isa => Str, required => 1 );    # Dist::Name
 has dist_name      => ( is => 'ro', isa => Str, required => 1 );    # Dist-Name
+has tmpl           => ( is => 'ro', isa => Str, required => 1 );    # Dist-Name
 
-has is_cpan => ( is => 'ro', isa => Bool, default => 0 );
 has upstream_hosting => ( is => 'ro', isa => Enum [ $SCM_HOSTING_BITBUCKET, $SCM_HOSTING_GITHUB ], default => $SCM_HOSTING_BITBUCKET );
 has is_private => ( is => 'ro', isa => Bool, default => 0 );
 has upstream_scm_type => ( is => 'ro', isa => Enum [ $SCM_TYPE_HG, $SCM_TYPE_GIT ], default => $SCM_TYPE_HG );
@@ -42,8 +42,8 @@ sub _build_tmpl_params ($self) {
         copyright_year    => P->date->now->year,
         copyright_holder  => $ENV->user_cfg->{_}->{copyright_holder} || $ENV->user_cfg->{_}->{author},
         license           => $ENV->user_cfg->{_}->{license},
-        cpan_distribution => $self->{is_cpan},
         pcore_version     => $ENV->pcore->version->normal,
+        cpan_distribution => 0,
     };
 }
 
@@ -66,23 +66,43 @@ sub run ($self) {
     # copy files
     my $files = Pcore::Util::File::Tree->new;
 
-    $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/dist/' );
+    my $tmpl_cfg = P->cfg->load( $ENV->share->get( 'dist/cfg.ini', storage => 'dist-tmpl', lib => 'Pcore' ) );
+
+    my $tmpl_params = $self->tmpl_params;
+
+    my $add_dir = sub ($name) {
+        if ( my $parent = $tmpl_cfg->{$name}->{parent} ) {
+            __SUB__->($parent);
+        }
+
+        my $tmpl_path = $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . "/dist/$name/";
+
+        $files->add_dir($tmpl_path) if -d $tmpl_path;
+
+        $tmpl_params->{cpan_distribution} = $tmpl_cfg->{$name}->{cpan} if defined $tmpl_cfg->{$name}->{cpan};
+
+        return;
+    };
+
+    $add_dir->( $self->{tmpl} );
 
     if ( $self->{upstream_hosting} ) {
         if ( $self->{local_scm_type} eq $SCM_TYPE_HG ) {
-            $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/hg/' );
+            $files->add_dir( $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . '/hg/' );
         }
         elsif ( $self->{local_scm_type} eq $SCM_TYPE_GIT ) {
-            $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/git/' );
+            $files->add_dir( $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . '/git/' );
         }
     }
 
     $files->move_file( 'lib/_MainModule.pm', 'lib/' . ( $self->{dist_name} =~ s[-][/]smgr ) . '.pm' );
 
+    $files->move_tree( 'lib/_MainModule/', 'lib/' . ( $self->{dist_name} =~ s[-][/]smgr ) . '/' );
+
     # rename share/_dist.perl -> share/dist.perl
     $files->move_file( 'share/_dist.perl', 'share/dist.perl' );
 
-    $files->render_tmpl( $self->tmpl_params );
+    $files->render_tmpl($tmpl_params);
 
     $files->write_to( $self->target_path );
 

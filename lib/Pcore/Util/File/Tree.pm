@@ -56,6 +56,16 @@ sub move_file ( $self, $path, $target_path ) {
     return;
 }
 
+sub move_tree ( $self, $source_path, $target_path ) {
+    for my $old_path ( keys $self->files->%* ) {
+        my $new_path = $old_path;
+
+        $self->move_file( $old_path, $new_path ) if $new_path =~ s/\A\Q$source_path\E/$target_path/sm;
+    }
+
+    return;
+}
+
 sub find_file ( $self, $cb ) {
     for my $file ( values $self->files->%* ) {
         $cb->($file);
