@@ -86,6 +86,7 @@ sub run ($self) {
 
     $add_dir->( $self->{tmpl} );
 
+    # add SCM files
     if ( $self->{upstream_hosting} ) {
         if ( $self->{local_scm_type} eq $SCM_TYPE_HG ) {
             $files->add_dir( $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . '/hg/' );
@@ -95,9 +96,20 @@ sub run ($self) {
         }
     }
 
-    $files->move_file( 'lib/_MainModule.pm', 'lib/' . ( $self->{dist_name} =~ s[-][/]smgr ) . '.pm' );
+    $files->move_file( 'lib/MainModule.pm_', 'lib/' . ( $self->{dist_name} =~ s[-][/]smgr ) . '.pm' );
 
-    $files->move_tree( 'lib/_MainModule/', 'lib/' . ( $self->{dist_name} =~ s[-][/]smgr ) . '/' );
+    my $dist_path = $self->{dist_name} =~ s[-][/]smgr;
+
+    $files->move_tree(
+        'lib/MainModule_/',
+        sub ($path) {
+            $path =~ s/\Alib\/MainModule_\//lib\/$dist_path\//sm;
+
+            $path =~ s/[.]pm_\z/.pm/sm;
+
+            return $path;
+        }
+    );
 
     # rename share/_dist.perl -> share/dist.perl
     $files->move_file( 'share/_dist.perl', 'share/dist.perl' );
