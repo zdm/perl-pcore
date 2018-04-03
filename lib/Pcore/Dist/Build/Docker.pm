@@ -67,7 +67,7 @@ sub init ( $self, $args ) {
         # copy files
         my $files = Pcore::Util::File::Tree->new;
 
-        $files->add_dir( $ENV->share->get_storage( 'pcore', 'Pcore' ) . '/docker/' );
+        $files->add_dir( $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . '/docker/' );
 
         $files->render_tmpl( {
             author                        => $self->dist->cfg->{author},
