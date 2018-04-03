@@ -44,8 +44,8 @@ sub _build_tmpl_params ($self) {
         license           => $ENV->user_cfg->{_}->{license},
         pcore_version     => $ENV->pcore->version->normal,
         cpan_distribution => 0,
-        nginx_default_key => $ENV->share->get('/data/nginx-default.key'),
-        nginx_default_pem => $ENV->share->get('/data/nginx-default.pem'),
+        nginx_default_key => $ENV->share->get('/data/nginx/default.key'),
+        nginx_default_pem => $ENV->share->get('/data/nginx/default.pem'),
     };
 }
 
