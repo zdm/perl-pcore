@@ -32,6 +32,7 @@ sub _build_target_path ($self) {
     return P->path( $self->base_path, is_dir => 1 )->realpath->to_string . lc $self->{dist_name};
 }
 
+# TODO nginx config
 sub _build_tmpl_params ($self) {
     return {
         dist_name         => $self->{dist_name},                                                         # Package-Name
@@ -98,18 +99,16 @@ sub run ($self) {
         }
     }
 
-    $files->move_file( 'lib/MainModule.pm_', 'lib/' . ( $self->{dist_name} =~ s[-][/]smgr ) . '.pm' );
-
     my $dist_path = $self->{dist_name} =~ s[-][/]smgr;
 
     $files->move_tree(
-        'lib/MainModule_/',
+        q[],
         sub ($path) {
-            $path =~ s/\Alib\/MainModule_\//lib\/$dist_path\//sm;
+            my $changed = $path =~ s/\Alib\/Dist/lib\/$dist_path/sm;
 
-            $path =~ s/[.]pm_\z/.pm/sm;
+            $changed += $path =~ s/_\z//sm;
 
-            return $path;
+            return $changed ? $path : undef;
         }
     );
 
