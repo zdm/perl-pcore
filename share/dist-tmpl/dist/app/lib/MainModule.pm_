@@ -1,7 +1,17 @@
 package <: $module_name :> v0.0.0;
 
-use Pcore -dist;
+use Pcore -dist, -class;
 use <: $module_name :>::Const qw[:CONST];
+
+has cfg => ( is => 'ro', isa => HashRef, required => 1 );
+
+with qw[Pcore::App];
+
+sub run ( $self, $cb ) {
+    $cb->();
+
+    return;
+}
 
 1;
 __END__
