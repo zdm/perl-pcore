@@ -15,6 +15,9 @@ RUN /bin/bash -c ' \
     # setup perl build env
     source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) setup \
 
+    # install nginx
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/install-nginx.sh ) \
+
     # deploy and test distribution
     && pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
