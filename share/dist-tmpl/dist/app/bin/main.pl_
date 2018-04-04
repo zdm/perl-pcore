@@ -3,7 +3,6 @@
 package main v0.1.0;
 
 use Pcore;
-use Pcore::Nginx;
 use <: $module_name :>;
 use <: $module_name :> ::Const qw[:CONST];
 
@@ -45,29 +44,12 @@ my $app = <: $module_name :>->new( {    #
 my $cv = AE::cv;
 
 $app->run( sub ($app) {
-    _start_nginx();
+    $app->start_nginx();
 
     return;
 } );
 
 $cv->recv;
-
-sub _start_nginx {
-    our $NGINX = Pcore::Nginx->new;
-
-    $NGINX->add_vhost( '<: $dist_path :>', P->file->read_bin( $ENV->dist->root . 'contrib/conf.nginx' ) ) if !$NGINX->is_vhost_exists('<: $dist_path :>');
-
-    # SIGNUP -> nginx reload
-    $SIG->{HUP} = AE::signal HUP => sub {
-        kill 'HUP', $NGINX->proc->pid || 0;
-
-        return;
-    };
-
-    $NGINX->run;
-
-    return;
-}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -76,7 +58,7 @@ sub _start_nginx {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 26, 58               | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 25                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
