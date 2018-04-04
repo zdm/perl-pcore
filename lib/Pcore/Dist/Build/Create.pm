@@ -32,7 +32,6 @@ sub _build_target_path ($self) {
     return P->path( $self->base_path, is_dir => 1 )->realpath->to_string . lc $self->{dist_name};
 }
 
-# TODO nginx config
 sub _build_tmpl_params ($self) {
     return {
         dist_name         => $self->{dist_name},                                                         # Package-Name
@@ -45,8 +44,6 @@ sub _build_tmpl_params ($self) {
         license           => $ENV->user_cfg->{_}->{license},
         pcore_version     => $ENV->pcore->version->normal,
         cpan_distribution => 0,
-        nginx_default_key => $ENV->share->get('/data/nginx/default.key'),
-        nginx_default_pem => $ENV->share->get('/data/nginx/default.pem'),
     };
 }
 
