@@ -15,8 +15,12 @@ RUN /bin/bash -c ' \
     # setup perl build env
     source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) setup \
 
-    # install nginx
+    # deploy nginx
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/install-nginx.sh ) \
+
+    # deploy non-CPAN deps
+    && mkdir "$PCORE_LIB/pcore-share-www/" \
+    && wget -q -O - https://bitbucket.org/softvisio/pcore-share-www/get/latest.tar.gz | tar -C "$PCORE_LIB/pcore-share-www/" --strip-components=1 -xzf - \
 
     # deploy and test distribution
     && pcore deploy --recommends --suggests \

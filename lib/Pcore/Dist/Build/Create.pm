@@ -96,19 +96,7 @@ sub run ($self) {
         }
     }
 
-    my $dist_path = $self->{dist_name} =~ s[-][/]smgr;
-
-    $files->move_tree(
-        'lib/_dist_',
-        "lib/$dist_path",
-
-        # q[],
-        # sub ($path) {
-        #     my $changed = $path =~ s/\Alib\/_dist_/lib\/$dist_path/sm;
-        #
-        #     return $changed ? $path : undef;
-        # }
-    );
+    $files->move_tree( 'lib/_dist_', 'lib/' . $self->{dist_name} =~ s[-][/]smgr );
 
     # rename share/_dist.perl -> share/dist.perl
     $files->move_file( 'share/_dist.perl', 'share/dist.perl' );
