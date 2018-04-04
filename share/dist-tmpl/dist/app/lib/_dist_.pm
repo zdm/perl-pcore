@@ -1,6 +1,6 @@
 package <: $module_name :> v0.0.0;
 
-use Pcore -dist, -class;
+use Pcore -dist, -class, -const;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 has cfg => ( is => 'ro', isa => HashRef, required => 1 );
