@@ -7,6 +7,8 @@ has cfg => ( is => 'ro', isa => HashRef, required => 1 );
 
 with qw[Pcore::App];
 
+const our $APP_API_ROLES => [ 'admin', 'user' ];
+
 sub run ( $self, $cb ) {
     $cb->();
 
@@ -22,7 +24,7 @@ sub run ( $self, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 30                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 34 does not match the package declaration       |
+## |    1 | 32                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 36 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
