@@ -17,43 +17,39 @@ around run => sub ( $orig, $self, $req ) {
 };
 
 sub get_nginx_cfg ($self) {
-    my @sl;
+    my @buf;
 
-    my $last;
+    my $locations = $ENV->share->get_storage('www');
 
     # add_header    Cache-Control "public, private, must-revalidate, proxy-revalidate";
 
-    for my $static ( reverse $ENV->share->get_storage('www')->@* ) {
-        if ( !defined $last ) {
-            unshift @sl, qq[
-location \@$static {
-    add_header    Cache-Control "public, max-age=30672000";
-    root          $static;
-    try_files     \$uri =404;
-}];
-        }
-        else {
-            unshift @sl, qq[
-location \@$static {
-    add_header    Cache-Control "public, max-age=30672000";
-    root          $static;
-    try_files     \@$last =404;
-}];
-        }
+    for ( my $i = 0; $i <= $locations->$#*; $i++ ) {
+        my $location = $i == 0 ? '/static/' : "\@$locations->[$i]";
 
-        $last = $static;
+        my $next = $i < $locations->$#* ? "\@$locations->[$i + 1]" : '=404';
+
+        push @buf, <<"TXT";
+    location $location {
+        add_header    Cache-Control "public, max-age=30672000";
+        root          $locations->[$i];
+        try_files     \$uri $next;
+    }
+TXT
     }
 
-    return q[
-location =/ {
-    error_page 418 = @backend;
-    return 418;
-}
+    return <<"TXT";
+    location =/ {
+        error_page 418 = \@backend;
+        return 418;
+    }
 
-location / {
-    error_page 418 = @backend;
-    return 418;
-}] . $LF . join $LF, @sl;
+    location / {
+        error_page 418 = \@backend;
+        return 418;
+    }
+
+@{[join $LF, @buf]}
+TXT
 }
 
 1;
@@ -63,11 +59,7 @@ location / {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22                   | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "last"                                  |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 28, 36, 47           | ValuesAndExpressions::ProhibitImplicitNewlines - Literal line breaks in a string                               |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 47                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    2 | 26                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
