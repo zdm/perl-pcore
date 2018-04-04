@@ -4,9 +4,7 @@ package main v0.1.0;
 
 use Pcore;
 use <: $module_name :>;
-# <<<
-use <: $module_name :>::Const qw[:CONST];
-# >>>
+use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 sub CLI {
     return {
@@ -61,7 +59,9 @@ $cv->recv;
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 27                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    3 | 7                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 25                   | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

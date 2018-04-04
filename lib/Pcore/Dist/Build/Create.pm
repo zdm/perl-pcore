@@ -103,8 +103,6 @@ sub run ($self) {
         sub ($path) {
             my $changed = $path =~ s/\Alib\/Dist/lib\/$dist_path/sm;
 
-            $changed += $path =~ s/_\z//sm;
-
             return $changed ? $path : undef;
         }
     );

@@ -1,6 +1,14 @@
-package <: $module_name :>::Const;
+package <: $module_name ~ "::Index" :>;
 
-use Pcore -const;
+use Pcore -class;
+
+with qw[Pcore::App::Controller::Index];
+
+sub run ( $self, $req ) {
+    $req->( 200, [ 'Conten-Type' => 'text/html' ], 'Pcore application template' )->finish;
+
+    return;
+}
 
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
@@ -11,7 +19,7 @@ use Pcore -const;
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 19                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 23 does not match the package declaration       |
+## |    1 | 27                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 31 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -22,7 +30,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name :>::Const
+<: $module_name :>::Index
 
 =head1 SYNOPSIS
 
