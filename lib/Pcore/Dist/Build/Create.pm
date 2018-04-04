@@ -67,7 +67,7 @@ sub run ($self) {
     # copy files
     my $files = Pcore::Util::File::Tree->new;
 
-    my $tmpl_cfg = P->cfg->load( $ENV->share->get( 'dist/cfg.ini', storage => 'dist-tmpl', lib => 'Pcore' ) );
+    my $tmpl_cfg = P->cfg->load( $ENV->share->get( 'cfg.ini', storage => 'dist-tmpl', lib => 'Pcore' ) );
 
     my $tmpl_params = $self->tmpl_params;
 
@@ -76,7 +76,7 @@ sub run ($self) {
             __SUB__->($parent);
         }
 
-        my $tmpl_path = $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . "/dist/$name/";
+        my $tmpl_path = $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . "/tmpl-$name/";
 
         $files->add_dir($tmpl_path) if -d $tmpl_path;
 
