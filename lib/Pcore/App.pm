@@ -121,7 +121,7 @@ sub nginx_cfg ($self) {
         }
     }
 
-    return P->tmpl->new->render( 'nginx/host_conf.nginx', $params );
+    return P->tmpl->new->render( $self->{app_cfg}->{server}->{ssl} ? 'nginx/host_conf.nginx' : 'nginx/host_conf_no_ssl.nginx', $params );
 }
 
 sub start_nginx ($self) {
