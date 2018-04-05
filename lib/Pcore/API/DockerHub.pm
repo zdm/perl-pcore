@@ -30,6 +30,7 @@ const our $BUILD_STATUS_TEXT => {
     2  => 'building',
     3  => 'building',
     10 => 'success',
+    11 => 'queued',
 };
 
 sub BUILDARGS ( $self, $args = undef ) {
@@ -616,12 +617,12 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 80, 189, 323, 333,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 349, 377, 381, 416,  |                                                                                                                |
-## |      | 488, 507, 511, 555,  |                                                                                                                |
-## |      | 568                  |                                                                                                                |
+## |    3 | 81, 190, 324, 334,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 350, 378, 382, 417,  |                                                                                                                |
+## |      | 489, 508, 512, 556,  |                                                                                                                |
+## |      | 569                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 167                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 168                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
