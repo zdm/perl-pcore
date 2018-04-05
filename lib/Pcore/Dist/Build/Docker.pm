@@ -69,6 +69,9 @@ sub init ( $self, $args ) {
 
         $files->add_dir( $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . '/docker/' );
 
+        # do not overwrite Dockerfile
+        $files->remove_file('Dockerfile') if -f $self->dist->root . 'Dockerfile';
+
         $files->render_tmpl( {
             author                        => $self->dist->cfg->{author},
             dist_path                     => lc $self->dist->name,
@@ -580,12 +583,12 @@ sub trigger_build ( $self, $tag ) {
 ## |    3 | 23                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 122                  | * Subroutine "status" with high complexity score (26)                                                          |
-## |      | 296                  | * Subroutine "build_status" with high complexity score (31)                                                    |
+## |      | 125                  | * Subroutine "status" with high complexity score (26)                                                          |
+## |      | 299                  | * Subroutine "build_status" with high complexity score (31)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 481                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 484                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 265, 344, 474        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 268, 347, 477        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
