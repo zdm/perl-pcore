@@ -1,9 +1,10 @@
 package Pcore::App::Controller::Index;
 
 use Pcore -role;
-use Pcore::Share::WWW;
 
 with qw[Pcore::App::Controller];
+
+eval { require Pcore::Share::WWW };
 
 around run => sub ( $orig, $self, $req ) {
     if ( $req->{path_tail}->is_file ) {
@@ -59,7 +60,9 @@ TXT
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 26                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    3 | 7                    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 27                   | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
