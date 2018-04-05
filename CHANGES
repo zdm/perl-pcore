@@ -1,3 +1,10 @@
+v0.59.1 2018-04-05T22:04:21Z
+ - docker build status text updated
+ - make usage of Pcore::Share::WWW conditional
+ - app template updated
+ - typo
+ - move_tree updated
+
 v0.59.0 2018-04-05T08:05:31Z
  - dockerhup statuses expanded
  - docker rm keep fixed
