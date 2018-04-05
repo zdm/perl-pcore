@@ -11,12 +11,8 @@
     - what it should do internally (flush cache, etc...);
 
 - remove basic auth;
-- rewiew API methods;
 
 ---------------------------------------------------
-
-- pcore.perl - pcore.ini???;
-- dist.perl -> dist.ini - ??? - will be impossible to use functions;
 
 https://metacpan.org/pod/Tie::Hash::LRU
 
@@ -31,12 +27,6 @@ https://metacpan.org/pod/Tie::Hash::LRU
     - http_timeout works incorrectly, should be timeout for whole request, currently only timeout between read operation;
     - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
 
-- error add/remove dist files after committing wiki;
-
-- API applications connector;
-
-- app permissions, auth_app, etc...;
-
 - api protocol:
     - runas => [ $token_type, $token_id, $private_token ];
 
@@ -47,13 +37,8 @@ https://metacpan.org/pod/Tie::Hash::LRU
     - allows to decode headers and return body to client;
 
 - APP & APP API:
-    - move roles and permissions from API to App;
     - auth tags;
     - stack similar requests everywhere;
-
-    - blocking api call;
-    - api client - blocking call;
-    - blocking api auth methods;
 
 - HANDLE and PROXY refactoring
     - rename -> timeout -> http_timeout, keepalive_timeout -> http_keep...;
