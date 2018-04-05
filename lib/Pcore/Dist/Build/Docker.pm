@@ -20,7 +20,7 @@ sub init ( $self, $args ) {
     my $scm_upstream = $self->dist->scm ? $self->dist->scm->upstream : undef;
 
     if ( !$scm_upstream ) {
-        say qq[Dist has no upstream repository"];
+        say q[Dist has no upstream repository];
 
         exit 3;
     }
@@ -582,8 +582,6 @@ sub trigger_build ( $self, $tag ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 23                   | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 127                  | * Subroutine "status" with high complexity score (26)                                                          |
 ## |      | 301                  | * Subroutine "build_status" with high complexity score (31)                                                    |
