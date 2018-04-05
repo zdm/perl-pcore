@@ -97,7 +97,7 @@ sub run ($self) {
         }
     }
 
-    $files->move_tree( 'lib/_dist_', 'lib/' . $self->{dist_name} =~ s[-][/]smgr );
+    $files->move_tree( 'lib/__dist_path__', 'lib/' . $self->{dist_name} =~ s[-][/]smgr );
 
     # rename dist cfg template
     $files->move_file( "share/_dist_.$Pcore::Core::Const::DIST_CFG_TYPE", "share/dist.$Pcore::Core::Const::DIST_CFG_TYPE" );
