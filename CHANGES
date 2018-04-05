@@ -1,3 +1,16 @@
+v0.59.0 2018-04-05T08:05:31Z
+ - dockerhup statuses expanded
+ - docker rm keep fixed
+ - http cookies improved for speed
+ - dist templates added
+ - app nginx config generator
+ - dist.perl renamed to dist.yaml
+ - TODO
+ - pcore changes command added
+ - do not overwrite Dockerfile on docker init
+ - pcore cli help updated
+ - release tests fixed
+
 v0.58.5 2018-04-01T07:19:15Z
  - typo in SQL query
  - api no auth improvements
