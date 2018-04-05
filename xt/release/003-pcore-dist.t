@@ -304,13 +304,13 @@ PERL
     # create dist root
     $tree->add_file( "$args->{prefix}lib/$res->{module_name}", \$package );
 
-    $tree->add_file( "$args->{prefix}share/dist.$Pcore::Core::Const::DIST_CFG_TYPE", \$dist_cfg ) if $args->{dist_share_dir};
+    $tree->add_file( "$args->{prefix}share/dist.$Pcore::Core::Const::DIST_CFG_TYPE", $dist_cfg ) if $args->{dist_share_dir};
 
     # create cpan lib
     if ( $args->{cpan_lib} ) {
         $tree->add_file( "$args->{prefix}$args->{cpan_lib}/$res->{module_name}", \$package );
 
-        $tree->add_file( "$args->{prefix}$args->{cpan_lib}/auto/share/dist/$dist_name/dist.$Pcore::Core::Const::DIST_CFG_TYPE", \$dist_cfg ) if $args->{cpan_share_dir};
+        $tree->add_file( "$args->{prefix}$args->{cpan_lib}/auto/share/dist/$dist_name/dist.$Pcore::Core::Const::DIST_CFG_TYPE", $dist_cfg ) if $args->{cpan_share_dir};
     }
 
     $res->{temp} = $tree->write_to_temp;
