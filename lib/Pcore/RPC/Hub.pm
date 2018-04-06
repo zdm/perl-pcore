@@ -15,28 +15,30 @@ has conn_class => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 has _on_rpc_started => ( is => 'ro', init_arg => undef );                # event listener
 
 sub BUILD ( $self, $args ) {
-    weaken $self;
+    if ( defined $self->{id} ) {
+        weaken $self;
 
-    $self->{_on_rpc_started} = P->listen_events(
-        'RPC.STARTED',
-        sub ($ev) {
-            for my $rpc ( $ev->{data}->@* ) {
+        $self->{_on_rpc_started} = P->listen_events(
+            'RPC.STARTED',
+            sub ($ev) {
+                for my $rpc ( $ev->{data}->@* ) {
 
-                # do not connect to the already connected servers
-                next if exists $self->{conn}->{ $rpc->{id} };
+                    # do not connect to the already connected servers
+                    next if exists $self->{conn}->{ $rpc->{id} };
 
-                # do not connect to the RPC servers with the same class
-                next if defined $self->{class} && $self->{class} eq $rpc->{class};
+                    # do not connect to the RPC servers with the same class
+                    next if defined $self->{class} && $self->{class} eq $rpc->{class};
 
-                # do not connect to myself
-                next if defined $self->{id} && $self->{id} eq $rpc->{id};
+                    # do not connect to myself
+                    next if defined $self->{id} && $self->{id} eq $rpc->{id};
 
-                $self->_connect_rpc($rpc);
+                    $self->_connect_rpc($rpc);
+                }
+
+                return;
             }
-
-            return;
-        }
-    );
+        );
+    }
 
     return;
 }
@@ -116,7 +118,7 @@ sub _connect_rpc ( $self, $rpc, $cb = undef ) {
         before_connect => {
             token          => $rpc->{token},
             listen_events  => $rpc->{listen_events},
-            forward_events => [ 'RPC.STARTED', defined $rpc->{forward_events} ? $rpc->{forward_events}->@* : () ],
+            forward_events => [ !defined $self->{id} ? 'RPC.STARTED' : (), defined $rpc->{forward_events} ? $rpc->{forward_events}->@* : () ],
         },
         on_listen_event => sub ( $ws, $mask ) {    # RPC server can listen client event
             return 1;
