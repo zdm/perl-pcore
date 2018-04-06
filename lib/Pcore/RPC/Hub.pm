@@ -1,7 +1,7 @@
 package Pcore::RPC::Hub;
 
-use Pcore -class;
-use Pcore::Util::Scalar qw[weaken];
+use Pcore -class, -result;
+use Pcore::Util::Scalar qw[weaken is_plain_coderef is_blessed_ref];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
@@ -177,7 +177,6 @@ sub _on_rpc_disconnect ( $self, $ws, $status ) {
     return;
 }
 
-# TODO return if route to rhe class is unknown
 sub rpc_call ( $self, $class, $method, @ ) {
     my $ws = shift $self->{conn_class}->{$class}->@*;
 
@@ -186,8 +185,8 @@ sub rpc_call ( $self, $class, $method, @ ) {
 
         $ws->rpc_call( @_[ 2 .. $#_ ] );
     }
-    else {
-        die qq[$class not available];
+    elsif ( is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
+        $_[-1]->( result [ 404, 'Method is not available' ] );
     }
 
     return;
