@@ -3,6 +3,7 @@ package Pcore::RPC::Server;
 use Pcore;
 use Pcore::HTTP::Server;
 use Pcore::WebSocket;
+use Pcore::RPC::Hub;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use if $MSWIN, 'Win32API::File';
 
@@ -16,8 +17,12 @@ sub run ( $class, $rpc_boot_args ) {
 
     my $cv = AE::cv;
 
+    my $HUB = Pcore::RPC::Hub->new( { id => P->uuid->v1mc_str, class => $class } );
+
     # create object
     my $rpc = $class->new( $rpc_boot_args->{buildargs} // () );
+
+    $rpc->{hub} = $HUB;
 
     my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
     my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
@@ -136,9 +141,7 @@ sub run ( $class, $rpc_boot_args ) {
 
     binmode *FH or die;
 
-    my $rpc_id = P->uuid->v1mc_str;
-
-    print {*FH} P->data->to_cbor( { id => $rpc_id, listen => $listen, class => $class } )->$* . $LF;
+    print {*FH} P->data->to_cbor( { id => $HUB->{id}, listen => $listen, class => $class } )->$* . $LF;
 
     close *FH or die;
 
@@ -154,11 +157,11 @@ sub run ( $class, $rpc_boot_args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 9                    | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
+## |    3 | 10                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 109                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 114                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 37                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 42                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

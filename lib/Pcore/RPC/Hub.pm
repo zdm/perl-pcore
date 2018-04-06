@@ -79,6 +79,10 @@ sub run_rpc ( $self, $args, $cb ) {
                             token  => $rpc->{token},
                         },
                         sub {
+
+                            # send updated routes to all connected RPC servers
+                            P->fire_event( 'RPC.STARTED', [ values $self->{conn}->%* ] );
+
                             $cv->end;
 
                             return;
@@ -127,9 +131,6 @@ sub _connect_rpc ( $self, $rpc, $cb = undef ) {
 
             # store established connection
             push $self->{conn_class}->{ $rpc->{class} }->@*, $ws;
-
-            # send updated routes to all connected RPC servers
-            P->fire_event( 'RPC.STARTED', [ values $self->{conn}->%* ] );
 
             $cb->() if defined $cb;
 
