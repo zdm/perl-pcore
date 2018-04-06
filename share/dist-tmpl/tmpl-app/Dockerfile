@@ -13,10 +13,10 @@ WORKDIR $DIST_PATH
 RUN /bin/bash -c ' \
 
     # setup perl build env
-    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) setup \
+    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
 
     # deploy nginx
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/install-nginx.sh ) \
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/install-nginx.sh || echo false ) \
 
     # deploy non-CPAN deps
     && mkdir "$PCORE_LIB/pcore-share-www/" \
@@ -27,7 +27,7 @@ RUN /bin/bash -c ' \
     && pcore test -j $(nproc) \
 
     # cleanup perl build env
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh ) cleanup \
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) cleanup \
 '
 
 ENTRYPOINT ["bin/main.pl"]
