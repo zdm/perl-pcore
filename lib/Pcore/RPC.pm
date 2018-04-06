@@ -28,7 +28,7 @@ sub run_rpc ( $self, $class, @ ) {
         @_[ 2 .. $#_ ],
     );
 
-    # define number of the workers
+    # resolve number of the workers
     if ( !$args{workers} ) {
         $args{workers} = P->sys->cpus_num;
     }
