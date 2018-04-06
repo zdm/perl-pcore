@@ -136,7 +136,9 @@ sub run ( $class, $rpc_boot_args ) {
 
     binmode *FH or die;
 
-    print {*FH} "LISTEN:$listen\n";
+    my $rpc_id = P->uuid->v1mc_str;
+
+    print {*FH} P->data->to_cbor( { id => $rpc_id, listen => $listen, class => $class } )->$* . $LF;
 
     close *FH or die;
 

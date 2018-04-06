@@ -9,15 +9,18 @@ use Pcore::Util::Data qw[:CONST];
 use Pcore::Util::Scalar qw[weaken];
 
 has proc => ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
-has listen => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server listen addr.
 has on_finish => ( is => 'rw', isa => Maybe [CodeRef] );
+
+has id     => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server id.
+has listen => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server listen addr
+has class  => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server class
 
 around new => sub ( $orig, $self, @ ) {
     my %args = (
-        listen    => undef,    # RPC server listen
+        listen    => undef,                                     # RPC server listen
         token     => undef,
-        class     => undef,    # mandatory
-        buildargs => undef,    # class constructor arguments
+        class     => undef,                                     # mandatory
+        buildargs => undef,                                     # class constructor arguments
         on_ready  => undef,
         on_finish => undef,
         @_[ 2 .. $#_ ],
@@ -117,13 +120,17 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
                     # destroy control fh
                     $h->destroy;
 
-                    if ( $line =~ /\ALISTEN:(.+)\z/sm ) {
-                        $self->{listen} = $1;
+                    my $res = eval { P->data->from_cbor($line) };
 
-                        $cb->();
+                    if ($@) {
+                        die 'RPC handshake error';
                     }
                     else {
-                        die 'RPC handshake error';
+                        $self->{id}     = $res->{id};
+                        $self->{listen} = $res->{listen};
+                        $self->{class}  = $res->{class};
+
+                        $cb->();
                     }
 
                     return;
