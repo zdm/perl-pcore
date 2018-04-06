@@ -203,7 +203,7 @@ sub _set_listeners ( $self, $masks ) {
         $self->{_listeners}->{$mask} = P->listen_events(
             $mask,
             sub ( $ev ) {
-                $self->forward_remote_event($ev) if $self;
+                $self->forward_remote_event($ev) if defined $self;
 
                 return;
             }
@@ -279,7 +279,7 @@ sub _on_message ( $self, $msg, $is_json ) {
                         weaken $weak_self;
 
                         $req->{_cb} = sub ($res) {
-                            return if !$weak_self;
+                            return if !defined $weak_self;
 
                             my $result;
 
