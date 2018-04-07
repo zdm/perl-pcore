@@ -32,6 +32,15 @@ sub run ( $self, $cb ) {
                             cfg => $self->{cfg},
                         },
                     },
+                    {   type           => '<: $module_name :>::RPC::Log',
+                        workers        => 1,
+                        token          => undef,
+                        listen_events  => undef,
+                        forward_events => undef,
+                        buildargs      => {                                  #
+                            cfg => $self->{cfg},
+                        },
+                    },
                 ],
                 sub {
 
@@ -64,9 +73,9 @@ sub run ( $self, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 10, 26               | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 10, 26, 35           | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 74                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 78 does not match the package declaration       |
+## |    1 | 83                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 87 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

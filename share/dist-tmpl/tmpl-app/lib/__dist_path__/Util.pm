@@ -75,6 +75,15 @@ sub update_schema ( $self, $db, $cb ) {
                 "created" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                 "email" VARCHAR NOT NULL
             );
+
+            CREATE TABLE "log" (
+                "id" UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
+                "created" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                "channel" TEXT,
+                "level" TEXT,
+                "title" TEXT,
+                "data" TEXT
+            );
 SQL
     );
 
@@ -148,7 +157,11 @@ sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
     my $smtp = $self->_smtp;
 
     if ( !$smtp ) {
-        $cb->( result [ 500, 'SMTP is not configured' ] ) if $cb;
+        my $res = result [ 500, 'SMTP is not configured' ];
+
+        P->sendlog( '<: $dist_name :>.FATAL', 'SMTP error', "$res" );
+
+        $cb->($res) if $cb;
     }
     else {
         $smtp->sendmail(
@@ -180,11 +193,11 @@ sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 156                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 162                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 162, 175             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 192                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 196 does not match the package declaration      |
+## |    1 | 205                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 209 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
