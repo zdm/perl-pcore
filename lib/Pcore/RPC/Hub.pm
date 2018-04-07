@@ -136,7 +136,7 @@ sub _connect_rpc ( $self, $conn, $cb = undef ) {
             return;
         },
         on_disconnect => sub ( $ws, $status ) {
-            $self->_on_rpc_disconnect( $ws, $status ) if defined $self;
+            $self->_on_rpc_disconnect( $conn, $ws, $status ) if defined $self;
 
             return;
         }
@@ -145,33 +145,25 @@ sub _connect_rpc ( $self, $conn, $cb = undef ) {
     return;
 }
 
-# TODO
 sub _on_proc_finish ( $self, $proc ) {
-
-    # if ($weaken_rpc) {
-    #     for ( my $i = 0; $i <= $weaken_rpc->{workers}->$#*; $i++ ) {
-    #         if ( $weaken_rpc->{workers}->[$i] eq $proc ) {
-    #             splice $weaken_rpc->{workers}->@*, $i, 1, ();
-    #
-    #             last;
-    #         }
-    #     }
-    # }
+    delete $self->{proc}->{ $proc->{conn}->{id} };
 
     return;
 }
 
-# TODO
-sub _on_rpc_disconnect ( $self, $ws, $status ) {
+sub _on_rpc_disconnect ( $self, $conn, $ws, $status ) {
+    delete $self->{conn}->{ $conn->{id} };
 
     # remove destroyed connection from cache
-    # for ( my $i = 0; $i <= $self_weak->{connections}->$#*; $i++ ) {
-    #     if ( $self_weak->{connections}->[$i] eq $ws ) {
-    #         splice $self_weak->{connections}->@*, $i, 1, ();
-    #
-    #         last;
-    #     }
-    # }
+    my $conn_type = $self->{conn_type}->{ $conn->{type} };
+
+    for ( my $i = 0; $i <= $conn_type->$#*; $i++ ) {
+        if ( $conn_type->[$i] eq $ws ) {
+            splice $conn_type->@*, $i, 1, ();
+
+            last;
+        }
+    }
 
     return;
 }
@@ -185,13 +177,23 @@ sub rpc_call ( $self, $type, $method, @ ) {
         $ws->rpc_call( @_[ 2 .. $#_ ] );
     }
     elsif ( is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
-        $_[-1]->( result [ 404, 'Method is not available' ] );
+        $_[-1]->( result [ 404, qq[RPC type "$type" is not available] ] );
     }
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 160                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
