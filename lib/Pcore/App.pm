@@ -41,14 +41,17 @@ around run => sub ( $orig, $self, $cb = undef ) {
         $self->$orig( sub {
 
             # start HTTP server
-            $self->{server} = Pcore::HTTP::Server->new( {
-                $self->{app_cfg}->{server}->%*,    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
-                app => $self->{router}
-            } );
+            if ( defined $self->{app_cfg}->{server}->{listen} ) {
+                $self->{server} = Pcore::HTTP::Server->new( {
+                    $self->{app_cfg}->{server}->%*,    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+                    app => $self->{router}
+                } );
 
-            $self->{server}->run;
+                $self->{server}->run;
 
-            say qq[Listen: $self->{app_cfg}->{server}->{listen}];
+                say qq[Listen: $self->{app_cfg}->{server}->{listen}];
+            }
+
             say qq[App "@{[ref $self]}" started];
 
             $cb->($self) if $cb;
