@@ -1,10 +1,32 @@
 package <: $module_name ~ "::Util" :>;
 
-use Pcore -class;
+use Pcore -class, -result;
+use Pcore::SMTP;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::Handle::DBI'], init_arg => undef );
+has settings => ( is => 'ro', isa => HashRef, init_arg => undef );
 
+has _smtp => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::SMTP'] ], init_arg => undef );
+
+sub BUILD ( $self, $args ) {
+
+    # set settings listener
+    P->listen_events(
+        'APP.SETTINGS_UPDATED',
+        sub ($ev) {
+            $self->{settings} = $ev->{data};
+
+            delete $self->{_smtp};
+
+            return;
+        }
+    );
+
+    return;
+}
+
+# DBH
 sub build_dbh ( $self, $db ) {
     $self->{dbh} = P->handle($db) if !defined $self->{dbh};
 
@@ -17,13 +39,134 @@ sub update_schema ( $self, $db, $cb ) {
 
     $dbh->add_schema_patch(
         1 => <<'SQL'
-            CREATE TABLE IF NOT EXISTS "aaa" (
-                "id" BIGSERIAL PRIMARY KEY NOT NULL
+            CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+            CREATE TABLE IF NOT EXISTS "settings" (
+                "id" INT2 PRIMARY KEY NOT NULL,
+
+                -- reCaptcha
+                "recaptcha_secret_key" VARCHAR,
+                "recaptcha_site_key" VARCHAR,
+                "recaptcha_enabled" BOOL NOT NULL DEFAULT FALSE,
+
+                -- SMTP
+                "smtp_host" VARCHAR,
+                "smtp_port" INT2,
+                "smtp_username" VARCHAR,
+                "smtp_password" VARCHAR,
+                "smtp_ssl" BOOL NOT NULL DEFAULT FALSE
+            );
+
+            INSERT INTO "settings" ("id", "smtp_host", "smtp_port", "smtp_ssl") VALUES (1, 'smtp.gmail.com', 465, TRUE);
+
+            CREATE TABLE IF NOT EXISTS "user" (
+                "id" UUID PRIMARY KEY NOT NULL,
+                "name" VARCHAR NOT NULL UNIQUE,
+                "enabled" BOOL NOT NULL DEFAULT TRUE,
+                "created" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                "email" VARCHAR NOT NULL UNIQUE,
+                "email_confirmed" BOOL NOT NULL DEFAULT FALSE
+            );
+
+            CREATE TABLE "user_action_token" (
+                "token" VARCHAR(64) PRIMARY KEY,
+                "user_id" UUID NOT NULL,
+                "token_type" INT2 NOT NULL,
+                "created" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                "email" VARCHAR NOT NULL
             );
 SQL
     );
 
     $dbh->upgrade_schema($cb);
+
+    return;
+}
+
+# SETTINGS
+sub load_settings ( $self, $cb ) {
+    $self->{dbh}->selectrow(
+        q[SELECT * FROM "settings" WHERE "id" = 1],
+        sub ( $dbh, $res, $data ) {
+            P->fire_event( 'APP.SETTINGS_UPDATED', $data ) if $res;
+
+            $cb->($res);
+
+            return;
+        }
+    );
+
+    return;
+}
+
+sub update_settings ( $self, $settings, $cb ) {
+
+    # check SMTP port
+    if ( exists $settings->{smtp_port} && $settings->{smtp_port} !~ /\A\d+\z/sm ) {
+        $cb->( result 400, error => { smtp_port => 'Port is invalid' } );
+
+        return;
+    }
+
+    $self->{dbh}->do(
+        [ q[UPDATE "settings"], SET($settings), 'WHERE "id" = 1' ],
+        sub ( $dbh, $status, $data ) {
+            if ( !$status ) {
+                $cb->( result 500 );
+            }
+            else {
+                $self->load_settings( sub ($res) {
+                    $cb->($res);
+
+                    return;
+                } );
+            }
+
+            return;
+        }
+    );
+
+    return;
+}
+
+# SMTP
+sub _build__smtp ($self) {
+    my $cfg = $self->{settings};
+
+    return if !$cfg->{smtp_host} || !$cfg->{smtp_port} || !$cfg->{smtp_username} || !$cfg->{smtp_password};
+
+    return Pcore::SMTP->new( {
+        host     => $cfg->{smtp_host},
+        port     => $cfg->{smtp_port},
+        username => $cfg->{smtp_username},
+        password => $cfg->{smtp_password},
+        tls      => $cfg->{smtp_ssl},
+    } );
+}
+
+sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
+    my $smtp = $self->_smtp;
+
+    if ( !$smtp ) {
+        $cb->( result [ 500, 'SMTP is not configured' ] ) if $cb;
+    }
+    else {
+        $smtp_api->sendmail(
+            from     => $smtp->{username},
+            reply_to => $smtp->{username},
+            to       => $to,
+            bcc      => $bcc,
+            subject  => $subject,
+            body     => $body,
+            sub ($res) {
+                P->sendlog( '<: $dist_name :>.FATAL', 'SMTP error', "$res" ) if !$res;
+
+                $cb->($res) if $cb;
+
+                return;
+            }
+        );
+    }
 
     return;
 }
@@ -35,9 +178,13 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 1, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 45                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 49 does not match the package declaration       |
+## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 162                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 192                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 196 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

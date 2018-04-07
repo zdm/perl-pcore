@@ -23,18 +23,26 @@ sub run ( $self, $cb ) {
 
             # run RPC
             ( $self->{rpc} = Pcore::RPC::Hub->new )->run_rpc(
-                [   {   type      => '<: $module_name :>::RPC::RPC1',
-                        workers   => 1,
-                        token     => undef,
-                        buildargs => {                                  #
+                [   {   type           => '<: $module_name :>::RPC::RPC1',
+                        workers        => 1,
+                        token          => undef,
+                        listen_events  => undef,
+                        forward_events => ['APP.SETTINGS_UPDATED'],
+                        buildargs      => {                                  #
                             cfg => $self->{cfg},
                         },
                     },
                 ],
                 sub {
 
-                    # app ready
-                    $cb->();
+                    # load settings
+                    $self->{util}->load_settings( sub ($res) {
+
+                        # app ready
+                        $cb->();
+
+                        return;
+                    } );
 
                     return;
                 }
@@ -58,7 +66,7 @@ sub run ( $self, $cb ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 10, 26               | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 66                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 70 does not match the package declaration       |
+## |    1 | 74                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 78 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
