@@ -4,12 +4,16 @@ use Pcore -class, -result;
 use Pcore::SMTP;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 
-has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::Handle::DBI'], init_arg => undef );
+has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
+has dbh  => ( is => 'ro', isa => ConsumerOf ['Pcore::Handle::DBI'],    init_arg => undef );
 has settings => ( is => 'ro', isa => HashRef, init_arg => undef );
 
 has _smtp => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::SMTP'] ], init_arg => undef );
 
 sub BUILD ( $self, $args ) {
+
+    # init tmpl
+    $self->{tmpl} = P->tmpl;
 
     # set settings listener
     P->listen_events(
@@ -193,11 +197,11 @@ sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 156                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 160                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 162, 175             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 166, 179             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 205                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 209 does not match the package declaration      |
+## |    1 | 209                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 213 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
