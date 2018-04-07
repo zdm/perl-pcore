@@ -76,6 +76,8 @@ sub run_rpc ( $self, $args, $cb ) {
 
                     $self->_connect_rpc(
                         $proc->{conn},
+                        $rpc->{listen_events},
+                        $rpc->{forward_events},
                         sub {
 
                             # send updated routes to all connected RPC servers
@@ -103,8 +105,7 @@ sub run_rpc ( $self, $args, $cb ) {
     return;
 }
 
-# TODO listen / forward events
-sub _connect_rpc ( $self, $conn, $cb = undef ) {
+sub _connect_rpc ( $self, $conn, $listen_events = undef, $forward_events = undef, $cb = undef ) {
     weaken $self;
 
     $self->{conn}->{ $conn->{id} } = $conn;
@@ -114,8 +115,8 @@ sub _connect_rpc ( $self, $conn, $cb = undef ) {
         protocol       => 'pcore',
         before_connect => {
             token          => $conn->{token},
-            listen_events  => $conn->{listen_events},
-            forward_events => defined $self->{id} ? $conn->{forward_events} : [ 'RPC.HUB.UPDATED', defined $conn->{forward_events} ? $conn->{forward_events}->@* : () ],
+            listen_events  => $listen_events,
+            forward_events => defined $self->{id} ? $forward_events : [ 'RPC.HUB.UPDATED', defined $forward_events ? $forward_events->@* : () ],
         },
         on_listen_event => sub ( $ws, $mask ) {    # RPC server can listen client event
             return 1;
@@ -190,7 +191,9 @@ sub rpc_call ( $self, $type, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 160                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    3 | 108                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 161                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
