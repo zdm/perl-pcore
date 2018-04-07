@@ -11,16 +11,14 @@ use Pcore::Util::Scalar qw[weaken];
 has proc => ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
 has on_finish => ( is => 'rw', isa => Maybe [CodeRef] );
 
-has id     => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server id.
-has listen => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server listen addr
-has class  => ( is => 'ro', isa => Str, init_arg => undef );    # RPC server class
+has conn => ( is => 'ro', isa => HashRef, init_arg => undef );
 
 around new => sub ( $orig, $self, @ ) {
     my %args = (
-        listen    => undef,                                     # RPC server listen
+        listen    => undef,    # RPC server listen
         token     => undef,
-        class     => undef,                                     # mandatory
-        buildargs => undef,                                     # class constructor arguments
+        class     => undef,    # mandatory
+        buildargs => undef,    # class constructor arguments
         on_ready  => undef,
         on_finish => undef,
         @_[ 2 .. $#_ ],
@@ -120,15 +118,13 @@ sub _handshake ( $self, $ctrl_fh, $cb ) {
                     # destroy control fh
                     $h->destroy;
 
-                    my $res = eval { P->data->from_cbor($line) };
+                    my $conn = eval { P->data->from_cbor($line) };
 
                     if ($@) {
                         die 'RPC handshake error';
                     }
                     else {
-                        $self->{id}     = $res->{id};
-                        $self->{listen} = $res->{listen};
-                        $self->{class}  = $res->{class};
+                        $self->{conn} = $conn;
 
                         $cb->();
                     }

@@ -19,20 +19,20 @@ sub BUILD ( $self, $args ) {
         weaken $self;
 
         $self->{_on_rpc_started} = P->listen_events(
-            'RPC.STARTED',
+            'RPC.HUB.UPDATED',
             sub ($ev) {
-                for my $rpc ( $ev->{data}->@* ) {
+                for my $conn ( $ev->{data}->@* ) {
 
                     # do not connect to the already connected servers
-                    next if exists $self->{conn}->{ $rpc->{id} };
+                    next if exists $self->{conn}->{ $conn->{id} };
 
                     # do not connect to the RPC servers with the same class
-                    next if defined $self->{class} && $self->{class} eq $rpc->{class};
+                    next if defined $self->{class} && $self->{class} eq $conn->{class};
 
                     # do not connect to myself
-                    next if defined $self->{id} && $self->{id} eq $rpc->{id};
+                    next if defined $self->{id} && $self->{id} eq $conn->{id};
 
-                    $self->_connect_rpc($rpc);
+                    $self->_connect_rpc($conn);
                 }
 
                 return;
@@ -72,18 +72,14 @@ sub run_rpc ( $self, $args, $cb ) {
                 class     => $rpc->{class},
                 buildargs => $rpc->{buildargs},
                 on_ready  => sub ($proc) {
-                    $self->{proc}->{ $proc->{id} } = $proc;
+                    $self->{proc}->{ $proc->{conn}->{id} } = $proc;
 
                     $self->_connect_rpc(
-                        {   id     => $proc->{id},
-                            class  => $proc->{class},
-                            listen => $proc->{listen},
-                            token  => $rpc->{token},
-                        },
+                        $proc->{conn},
                         sub {
 
                             # send updated routes to all connected RPC servers
-                            P->fire_event( 'RPC.STARTED', [ values $self->{conn}->%* ] );
+                            P->fire_event( 'RPC.HUB.UPDATED', [ values $self->{conn}->%* ] );
 
                             $cv->end;
 
@@ -107,18 +103,19 @@ sub run_rpc ( $self, $args, $cb ) {
     return;
 }
 
-sub _connect_rpc ( $self, $rpc, $cb = undef ) {
+# TODO listen / forward events
+sub _connect_rpc ( $self, $conn, $cb = undef ) {
     weaken $self;
 
-    $self->{conn}->{ $rpc->{id} } = $rpc;
+    $self->{conn}->{ $conn->{id} } = $conn;
 
     Pcore::WebSocket->connect_ws(
-        "ws://$rpc->{listen}/",
+        "ws://$conn->{listen}/",
         protocol       => 'pcore',
         before_connect => {
-            token          => $rpc->{token},
-            listen_events  => $rpc->{listen_events},
-            forward_events => [ !defined $self->{id} ? 'RPC.STARTED' : (), defined $rpc->{forward_events} ? $rpc->{forward_events}->@* : () ],
+            token          => $conn->{token},
+            listen_events  => $conn->{listen_events},
+            forward_events => defined $self->{id} ? $conn->{forward_events} : [ 'RPC.HUB.UPDATED', defined $conn->{forward_events} ? $conn->{forward_events}->@* : () ],
         },
         on_listen_event => sub ( $ws, $mask ) {    # RPC server can listen client event
             return 1;
@@ -132,7 +129,7 @@ sub _connect_rpc ( $self, $rpc, $cb = undef ) {
         on_connect => sub ( $ws, $headers ) {
 
             # store established connection
-            push $self->{conn_class}->{ $rpc->{class} }->@*, $ws;
+            push $self->{conn_class}->{ $conn->{class} }->@*, $ws;
 
             $cb->() if defined $cb;
 

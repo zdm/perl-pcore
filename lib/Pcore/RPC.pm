@@ -1,7 +1,7 @@
 package Pcore::RPC;
 
 use Pcore -class;
-use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref is_plain_hashref weaken];
+use Pcore::Util::Scalar qw[is_ref is_blessed_ref is_plain_arrayref weaken];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
@@ -9,11 +9,8 @@ has token => ( is => 'ro', isa => Maybe [Str], init_arg => undef );
 has workers     => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 has connections => ( is => 'ro', isa => ArrayRef, default => sub { [] }, init_arg => undef );
 
-sub TO_DATA ( $self, ) {
-    return {
-        connect => $self->get_connect,
-        token   => $self->{token},
-    };
+sub TO_DATA ( $self ) {
+    return $self->get_connect;
 }
 
 sub run_rpc ( $self, $class, @ ) {
@@ -106,19 +103,16 @@ sub connect_rpc ( $self, % ) {
     # parse connect
     if ( is_blessed_ref $self ) {
         $args{connect} = $self->get_connect;
-
-        $args{token} = $self->token;
     }
     else {
         $self = bless {}, $self;
 
-        if ( is_plain_hashref $args{connect} ) {
-            $args{token} = $args{connect}->{token} if exists $args{connect}->{token};
-
-            $args{connect} = $args{connect}->{connect};
+        if ( !is_ref $args{connect} ) {
+            $args{connect} = [ { listen => $args{connect}, token => $args{token} } ];
         }
-
-        $args{connect} = [ $args{connect} ] if !is_plain_arrayref $args{connect};
+        elsif ( !is_plain_arrayref $args{connect} ) {
+            $args{connect} = [ $args{connect} ];
+        }
     }
 
     die q[No addresses specified] if !$args{connect}->@*;
@@ -137,14 +131,14 @@ sub connect_rpc ( $self, % ) {
 
     weaken $self_weak;
 
-    for my $addr ( $args{connect}->@* ) {
+    for my $conn ( $args{connect}->@* ) {
         $cv->begin;
 
         Pcore::WebSocket->connect_ws(
-            "ws://$addr/",
+            "ws://$conn->{listen}/",
             protocol       => 'pcore',
             before_connect => {
-                token          => $args{token},
+                token          => $conn->{token},
                 listen_events  => $args{listen_events},
                 forward_events => $args{forward_events},
             },
@@ -188,7 +182,7 @@ sub connect_rpc ( $self, % ) {
 }
 
 sub get_connect ($self) {
-    return [ map { $_->{listen} } $self->{workers}->@* ];
+    return [ map { $_->{conn} } $self->{workers}->@* ];
 }
 
 sub rpc_call ( $self, $method, @ ) {
@@ -208,7 +202,7 @@ sub rpc_call ( $self, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 75, 171              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 72, 165              | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

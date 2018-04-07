@@ -136,14 +136,20 @@ sub run ( $class, $rpc_boot_args ) {
         Win32API::File::OsFHandleOpen( *FH, $rpc_boot_args->{ctrl_fh}, 'w' ) or die $!;
     }
     else {
-        open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;
+        open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
     }
 
     binmode *FH or die;
 
-    print {*FH} P->data->to_cbor( { id => $HUB->{id}, listen => $listen, class => $class } )->$* . $LF;
+    print {*FH} P->data->to_cbor( {
+        id     => $HUB->{id},
+        class  => $class,
+        listen => $listen,
+        token  => $rpc_boot_args->{token}
+    } )->$*
+      . $LF;
 
-    close *FH or die;
+    close *FH or die $!;
 
     $cv->recv;
 
