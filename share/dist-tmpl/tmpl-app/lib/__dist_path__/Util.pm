@@ -151,7 +151,7 @@ sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
         $cb->( result [ 500, 'SMTP is not configured' ] ) if $cb;
     }
     else {
-        $smtp_api->sendmail(
+        $smtp->sendmail(
             from     => $smtp->{username},
             reply_to => $smtp->{username},
             to       => $to,
