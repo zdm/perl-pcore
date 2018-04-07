@@ -17,12 +17,12 @@ sub run ( $type, $rpc_boot_args ) {
 
     my $cv = AE::cv;
 
-    my $HUB = Pcore::RPC::Hub->new( { id => P->uuid->v1mc_str, type => $type } );
+    my $hub = Pcore::RPC::Hub->new( { id => P->uuid->v1mc_str, type => $type } );
 
     # create object
     my $rpc = $type->new( $rpc_boot_args->{buildargs} // () );
 
-    $rpc->{rpc_hub} = $HUB;
+    $rpc->{rpc} = $hub;
 
     my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
     my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
@@ -142,7 +142,7 @@ sub run ( $type, $rpc_boot_args ) {
     binmode *FH or die;
 
     print {*FH} P->data->to_cbor( {
-        id     => $HUB->{id},
+        id     => $hub->{id},
         type   => $type,
         listen => $listen,
         token  => $rpc_boot_args->{token}

@@ -17,27 +17,32 @@ const our $APP_API_ROLES => [ 'admin', 'user' ];
 sub run ( $self, $cb ) {
 
     # update schema
-    ( $self->{util} = <: $module_name ~ "::Util" :>->new )->update_schema( sub ($res) {
+    ( $self->{util} = <: $module_name ~ "::Util" :>->new )->update_schema(
+        $self->{cfg}->{_}->{db},
+        sub ($res) {
 
-        # run RPC
-        ( $self->{rpc} = Pcore::RPC::Hub->new )->run_rpc(
-            [   {   type      => '<: $module_name :>::RPC::RPC1',
-                    workers   => 1,
-                    token     => undef,
-                    buildargs => {},
-                },
-            ],
-            sub {
+            # run RPC
+            ( $self->{rpc} = Pcore::RPC::Hub->new )->run_rpc(
+                [   {   type      => '<: $module_name :>::RPC::RPC1',
+                        workers   => 1,
+                        token     => undef,
+                        buildargs => {                                  #
+                            cfg => $self->{cfg},
+                        },
+                    },
+                ],
+                sub {
 
-                # app ready
-                $cb->();
+                    # app ready
+                    $cb->();
 
-                return;
-            }
-        );
+                    return;
+                }
+            );
 
-        return;
-    } );
+            return;
+        }
+    );
 
     return;
 }
@@ -51,9 +56,9 @@ sub run ( $self, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 10, 24               | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 10, 26               | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 61                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 65 does not match the package declaration       |
+## |    1 | 66                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 70 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

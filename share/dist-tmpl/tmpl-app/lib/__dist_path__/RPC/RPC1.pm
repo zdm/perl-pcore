@@ -1,6 +1,7 @@
 package <: $module_name ~ "::RPC::RPC1" :>;
 
 use Pcore -rpc, -class, -const;
+use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 with qw[<: $module_name ~ "::RPC" :>];
 
@@ -36,9 +37,9 @@ sub API_test ( $self, $req, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 1, 4                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 46                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 50 does not match the package declaration       |
+## |    1 | 47                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 51 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
