@@ -7,7 +7,7 @@ use Pcore::RPC::Hub;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use if $MSWIN, 'Win32API::File';
 
-sub run ( $class, $rpc_boot_args ) {
+sub run ( $type, $rpc_boot_args ) {
     $ENV->scan_deps if $rpc_boot_args->{scandeps};
 
     # ignore SIGINT
@@ -17,10 +17,10 @@ sub run ( $class, $rpc_boot_args ) {
 
     my $cv = AE::cv;
 
-    my $HUB = Pcore::RPC::Hub->new( { id => P->uuid->v1mc_str, class => $class } );
+    my $HUB = Pcore::RPC::Hub->new( { id => P->uuid->v1mc_str, type => $type } );
 
     # create object
-    my $rpc = $class->new( $rpc_boot_args->{buildargs} // () );
+    my $rpc = $type->new( $rpc_boot_args->{buildargs} // () );
 
     $rpc->{rpc_hub} = $HUB;
 
@@ -71,8 +71,8 @@ sub run ( $class, $rpc_boot_args ) {
     {
         no strict qw[refs];
 
-        if ( ${"$class\::RPC_LISTEN_EVENTS"} ) {
-            push $listen_events->@*, is_plain_arrayref ${"$class\::RPC_LISTEN_EVENTS"} ? ${"$class\::RPC_LISTEN_EVENTS"}->@* : ${"$class\::RPC_LISTEN_EVENTS"};
+        if ( ${"$type\::RPC_LISTEN_EVENTS"} ) {
+            push $listen_events->@*, is_plain_arrayref ${"$type\::RPC_LISTEN_EVENTS"} ? ${"$type\::RPC_LISTEN_EVENTS"}->@* : ${"$type\::RPC_LISTEN_EVENTS"};
         }
     }
 
@@ -101,7 +101,7 @@ sub run ( $class, $rpc_boot_args ) {
                         on_fire_event    => sub ( $ws, $key ) { return 1 },     # RPC client can fire server events
                         before_connect   => {
                             listen_events  => $listen_events,
-                            forward_events => ${"$class\::RPC_FORWARD_EVENTS"},
+                            forward_events => ${"$type\::RPC_FORWARD_EVENTS"},
                         },
                         ( $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : () ),    #
                         ( $can_rpc_on_disconnect ? ( on_disconnect => sub ( $ws, $status ) { $rpc->RPC_ON_DISCONNECT( $ws, $status ); return; } ) : () ),
@@ -143,7 +143,7 @@ sub run ( $class, $rpc_boot_args ) {
 
     print {*FH} P->data->to_cbor( {
         id     => $HUB->{id},
-        class  => $class,
+        type   => $type,
         listen => $listen,
         token  => $rpc_boot_args->{token}
     } )->$*

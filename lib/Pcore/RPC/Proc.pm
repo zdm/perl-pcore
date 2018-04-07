@@ -13,15 +13,14 @@ has on_finish => ( is => 'rw', isa => Maybe [CodeRef] );
 
 has conn => ( is => 'ro', isa => HashRef, init_arg => undef );
 
-around new => sub ( $orig, $self, @ ) {
+around new => sub ( $orig, $self, $type, % ) {
     my %args = (
         listen    => undef,    # RPC server listen
         token     => undef,
-        class     => undef,    # mandatory
         buildargs => undef,    # class constructor arguments
         on_ready  => undef,
         on_finish => undef,
-        @_[ 2 .. $#_ ],
+        @_[ 3 .. $#_ ],
     );
 
     # create self instance
@@ -63,10 +62,10 @@ around new => sub ( $orig, $self, @ ) {
     my $cmd = [];
 
     if ($MSWIN) {
-        push $cmd->@*, $perl, "-M$args{class}";
+        push $cmd->@*, $perl, "-M$type";
     }
     else {
-        push $cmd->@*, $perl, "-M$args{class}";
+        push $cmd->@*, $perl, "-M$type";
     }
 
     my $weaken_self = $self;

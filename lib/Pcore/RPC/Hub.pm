@@ -5,14 +5,14 @@ use Pcore::Util::Scalar qw[weaken is_plain_coderef is_blessed_ref];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
-has id    => ( is => 'ro', isa => Maybe [Str] );
-has class => ( is => 'ro', isa => Maybe [Str] );
+has id   => ( is => 'ro', isa => Maybe [Str] );
+has type => ( is => 'ro', isa => Maybe [Str] );
 
-has proc       => ( is => 'ro', isa => HashRef,  init_arg => undef );    # child RPC processes
-has conn       => ( is => 'ro', isa => HashRef,  init_arg => undef );
-has conn_class => ( is => 'ro', isa => ArrayRef, init_arg => undef );
+has proc      => ( is => 'ro', isa => HashRef,  init_arg => undef );    # child RPC processes
+has conn      => ( is => 'ro', isa => HashRef,  init_arg => undef );
+has conn_type => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 
-has _on_rpc_started => ( is => 'ro', init_arg => undef );                # event listener
+has _on_rpc_started => ( is => 'ro', init_arg => undef );               # event listener
 
 sub BUILD ( $self, $args ) {
     if ( defined $self->{id} ) {
@@ -26,8 +26,8 @@ sub BUILD ( $self, $args ) {
                     # do not connect to the already connected servers
                     next if exists $self->{conn}->{ $conn->{id} };
 
-                    # do not connect to the RPC servers with the same class
-                    next if defined $self->{class} && $self->{class} eq $conn->{class};
+                    # do not connect to the RPC servers with the same type
+                    next if defined $self->{type} && $self->{type} eq $conn->{type};
 
                     # do not connect to myself
                     next if defined $self->{id} && $self->{id} eq $conn->{id};
@@ -67,9 +67,9 @@ sub run_rpc ( $self, $args, $cb ) {
             $cv->begin;
 
             Pcore::RPC::Proc->new(
+                $rpc->{type},
                 listen    => $rpc->{listen},
                 token     => $rpc->{token},
-                class     => $rpc->{class},
                 buildargs => $rpc->{buildargs},
                 on_ready  => sub ($proc) {
                     $self->{proc}->{ $proc->{conn}->{id} } = $proc;
@@ -129,7 +129,7 @@ sub _connect_rpc ( $self, $conn, $cb = undef ) {
         on_connect => sub ( $ws, $headers ) {
 
             # store established connection
-            push $self->{conn_class}->{ $conn->{class} }->@*, $ws;
+            push $self->{conn_type}->{ $conn->{type} }->@*, $ws;
 
             $cb->() if defined $cb;
 
@@ -176,11 +176,11 @@ sub _on_rpc_disconnect ( $self, $ws, $status ) {
     return;
 }
 
-sub rpc_call ( $self, $class, $method, @ ) {
-    my $ws = shift $self->{conn_class}->{$class}->@*;
+sub rpc_call ( $self, $type, $method, @ ) {
+    my $ws = shift $self->{conn_type}->{$type}->@*;
 
     if ( defined $ws ) {
-        push $self->{conn_class}->{$class}->@*, $ws;
+        push $self->{conn_type}->{$type}->@*, $ws;
 
         $ws->rpc_call( @_[ 2 .. $#_ ] );
     }

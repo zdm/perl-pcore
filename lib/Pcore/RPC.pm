@@ -13,7 +13,7 @@ sub TO_DATA ( $self ) {
     return $self->get_connect;
 }
 
-sub run_rpc ( $self, $class, @ ) {
+sub run_rpc ( $self, $type, @ ) {
     my $blocking_cv = defined wantarray ? AE::cv : undef;
 
     my %args = (
@@ -56,9 +56,9 @@ sub run_rpc ( $self, $class, @ ) {
         $cv->begin;
 
         Pcore::RPC::Proc->new(
+            $type,
             listen    => $args{listen},
             token     => $args{token},
-            class     => $class,
             buildargs => $args{buildargs},
             on_ready  => sub ($proc) {
                 push $rpc->{workers}->@*, $proc;
