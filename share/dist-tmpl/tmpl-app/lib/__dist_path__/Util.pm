@@ -6,7 +6,7 @@ use <: $module_name ~ "::Const qw[:CONST]" :>;
 has dbh => ( is => 'ro', isa => ConsumerOf ['Pcore::Handle::DBI'], init_arg => undef );
 
 sub build_dbh ( $self, $db ) {
-    $self->{dbh} = P->handle($db) !defined $self->{dbh};
+    $self->{dbh} = P->handle($db) if !defined $self->{dbh};
 
     return $self->{dbh};
 }
