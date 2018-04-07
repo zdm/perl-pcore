@@ -2,13 +2,15 @@ package <: $module_name ~ "::Util" :>;
 
 use Pcore -class, -result;
 use Pcore::SMTP;
+use Pcore::API::ReCaptcha;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 has tmpl => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Template'], init_arg => undef );
 has dbh  => ( is => 'ro', isa => ConsumerOf ['Pcore::Handle::DBI'],    init_arg => undef );
 has settings => ( is => 'ro', isa => HashRef, init_arg => undef );
 
-has _smtp => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::SMTP'] ], init_arg => undef );
+has _smtp     => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::SMTP'] ],           init_arg => undef );
+has recaptcha => ( is => 'lazy', isa => Maybe [ InstanceOf ['Pcore::API::Recaptcha'] ], init_arg => undef );
 
 sub BUILD ( $self, $args ) {
 
@@ -22,6 +24,7 @@ sub BUILD ( $self, $args ) {
             $self->{settings} = $ev->{data};
 
             delete $self->{_smtp};
+            delete $self->{recaptcha};
 
             return;
         }
@@ -188,6 +191,20 @@ sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
     return;
 }
 
+# RECAPTCHA
+sub _build_recaptcha ($self) {
+    my $cfg = $self->{settings};
+
+    return if !$cfg->{recaptcha_enabled};
+
+    return if !$cfg->{recaptcha_secret_key} || !$cfg->{recaptcha_site_key};
+
+    return Pcore::API::ReCaptcha->new( {
+        secret_key => $cfg->{recaptcha_secret_key},
+        site_key   => $cfg->{recaptcha_site_key},
+    } );
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -195,13 +212,13 @@ sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
+## |    3 | 1, 6                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 160                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 163                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 166, 179             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 169, 182             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 209                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 213 does not match the package declaration      |
+## |    1 | 226                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 230 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
