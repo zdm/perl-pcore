@@ -22,7 +22,7 @@ sub run ( $class, $rpc_boot_args ) {
     # create object
     my $rpc = $class->new( $rpc_boot_args->{buildargs} // () );
 
-    $rpc->{hub} = $HUB;
+    $rpc->{rpc_hub} = $HUB;
 
     my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
     my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
