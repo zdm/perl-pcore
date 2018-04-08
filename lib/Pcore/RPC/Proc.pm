@@ -26,6 +26,23 @@ around new => sub ( $orig, $self, $type, % ) {
     # create self instance
     $self = $self->$orig( { on_finish => $args{on_finish} } );
 
+    if ($Pcore::RPC::Tmpl::CPID) {
+        Pcore::RPC::Tmpl::run(
+            $type,
+            {   listen    => $args{listen},
+                token     => $args{token},
+                buildargs => $args{buildargs},
+            },
+            sub ($proc) {
+                $args{on_ready}->($proc);
+
+                return;
+            }
+        );
+
+        return;
+    }
+
     # create handles
     my ( $ctrl_r, $ctrl_w ) = portable_socketpair();
 

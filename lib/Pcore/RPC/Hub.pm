@@ -66,68 +66,37 @@ sub run_rpc ( $self, $args, $cb ) {
         for ( 1 .. $rpc->{workers} ) {
             $cv->begin;
 
-            if ($Pcore::RPC::Tmpl::CPID) {
-                Pcore::RPC::Tmpl::run(
-                    $rpc->{type},
-                    {   listen    => $rpc->{listen},
-                        token     => $rpc->{token},
-                        buildargs => $rpc->{buildargs},
-                    },
-                    sub ($proc) {
-                        $self->{proc}->{ $proc->{conn}->{id} } = $proc;
+            Pcore::RPC::Proc->new(
+                $rpc->{type},
+                listen    => $rpc->{listen},
+                token     => $rpc->{token},
+                buildargs => $rpc->{buildargs},
+                on_ready  => sub ($proc) {
+                    $self->{proc}->{ $proc->{conn}->{id} } = $proc;
 
-                        $self->_connect_rpc(
-                            $proc->{conn},
-                            $rpc->{listen_events},
-                            $rpc->{forward_events},
-                            sub {
+                    $self->_connect_rpc(
+                        $proc->{conn},
+                        $rpc->{listen_events},
+                        $rpc->{forward_events},
+                        sub {
 
-                                # send updated routes to all connected RPC servers
-                                P->fire_event( 'RPC.HUB.UPDATED', [ values $self->{conn}->%* ] );
+                            # send updated routes to all connected RPC servers
+                            P->fire_event( 'RPC.HUB.UPDATED', [ values $self->{conn}->%* ] );
 
-                                $cv->end;
+                            $cv->end;
 
-                                return;
-                            }
-                        );
+                            return;
+                        }
+                    );
 
-                        return;
-                    }
-                );
-            }
-            else {
-                Pcore::RPC::Proc->new(
-                    $rpc->{type},
-                    listen    => $rpc->{listen},
-                    token     => $rpc->{token},
-                    buildargs => $rpc->{buildargs},
-                    on_ready  => sub ($proc) {
-                        $self->{proc}->{ $proc->{conn}->{id} } = $proc;
+                    return;
+                },
+                on_finish => sub ($proc) {
+                    $self->_on_proc_finish($proc) if defined $self;
 
-                        $self->_connect_rpc(
-                            $proc->{conn},
-                            $rpc->{listen_events},
-                            $rpc->{forward_events},
-                            sub {
-
-                                # send updated routes to all connected RPC servers
-                                P->fire_event( 'RPC.HUB.UPDATED', [ values $self->{conn}->%* ] );
-
-                                $cv->end;
-
-                                return;
-                            }
-                        );
-
-                        return;
-                    },
-                    on_finish => sub ($proc) {
-                        $self->_on_proc_finish($proc) if defined $self;
-
-                        return;
-                    }
-                );
-            }
+                    return;
+                }
+            );
         }
     }
 
@@ -222,9 +191,9 @@ sub rpc_call ( $self, $type, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 139                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 108                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 192                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 161                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
