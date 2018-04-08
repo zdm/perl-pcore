@@ -4,25 +4,22 @@ use Pcore;
 use Pcore::HTTP::Server;
 use Pcore::WebSocket;
 use Pcore::RPC::Hub;
-use Pcore::Util::Scalar qw[is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_plain_arrayref is_globref];
+use Pcore::Util::Data qw[to_cbor];
 use if $MSWIN, 'Win32API::File';
 
 sub run ( $type, $rpc_boot_args ) {
     $ENV->scan_deps if $rpc_boot_args->{scandeps};
 
     # ignore SIGINT
-    $SIG->{INT} = AE::signal INT => sub {
-        return;
-    };
+    $SIG->{INT} = AE::signal INT => sub { };
 
     my $cv = AE::cv;
-
-    my $hub = Pcore::RPC::Hub->new( { id => $rpc_boot_args->{id} // P->uuid->v1mc_str, type => $type } );
 
     # create object
     my $rpc = $type->new( $rpc_boot_args->{buildargs} // () );
 
-    $rpc->{rpc} = $hub;
+    $rpc->{rpc} = Pcore::RPC::Hub->new( { id => $rpc_boot_args->{id} // P->uuid->v1mc_str, type => $type } );
 
     my $can_rpc_on_connect    = $rpc->can('RPC_ON_CONNECT');
     my $can_rpc_on_disconnect = $rpc->can('RPC_ON_DISCONNECT');
@@ -131,26 +128,35 @@ sub run ( $type, $rpc_boot_args ) {
         },
     } )->run;
 
-    # open control handle
-    if ($MSWIN) {
-        Win32API::File::OsFHandleOpen( *FH, $rpc_boot_args->{ctrl_fh}, 'w' ) or die $!;
-    }
-    else {
-        open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;    ## no critic qw[InputOutput::RequireBriefOpen]
-    }
-
-    binmode *FH or die;
-
-    print {*FH} P->data->to_cbor( {
+    my $data = to_cbor( {
         pid    => $$,
-        id     => $hub->{id},
+        id     => $rpc->{rpc}->{id},
         type   => $type,
         listen => $listen,
         token  => $rpc_boot_args->{token}
     } )->$*
       . $LF;
 
-    close *FH or die $!;
+    # open control handle
+    if ( is_globref $rpc_boot_args->{ctrl_fh} ) {
+        syswrite $rpc_boot_args->{ctrl_fh}, $data or die $!;
+
+        close $rpc_boot_args->{ctrl_fh} or die $!;
+    }
+    else {
+        if ($MSWIN) {
+            Win32API::File::OsFHandleOpen( *FH, $rpc_boot_args->{ctrl_fh}, 'w' ) or die $!;
+        }
+        else {
+            open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;
+        }
+
+        binmode *FH or die;
+
+        syswrite *FH, $data or die $!;
+
+        close *FH or die $!;
+    }
 
     $cv->recv;
 
@@ -164,11 +170,11 @@ sub run ( $type, $rpc_boot_args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 10                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (27)                       |
+## |    3 | 11                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (32)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 114                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 111                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 42                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 39                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

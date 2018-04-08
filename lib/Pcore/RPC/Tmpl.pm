@@ -3,13 +3,12 @@ package Pcore::RPC::Tmpl;
 use Pcore;
 use Pcore::AE::Handle;
 use AnyEvent::Util;
+use Pcore::Util::Data qw[from_cbor];
 
 our ( $CPID, $R, $W, $QUEUE );
 
 END {
-    if ($CPID) {
-        kill 'KILL', $CPID;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
-    }
+    kill 'KILL', $CPID if defined $CPID;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 }
 
 _fork_template();
@@ -37,7 +36,7 @@ sub _fork_template {
             $h->unshift_read(
                 line => "\n",
                 sub ( $h1, $line, $eol ) {
-                    my $conn = eval { P->data->from_cbor($line) };
+                    my $conn = eval { from_cbor $line };
 
                     if ($@) {
                         die 'RPC handshake error';
@@ -68,6 +67,7 @@ sub _fork_template {
 }
 
 sub _tmpl_proc ( $r, $w ) {
+    require Pcore::RPC::Server;
 
     # child
     $0 = 'Pcore::RPC::Tmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -84,22 +84,18 @@ sub _tmpl_proc ( $r, $w ) {
         }
     }
 
-    POSIX::_exit 0;
-
-    exit 1;
+    exit;
 }
 
 sub _rpc_proc ( $w, $data ) {
     $0 = $data->{type};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    # required for properly remove TEMP_DIR
+    # redefine watcher in the forked process
     $SIG->{TERM} = AE::signal TERM => sub { POSIX::_exit 128 + 15 };
 
     P->class->load( $data->{type} );
 
-    require Pcore::RPC::Server;
-
-    $data->{ctrl_fh} = fileno $w;
+    $data->{ctrl_fh} = $w;
 
     Pcore::RPC::Server::run( $data->{type}, $data );
 
