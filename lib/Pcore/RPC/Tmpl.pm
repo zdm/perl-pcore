@@ -84,7 +84,7 @@ sub _tmpl_proc ( $r, $w ) {
         }
     }
 
-    POSIX::_exit(0);
+    POSIX::_exit 0;
 
     exit 1;
 }
@@ -93,7 +93,7 @@ sub _rpc_proc ( $w, $data ) {
     $0 = "PCORE RPC PROCESS: $data->{type}";    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     # required for properly remove TEMP_DIR
-    $SIG->{TERM} = AE::signal TERM => sub { say 'term'; POSIX::_exit 128 + 15 };
+    $SIG->{TERM} = AE::signal TERM => sub { POSIX::_exit 128 + 15 };
 
     P->class->load( $data->{type} );
 
