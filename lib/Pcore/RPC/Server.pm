@@ -17,7 +17,7 @@ sub run ( $type, $rpc_boot_args ) {
 
     my $cv = AE::cv;
 
-    my $hub = Pcore::RPC::Hub->new( { id => P->uuid->v1mc_str, type => $type } );
+    my $hub = Pcore::RPC::Hub->new( { id => $rpc_boot_args->{id} // P->uuid->v1mc_str, type => $type } );
 
     # create object
     my $rpc = $type->new( $rpc_boot_args->{buildargs} // () );
@@ -142,6 +142,7 @@ sub run ( $type, $rpc_boot_args ) {
     binmode *FH or die;
 
     print {*FH} P->data->to_cbor( {
+        pid    => $$,
         id     => $hub->{id},
         type   => $type,
         listen => $listen,
