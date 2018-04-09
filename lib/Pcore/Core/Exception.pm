@@ -1,12 +1,12 @@
 package Pcore::Core::Exception;
 
-use Pcore -result, -export => {    #
+use Pcore -export => {    #
     DEFAULT => [qw[croak cluck]],
 };
 use Carp qw[];
 use Pcore::Core::Exception::Object;
 
-our $IGNORE_ERRORS = 1;            # do not write errors to error log channel by default
+our $IGNORE_ERRORS = 1;    # do not write errors to error log channel by default
 
 # needed to properly destruct TEMP_DIR
 $SIG->{INT} = AE::signal INT => \&SIGINT;
@@ -14,13 +14,14 @@ $SIG->{INT} = AE::signal INT => \&SIGINT;
 # required for properly remove TEMP_DIR
 $SIG->{TERM} = AE::signal TERM => \&SIGTERM;
 
-$SIG{__DIE__} = \&SIGDIE;          ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+$SIG{__DIE__} = \&SIGDIE;    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-$SIG{__WARN__} = \&SIGWARN;        ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+$SIG{__WARN__} = \&SIGWARN;  ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
 # we don't need stacktrace from Error::TypeTiny exceptions
 $Error::TypeTiny::StackTrace = 0;
 
+# catch unhandled errors in EV callbacks
 $EV::DIED = sub {
     my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
@@ -33,6 +34,7 @@ $EV::DIED = sub {
     return;
 };
 
+# catch unhandled errors in Coro::async threads
 $Coro::State::DIEHOOK = sub {
 
     # not in eval
@@ -45,12 +47,14 @@ $Coro::State::DIEHOOK = sub {
             eval { $e->sendlog('FATAL') };
         }
 
-        $Coro::current->cancel( result 500 );
+        # cancel current coro execution. but not exit the script
+        $Coro::current->cancel;
     }
 
     return;
 };
 
+# catch warnings both in EV callbacks and Coro::async
 $Coro::State::WARNHOOK = sub {
     my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
@@ -113,10 +117,6 @@ sub SIGDIE {
 }
 
 sub SIGWARN {
-
-    # skip AE callback error warning
-    return if $_[0] =~ /\AEV: error in callback/sm;
-
     my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'WARN', skip_frames => 1, with_trace => 1 );
 
     {
@@ -183,10 +183,10 @@ sub cluck {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 28, 43, 58, 95, 106, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 29, 45, 62, 99, 110, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |      |  123                 |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 30, 45, 60, 97, 108  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 31, 47, 64, 101, 112 | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

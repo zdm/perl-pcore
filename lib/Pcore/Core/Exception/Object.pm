@@ -75,7 +75,7 @@ around new => sub ( $orig, $self, $msg, %args ) {
         push @frames, "$frame[3] at $frame[1] line $frame[2]";
     }
 
-    $args{call_stack} = \join $LF, @frames;
+    $args{call_stack} = \join $LF, @frames if @frames;
 
     $args{timestamp} = Time::HiRes::time();
 
