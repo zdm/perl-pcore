@@ -21,6 +21,18 @@ $SIG{__WARN__} = \&SIGWARN;        ## no critic qw[Variables::RequireLocalizedPu
 # we don't need stacktrace from Error::TypeTiny exceptions
 $Error::TypeTiny::StackTrace = 0;
 
+$EV::DIED = sub {
+    my $e = Pcore::Core::Exception::Object->new( $@, level => 'ERROR', skip_frames => 1, with_trace => 1 );
+
+    {
+        local $@;
+
+        eval { $e->sendlog('FATAL') };
+    }
+
+    return;
+};
+
 $Coro::State::DIEHOOK = sub {
 
     # not in eval
@@ -45,7 +57,7 @@ $Coro::State::WARNHOOK = sub {
     {
         local $@;
 
-        eval { $e->sendlog('FATAL') };
+        eval { $e->sendlog('WARN') };
     }
 
     return;
@@ -77,19 +89,8 @@ sub SIGTERM {
 sub SIGDIE {
     my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
-    # error in AE callback
-    if ( $^S && $e->{is_ae_cb_error} ) {
-        {
-            local $@;
-
-            eval { $e->sendlog('FATAL') };
-        }
-
-        return CORE::die $e;    # set $@ to $e
-    }
-
     # ERROR, !defined $^S - parsing module, eval, or main program, true - executing in eval
-    elsif ( !defined $^S || $^S ) {
+    if ( !defined $^S || $^S ) {
         if ( !$IGNORE_ERRORS ) {
             local $@;
 
@@ -182,10 +183,10 @@ sub cluck {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 31, 46, 83, 94, 105, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
-## |      |  122                 |                                                                                                                |
+## |    3 | 28, 43, 58, 95, 106, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |      |  123                 |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 33, 48, 85, 96, 107  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 30, 45, 60, 97, 108  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
