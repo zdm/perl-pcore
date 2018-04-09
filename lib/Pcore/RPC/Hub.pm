@@ -43,7 +43,7 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-sub run_rpc ( $self, $args, $cb = undef ) {
+sub run_rpc ( $self, @args ) {
     my $coro = Coro::async {
         my $rcb = Coro::rouse_cb;
 
@@ -53,7 +53,7 @@ sub run_rpc ( $self, $args, $cb = undef ) {
 
         weaken $self;
 
-        for my $rpc ( $args->@* ) {
+        for my $rpc (@args) {
 
             # resolve number of the workers
             if ( !$rpc->{workers} ) {
@@ -107,12 +107,10 @@ sub run_rpc ( $self, $args, $cb = undef ) {
 
         Coro::rouse_wait $rcb;
 
-        return;
+        return result 200;
     };
 
-    $coro->on_destroy( sub { $cb->(@_) } ) if defined $cb;
-
-    return defined wantarray ? $coro->join : ();
+    return $coro->join;
 }
 
 sub _connect_rpc ( $self, $conn, $listen_events = undef, $forward_events = undef, $cb = undef ) {
@@ -213,9 +211,9 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 118                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 116                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 171                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 169                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

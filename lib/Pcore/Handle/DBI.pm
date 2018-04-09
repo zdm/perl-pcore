@@ -26,7 +26,9 @@ sub add_schema_patch ( $self, $id, $query ) {
     return;
 }
 
-sub upgrade_schema ( $self, $cb ) {
+sub upgrade_schema ( $self ) {
+    my $cb = Coro::rouse_cb;
+
     my $on_finish = sub ( $dbh, $status ) {
         delete $self->{_schema_patch};
 
@@ -81,7 +83,7 @@ sub upgrade_schema ( $self, $cb ) {
         }
     );
 
-    return;
+    return Coro::rouse_wait $cb;
 }
 
 sub _apply_patch ( $self, $dbh, $cb ) {

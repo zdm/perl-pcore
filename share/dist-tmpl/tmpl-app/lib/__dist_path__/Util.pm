@@ -41,7 +41,7 @@ sub build_dbh ( $self, $db ) {
 }
 
 # TODO
-sub update_schema ( $self, $db, $cb ) {
+sub update_schema ( $self, $db ) {
     my $dbh = $self->build_dbh($db);
 
     $dbh->add_schema_patch(
@@ -94,25 +94,18 @@ sub update_schema ( $self, $db, $cb ) {
 SQL
     );
 
-    $dbh->upgrade_schema($cb);
-
-    return;
+    return $dbh->upgrade_schema;
 }
 
 # SETTINGS
-sub load_settings ( $self, $cb ) {
-    $self->{dbh}->selectrow(
-        q[SELECT * FROM "settings" WHERE "id" = 1],
-        sub ( $dbh, $res, $data ) {
-            P->fire_event( 'APP.SETTINGS_UPDATED', $data ) if $res;
+sub load_settings ( $self ) {
+    $self->{dbh}->selectrow( q[SELECT * FROM "settings" WHERE "id" = 1], Coro::rouse_cb );
 
-            $cb->($res);
+    my ( $dbh, $res, $data ) = Coro::rouse_wait;
 
-            return;
-        }
-    );
+    P->fire_event( 'APP.SETTINGS_UPDATED', $data ) if $res;
 
-    return;
+    return $res;
 }
 
 sub update_settings ( $self, $settings, $cb ) {
@@ -131,11 +124,7 @@ sub update_settings ( $self, $settings, $cb ) {
                 $cb->( result 500 );
             }
             else {
-                $self->load_settings( sub ($res) {
-                    $cb->($res);
-
-                    return;
-                } );
+                $cb->( $self->load_settings );
             }
 
             return;
@@ -214,11 +203,11 @@ sub _build_recaptcha ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 6                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 163                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 152                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 169, 182             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 158, 171             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 226                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 230 does not match the package declaration      |
+## |    1 | 215                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 219 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

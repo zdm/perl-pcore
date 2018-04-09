@@ -16,50 +16,42 @@ const our $APP_API_ROLES => [ 'admin', 'user' ];
 
 sub run ( $self, $cb ) {
 
+    $self->{util} = <: $module_name ~ "::Util" :>->new;
+
     # update schema
-    ( $self->{util} = <: $module_name ~ "::Util" :>->new )->update_schema(
-        $self->{cfg}->{_}->{db},
-        sub ($res) {
+    print 'Updating DB scema ... ';
+    say $self->{util}->update_schema( $self->{cfg}->{_}->{db} );
 
-            # run RPC
-            ( $self->{rpc} = Pcore::RPC::Hub->new )->run_rpc(
-                [   {   type           => '<: $module_name :>::RPC::RPC1',
-                        workers        => 1,
-                        token          => undef,
-                        listen_events  => undef,
-                        forward_events => ['APP.SETTINGS_UPDATED'],
-                        buildargs      => {                                  #
-                            cfg => $self->{cfg},
-                        },
-                    },
-                    {   type           => '<: $module_name :>::RPC::Log',
-                        workers        => 1,
-                        token          => undef,
-                        listen_events  => undef,
-                        forward_events => undef,
-                        buildargs      => {                                  #
-                            cfg => $self->{cfg},
-                        },
-                    },
-                ],
-                sub {
+    $self->{rpc} = Pcore::RPC::Hub->new;
 
-                    # load settings
-                    $self->{util}->load_settings( sub ($res) {
-
-                        # app ready
-                        $cb->();
-
-                        return;
-                    } );
-
-                    return;
-                }
-            );
-
-            return;
-        }
+    # run RPC
+    print 'Starting RPC hub ... ';
+    say $self->{rpc}->run_rpc(
+        {   type           => '<: $module_name :>::RPC::RPC1',
+            workers        => 1,
+            token          => undef,
+            listen_events  => undef,
+            forward_events => ['APP.SETTINGS_UPDATED'],
+            buildargs      => {                                  #
+                cfg => $self->{cfg},
+            },
+        },
+        {   type           => '<: $module_name :>::RPC::Log',
+            workers        => 1,
+            token          => undef,
+            listen_events  => undef,
+            forward_events => undef,
+            buildargs      => {                                  #
+                cfg => $self->{cfg},
+            },
+        },
     );
+
+    # load settings
+    my $res = $self->{util}->load_settings;
+
+    # app ready
+    $cb->();
 
     return;
 }
@@ -73,9 +65,9 @@ sub run ( $self, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 10, 26, 35           | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 10, 30, 39           | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 83                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 87 does not match the package declaration       |
+## |    1 | 75                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 79 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
