@@ -148,7 +148,7 @@ sub get_cookies ( $self, $url ) {
                     next if $cookie->[$COOKIE_SECURE] && !$origin_is_secure;
 
                     # match path, cookie path must be aa substring of the origin path
-                    push @cookies, $cookie if index( $path, $origin_path ) == 0;
+                    push @cookies, $cookie if index( $origin_path, $path ) == 0;
                 }
             }
         }
