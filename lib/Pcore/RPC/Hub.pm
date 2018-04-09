@@ -43,66 +43,76 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-sub run_rpc ( $self, $args, $cb ) {
-    my $cv = AE::cv sub { $cb->() };
+sub run_rpc ( $self, $args, $cb = undef ) {
+    my $coro = Coro::async {
+        my $rcb = Coro::rouse_cb;
 
-    $cv->begin;
+        my $cv = AE::cv sub { $rcb->() };
 
-    weaken $self;
+        $cv->begin;
 
-    for my $rpc ( $args->@* ) {
+        weaken $self;
 
-        # resolve number of the workers
-        if ( !$rpc->{workers} ) {
-            $rpc->{workers} = P->sys->cpus_num;
+        for my $rpc ( $args->@* ) {
+
+            # resolve number of the workers
+            if ( !$rpc->{workers} ) {
+                $rpc->{workers} = P->sys->cpus_num;
+            }
+            elsif ( $rpc->{workers} < 0 ) {
+                $rpc->{workers} = P->sys->cpus_num - $rpc->{workers};
+
+                $rpc->{workers} = 1 if $rpc->{workers} <= 0;
+            }
+
+            # run workers
+            for ( 1 .. $rpc->{workers} ) {
+                $cv->begin;
+
+                Pcore::RPC::Proc->new(
+                    $rpc->{type},
+                    listen    => $rpc->{listen},
+                    token     => $rpc->{token},
+                    buildargs => $rpc->{buildargs},
+                    on_ready  => sub ($proc) {
+                        $self->{proc}->{ $proc->{conn}->{id} } = $proc;
+
+                        $self->_connect_rpc(
+                            $proc->{conn},
+                            $rpc->{listen_events},
+                            $rpc->{forward_events},
+                            sub {
+
+                                # send updated routes to all connected RPC servers
+                                P->fire_event( 'RPC.HUB.UPDATED', [ values $self->{conn}->%* ] );
+
+                                $cv->end;
+
+                                return;
+                            }
+                        );
+
+                        return;
+                    },
+                    on_finish => sub ($proc) {
+                        $self->_on_proc_finish($proc) if defined $self;
+
+                        return;
+                    }
+                );
+            }
         }
-        elsif ( $rpc->{workers} < 0 ) {
-            $rpc->{workers} = P->sys->cpus_num - $rpc->{workers};
 
-            $rpc->{workers} = 1 if $rpc->{workers} <= 0;
-        }
+        $cv->end;
 
-        # run workers
-        for ( 1 .. $rpc->{workers} ) {
-            $cv->begin;
+        Coro::rouse_wait $rcb;
 
-            Pcore::RPC::Proc->new(
-                $rpc->{type},
-                listen    => $rpc->{listen},
-                token     => $rpc->{token},
-                buildargs => $rpc->{buildargs},
-                on_ready  => sub ($proc) {
-                    $self->{proc}->{ $proc->{conn}->{id} } = $proc;
+        return;
+    };
 
-                    $self->_connect_rpc(
-                        $proc->{conn},
-                        $rpc->{listen_events},
-                        $rpc->{forward_events},
-                        sub {
+    $coro->on_destroy( sub { $cb->(@_) } ) if defined $cb;
 
-                            # send updated routes to all connected RPC servers
-                            P->fire_event( 'RPC.HUB.UPDATED', [ values $self->{conn}->%* ] );
-
-                            $cv->end;
-
-                            return;
-                        }
-                    );
-
-                    return;
-                },
-                on_finish => sub ($proc) {
-                    $self->_on_proc_finish($proc) if defined $self;
-
-                    return;
-                }
-            );
-        }
-    }
-
-    $cv->end;
-
-    return;
+    return defined wantarray ? $coro->join : ();
 }
 
 sub _connect_rpc ( $self, $conn, $listen_events = undef, $forward_events = undef, $cb = undef ) {
@@ -169,19 +179,31 @@ sub _on_rpc_disconnect ( $self, $conn, $ws, $status ) {
     return;
 }
 
-sub rpc_call ( $self, $type, $method, @ ) {
-    my $ws = shift $self->{conn_type}->{$type}->@*;
+sub rpc_call ( $self, $type, $method, @args ) {
+    my $cb = is_plain_coderef $args[-1] || ( is_blessed_ref $args[-1] && $args[-1]->can('IS_CALLBACK') ) ? pop @args : undef;
 
-    if ( defined $ws ) {
+    my $coro = Coro::async {
+        my $ws = shift $self->{conn_type}->{$type}->@*;
+
+        return defined wantarray || defined $cb ? result [ 404, qq[RPC type "$type" is not available] ] : () if !defined $ws;
+
         push $self->{conn_type}->{$type}->@*, $ws;
 
-        $ws->rpc_call( @_[ 2 .. $#_ ] );
-    }
-    elsif ( is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
-        $_[-1]->( result [ 404, qq[RPC type "$type" is not available] ] );
-    }
+        if ( defined wantarray || defined $cb ) {
+            $ws->rpc_call( $method, @args, my $rcb = Coro::rouse_cb );
 
-    return;
+            return Coro::rouse_wait $rcb;
+        }
+        else {
+            $ws->rpc_call( $method, @args );
+
+            return;
+        }
+    };
+
+    $coro->on_destroy( sub { $cb->(@_) } ) if defined $cb;
+
+    return defined wantarray ? $coro->join : ();
 }
 
 1;
@@ -191,9 +213,9 @@ sub rpc_call ( $self, $type, $method, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 108                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 118                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 161                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 171                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
