@@ -48,16 +48,14 @@ sub sendlog ( $self, $ev ) {
 
             # indent
             $ev->{text} =~ s/^/$INDENT/smg;
-
-            # remove all trailing "\n"
-            local $/ = q[];
-
-            chomp $ev->{text};
         }
 
         my $message = $self->{_tmpl}->render( 'message', $ev );
 
         remove_ansi $message->$* if !$self->{_is_ansi};
+
+        # remove all trailing "\n"
+        $message->$* =~ s/\s+\z/\n/sm;
 
         print {$STDERR_UTF8} $message->$*;
     }
