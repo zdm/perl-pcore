@@ -24,145 +24,52 @@ sub init ( $self, $cb ) {
     $self->_db_add_schema_patch( $self->{dbh} );
 
     print 'Upgrading API DB schema ... ';
-    $self->{dbh}->upgrade_schema( sub ($status) {
-        say $status;
 
-        if ( !$status ) {
-            $cb->($status);
-        }
-        else {
+    say my $res = $self->{dbh}->upgrade_schema;
 
-            my $roles = do {
-                no strict qw[refs];
+    return $res unless $res;
 
-                ${ ref( $self->{app} ) . '::APP_API_ROLES' };
-            };
+    my $roles = do {
+        no strict qw[refs];
 
-            # add api roles
-            $self->_db_add_roles(
-                $self->{dbh},
-                $roles,
-                sub ($res) {
-
-                    # failed to add roles
-                    if ( !$res ) {
-                        $cb->($res);
-
-                        return;
-                    }
-
-                    # run hash RPC
-                    print 'Starting API RPC ... ';
-                    P->pm->run_rpc(
-                        'Pcore::App::API::RPC::Hash',
-                        workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
-                        buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
-                        on_ready  => sub ($rpc) {
-                            $self->{_hash_rpc} = $rpc;
-
-                            $rpc->connect_rpc(
-                                on_connect => sub ($rpc) {
-                                    say 'done';
-
-                                    print 'Creating root user ... ';
-                                    my $root_password = P->random->bytes_hex(32);
-
-                                    $self->create_user(
-                                        'root',
-                                        $root_password,
-                                        1, undef,
-                                        sub($res) {
-                                            say $res . ( $res ? ", password: $root_password" : q[] );
-
-                                            $cb->( result 200 );
-
-                                            return;
-                                        }
-                                    );
-
-                                    return;
-                                }
-                            );
-
-                            return;
-                        },
-                    );
-
-                    return;
-                }
-            );
-        }
-
-        return;
-    } );
-
-    return;
-}
-
-sub init_coro ( $self, $cb ) {
-    use Coro;
-
-    $self->{_hash_cache} = P->hash->limited( $self->{_hash_cache_size} );
-
-    # create DBH
-    $self->{dbh} = P->handle( $self->{app}->{app_cfg}->{api}->{connect} );
-
-    # update schema
-    $self->_db_add_schema_patch( $self->{dbh} );
-
-    print 'Upgrading API DB schema ... ';
-
-    my $coro = async {
-        $self->{dbh}->upgrade_schema(rouse_cb);
-
-        return $res unless my $res = rouse_wait;
-
-        my $roles = do {
-            no strict qw[refs];
-
-            ${ ref( $self->{app} ) . '::APP_API_ROLES' };
-        };
-
-        # add api roles
-        $self->_db_add_roles( $self->{dbh}, $roles, rouse_cb );
-
-        # failed to add roles
-        return $res unless $res = rouse_wait;
-
-        # run hash RPC
-        print 'Starting API RPC ... ';
-
-        P->pm->run_rpc(
-            'Pcore::App::API::RPC::Hash',
-            workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
-            buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
-            on_ready  => rouse_cb,
-        );
-
-        $self->{_hash_rpc} = rouse_wait;
-
-        $self->{_hash_rpc}->connect_rpc( on_connect => rouse_cb );
-
-        rouse_wait;
-
-        say 'done';
-
-        print 'Creating root user ... ';
-
-        my $root_password = P->random->bytes_hex(32);
-
-        $self->create_user( 'root', $root_password, 1, undef, rouse_cb );
-
-        $res = rouse_wait;
-
-        say $res . ( $res ? ", password: $root_password" : q[] );
-
-        return result 200;
+        ${ ref( $self->{app} ) . '::APP_API_ROLES' };
     };
 
-    $coro->on_destroy( sub { $cb->(@_) } );
+    # add api roles
+    $self->_db_add_roles( $self->{dbh}, $roles, Coro::rouse_cb );
 
-    return;
+    # failed to add roles
+    return $res unless $res = Coro::rouse_wait;
+
+    # run hash RPC
+    print 'Starting API RPC ... ';
+
+    P->pm->run_rpc(
+        'Pcore::App::API::RPC::Hash',
+        workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
+        buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
+        on_ready  => Coro::rouse_cb,
+    );
+
+    $self->{_hash_rpc} = Coro::rouse_wait;
+
+    $self->{_hash_rpc}->connect_rpc( on_connect => Coro::rouse_cb );
+
+    Coro::rouse_wait;
+
+    say 'done';
+
+    print 'Creating root user ... ';
+
+    my $root_password = P->random->bytes_hex(32);
+
+    $self->create_user( 'root', $root_password, 1, undef, Coro::rouse_cb );
+
+    $res = Coro::rouse_wait;
+
+    say $res . ( $res ? ", password: $root_password" : q[] );
+
+    return result 200;
 }
 
 # AUTHENTICATE
@@ -1193,8 +1100,8 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 197, 219, 269, 377,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 583, 795, 1157       |                                                                                                                |
+## |    3 | 104, 126, 176, 284,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 490, 702, 1064       |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

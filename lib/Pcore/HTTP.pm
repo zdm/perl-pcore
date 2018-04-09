@@ -250,34 +250,41 @@ sub request {
         }
     }
 
-    # blocking cv
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
     # on_finish wrapper
     my $before_finish = delete $args{before_finish};
 
     my $on_finish = delete $args{on_finish};
 
-    $args{on_finish} = sub ($res) {
+    my $cb = sub ($res) {
 
         # rewind body fh
         $res->body->seek( 0, 0 ) if $res->{body} && is_glob $res->{body};
 
         # before_finish callback
-        $before_finish->($res) if $before_finish;
+        $before_finish->($res) if defined $before_finish;
 
         # on_finish callback
-        $on_finish->($res) if $on_finish;
+        $on_finish->($res) if defined $on_finish;
 
-        $blocking_cv->send($res) if $blocking_cv;
-
-        return;
+        return $res;
     };
 
-    # throw request
-    Pcore::HTTP::Util::http_request( \%args );
+    if ( defined wantarray ) {
+        $args{on_finish} = Coro::rouse_cb;
 
-    return $blocking_cv ? $blocking_cv->recv : ();
+        # throw request
+        Pcore::HTTP::Util::http_request( \%args );
+
+        return $cb->(Coro::rouse_wait);
+    }
+    else {
+        $args{on_finish} = $cb;
+
+        # throw request
+        Pcore::HTTP::Util::http_request( \%args );
+
+        return;
+    }
 }
 
 sub _get_on_progress_cb (%args) {
@@ -308,7 +315,7 @@ sub _get_on_progress_cb (%args) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 106                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (33)                   |
+## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (32)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 156                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
