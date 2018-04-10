@@ -80,9 +80,7 @@ around run => sub ( $orig, $self ) {
 sub api_call ( $self, @args ) {
     my $auth = bless { app => $self }, 'Pcore::App::API::Auth';
 
-    $auth->api_call(@args);
-
-    return;
+    return $auth->api_call(@args);
 }
 
 sub nginx_cfg ($self) {
