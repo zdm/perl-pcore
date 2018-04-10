@@ -49,7 +49,7 @@ sub new ( $self, $app ) {
 }
 
 # setup events listeners
-around init => sub ( $orig, $self, $cb ) {
+around init => sub ( $orig, $self ) {
 
     # build map
     # using class name as string to avoid conflict with Type::Standard Map subroutine, exported to Pcore::App::API
@@ -70,7 +70,7 @@ around init => sub ( $orig, $self, $cb ) {
         }
     );
 
-    $self->$orig($cb);
+    $self->$orig;
 
     return;
 };

@@ -14,7 +14,7 @@ has _hash_rpc   => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::RPC'],    
 has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], init_arg => undef );
 has _hash_cache_size => ( is => 'ro', isa => PositiveInt, default => 10_000 );
 
-sub init ( $self, $cb ) {
+sub init ( $self ) {
     $self->{_hash_cache} = P->hash->limited( $self->{_hash_cache_size} );
 
     # create DBH
@@ -36,7 +36,7 @@ sub init ( $self, $cb ) {
     };
 
     # add api roles
-    ( $res = $self->_db_add_roles( $self->{dbh} ) ) || return $res;
+    ( $res = $self->_db_add_roles( $self->{dbh}, $roles ) ) || return $res;
 
     # run hash RPC
     print 'Starting API RPC ... ';
@@ -457,7 +457,7 @@ sub set_user_password ( $self, $user_id, $password, $cb ) {
 
                 # password hash generated
                 else {
-                    $res = $self->{dbh}->do( q[UPDATE "api_user" SET "hash" = ? WHERE "id" = ?], [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
+                    my $res = $self->{dbh}->do( q[UPDATE "api_user" SET "hash" = ? WHERE "id" = ?], [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
 
                     if ( !$res ) {
                         $cb->( result 500 );
@@ -497,7 +497,7 @@ sub set_user_enabled ( $self, $user_id, $enabled, $cb ) {
         $enabled = 0+ !!$enabled;
 
         if ( $enabled ^ $user->{data}->{enabled} ) {
-            $res = $self->{dbh}->do( q[UPDATE "api_user" SET "enabled" = ? WHERE "id" = ?], [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
+            my $res = $self->{dbh}->do( q[UPDATE "api_user" SET "enabled" = ? WHERE "id" = ?], [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
 
             if ( !$res ) {
                 $cb->( result 500 );
@@ -762,15 +762,15 @@ sub remove_user_session ( $self, $user_sid ) {
     my $res = $self->{dbh}->do( 'DELETE FROM "api_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_sid, $TOKEN_TYPE_USER_SESSION ] );
 
     if ( !$res ) {
-        $cb->( result 500 );
+        return result 500;
     }
     elsif ( !$res->rows ) {
-        $cb->( result 204 );    # not found
+        return result 204;    # not found
     }
     else {
         P->fire_event('APP.API.AUTH');
 
-        $cb->( result 200 );
+        return result 200;
     }
 
     return;
@@ -788,15 +788,15 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
 
     # query error
     if ( !$user ) {
-        $cb->( result 500 );
+        return result 500;
     }
 
     # user not found
     elsif ( !$user->@* ) {
-        $cb->( result [ 404, 'User not found' ] );
+        return result [ 404, 'User not found' ];
     }
     else {
-        $cb->( result 200, $user );
+        return result 200, $user;
     }
 
     return;
