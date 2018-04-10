@@ -25,6 +25,7 @@ our $EXPORT_PRAGMA = {
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
+our $FORK        = 0;       # fork template proc
 our $SCRIPT_PATH = $0;
 our $WIN_ENC     = undef;
 our $CON_ENC     = undef;
@@ -110,12 +111,8 @@ sub import {
                     exit;
                 } );
             }
-            elsif ( !$MSWIN ) {
-                B::Hooks::AtRuntime::at_runtime( sub {
-                    require Pcore::RPC::Tmpl;
-
-                    return;
-                } );
+            else {
+                $FORK = 1;
             }
         }
 
@@ -421,6 +418,14 @@ sub _CORE_INIT {
 
     require Pcore::Core::Exception;                                 # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
 
+    require Pcore::RPC::Tmpl if $FORK && !$MSWIN;
+
+    _CORE_INIT_AFTER_FORK();
+
+    return;
+}
+
+sub _CORE_INIT_AFTER_FORK {
     require Pcore::AE::Patch;
 
     return;
@@ -429,7 +434,7 @@ sub _CORE_INIT {
 # TODO add PerlIO::removeEsc layer
 sub _config_stdout ($h) {
     if ($MSWIN) {
-        if ( -t $h ) {                                              ## no critic qw[InputOutput::ProhibitInteractiveTest]
+        if ( -t $h ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
             state $init = !!require Pcore::Core::PerlIOviaWinUniCon;
 
             binmode $h, ':raw:via(Pcore::Core::PerlIOviaWinUniCon)' or die;    # terminal
@@ -450,6 +455,7 @@ sub _config_stdout ($h) {
     return;
 }
 
+# TODO remove daemonize, env...
 sub _CORE_RUN {
 
     # EMBEDDED mode, if run not from INIT block or -embedded pragma specified:
@@ -649,25 +655,25 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (23)                    |
+## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (23)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 86                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 258                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 255                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 333                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 453                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 330                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 459                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 365, 394, 397, 401,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 435, 438, 443, 446,  |                                                                                                                |
-## |      | 471, 497, 633        |                                                                                                                |
+## |    3 | 362, 391, 394, 398,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 440, 443, 448, 451,  |                                                                                                                |
+## |      | 477, 503, 639        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 559                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 565                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 268                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 265                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 369                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 366                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

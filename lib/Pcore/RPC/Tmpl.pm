@@ -1,7 +1,6 @@
 package Pcore::RPC::Tmpl;
 
 use Pcore;
-use Pcore::AE::Handle;
 use AnyEvent::Util;
 use Pcore::Util::Data qw[from_cbor];
 
@@ -18,6 +17,9 @@ sub _fork_template {
     ( my $r2, $W ) = AnyEvent::Util::portable_pipe();
 
     if ( $CPID = fork ) {
+        Pcore::_CORE_INIT_AFTER_FORK();
+
+        require Pcore::AE::Handle;
 
         # parent
         close $w1 or die $!;
@@ -67,7 +69,6 @@ sub _fork_template {
 }
 
 sub _tmpl_proc ( $r, $w ) {
-    require Pcore::RPC::Server;
 
     # child
     $0 = 'Pcore::RPC::Tmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -88,10 +89,14 @@ sub _tmpl_proc ( $r, $w ) {
 }
 
 sub _rpc_proc ( $w, $data ) {
+    Pcore::_CORE_INIT_AFTER_FORK();
+
+    require Pcore::RPC::Server;
+
     $0 = $data->{type};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     # redefine watcher in the forked process
-    $SIG->{TERM} = AE::signal TERM => sub { POSIX::_exit 128 + 15 };
+    $SIG->{TERM} = AE::signal TERM => sub { exit 128 + 15 };
 
     P->class->load( $data->{type} );
 
@@ -133,6 +138,16 @@ sub DESTROY ($self) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 20, 92               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
