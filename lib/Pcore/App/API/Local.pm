@@ -60,9 +60,7 @@ sub init ( $self ) {
 
     my $root_password = P->random->bytes_hex(32);
 
-    $self->create_user( 'root', $root_password, 1, undef, Coro::rouse_cb );
-
-    $res = Coro::rouse_wait;
+    $res = $self->create_user( 'root', $root_password, 1, undef );
 
     say $res . ( $res ? ", password: $root_password" : q[] );
 
@@ -120,29 +118,23 @@ sub _verify_token_hash ( $self, $private_token_hash, $hash, $cb ) {
     return;
 }
 
-sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8, $cb ) {
+sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 ) {
     my $user_name_bin = encode_utf8 $user_name_utf8;
 
     my $user_password_bin = encode_utf8 $user_password_utf8;
 
     my $private_token_hash = sha3_512 $user_password_bin . $user_name_bin;
 
-    $self->_hash_rpc->rpc_call(
-        'create_hash',
-        $private_token_hash,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
-            }
-            else {
-                $cb->( result 200, { hash => $res->{hash} } );
-            }
+    $self->_hash_rpc->rpc_call( 'create_hash', $private_token_hash, Coro::rouse_cb );
 
-            return;
-        }
-    );
+    my $res = Coro::rouse_wait;
 
-    return;
+    if ( !$res ) {
+        return $res;
+    }
+    else {
+        return result 200, { hash => $res->{hash} };
+    }
 }
 
 sub _generate_token ( $self, $token_type, $cb ) {
@@ -258,40 +250,29 @@ sub _auth_user_password ( $self, $private_token, $cb ) {
     return;
 }
 
-sub create_user ( $self, $user_name, $password, $enabled, $permissions, $cb ) {
+sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # validate user name
     if ( !$self->validate_name($user_name) ) {
-        $cb->( result [ 400, 'User name is not valid' ] );
-
-        return;
+        return result [ 400, 'User name is not valid' ];
     }
 
-    state $on_finish = sub ( $dbh, $res, $cb ) {
+    state $on_finish = sub ( $dbh, $res ) {
         if ( !$res ) {
-            $dbh->rollback(
-                sub ( $dbh, $res1 ) {
-                    $cb->($res);
+            my $res1 = $dbh->rollback;
 
-                    return;
-                }
-            );
+            return $res;
         }
         else {
-            $dbh->commit(
-                sub ( $dbh, $res1 ) {
+            my $res1 = $dbh->commit;
 
-                    # error committing transaction
-                    if ( !$res1 ) {
-                        $cb->( result 500 );
-                    }
-                    else {
-                        $cb->($res);
-                    }
-
-                    return;
-                }
-            );
+            # error committing transaction
+            if ( !$res1 ) {
+                return result 500;
+            }
+            else {
+                return $res;
+            }
         }
 
         return;
@@ -301,48 +282,32 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions, $cb ) {
     my ( $dbh, $res ) = $self->{dbh}->begin_work;
 
     # failed to start transaction
-    if ( !$res ) {
-        $cb->( result 500 );
-
-        return;
-    }
+    return result 500 if !$res;
 
     # check, that user is not exists
     my $user = $self->_db_get_user( $dbh, $user_name );
 
     # user already exists
-    return $on_finish->( $dbh, result( [ 400, 'User name already exists' ] ), $cb ) if $user;
+    return $on_finish->( $dbh, result [ 400, 'User name already exists' ] ) if $user;
 
     # generate user password hash
-    $self->_generate_user_password_hash(
-        $user_name,
-        $password,
-        sub ($res) {
+    $res = $self->_generate_user_password_hash( $user_name, $password );
 
-            # error generating hash
-            return $on_finish->( $dbh, result(500), $cb ) if !$res;
+    # error generating hash
+    return $on_finish->( $dbh, result 500 ) if !$res;
 
-            # insert user
-            $user = $self->_db_create_user( $dbh, $user_name, $res->{data}->{hash}, $enabled );
+    # insert user
+    $user = $self->_db_create_user( $dbh, $user_name, $res->{data}->{hash}, $enabled );
 
-            # failed to insert user
-            return $on_finish->( $dbh, result(500), $cb ) if !$user;
+    # failed to insert user
+    return $on_finish->( $dbh, result 500 ) if !$user;
 
-            # set user permissions
-            $res = $self->_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
+    # set user permissions
+    $res = $self->_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
 
-            if ( !$res ) {
-                $on_finish->( $dbh, $res, $cb );
-            }
-            else {
-                $on_finish->( $dbh, $user, $cb );
-            }
+    return $on_finish->( $dbh, $res ) if !$res;
 
-            return;
-        }
-    );
-
-    return;
+    return $on_finish->( $dbh, $user );
 }
 
 sub get_users ( $self, $cb ) {
@@ -851,8 +816,8 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 101, 123, 173, 261,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 577                  |                                                                                                                |
+## |    3 | 99, 121, 165, 253,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 542                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
