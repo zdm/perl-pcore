@@ -30,60 +30,45 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-around run => sub ( $orig, $self, $cb = undef ) {
-    my $cv = AE::cv sub {
-
-        # scan HTTP controllers
-        print 'Scanning HTTP controllers ... ';
-        $self->{router}->init;
-        say 'done';
-
-        $self->$orig( sub {
-
-            # start HTTP server
-            if ( defined $self->{app_cfg}->{server}->{listen} ) {
-                $self->{server} = Pcore::HTTP::Server->new( {
-                    $self->{app_cfg}->{server}->%*,    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
-                    app => $self->{router}
-                } );
-
-                $self->{server}->run;
-
-                say qq[Listen: $self->{app_cfg}->{server}->{listen}];
-            }
-
-            say qq[App "@{[ref $self]}" started];
-
-            $cb->($self) if $cb;
-
-            return;
-        } );
-
-        return;
-    };
-
+around run => sub ( $orig, $self ) {
     if ( $self->{api} ) {
 
         # connect api
-        $self->{api}->init( sub ($res) {
-            say 'API initialization ... ' . $res;
+        my $res = $self->{api}->init;
 
-            exit 3 if !$res;
+        say 'API initialization ... ' . $res;
 
-            $cv->send;
-
-            return;
-        } );
+        exit 3 if !$res;
     }
     else {
 
         # die if API controller found, but no API server provided
         die q[API is required] if $self->{router}->{host_api_path} && !$self->{api};
-
-        $cv->send;
     }
 
-    return $self;
+    # scan HTTP controllers
+    print 'Scanning HTTP controllers ... ';
+    $self->{router}->init;
+    say 'done';
+
+    my $res = $self->$orig;
+    exit 3 if !$res;
+
+    # start HTTP server
+    if ( defined $self->{app_cfg}->{server}->{listen} ) {
+        $self->{server} = Pcore::HTTP::Server->new( {
+            $self->{app_cfg}->{server}->%*,    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+            app => $self->{router}
+        } );
+
+        $self->{server}->run;
+
+        say qq[Listen: $self->{app_cfg}->{server}->{listen}];
+    }
+
+    say qq[App "@{[ref $self]}" started];
+
+    return;
 };
 
 sub api_call ( $self, @args ) {

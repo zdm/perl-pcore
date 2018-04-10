@@ -1,6 +1,6 @@
 package <: $module_name :> v0.0.0;
 
-use Pcore -dist, -class, -const;
+use Pcore -dist, -class, -const, -result;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 use <: $module_name ~ "::Util" :>;
 use Pcore::RPC::Hub;
@@ -14,15 +14,18 @@ with qw[Pcore::App];
 
 const our $APP_API_ROLES => [ 'admin', 'user' ];
 
-sub run ( $self, $cb ) {
-
+sub run ( $self ) {
     $self->{util} = <: $module_name ~ "::Util" :>->new;
 
     # update schema
     print 'Updating DB scema ... ';
-    say $self->{util}->update_schema( $self->{cfg}->{_}->{db} );
+    say( my $res = $self->{util}->update_schema( $self->{cfg}->{_}->{db} ) );
+    return $res if !$res;
 
     $self->{rpc} = Pcore::RPC::Hub->new;
+
+    # load settings
+    $res = $self->{util}->load_settings;
 
     # run RPC
     print 'Starting RPC hub ... ';
@@ -33,7 +36,8 @@ sub run ( $self, $cb ) {
             listen_events  => undef,
             forward_events => ['APP.SETTINGS_UPDATED'],
             buildargs      => {                                  #
-                cfg => $self->{cfg},
+                cfg  => $self->{cfg},
+                util => { settings => $self->{util}->{settings} },
             },
         },
         {   type           => '<: $module_name :>::RPC::Log',
@@ -42,18 +46,14 @@ sub run ( $self, $cb ) {
             listen_events  => undef,
             forward_events => undef,
             buildargs      => {                                  #
-                cfg => $self->{cfg},
+                cfg  => $self->{cfg},
+                util => { settings => $self->{util}->{settings} },
             },
         },
     );
 
-    # load settings
-    my $res = $self->{util}->load_settings;
-
     # app ready
-    $cb->();
-
-    return;
+    return result 200;
 }
 
 1;
@@ -65,7 +65,7 @@ sub run ( $self, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 10, 30, 39           | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 10, 33, 43           | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 75                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 79 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

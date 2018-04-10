@@ -44,11 +44,9 @@ my $app = <: $module_name :>->new( {    #
 
 my $cv = AE::cv;
 
-$app->run( sub ($app) {
-    $app->start_nginx();
+$app->run;
 
-    return;
-} );
+$app->start_nginx;
 
 $cv->recv;
 
