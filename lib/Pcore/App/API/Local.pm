@@ -582,7 +582,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
     }
 }
 
-sub remove_user_token ( $self, $user_token_idb ) {
+sub remove_user_token ( $self, $user_token_id ) {
     my $res = $self->{dbh}->do( 'DELETE FROM "api_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_token_id, $TOKEN_TYPE_USER_TOKEN ] );
 
     if ( !$res ) {
