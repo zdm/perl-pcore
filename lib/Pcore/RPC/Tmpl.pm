@@ -111,6 +111,7 @@ sub run ( $type, $args, $cb ) {
         id        => $id,
         scandeps  => $ENV->{SCAN_DEPS} ? 1 : undef,
         type      => $type,
+        parent_id => $args->{parent_id},
         listen    => $args->{listen},
         token     => $args->{token},
         buildargs => $args->{buildargs},

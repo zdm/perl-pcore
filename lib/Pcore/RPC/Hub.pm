@@ -1,12 +1,13 @@
 package Pcore::RPC::Hub;
 
 use Pcore -class, -result;
-use Pcore::Util::Scalar qw[weaken is_plain_coderef is_blessed_ref];
+use Pcore::Util::Scalar qw[refaddr weaken is_plain_coderef is_blessed_ref];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
 
-has id   => ( is => 'ro', isa => Maybe [Str] );
-has type => ( is => 'ro', isa => Maybe [Str] );
+has id        => ( is => 'ro', isa => Maybe [Str] );
+has type      => ( is => 'ro', isa => Maybe [Str] );
+has parent_id => ( is => 'ro', isa => Maybe [Str] );
 
 has proc      => ( is => 'ro', isa => HashRef,  init_arg => undef );    # child RPC processes
 has conn      => ( is => 'ro', isa => HashRef,  init_arg => undef );
@@ -19,7 +20,7 @@ sub BUILD ( $self, $args ) {
         weaken $self;
 
         $self->{_on_rpc_started} = P->listen_events(
-            'RPC.HUB.UPDATED',
+            'RPC.HUB.UPDATED.' . $self->{parent_id},
             sub ($ev) {
                 for my $conn ( $ev->{data}->@* ) {
 
@@ -70,6 +71,7 @@ sub run_rpc ( $self, @args ) {
 
             Pcore::RPC::Proc->new(
                 $rpc->{type},
+                parent_id => refaddr $self,
                 listen    => $rpc->{listen},
                 token     => $rpc->{token},
                 buildargs => $rpc->{buildargs},
@@ -83,7 +85,7 @@ sub run_rpc ( $self, @args ) {
                         sub {
 
                             # send updated routes to all connected RPC servers
-                            P->fire_event( 'RPC.HUB.UPDATED', [ values $self->{conn}->%* ] );
+                            P->fire_event( 'RPC.HUB.UPDATED.' . refaddr $self, [ values $self->{conn}->%* ] );
 
                             $cv->end;
 
@@ -120,7 +122,7 @@ sub _connect_rpc ( $self, $conn, $listen_events = undef, $forward_events = undef
         before_connect => {
             token          => $conn->{token},
             listen_events  => $listen_events,
-            forward_events => defined $self->{id} ? $forward_events : [ 'RPC.HUB.UPDATED', defined $forward_events ? $forward_events->@* : () ],
+            forward_events => defined $self->{id} ? $forward_events : [ 'RPC.HUB.UPDATED.' . refaddr $self, defined $forward_events ? $forward_events->@* : () ],
         },
         on_listen_event => sub ( $ws, $mask ) {    # RPC server can listen client event
             return 1;
@@ -212,9 +214,9 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 112                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 114                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 165                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 167                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
