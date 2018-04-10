@@ -455,7 +455,6 @@ sub _config_stdout ($h) {
     return;
 }
 
-# TODO remove daemonize, env...
 sub _CORE_RUN {
 
     # EMBEDDED mode, if run not from INIT block or -embedded pragma specified:
@@ -663,13 +662,13 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 330                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 459                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 458                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 362, 391, 394, 398,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 440, 443, 448, 451,  |                                                                                                                |
-## |      | 477, 503, 639        |                                                                                                                |
+## |      | 476, 502, 638        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 565                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 564                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 265                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
