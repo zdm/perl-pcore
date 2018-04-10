@@ -6,7 +6,7 @@ use Pcore;
 use Test::More;
 use Pcore::App::API;
 
-our $TESTS = 1;
+our $TESTS = 5;
 
 plan tests => $TESTS;
 
