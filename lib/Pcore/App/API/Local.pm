@@ -36,10 +36,7 @@ sub init ( $self, $cb ) {
     };
 
     # add api roles
-    $self->_db_add_roles( $self->{dbh}, $roles, Coro::rouse_cb );
-
-    # failed to add roles
-    return $res unless $res = Coro::rouse_wait;
+    ( $res = $self->_db_add_roles( $self->{dbh} ) ) || return $res;
 
     # run hash RPC
     print 'Starting API RPC ... ';
@@ -234,52 +231,46 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name, $cb ) {
 sub _auth_user_password ( $self, $private_token, $cb ) {
 
     # get user
-    $self->{dbh}->selectrow(
-        q[SELECT "id", "hash", "enabled" FROM "api_user" WHERE "name" = ?],
-        [ $private_token->[1] ],
-        sub ( $dbh, $res, $user ) {
+    my $user = $self->{dbh}->selectrow( q[SELECT "id", "hash", "enabled" FROM "api_user" WHERE "name" = ?], [ $private_token->[1] ] );
 
-            # user not found
-            if ( !$user ) {
-                $cb->( result [ 404, 'User not found' ] );
+    # user not found
+    if ( !$user->@* ) {
+        $cb->( result [ 404, 'User not found' ] );
 
-                return;
+        return;
+    }
+
+    # user is disabled
+    if ( !$user->{enabled} ) {
+        $cb->( result [ 404, 'User is disabled' ] );
+
+        return;
+    }
+
+    # verify token
+    $self->_verify_token_hash(
+        $private_token->[2],
+        $user->{hash},
+        sub ($status) {
+
+            # token is invalid
+            if ( !$status ) {
+                $cb->($status);
             }
 
-            # user is disabled
-            if ( !$user->{enabled} ) {
-                $cb->( result [ 404, 'User is disabled' ] );
-
-                return;
+            # token is valid
+            else {
+                $self->_return_auth( $private_token, $user->{id}, $private_token->[1], $cb );
             }
-
-            # verify token
-            $self->_verify_token_hash(
-                $private_token->[2],
-                $user->{hash},
-                sub ($status) {
-
-                    # token is invalid
-                    if ( !$status ) {
-                        $cb->($status);
-                    }
-
-                    # token is valid
-                    else {
-                        $self->_return_auth( $private_token, $user->{id}, $private_token->[1], $cb );
-                    }
-
-                    return;
-                }
-            );
 
             return;
         }
-
     );
 
     return;
 }
+
+# --------------------------------------------------
 
 sub create_user ( $self, $user_name, $password, $enabled, $permissions, $cb ) {
 
@@ -1100,8 +1091,8 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 104, 126, 176, 284,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 490, 702, 1064       |                                                                                                                |
+## |    3 | 101, 123, 173, 275,  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 481, 693, 1055       |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
