@@ -135,8 +135,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         my $method_name = $method_cfg->{local_method_name};
 
         if ( defined wantarray ) {
-
-            my $rcb = Coro_rouse_cb;
+            my $rcb = Coro::rouse_cb;
 
             # destroy req instance after call
             {
