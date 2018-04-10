@@ -137,29 +137,23 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
     }
 }
 
-sub _generate_token ( $self, $token_type, $cb ) {
+sub _generate_token ( $self, $token_type ) {
     my $token_id = uuid_v4;
 
     my $public_token = to_b64_url pack( 'C', $token_type ) . $token_id->bin . P->random->bytes(32);
 
     my $private_token_hash = sha3_512 $public_token;
 
-    $self->_hash_rpc->rpc_call(
-        'create_hash',
-        $private_token_hash,
-        sub ( $res ) {
-            if ( !$res ) {
-                $cb->($res);
-            }
-            else {
-                $cb->( result 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} } );
-            }
+    $self->_hash_rpc->rpc_call( 'create_hash', $private_token_hash, Coro::rouse_cb );
 
-            return;
-        }
-    );
+    my $res = Coro::rouse_wait;
 
-    return;
+    if ( !$res ) {
+        return $res;
+    }
+    else {
+        return result 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} };
+    }
 }
 
 sub _return_auth ( $self, $private_token, $user_id, $user_name, $cb ) {
@@ -675,7 +669,7 @@ sub remove_user_token ( $self, $user_token_id, $cb ) {
 }
 
 # USER SESSION
-sub create_user_session ( $self, $user_id, $cb ) {
+sub create_user_session ( $self, $user_id ) {
     my $type = $TOKEN_TYPE_USER_SESSION;
 
     # resolve user
@@ -683,44 +677,34 @@ sub create_user_session ( $self, $user_id, $cb ) {
 
     # user wasn't found
     if ( !$user ) {
-        $cb->($user);
+        return $user;
     }
     else {
 
         # generate session token
-        $self->_generate_token(
-            $type,
-            sub ($token) {
+        my $token = $self->_generate_token($type);
 
-                # token generation error
-                if ( !$token ) {
-                    $cb->($token);
-                }
+        # token generation error
+        if ( !$token ) {
+            return $token;
+        }
 
-                # token geneerated
-                else {
-                    my $res = $self->{dbh}->do( 'INSERT INTO "api_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
+        # token geneerated
+        else {
+            my $res = $self->{dbh}->do( 'INSERT INTO "api_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
-                    if ( !$res->rows ) {
-                        $cb->( result 500 );
-                    }
-                    else {
-                        $cb->(
-                            result 200,
-                            {   id    => $token->{data}->{id},
-                                type  => $type,
-                                token => $token->{data}->{token},
-                            }
-                        );
-                    }
-                }
-
-                return;
+            if ( !$res->rows ) {
+                return result 500;
             }
-        );
+            else {
+                return result 200,
+                  { id    => $token->{data}->{id},
+                    type  => $type,
+                    token => $token->{data}->{token},
+                  };
+            }
+        }
     }
-
-    return;
 }
 
 sub remove_user_session ( $self, $user_sid ) {
@@ -816,8 +800,8 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 99, 121, 165, 253,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 542                  |                                                                                                                |
+## |    3 | 99, 121, 159, 247,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 536                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
