@@ -3,12 +3,10 @@ package <: $module_name :> v0.0.0;
 use Pcore -dist, -class, -const, -result;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 use <: $module_name ~ "::Util" :>;
-use Pcore::RPC::Hub;
 
 has cfg => ( is => 'ro', isa => HashRef, required => 1 );
 
 has util => ( is => 'ro', isa => InstanceOf ['<: $module_name :>::Util'], init_arg => undef );
-has rpc  => ( is => 'ro', isa => InstanceOf ['Pcore::RPC::Hub'],          init_arg => undef );
 
 with qw[Pcore::App];
 
@@ -18,18 +16,16 @@ sub run ( $self ) {
     $self->{util} = <: $module_name ~ "::Util" :>->new;
 
     # update schema
-    print 'Updating DB scema ... ';
+    print 'Updating DB schema ... ';
     say( my $res = $self->{util}->update_schema( $self->{cfg}->{_}->{db} ) );
     return $res if !$res;
-
-    $self->{rpc} = Pcore::RPC::Hub->new;
 
     # load settings
     $res = $self->{util}->load_settings;
 
     # run RPC
     print 'Starting RPC hub ... ';
-    say $self->{rpc}->run_rpc(
+    say $self->rpc->run_rpc(
         {   type           => '<: $module_name :>::RPC::RPC1',
             workers        => 1,
             token          => undef,
@@ -65,9 +61,9 @@ sub run ( $self ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 4, 5                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 10, 33, 43           | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 9, 29, 39            | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 75                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 79 does not match the package declaration       |
+## |    1 | 71                   | Documentation::RequirePackageMatchesPodName - Pod NAME on line 75 does not match the package declaration       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

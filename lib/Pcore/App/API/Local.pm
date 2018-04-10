@@ -10,7 +10,6 @@ use Pcore::Util::UUID qw[uuid_v4 looks_like_uuid];
 with qw[Pcore::App::API];
 
 has dbh         => ( is => 'ro', isa => InstanceOf ['Pcore::Handle::DBI'],         init_arg => undef );
-has _hash_rpc   => ( is => 'ro', isa => InstanceOf ['Pcore::Util::PM::RPC'],       init_arg => undef );
 has _hash_cache => ( is => 'ro', isa => InstanceOf ['Pcore::Util::Hash::RandKey'], init_arg => undef );
 has _hash_cache_size => ( is => 'ro', isa => PositiveInt, default => 10_000 );
 
@@ -41,20 +40,15 @@ sub init ( $self ) {
     # run hash RPC
     print 'Starting API RPC ... ';
 
-    P->pm->run_rpc(
-        'Pcore::App::API::RPC::Hash',
-        workers   => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
-        buildargs => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
-        on_ready  => Coro::rouse_cb,
+    say $self->{app}->rpc->run_rpc(
+        {   type           => 'Pcore::App::API::RPC::Hash',
+            workers        => $self->{app}->{app_cfg}->{api}->{rpc}->{workers},
+            token          => undef,
+            listen_events  => undef,
+            forward_events => undef,
+            buildargs      => $self->{app}->{app_cfg}->{api}->{rpc}->{argon},
+        },
     );
-
-    $self->{_hash_rpc} = Coro::rouse_wait;
-
-    $self->{_hash_rpc}->connect_rpc( on_connect => Coro::rouse_cb );
-
-    Coro::rouse_wait;
-
-    say 'done';
 
     print 'Creating root user ... ';
 
@@ -101,9 +95,7 @@ sub _verify_token_hash ( $self, $private_token_hash, $hash ) {
         return $self->{_hash_cache}->{$cache_id};
     }
     else {
-        $self->_hash_rpc->rpc_call( 'verify_hash', $private_token_hash, $hash, Coro::rouse_cb );
-
-        my $res = Coro::rouse_wait;
+        my $res = $self->{app}->{rpc}->rpc_call( 'Pcore::App::API::RPC::Hash', 'verify_hash', $private_token_hash, $hash );
 
         return $self->{_hash_cache}->{$cache_id} = $res->{match} ? result 200 : result [ 400, 'Invalid token' ];
     }
@@ -116,9 +108,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
 
     my $private_token_hash = sha3_512 $user_password_bin . $user_name_bin;
 
-    $self->_hash_rpc->rpc_call( 'create_hash', $private_token_hash, Coro::rouse_cb );
-
-    my $res = Coro::rouse_wait;
+    my $res = $self->{app}->{rpc}->rpc_call( 'Pcore::App::API::RPC::Hash', 'create_hash', $private_token_hash );
 
     if ( !$res ) {
         return $res;
@@ -135,9 +125,7 @@ sub _generate_token ( $self, $token_type ) {
 
     my $private_token_hash = sha3_512 $public_token;
 
-    $self->_hash_rpc->rpc_call( 'create_hash', $private_token_hash, Coro::rouse_cb );
-
-    my $res = Coro::rouse_wait;
+    my $res = $self->{app}->{rpc}->rpc_call( 'Pcore::App::API::RPC::Hash', 'create_hash', $private_token_hash );
 
     if ( !$res ) {
         return $res;
@@ -730,7 +718,7 @@ SQL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 112, 150, 223        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 104, 138, 211        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

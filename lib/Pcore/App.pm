@@ -5,6 +5,7 @@ use Pcore::Nginx;
 use Pcore::HTTP::Server;
 use Pcore::App::Router;
 use Pcore::App::API;
+use Pcore::RPC::Hub;
 
 has app_cfg => ( is => 'ro', isa => HashRef, required => 1 );
 has devel   => ( is => 'ro', isa => Bool,    default  => 0 );
@@ -12,6 +13,7 @@ has devel   => ( is => 'ro', isa => Bool,    default  => 0 );
 has server => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], init_arg => undef );
 has router => ( is => 'ro', isa => InstanceOf ['Pcore::App::Router'],  init_arg => undef );
 has api => ( is => 'ro', isa => Maybe [ ConsumerOf ['Pcore::App::API'] ], init_arg => undef );
+has rpc => ( is => 'lazy', isa => InstanceOf ['Pcore::RPC::Hub'], init_arg => undef );
 
 sub BUILD ( $self, $args ) {
 
@@ -28,6 +30,10 @@ sub BUILD ( $self, $args ) {
     $self->{api} = Pcore::App::API->new($self);
 
     return;
+}
+
+sub _build_rpc ($self) {
+    return $self->{rpc} = Pcore::RPC::Hub->new;
 }
 
 around run => sub ( $orig, $self ) {
