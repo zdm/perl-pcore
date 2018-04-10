@@ -47,6 +47,23 @@ sub data ($self) {
     return $data{ id $self};
 }
 
+sub TO_DUMP ( $self, $dumper, @ ) {
+    my %args = (
+        path => undef,
+        splice @_, 2,
+    );
+
+    my $tags;
+
+    my $res = $dumper->_dump( $data{ id $self}, path => $args{path} );
+
+    return $res, $tags;
+}
+
+*TO_JSON = *TO_CBOR = sub ($self) {
+    return $data{ id $self};
+};
+
 1;
 __END__
 =pod
