@@ -255,36 +255,26 @@ sub request {
 
     my $on_finish = delete $args{on_finish};
 
-    my $cb = sub ($res) {
+    my $blocking_cb = defined wantarray ? Coro::rouse_cb : ();
+
+    $args{on_finish} = sub ($res) {
 
         # rewind body fh
         $res->body->seek( 0, 0 ) if $res->{body} && is_glob $res->{body};
 
         # before_finish callback
-        $before_finish->($res) if defined $before_finish;
+        $before_finish->($res) if $before_finish;
 
         # on_finish callback
-        $on_finish->($res) if defined $on_finish;
-
-        return $res;
-    };
-
-    if ( defined wantarray ) {
-        $args{on_finish} = Coro::rouse_cb;
-
-        # throw request
-        Pcore::HTTP::Util::http_request( \%args );
-
-        return $cb->(Coro::rouse_wait);
-    }
-    else {
-        $args{on_finish} = $cb;
-
-        # throw request
-        Pcore::HTTP::Util::http_request( \%args );
+        $blocking_cb ? $on_finish ? $blocking_cb->( $on_finish->($res) ) : $blocking_cb->($res) : $on_finish ? $on_finish->($res) : ();
 
         return;
-    }
+    };
+
+    # throw request
+    Pcore::HTTP::Util::http_request( \%args );
+
+    return $blocking_cb ? Coro::rouse_wait $blocking_cb : ();
 }
 
 sub _get_on_progress_cb (%args) {
@@ -315,7 +305,7 @@ sub _get_on_progress_cb (%args) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 106                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (32)                   |
+## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "request" with high complexity score (34)                   |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 156                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
