@@ -14,7 +14,7 @@ sub _build__auth_header ($self) {
 }
 
 sub upload ( $self, $path, $cb = undef ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $cv = defined wantarray ? AE::cv : ();
 
     my $body;
 
@@ -48,17 +48,17 @@ sub upload ( $self, $path, $cb = undef ) {
         sub ($res) {
             my $res = result [ $res->status, $res->reason ];
 
-            $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
+            $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
 
             return;
         }
     );
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return $cv ? $cv->recv : ();
 }
 
 sub clean ( $self, @args ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $cv = defined wantarray ? AE::cv : ();
 
     my $cb = is_coderef $args[-1] ? pop @args : undef;
 
@@ -68,7 +68,7 @@ sub clean ( $self, @args ) {
     );
 
     my $on_finish = sub ($res) {
-        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
+        $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
@@ -139,7 +139,7 @@ sub clean ( $self, @args ) {
         }
     );
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return $cv ? $cv->recv : ();
 }
 
 sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = undef ) {

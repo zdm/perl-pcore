@@ -48,9 +48,9 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 
 sub api_can_call ( $self, $method_id ) {
     if ( $self->{is_authenticated} ) {
-        $self->{app}->{api}->authenticate_private( $self->{private_token}, Coro::rouse_cb );
+        $self->{app}->{api}->authenticate_private( $self->{private_token}, my $cv = AE::cv );
 
-        my $auth = Coro::rouse_wait;
+        my $auth = $cv->recv;
 
         return $auth->_check_permissions($method_id);
     }
@@ -135,7 +135,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         my $method_name = $method_cfg->{local_method_name};
 
         if ( defined wantarray ) {
-            my $rcb = Coro::rouse_cb;
+            my $rcb = AE::cv;
 
             # destroy req instance after call
             {
@@ -152,7 +152,7 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
                 }
             }
 
-            my $res = Coro::rouse_wait $rcb;
+            my $res = $rcb->recv;
 
             $cb->($res) if defined $cb;
 

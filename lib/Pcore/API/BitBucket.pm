@@ -101,7 +101,7 @@ sub delete_repo ( $self, $repo_id, $cb = undef ) {
 # VERSIONS
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/versions
 sub get_versions ( $self, $repo_id, $cb = undef ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $cv = defined wantarray ? AE::cv : ();
 
     my $versions;
 
@@ -124,11 +124,11 @@ sub get_versions ( $self, $repo_id, $cb = undef ) {
                     else {
                         my $api_res = result 200, $versions;
 
-                        $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
+                        $cv ? $cb ? $cv->( $cb->($api_res) ) : $cv->($api_res) : $cb ? $cb->($api_res) : ();
                     }
                 }
                 else {
-                    $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
+                    $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
                 }
 
                 return;
@@ -140,7 +140,7 @@ sub get_versions ( $self, $repo_id, $cb = undef ) {
 
     $get->(1);
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return $cv ? $cv->recv : ();
 }
 
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-POSTanewversion
@@ -154,9 +154,7 @@ sub create_version ( $self, $repo_id, $ver, $cb = undef ) {
                 $res->set_status(200);
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -164,7 +162,7 @@ sub create_version ( $self, $repo_id, $ver, $cb = undef ) {
 # MILESTONES
 # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/milestones
 sub get_milestones ( $self, $repo_id, $cb = undef ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $cv = defined wantarray ? AE::cv : ();
 
     my $versions;
 
@@ -187,11 +185,11 @@ sub get_milestones ( $self, $repo_id, $cb = undef ) {
                     else {
                         my $api_res = result 200, $versions;
 
-                        $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
+                        $cv ? $cb ? $cv->( $cb->($api_res) ) : $cv->($api_res) : $cb ? $cb->($api_res) : ();
                     }
                 }
                 else {
-                    $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
+                    $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
                 }
 
                 return;
@@ -203,7 +201,7 @@ sub get_milestones ( $self, $repo_id, $cb = undef ) {
 
     $get->(1);
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return $cv ? $cv->recv : ();
 }
 
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-POSTanewmilestone
@@ -217,16 +215,14 @@ sub create_milestone ( $self, $repo_id, $ver, $cb = undef ) {
                 $res->set_status(200);
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
 
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETalistofissuesinarepository%27stracker
 sub get_issues ( $self, $repo_id, @args ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $cv = defined wantarray ? AE::cv : ();
 
     my $cb = is_plain_coderef $args[-1] ? pop @args : ();
 
@@ -258,10 +254,10 @@ sub get_issues ( $self, $repo_id, @args ) {
 
                     my $api_res = result 200, data => $issues, total => $res->{data}->{count};
 
-                    $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
+                    $cv ? $cb ? $cv->( $cb->($api_res) ) : $cv->($api_res) : $cb ? $cb->($api_res) : ();
                 }
                 else {
-                    $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
+                    $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
                 }
 
                 return;
@@ -273,7 +269,7 @@ sub get_issues ( $self, $repo_id, @args ) {
 
     $get->(1);
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return $cv ? $cv->recv : ();
 }
 
 # https://confluence.atlassian.com/bitbucket/issues-resource-296095191.html#issuesResource-GETanindividualissue
@@ -293,7 +289,7 @@ sub update_issue ( $self, $repo_id, $issue_id, $data, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 280, 285             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 276, 281             | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
