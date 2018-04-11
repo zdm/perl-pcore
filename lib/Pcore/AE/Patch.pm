@@ -12,6 +12,53 @@ our $MAX_CACHE_SIZE = 10_000;
 
 our $SOCKADDR_CACHE = {};
 
+# condvar patch
+{
+    no warnings qw[redefine];
+
+    sub AnyEvent::CondVar::recv {
+        unless ( $_[0]{_ae_sent} ) {
+            Carp::croak q[AnyEvent::CondVar: second block attempted on the same cv] if $_[0]{_is_waiting};
+
+            $_[0]{_is_waiting} = 1;
+
+            if ($AnyEvent::CondVar::Base::WAITING) {
+                $_[0]{_rouse_cb} = Coro::rouse_cb;
+
+                Coro::rouse_wait $_[0]{_rouse_cb};
+            }
+            else {
+                local $AnyEvent::CondVar::Base::WAITING = 1;
+
+                $_[0]->_wait;
+            }
+
+            $_[0]{_is_waiting} = 0;
+        }
+
+        $_[0]{_ae_croak} and Carp::croak $_[0]{_ae_croak};
+
+        return wantarray ? @{ $_[0]{_ae_sent} } : $_[0]{_ae_sent}[0];
+    }
+
+    sub AnyEvent::CondVar::send {
+        my $cv = shift;
+
+        $cv->{_ae_sent} = [@_];
+
+        ( delete $cv->{_ae_cb} )->($cv) if $cv->{_ae_cb};
+
+        if ( my $rouse_cb = delete $cv->{_rouse_cb} ) {
+            $rouse_cb->();
+
+            return;
+        }
+        else {
+            return $cv->_send;
+        }
+    }
+}
+
 *AnyEvent::Socket::resolve_sockaddr_orig = \&AnyEvent::Socket::resolve_sockaddr;
 *AnyEvent::Socket::_tcp_bind_orig        = \&AnyEvent::Socket::_tcp_bind;
 
@@ -115,13 +162,13 @@ sub _tcp_bind ( $host, $service, $done, $prepare = undef ) : prototype($$$;$) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 16, 23               | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 63, 70               | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 28                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 75                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 108                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 155                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 84                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 131                  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
