@@ -98,7 +98,7 @@ sub _read ( $self, $cb ) {
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $cv = defined wantarray ? AE::cv : ();
 
     my $buf = join "\x00", $cmd->@*;
 
@@ -133,7 +133,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
                     $result = result 200, $res->{o};
                 }
 
-                $rouse_cb ? $cb ? $rouse_cb->( $cb->($result) ) : $rouse_cb->($result) : $cb ? $cb->($result) : ();
+                $cv ? $cb ? $cv->( $cb->($result) ) : $cv->($result) : $cb ? $cb->($result) : ();
             }
 
             return;
@@ -144,7 +144,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
         return;
     } );
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return $cv ? $cv->recv : ();
 }
 
 sub scm_cmd ( $self, $cmd, $cb = undef ) {
@@ -189,9 +189,7 @@ sub scm_id ( $self, $cb = undef ) {
                 $res->{data} = \%res;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         },
     );
 }
@@ -204,9 +202,7 @@ sub scm_releases ( $self, $cb = undef ) {
                 $res->{data} = [ sort grep {/\Av\d+[.]\d+[.]\d+\z/sm} $res->{data}->@* ];
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         },
     );
 }
@@ -219,9 +215,7 @@ sub scm_is_commited ( $self, $cb = undef ) {
                 $res->{data} = defined $res->{data} ? 0 : 1;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         },
     );
 }
@@ -274,9 +268,7 @@ sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
                 $res->{data} = $data;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         },
     );
 }

@@ -17,7 +17,7 @@ sub _build_upstream ($self) {
 }
 
 sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $cv = defined wantarray ? AE::cv : ();
 
     my $chdir_guard = $root ? P->file->chdir( $self->{root} ) : undef;
 
@@ -40,13 +40,13 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
                 $res = result [ 500, $proc->stderr ? ( $proc->stderr =~ /\A(.+?)\n/sm )[0] : () ];
             }
 
-            $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
+            $cv ? $cb ? $cv->( $cb->($result) ) : $cv->($result) : $cb ? $cb->($result) : ();
 
             return;
         }
     );
 
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
+    return $cv ? $cv->recv : ();
 }
 
 sub scm_cmd ( $self, $cmd, $cb = undef ) {
