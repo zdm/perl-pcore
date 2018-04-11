@@ -3,7 +3,7 @@ package Pcore::Util::CA;
 use Pcore -class;
 
 sub update ($cb = undef) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     print 'updating ca_file.pem ... ';
 
@@ -25,15 +25,13 @@ sub update ($cb = undef) {
                 say 'error';
             }
 
-            $cb->($status) if $cb;
-
-            $blocking_cv->($status) if $blocking_cv;
+            $rouse_cb ? $cb ? $rouse_cb->( $cb->($status) ) : $rouse_cb->($status) : $cb ? $cb->($status) : ();
 
             return;
         }
     );
 
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub ca_file {

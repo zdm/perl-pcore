@@ -14,10 +14,8 @@ sub BUILDARGS ( $self, $args = undef ) {
     return $args;
 }
 
-sub _req ( $self, $method, $endpoint, $data, $cb ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    P->http->$method(
+sub _req ( $self, $method, $endpoint, $data, $cb = undef ) {
+    return P->http->$method(
         'https://api.github.com' . $endpoint,
         headers => {
             AUTHORIZATION => "token $self->{token}",
@@ -36,15 +34,9 @@ sub _req ( $self, $method, $endpoint, $data, $cb ) {
                 $api_res = result $res->status, $data;
             }
 
-            $cb->($api_res) if $cb;
-
-            $blocking_cv->send($api_res) if $blocking_cv;
-
-            return;
+            return $cb ? $cb->($api_res) : $api_res;
         }
     );
-
-    return $blocking_cv ? $blocking_cv->recv : ();
 }
 
 # https://developer.github.com/v3/repos/#create
@@ -96,7 +88,7 @@ sub delete_repo ( $self, $repo_id, $cb = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 54                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 46                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

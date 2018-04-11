@@ -255,7 +255,7 @@ sub request {
 
     my $on_finish = delete $args{on_finish};
 
-    my $blocking_cb = defined wantarray ? Coro::rouse_cb : ();
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     $args{on_finish} = sub ($res) {
 
@@ -266,7 +266,7 @@ sub request {
         $before_finish->($res) if $before_finish;
 
         # on_finish callback
-        $blocking_cb ? $on_finish ? $blocking_cb->( $on_finish->($res) ) : $blocking_cb->($res) : $on_finish ? $on_finish->($res) : ();
+        $rouse_cb ? $on_finish ? $rouse_cb->( $on_finish->($res) ) : $rouse_cb->($res) : $on_finish ? $on_finish->($res) : ();
 
         return;
     };
@@ -274,7 +274,7 @@ sub request {
     # throw request
     Pcore::HTTP::Util::http_request( \%args );
 
-    return $blocking_cb ? Coro::rouse_wait $blocking_cb : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub _get_on_progress_cb (%args) {

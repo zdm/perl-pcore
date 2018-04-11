@@ -98,7 +98,7 @@ sub _read ( $self, $cb ) {
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $buf = join "\x00", $cmd->@*;
 
@@ -133,9 +133,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
                     $result = result 200, $res->{o};
                 }
 
-                $cb->($result) if $cb;
-
-                $blocking_cv->($result) if $blocking_cv;
+                $rouse_cb ? $cb ? $rouse_cb->( $cb->($result) ) : $rouse_cb->($result) : $cb ? $cb->($result) : ();
             }
 
             return;
@@ -146,7 +144,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
         return;
     } );
 
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub scm_cmd ( $self, $cmd, $cb = undef ) {
@@ -292,7 +290,7 @@ sub scm_get_changesets ( $self, $tag = undef, $cb = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    2 | 103, 105, 110        | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 166                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 164                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

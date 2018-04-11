@@ -78,8 +78,8 @@ sub _login ( $self, $cb ) {
     );
 }
 
-sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb = undef ) {
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $request = sub {
         P->http->$method(
@@ -92,13 +92,13 @@ sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb ) {
             sub ($res) {
                 my $api_res = result [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
 
-                $cb->($api_res) if $cb;
-
-                $blocking_cv->send($api_res) if $blocking_cv;
+                $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
 
                 return;
             }
         );
+
+        return;
     };
 
     if ( !$require_auth ) {
@@ -117,16 +117,14 @@ sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb ) {
 
             # login failure
             else {
-                $cb->($res) if $cb;
-
-                $blocking_cv->send($res) if $blocking_cv;
+                $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
             }
 
             return;
         } );
     }
 
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 # USER / NAMESPACE
@@ -415,16 +413,14 @@ sub get_autobuild_settings ( $self, $repo_id, $cb = undef ) {
 }
 
 sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my ( $delete_autobuild_tag_status, $delete_tag_status );
 
     my $cv = AE::cv {
         my $res = result [ 200, "autobuild: $delete_autobuild_tag_status->{reason}, tag: $delete_tag_status->{reason}" ];
 
-        $cb->($res) if $cb;
-
-        $blocking_cv->($res) if $blocking_cv;
+        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
@@ -459,7 +455,7 @@ sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
 
     $cv->end;
 
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 # AUTOBUILD TAGS
@@ -510,12 +506,10 @@ sub delete_autobuild_tag_by_id ( $self, $repo_id, $autobuild_tag_id, $cb = undef
 }
 
 sub delete_autobuild_tag_by_name ( $self, $repo_id, $autobuild_tag_name, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $on_finish = sub ($res) {
-        $cb->($res) if $cb;
-
-        $blocking_cv->($res) if $blocking_cv;
+        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
@@ -550,7 +544,7 @@ sub delete_autobuild_tag_by_name ( $self, $repo_id, $autobuild_tag_name, $cb = u
         }
     );
 
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub trigger_autobuild ( $self, $repo_id, $source_name, $source_type, $cb = undef ) {
@@ -567,12 +561,10 @@ sub trigger_autobuild ( $self, $repo_id, $source_name, $source_type, $cb = undef
 }
 
 sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $on_finish = sub ($res) {
-        $cb->($res) if $cb;
-
-        $blocking_cv->($res) if $blocking_cv;
+        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
@@ -607,7 +599,7 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
         }
     );
 
-    return $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 1;
@@ -617,12 +609,12 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 81, 190, 324, 334,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 350, 378, 382, 417,  |                                                                                                                |
-## |      | 489, 508, 512, 556,  |                                                                                                                |
-## |      | 569                  |                                                                                                                |
+## |    3 | 81, 188, 322, 332,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 348, 376, 380, 415,  |                                                                                                                |
+## |      | 485, 504, 508, 550,  |                                                                                                                |
+## |      | 563                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 168                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 166                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

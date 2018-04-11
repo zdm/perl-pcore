@@ -14,13 +14,7 @@ sub _build__auth_header ($self) {
 }
 
 sub upload ( $self, $path, $cb = undef ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
-
-    my $on_finish = sub ($res) {
-        $cb->($res) if $cb;
-
-        $blocking_cv->($res) if $blocking_cv;
-    };
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $body;
 
@@ -52,17 +46,19 @@ sub upload ( $self, $path, $cb = undef ) {
         },
         body => \$body,
         sub ($res) {
-            $on_finish->( result [ $res->status, $res->reason ] );
+            my $res = result [ $res->status, $res->reason ];
+
+            $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
             return;
         }
     );
 
-    return defined $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub clean ( $self, @args ) {
-    my $blocking_cv = defined wantarray ? AE::cv : undef;
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $cb = is_coderef $args[-1] ? pop @args : undef;
 
@@ -71,10 +67,8 @@ sub clean ( $self, @args ) {
         @args,
     );
 
-    my $on_finish = sub ($status) {
-        $cb->($status) if $cb;
-
-        $blocking_cv->($status) if $blocking_cv;
+    my $on_finish = sub ($res) {
+        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
@@ -145,7 +139,7 @@ sub clean ( $self, @args ) {
         }
     );
 
-    return defined $blocking_cv ? $blocking_cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = undef ) {
@@ -171,9 +165,9 @@ sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = unde
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 96                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 90                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 151                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 145                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
