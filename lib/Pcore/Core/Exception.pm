@@ -81,13 +81,9 @@ $Coro::State::WARNHOOK = sub {
     };
 }
 
-sub SIGINT {
-    exit 128 + 2;
-}
+sub SIGINT { exit 128 + 2 }
 
-sub SIGTERM {
-    exit 128 + 15;
-}
+sub SIGTERM { exit 128 + 15 }
 
 # SIGNALS
 sub SIGDIE {
@@ -183,10 +179,10 @@ sub cluck {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 29, 45, 62, 99, 110, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
-## |      |  123                 |                                                                                                                |
+## |    3 | 29, 45, 62, 95, 106, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |      |  119                 |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 31, 47, 64, 101, 112 | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 31, 47, 64, 97, 108  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

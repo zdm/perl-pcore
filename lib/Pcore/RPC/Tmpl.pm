@@ -10,9 +10,9 @@ END {
     kill 'KILL', $CPID if defined $CPID;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 }
 
-_fork_template();
+_fork_tmpl();
 
-sub _fork_template {
+sub _fork_tmpl {
     my ( $r1, $w1 ) = AnyEvent::Util::portable_pipe();
     ( my $r2, $W ) = AnyEvent::Util::portable_pipe();
 
