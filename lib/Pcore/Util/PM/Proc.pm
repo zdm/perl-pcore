@@ -11,10 +11,10 @@ use overload    #
     return $_[0]->is_success;
   },
   q[0+] => sub {
-    return $_[0]->status;
+    return $_[0]->{status};
   },
   q[<=>] => sub {
-    return !$_[2] ? $_[0]->status <=> $_[1] : $_[1] <=> $_[0]->status;
+    return !$_[2] ? $_[0]->{status} <=> $_[1] : $_[1] <=> $_[0]->{status};
   },
   fallback => undef;
 
@@ -309,7 +309,7 @@ sub _create_sigchild ( $self, $win32_alive_timeout ) {
 sub is_success ($self) {
     return if !$self->pid;
 
-    return !$self->status;
+    return !$self->{status};
 }
 
 sub _on_exit ( $self, $status ) {

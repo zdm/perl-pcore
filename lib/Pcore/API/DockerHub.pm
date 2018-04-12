@@ -90,7 +90,7 @@ sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb = undef ) {
             },
             body => $data ? P->data->to_json($data) : undef,
             sub ($res) {
-                my $api_res = res [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
+                my $api_res = res [ $res->{status}, $res->{reason} ], $res->{body} && $res->{body}->$* ? P->data->from_json( $res->{body} ) : ();
 
                 $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
 

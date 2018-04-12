@@ -133,10 +133,10 @@ sub _send_http ( $self, $method, $args, $cb ) {
         body => to_cbor($payload),
         sub ($res) {
             if ( !$res ) {
-                $cb->( res [ $res->status, $res->reason ] ) if $cb;
+                $cb->( res [ $res->{status}, $res->{reason} ] ) if $cb;
             }
             else {
-                my $msg = eval { from_cbor $res->body };
+                my $msg = eval { from_cbor $res->{body} };
 
                 if ($@) {
                     $cb->( res [ 500, 'Error decoding response' ] ) if $cb;

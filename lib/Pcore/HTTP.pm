@@ -149,8 +149,8 @@ sub mirror ( $target, $url, @args ) {
     $args{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
 
     $args{on_finish} = sub ($res) {
-        if ( $res->status == 200 ) {
-            P->file->move( $res->body->path, $target );
+        if ( $res->{status} == 200 ) {
+            P->file->move( $res->{body}->path, $target );
 
             if ( my $last_modified = $res->headers->{LAST_MODIFIED} ) {
                 my $mtime = P->date->parse($last_modified)->at_utc->epoch;
@@ -260,7 +260,7 @@ sub request {
     $args{on_finish} = sub ($res) {
 
         # rewind body fh
-        $res->body->seek( 0, 0 ) if $res->{body} && is_glob $res->{body};
+        $res->{body}->seek( 0, 0 ) if $res->{body} && is_glob $res->{body};
 
         # before_finish callback
         $before_finish->($res) if $before_finish;

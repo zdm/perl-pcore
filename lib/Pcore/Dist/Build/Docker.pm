@@ -56,7 +56,7 @@ sub init ( $self, $args ) {
         active  => 1
     );
 
-    say $res->reason;
+    say $res->{reason};
 
     if ( !$res->is_success ) {
         exit 3;
@@ -492,7 +492,7 @@ sub create_tag ( $self, $tag_name, $source_name, $source_type, $dockerfile_locat
     my $autobuild_tags = $self->dockerhub_api->get_autobuild_tags( $self->dist->docker->{repo_id} );
 
     if ( !$autobuild_tags ) {
-        say $autobuild_tags->reason;
+        say $autobuild_tags->{reason};
     }
     else {
         for my $autobuild_tag ( values $autobuild_tags->{data}->%* ) {

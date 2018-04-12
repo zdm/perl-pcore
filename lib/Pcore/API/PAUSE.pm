@@ -72,12 +72,12 @@ sub clean ( $self, @args ) {
         headers => { AUTHORIZATION => $self->_auth_header, },
         sub ($res) {
             if ( !$res ) {
-                $on_finish->( res [ $res->status, $res->reason ] );
+                $on_finish->( res [ $res->{status}, $res->{reason} ] );
             }
             else {
                 my $releases;
 
-                while ( $res->body->$* =~ /input type="checkbox" name="pause99_delete_files_FILE" value="([[:alnum:]-]+)?-v([[:alnum:].]+)?[.]tar[.]gz"(.+?)<\/span>/smg ) {
+                while ( $res->{body}->$* =~ /input type="checkbox" name="pause99_delete_files_FILE" value="([[:alnum:]-]+)?-v([[:alnum:].]+)?[.]tar[.]gz"(.+?)<\/span>/smg ) {
                     $releases->{$1}->{$2} = undef if $3 !~ m[Scheduled for deletion]smi;
                 }
 
@@ -117,7 +117,7 @@ sub clean ( $self, @args ) {
                         },
                         body => P->data->to_uri($params),
                         sub ($res) {
-                            $on_finish->( res [ $res->status, $res->reason ], [ sort keys $releases_to_remove->%* ] );
+                            $on_finish->( res [ $res->{status}, $res->{reason} ], [ sort keys $releases_to_remove->%* ] );
 
                             return;
                         }

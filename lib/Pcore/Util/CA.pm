@@ -13,7 +13,7 @@ sub update ($cb = undef) {
             my $status;
 
             if ($res) {
-                $ENV->share->store( '/data/ca_file.pem', $res->body, 'Pcore' );
+                $ENV->share->store( '/data/ca_file.pem', $res->{body}, 'Pcore' );
 
                 $status = 1;
 

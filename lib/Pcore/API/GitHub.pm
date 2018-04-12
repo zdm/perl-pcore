@@ -23,15 +23,15 @@ sub _req ( $self, $method, $endpoint, $data, $cb = undef ) {
         },
         body => $data ? P->data->to_json($data) : undef,
         sub ($res) {
-            my $data = $res->body && $res->body->$* ? P->data->from_json( $res->body ) : undef;
+            my $data = $res->{body} && $res->{body}->$* ? P->data->from_json( $res->{body} ) : undef;
 
             my $api_res;
 
             if ( !$res ) {
-                $api_res = res [ $res->status, $data->{message} // $res->reason ];
+                $api_res = res [ $res->{status}, $data->{message} // $res->{reason} ];
             }
             else {
-                $api_res = res $res->status, $data;
+                $api_res = res $res->{status}, $data;
             }
 
             return $cb ? $cb->($api_res) : $api_res;
