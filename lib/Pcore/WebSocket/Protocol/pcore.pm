@@ -264,7 +264,7 @@ sub _on_message ( $self, $msg, $is_json ) {
                         my $result = {
                             type    => $TX_TYPE_EXCEPTION,
                             tid     => $tx->{tid},
-                            message => result [ 500, 'RPC is not supported' ],
+                            message => res [ 500, 'RPC is not supported' ],
                         };
 
                         if ($is_json) {

@@ -4,6 +4,7 @@ package main v0.1.0;
 
 use Pcore;
 use Test::More;
+use Pcore::App;
 use Pcore::App::API;
 
 our $TESTS = 5;
