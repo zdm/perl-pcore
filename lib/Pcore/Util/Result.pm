@@ -17,7 +17,7 @@ use overload    #
   fallback => 1;
 
 # CONSTRUCTOR
-sub res ( $status, @args ) : prototype($;@) {
+sub res ( $status, @args ) {
     my $hash = @args % 2 ? { @args[ 1 .. $#args ], data => $args[0] } : {@args};
 
     my $self = bless $hash, __PACKAGE__;

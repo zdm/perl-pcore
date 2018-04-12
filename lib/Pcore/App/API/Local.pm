@@ -97,7 +97,7 @@ sub _verify_token_hash ( $self, $private_token_hash, $hash ) {
     else {
         my $res = $self->{app}->{rpc}->rpc_call( 'Pcore::App::API::RPC::Hash', 'verify_hash', $private_token_hash, $hash );
 
-        return $self->{_hash_cache}->{$cache_id} = $res->{match} ? res 200 : res [ 400, 'Invalid token' ];
+        return $self->{_hash_cache}->{$cache_id} = $res->{data} ? res 200 : res [ 400, 'Invalid token' ];
     }
 }
 
@@ -112,7 +112,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
 
     return $res if !$res;
 
-    return res 200, { hash => $res->{hash} };
+    return res 200, { hash => $res->{data} };
 }
 
 sub _generate_token ( $self, $token_type ) {
@@ -126,7 +126,7 @@ sub _generate_token ( $self, $token_type ) {
 
     return $res if !$res;
 
-    return res 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} };
+    return res 200, { id => $token_id->str, token => $public_token, hash => $res->{data} };
 }
 
 sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
