@@ -7,8 +7,6 @@ sub update ($cb = undef) {
 
     print 'updating ca_file.pem ... ';
 
-    require Pcore::HTTP;
-
     P->http->get(
         'https://curl.haxx.se/ca/cacert.pem',
         sub ($res) {
