@@ -101,7 +101,7 @@ sub run ($self) {
 
         my $res = $self->dist->scm->scm_push;
 
-        say $res->reason;
+        say $res->{reason};
 
         if ( !$res ) {
             goto PUSH_UPSTREAM if P->term->prompt( q[Repeat?], [qw[yes no]], enter => 1 ) eq 'yes';
