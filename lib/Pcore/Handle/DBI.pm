@@ -49,7 +49,7 @@ sub upgrade_schema ( $self ) {
         ( $res = $dbh->selectrow( qq[SELECT "id" FROM "$SCHEMA_PATCH_TABLE_NAME" WHERE "id" = \$1], [$id] ) ) || return $on_finish->();
 
         # patch is already exists
-        next if $res->@*;
+        next if $res->{data};
 
         # apply patch
         ( $res = $dbh->do( $self->{_schema_patch}->{$id}->{query} ) ) || return $on_finish->();

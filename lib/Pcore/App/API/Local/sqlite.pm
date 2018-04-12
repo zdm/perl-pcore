@@ -66,7 +66,7 @@ sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
 
     my $res = $dbh->do( 'INSERT OR IGNORE INTO "api_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?)', [ SQL_UUID $user_id, $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
 
-    if ( !$res->rows ) {
+    if ( !$res->{rows} ) {
         return res 500;
     }
     else {

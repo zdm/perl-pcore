@@ -381,7 +381,7 @@ sub set_user_password ( $self, $user_id, $password ) {
                 return res 500;
             }
             else {
-                if ( !$res->rows ) {
+                if ( !$res->{rows} ) {
                     return res 500;
                 }
                 else {
@@ -414,7 +414,7 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
             if ( !$res ) {
                 return res 500;
             }
-            elsif ( !$res->rows ) {
+            elsif ( !$res->{rows} ) {
                 return res 500;
             }
             else {
@@ -576,7 +576,7 @@ sub remove_user_token ( $self, $user_token_id ) {
     if ( !$res ) {
         return res 500;
     }
-    elsif ( !$res->rows ) {
+    elsif ( !$res->{rows} ) {
         return res 204;    # not found
     }
     else {
@@ -611,7 +611,7 @@ sub create_user_session ( $self, $user_id ) {
         else {
             my $res = $self->{dbh}->do( 'INSERT INTO "api_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
-            if ( !$res->rows ) {
+            if ( !$res->{rows} ) {
                 return res 500;
             }
             else {
@@ -631,7 +631,7 @@ sub remove_user_session ( $self, $user_sid ) {
     if ( !$res ) {
         return res 500;
     }
-    elsif ( !$res->rows ) {
+    elsif ( !$res->{rows} ) {
         return res 204;    # not found
     }
     else {
