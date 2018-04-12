@@ -17,8 +17,7 @@ our $EXPORT_PRAGMA = {
     export   => 1,    # install standart import method
     inline   => 0,    # package use Inline
     l10n     => 1,    # register package L10N domain
-    result   => 0,    # export Pcore::Util::Result qw[result]
-    res      => 0,    # export Pcore::Util::Result1 qw[res]
+    res      => 0,    # export Pcore::Util::Result qw[res]
     role     => 0,    # package is a Moo role
     rpc      => 0,    # run class as RPC server
     sql      => 0,    # export Pcore::Handle::DBI::Const qw[:TYPES]
@@ -662,25 +661,25 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (24)                    |
+## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (24)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 88                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 263                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 262                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 338                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 466                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 337                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 465                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 370, 399, 402, 406,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 448, 451, 456, 459,  |                                                                                                                |
-## |      | 484, 510, 646        |                                                                                                                |
+## |    3 | 369, 398, 401, 405,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 447, 450, 455, 458,  |                                                                                                                |
+## |      | 483, 509, 645        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 572                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 571                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 273                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 272                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 374                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 373                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
