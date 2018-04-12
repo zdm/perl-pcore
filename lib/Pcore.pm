@@ -173,13 +173,6 @@ sub import {
         # import exceptions
         Pcore::Core::Exception->import( -caller => $caller );
 
-        # process -result pragma
-        if ( $import->{pragma}->{result} ) {
-            state $RESULT_INIT = !!require Pcore::Util::Result;
-
-            Pcore::Util::Result->import( -caller => $caller, qw[result] );
-        }
-
         # process -res pragma
         if ( $import->{pragma}->{res} ) {
             state $RESULT_INIT = !!require Pcore::Util::Result1;
@@ -661,25 +654,25 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (24)                    |
+## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (23)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 262                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 255                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 337                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 465                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 330                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
+## |      | 458                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 369, 398, 401, 405,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 447, 450, 455, 458,  |                                                                                                                |
-## |      | 483, 509, 645        |                                                                                                                |
+## |    3 | 362, 391, 394, 398,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 440, 443, 448, 451,  |                                                                                                                |
+## |      | 476, 502, 638        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 571                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 564                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 272                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 265                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 373                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 366                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
