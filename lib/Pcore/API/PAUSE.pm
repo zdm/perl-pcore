@@ -14,8 +14,6 @@ sub _build__auth_header ($self) {
 }
 
 sub upload ( $self, $path, $cb = undef ) {
-    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
-
     my $body;
 
     $path = P->path($path);
@@ -38,23 +36,15 @@ sub upload ( $self, $path, $cb = undef ) {
 
     $body .= q[--] . $boundary . q[--] . $CRLF . $CRLF;
 
-    P->http->post(
+    return P->http->post(
         'https://pause.perl.org/pause/authenquery',
         headers => {
             AUTHORIZATION => $self->_auth_header,
             CONTENT_TYPE  => qq[multipart/form-data; boundary=$boundary],
         },
         body => \$body,
-        sub ($res) {
-            my $res = res [ $res->status, $res->reason ];
-
-            $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
-
-            return;
-        }
+        $cb // ()
     );
-
-    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub clean ( $self, @args ) {
@@ -165,9 +155,9 @@ sub _pack_multipart ( $self, $body, $boundary, $name, $content, $filename = unde
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 90                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
+## |    3 | 80                   | RegularExpressions::ProhibitComplexRegexes - Split long regexps into smaller qr// chunks                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 145                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 135                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
