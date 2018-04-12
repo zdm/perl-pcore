@@ -48,9 +48,9 @@ sub TO_DUMP ( $self, $dumper, @ ) {
 
 sub api_can_call ( $self, $method_id ) {
     if ( $self->{is_authenticated} ) {
-        $self->{app}->{api}->authenticate_private( $self->{private_token}, my $cv = AE::cv );
+        $self->{app}->{api}->authenticate_private( $self->{private_token}, my $rouse_cb = Coro::rouse_cb );
 
-        my $auth = $cv->recv;
+        my $auth = Coro::rouse_wait $rouse_cb;
 
         return $auth->_check_permissions($method_id);
     }
