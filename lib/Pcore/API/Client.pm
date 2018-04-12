@@ -70,7 +70,6 @@ sub disconnect ($self) {
     return;
 }
 
-# TODO make blocking call
 sub api_call ( $self, $method, @args ) {
 
     # add version to relative method id
@@ -83,14 +82,34 @@ sub api_call ( $self, $method, @args ) {
         }
     }
 
-    if ( $self->{_is_http} ) {
-        $self->_send_http( $method, @args );
+    if ( defined wantarray ) {
+
+        # parse callback
+        my $cb = is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ? pop : ();
+
+        my $rouse_cb = Coro::roouse_cb;
+
+        if ( $self->{_is_http} ) {
+            $self->_send_http( $method, @args, $rouse_cb );
+        }
+        else {
+            $self->_send_ws( $method, @args, $rouse_cb );
+        }
+
+        my $res = Coro::rouse_wait $rouse_cb;
+
+        return $cb ? $cb->($res) : $res;
     }
     else {
-        $self->_send_ws( $method, @args );
-    }
+        if ( $self->{_is_http} ) {
+            $self->_send_http( $method, @args );
+        }
+        else {
+            $self->_send_ws( $method, @args );
+        }
 
-    return;
+        return;
+    }
 }
 
 sub _send_http ( $self, $method, @ ) {

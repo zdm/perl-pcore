@@ -37,9 +37,7 @@ sub api_can_call ( $self, $method_id, $cb ) {
 }
 
 sub api_call ( $self, $method_id, @args ) {
-    $self->{auth}->api_call( $method_id, @args );
-
-    return;
+    return $self->{auth}->api_call( $method_id, @args );
 }
 
 sub _respond ( $self, @ ) {
