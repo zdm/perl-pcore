@@ -79,7 +79,7 @@ sub _login ( $self, $cb ) {
 }
 
 sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb = undef ) {
-    my $cv = defined wantarray ? AE::cv : ();
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $request = sub {
         P->http->$method(
@@ -92,7 +92,7 @@ sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb = undef ) {
             sub ($res) {
                 my $api_res = result [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
 
-                $cv ? $cb ? $cv->( $cb->($api_res) ) : $cv->($api_res) : $cb ? $cb->($api_res) : ();
+                $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
 
                 return;
             }
@@ -117,14 +117,14 @@ sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb = undef ) {
 
             # login failure
             else {
-                $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
+                $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
             }
 
             return;
         } );
     }
 
-    return $cv ? $cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 # USER / NAMESPACE
@@ -413,49 +413,49 @@ sub get_autobuild_settings ( $self, $repo_id, $cb = undef ) {
 }
 
 sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
-    my $cv = defined wantarray ? AE::cv : ();
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my ( $delete_autobuild_tag_status, $delete_tag_status );
 
-    my $cv1 = AE::cv {
+    my $cv = AE::cv {
         my $res = result [ 200, "autobuild: $delete_autobuild_tag_status->{reason}, tag: $delete_tag_status->{reason}" ];
 
-        $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
+        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
 
-    $cv1->begin;
+    $cv->begin;
 
-    $cv1->begin;
+    $cv->begin;
     $self->delete_autobuild_tag_by_name(
         $repo_id,
         $tag_name,
         sub ($res) {
             $delete_autobuild_tag_status = $res;
 
-            $cv1->end;
+            $cv->end;
 
             return;
         }
     );
 
-    $cv1->begin;
+    $cv->begin;
     $self->delete_tag(
         $repo_id,
         $tag_name,
         sub ($res) {
             $delete_tag_status = $res;
 
-            $cv1->end;
+            $cv->end;
 
             return;
         }
     );
 
-    $cv1->end;
+    $cv->end;
 
-    return $cv ? $cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 # AUTOBUILD TAGS
@@ -506,10 +506,10 @@ sub delete_autobuild_tag_by_id ( $self, $repo_id, $autobuild_tag_id, $cb = undef
 }
 
 sub delete_autobuild_tag_by_name ( $self, $repo_id, $autobuild_tag_name, $cb = undef ) {
-    my $cv = defined wantarray ? AE::cv : ();
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $on_finish = sub ($res) {
-        $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
+        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
@@ -544,7 +544,7 @@ sub delete_autobuild_tag_by_name ( $self, $repo_id, $autobuild_tag_name, $cb = u
         }
     );
 
-    return $cv ? $cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub trigger_autobuild ( $self, $repo_id, $source_name, $source_type, $cb = undef ) {
@@ -561,10 +561,10 @@ sub trigger_autobuild ( $self, $repo_id, $source_name, $source_type, $cb = undef
 }
 
 sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = undef ) {
-    my $cv = defined wantarray ? AE::cv : ();
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $on_finish = sub ($res) {
-        $cv ? $cb ? $cv->( $cb->($res) ) : $cv->($res) : $cb ? $cb->($res) : ();
+        $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
         return;
     };
@@ -599,7 +599,7 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
         }
     );
 
-    return $cv ? $cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 1;

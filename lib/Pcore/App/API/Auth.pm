@@ -135,14 +135,14 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
         my $method_name = $method_cfg->{local_method_name};
 
         if ( defined wantarray ) {
-            my $rcb = AE::cv;
+            my $rouse_cb = Coro::rouse_cb;
 
             # destroy req instance after call
             {
                 # create API request
                 my $req = bless {
                     auth => $self,
-                    _cb  => $rcb,
+                    _cb  => $rouse_cb,
                   },
                   'Pcore::App::API::Auth::Request';
 
@@ -152,11 +152,9 @@ sub api_call_arrayref ( $self, $method_id, $args, $cb = undef ) {
                 }
             }
 
-            my $res = $rcb->recv;
+            my $res = Coro::rouse_wait $rouse_cb;
 
-            $cb->($res) if defined $cb;
-
-            return $res;
+            return $cb ? $cb->($res) : $res;
         }
         else {
 

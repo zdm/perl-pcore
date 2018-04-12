@@ -191,14 +191,12 @@ sub rpc_call ( $self, $type, $method, @args ) {
     push $self->{conn_type}->{$type}->@*, $ws;
 
     if ( defined wantarray ) {
-        $ws->rpc_call( $method, @args, my $rcb = Coro::rouse_cb );
+        $ws->rpc_call( $method, @args, my $rouse_cb = Coro::rouse_cb );
 
         # block
-        my $res = Coro::rouse_wait $rcb;
+        my $res = Coro::rouse_wait $rouse_cb;
 
-        $cb->($res) if defined $cb;
-
-        return $res;
+        return $cb ? $cb->($res) : $res;
     }
     else {
         $ws->rpc_call( $method, @args, $cb // () );

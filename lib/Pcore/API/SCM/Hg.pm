@@ -98,7 +98,7 @@ sub _read ( $self, $cb ) {
 
 # NOTE status + pattern (status *.txt) not works under linux - http://bz.selenic.com/show_bug.cgi?id=4526
 sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
-    my $cv = defined wantarray ? AE::cv : ();
+    my $rouse_cb = defined wantarray ? Coro::rouse_cb : ();
 
     my $buf = join "\x00", $cmd->@*;
 
@@ -133,7 +133,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
                     $result = result 200, $res->{o};
                 }
 
-                $cv ? $cb ? $cv->( $cb->($result) ) : $cv->($result) : $cb ? $cb->($result) : ();
+                $rouse_cb ? $cb ? $rouse_cb->( $cb->($result) ) : $rouse_cb->($result) : $cb ? $cb->($result) : ();
             }
 
             return;
@@ -144,7 +144,7 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
         return;
     } );
 
-    return $cv ? $cv->recv : ();
+    return $rouse_cb ? Coro::rouse_wait $rouse_cb : ();
 }
 
 sub scm_cmd ( $self, $cmd, $cb = undef ) {
