@@ -1,6 +1,6 @@
 package Pcore::WebSocket::Protocol::pcore;
 
-use Pcore -class, -result, -const;
+use Pcore -class, -res, -const;
 use Pcore::Util::Data;
 use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Text qw[trim];
@@ -167,7 +167,7 @@ sub on_disconnect ( $self, $status ) {
     for my $tid ( keys $self->{_callbacks}->%* ) {
         my $cb = delete $self->{_callbacks}->{$tid};
 
-        $cb->( result [ $status->{status}, $status->{reason} ] );
+        $cb->( res [ $status->{status}, $status->{reason} ] );
     }
 
     return;

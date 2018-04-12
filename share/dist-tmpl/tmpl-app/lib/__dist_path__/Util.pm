@@ -1,6 +1,6 @@
 package <: $module_name ~ "::Util" :>;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::SMTP;
 use Pcore::API::ReCaptcha;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
@@ -112,7 +112,7 @@ sub update_settings ( $self, $settings, $cb ) {
 
     # check SMTP port
     if ( exists $settings->{smtp_port} && $settings->{smtp_port} !~ /\A\d+\z/sm ) {
-        $cb->( result 400, error => { smtp_port => 'Port is invalid' } );
+        $cb->( res 400, error => { smtp_port => 'Port is invalid' } );
 
         return;
     }
@@ -121,7 +121,7 @@ sub update_settings ( $self, $settings, $cb ) {
         [ q[UPDATE "settings"], SET($settings), 'WHERE "id" = 1' ],
         sub ( $dbh, $status, $data ) {
             if ( !$status ) {
-                $cb->( result 500 );
+                $cb->( res 500 );
             }
             else {
                 $cb->( $self->load_settings );
@@ -153,7 +153,7 @@ sub sendmail ( $self, $to, $bcc, $subject, $body, $cb = undef ) {
     my $smtp = $self->_smtp;
 
     if ( !$smtp ) {
-        my $res = result [ 500, 'SMTP is not configured' ];
+        my $res = res [ 500, 'SMTP is not configured' ];
 
         P->sendlog( '<: $dist_name :>.FATAL', 'SMTP error', "$res" );
 

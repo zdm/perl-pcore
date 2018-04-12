@@ -1,6 +1,6 @@
 package Pcore::API::SCM::Git;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::API::SCM::Const qw[:SCM_TYPE];
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 
@@ -34,13 +34,13 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
             my $res;
 
             if ( $proc->is_success ) {
-                $res = result 200, $proc->stdout ? [ split /\x00/sm, $proc->stdout ] : undef;
+                $res = res 200, $proc->stdout ? [ split /\x00/sm, $proc->stdout ] : undef;
             }
             else {
-                $res = result [ 500, $proc->stderr ? ( $proc->stderr =~ /\A(.+?)\n/sm )[0] : () ];
+                $res = res [ 500, $proc->stderr ? ( $proc->stderr =~ /\A(.+?)\n/sm )[0] : () ];
             }
 
-            $rouse_cb ? $cb ? $rouse_cb->( $cb->($result) ) : $rouse_cb->($result) : $cb ? $cb->($result) : ();
+            $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
             return;
         }

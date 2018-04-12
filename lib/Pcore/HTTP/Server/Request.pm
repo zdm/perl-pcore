@@ -1,6 +1,6 @@
 package Pcore::HTTP::Server::Request;
 
-use Pcore -class, -const, -result;
+use Pcore -class, -const, -res;
 use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref];
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
@@ -83,7 +83,7 @@ sub _respond ( $self, @ ) {
         # compose headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
         $buf = do {
-            my $status = is_blessed_ref $_[1] ? $_[1] : result $_[1];
+            my $status = is_blessed_ref $_[1] ? $_[1] : res $_[1];
 
             "HTTP/1.1 $status->{status} $status->{reason}$CRLF";
         };
@@ -197,7 +197,7 @@ sub _build_is_websocket_connect_request ( $self ) {
 }
 
 sub accept_websocket ( $self, $headers = undef ) {
-    state $reason = Pcore::Util::Result->get_reason(101);
+    state $reason = 'Switching Protocols';
 
     die q[Unable to finish already started HTTP request] if $self->{_response_status};
 
@@ -226,7 +226,7 @@ sub authenticate ( $self, $cb ) {
         $cb->( $self->{_auth} );
     }
     elsif ( !$self->{app}->{api} ) {
-        $cb->( $self->{_auth} = result 401 );
+        $cb->( $self->{_auth} = res 401 );
     }
     else {
         my $env = $self->{env};

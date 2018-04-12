@@ -1,6 +1,6 @@
 package Pcore::API::Client;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::WebSocket;
 use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref is_plain_coderef weaken];
 use Pcore::Util::Data qw[to_cbor from_cbor];
@@ -127,13 +127,13 @@ sub _send_http ( $self, $method, @ ) {
         body => to_cbor($payload),
         sub ($res) {
             if ( !$res ) {
-                $cb->( result [ $res->status, $res->reason ] ) if $cb;
+                $cb->( res [ $res->status, $res->reason ] ) if $cb;
             }
             else {
                 my $msg = eval { from_cbor $res->body };
 
                 if ($@) {
-                    $cb->( result [ 500, 'Error decoding response' ] ) if $cb;
+                    $cb->( res [ 500, 'Error decoding response' ] ) if $cb;
                 }
                 elsif ($cb) {
                     my $tx = is_plain_arrayref $msg ? $msg->[0] : $msg;

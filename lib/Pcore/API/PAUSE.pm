@@ -1,6 +1,6 @@
 package Pcore::API::PAUSE;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::Scalar qw[is_coderef];
 
@@ -46,7 +46,7 @@ sub upload ( $self, $path, $cb = undef ) {
         },
         body => \$body,
         sub ($res) {
-            my $res = result [ $res->status, $res->reason ];
+            my $res = res [ $res->status, $res->reason ];
 
             $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
@@ -74,7 +74,7 @@ sub clean ( $self, @args ) {
     };
 
     if ( !$args{keep} ) {
-        $on_finish->( result [ 400, q[Bad "keep" arument.] ] );
+        $on_finish->( res [ 400, q[Bad "keep" arument.] ] );
     }
 
     P->http->get(
@@ -82,7 +82,7 @@ sub clean ( $self, @args ) {
         headers => { AUTHORIZATION => $self->_auth_header, },
         sub ($res) {
             if ( !$res ) {
-                $on_finish->( result [ $res->status, $res->reason ] );
+                $on_finish->( res [ $res->status, $res->reason ] );
             }
             else {
                 my $releases;
@@ -116,7 +116,7 @@ sub clean ( $self, @args ) {
                 }
 
                 if ( !$releases_to_remove ) {
-                    $on_finish->( result [ 200, 'Nothing to do' ] );
+                    $on_finish->( res [ 200, 'Nothing to do' ] );
                 }
                 else {
                     P->http->post(
@@ -127,7 +127,7 @@ sub clean ( $self, @args ) {
                         },
                         body => P->data->to_uri($params),
                         sub ($res) {
-                            $on_finish->( result [ $res->status, $res->reason ], [ sort keys $releases_to_remove->%* ] );
+                            $on_finish->( res [ $res->status, $res->reason ], [ sort keys $releases_to_remove->%* ] );
 
                             return;
                         }

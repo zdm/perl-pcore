@@ -1,6 +1,6 @@
 package Pcore::App::API::Auth;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::App::API qw[:CONST];
 use Pcore::App::API::Auth::Request;
 use Pcore::Util::Scalar qw[is_blessed_ref is_plain_coderef];
@@ -66,7 +66,7 @@ sub _check_permissions ( $self, $method_id ) {
 
     # method wasn't found
     if ( !$method_cfg ) {
-        return result [ 404, qq[Method "$method_id" was not found] ];
+        return res [ 404, qq[Method "$method_id" was not found] ];
     }
 
     # method was found
@@ -74,28 +74,28 @@ sub _check_permissions ( $self, $method_id ) {
 
         # user is root, method authentication is not required
         if ( $self->{is_root} ) {
-            return result 200;
+            return res 200;
         }
 
         # method has no permissions, authorization is not required
         elsif ( !$method_cfg->{permissions} ) {
-            return result 200;
+            return res 200;
         }
 
         # auth has no permisisons, api call is forbidden
         elsif ( !$self->{permissions} ) {
-            return result [ 403, qq[Insufficient permissions for method "$method_id"] ];
+            return res [ 403, qq[Insufficient permissions for method "$method_id"] ];
         }
 
         # compare permissions
         else {
             for my $role_name ( $method_cfg->{permissions}->@* ) {
                 if ( exists $self->{permissions}->{$role_name} ) {
-                    return result 200;
+                    return res 200;
                 }
             }
 
-            return result [ 403, qq[Insufficient permissions for method "$method_id"] ];
+            return res [ 403, qq[Insufficient permissions for method "$method_id"] ];
         }
     }
 }

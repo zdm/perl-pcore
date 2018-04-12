@@ -1,6 +1,6 @@
 package Pcore::API::BitBucket;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_plain_coderef];
 use Pcore::API::SCM::Const qw[:SCM_TYPE];
 
@@ -33,12 +33,12 @@ sub _req1 ( $self, $method, $endpoint, $data, $cb = undef ) {
             my $api_res;
 
             if ( !$res ) {
-                $api_res = result [ $res->status, $res->reason ], $res->body;
+                $api_res = res [ $res->status, $res->reason ], $res->body;
             }
             else {
                 my $data = $res->body && $res->body->$* ? P->data->from_json( $res->body ) : undef;
 
-                $api_res = result $res->status, $data;
+                $api_res = res $res->status, $data;
             }
 
             return $cb ? $cb->{$api_res} : $api_res;
@@ -60,10 +60,10 @@ sub _req2 ( $self, $method, $endpoint, $data, $cb = undef ) {
             my $api_res;
 
             if ( !$res ) {
-                $api_res = result [ $res->status, $data->{error}->{message} // $res->reason ];
+                $api_res = res [ $res->status, $data->{error}->{message} // $res->reason ];
             }
             else {
-                $api_res = result $res->status, $data;
+                $api_res = res $res->status, $data;
             }
 
             return $cb ? $cb->($api_res) : $api_res;
@@ -122,7 +122,7 @@ sub get_versions ( $self, $repo_id, $cb = undef ) {
                         $sub->( ++$page );
                     }
                     else {
-                        my $api_res = result 200, $versions;
+                        my $api_res = res 200, $versions;
 
                         $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
                     }
@@ -183,7 +183,7 @@ sub get_milestones ( $self, $repo_id, $cb = undef ) {
                         $sub->( ++$page );
                     }
                     else {
-                        my $api_res = result 200, $versions;
+                        my $api_res = res 200, $versions;
 
                         $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
                     }
@@ -252,7 +252,7 @@ sub get_issues ( $self, $repo_id, @args ) {
                         $issues->{ $issue->{local_id} } = $issue;
                     }
 
-                    my $api_res = result 200, data => $issues, total => $res->{data}->{count};
+                    my $api_res = res 200, data => $issues, total => $res->{data}->{count};
 
                     $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
                 }

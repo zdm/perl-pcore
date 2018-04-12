@@ -1,6 +1,6 @@
 package Pcore::Handle::DBI;
 
-use Pcore -role, -const, -result;
+use Pcore -role, -const;
 use Pcore::Handle::DBI::STH;
 use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_blessed_arrayref is_blessed_hashref];
 

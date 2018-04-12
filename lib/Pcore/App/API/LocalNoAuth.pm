@@ -1,11 +1,11 @@
 package Pcore::App::API::LocalNoAuth;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 
 with qw[Pcore::App::API];
 
 sub init ( $self ) {
-    return result 200;
+    return res 200;
 }
 
 # AUTHENTICATE
@@ -22,14 +22,14 @@ sub authenticate_private ( $self, $private_token, $cb ) {
 }
 
 sub do_authenticate_private ( $self, $private_token ) {
-    return result [ 404, 'User not found' ];
+    return res [ 404, 'User not found' ];
 }
 
 # USER
 sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # user already exists
-    return result [ 400, 'Auth backend is not available' ];
+    return res [ 400, 'Auth backend is not available' ];
 }
 
 1;

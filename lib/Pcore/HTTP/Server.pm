@@ -1,6 +1,6 @@
 package Pcore::HTTP::Server;
 
-use Pcore -class, -const, -result;
+use Pcore -class, -const, -res;
 use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
 use Pcore::Util::Scalar qw[is_blessed_ref];
@@ -275,7 +275,7 @@ sub wait_headers ( $self, $h ) {
 }
 
 sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
-    $status = result $status if !is_blessed_ref $status;
+    $status = res $status if !is_blessed_ref $status;
 
     my $buf = "HTTP/1.1 $status->{status} $status->{reason}\r\nContent-Length:0\r\n";
 

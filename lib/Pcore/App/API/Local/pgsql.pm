@@ -1,6 +1,6 @@
 package Pcore::App::API::Local::pgsql;
 
-use Pcore -class, -result, -sql;
+use Pcore -class, -res, -sql;
 use Pcore::Util::UUID qw[uuid_v4_str];
 
 with qw[Pcore::App::API::Local];
@@ -68,34 +68,34 @@ sub _db_create_user ( $self, $dbh, $user_name, $hash, $enabled ) {
     my $res = $dbh->do( 'INSERT INTO "api_user" ("id", "name", "hash", "enabled") VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING', [ SQL_UUID $user_id, SQL_UUID $user_name, SQL_BYTEA $hash, SQL_BOOL $enabled ] );
 
     if ( !$res->rows ) {
-        return result 500;
+        return res 500;
     }
     else {
-        return result 200, { id => $user_id };
+        return res 200, { id => $user_id };
     }
 }
 
 sub _db_set_user_permissions ( $self, $dbh, $user_id, $roles_ids ) {
     my $res = $dbh->do( [ 'INSERT INTO "api_user_permission"', VALUES [ map { { role_id => SQL_UUID $_, user_id => SQL_UUID $user_id } } $roles_ids->@* ], 'ON CONFLICT DO NOTHING' ] );
 
-    return result 500 if !$res;
+    return res 500 if !$res;
 
-    my $modified = $res->rows;
+    my $modified = $res->{rows};
 
     # remove permissions
     $res = $dbh->do( [ 'DELETE FROM "api_user_permission" WHERE "user_id" =', SQL_UUID $user_id, 'AND "role_id" NOT', IN $roles_ids ] );
 
     if ( !$res ) {
-        return result 500;
+        return res 500;
     }
     else {
-        $modified += $res->rows;
+        $modified += $res->{rows};
 
         if ($modified) {
-            return result 200, { user_id => $user_id };
+            return res 200, { user_id => $user_id };
         }
         else {
-            return result 204;
+            return res 204;
         }
     }
 }

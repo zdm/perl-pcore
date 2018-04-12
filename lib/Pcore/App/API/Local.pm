@@ -1,6 +1,6 @@
 package Pcore::App::API::Local;
 
-use Pcore -const, -role, -result, -sql;
+use Pcore -const, -role, -res, -sql;
 use Pcore::App::API qw[:CONST];
 use Pcore::Util::Data qw[to_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
@@ -58,7 +58,7 @@ sub init ( $self ) {
 
     say $res . ( $res ? ", password: $root_password" : q[] );
 
-    return result 200;
+    return res 200;
 }
 
 # AUTHENTICATE
@@ -73,7 +73,7 @@ sub do_authenticate_private ( $self, $private_token ) {
         return $self->_auth_user_token($private_token);
     }
     else {
-        return result [ 400, 'Invalid token type' ];
+        return res [ 400, 'Invalid token type' ];
     }
 }
 
@@ -97,7 +97,7 @@ sub _verify_token_hash ( $self, $private_token_hash, $hash ) {
     else {
         my $res = $self->{app}->{rpc}->rpc_call( 'Pcore::App::API::RPC::Hash', 'verify_hash', $private_token_hash, $hash );
 
-        return $self->{_hash_cache}->{$cache_id} = $res->{match} ? result 200 : result [ 400, 'Invalid token' ];
+        return $self->{_hash_cache}->{$cache_id} = $res->{match} ? res 200 : res [ 400, 'Invalid token' ];
     }
 }
 
@@ -114,7 +114,7 @@ sub _generate_user_password_hash ( $self, $user_name_utf8, $user_password_utf8 )
         return $res;
     }
     else {
-        return result 200, { hash => $res->{hash} };
+        return res 200, { hash => $res->{hash} };
     }
 }
 
@@ -131,7 +131,7 @@ sub _generate_token ( $self, $token_type ) {
         return $res;
     }
     else {
-        return result 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} };
+        return res 200, { id => $token_id->str, token => $public_token, hash => $res->{hash} };
     }
 }
 
@@ -148,31 +148,31 @@ sub _return_auth ( $self, $private_token, $user_id, $user_name ) {
 
     # is a root user
     if ( $auth->{is_root} ) {
-        return result 200, $auth;
+        return res 200, $auth;
     }
     else {
         if ( $private_token->[0] == $TOKEN_TYPE_USER_TOKEN ) {
             my $res = $self->_db_get_user_token_permissions( $self->{dbh}, $private_token->[1] );
 
             if ( !$res ) {
-                return result 500;
+                return res 500;
             }
             else {
                 $auth->{permissions} = { map { $_->{role_name} => 1 } $res->@* };
 
-                return result 200, $auth;
+                return res 200, $auth;
             }
         }
         else {
             my $res = $self->_db_get_user_permissions( $self->{dbh}, $user_id );
 
             if ( !$res ) {
-                return result 500;
+                return res 500;
             }
             else {
                 $auth->{permissions} = { map { $_->{role_name} => 1 } $res->@* };
 
-                return result 200, $auth;
+                return res 200, $auth;
             }
         }
     }
@@ -186,12 +186,12 @@ sub _auth_user_password ( $self, $private_token ) {
 
     # user not found
     if ( !$user->@* ) {
-        return result [ 404, 'User not found' ];
+        return res [ 404, 'User not found' ];
     }
 
     # user is disabled
     if ( !$user->{enabled} ) {
-        return result [ 404, 'User is disabled' ];
+        return res [ 404, 'User is disabled' ];
     }
 
     # verify token
@@ -212,7 +212,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
     # validate user name
     if ( !$self->validate_name($user_name) ) {
-        return result [ 400, 'User name is not valid' ];
+        return res [ 400, 'User name is not valid' ];
     }
 
     state $on_finish = sub ( $dbh, $res ) {
@@ -226,7 +226,7 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
 
             # error committing transaction
             if ( !$res1 ) {
-                return result 500;
+                return res 500;
             }
             else {
                 return $res;
@@ -240,25 +240,25 @@ sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
     my ( $dbh, $res ) = $self->{dbh}->begin_work;
 
     # failed to start transaction
-    return result 500 if !$res;
+    return res 500 if !$res;
 
     # check, that user is not exists
     my $user = $self->_db_get_user( $dbh, $user_name );
 
     # user already exists
-    return $on_finish->( $dbh, result [ 400, 'User name already exists' ] ) if $user;
+    return $on_finish->( $dbh, res [ 400, 'User name already exists' ] ) if $user;
 
     # generate user password hash
     $res = $self->_generate_user_password_hash( $user_name, $password );
 
     # error generating hash
-    return $on_finish->( $dbh, result 500 ) if !$res;
+    return $on_finish->( $dbh, res 500 ) if !$res;
 
     # insert user
     $user = $self->_db_create_user( $dbh, $user_name, $res->{data}->{hash}, $enabled );
 
     # failed to insert user
-    return $on_finish->( $dbh, result 500 ) if !$user;
+    return $on_finish->( $dbh, res 500 ) if !$user;
 
     # set user permissions
     $res = $self->_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
@@ -292,7 +292,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
 
         # error, strating transaction
         if ( !$res ) {
-            return result 500;
+            return res 500;
         }
         else {
             $res = $self->_set_user_permissions( $dbh, $user->{data}->{id}, $permissions );
@@ -308,7 +308,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
 
                 # commit error
                 if ( !$res1 ) {
-                    return result 500;
+                    return res 500;
                 }
 
                 # commit ok
@@ -326,7 +326,7 @@ sub set_user_permissions ( $self, $user_id, $permissions ) {
 
 sub _set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
     if ( !$permissions || !$permissions->@* ) {
-        return result 204;    # not modified
+        return res 204;    # not modified
     }
 
     my $roles = $self->_db_get_roles($dbh);
@@ -346,7 +346,7 @@ sub _set_user_permissions ( $self, $dbh, $user_id, $permissions ) {
 
             # permission role wasn't found
             if ( !$perm_role_id ) {
-                return result [ 400, qq[role "$perm" is invlalid] ];
+                return res [ 400, qq[role "$perm" is invlalid] ];
             }
 
             push $roles_ids->@*, $perm_role_id;
@@ -370,7 +370,7 @@ sub set_user_password ( $self, $user_id, $password ) {
 
         # password hash genereation error
         if ( !$password_hash ) {
-            return result 500;
+            return res 500;
         }
 
         # password hash generated
@@ -378,18 +378,18 @@ sub set_user_password ( $self, $user_id, $password ) {
             my $res = $self->{dbh}->do( q[UPDATE "api_user" SET "hash" = ? WHERE "id" = ?], [ SQL_BYTEA $password_hash->{data}->{hash}, SQL_UUID $user->{data}->{id} ] );
 
             if ( !$res ) {
-                return result 500;
+                return res 500;
             }
             else {
                 if ( !$res->rows ) {
-                    return result 500;
+                    return res 500;
                 }
                 else {
 
                     # fire AUTH event if user password was changed
                     P->fire_event('APP.API.AUTH');
 
-                    return result 200;
+                    return res 200;
                 }
             }
         }
@@ -412,23 +412,23 @@ sub set_user_enabled ( $self, $user_id, $enabled ) {
             my $res = $self->{dbh}->do( q[UPDATE "api_user" SET "enabled" = ? WHERE "id" = ?], [ SQL_BOOL $enabled, SQL_UUID $user->{data}->{id} ] );
 
             if ( !$res ) {
-                return result 500;
+                return res 500;
             }
             elsif ( !$res->rows ) {
-                return result 500;
+                return res 500;
             }
             else {
 
                 # fire AUTH event if user was disabled
                 P->fire_event('APP.API.AUTH') if !$enabled;
 
-                return result 200, { enabled => $enabled };
+                return res 200, { enabled => $enabled };
             }
         }
         else {
 
             # not modified
-            return result 204, { enabled => $enabled };
+            return res 204, { enabled => $enabled };
         }
     }
 }
@@ -456,7 +456,7 @@ SQL
 
     # user is disabled
     if ( !$user_token->{user_enabled} ) {
-        return result 404;
+        return res 404;
     }
 
     # verify token
@@ -514,7 +514,7 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
 
                 # some permissions are invalid or not allowed
                 if ( $permissions->@* != $user_permissions->@* ) {
-                    return result 500;
+                    return res 500;
                 }
             }
 
@@ -530,16 +530,16 @@ sub create_user_token ( $self, $user_id, $desc, $permissions ) {
                 if ( !$res ) {
                     my $res1 = $dbh->rollback;
 
-                    return result 500;
+                    return res 500;
                 }
                 else {
                     my $res1 = $dbh->commit;
 
                     if ( !$res1 ) {
-                        return result 500;
+                        return res 500;
                     }
                     else {
-                        return result 200,
+                        return res 200,
                           { id    => $token->{data}->{id},
                             type  => $type,
                             token => $token->{data}->{token},
@@ -574,15 +574,15 @@ sub remove_user_token ( $self, $user_token_id ) {
     my $res = $self->{dbh}->do( 'DELETE FROM "api_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_token_id, $TOKEN_TYPE_USER_TOKEN ] );
 
     if ( !$res ) {
-        return result 500;
+        return res 500;
     }
     elsif ( !$res->rows ) {
-        return result 204;    # not found
+        return res 204;    # not found
     }
     else {
         P->fire_event('APP.API.AUTH');
 
-        return result 200;
+        return res 200;
     }
 }
 
@@ -612,10 +612,10 @@ sub create_user_session ( $self, $user_id ) {
             my $res = $self->{dbh}->do( 'INSERT INTO "api_user_token" ("id", "type", "user_id", "hash") VALUES (?, ?, ?, ?)', [ SQL_UUID $token->{data}->{id}, $type, SQL_UUID $user->{data}->{id}, SQL_BYTEA $token->{data}->{hash} ] );
 
             if ( !$res->rows ) {
-                return result 500;
+                return res 500;
             }
             else {
-                return result 200,
+                return res 200,
                   { id    => $token->{data}->{id},
                     type  => $type,
                     token => $token->{data}->{token},
@@ -629,15 +629,15 @@ sub remove_user_session ( $self, $user_sid ) {
     my $res = $self->{dbh}->do( 'DELETE FROM "api_user_token" WHERE "id" = ? AND "type" = ?', [ SQL_UUID $user_sid, $TOKEN_TYPE_USER_SESSION ] );
 
     if ( !$res ) {
-        return result 500;
+        return res 500;
     }
     elsif ( !$res->rows ) {
-        return result 204;    # not found
+        return res 204;    # not found
     }
     else {
         P->fire_event('APP.API.AUTH');
 
-        return result 200;
+        return res 200;
     }
 
     return;
@@ -655,15 +655,15 @@ sub _db_get_user ( $self, $dbh, $user_id ) {
 
     # query error
     if ( !$user ) {
-        return result 500;
+        return res 500;
     }
 
     # user not found
     elsif ( !$user->@* ) {
-        return result [ 404, 'User not found' ];
+        return res [ 404, 'User not found' ];
     }
     else {
-        return result 200, $user;
+        return res 200, $user;
     }
 
     return;

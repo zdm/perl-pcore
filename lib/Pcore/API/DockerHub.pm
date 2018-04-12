@@ -1,6 +1,6 @@
 package Pcore::API::DockerHub;
 
-use Pcore -const, -class, -result, -export => { DOCKERHUB_SOURCE_TYPE => [qw[$DOCKERHUB_SOURCE_TYPE_TAG $DOCKERHUB_SOURCE_TYPE_BRANCH]] };
+use Pcore -const, -class, -res, -export => { DOCKERHUB_SOURCE_TYPE => [qw[$DOCKERHUB_SOURCE_TYPE_TAG $DOCKERHUB_SOURCE_TYPE_BRANCH]] };
 use Pcore::Util::Scalar qw[is_plain_coderef];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -90,7 +90,7 @@ sub _req ( $self, $method, $endpoint, $require_auth, $data, $cb = undef ) {
             },
             body => $data ? P->data->to_json($data) : undef,
             sub ($res) {
-                my $api_res = result [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
+                my $api_res = res [ $res->status, $res->reason ], $res->body && $res->body->$* ? P->data->from_json( $res->body ) : ();
 
                 $rouse_cb ? $cb ? $rouse_cb->( $cb->($api_res) ) : $rouse_cb->($api_res) : $cb ? $cb->($api_res) : ();
 
@@ -152,9 +152,7 @@ sub get_user_orgs ( $self, $cb = undef ) {
                 $res->{data} = $data;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -258,9 +256,7 @@ sub get_all_repos ( $self, $namespace, $cb = undef ) {
                 $res->{data} = $data;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -275,9 +271,7 @@ sub get_repo ( $self, $repo_id, $cb = undef ) {
                 $res->{data}->{id} = $repo_id;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -312,9 +306,7 @@ sub get_tags ( $self, $repo_id, $cb = undef ) {
                 $res->{data} = $data;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -366,9 +358,7 @@ sub get_autobuild_links ( $self, $repo_id, $cb = undef ) {
                 $res->{data} = $data;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -401,9 +391,7 @@ sub get_build_history ( $self, $repo_id, $cb = undef ) {
                 $res->{data} = $data;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -418,7 +406,7 @@ sub unlink_tag ( $self, $repo_id, $tag_name, $cb = undef ) {
     my ( $delete_autobuild_tag_status, $delete_tag_status );
 
     my $cv = AE::cv {
-        my $res = result [ 200, "autobuild: $delete_autobuild_tag_status->{reason}, tag: $delete_tag_status->{reason}" ];
+        my $res = res [ 200, "autobuild: $delete_autobuild_tag_status->{reason}, tag: $delete_tag_status->{reason}" ];
 
         $rouse_cb ? $cb ? $rouse_cb->( $cb->($res) ) : $rouse_cb->($res) : $cb ? $cb->($res) : ();
 
@@ -475,9 +463,7 @@ sub get_autobuild_tags ( $self, $repo_id, $cb = undef ) {
                 $res->{data} = $data;
             }
 
-            $cb->($res) if $cb;
-
-            return;
+            return $cb ? $cb->($res) : $res;
         }
     );
 }
@@ -533,7 +519,7 @@ sub delete_autobuild_tag_by_name ( $self, $repo_id, $autobuild_tag_name, $cb = u
                 }
 
                 if ( !$found_autobuild_tag ) {
-                    $on_finish->( result [ 404, 'Autobuild tag was not found' ] );
+                    $on_finish->( res [ 404, 'Autobuild tag was not found' ] );
                 }
                 else {
                     $self->delete_autobuild_tag_by_id( $repo_id, $found_autobuild_tag->{id}, $on_finish );
@@ -588,7 +574,7 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
                 }
 
                 if ( !$found_autobuild_tag ) {
-                    $on_finish->( result [ 404, 'Autobuild tag was not found' ] );
+                    $on_finish->( res [ 404, 'Autobuild tag was not found' ] );
                 }
                 else {
                     $self->trigger_autobuild( $repo_id, $found_autobuild_tag->{source_name}, $found_autobuild_tag->{source_type}, $on_finish );
@@ -609,12 +595,12 @@ sub trigger_autobuild_by_tag_name ( $self, $repo_id, $autobuild_tag_name, $cb = 
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 81, 188, 322, 332,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |      | 348, 376, 380, 415,  |                                                                                                                |
-## |      | 485, 504, 508, 550,  |                                                                                                                |
-## |      | 563                  |                                                                                                                |
+## |    3 | 81, 186, 314, 324,   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |      | 340, 366, 370, 403,  |                                                                                                                |
+## |      | 471, 490, 494, 536,  |                                                                                                                |
+## |      | 549                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 166                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
+## |    1 | 164                  | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

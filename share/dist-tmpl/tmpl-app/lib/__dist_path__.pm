@@ -1,6 +1,6 @@
 package <: $module_name :> v0.0.0;
 
-use Pcore -dist, -class, -const, -result;
+use Pcore -dist, -class, -const, -res;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 use <: $module_name ~ "::Util" :>;
 
@@ -49,7 +49,7 @@ sub run ( $self ) {
     );
 
     # app ready
-    return result 200;
+    return res 200;
 }
 
 1;

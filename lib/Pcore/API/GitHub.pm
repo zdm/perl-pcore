@@ -1,6 +1,6 @@
 package Pcore::API::GitHub;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_plain_coderef];
 
 has username => ( is => 'ro', isa => Str, required => 1 );
@@ -28,10 +28,10 @@ sub _req ( $self, $method, $endpoint, $data, $cb = undef ) {
             my $api_res;
 
             if ( !$res ) {
-                $api_res = result [ $res->status, $data->{message} // $res->reason ];
+                $api_res = res [ $res->status, $data->{message} // $res->reason ];
             }
             else {
-                $api_res = result $res->status, $data;
+                $api_res = res $res->status, $data;
             }
 
             return $cb ? $cb->($api_res) : $api_res;

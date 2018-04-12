@@ -1,6 +1,6 @@
 package Pcore::RPC::Hub;
 
-use Pcore -class, -result;
+use Pcore -class, -res;
 use Pcore::Util::Scalar qw[refaddr weaken is_plain_coderef is_blessed_ref];
 use Pcore::RPC::Proc;
 use Pcore::WebSocket;
@@ -108,7 +108,7 @@ sub run_rpc ( $self, @args ) {
 
     Coro::rouse_wait $cb;
 
-    return result 200;
+    return res 200;
 }
 
 sub _connect_rpc ( $self, $conn, $listen_events = undef, $forward_events = undef, $cb = undef ) {
@@ -181,7 +181,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
     my $ws = shift $self->{conn_type}->{$type}->@*;
 
     if ( !defined $ws ) {
-        my $res = result [ 404, qq[RPC type "$type" is not available] ];
+        my $res = res [ 404, qq[RPC type "$type" is not available] ];
 
         $cb->($res) if defined $cb;
 

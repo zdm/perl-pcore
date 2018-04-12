@@ -1,6 +1,6 @@
 package Pcore::App::API;
 
-use Pcore -role, -result, -const, -export => { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
+use Pcore -role, -const, -export => { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 use Pcore::App::API::Map;
 use Pcore::App::API::Auth;
 use Pcore::Util::Data qw[from_b64 from_b64_url];
