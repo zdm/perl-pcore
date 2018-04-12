@@ -127,10 +127,10 @@ sub _scm_cmd ( $self, $cmd, $root = undef, $cb = undef ) {
                 my $result;
 
                 if ( exists $res->{e} ) {
-                    $result = result [ 500, join q[ ], $res->{e}->@* ];
+                    $result = res [ 500, join q[ ], $res->{e}->@* ];
                 }
                 else {
-                    $result = result 200, $res->{o};
+                    $result = res 200, $res->{o};
                 }
 
                 $rouse_cb ? $cb ? $rouse_cb->( $cb->($result) ) : $rouse_cb->($result) : $cb ? $cb->($result) : ();
