@@ -175,9 +175,9 @@ sub import {
 
         # process -res pragma
         if ( $import->{pragma}->{res} ) {
-            state $RESULT_INIT = !!require Pcore::Util::Result1;
+            state $RESULT_INIT = !!require Pcore::Util::Result;
 
-            Pcore::Util::Result1->import( -caller => $caller, qw[res] );
+            Pcore::Util::Result->import( -caller => $caller, qw[res] );
         }
 
         # process -sql pragma
