@@ -183,15 +183,13 @@ sub rpc_call ( $self, $type, $method, @args ) {
     if ( !defined $ws ) {
         my $res = res [ 404, qq[RPC type "$type" is not available] ];
 
-        $cb->($res) if defined $cb;
-
-        return $res;
+        return $cb ? $cb->($res) : $res;
     }
 
     push $self->{conn_type}->{$type}->@*, $ws;
 
     if ( defined wantarray ) {
-        $ws->rpc_call( $method, @args, my $rouse_cb = Coro::rouse_cb );
+        $ws->rpc_call( $method, \@args, my $rouse_cb = Coro::rouse_cb );
 
         # block
         my $res = Coro::rouse_wait $rouse_cb;
@@ -199,7 +197,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
         return $cb ? $cb->($res) : $res;
     }
     else {
-        $ws->rpc_call( $method, @args, $cb // () );
+        $ws->rpc_call( $method, \@args, $cb );
 
         return;
     }

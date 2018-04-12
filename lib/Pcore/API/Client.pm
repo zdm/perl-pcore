@@ -82,18 +82,17 @@ sub api_call ( $self, $method, @args ) {
         }
     }
 
+    # parse callback
+    my $cb = is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ? pop : undef;
+
     if ( defined wantarray ) {
-
-        # parse callback
-        my $cb = is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ? pop : ();
-
         my $rouse_cb = Coro::roouse_cb;
 
         if ( $self->{_is_http} ) {
-            $self->_send_http( $method, @args, $rouse_cb );
+            $self->_send_http( $method, \@args, $rouse_cb );
         }
         else {
-            $self->_send_ws( $method, @args, $rouse_cb );
+            $self->_send_ws( $method, \@args, $rouse_cb );
         }
 
         my $res = Coro::rouse_wait $rouse_cb;
@@ -102,34 +101,22 @@ sub api_call ( $self, $method, @args ) {
     }
     else {
         if ( $self->{_is_http} ) {
-            $self->_send_http( $method, @args );
+            $self->_send_http( $method, \@args, undef );
         }
         else {
-            $self->_send_ws( $method, @args );
+            $self->_send_ws( $method, \@args, undef );
         }
 
         return;
     }
 }
 
-sub _send_http ( $self, $method, @ ) {
-    my ( $cb, $data );
-
-    # detect callback
-    if ( is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ) {
-        $cb = $_[-1];
-
-        $data = [ @_[ 2 .. $#_ - 1 ] ] if @_ > 3;
-    }
-    else {
-        $data = [ @_[ 2 .. $#_ ] ] if @_ > 2;
-    }
-
+sub _send_http ( $self, $method, $args, $cb ) {
     my $payload = {
         type   => 'rpc',
         method => $method,
-        ( $cb   ? ( tid  => uuid_v1mc_str ) : () ),
-        ( $data ? ( data => $data )         : () ),
+        data   => $args,
+        ( $cb ? ( tid => uuid_v1mc_str ) : () ),
     };
 
     P->http->post(
@@ -173,16 +160,14 @@ sub _send_http ( $self, $method, @ ) {
     return;
 }
 
-sub _send_ws ( $self, @args ) {
-    my $cb = is_plain_coderef $_[-1] || ( is_blessed_ref $_[-1] && $_[-1]->can('IS_CALLBACK') ) ? $_[-1] : undef;
-
+sub _send_ws ( $self, $method, $args, $cb ) {
     $self->_get_ws(
         sub ( $ws, $error ) {
             if ( defined $error ) {
                 $cb->($error) if $cb;
             }
             else {
-                $ws->rpc_call(@args);
+                $ws->rpc_call( $method, $args, $cb );
             }
 
             return;
