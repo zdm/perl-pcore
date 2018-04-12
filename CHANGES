@@ -1,3 +1,6 @@
+v0.61.1 2018-04-12T16:04:24Z
+ - invalid method call
+
 v0.61.0 2018-04-12T16:01:58Z
  - app init rewrited using coro
  - RPC hub coro
