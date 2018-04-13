@@ -399,24 +399,13 @@ sub _CORE_INIT {
     }
 
     # STDOUT
-    open our $STDOUT_UTF8, '>&STDOUT' or $STDOUT_UTF8 = *STDOUT;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles]
-
-    _config_stdout($STDOUT_UTF8);
-
-    # STDERR
-    open our $STDERR_UTF8, '>&STDERR' or $STDERR_UTF8 = *STDERR;    ## no critic qw[InputOutput::ProhibitBarewordFileHandles]
-
-    _config_stdout($STDERR_UTF8);
-
-    select $STDOUT_UTF8;                                            ## no critic qw[InputOutput::ProhibitOneArgSelect]
+    _config_stdout(*STDOUT);
+    _config_stdout(*STDERR);
 
     STDOUT->autoflush(1);
     STDERR->autoflush(1);
 
-    $STDOUT_UTF8->autoflush(1);
-    $STDERR_UTF8->autoflush(1);
-
-    require Pcore::Core::Exception;                                 # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
+    require Pcore::Core::Exception;    # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
 
     require Pcore::RPC::Tmpl if $FORK && !$MSWIN;
 
@@ -662,13 +651,13 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 330                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 458                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |      | 447                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 362, 391, 394, 398,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 440, 443, 448, 451,  |                                                                                                                |
-## |      | 476, 502, 638        |                                                                                                                |
+## |      | 429, 432, 437, 440,  |                                                                                                                |
+## |      | 465, 491, 627        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 564                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 553                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 265                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

@@ -11,7 +11,11 @@ our $TESTS = 5;
 
 plan tests => $TESTS;
 
-$Pcore::App::APP_API_ROLES = [ 'admin', 'user' ];
+{
+    no warnings qw[once];
+
+    $Pcore::App::APP_API_ROLES = [ 'admin', 'user' ];
+}
 
 my $app = bless { app_cfg => { api => { connect => 'sqlite:', rpc => { workers => 1 } } } }, 'Pcore::App';
 
