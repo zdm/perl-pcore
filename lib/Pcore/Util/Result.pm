@@ -3,6 +3,7 @@ package Pcore::Util::Result;
 use Pcore -export => [qw[res]];
 use Pcore::Util::Result::Status;
 use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
+use Pcore::Util::Result::Status;
 
 use overload    #
   q[bool] => sub {
@@ -29,7 +30,7 @@ sub res ( $status, @args ) {
             $hash->{reason} = Pcore::Util::Result::Status::get_reason( undef, $status->[0], $status->[1] );
         }
         else {
-            $hash->{reason} = $status->[1] // get_reason( undef, $status->[0], $status->[2] );
+            $hash->{reason} = $status->[1] // Pcore::Util::Result::Status::get_reason( undef, $status->[0], $status->[2] );
         }
     }
     else {
