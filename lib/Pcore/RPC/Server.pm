@@ -106,7 +106,7 @@ sub run ( $type, $rpc_boot_args ) {
                         },
                         ( $can_rpc_on_connect ? ( on_connect => sub ($ws) { $rpc->RPC_ON_CONNECT($ws); return } ) : () ),    #
                         ( $can_rpc_on_disconnect ? ( on_disconnect => sub ( $ws, $status ) { $rpc->RPC_ON_DISCONNECT( $ws, $status ); return; } ) : () ),
-                        on_rpc => sub ( $ws, $req, $tx ) {
+                        on_rpc => Coro::unblock_sub sub ( $ws, $req, $tx ) {
                             my $method_name = "API_$tx->{method}";
 
                             if ( $rpc->can($method_name) ) {
