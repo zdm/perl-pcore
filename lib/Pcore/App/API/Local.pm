@@ -182,7 +182,7 @@ sub _auth_user_password ( $self, $private_token ) {
     return $status if !$status;
 
     # token is valid
-    return $self->_return_auth( $private_token, $user->{id}, $private_token->[1] );
+    return $self->_return_auth( $private_token, $user->{data}->{id}, $private_token->[1] );
 }
 
 sub create_user ( $self, $user_name, $password, $enabled, $permissions ) {
