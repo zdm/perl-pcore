@@ -7,7 +7,7 @@ use Pcore::Util::Data qw[from_cbor];
 our ( $CPID, $R, $W, $QUEUE );
 
 END {
-    kill 'KILL', $CPID if defined $CPID;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    kill 'TERM', $CPID if defined $CPID;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 }
 
 _fork_tmpl();
@@ -73,6 +73,8 @@ sub _tmpl_proc ( $r, $w ) {
     # child
     $0 = 'Pcore::RPC::Tmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
+    local $SIG{TERM} = sub { exit 128 + 15 };
+
     while (1) {
         sysread $r, my $len, 4 or die $!;
 
@@ -80,6 +82,8 @@ sub _tmpl_proc ( $r, $w ) {
 
         if ( !fork ) {
             close $r or die $!;
+
+            undef $SIG{TERM};
 
             _rpc_proc( $w, P->data->from_cbor($data) );
         }
@@ -144,7 +148,7 @@ sub DESTROY ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20, 92               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 20, 96               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
