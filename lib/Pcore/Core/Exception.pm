@@ -36,11 +36,10 @@ $EV::DIED = sub {
 
 # catch unhandled errors in Coro::async threads
 $Coro::State::DIEHOOK = sub {
+    my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, with_trace => 1 );
 
     # not in eval
     if ( !$^S ) {
-        my $e = Pcore::Core::Exception::Object->new( $_[0], level => 'ERROR', skip_frames => 1, with_trace => 1 );
-
         {
             local $@;
 
@@ -49,6 +48,9 @@ $Coro::State::DIEHOOK = sub {
 
         # cancel current coro execution. but not exit the script
         $Coro::current->cancel;
+    }
+    else {
+        CORE::die $e;    # set $@ to $e
     }
 
     return;
@@ -179,10 +181,10 @@ sub cluck {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 29, 45, 62, 95, 106, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
-## |      |  119                 |                                                                                                                |
+## |    3 | 29, 44, 64, 97, 108, | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |      |  121                 |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 31, 47, 64, 97, 108  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 31, 46, 66, 99, 110  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
