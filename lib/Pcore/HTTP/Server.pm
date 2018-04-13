@@ -52,6 +52,7 @@ const our $PSGI_ENV => {
 # TODO implement shutdown and graceful shutdown
 
 sub run ($self) {
+    $self->{_unblocked_app} = Coro::unblock_sub { $self->{app}->( $_[0] ) };
 
     # parse listen
     if ( $self->{listen} =~ /\Aunix:(.+)/sm ) {
@@ -253,10 +254,7 @@ sub wait_headers ( $self, $h ) {
                                   },
                                   'Pcore::HTTP::Server::Request';
 
-                                # evaluate application
-                                eval { $self->{app}->($req); 1; } or do {
-                                    $@->sendlog if $@;
-                                };
+                                $self->{_unblocked_app}->($req);
                             }
 
                             return;

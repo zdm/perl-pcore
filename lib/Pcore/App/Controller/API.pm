@@ -25,7 +25,7 @@ sub run ( $self, $req ) {
     if ( $req->is_websocket_connect_request ) {
         Pcore::WebSocket->accept_ws(
             'pcore', $req,
-            Coro::unblock_sub sub ( $req, $accept, $reject ) {
+            sub ( $req, $accept, $reject ) {
 
                 # authenticate request
                 $req->authenticate( sub ( $auth ) {
