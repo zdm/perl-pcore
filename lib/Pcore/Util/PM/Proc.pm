@@ -161,7 +161,9 @@ sub _redirect_std ( $self, $args ) {
         ( $hdl->{out_r}, $hdl->{out_w} ) = portable_socketpair();
 
         # backup current STDOUT handle
+        binmode *STDOUT or die if $MSWIN;
         open $hdl->{old_out}, '>&', *STDOUT or die;
+        Pcore::config_stdout(*STDOUT) if $MSWIN;
     }
 
     # create STDERR
@@ -174,7 +176,9 @@ sub _redirect_std ( $self, $args ) {
         }
 
         # backup current STDERR handle
+        binmode *STDERR or die if $MSWIN;
         open $hdl->{old_err}, '>&', *STDERR or die;
+        Pcore::config_stdout(*STDERR) if $MSWIN;
     }
 
     # redirect STD* handles
@@ -356,6 +360,8 @@ sub _on_exit ( $self, $status ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (25)                               |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 148                  | Subroutines::ProhibitExcessComplexity - Subroutine "_redirect_std" with high complexity score (23)             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

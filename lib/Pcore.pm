@@ -399,8 +399,8 @@ sub _CORE_INIT {
     }
 
     # STDOUT
-    _config_stdout(*STDOUT);
-    _config_stdout(*STDERR);
+    config_stdout(*STDOUT);
+    config_stdout(*STDERR);
 
     STDOUT->autoflush(1);
     STDERR->autoflush(1);
@@ -421,7 +421,7 @@ sub _CORE_INIT_AFTER_FORK {
 }
 
 # TODO add PerlIO::removeEsc layer
-sub _config_stdout ($h) {
+sub config_stdout ($h) {
     if ($MSWIN) {
         if ( -t $h ) {    ## no critic qw[InputOutput::ProhibitInteractiveTest]
             state $init = !!require Pcore::Core::PerlIOviaWinUniCon;
