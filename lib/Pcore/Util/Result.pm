@@ -2,7 +2,7 @@ package Pcore::Util::Result;
 
 use Pcore -export => [qw[res]];
 use Pcore::Util::Result::Status;
-use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
+use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref is_blessed_hashref];
 use Pcore::Util::Result::Status;
 
 use overload    #
@@ -40,6 +40,17 @@ sub res ( $status, @args ) {
     }
 
     return $self;
+}
+
+sub get_standard_reason ( $self, $status ) {
+    $status = $status->{status} if is_blessed_hashref $status;
+
+    if ( exists $Pcore::Util::Result::Status::STATUS_REASON->{$status} ) { return $Pcore::Util::Result::Status::STATUS_REASON->{$status} }
+    elsif ( $status < 200 ) { return $Pcore::Util::Result::Status::STATUS_REASON->{'1xx'} }
+    elsif ( $status >= 200 && $status < 300 ) { return $Pcore::Util::Result::Status::STATUS_REASON->{'2xx'} }
+    elsif ( $status >= 300 && $status < 400 ) { return $Pcore::Util::Result::Status::STATUS_REASON->{'3xx'} }
+    elsif ( $status >= 400 && $status < 500 ) { return $Pcore::Util::Result::Status::STATUS_REASON->{'4xx'} }
+    else                                      { return $Pcore::Util::Result::Status::STATUS_REASON->{'5xx'} }
 }
 
 # STATUS METHODS

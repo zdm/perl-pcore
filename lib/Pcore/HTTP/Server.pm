@@ -3,7 +3,6 @@ package Pcore::HTTP::Server;
 use Pcore -class, -const, -res;
 use Pcore::AE::Handle;
 use AnyEvent::Socket qw[];
-use Pcore::Util::Scalar qw[is_blessed_ref];
 use Pcore::HTTP::Server::Request;
 
 # listen:
@@ -275,9 +274,10 @@ sub wait_headers ( $self, $h ) {
 }
 
 sub return_xxx ( $self, $h, $status, $use_keepalive = 0 ) {
-    $status = res $status if !is_blessed_ref $status;
+    $status = 0+ $status;
+    my $reason = Pcore::Util::Result::get_standard_reason($status);
 
-    my $buf = "HTTP/1.1 $status->{status} $status->{reason}\r\nContent-Length:0\r\n";
+    my $buf = "HTTP/1.1 $status $reason\r\nContent-Length:0\r\n";
 
     $buf .= 'Connection:' . ( $use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
 

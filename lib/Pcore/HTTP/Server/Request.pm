@@ -1,7 +1,7 @@
 package Pcore::HTTP::Server::Request;
 
 use Pcore -class, -const, -res;
-use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref];
+use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Pcore::Util::List qw[pairs];
 use Pcore::Util::Text qw[encode_utf8];
 
@@ -83,15 +83,16 @@ sub _respond ( $self, @ ) {
         # compose headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
         $buf = do {
-            my $status = is_blessed_ref $_[1] ? $_[1] : res $_[1];
+            my $status = 0+ $_[1];
+            my $reason = Pcore::Util::Result::get_standard_reason($status);
 
-            "HTTP/1.1 $status->{status} $status->{reason}$CRLF";
+            "HTTP/1.1 $status $reason\r\n";
         };
 
-        $buf .= "Server:$self->{_server}->{server_tokens}$CRLF" if $self->{_server}->{server_tokens};
+        $buf .= "Server:$self->{_server}->{server_tokens}\r\n" if $self->{_server}->{server_tokens};
 
         # always use chunked transfer
-        $buf .= "Transfer-Encoding:chunked$CRLF";
+        $buf .= "Transfer-Encoding:chunked\r\n";
 
         # keepalive
         $buf .= 'Connection:' . ( $self->_use_keepalive ? 'keep-alive' : 'close' ) . $CRLF;
@@ -155,7 +156,7 @@ sub finish ( $self, $trailing_headers = undef ) {
         $self->{_response_status} = $HTTP_SERVER_RESPONSE_FINISHED;
 
         # write last chunk
-        my $buf = "0$CRLF";
+        my $buf = "0\r\n";
 
         # write trailing headers
         # https://tools.ietf.org/html/rfc7230#section-3.2
