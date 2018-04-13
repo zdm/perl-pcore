@@ -52,7 +52,7 @@ sub run ( $self, $req ) {
                             return;
                         },
                         on_disconnect => undef,
-                        on_rpc        => sub ( $ws, $req, $tx ) {
+                        on_rpc        => Coro::unblock_sub sub ( $ws, $req, $tx ) {
                             $ws->{auth}->api_call_arrayref( $tx->{method}, $tx->{data}, $req );
 
                             return;
