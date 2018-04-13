@@ -42,7 +42,7 @@ sub res ( $status, @args ) {
     return $self;
 }
 
-sub get_standard_reason ( $self, $status ) {
+sub get_standard_reason ( $status ) {
     $status = $status->{status} if is_blessed_hashref $status;
 
     if ( exists $Pcore::Util::Result::Status::STATUS_REASON->{$status} ) { return $Pcore::Util::Result::Status::STATUS_REASON->{$status} }
