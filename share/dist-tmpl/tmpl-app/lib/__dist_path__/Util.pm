@@ -33,6 +33,10 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
+sub TO_DATA ($self) {
+    return { settings => $self->{settings} };
+}
+
 # DBH
 sub build_dbh ( $self, $db ) {
     $self->{dbh} = P->handle($db) if !defined $self->{dbh};
@@ -99,39 +103,25 @@ SQL
 
 # SETTINGS
 sub load_settings ( $self ) {
-    $self->{dbh}->selectrow( q[SELECT * FROM "settings" WHERE "id" = 1], Coro::rouse_cb );
+    my $settings = $self->{dbh}->selectrow(q[SELECT * FROM "settings" WHERE "id" = 1]);
 
-    my ( $dbh, $res, $data ) = Coro::rouse_wait;
+    P->fire_event( 'APP.SETTINGS_UPDATED', $settings->{data} ) if $settings;
 
-    P->fire_event( 'APP.SETTINGS_UPDATED', $data ) if $res;
-
-    return $res;
+    return $settings;
 }
 
 sub update_settings ( $self, $settings, $cb ) {
 
     # check SMTP port
     if ( exists $settings->{smtp_port} && $settings->{smtp_port} !~ /\A\d+\z/sm ) {
-        $cb->( res 400, error => { smtp_port => 'Port is invalid' } );
-
-        return;
+        return res 400, error => { smtp_port => 'Port is invalid' };
     }
 
-    $self->{dbh}->do(
-        [ q[UPDATE "settings"], SET($settings), 'WHERE "id" = 1' ],
-        sub ( $dbh, $status, $data ) {
-            if ( !$status ) {
-                $cb->( res 500 );
-            }
-            else {
-                $cb->( $self->load_settings );
-            }
+    my $res = $self->{dbh}->do( [ q[UPDATE "settings"], SET($settings), 'WHERE "id" = 1' ] );
 
-            return;
-        }
-    );
+    return $res if !$res;
 
-    return;
+    return $self->load_settings;
 }
 
 # SMTP
@@ -203,11 +193,11 @@ sub _build_recaptcha ($self) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 1, 6                 | ValuesAndExpressions::ProhibitInterpolationOfLiterals - Useless interpolation of literal string                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 152                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 142                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 158, 171             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 148, 161             | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 215                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 219 does not match the package declaration      |
+## |    1 | 205                  | Documentation::RequirePackageMatchesPodName - Pod NAME on line 209 does not match the package declaration      |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

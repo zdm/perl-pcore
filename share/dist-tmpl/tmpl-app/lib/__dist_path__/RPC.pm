@@ -10,7 +10,7 @@ has util => ( is => 'ro', isa => InstanceOf ['<: $module_name :>::Util'], init_a
 around BUILD => sub ( $orig, $self, $args ) {
     $self->{util} = <: $module_name ~ "::Util" :>->new;
 
-    $self->{util}->{settings} = $args->{util}->{settings};
+    $self->{util}->@{ keys $args->{util}->%* } = values $args->{util}->%*;
 
     $self->{util}->build_dbh( $self->{cfg}->{_}->{db} );
 

@@ -26,14 +26,14 @@ sub run ( $self ) {
     # run RPC
     print 'Starting RPC hub ... ';
     say $self->rpc->run_rpc(
-        {   type           => '<: $module_name :>::RPC::RPC1',
+        {   type           => '<: $module_name :>::RPC::Worker',
             workers        => 1,
             token          => undef,
             listen_events  => undef,
             forward_events => ['APP.SETTINGS_UPDATED'],
-            buildargs      => {                                  #
+            buildargs      => {                                    #
                 cfg  => $self->{cfg},
-                util => { settings => $self->{util}->{settings} },
+                util => $self->{util},
             },
         },
         {   type           => '<: $module_name :>::RPC::Log',
@@ -41,7 +41,7 @@ sub run ( $self ) {
             token          => undef,
             listen_events  => undef,
             forward_events => undef,
-            buildargs      => {                                  #
+            buildargs      => {                                    #
                 cfg  => $self->{cfg},
                 util => { settings => $self->{util}->{settings} },
             },
