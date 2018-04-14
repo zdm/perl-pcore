@@ -1,4 +1,4 @@
-package <: $module_name ~ "::RPC::RPC1" :>;
+package <: $module_name ~ "::RPC::Worker" :>;
 
 use Pcore -rpc, -class, -const;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
@@ -50,7 +50,7 @@ __END__
 
 =head1 NAME
 
-<: $module_name ~ "::RPC::RPC1" :>
+<: $module_name ~ "::RPC::Worker" :>
 
 =head1 SYNOPSIS
 
