@@ -1,3 +1,16 @@
+v0.61.4 2018-04-14T07:51:47Z
+ - handle die in coro
+ - result get reason fixed
+ - run api_request in coroutine
+ - invalid response usage fixed
+ - RPC::Log template fixed
+ - run HTTP request in Coro::async_pool
+ - RPC tmpl term handler
+ - run RPC on_rpc request in Coro::async_pool
+ - app router run requests in Coro::async_pool
+ - HTTP server return standard reason
+ - app tmpl updated
+
 v0.61.3 2018-04-13T01:28:05Z
  - STD*_UTF8 removed
 
