@@ -238,63 +238,38 @@ sub _connect ( $args, $runtime, $cb ) {
     #     );
     # }
     if ( $args->{proxy} ) {
-        $args->{proxy} = P->uri( $args->{proxy} ) if !is_ref $args->{proxy};
+        if ( !$args->{url}->is_secure ) {
+            $args->{proxy}->connect_http(
+                $args->{url},
+                sub ( $h, $res ) {
+                    if ( !$res ) {
+                        $runtime->{finish}->( $runtime->{on_error_status}, $res->{reason} );
+                    }
+                    else {
+                        $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $args->{proxy}->{uri}->userinfo_b64 if $args->{proxy}->{uri}->userinfo_b64;
 
-        die 'Invalid proxy type' if !$args->{proxy}->is_http;
+                        $cb->($h);
+                    }
 
-        Pcore::AE::Handle->new(
-            $args->{handle_params}->%*,
-            connect          => $args->{proxy},
-            connect_timeout  => $args->{connect_timeout},
-            timeout          => $args->{timeout},
-            tls_ctx          => $args->{tls_ctx},
-            bind_ip          => $args->{bind_ip},
-            on_connect_error => sub ( $h, $reason ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $reason, 1 );
+                    return;
+                }
+            );
+        }
+        else {
+            $args->{proxy}->connect_https(
+                $args->{url},
+                sub ( $h, $res ) {
+                    if ( !$res ) {
+                        $runtime->{finish}->( $runtime->{on_error_status}, $res->{reason} );
+                    }
+                    else {
+                        $cb->($h);
+                    }
 
-                return;
-            },
-            on_error => sub ( $h, $fatal, $reason ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
-
-                return;
-            },
-            on_connect => sub ( $h, $host, $port, $retry ) {
-                $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $args->{proxy}->userinfo_b64 if $args->{proxy}->userinfo_b64;
-
-                $cb->($h);
-
-                return;
-            },
-        );
-    }
-    else {
-        Pcore::AE::Handle->new(
-            $args->{handle_params}->%*,
-            connect          => $args->{url},
-            persistent       => $args->{persistent},
-            connect_timeout  => $args->{connect_timeout},
-            timeout          => $args->{timeout},
-            tls_ctx          => $args->{tls_ctx},
-            bind_ip          => $args->{bind_ip},
-            on_connect_error => sub ( $h, $reason ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $reason, 1 );
-
-                return;
-            },
-            on_error => sub ( $h, $fatal, $reason ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
-
-                return;
-            },
-            on_connect => sub ( $h, $host, $port, $retry ) {
-                delete $args->{headers}->{PROXY_AUTHORIZATION};
-
-                $cb->($h);
-
-                return;
-            },
-        );
+                    return;
+                }
+            );
+        }
     }
 
     return;
@@ -303,7 +278,7 @@ sub _connect ( $args, $runtime, $cb ) {
 sub _write_request ( $args, $runtime ) {
     my $request_path;
 
-    if ( $args->{proxy} ) {    # proxy is HTTP
+    if ( $args->{proxy} && !$args->{url}->is_secure ) {    # proxy is HTTP
         $request_path = $args->{url}->to_string;
     }
     else {
@@ -693,12 +668,12 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 26                   | * Subroutine "http_request" with high complexity score (26)                                                    |
-## |      | 303                  | * Subroutine "_write_request" with high complexity score (24)                                                  |
-## |      | 422                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 278                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
+## |      | 397                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 402                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 377                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 634                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 609                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
