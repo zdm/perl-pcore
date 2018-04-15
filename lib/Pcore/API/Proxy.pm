@@ -82,8 +82,6 @@ sub connect_https ( $self, $target, $cb ) {
                         if ( $res->{status} == 200 ) {
                             $h->{peername} = $target->host;
 
-                            $h->starttls('connect');
-
                             $self->{threads}++;
 
                             $cb->( $h, res 200 );
