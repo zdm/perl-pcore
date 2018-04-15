@@ -25,14 +25,18 @@ around new => sub ( $orig, $self, $uri ) {
     return $self->$orig( { uri => $uri } );
 };
 
-sub connect_http ( $self, $target, $cb ) {
+sub connect_http ( $self, $target, @args ) {
+    my $cb = pop @args;
+
     Pcore::AE::Handle->new(
         connect => $self->{uri},
+        @args,
 
         # connect_timeout  => $args->{connect_timeout},
         # timeout          => $args->{timeout},
         # tls_ctx          => $args->{tls_ctx},
         # bind_ip          => $args->{bind_ip},
+
         on_connect_error => sub ( $h, $reason ) {
             $cb->( undef, res [ 600, $reason ] );
 
@@ -50,14 +54,18 @@ sub connect_http ( $self, $target, $cb ) {
     return;
 }
 
-sub connect_https ( $self, $target, $cb ) {
+sub connect_https ( $self, $target, @args ) {
+    my $cb = pop @args;
+
     Pcore::AE::Handle->new(
         connect => $self->{uri},
+        @args,
 
         # connect_timeout  => $args->{connect_timeout},
         # timeout          => $args->{timeout},
         # tls_ctx          => $args->{tls_ctx},
         # bind_ip          => $args->{bind_ip},
+
         on_connect_error => sub ( $h, $reason ) {
             $cb->( undef, res [ 600, $reason ] );
 
