@@ -273,6 +273,34 @@ sub _connect ( $args, $runtime, $cb ) {
             );
         }
     }
+    else {
+        Pcore::AE::Handle->new(
+            $args->{handle_params}->%*,
+            connect          => $args->{url},
+            persistent       => $args->{persistent},
+            connect_timeout  => $args->{connect_timeout},
+            timeout          => $args->{timeout},
+            tls_ctx          => $args->{tls_ctx},
+            bind_ip          => $args->{bind_ip},
+            on_connect_error => sub ( $h, $reason ) {
+                $runtime->{finish}->( $runtime->{on_error_status}, $reason, 1 );
+
+                return;
+            },
+            on_error => sub ( $h, $fatal, $reason ) {
+                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+
+                return;
+            },
+            on_connect => sub ( $h, $host, $port, $retry ) {
+                delete $args->{headers}->{PROXY_AUTHORIZATION};
+
+                $cb->($h);
+
+                return;
+            },
+        );
+    }
 
     return;
 }
@@ -670,12 +698,12 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 26                   | * Subroutine "http_request" with high complexity score (26)                                                    |
-## |      | 280                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
-## |      | 399                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 308                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
+## |      | 427                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 379                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 407                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 611                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 639                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
