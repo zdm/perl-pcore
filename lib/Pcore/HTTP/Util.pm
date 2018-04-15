@@ -4,7 +4,7 @@ use Pcore -const;
 use Errno qw[];
 use Pcore::AE::Handle2 qw[:PROXY_TYPE];
 use Pcore::AE::Handle;
-use Pcore::Util::Scalar qw[refaddr is_plain_coderef];
+use Pcore::Util::Scalar qw[is_ref is_plain_coderef];
 use Compress::Raw::Zlib qw[WANT_GZIP_OR_ZLIB Z_OK Z_STREAM_END];
 
 # https://en.wikipedia.org/wiki/HTTP_compression
@@ -198,22 +198,59 @@ sub http_request ($args) {
 }
 
 sub _connect ( $args, $runtime, $cb ) {
-    if ( $args->{proxy} ) {
-        Pcore::AE::Handle2->new(
-            $args->{handle_params}->%*,
-            connect                => $args->{url},
-            connect_timeout        => $args->{connect_timeout},
-            timeout                => $args->{timeout},
-            tls_ctx                => $args->{tls_ctx},
-            bind_ip                => $args->{bind_ip},
-            proxy                  => $args->{proxy},
-            on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
-                $runtime->{finish}->( 594, $reason );
 
-                return;
-            },
+    # if ( $args->{proxy} ) {
+    #     Pcore::AE::Handle2->new(
+    #         $args->{handle_params}->%*,
+    #         connect                => $args->{url},
+    #         connect_timeout        => $args->{connect_timeout},
+    #         timeout                => $args->{timeout},
+    #         tls_ctx                => $args->{tls_ctx},
+    #         bind_ip                => $args->{bind_ip},
+    #         proxy                  => $args->{proxy},
+    #         on_proxy_connect_error => sub ( $h, $reason, $proxy_error ) {
+    #             $runtime->{finish}->( 594, $reason );
+    #
+    #             return;
+    #         },
+    #         on_connect_error => sub ( $h, $reason ) {
+    #             $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+    #
+    #             return;
+    #         },
+    #         on_error => sub ( $h, $fatal, $reason ) {
+    #             $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+    #
+    #             return;
+    #         },
+    #         on_connect => sub ( $h, $host, $port, $retry ) {
+    #             if ( $h->{proxy} && $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP && $h->{proxy}->userinfo ) {
+    #                 $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $h->{proxy}->userinfo_b64;
+    #             }
+    #             else {
+    #                 delete $args->{headers}->{PROXY_AUTHORIZATION};
+    #             }
+    #
+    #             $cb->($h);
+    #
+    #             return;
+    #         },
+    #     );
+    # }
+    if ( $args->{proxy} ) {
+        $args->{proxy} = P->uri( $args->{proxy} ) if !is_ref $args->{proxy};
+
+        die 'Invalid proxy type' if !$args->{proxy}->is_http;
+
+        Pcore::AE::Handle->new(
+            $args->{handle_params}->%*,
+            connect          => $args->{proxy},
+            connect_timeout  => $args->{connect_timeout},
+            timeout          => $args->{timeout},
+            tls_ctx          => $args->{tls_ctx},
+            bind_ip          => $args->{bind_ip},
             on_connect_error => sub ( $h, $reason ) {
-                $runtime->{finish}->( $runtime->{on_error_status}, $reason );
+                $runtime->{finish}->( $runtime->{on_error_status}, $reason, 1 );
 
                 return;
             },
@@ -223,12 +260,7 @@ sub _connect ( $args, $runtime, $cb ) {
                 return;
             },
             on_connect => sub ( $h, $host, $port, $retry ) {
-                if ( $h->{proxy} && $h->{proxy_type} && $h->{proxy_type} == $PROXY_TYPE_HTTP && $h->{proxy}->userinfo ) {
-                    $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $h->{proxy}->userinfo_b64;
-                }
-                else {
-                    delete $args->{headers}->{PROXY_AUTHORIZATION};
-                }
+                $args->{headers}->{PROXY_AUTHORIZATION} = 'Basic ' . $args->{proxy}->userinfo_b64 if $args->{proxy}->userinfo_b64;
 
                 $cb->($h);
 
@@ -271,7 +303,7 @@ sub _connect ( $args, $runtime, $cb ) {
 sub _write_request ( $args, $runtime ) {
     my $request_path;
 
-    if ( $runtime->{h}->{proxy} && $runtime->{h}->{proxy_type} == $PROXY_TYPE_HTTP ) {    # proxy is HTTP
+    if ( $args->{proxy} ) {    # proxy is HTTP
         $request_path = $args->{url}->to_string;
     }
     else {
@@ -661,12 +693,12 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 26                   | * Subroutine "http_request" with high complexity score (26)                                                    |
-## |      | 271                  | * Subroutine "_write_request" with high complexity score (25)                                                  |
-## |      | 390                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
+## |      | 303                  | * Subroutine "_write_request" with high complexity score (24)                                                  |
+## |      | 422                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 370                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 402                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 602                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 634                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
