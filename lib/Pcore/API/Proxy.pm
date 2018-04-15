@@ -3,7 +3,12 @@ package Pcore::API::Proxy;
 use Pcore -const, -class, -res, -export => { PROXY_TYPE => [qw[$PROXY_TYPE_HTTP $PROXY_TYPE_HTTPS $PROXY_TYPE_SOCKS4 $PROXY_TYPE_SOCKS4A $PROXY_TYPE_SOCKS5]] };
 use Pcore::Util::Scalar qw[is_ref];
 
-has uri => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'], required => 1 );
+has uri        => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'], required => 1 );
+has is_http    => ( is => 'ro', isa => Bool );
+has is_https   => ( is => 'ro', isa => Bool );
+has is_socks4  => ( is => 'ro', isa => Bool );
+has is_socks4a => ( is => 'ro', isa => Bool );
+has is_socks5  => ( is => 'ro', isa => Bool );
 
 has pool => ( is => 'ro', isa => Maybe [Object] );
 
@@ -16,24 +21,58 @@ const our $PROXY_TYPE_SOCKS4A => 4;
 const our $PROXY_TYPE_SOCKS5  => 5;
 
 around new => sub ( $orig, $self, $uri ) {
-    $uri = P->uri($uri) if !is_ref $uri;
+    my $args;
 
-    return $self->$orig( { uri => $uri } );
+    $args->{uri} = is_ref $uri ? $uri : P->uri($uri);
+
+    my $scheme = $args->{uri}->scheme;
+
+    if ( $scheme eq 'http' ) {
+        $args->{is_http} = 1;
+    }
+    elsif ( $scheme eq 'https' ) {
+        $args->{is_https} = 1;
+    }
+    elsif ( $scheme eq 'socks4' ) {
+        $args->{is_socks4} = 1;
+    }
+    elsif ( $scheme eq 'socks4a' ) {
+        $args->{is_socks4a} = 1;
+    }
+    elsif ( $scheme eq 'socks5' ) {
+        $args->{is_socks5} = 1;
+    }
+
+    return $self->$orig($args);
 };
 
 sub connect ( $self, $uri, @args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     $uri = P->uri($uri) if !is_ref $uri;
 
+    my $type;
+
     if ( $uri->is_http ) {
-        if ( $uri->is_secure ) {
-            return $self->connect_https( $uri, @args );
-        }
-        else {
-            return $self->connect_http( $uri, @args );
-        }
+        $type = 'http'  if !$uri->is_secure && $self->{is_http};
+        $type = 'https' if !$type           && $self->{is_https};
+    }
+
+    if ( !$type ) {
+        if    ( $self->{is_socks4} )  { $type = 'socks4' }
+        elsif ( $self->{is_socks4a} ) { $type = 'socks4a' }
+        elsif ( $self->{is_socks5} )  { $type = 'socks5' }
+    }
+
+    if ($type) {
+        my $method = "connect_$type";
+
+        return $self->$method( $uri, @args );
     }
     else {
-        return $self->connect_socks5( $uri, @args );
+        my $cb = pop @args;
+
+        $cb->( undef, res [ 500, 'No connect scheme found' ] );
+
+        return;
     }
 }
 
@@ -57,8 +96,6 @@ sub connect_http ( $self, $uri, @args ) {
         on_connect => sub ( $h, $host, $port, $retry ) {
             $h->{proxy}      = $self;
             $h->{proxy_type} = $PROXY_TYPE_HTTP;
-
-            $h->starttls('connect') if $self->{uri}->is_secure;
 
             $cb->( $h, res 200 );
 
@@ -87,9 +124,7 @@ sub connect_https ( $self, $uri, @args ) {
             return;
         },
         on_connect => sub ( $h, $host, $port, $retry ) {
-            $h->starttls('connect') if $self->{uri}->is_secure;
-
-            my $buf = 'CONNECT ' . $uri->hostport . q[ HTTP/1.1] . $CRLF;
+            my $buf = 'CONNECT ' . $uri->host->name . q[:] . $uri->connect_port . q[ HTTP/1.1] . $CRLF;
 
             $buf .= 'Proxy-Authorization: Basic ' . $self->{uri}->userinfo_b64 . $CRLF if $self->{uri}->userinfo;
 
@@ -327,6 +362,9 @@ sub _socks5_establish_tunnel ( $self, $h, $uri, $cb ) {
                     $h->unshift_read(                                          # read IPv4 addr (4 bytes) + port (2 bytes)
                         chunk => 6,
                         sub ( $h1, $chunk ) {
+                            $h->{proxy}      = $self;
+                            $h->{proxy_type} = $PROXY_TYPE_SOCKS5;
+
                             $cb->( $h, res 200 );
 
                             return;
@@ -340,6 +378,9 @@ sub _socks5_establish_tunnel ( $self, $h, $uri, $cb ) {
                             $h->unshift_read(                                  # read domain name + port (2 bytes)
                                 chunk => unpack( 'C', $chunk ) + 2,
                                 sub ( $h1, $chunk ) {
+                                    $h->{proxy}      = $self;
+                                    $h->{proxy_type} = $PROXY_TYPE_SOCKS5;
+
                                     $cb->( $h, res 200 );
 
                                     return;
@@ -354,6 +395,9 @@ sub _socks5_establish_tunnel ( $self, $h, $uri, $cb ) {
                     $h->unshift_read(    # read IPv6 addr (16 bytes) + port (2 bytes)
                         chunk => 18,
                         sub ( $h, $chunk ) {
+                            $h->{proxy}      = $self;
+                            $h->{proxy_type} = $PROXY_TYPE_SOCKS5;
+
                             $cb->( $h, res 200 );
 
                             return;
@@ -395,11 +439,11 @@ sub finish_thread ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 167, 239, 244, 261,  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |      | 311, 314, 317        |                                                                                                                |
+## |    2 | 202, 274, 279, 296,  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 346, 349, 352        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 172, 311, 314, 317,  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 323                  |                                                                                                                |
+## |    1 | 207, 346, 349, 352,  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 358                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
