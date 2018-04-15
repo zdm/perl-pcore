@@ -1,6 +1,6 @@
 package Pcore::API::Proxy;
 
-use Pcore -const, -class, -res, -export => { PROXY_TYPE => [qw[$PROXY_TYPE_HTTP $PROXY_TYPE_CONNECT $PROXY_TYPE_SOCKS]] };
+use Pcore -const, -class, -res, -export => { PROXY_TYPE => [qw[$PROXY_TYPE_HTTP $PROXY_TYPE_HTTPS $PROXY_TYPE_SOCKS4 $PROXY_TYPE_SOCKS4A $PROXY_TYPE_SOCKS5]] };
 use Pcore::Util::Scalar qw[is_ref];
 
 has uri => ( is => 'ro', isa => Str | InstanceOf ['Pcore::Util::URI'], required => 1 );
@@ -10,8 +10,10 @@ has pool => ( is => 'ro', isa => Maybe [Object] );
 has threads => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 
 const our $PROXY_TYPE_HTTP    => 1;
-const our $PROXY_TYPE_CONNECT => 2;
-const our $PROXY_TYPE_SOCKS   => 3;
+const our $PROXY_TYPE_HTTPS   => 2;
+const our $PROXY_TYPE_SOCKS4  => 3;
+const our $PROXY_TYPE_SOCKS4A => 4;
+const our $PROXY_TYPE_SOCKS5  => 5;
 
 around new => sub ( $orig, $self, $uri ) {
     $uri = P->uri($uri) if !is_ref $uri;
@@ -31,7 +33,7 @@ sub connect ( $self, $uri, @args ) {    ## no critic qw[Subroutines::ProhibitBui
         }
     }
     else {
-        return $self->connect_socks( $uri, @args );
+        return $self->connect_socks5( $uri, @args );
     }
 }
 
@@ -43,14 +45,8 @@ sub connect_http ( $self, $uri, @args ) {
     $self->start_thread;
 
     Pcore::AE::Handle->new(
-        connect => $self->{uri},
         @args,
-
-        # connect_timeout  => $args->{connect_timeout},
-        # timeout          => $args->{timeout},
-        # tls_ctx          => $args->{tls_ctx},
-        # bind_ip          => $args->{bind_ip},
-
+        connect => $self->{uri},
         on_connect_error => sub ( $h, $reason ) {
             $self->finish_thread;
 
@@ -81,14 +77,8 @@ sub connect_https ( $self, $uri, @args ) {
     $self->start_thread;
 
     Pcore::AE::Handle->new(
-        connect => $self->{uri},
         @args,
-
-        # connect_timeout  => $args->{connect_timeout},
-        # timeout          => $args->{timeout},
-        # tls_ctx          => $args->{tls_ctx},
-        # bind_ip          => $args->{bind_ip},
-
+        connect => $self->{uri},
         on_connect_error => sub ( $h, $reason ) {
             $self->finish_thread;
 
@@ -118,7 +108,7 @@ sub connect_https ( $self, $uri, @args ) {
                     else {
                         if ( $res->{status} == 200 ) {
                             $h->{proxy}      = $self;
-                            $h->{proxy_type} = $PROXY_TYPE_CONNECT;
+                            $h->{proxy_type} = $PROXY_TYPE_HTTPS;
                             $h->{peername}   = $uri->host;
 
                             $cb->( $h, res 200 );
@@ -141,8 +131,243 @@ sub connect_https ( $self, $uri, @args ) {
     return;
 }
 
-sub connect_socks ( $self, $uri, @args ) {
+sub connect_socks4 ( $self, $uri, @args ) {
+    my $cb = pop @args;
+
     $uri = P->uri($uri) if !is_ref $uri;
+
+    $self->start_thread;
+
+    Pcore::AE::Handle->new(
+        @args,
+        connect => $self->{uri},
+        on_connect_error => sub ( $h, $reason ) {
+            $self->finish_thread;
+
+            $cb->( undef, res [ 600, $reason ] );
+
+            return;
+        },
+        on_connect => sub ( $h, $host, $port, $retry ) {
+            $h->starttls('connect') if $self->{uri}->is_secure;
+
+            AnyEvent::Socket::resolve_sockaddr $self->{uri}->host->name, $self->{uri}->connect_port, 'tcp', undef, undef, sub {
+                my @target = @_;
+
+                unless (@target) {
+                    $self->finish_thread;
+
+                    $cb->( undef, res [ 500, qq[Host name "@{[$self->{uri}->host->name]}" couldn't be resolved] ] );
+
+                    return;
+                }
+
+                my $target = shift @target;
+
+                $h->push_write( qq[\x04\x01] . pack( 'n', $self->{uri}->connect_port ) . AnyEvent::Socket::unpack_sockaddr( $target->[3] ) . $self->{uri}->userinfo . qq[\x00] );
+
+                $h->unshift_read(
+                    chunk => 8,
+                    sub ( $h1, $chunk ) {
+                        my $rep = unpack 'C*', substr( $chunk, 1, 1 );
+
+                        # request granted
+                        if ( $rep == 90 ) {
+                            $h->{proxy}      = $self;
+                            $h->{proxy_type} = $PROXY_TYPE_SOCKS4;
+
+                            $cb->( $h, res 200 );
+                        }
+
+                        # request rejected or failed, tunnel creation error
+                        elsif ( $rep == 91 ) {
+                            $cb->( undef, res [ 500, 'Request rejected or failed' ] );
+                        }
+
+                        # request rejected becasue SOCKS server cannot connect to identd on the client
+                        elsif ( $rep == 92 ) {
+                            $cb->( undef, res [ 500, 'Request rejected becasue SOCKS server cannot connect to identd on the client' ] );
+                        }
+
+                        # request rejected because the client program and identd report different user-ids
+                        elsif ( $rep == 93 ) {
+                            $cb->( undef, res [ 500, 'Request rejected because the client program and identd report different user-ids' ] );
+                        }
+
+                        # unknown error or not SOCKS4 proxy response
+                        else {
+                            $cb->( undef, res [ 500, 'Invalid socks4 server response' ] );
+                        }
+
+                        return;
+                    }
+                );
+
+                return;
+            };
+
+            return;
+        },
+    );
+
+    return;
+}
+
+sub connect_socks5 ( $self, $uri, @args ) {
+    my $cb = pop @args;
+
+    $uri = P->uri($uri) if !is_ref $uri;
+
+    $self->start_thread;
+
+    Pcore::AE::Handle->new(
+        @args,
+        connect => $self->{uri},
+        on_connect_error => sub ( $h, $reason ) {
+            $self->finish_thread;
+
+            $cb->( undef, res [ 600, $reason ] );
+
+            return;
+        },
+        on_connect => sub ( $h, $host, $port, $retry ) {
+            $h->starttls('connect') if $self->{uri}->is_secure;
+
+            # start handshake
+            # no authentication or authenticate with username/password
+            if ( $self->{uri}->userinfo ) {
+                $h->push_write(qq[\x05\x02\x00\x02]);
+            }
+
+            # no authentication
+            else {
+                $h->push_write(qq[\x05\x01\x00]);
+            }
+
+            $h->unshift_read(
+                chunk => 2,
+                sub ( $h1, $chunk ) {
+                    my ( $ver, $auth_method ) = unpack 'C*', $chunk;
+
+                    # no valid authentication method was proposed
+                    if ( $auth_method == 255 ) {
+                        $cb->( undef, res [ 500, 'No authentication method was found' ] );
+                    }
+
+                    # start username / password authentication
+                    elsif ( $auth_method == 2 ) {
+
+                        # send authentication credentials
+                        $h->push_write( qq[\x01] . pack( 'C', length $self->{uri}->username ) . $self->{uri}->username . pack( 'C', length $self->{uri}->password ) . $self->{uri}->password );
+
+                        # read authentication response
+                        $h->unshift_read(
+                            chunk => 2,
+                            sub ( $h, $chunk ) {
+                                my ( $auth_ver, $auth_status ) = unpack 'C*', $chunk;
+
+                                # authentication error
+                                if ( $auth_status != 0 ) {
+                                    $cb->( undef, res [ 500, 'Authentication failure' ] );
+                                }
+
+                                # authenticated
+                                else {
+                                    $self->_socks5_establish_tunnel( $h, $uri, $cb );
+                                }
+
+                                return;
+                            }
+                        );
+                    }
+
+                    # no authentication is needed
+                    elsif ( $auth_method == 0 ) {
+                        $self->_socks5_establish_tunnel( $h, $uri, $cb );
+
+                        return;
+                    }
+
+                    # unknown authentication method or not SOCKS5 response
+                    else {
+                        $cb->( undef, res [ 500, 'Authentication method is not supported' ] );
+                    }
+
+                    return;
+                }
+            );
+
+            return;
+        },
+    );
+
+    return;
+}
+
+sub _socks5_establish_tunnel ( $self, $h, $uri, $cb ) {
+
+    # detect destination addr type
+    if ( my $ipn4 = AnyEvent::Socket::parse_ipv4( $uri->host->name ) ) {    # IPv4 addr
+        $h->push_write( qq[\x05\x01\x00\x01] . $ipn4 . pack( 'n', $uri->connect_port ) );
+    }
+    elsif ( my $ipn6 = AnyEvent::Socket::parse_ipv6( $uri->host->name ) ) {    # IPv6 addr
+        $h->push_write( qq[\x05\x01\x00\x04] . $ipn6 . pack( 'n', $uri->connect_port ) );
+    }
+    else {                                                                     # domain name
+        $h->push_write( qq[\x05\x01\x00\x03] . pack( 'C', length $uri->host->name ) . $uri->host->name . pack( 'n', $uri->connect_port ) );
+    }
+
+    $h->unshift_read(
+        chunk => 4,
+        sub ( $h1, $chunk ) {
+            my ( $ver, $rep, $rsv, $atyp ) = unpack( 'C*', $chunk );
+
+            if ( $rep == 0 ) {
+                if ( $atyp == 1 ) {                                            # IPv4 addr, 4 bytes
+                    $h->unshift_read(                                          # read IPv4 addr (4 bytes) + port (2 bytes)
+                        chunk => 6,
+                        sub ( $h1, $chunk ) {
+                            $cb->( $h, res 200 );
+
+                            return;
+                        }
+                    );
+                }
+                elsif ( $atyp == 3 ) {                                         # domain name
+                    $h->unshift_read(                                          # read domain name length
+                        chunk => 1,
+                        sub ( $h1, $chunk ) {
+                            $h->unshift_read(                                  # read domain name + port (2 bytes)
+                                chunk => unpack( 'C', $chunk ) + 2,
+                                sub ( $h1, $chunk ) {
+                                    $cb->( $h, res 200 );
+
+                                    return;
+                                }
+                            );
+
+                            return;
+                        }
+                    );
+                }
+                if ( $atyp == 4 ) {    # IPv6 addr, 16 bytes
+                    $h->unshift_read(    # read IPv6 addr (16 bytes) + port (2 bytes)
+                        chunk => 18,
+                        sub ( $h, $chunk ) {
+                            $cb->( $h, res 200 );
+
+                            return;
+                        }
+                    );
+                }
+            }
+            else {
+                $cb->( undef, res [ 500, q[Tunnel creation error] ] );
+            }
+
+            return;
+        }
+    );
 
     return;
 }
@@ -163,200 +388,21 @@ sub finish_thread ($self) {
     return;
 }
 
-# ----------------------------------------------------------
-
-# sub _connect_proxy_socks4 ( $self, $proxy, $connect, $on_finish ) {
-#     AnyEvent::Socket::resolve_sockaddr $connect->[0], $connect->[1], 'tcp', undef, undef, sub {
-#         my @target = @_;
-#
-#         unless (@target) {
-#             $on_finish->( $self, qq[Host name "$connect->[0]" couldn't be resolved], $PROXY_ERROR_OTHER );    # not a proxy connect error
-#
-#             return;
-#         }
-#
-#         my $target = shift @target;
-#
-#         $self->push_write( qq[\x04\x01] . pack( 'n', $connect->[1] ) . AnyEvent::Socket::unpack_sockaddr( $target->[3] ) . $proxy->userinfo . qq[\x00] );
-#
-#         $self->unshift_read(
-#             chunk => 8,
-#             sub ( $h, $chunk ) {
-#                 my $rep = unpack 'C*', substr( $chunk, 1, 1 );
-#
-#                 # request granted
-#                 if ( $rep == 90 ) {
-#                     $on_finish->( $h, undef, undef );
-#                 }
-#
-#                 # request rejected or failed, tunnel creation error
-#                 elsif ( $rep == 91 ) {
-#                     $on_finish->( $h, 'Request rejected or failed', $PROXY_ERROR_OTHER );
-#                 }
-#
-#                 # request rejected becasue SOCKS server cannot connect to identd on the client
-#                 elsif ( $rep == 92 ) {
-#                     $on_finish->( $h, 'Request rejected becasue SOCKS server cannot connect to identd on the client', $PROXY_ERROR_AUTH );
-#                 }
-#
-#                 # request rejected because the client program and identd report different user-ids
-#                 elsif ( $rep == 93 ) {
-#                     $on_finish->( $h, 'Request rejected because the client program and identd report different user-ids', $PROXY_ERROR_AUTH );
-#                 }
-#
-#                 # unknown error or not SOCKS4 proxy response
-#                 else {
-#                     $on_finish->( $h, 'Invalid socks4 server response', $PROXY_ERROR_OTHER );
-#                 }
-#
-#                 return;
-#             }
-#         );
-#
-#         return;
-#     };
-#
-#     return;
-# }
-#
-# sub _connect_proxy_socks5 ( $self, $proxy, $connect, $on_finish ) {
-#
-#     # start handshake
-#     # no authentication or authenticate with username/password
-#     if ( $proxy->userinfo ) {
-#         $self->push_write(qq[\x05\x02\x00\x02]);
-#     }
-#
-#     # no authentication
-#     else {
-#         $self->push_write(qq[\x05\x01\x00]);
-#     }
-#
-#     $self->unshift_read(
-#         chunk => 2,
-#         sub ( $h, $chunk ) {
-#             my ( $ver, $auth_method ) = unpack 'C*', $chunk;
-#
-#             # no valid authentication method was proposed
-#             if ( $auth_method == 255 ) {
-#                 $on_finish->( $h, 'No authentication method was found', $PROXY_ERROR_AUTH );
-#             }
-#
-#             # start username / password authentication
-#             elsif ( $auth_method == 2 ) {
-#
-#                 # send authentication credentials
-#                 $h->push_write( qq[\x01] . pack( 'C', length $proxy->username ) . $proxy->username . pack( 'C', length $proxy->password ) . $proxy->password );
-#
-#                 # read authentication response
-#                 $h->unshift_read(
-#                     chunk => 2,
-#                     sub ( $h, $chunk ) {
-#                         my ( $auth_ver, $auth_status ) = unpack 'C*', $chunk;
-#
-#                         # authentication error
-#                         if ( $auth_status != 0 ) {
-#                             $on_finish->( $h, 'Authentication failure', $PROXY_ERROR_AUTH );
-#                         }
-#
-#                         # authenticated
-#                         else {
-#                             _socks5_establish_tunnel( $h, $proxy, $connect, $on_finish );
-#                         }
-#
-#                         return;
-#                     }
-#                 );
-#             }
-#
-#             # no authentication is needed
-#             elsif ( $auth_method == 0 ) {
-#                 _socks5_establish_tunnel( $h, $proxy, $connect, $on_finish );
-#
-#                 return;
-#             }
-#
-#             # unknown authentication method or not SOCKS5 response
-#             else {
-#                 $on_finish->( $h, 'Authentication method is not supported', $PROXY_ERROR_OTHER );
-#             }
-#
-#             return;
-#         }
-#     );
-#
-#     return;
-# }
-#
-# sub _socks5_establish_tunnel ( $self, $proxy, $connect, $on_finish ) {
-#
-#     # detect destination addr type
-#     if ( my $ipn4 = AnyEvent::Socket::parse_ipv4( $connect->[0] ) ) {    # IPv4 addr
-#         $self->push_write( qq[\x05\x01\x00\x01] . $ipn4 . pack( 'n', $connect->[1] ) );
-#     }
-#     elsif ( my $ipn6 = AnyEvent::Socket::parse_ipv6( $connect->[0] ) ) {    # IPv6 addr
-#         $self->push_write( qq[\x05\x01\x00\x04] . $ipn6 . pack( 'n', $connect->[1] ) );
-#     }
-#     else {                                                                  # domain name
-#         $self->push_write( qq[\x05\x01\x00\x03] . pack( 'C', length $connect->[0] ) . $connect->[0] . pack( 'n', $connect->[1] ) );
-#     }
-#
-#     $self->unshift_read(
-#         chunk => 4,
-#         sub ( $h, $chunk ) {
-#             my ( $ver, $rep, $rsv, $atyp ) = unpack( 'C*', $chunk );
-#
-#             if ( $rep == 0 ) {
-#                 if ( $atyp == 1 ) {                                         # IPv4 addr, 4 bytes
-#                     $h->unshift_read(                                       # read IPv4 addr (4 bytes) + port (2 bytes)
-#                         chunk => 6,
-#                         sub ( $h, $chunk ) {
-#                             $on_finish->( $h, undef, undef );
-#
-#                             return;
-#                         }
-#                     );
-#                 }
-#                 elsif ( $atyp == 3 ) {                                      # domain name
-#                     $h->unshift_read(                                       # read domain name length
-#                         chunk => 1,
-#                         sub ( $h, $chunk ) {
-#                             $h->unshift_read(                               # read domain name + port (2 bytes)
-#                                 chunk => unpack( 'C', $chunk ) + 2,
-#                                 sub ( $h, $chunk ) {
-#                                     $on_finish->( $h, undef, undef );
-#
-#                                     return;
-#                                 }
-#                             );
-#
-#                             return;
-#                         }
-#                     );
-#                 }
-#                 if ( $atyp == 4 ) {    # IPv6 addr, 16 bytes
-#                     $h->unshift_read(    # read IPv6 addr (16 bytes) + port (2 bytes)
-#                         chunk => 18,
-#                         sub ( $h, $chunk ) {
-#                             $on_finish->( $h, undef, undef );
-#
-#                             return;
-#                         }
-#                     );
-#                 }
-#             }
-#             else {
-#                 $on_finish->( $h, q[Tunnel creation error], $PROXY_ERROR_OTHER );
-#             }
-#
-#             return;
-#         }
-#     );
-#
-#     return;
-# }
-
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    2 | 167, 239, 244, 261,  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 311, 314, 317        |                                                                                                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 172, 311, 314, 317,  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 323                  |                                                                                                                |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
