@@ -210,6 +210,7 @@ sub connect_socks4 ( $self, $uri, @args ) {
                         if ( $rep == 90 ) {
                             $h->{proxy}      = $self;
                             $h->{proxy_type} = $PROXY_TYPE_SOCKS4;
+                            $h->{peername}   = $uri->host;
 
                             $cb->( $h, res 200 );
                         }
@@ -364,6 +365,7 @@ sub _socks5_establish_tunnel ( $self, $h, $uri, $cb ) {
                         sub ( $h1, $chunk ) {
                             $h->{proxy}      = $self;
                             $h->{proxy_type} = $PROXY_TYPE_SOCKS5;
+                            $h->{peername}   = $uri->host;
 
                             $cb->( $h, res 200 );
 
@@ -371,15 +373,16 @@ sub _socks5_establish_tunnel ( $self, $h, $uri, $cb ) {
                         }
                     );
                 }
-                elsif ( $atyp == 3 ) {                                         # domain name
-                    $h->unshift_read(                                          # read domain name length
+                elsif ( $atyp == 3 ) {    # domain name
+                    $h->unshift_read(     # read domain name length
                         chunk => 1,
                         sub ( $h1, $chunk ) {
-                            $h->unshift_read(                                  # read domain name + port (2 bytes)
+                            $h->unshift_read(    # read domain name + port (2 bytes)
                                 chunk => unpack( 'C', $chunk ) + 2,
                                 sub ( $h1, $chunk ) {
                                     $h->{proxy}      = $self;
                                     $h->{proxy_type} = $PROXY_TYPE_SOCKS5;
+                                    $h->{peername}   = $uri->host;
 
                                     $cb->( $h, res 200 );
 
@@ -397,6 +400,7 @@ sub _socks5_establish_tunnel ( $self, $h, $uri, $cb ) {
                         sub ( $h, $chunk ) {
                             $h->{proxy}      = $self;
                             $h->{proxy_type} = $PROXY_TYPE_SOCKS5;
+                            $h->{peername}   = $uri->host;
 
                             $cb->( $h, res 200 );
 
@@ -439,11 +443,11 @@ sub finish_thread ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 202, 274, 279, 296,  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
-## |      | 346, 349, 352        |                                                                                                                |
+## |    2 | 202, 275, 280, 297,  | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |      | 347, 350, 353        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 207, 346, 349, 352,  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 358                  |                                                                                                                |
+## |    1 | 207, 347, 350, 353,  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |      | 359                  |                                                                                                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
