@@ -269,6 +269,11 @@ sub status ( $self ) {
 
     # index builds
     for my $build ( sort { $b->{id} <=> $a->{id} } values $build_history->{data}->%* ) {
+
+        # skip build if it was completed successfully, and tag was removed
+        next if $build->{status_text} eq 'success' && !exists $report->{ $build->{dockertag_name} };
+
+        # collect only last tag build status
         if ( !exists $report->{ $build->{dockertag_name} }->{status_text} ) {
             $report->{ $build->{dockertag_name} }->{status_text} = $build->{status_text};
 
@@ -578,12 +583,12 @@ sub trigger_build ( $self, $tag ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 127                  | * Subroutine "status" with high complexity score (26)                                                          |
-## |      | 302                  | * Subroutine "build_status" with high complexity score (31)                                                    |
+## |      | 127                  | * Subroutine "status" with high complexity score (28)                                                          |
+## |      | 307                  | * Subroutine "build_status" with high complexity score (31)                                                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 489                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 494                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 271, 352, 482        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 271, 357, 487        | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
