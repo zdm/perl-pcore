@@ -1,4 +1,4 @@
-FROM softvisio/perl:v5.26.1
+FROM softvisio/perl:softvisio/perl:v5.26.2
 
 LABEL maintainer="zdm <zdm@softvisio.net>"
 
