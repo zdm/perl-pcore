@@ -51,10 +51,10 @@ sub forward_events ( $self, $masks ) {
     return;
 }
 
-sub listen_events ( $self, $masks ) {
+sub listen_events ( $self, $events ) {
     my $msg = {
-        type  => $TX_TYPE_LISTEN,
-        masks => $masks,
+        type   => $TX_TYPE_LISTEN,
+        events => $events,
     };
 
     $self->send_binary( \$CBOR->encode($msg) );
@@ -220,7 +220,7 @@ sub _on_message ( $self, $msg, $is_json ) {
 
         # forward local events to remote peer
         if ( $tx->{type} eq $TX_TYPE_LISTEN ) {
-            $self->_set_listeners( $tx->{masks} );
+            $self->_set_listeners( $tx->{events} );
 
             next;
         }
