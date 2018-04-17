@@ -103,6 +103,10 @@ window.pcoreApi = {
             }
         }
 
+        rpcCallArray(method, args, cb);
+    },
+
+    rpcCallArray: function (method, args, cb) {
         var msg = {
             type: 'rpc',
             method: method,
