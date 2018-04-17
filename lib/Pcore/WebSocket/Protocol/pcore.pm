@@ -50,7 +50,7 @@ sub forward_events ( $self, $masks ) {
     return;
 }
 
-sub listen_events ( $self, $events ) {
+sub listen_remote_events ( $self, $events ) {
     my $msg = {
         type   => $TX_TYPE_LISTEN,
         events => $events,
