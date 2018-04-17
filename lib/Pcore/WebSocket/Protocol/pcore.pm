@@ -18,10 +18,9 @@ has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg 
 
 with qw[Pcore::WebSocket::Handle];
 
-const our $TX_TYPE_LISTEN    => 'listen';
-const our $TX_TYPE_EVENT     => 'event';
-const our $TX_TYPE_RPC       => 'rpc';
-const our $TX_TYPE_EXCEPTION => 'exception';
+const our $TX_TYPE_LISTEN => 'listen';
+const our $TX_TYPE_EVENT  => 'event';
+const our $TX_TYPE_RPC    => 'rpc';
 
 my $CBOR = Pcore::Util::Data::get_cbor();
 my $JSON = Pcore::Util::Data::get_json( utf8 => 1 );
@@ -30,7 +29,7 @@ sub rpc_call ( $self, $method, $args, $cb ) {
     my $msg = {
         type   => $TX_TYPE_RPC,
         method => $method,
-        data   => $args,
+        args   => $args,
     };
 
     # detect callback
@@ -236,30 +235,22 @@ sub _on_message ( $self, $msg, $is_json ) {
             next;
         }
 
-        # exception
-        if ( $tx->{type} eq $TX_TYPE_EXCEPTION ) {
-            if ( $tx->{tid} ) {
-                if ( my $cb = delete $self->{_callbacks}->{ $tx->{tid} } ) {
-
-                    # convert result to response object
-                    $cb->( bless $tx->{message}, 'Pcore::Util::Result' );
-                }
-            }
-
-            next;
-        }
-
         # RPC
         if ( $tx->{type} eq $TX_TYPE_RPC ) {
 
             # method is specified, this is rpc call
             if ( $tx->{method} ) {
+
+                # RPC calls are not supported be this peer
                 if ( !$self->{on_rpc} ) {
                     if ( $tx->{tid} ) {
                         my $result = {
-                            type    => $TX_TYPE_EXCEPTION,
-                            tid     => $tx->{tid},
-                            message => res [ 500, 'RPC is not supported' ],
+                            type   => $TX_TYPE_RPC,
+                            tid    => $tx->{tid},
+                            result => {
+                                status => 400,
+                                reason => 'RPC calls are not supported',
+                            }
                         };
 
                         if ($is_json) {
@@ -282,22 +273,11 @@ sub _on_message ( $self, $msg, $is_json ) {
                         $req->{_cb} = sub ($res) {
                             return if !defined $weak_self;
 
-                            my $result;
-
-                            if ( $res->is_success ) {
-                                $result = {
-                                    type   => $TX_TYPE_RPC,
-                                    tid    => $tx->{tid},
-                                    result => $res,
-                                };
-                            }
-                            else {
-                                $result = {
-                                    type    => $TX_TYPE_EXCEPTION,
-                                    tid     => $tx->{tid},
-                                    message => $res,
-                                };
-                            }
+                            my $result = {
+                                type   => $TX_TYPE_RPC,
+                                tid    => $tx->{tid},
+                                result => $res,
+                            };
 
                             if ($is_json) {
                                 $weak_self->send_text( \$JSON->encode($result) );
@@ -308,11 +288,6 @@ sub _on_message ( $self, $msg, $is_json ) {
 
                             return;
                         };
-                    }
-
-                    # combine method with action
-                    if ( my $action = delete $tx->{action} ) {
-                        $tx->{method} = q[/] . ( $action =~ s[[.]][/]smgr ) . "/$tx->{method}";
                     }
 
                     $self->{on_rpc}->( $self, $req, $tx );
@@ -340,9 +315,9 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 217                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
+## |    3 | 216                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 265, 287, 302        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 256, 282             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
