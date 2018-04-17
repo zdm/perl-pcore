@@ -112,7 +112,7 @@ sub run ( $type, $rpc_boot_args ) {
                             if ( $rpc->can($method_name) ) {
 
                                 # call method
-                                eval { $rpc->$method_name( $req, $tx->{data} ? $tx->{data}->@* : () ) };
+                                eval { $rpc->$method_name( $req, $tx->{args} ? $tx->{args}->@* : () ) };
 
                                 $@->sendlog if $@;
                             }
