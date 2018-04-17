@@ -1,65 +1,79 @@
-var pcoreApiResponse = {
-    toString: function () {
-        return this.status + ' ' + this.reason;
-    },
+/*
+<script type="text/javascript">
+    function onPcoreLoad() {
+        API = new PCORE({
+            url: '//centos/api/',
+            version: 'v1',
+            listenEvents: null,
+            onConnect: function(api) {},
+            onDisconnect: function(api, status, reason) {},
+            onEvent: function(api, ev) {},
+            onListen: function(api, events) {},
+            onRpc: function(api, req, method, args) {
+                req(200);
 
-    isInfo: function () {
-        return this.status < 200;
-    },
+                req([200, 'OK'], data);
 
-    isSuccess: function () {
-        return this.status >= 200 && this.status < 300;
-    },
+                req([200, 'OK'], data, {
+                    total: 50,
+                    rows: 100
+                });
+            }
+        });
 
-    isRedirect: function () {
-        return this.status >= 300 && this.status < 400;
-    },
+        API.call('Auth/app_init', 1, function(res) {
+            console.log(res);
+            console.log(res.toString());
+            console.log(res.isSuccess());
+        });
+    };
+</script>
 
-    isError: function () {
-        return this.status >= 400;
-    },
+<script src="/static/pcoreApi.js?cb=onPcoreLoad" type="text/javascript"></script>
+*/
 
-    isClientError: function () {
-        return this.status >= 400 && this.status < 500;
-    },
+PCORE = function (obj) {
+    this.version = obj.version;
+    this.listenEvents = obj.listenEvents;
+    this.onConnect = obj.onConnect;
+    this.onDisconnect = obj.onDisconnect;
+    this.onEvent = obj.onEvent;
+    this.onListen = obj.onListen;
+    this.onRpc = obj.onRpc;
 
-    isServerError: function () {
-        return this.status >= 500;
+    var a = document.createElement('a');
+    a.href = obj.url || '/api/';
+    var url = new URL(a.href);
+    if (url.protocol != 'ws:' && url.protocol != 'wss:') {
+        if (url.protocol == 'https:') {
+            url.protocol = 'wss:';
+        } else {
+            url.protocol = 'ws:';
+        }
     }
+    this.url = url.toString();
+
+    Object.setPrototypeOf(this, pcoreApi);
 };
 
-window.pcoreApi = {
-    url: '/api/',
+var pcoreApi = {
+    url: null,
+    version: null,
     listenEvents: null,
+    onConnect: null,
+    onDisconnect: null,
+    onEvent: null,
+    onListen: null,
+    onRpc: null,
 
     _ws: null,
+    _connId: 0,
     _tid: 0,
-    _tidCallbacks: {},
     _sendQueue: [],
-    _url_resolved: null,
+    _tidCallbacks: {},
 
     connect: function () {
         if (!this._ws) {
-            if (!this._url_resolved) {
-                var a = document.createElement('a');
-
-                a.href = this.url;
-
-                var url = new URL(a.href);
-
-                if (url.protocol != 'ws:' && url.protocol != 'wss:') {
-                    if (url.protocol == 'https:') {
-                        url.protocol = 'wss:';
-                    } else {
-                        url.protocol = 'ws:';
-                    }
-                }
-
-                this.url = url.toString();
-
-                this._url_resolved = 1;
-            }
-
             this._ws = new WebSocket(this.url, 'pcore');
 
             this._ws.binaryType = 'blob';
@@ -86,7 +100,7 @@ window.pcoreApi = {
         }
     },
 
-    rpcCall: function () {
+    call: function () {
         var method = arguments[0],
             cb,
             args;
@@ -103,10 +117,14 @@ window.pcoreApi = {
             }
         }
 
-        this.rpcCallArray(method, args, cb);
+        this.callArray(method, args, cb);
     },
 
-    rpcCallArray: function (method, args, cb) {
+    callArray: function (method, args, cb) {
+        if (method.substring(0, 1) != '/') {
+            method = '/' + this.version + '/' + method;
+        }
+
         var msg = {
             type: 'rpc',
             method: method,
@@ -173,21 +191,34 @@ window.pcoreApi = {
         }
 
         this._send();
+
+        if (this.onConnect) {
+            this.onConnect(this);
+        }
     },
 
     _onDisconnect: function (e) {
+        var status = e.code,
+            reason = e.reason || 'Abnormal Closure';
+
+        this._connId++;
+
         for (var tid in this._tidCallbacks) {
             cb = this._tidCallbacks[tid];
 
             delete this._tidCallbacks[tid];
 
             cb({
-                status: e.code,
-                reason: e.reason || 'Abnormal Closure'
+                status: status,
+                reason: reason
             });
         }
 
         this._ws = null;
+
+        if (this.onDisconnect) {
+            this.onDisconnect(this, status, reason);
+        }
 
         if (this._sendQueue.length) {
             this.connect();
@@ -197,8 +228,39 @@ window.pcoreApi = {
     _onMessage: function (e) {
         var tx = JSON.parse(e.data);
 
-        if (tx.type == 'rpc') {
-            if (!tx.method) {
+        if (tx.type == 'listen') {
+            if (this.onListen) {
+                this.onListen(this, tx.events);
+            }
+        } else if (tx.type == 'event') {
+            if (this.onEvent) {
+                this.onEvent(this, tx.event);
+            }
+        } else if (tx.type == 'rpc') {
+            if (tx.method) {
+                if (this.onRpc) {
+                    var req = pcoreApiRequest.bind({
+                        _api: this,
+                        _connId: this._connId,
+                        _tid: tx.tid
+                    });
+
+                    this.onRpc(this, req, tx.method, tx.args);
+                } else {
+                    var msg = {
+                        type: 'rpc',
+                        tid: tx.tid,
+                        result: {
+                            status: 400,
+                            reason: 'RPC calls are not supported'
+                        }
+                    };
+
+                    this._sendQueue.push([msg, null]);
+
+                    this._send();
+                }
+            } else {
                 if (this._tidCallbacks[tx.tid]) {
                     cb = this._tidCallbacks[tx.tid];
 
@@ -213,9 +275,80 @@ window.pcoreApi = {
     }
 };
 
+var pcoreApiRequest = function () {
+    if (this._tid && this._connId == this._api._connId) {
+        if (this._respond) {
+            console.log('Double response on PCORE API request');
+
+            return;
+        }
+
+        this._respond = 1;
+
+        var msg = {
+            type: 'rpc',
+            tid: this._tid,
+        };
+
+        if (arguments.length > 2) {
+            msg.result = Object.assign({}, arguments[2]);
+
+            msg.result.data = arguments[1];
+        } else if (arguments.length == 2) {
+            msg.result.data = arguments[1];
+        }
+
+        if (Array.isArray(arguments[0])) {
+            msg.result.status = arguments[0][0];
+
+            msg.result.reason = arguments[0][1];
+        } else {
+            msg.result.status = arguments[0];
+        }
+
+        if (!msg.result.reason) {
+            msg.result.reason = 'Unknown Reason';
+        }
+
+        this._api._sendQueue.push([msg, null]);
+
+        this._api._send();
+    }
+};
+
+var pcoreApiResponse = {
+    toString: function () {
+        return this.status + ' ' + this.reason;
+    },
+
+    isInfo: function () {
+        return this.status < 200;
+    },
+
+    isSuccess: function () {
+        return this.status >= 200 && this.status < 300;
+    },
+
+    isRedirect: function () {
+        return this.status >= 300 && this.status < 400;
+    },
+
+    isError: function () {
+        return this.status >= 400;
+    },
+
+    isClientError: function () {
+        return this.status >= 400 && this.status < 500;
+    },
+
+    isServerError: function () {
+        return this.status >= 500;
+    }
+};
+
 var re = /cb=([^&]+)/;
 var cb = re.exec(document.currentScript.src);
 
 if (cb && window[cb[1]] !== undefined) {
-    window[cb[1]](window.pcoreApi);
+    window[cb[1]]();
 }
