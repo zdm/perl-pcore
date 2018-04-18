@@ -8,7 +8,7 @@ use Pcore::Dist;
 use Pcore::Core::Env::Share;
 use Fcntl qw[LOCK_EX SEEK_SET];
 
-has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );    # process run from PAR distribution
+has is_par => ( is => 'ro', isa => Bool, init_arg => undef );    # process run from PAR distribution
 has _main_dist => ( is => 'lazy', isa => Maybe      [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
 has pcore      => ( is => 'ro',   isa => InstanceOf ['Pcore::Dist'],                init_arg => undef );    # pcore dist
 has share      => ( is => 'ro',   isa => InstanceOf ['Pcore::Core::Env::Share'],    init_arg => undef );    # share object
@@ -79,7 +79,7 @@ sub _configure_inc {
     }
 
     # not for PAR
-    if ( !$ENV->is_par ) {
+    if ( !$ENV->{is_par} ) {
         my $is_module_build_test = 0;    # $ENV->dist && exists $inc_index->{ $ENV->dist->root . 'blib/lib' } ? 1 : 0;
 
         # add dist lib and PCORE_LIB to @INC only if we are int on the PAR archive and not in the Module::Build testing environment
@@ -116,6 +116,7 @@ sub _configure_inc {
 }
 
 sub BUILD ( $self, $args ) {
+    $self->{is_par} = $ENV{PAR_TEMP} ? 1 : 0;
 
     # init share
     $self->{share} = Pcore::Core::Env::Share->new;
@@ -142,7 +143,7 @@ sub BUILD ( $self, $args ) {
     $self->{USER_DIR} = P->path( $ENV{HOME} || $ENV{USERPROFILE}, is_dir => 1 );
     $self->{PCORE_USER_DIR} = P->path( $self->{USER_DIR} . '.pcore/',     is_dir => 1, lazy => 1 );
     $self->{PCORE_SYS_DIR}  = P->path( $self->{SYS_TEMP_DIR} . '.pcore/', is_dir => 1, lazy => 1 );
-    $self->{INLINE_DIR} = $self->is_par ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config{version}/$Config{archname}/", is_dir => 1, lazy => 1 );
+    $self->{INLINE_DIR} = $self->{is_par} ? undef : P->path( $self->{PCORE_USER_DIR} . "inline/$Config{version}/$Config{archname}/", is_dir => 1, lazy => 1 );
 
     # CLI options
     $self->{SCAN_DEPS} = 0;
@@ -152,7 +153,7 @@ sub BUILD ( $self, $args ) {
 
     # load dist cfg
     if ( my $dist = $self->dist ) {
-        if ( $self->is_par ) {
+        if ( $self->{is_par} ) {
             $self->{DATA_DIR} = $self->{SCRIPT_DIR};
         }
         else {
@@ -176,14 +177,10 @@ sub BUILD ( $self, $args ) {
     return;
 }
 
-sub _build_is_par ($self) {
-    return $ENV{PAR_TEMP} ? 1 : 0;
-}
-
 sub _build__main_dist ($self) {
     my $dist;
 
-    if ( $self->is_par ) {
+    if ( $self->{is_par} ) {
         $dist = Pcore::Dist->new( $ENV{PAR_TEMP} );
     }
     else {
@@ -258,7 +255,7 @@ sub dist ( $self, $dist_name = undef ) {
 
 # SCAN DEPS
 sub _build_can_scan_deps ($self) {
-    return !$self->is_par && $self->dist && $self->dist->par_cfg && exists $self->dist->par_cfg->{ $self->{SCRIPT_NAME} };
+    return !$self->{is_par} && $self->dist && $self->dist->par_cfg && exists $self->dist->par_cfg->{ $self->{SCRIPT_NAME} };
 }
 
 sub scan_deps ($self) {
@@ -365,15 +362,15 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 270                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 267                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 278                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
+## |    3 | 275                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 287                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 284                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 325                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 322                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 352                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 349                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 99                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
