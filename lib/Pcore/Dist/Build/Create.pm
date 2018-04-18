@@ -42,9 +42,9 @@ sub _build_tmpl_params ($self) {
         copyright_year          => P->date->now->year,
         copyright_holder        => $ENV->user_cfg->{_}->{copyright_holder} || $ENV->user_cfg->{_}->{author},
         license                 => $ENV->user_cfg->{_}->{license},
-        pcore_version           => $ENV->pcore->version->normal,
+        pcore_version           => $ENV->{pcore}->version->normal,
         cpan_distribution       => 0,
-        dockerhub_pcore_repo_id => $ENV->pcore->docker->{repo_id},
+        dockerhub_pcore_repo_id => $ENV->{pcore}->docker->{repo_id},
     };
 }
 

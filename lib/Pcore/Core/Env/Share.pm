@@ -1,22 +1,12 @@
 package Pcore::Core::Env::Share;
 
-use Pcore -class, -const;
+use Pcore -class;
 use Pcore::Util::Scalar qw[is_plain_scalarref is_plain_arrayref is_plain_hashref];
 
 has _lib => ( is => 'ro', isa => HashRef, init_arg => undef );    # name => [$level, $path]
 
-const our $RESERVED_LIB_NAME => {
-    dist => 1,                                                    # alias for main dist
-};
-
-sub _build__temp ($self) {
-    return P->file->tempdir;
-}
-
 sub register_lib ( $self, $name, $path, $level ) {
-    die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
-
-    die qq[resource lib "$name" already exists] if exists $self->{_lib}->{$name};
+    die qq[share lib "$name" already exists] if exists $self->{_lib}->{$name};
 
     # register lib
     $self->{_lib}->{$name} = [ $level, $path ];

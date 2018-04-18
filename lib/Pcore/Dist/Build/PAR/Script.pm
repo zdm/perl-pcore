@@ -290,7 +290,7 @@ sub _add_module ( $self, $module ) {
 sub _process_main_modules ($self) {
 
     # add Pcore dist
-    $self->_add_dist( $ENV->pcore );
+    $self->_add_dist( $ENV->{pcore} );
 
     for my $main_mod ( keys $self->main_mod->%* ) {
         next if $main_mod eq 'Pcore.pm' or $main_mod eq $self->dist->module->name;

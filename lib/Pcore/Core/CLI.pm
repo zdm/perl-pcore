@@ -554,7 +554,7 @@ sub help_version ($self) {
         say join q[ ], $ENV->{SCRIPT_NAME}, ( $main::VERSION ? version->new($main::VERSION)->normal : () );
     }
 
-    say $ENV->pcore->version_string if !$ENV->dist || $ENV->dist->name ne $ENV->pcore->name;
+    say $ENV->{pcore}->version_string if !$ENV->dist || $ENV->dist->name ne $ENV->{pcore}->name;
 
     say 'Perl ' . $^V->normal . " $Config{archname}";
 

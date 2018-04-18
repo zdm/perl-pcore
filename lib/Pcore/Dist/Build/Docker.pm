@@ -79,7 +79,7 @@ sub init ( $self, $args ) {
             dist_path                     => lc $self->dist->name,
             dockerhub_dist_repo_namespace => $repo_namespace,
             dockerhub_dist_repo_name      => $repo_name,
-            dockerhub_pcore_repo_id       => $ENV->pcore->docker->{repo_id},
+            dockerhub_pcore_repo_id       => $ENV->{pcore}->docker->{repo_id},
         } );
 
         $files->write_to( $self->dist->root );
