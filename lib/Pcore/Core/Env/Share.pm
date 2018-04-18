@@ -13,7 +13,7 @@ sub _build__temp ($self) {
     return P->file->tempdir;
 }
 
-sub add_lib ( $self, $name, $path, $level ) {
+sub register_lib ( $self, $name, $path, $level ) {
     die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
 
     die qq[resource lib "$name" already exists] if exists $self->{_lib}->{$name};
@@ -24,31 +24,10 @@ sub add_lib ( $self, $name, $path, $level ) {
     return;
 }
 
-# return lib path by name
-sub get_lib ( $self, $name ) {
-    if ( $ENV->is_par ) {
-
-        # under the PAR all resources libs are merged under the "dist" alias
-        return $self->{_lib}->{dist}->[1];
-    }
-    else {
-        if ( $name eq 'dist' ) {
-            if ( $ENV->{main_dist} ) {
-                $name = $ENV->{main_dist}->name;
-            }
-            else {
-                return;
-            }
-        }
-
-        return exists $self->{_lib}->{$name} ? $self->{_lib}->{$name}->[1] : ();
-    }
-}
-
 # return undef if storage is not exists
 # return $storage_path if lib is specified
 # return ArrayRef[$storage_path] if lib is not specified
-sub get_storage1 ( $self, @ ) {
+sub get_storage ( $self, @ ) {
     my ( $lib, $path );
 
     if ( @_ == 2 ) {

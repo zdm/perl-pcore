@@ -236,7 +236,7 @@ sub register_dist ( $self, $dist ) {
         $share_lib_level = $next_level++;
     }
 
-    $self->{share}->add_lib( $dist->name, $dist->share_dir, $share_lib_level );
+    $self->{share}->register_lib( $dist->name, $dist->share_dir, $share_lib_level );
 
     return;
 }
