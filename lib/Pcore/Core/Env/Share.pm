@@ -59,8 +59,6 @@ sub get_lib ( $self, $name ) {
 # return $storage_path if lib is specified
 # return ArrayRef[$storage_path] if lib is not specified
 sub get_storage ( $self, $storage_name, $lib_name = undef ) {
-    \my $libs = \$self->_lib;
-
     if ($lib_name) {
         my $lib_path = $self->get_lib($lib_name);
 
@@ -83,8 +81,8 @@ sub get_storage ( $self, $storage_name, $lib_name = undef ) {
 
         # build and cache storage paths array
         if ( !exists $self->{_storage}->{$storage_name} ) {
-            for my $lib_name ( sort { $libs->{$b}->[0] <=> $libs->{$a}->[0] } keys $libs->%* ) {
-                my $storage_path = $libs->{$lib_name}->[1] . $storage_name;
+            for my $lib_name ( sort { $self->{_lib}->{$b}->[0] <=> $self->{_lib}->{$a}->[0] } keys $self->{_lib}->%* ) {
+                my $storage_path = $self->{_lib}->{$lib_name}->[1] . $storage_name;
 
                 push $self->{_storage}->{$storage_name}->@*, $storage_path if -d $storage_path;
             }
@@ -193,9 +191,9 @@ sub store ( $self, $path, $file, $lib_name, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 140                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 138                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 86                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 84                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
