@@ -47,6 +47,8 @@ sub get_storage ( $self, @ ) {
     }
 }
 
+# $ENV->{share}->get( 'www', 'static/file.html' );
+# $ENV->{share}->get( 'Pcore', 'www', 'static/file.html' );
 sub get ( $self, @ ) {
     my ( $lib, $root, $path );
 
