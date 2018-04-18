@@ -1,7 +1,7 @@
 package Pcore::Core::Env::Share;
 
 use Pcore -class, -const;
-use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
+use Pcore::Util::Scalar qw[is_plain_scalarref is_plain_arrayref is_plain_hashref];
 
 has _temp        => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::TempDir'], init_arg => undef );
 has _lib         => ( is => 'ro',   isa => HashRef,                                   init_arg => undef );    # name => [$level, $path]
@@ -129,53 +129,28 @@ sub get ( $self, @ ) {
     return;
 }
 
-sub store ( $self, $path, $file, $lib_name, @ ) {
-    my %args = (
-        storage => undef,
-        splice @_, 4,
-    );
+sub store ( $self, $lib, $path, $file ) {
+    my $lib1 = $self->{_lib}->{$lib};
 
-    my $lib_path = $self->get_lib($lib_name);
+    die qq[share lib "$lib" is not exists] if !$lib1;
 
-    die qq[resource lib is not exists "$lib_name"] if !$lib_path;
-
-    # get storage name from path
-    if ( !$args{storage} ) {
-        if ( $path =~ m[\A/?([^/]+)/(.+)]sm ) {
-            $args{storage} = $1;
-
-            $path = P->path( q[/] . $2 );
-        }
-        else {
-            die qq[invalid resource path "$path"];
-        }
-    }
-    else {
-        $path = P->path( q[/] . $path );
-    }
-
-    # clear storage cache if new storage was created
-    if ( !-d "${lib_path}$args{storage}" ) {
-        delete $self->{_storage}->{ $args{storage} };
-
-        delete $self->{_lib_storage}->{$lib_name}->{ $args{storage} } if exists $self->{_lib_storage}->{$lib_name};
-    }
+    $path = P->path( $lib1->[1] . $path );
 
     # create path
-    P->file->mkpath( $lib_path . $args{storage} . $path->dirname ) if !-d "${lib_path}$args{storage}@{[$path->dirname]}";
+    P->file->mkpath( $path->dirname ) if !-d $path->dirname;
 
     # create file
-    if ( ref $file eq 'SCALAR' ) {
-        P->file->write_bin( $lib_path . $args{storage} . $path, $file );
+    if ( is_plain_scalarref $file ) {
+        P->file->write_bin( $path, $file );
     }
     elsif ( is_plain_arrayref $file || is_plain_hashref $file ) {
-        P->cfg->store( $lib_path . $args{storage} . $path, $file, readable => 1 );
+        P->cfg->store( $path, $file, readable => 1 );
     }
     else {
-        P->file->copy( $file, $lib_path . $args{storage} . $path );
+        P->file->copy( $file, $path );
     }
 
-    return $lib_path . $args{storage} . $path;
+    return $path;
 }
 
 1;
@@ -185,8 +160,6 @@ sub store ( $self, $path, $file, $lib_name, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 132                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 84                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
