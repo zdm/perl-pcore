@@ -45,8 +45,8 @@ sub get_lib ( $self, $lib_name ) {
     }
     else {
         if ( $lib_name eq 'dist' ) {
-            if ( my $dist = $ENV->dist ) {
-                $lib_name = lc $dist->name;
+            if ( $ENV->{main_dist} ) {
+                $lib_name = lc $ENV->{main_dist}->name;
             }
             else {
                 return;

@@ -10,20 +10,20 @@ use Fcntl qw[LOCK_EX SEEK_SET];
 use Pcore::Util::Scalar qw[is_ref];
 
 has is_par => ( is => 'ro', isa => Bool, init_arg => undef );    # process run from PAR distribution
-has _main_dist => ( is => 'ro', isa => Maybe      [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
-has pcore      => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],                init_arg => undef );    # pcore dist
-has share      => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Env::Share'],    init_arg => undef );    # share object
-has _dist_idx     => ( is => 'ro',   isa => HashRef, init_arg => undef );                                 # registered dists. index
-has cli           => ( is => 'ro',   isa => HashRef, init_arg => undef );                                 # parsed CLI data
+has main_dist => ( is => 'ro', isa => Maybe      [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
+has pcore     => ( is => 'ro', isa => InstanceOf ['Pcore::Dist'],                init_arg => undef );    # pcore dist
+has share     => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Env::Share'],    init_arg => undef );    # share object
+has _dist_idx     => ( is => 'ro',   isa => HashRef, init_arg => undef );                                # registered dists. index
+has cli           => ( is => 'ro',   isa => HashRef, init_arg => undef );                                # parsed CLI data
 has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
-has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                                 # $HOME/.pcore/pcore.ini config
+has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                                # $HOME/.pcore/pcore.ini config
 
 has can_scan_deps => ( is => 'lazy', isa => Bool, init_arg => undef );
 
 _normalize_inc();
 
 # create $ENV object
-$ENV = __PACKAGE__->new;                                                                                  ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+$ENV = __PACKAGE__->new;                                                                                 ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
 _configure_inc();
 
@@ -167,22 +167,22 @@ sub BUILD ( $self, $args ) {
 
     # find main dist
     if ( $self->{is_par} ) {
-        $self->{_main_dist} = Pcore::Dist->new( $ENV{PAR_TEMP} );
+        $self->{main_dist} = Pcore::Dist->new( $ENV{PAR_TEMP} );
     }
     else {
-        $self->{_main_dist} = Pcore::Dist->new( $self->{SCRIPT_DIR} );
+        $self->{main_dist} = Pcore::Dist->new( $self->{SCRIPT_DIR} );
     }
 
     # register main dist
-    if ( $self->{_main_dist} ) {
-        $self->{_main_dist}->{is_main} = 1;
+    if ( $self->{main_dist} ) {
+        $self->{main_dist}->{is_main} = 1;
 
-        $self->register_dist( $self->{_main_dist} );
+        $self->register_dist( $self->{main_dist} );
     }
 
     # init pcore dist, required for register pcore resources during bootstrap
-    if ( $self->{_main_dist} && $self->{_main_dist}->is_pcore ) {
-        $self->{pcore} = $self->{_main_dist};
+    if ( $self->{main_dist} && $self->{main_dist}->is_pcore ) {
+        $self->{pcore} = $self->{main_dist};
     }
     else {
         $self->{pcore} = Pcore::Dist->new('Pcore.pm');
@@ -246,7 +246,7 @@ sub dist ( $self, $dist_name = undef ) {
         return $self->{_dist_idx}->{ $dist_name =~ s/::/-/smgr };
     }
     else {
-        return $self->{_main_dist};
+        return $self->{main_dist};
     }
 }
 
