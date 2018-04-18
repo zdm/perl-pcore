@@ -33,7 +33,7 @@ sub update ($cb = undef) {
 }
 
 sub ca_file {
-    return $ENV->share->get('/data/ca_file.pem') // undef;
+    return $ENV->{share}->get('data/ca_file.pem');
 }
 
 1;

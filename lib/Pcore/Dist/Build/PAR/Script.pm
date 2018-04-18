@@ -510,7 +510,7 @@ sub _patch_icon ( $self, $path ) {
         # path should be passed as plain string
         my $exe = Win32::Exe->new("$path");
 
-        $exe->update( icon => $ENV->share->get('/data/par.ico') );
+        $exe->update( icon => $ENV->{share}->get('data/par.ico') );
     }
 
     return;

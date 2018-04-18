@@ -95,47 +95,7 @@ sub get_storage ( $self, $storage_name, $lib_name = undef ) {
     }
 }
 
-sub get ( $self, $path, @ ) {
-    my %args = (
-        storage => undef,
-        lib     => undef,
-        splice @_, 2,
-    );
-
-    # get storage name from path
-    if ( !$args{storage} ) {
-        if ( $path =~ m[\A/?([^/]+)/(.+)]sm ) {
-            $args{storage} = $1;
-
-            $path = P->path( q[/] . $2 );
-        }
-        else {
-            die qq[invalid resource path "$path"];
-        }
-    }
-    else {
-        $path = P->path( q[/] . $path );
-    }
-
-    if ( $args{lib} ) {
-        if ( my $storage_path = $self->get_storage( $args{storage}, $args{lib} ) ) {
-            my $res = $storage_path . $path;
-
-            return $res if -f $res;
-        }
-    }
-    elsif ( my $storage = $self->get_storage( $args{storage} ) ) {
-        for my $storage_path ( $storage->@* ) {
-            my $res = $storage_path . $path;
-
-            return $res if -f $res;
-        }
-    }
-
-    return;
-}
-
-sub get1 ( $self, @ ) {
+sub get ( $self, @ ) {
     my ( $lib, $root, $path );
 
     if ( @_ == 2 ) {
@@ -153,9 +113,9 @@ sub get1 ( $self, @ ) {
 
         $root_path .= $root if $root;
 
-        my $real_path = Cwd::realpath( $root_path . $path );
+        my $real_path = Cwd::realpath("$root_path/$path");
 
-        if ($real_path) {
+        if ( -f $real_path ) {
 
             # convert slashes
             $path =~ s[\\][/]smg;
@@ -225,7 +185,7 @@ sub store ( $self, $path, $file, $lib_name, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 172                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 132                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 84                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
