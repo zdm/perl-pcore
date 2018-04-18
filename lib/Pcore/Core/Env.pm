@@ -10,9 +10,9 @@ use Fcntl qw[LOCK_EX SEEK_SET];
 
 has is_par => ( is => 'lazy', isa => Bool, init_arg => undef );    # process run from PAR distribution
 has _main_dist => ( is => 'lazy', isa => Maybe      [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
-has pcore      => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist'],                init_arg => undef );    # pcore dist
-has share      => ( is => 'lazy', isa => InstanceOf ['Pcore::Core::Env::Share'],    init_arg => undef );    # share object
-has _dist_idx     => ( is => 'lazy', isa => HashRef, default  => sub { {} }, init_arg => undef );           # registered dists. index
+has pcore      => ( is => 'ro',   isa => InstanceOf ['Pcore::Dist'],                init_arg => undef );    # pcore dist
+has share      => ( is => 'ro',   isa => InstanceOf ['Pcore::Core::Env::Share'],    init_arg => undef );    # share object
+has _dist_idx     => ( is => 'ro',   isa => HashRef, init_arg => undef );                                   # registered dists. index
 has cli           => ( is => 'ro',   isa => HashRef, init_arg => undef );                                   # parsed CLI data
 has user_cfg_path => ( is => 'lazy', isa => Str,     init_arg => undef );
 has user_cfg      => ( is => 'lazy', isa => HashRef, init_arg => undef );                                   # $HOME/.pcore/pcore.ini config
@@ -23,8 +23,6 @@ _normalize_inc();
 
 # create $ENV object
 $ENV = __PACKAGE__->new;                                                                                    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
-
-$ENV->_INIT;
 
 _configure_inc();
 
@@ -117,7 +115,11 @@ sub _configure_inc {
     return;
 }
 
-sub _INIT ($self) {
+sub BUILD ( $self, $args ) {
+
+    # init share
+    $self->{share} = Pcore::Core::Env::Share->new;
+
     $self->{START_DIR} = P->file->cwd->to_string;
 
     if ( $Pcore::SCRIPT_PATH eq '-e' || $Pcore::SCRIPT_PATH eq '-' ) {
@@ -162,7 +164,14 @@ sub _INIT ($self) {
     }
 
     # init pcore dist, needed to register pcore resources during bootstrap
-    $self->pcore;
+    if ( $self->dist && $self->dist->is_pcore ) {
+        $self->{pcore} = $self->dist;
+    }
+    else {
+        $self->{pcore} = Pcore::Dist->new('Pcore.pm');
+
+        $self->register_dist( $self->{pcore} );
+    }
 
     return;
 }
@@ -190,23 +199,6 @@ sub _build__main_dist ($self) {
     return $dist;
 }
 
-sub _build_pcore ($self) {
-    if ( $self->dist && $self->dist->is_pcore ) {
-        return $self->dist;
-    }
-    else {
-        my $pcore = Pcore::Dist->new('Pcore.pm');
-
-        $self->register_dist($pcore);
-
-        return $pcore;
-    }
-}
-
-sub _build_share ($self) {
-    return Pcore::Core::Env::Share->new;
-}
-
 sub _build_user_cfg_path ($self) {
     return "$self->{PCORE_USER_DIR}pcore.ini";
 }
@@ -229,10 +221,10 @@ sub register_dist ( $self, $dist ) {
     die qq[Invlaid Pcore -dist pragma usage, "$dist" is not a Pcore dist main module] if !$dist;
 
     # dist is already registered
-    return if exists $self->_dist_idx->{ $dist->name };
+    return if exists $self->{_dist_idx}->{ $dist->name };
 
     # add dist to the dists index
-    $self->_dist_idx->{ $dist->name } = $dist;
+    $self->{_dist_idx}->{ $dist->name } = $dist;
 
     # register dist share
     my $share_lib_level;
@@ -257,7 +249,7 @@ sub register_dist ( $self, $dist ) {
 
 sub dist ( $self, $dist_name = undef ) {
     if ($dist_name) {
-        return $self->_dist_idx->{ $dist_name =~ s/::/-/smgr };
+        return $self->{_dist_idx}->{ $dist_name =~ s/::/-/smgr };
     }
     else {
         return $self->_main_dist;
@@ -373,17 +365,17 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 278                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 270                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 286                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
+## |    3 | 278                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 295                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 287                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 333                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 325                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 360                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 352                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 101                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 99                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
