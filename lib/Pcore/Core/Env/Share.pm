@@ -3,14 +3,14 @@ package Pcore::Core::Env::Share;
 use Pcore -class, -const;
 use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
 
-has _temp => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::TempDir'], init_arg => undef );
-has _lib         => ( is => 'ro',   isa => HashRef, default => sub { {} }, init_arg => undef );                   # name => [$level, $path]
-has _storage     => ( is => 'lazy', isa => HashRef, default => sub { {} }, clearer  => 1, init_arg => undef );    # storage cache, name => [$path, ...]
-has _lib_storage => ( is => 'lazy', isa => HashRef, default => sub { {} }, init_arg => undef );                   # lib storage cache, {lib}->{storage} = $path
+has _temp        => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::TempDir'], init_arg => undef );
+has _lib         => ( is => 'ro',   isa => HashRef,                                   init_arg => undef );                                          # name => [$level, $path]
+has _storage     => ( is => 'lazy', isa => HashRef,                                   default  => sub { {} }, clearer => 1, init_arg => undef );    # storage cache, name => [$path, ...]
+has _lib_storage => ( is => 'lazy', isa => HashRef,                                   default  => sub { {} }, init_arg => undef );                  # lib storage cache, {lib}->{storage} = $path
 
 const our $RESERVED_LIB_NAME => {
-    dist => 1,                                                                                                    # alias for main dist
-    temp => 1,                                                                                                    # temporary resources lib
+    dist => 1,                                                                                                                                      # alias for main dist
+    temp => 1,                                                                                                                                      # temporary resources lib
 };
 
 sub _build__temp ($self) {
@@ -20,10 +20,10 @@ sub _build__temp ($self) {
 sub add_lib ( $self, $name, $path, $level ) {
     die qq[resource lib name "$name" is reserved] if exists $RESERVED_LIB_NAME->{$name};
 
-    die qq[resource lib "$name" already exists] if exists $self->_lib->{$name};
+    die qq[resource lib "$name" already exists] if exists $self->{_lib}->{$name};
 
     # register lib
-    $self->_lib->{$name} = [ $level, $path ];
+    $self->{_lib}->{$name} = [ $level, $path ];
 
     # clear cache
     $self->_clear_storage;
@@ -32,30 +32,26 @@ sub add_lib ( $self, $name, $path, $level ) {
 }
 
 # return lib path by name
-sub get_lib ( $self, $lib_name ) {
-    \my $libs = \$self->_lib;
-
+sub get_lib ( $self, $name ) {
     if ( $ENV->is_par ) {
 
         # under the PAR all resources libs are merged under the "dist" alias
-        return $libs->{dist}->[1];
+        return $self->{_lib}->{dist}->[1];
     }
-    elsif ( $lib_name eq 'temp' ) {
+    elsif ( $name eq 'temp' ) {
         return $self->_temp->path;
     }
     else {
-        if ( $lib_name eq 'dist' ) {
+        if ( $name eq 'dist' ) {
             if ( $ENV->{main_dist} ) {
-                $lib_name = lc $ENV->{main_dist}->name;
+                $name = $ENV->{main_dist}->name;
             }
             else {
                 return;
             }
         }
 
-        return if !exists $libs->{$lib_name};
-
-        return $libs->{$lib_name}->[1];
+        return exists $self->{_lib}->{$name} ? $self->{_lib}->{$name}->[1] : ();
     }
 }
 
@@ -200,9 +196,9 @@ sub store ( $self, $path, $file, $lib_name, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 147                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 143                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 93                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 89                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
