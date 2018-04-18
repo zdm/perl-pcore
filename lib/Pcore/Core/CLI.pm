@@ -558,7 +558,7 @@ sub help_version ($self) {
 
     say 'Perl ' . $^V->normal . " $Config{archname}";
 
-    say join $LF, q[], 'Image path: ' . $ENV{PAR_PROGNAME}, 'Temp dir: ' . $ENV{PAR_TEMP} if $ENV->is_par;
+    say join $LF, q[], 'Image path: ' . $ENV{PAR_PROGNAME}, 'Temp dir: ' . $ENV{PAR_TEMP} if $ENV->{is_par};
 
     exit 2;
 }

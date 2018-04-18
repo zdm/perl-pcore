@@ -49,7 +49,7 @@ around new => sub ( $orig, $self, $type, % ) {
     my ( $ctrl_r, $ctrl_w ) = portable_socketpair();
 
     state $perl = do {
-        if ( $ENV->is_par ) {
+        if ( $ENV->{is_par} ) {
             "$ENV{PAR_TEMP}/perl" . ( $MSWIN ? '.exe' : q[] );
         }
         else {
