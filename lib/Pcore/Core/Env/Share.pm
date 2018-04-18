@@ -3,14 +3,10 @@ package Pcore::Core::Env::Share;
 use Pcore -class, -const;
 use Pcore::Util::Scalar qw[is_plain_scalarref is_plain_arrayref is_plain_hashref];
 
-has _temp        => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::File::TempDir'], init_arg => undef );
-has _lib         => ( is => 'ro',   isa => HashRef,                                   init_arg => undef );    # name => [$level, $path]
-has _storage     => ( is => 'ro',   isa => HashRef,                                   init_arg => undef );    # storage cache, name => [$path, ...]
-has _lib_storage => ( is => 'ro',   isa => HashRef,                                   init_arg => undef );    # lib storage cache, {lib}->{storage} = $path
+has _lib => ( is => 'ro', isa => HashRef, init_arg => undef );    # name => [$level, $path]
 
 const our $RESERVED_LIB_NAME => {
-    dist => 1,                                                                                                # alias for main dist
-    temp => 1,                                                                                                # temporary resources lib
+    dist => 1,                                                    # alias for main dist
 };
 
 sub _build__temp ($self) {
@@ -25,9 +21,6 @@ sub add_lib ( $self, $name, $path, $level ) {
     # register lib
     $self->{_lib}->{$name} = [ $level, $path ];
 
-    # clear cache
-    delete $self->{_storage};
-
     return;
 }
 
@@ -37,9 +30,6 @@ sub get_lib ( $self, $name ) {
 
         # under the PAR all resources libs are merged under the "dist" alias
         return $self->{_lib}->{dist}->[1];
-    }
-    elsif ( $name eq 'temp' ) {
-        return $self->_temp->path;
     }
     else {
         if ( $name eq 'dist' ) {
