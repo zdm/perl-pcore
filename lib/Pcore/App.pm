@@ -84,7 +84,7 @@ sub api_call ( $self, @args ) {
 }
 
 sub nginx_cfg ($self) {
-    my $www_storage = $ENV->share->get_storage('www');
+    my $www_storage = $ENV->{share}->get_storage('www');
 
     my $params = {
         name              => lc( ref $self ) =~ s/::/-/smgr,

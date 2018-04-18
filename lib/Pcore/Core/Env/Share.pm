@@ -58,40 +58,33 @@ sub get_lib ( $self, $name ) {
 # return undef if storage is not exists
 # return $storage_path if lib is specified
 # return ArrayRef[$storage_path] if lib is not specified
-sub get_storage ( $self, $storage_name, $lib_name = undef ) {
-    if ($lib_name) {
-        my $lib_path = $self->get_lib($lib_name);
+sub get_storage1 ( $self, @ ) {
+    my ( $lib, $path );
 
-        die qq[resource lib is not exists "$lib_name"] if !$lib_path;
+    if ( @_ == 2 ) {
+        $path = $_[1];
+    }
+    elsif ( @_ == 3 ) {
+        $lib = $_[1];
 
-        # cache lib/storage path, if not cached yet
-        if ( !exists $self->{_lib_storage}->{$lib_name}->{$storage_name} ) {
-            if ( -d "${lib_path}${storage_name}" ) {
-                $self->{_lib_storage}->{$lib_name}->{$storage_name} = $lib_path . $storage_name;
-            }
-            else {
-                $self->{_lib_storage}->{$lib_name}->{$storage_name} = undef;
-            }
-        }
+        $path = $_[2];
+    }
 
-        # return cached path
-        return $self->{_lib_storage}->{$lib_name}->{$storage_name};
+    if ($lib) {
+        my $lib1 = $self->{_lib}->{$lib};
+
+        die qq[share lib "$lib" is not exists] if !$lib1;
+
+        return -d $lib1->[1] . $path ? $lib1->[1] . $path : ();
     }
     else {
+        my @res;
 
-        # build and cache storage paths array
-        if ( !exists $self->{_storage}->{$storage_name} ) {
-            for my $lib_name ( sort { $self->{_lib}->{$b}->[0] <=> $self->{_lib}->{$a}->[0] } keys $self->{_lib}->%* ) {
-                my $storage_path = $self->{_lib}->{$lib_name}->[1] . $storage_name;
-
-                push $self->{_storage}->{$storage_name}->@*, $storage_path if -d $storage_path;
-            }
-
-            $self->{_storage}->{$storage_name} = undef if !exists $self->{_storage}->{$storage_name};
+        for my $lib ( values $self->{_lib}->%* ) {
+            push @res, $lib->[1] . $path if -d $lib->[1] . $path;
         }
 
-        # return cached value
-        return $self->{_storage}->{$storage_name};
+        return \@res;
     }
 }
 
@@ -154,16 +147,6 @@ sub store ( $self, $lib, $path, $file ) {
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 84                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 

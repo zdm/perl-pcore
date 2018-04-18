@@ -76,7 +76,7 @@ sub run ($self) {
             __SUB__->($parent);
         }
 
-        my $tmpl_path = $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . "/tmpl-$name/";
+        my $tmpl_path = $ENV->{share}->get_storage( 'Pcore', 'dist-tmpl' ) . "/tmpl-$name/";
 
         $files->add_dir($tmpl_path) if -d $tmpl_path;
 
@@ -90,10 +90,10 @@ sub run ($self) {
     # add SCM files
     if ( $self->{upstream_hosting} ) {
         if ( $self->{local_scm_type} eq $SCM_TYPE_HG ) {
-            $files->add_dir( $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . '/hg/' );
+            $files->add_dir( $ENV->{share}->get_storage( 'Pcore', 'dist-tmpl' ) . '/hg/' );
         }
         elsif ( $self->{local_scm_type} eq $SCM_TYPE_GIT ) {
-            $files->add_dir( $ENV->share->get_storage( 'dist-tmpl', 'Pcore' ) . '/git/' );
+            $files->add_dir( $ENV->{share}->get_storage( 'Pcore', 'dist-tmpl' ) . '/git/' );
         }
     }
 
