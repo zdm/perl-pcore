@@ -7,6 +7,7 @@ use Cwd qw[];           ## no critic qw[Modules::ProhibitEvilModules]
 use Pcore::Dist;
 use Pcore::Core::Env::Share;
 use Fcntl qw[LOCK_EX SEEK_SET];
+use Pcore::Util::Scalar qw[is_ref];
 
 has is_par => ( is => 'ro', isa => Bool, init_arg => undef );    # process run from PAR distribution
 has _main_dist => ( is => 'lazy', isa => Maybe      [ InstanceOf ['Pcore::Dist'] ], init_arg => undef );    # main dist
@@ -164,7 +165,7 @@ sub BUILD ( $self, $args ) {
         $self->{DATA_DIR} = $self->{START_DIR};
     }
 
-    # init pcore dist, needed to register pcore resources during bootstrap
+    # init pcore dist, required for register pcore resources during bootstrap
     if ( $self->dist && $self->dist->is_pcore ) {
         $self->{pcore} = $self->dist;
     }
@@ -212,7 +213,7 @@ sub _build_user_cfg ($self) {
 sub register_dist ( $self, $dist ) {
 
     # create dist object
-    $dist = Pcore::Dist->new($dist) if !ref $dist;
+    $dist = Pcore::Dist->new($dist) if !is_ref $dist;
 
     # dist was not found
     die qq[Invlaid Pcore -dist pragma usage, "$dist" is not a Pcore dist main module] if !$dist;
@@ -362,17 +363,17 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 267                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 268                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 275                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
+## |    3 | 276                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 284                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 285                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 322                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 323                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 349                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 350                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 99                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
+## |    1 | 100                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
