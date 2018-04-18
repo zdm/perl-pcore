@@ -220,23 +220,8 @@ sub register_dist ( $self, $dist ) {
     # add dist to the dists index
     $self->{_dist_idx}->{ $dist->name } = $dist;
 
-    # register dist share
-    my $share_lib_level;
-
-    if ( $dist->is_pcore ) {    # pcore dist is always first
-        $share_lib_level = 0;
-    }
-    elsif ( $dist->is_main ) {    # main dist is always on top
-        $share_lib_level = 9_999;
-
-    }
-    else {
-        state $next_level = 10;
-
-        $share_lib_level = $next_level++;
-    }
-
-    $self->{share}->register_lib( $dist->name, $dist->share_dir, $share_lib_level );
+    # register dist share lib
+    $self->{share}->register_lib( $dist->name, $dist->share_dir );
 
     return;
 }
@@ -359,15 +344,15 @@ sub DEMOLISH ( $self, $global ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 264                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 249                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 272                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
+## |    3 | 257                  | Subroutines::ProhibitExcessComplexity - Subroutine "DEMOLISH" with high complexity score (22)                  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 281                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
+## |    3 | 266                  | Variables::RequireInitializationForLocalVars - "local" variable not initialized                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 319                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 304                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 346                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
+## |    2 | 331                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 5                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 100                  | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

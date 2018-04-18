@@ -3,13 +3,16 @@ package Pcore::Core::Env::Share;
 use Pcore -class;
 use Pcore::Util::Scalar qw[is_plain_scalarref is_plain_arrayref is_plain_hashref];
 
-has _lib => ( is => 'ro', isa => HashRef, init_arg => undef );    # name => [$level, $path]
+has _lib_idx  => ( is => 'ro', isa => HashRef,  init_arg => undef );
+has _lib_path => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 
-sub register_lib ( $self, $name, $path, $level ) {
-    die qq[share lib "$name" already exists] if exists $self->{_lib}->{$name};
+sub register_lib ( $self, $name, $path ) {
+    die qq[share lib "$name" already exists] if exists $self->{_lib_idx}->{$name};
 
     # register lib
-    $self->{_lib}->{$name} = [ $level, $path ];
+    $self->{_lib_idx}->{$name} = $path;
+
+    push $self->{_lib_path}->@*, $path;
 
     return;
 }
@@ -30,17 +33,15 @@ sub get_storage ( $self, @ ) {
     }
 
     if ($lib) {
-        my $lib1 = $self->{_lib}->{$lib};
+        die qq[share lib "$lib" is not exists] if !exists $self->{_lib_idx}->{$lib};
 
-        die qq[share lib "$lib" is not exists] if !$lib1;
-
-        return -d $lib1->[1] . $path ? $lib1->[1] . $path : ();
+        return -d $self->{_lib_idx}->{$lib} . $path ? $self->{_lib_idx}->{$lib} . $path : ();
     }
     else {
         my @res;
 
-        for my $lib ( values $self->{_lib}->%* ) {
-            push @res, $lib->[1] . $path if -d $lib->[1] . $path;
+        for my $lib_path ( $self->{_lib_path}->@* ) {
+            push @res, $lib_path . $path if -d $lib_path . $path;
         }
 
         return \@res;
@@ -62,8 +63,8 @@ sub get ( $self, @ ) {
         ( $lib, $root, $path ) = ( $_[1], $_[2], $_[3] );
     }
 
-    for my $lib1 ( $lib ? $self->{_lib}->{$lib} // () : values $self->{_lib}->%* ) {
-        my $root_path = $lib1->[1];
+    for my $lib_path ( $lib ? exists $self->{_lib_idx}->{$lib} ? $self->{_lib_idx}->{$lib} : () : $self->{_lib_path}->@* ) {
+        my $root_path = $lib_path;
 
         $root_path .= $root if $root;
 
@@ -84,11 +85,9 @@ sub get ( $self, @ ) {
 }
 
 sub store ( $self, $lib, $path, $file ) {
-    my $lib1 = $self->{_lib}->{$lib};
+    die qq[share lib "$lib" is not exists] if !exists $self->{_lib_idx}->{$lib};
 
-    die qq[share lib "$lib" is not exists] if !$lib1;
-
-    $path = P->path( $lib1->[1] . $path );
+    $path = P->path( $self->{_lib_idx}->{$lib} . $path );
 
     # create path
     P->file->mkpath( $path->dirname ) if !-d $path->dirname;
@@ -108,6 +107,16 @@ sub store ( $self, $lib, $path, $file ) {
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 44                   | ValuesAndExpressions::ProhibitMismatchedOperators - Mismatched operator                                        |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
