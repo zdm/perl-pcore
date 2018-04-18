@@ -135,6 +135,40 @@ sub get ( $self, $path, @ ) {
     return;
 }
 
+sub get1 ( $self, @ ) {
+    my ( $lib, $root, $path );
+
+    if ( @_ == 2 ) {
+        $path = $_[1];
+    }
+    elsif ( @_ == 3 ) {
+        ( $root, $path ) = ( $_[1], $_[2] );
+    }
+    elsif ( @_ == 4 ) {
+        ( $lib, $root, $path ) = ( $_[1], $_[2], $_[3] );
+    }
+
+    for my $lib1 ( $lib ? $self->{_lib}->{$lib} // () : values $self->{_lib}->%* ) {
+        my $root_path = $lib1->[1];
+
+        $root_path .= $root if $root;
+
+        my $real_path = Cwd::realpath( $root_path . $path );
+
+        if ($real_path) {
+
+            # convert slashes
+            $path =~ s[\\][/]smg;
+
+            if ( substr( $real_path, 0, length $root_path ) eq $root_path ) {
+                return $real_path;
+            }
+        }
+    }
+
+    return;
+}
+
 sub store ( $self, $path, $file, $lib_name, @ ) {
     my %args = (
         storage => undef,
@@ -191,7 +225,7 @@ sub store ( $self, $path, $file, $lib_name, @ ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 138                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 84                   | BuiltinFunctions::ProhibitReverseSortBlock - Forbid $b before $a in sort blocks                                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
