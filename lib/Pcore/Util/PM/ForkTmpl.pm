@@ -1,4 +1,4 @@
-package Pcore::RPC::Tmpl;
+package Pcore::Util::PM::ForkTmpl;
 
 use Pcore;
 use AnyEvent::Util;
@@ -71,7 +71,7 @@ sub _fork_tmpl {
 sub _tmpl_proc ( $r, $w ) {
 
     # child
-    $0 = 'Pcore::RPC::Tmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $0 = 'Pcore::Util::PM::ForkTmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     local $SIG{TERM} = sub { exit 128 + 15 };
 
@@ -159,7 +159,7 @@ __END__
 
 =head1 NAME
 
-Pcore::RPC::Tmpl
+Pcore::Util::PM::ForkTmpl
 
 =head1 SYNOPSIS
 

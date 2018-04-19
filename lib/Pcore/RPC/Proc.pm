@@ -27,8 +27,8 @@ around new => sub ( $orig, $self, $type, % ) {
     # create self instance
     $self = $self->$orig( { on_finish => $args{on_finish} } );
 
-    if ($Pcore::RPC::Tmpl::CPID) {
-        Pcore::RPC::Tmpl::run(
+    if ($Pcore::Util::PM::ForkTmpl::CPID) {
+        Pcore::Util::PM::ForkTmpl::run(
             $type,
             {   parent_id => $args{parent_id},
                 listen    => $args{listen},

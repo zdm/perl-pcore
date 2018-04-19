@@ -407,7 +407,7 @@ sub _CORE_INIT {
 
     require Pcore::Core::Exception;    # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
 
-    require Pcore::RPC::Tmpl if $FORK && !$MSWIN;
+    require Pcore::Util::PM::ForkTmpl if $FORK && !$MSWIN;
 
     _CORE_INIT_AFTER_FORK();
 
