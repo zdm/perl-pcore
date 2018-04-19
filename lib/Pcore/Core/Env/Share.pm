@@ -70,7 +70,7 @@ sub get ( $self, @ ) {
 
         my $real_path = Cwd::realpath("$root_path/$path");
 
-        if ( -f $real_path ) {
+        if ( $real_path && -f $real_path ) {
 
             # convert slashes
             $path =~ s[\\][/]smg;
