@@ -55,8 +55,6 @@ around new => sub ( $orig, $self, $type, % ) {
         $self->_handshake(
             $fh_r,
             sub {
-
-                # TODO watch child
                 $self->{proc} = bless { pid => $self->{conn}->{pid} }, 'Pcore::Util::PM::Proc';
 
                 $args{on_ready}->($self);
