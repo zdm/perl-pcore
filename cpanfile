@@ -34,6 +34,7 @@ requires 'AnyEvent';
 requires 'Coro';
 requires 'Net::DNS::Resolver';
 requires 'Guard';
+requires 'IO::FDPass';
 feature linux => sub {
     requires 'AnyEvent::AIO';
     requires 'IO::AIO';

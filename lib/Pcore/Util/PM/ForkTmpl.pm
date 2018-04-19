@@ -3,6 +3,7 @@ package Pcore::Util::PM::ForkTmpl;
 use Pcore -const;
 use AnyEvent::Util;
 use Pcore::Util::Data qw[to_cbor from_cbor];
+use IO::FDPass;
 
 our ( $CHILD_PID, $CHILD_FH );
 
@@ -15,7 +16,7 @@ END {
 _fork_tmpl();
 
 sub _fork_tmpl {
-    ( my $read_fh, $CHILD_FH ) = AnyEvent::Util::portable_pipe();
+    ( my $read_fh, $CHILD_FH ) = AnyEvent::Util::portable_socketpair();
 
     # parent
     if ( $CHILD_PID = fork ) {
@@ -49,6 +50,10 @@ sub run_rpc ( $type, $args ) {
 
     syswrite $CHILD_FH, pack( 'L', length $msg->$* ) . $msg->$* or die $!;
 
+    use IO::FDPass;
+
+    IO::FDPass::send fileno $CHILD_FH, $args->{fh};
+
     return;
 }
 
@@ -65,6 +70,12 @@ sub _tmpl_proc ( $fh ) {
 
         sysread $fh, my $data, unpack 'L', $len or die $!;
 
+        $data = from_cbor $data;
+
+        if ( $data->{cmd} == $FORK_CMD_RUN_RPC ) {
+            $data->{args}->{fh} = IO::FDPass::recv fileno $fh;
+        }
+
         # child
         if ( !fork ) {
 
@@ -75,7 +86,7 @@ sub _tmpl_proc ( $fh ) {
 
             undef $SIG{TERM};
 
-            _forked_proc( from_cbor $data );
+            _forked_proc($data);
         }
     }
 
@@ -109,7 +120,7 @@ sub _forked_proc ( $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22, 87               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 23, 98               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
