@@ -442,7 +442,12 @@ sub get_query ( $self, $dbh, $final, $i ) {
         }
     }
 
-    return '(' . join( ', ', map { $dbh->quote_id($_) } @idx ) . ') VALUES ' . join( ', ', @sql ), undef;
+    if (@idx) {
+        return '(' . join( ', ', map { $dbh->quote_id($_) } @idx ) . ') VALUES ' . join( ', ', @sql ), undef;
+    }
+    else {
+        return 'VALUES ' . join( ', ', @sql ), undef;
+    }
 }
 
 # WHERE
@@ -753,9 +758,11 @@ sub get_query ( $self, $dbh, $final, $i ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 185                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 526                  | Subroutines::ProhibitExcessComplexity - Subroutine "get_query" with high complexity score (34)                 |
+## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
+## |      | 383                  | * Subroutine "get_query" with high complexity score (21)                                                       |
+## |      | 531                  | * Subroutine "get_query" with high complexity score (34)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 608                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 613                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
