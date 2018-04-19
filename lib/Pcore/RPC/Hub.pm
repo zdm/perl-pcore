@@ -15,6 +15,8 @@ has conn_type => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 
 has _on_rpc_started => ( is => 'ro', init_arg => undef );               # event listener
 
+# TODO autogenerate token
+
 sub BUILD ( $self, $args ) {
     if ( defined $self->{id} ) {
         weaken $self;
@@ -210,9 +212,9 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 114                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 116                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 167                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 169                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

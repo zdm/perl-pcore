@@ -21,7 +21,7 @@ sub run ( $type, $rpc_boot_args ) {
 
     $rpc->{rpc} = Pcore::RPC::Hub->new( {
         parent_id => $rpc_boot_args->{parent_id},
-        id        => $rpc_boot_args->{id} // P->uuid->v1mc_str,
+        id        => P->uuid->v1mc_str,
         type      => $type
     } );
 
@@ -132,35 +132,27 @@ sub run ( $type, $rpc_boot_args ) {
         },
     } )->run;
 
-    my $data = to_cbor( {
+    my $data = to_cbor {
         pid    => $$,
         id     => $rpc->{rpc}->{id},
         type   => $type,
         listen => $listen,
-        token  => $rpc_boot_args->{token}
-    } )->$*
-      . $LF;
+        token  => $rpc_boot_args->{token},
+    };
 
     # open control handle
-    if ( is_globref $rpc_boot_args->{ctrl_fh} ) {
-        syswrite $rpc_boot_args->{ctrl_fh}, $data or die $!;
-
-        close $rpc_boot_args->{ctrl_fh} or die $!;
+    if ($MSWIN) {
+        Win32API::File::OsFHandleOpen( *FH, $rpc_boot_args->{fh}, 'w' ) or die $!;
     }
     else {
-        if ($MSWIN) {
-            Win32API::File::OsFHandleOpen( *FH, $rpc_boot_args->{ctrl_fh}, 'w' ) or die $!;
-        }
-        else {
-            open *FH, '>&=', $rpc_boot_args->{ctrl_fh} or die $!;
-        }
-
-        binmode *FH or die;
-
-        syswrite *FH, $data or die $!;
-
-        close *FH or die $!;
+        open *FH, '>&=', $rpc_boot_args->{fh} or die $!;
     }
+
+    binmode *FH or die;
+
+    syswrite *FH, unpack( 'H*', $data->$* ) . $LF or die $!;
+
+    close *FH or die $!;
 
     $cv->recv;
 
@@ -174,7 +166,7 @@ sub run ( $type, $rpc_boot_args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 11                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (32)                       |
+## |    3 | 11                   | Subroutines::ProhibitExcessComplexity - Subroutine "run" with high complexity score (28)                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 115                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

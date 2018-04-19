@@ -1,74 +1,59 @@
 package Pcore::Util::PM::ForkTmpl;
 
-use Pcore;
+use Pcore -const;
 use AnyEvent::Util;
-use Pcore::Util::Data qw[from_cbor];
+use Pcore::Util::Data qw[to_cbor from_cbor];
 
-our ( $CPID, $R, $W, $QUEUE );
+our ( $CHILD_PID, $CHILD_FH );
+
+const our $FORK_CMD_RUN_RPC => 1;
 
 END {
-    kill 'TERM', $CPID if defined $CPID;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+    kill 'TERM', $CHILD_PID if defined $CHILD_PID;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 }
 
 _fork_tmpl();
 
 sub _fork_tmpl {
-    my ( $r1, $w1 ) = AnyEvent::Util::portable_pipe();
-    ( my $r2, $W ) = AnyEvent::Util::portable_pipe();
+    ( my $read_fh, $CHILD_FH ) = AnyEvent::Util::portable_pipe();
 
-    if ( $CPID = fork ) {
+    # parent
+    if ( $CHILD_PID = fork ) {
         Pcore::_CORE_INIT_AFTER_FORK();
 
         require Pcore::AE::Handle;
 
-        # parent
-        close $w1 or die $!;
-        close $r2 or die $!;
-
-        Pcore::AE::Handle->new(
-            fh         => $r1,
-            on_connect => sub ( $h, @ ) {
-                $R = $h;
-
-                return;
-            },
-        );
-
-        $R->on_read( sub ($h) {
-            $h->unshift_read(
-                line => "\n",
-                sub ( $h1, $line, $eol ) {
-                    my $conn = eval { from_cbor $line };
-
-                    if ($@) {
-                        die 'RPC handshake error';
-                    }
-                    else {
-                        my $cb = delete $QUEUE->{ $conn->{id} };
-
-                        $cb->( bless { conn => $conn }, 'Pcore::RPC::_Proc' );
-                    }
-
-                    return;
-                }
-            );
-
-            return;
-        } );
+        close $read_fh or die $!;
     }
+
+    # child
     else {
 
-        # chile
-        close $r1 or die $!;
-        close $W  or die $!;
+        # run process in own PGRP
+        # setpgrp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
-        _tmpl_proc( $r2, $w1 );
+        close $CHILD_FH or die $!;
+
+        _tmpl_proc($read_fh);
     }
 
     return;
 }
 
-sub _tmpl_proc ( $r, $w ) {
+sub run_rpc ( $type, $args ) {
+    my $msg = to_cbor {
+        cmd  => $FORK_CMD_RUN_RPC,
+        type => $type,
+        args => $args,
+    };
+
+    syswrite $CHILD_FH, pack( 'L', length $msg->$* ) . $msg->$* or die $!;
+
+    return;
+}
+
+# TEMPLATE PROCESS
+sub _tmpl_proc ( $fh ) {
 
     # child
     $0 = 'Pcore::Util::PM::ForkTmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
@@ -76,69 +61,45 @@ sub _tmpl_proc ( $r, $w ) {
     local $SIG{TERM} = sub { exit 128 + 15 };
 
     while (1) {
-        sysread $r, my $len, 4 or die $!;
+        sysread $fh, my $len, 4 or die $!;
 
-        sysread $r, my $data, unpack 'L', $len or die $!;
+        sysread $fh, my $data, unpack 'L', $len or die $!;
 
+        # child
         if ( !fork ) {
-            close $r or die $!;
+
+            # run process in own PGRP
+            # setpgrp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+            close $fh or die $!;
 
             undef $SIG{TERM};
 
-            _rpc_proc( $w, P->data->from_cbor($data) );
+            _forked_proc( from_cbor $data );
         }
     }
 
     exit;
 }
 
-sub _rpc_proc ( $w, $data ) {
+# FORKED FROM TEMPLATE PROCESS
+sub _forked_proc ( $data ) {
     Pcore::_CORE_INIT_AFTER_FORK();
-
-    require Pcore::RPC::Server;
-
-    $0 = $data->{type};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     # redefine watcher in the forked process
     $SIG->{TERM} = AE::signal TERM => sub { exit 128 + 15 };
 
-    P->class->load( $data->{type} );
+    if ( $data->{cmd} == $FORK_CMD_RUN_RPC ) {
+        require Pcore::RPC::Server;
 
-    $data->{ctrl_fh} = $w;
+        $0 = $data->{type};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
-    Pcore::RPC::Server::run( $data->{type}, $data );
+        P->class->load( $data->{type} );
 
-    return;
-}
+        Pcore::RPC::Server::run( $data->{type}, $data->{args} );
+    }
 
-sub run ( $type, $args, $cb ) {
-    my $id = P->uuid->v1mc_str;
-
-    $QUEUE->{$id} = $cb;
-
-    my $data = P->data->to_cbor( {
-        id        => $id,
-        scandeps  => $ENV->{SCAN_DEPS} ? 1 : undef,
-        type      => $type,
-        parent_id => $args->{parent_id},
-        listen    => $args->{listen},
-        token     => $args->{token},
-        buildargs => $args->{buildargs},
-    } );
-
-    syswrite $W, pack( 'L', length $data->$* ) . $data->$* or die $!;
-
-    return;
-}
-
-package Pcore::RPC::_Proc;
-
-use Pcore;
-
-sub DESTROY ($self) {
-    kill 'TERM', $self->{conn}->{pid} || 1;
-
-    return;
+    exit;
 }
 
 1;
@@ -148,7 +109,7 @@ sub DESTROY ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 20, 96               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 22, 87               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
