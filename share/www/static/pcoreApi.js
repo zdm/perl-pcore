@@ -100,6 +100,24 @@ var pcoreApi = {
         }
     },
 
+    res: function (status) {
+        var res = {};
+
+        if (Array.isArray(status)) {
+            res.status = status[0];
+
+            res.reason = status[1];
+        } else {
+            res.status = status;
+
+            res.reason = '';
+        }
+
+        Object.setPrototypeOf(res, pcoreApiResponse);
+
+        return res;
+    },
+
     call: function () {
         var method = arguments[0],
             cb,
