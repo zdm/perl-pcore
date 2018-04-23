@@ -505,20 +505,19 @@ has _buf => ( is => 'ro', isa => ArrayRef, required => 1 );
 has _is_not_empty => ( is => 'lazy', isa => Bool );
 
 const our $SQL_COMPARISON_OPERATOR => {
-    '<'    => '<',
-    '<='   => '<=',
-    '='    => '=',
-    '>='   => '>=',
-    '>'    => '>',
-    '!='   => '!=',
-    'like' => 'LIKE',
+    '<'      => '<',
+    '<='     => '<=',
+    '='      => '=',
+    '>='     => '>=',
+    '>'      => '>',
+    '!='     => '!=',
+    'like'   => 'LIKE',
+    'in'     => 'IN',
+    'not in' => 'NOT IN',
 
     # TODO not yet supported
     'is null'     => undef,    # 'IS NULL', # automatically use this operator, if value in undef
     'is not null' => undef,    # 'IS NOT NULL',
-    'in'          => undef,    # 'IN',
-    'notin'       => undef,    # 'NOT IN',
-    'not in'      => undef,    # 'NOT IN',
 };
 
 sub _build__is_not_empty ($self) {
@@ -607,8 +606,32 @@ sub get_query ( $self, $dbh, $final, $i ) {
                         \$val = \$token->{$field}->[1];
                     }
 
+                    if ( $op eq 'IN' ) {
+                        my $in = Pcore::Handle::DBI::Const::IN $val;
+
+                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $final, $i );
+
+                        if ($in_sql) {
+                            push @buf, "$quoted_field $in_sql";
+
+                            push @bind, $in_bind->@*;
+                        }
+                    }
+
+                    elsif ( $op eq 'NOT IN' ) {
+                        my $in = Pcore::Handle::DBI::Const::IN $val;
+
+                        my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $final, $i );
+
+                        if ($in_sql) {
+                            push @buf, "$quoted_field NOT $in_sql";
+
+                            push @bind, $in_bind->@*;
+                        }
+                    }
+
                     # expand value
-                    if ( !is_ref $val || is_arrayref $val) {
+                    elsif ( !is_ref $val || is_arrayref $val) {
                         push @buf, "$quoted_field $op \$" . $i->$*++;
 
                         push @bind, $val;
@@ -830,9 +853,9 @@ sub get_query ( $self, $dbh, $final, $i ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
 ## |      | 391                  | * Subroutine "get_query" with high complexity score (21)                                                       |
-## |      | 539                  | * Subroutine "get_query" with high complexity score (34)                                                       |
+## |      | 538                  | * Subroutine "get_query" with high complexity score (38)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 621                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 614, 626, 644        | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
