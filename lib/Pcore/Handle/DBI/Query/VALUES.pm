@@ -1,4 +1,4 @@
-package Pcore::Handle::DBI::Query::Values;
+package Pcore::Handle::DBI::Query::VALUES;
 
 use Pcore -class;
 use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_arrayref is_plain_arrayref is_plain_hashref is_blessed_hashref];
@@ -93,7 +93,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Handle::DBI::Query::Values
+Pcore::Handle::DBI::Query::VALUES
 
 =head1 SYNOPSIS
 

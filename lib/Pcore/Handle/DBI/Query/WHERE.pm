@@ -146,7 +146,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
                     }
 
                     if ( $op eq 'IN' ) {
-                        my $in = Pcore::Handle::DBI::Const::IN $val;
+                        my $in = Pcore::Handle::DBI::Const::IN($val);
 
                         my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $final, $i );
 
@@ -158,7 +158,7 @@ sub get_query ( $self, $dbh, $final, $i ) {
                     }
 
                     elsif ( $op eq 'NOT IN' ) {
-                        my $in = Pcore::Handle::DBI::Const::IN $val;
+                        my $in = Pcore::Handle::DBI::Const::IN($val);
 
                         my ( $in_sql, $in_bind ) = $in->get_query( $dbh, $final, $i );
 
