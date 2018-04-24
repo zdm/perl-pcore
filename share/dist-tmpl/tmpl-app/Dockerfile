@@ -23,7 +23,7 @@ RUN /bin/bash -c ' \
     && wget -q -O - https://bitbucket.org/softvisio/pcore-share-www/get/latest.tar.gz | tar -C "$PCORE_LIB/pcore-share-www/" --strip-components=1 -xzf - \
 
     && mkdir "$PCORE_LIB/pcore-share-ext_v6_2_0/" \
-    && wget -q -O - https://bitbucket.org/softvisio/pcore-share-www/get/latest.tar.gz | tar -C "$PCORE_LIB/pcore-share-ext_v6_2_0/" --strip-components=1 -xzf - \
+    && wget -q -O - https://bitbucket.org/softvisio/pcore-share-ext_v6_2_0/get/latest.tar.gz | tar -C "$PCORE_LIB/pcore-share-ext_v6_2_0/" --strip-components=1 -xzf - \
 
     # deploy and test distribution
     && pcore deploy --recommends --suggests \
