@@ -84,7 +84,7 @@ sub get ( $self, @ ) {
     return;
 }
 
-sub store ( $self, $lib, $path, $file ) {
+sub write ( $self, $lib, $path, $file ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     die qq[share lib "$lib" is not exists] if !exists $self->{_lib_idx}->{$lib};
 
     $path = P->path( $self->{_lib_idx}->{$lib} . $path );
