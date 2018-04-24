@@ -1,3 +1,7 @@
+v0.62.5 2018-04-24T17:09:45Z
+ - P->cfg API updated
+ - $ENV->{share}->store renamed to ->write
+
 v0.62.4 2018-04-24T12:57:08Z
  - use more relaxed permissions
 
