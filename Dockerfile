@@ -19,8 +19,6 @@ RUN /bin/bash -c ' \
     # setup perl build env
     source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
 
-	&& cpanm -v X/XS/XSAWYERX/PathTools-3.74.tar.gz \
-
     # update perl packages
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh || echo false ) \
     && cpan-outdated | cpanm \
