@@ -97,7 +97,7 @@ sub store ( $self, $lib, $path, $file ) {
         P->file->write_bin( $path, $file );
     }
     elsif ( is_plain_arrayref $file || is_plain_hashref $file ) {
-        P->cfg->store( $path, $file, readable => 1 );
+        P->cfg->read( $path, $file, readable => 1 );
     }
     else {
         P->file->copy( $file, $path );
