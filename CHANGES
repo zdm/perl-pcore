@@ -1,3 +1,6 @@
+v0.62.4 2018-04-24T12:57:08Z
+ - use more relaxed permissions
+
 v0.62.3 2018-04-24T12:46:53Z
  - app tmpl fixed
  - Dockerfile fixed
