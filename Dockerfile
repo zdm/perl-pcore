@@ -19,6 +19,8 @@ RUN /bin/bash -c ' \
     # setup perl build env
     source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
 
+	&& cpanm -v PathTools \
+
     # update perl packages
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh || echo false ) \
     && cpan-outdated | cpanm \

@@ -73,7 +73,7 @@ sub get ( $self, @ ) {
         if ( $real_path && -f $real_path ) {
 
             # convert slashes
-            $path =~ s[\\][/]smg;
+            $real_path =~ s[\\][/]smg;
 
             if ( substr( $real_path, 0, length $root_path ) eq $root_path ) {
                 return $real_path;
