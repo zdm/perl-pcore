@@ -1,7 +1,5 @@
-requires 'perl', v5.26.0;
-
-# Pcore::Core
-requires 'multidimensional';
+requires 'perl',           v5.26.0;
+requires 'common::header', v0.1.2;
 
 feature windows => sub {
     requires 'Win32::Console';
