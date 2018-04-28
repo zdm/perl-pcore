@@ -100,7 +100,6 @@ requires 'Compress::Zlib';
 requires 'URI::Escape::XS';
 requires 'MIME::Base64';
 requires 'Convert::Ascii85';
-requires 'TOML';
 
 # Pcore::Util::Date
 requires 'Time::Moment';
