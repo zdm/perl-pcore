@@ -1,13 +1,19 @@
-FROM softvisio/perl:v5.26.2
+FROM centos:latest
 
 LABEL maintainer="zdm <zdm@softvisio.net>"
 
 USER root
 
-ENV PCORE_LIB="/var/local" \
+ENV TZ=UTC \
+    PERL_VERSION="5.26.2" \
+    PERL_CPANM_OPT="--metacpan --from https://cpan.metacpan.org/" \
+    PERL_CPANM_HOME=/tmp/.cpanm \
+    PCORE_LIB="/var/local" \
     DIST_PATH="/var/local/pcore" \
     PATH="/var/local/pcore/bin:$PATH" \
     PERL5LIB="/var/local/pcore/lib"
+
+ENV PATH="/usr/perlbrew/perls/perl-$PERL_VERSION/bin:$PATH"
 
 ADD . $DIST_PATH
 
@@ -16,15 +22,22 @@ WORKDIR $DIST_PATH
 # --develop
 RUN /bin/bash -c ' \
 
-    # setup perl build env
-    source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
+    # install prereqs
+    yum -y install ca-certificates wget \
 
-    # update perl packages
+    # setup host
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
+
+    # setup perl build env
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
+
+    # install && update perl
+    && yum -y install perl-$PERL_VERSION \
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh || echo false ) \
+    && cpanm App::cpanoutdated \
     && cpan-outdated | cpanm \
 
     # deploy pcore
-    && cpanm --with-feature linux --with-recommends --with-suggests --installdeps . \
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
 
