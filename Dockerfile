@@ -10,10 +10,9 @@ ENV TZ=UTC \
     PERL_CPANM_HOME=/tmp/.cpanm \
     PCORE_LIB="/var/local" \
     DIST_PATH="/var/local/pcore" \
-    PATH="/var/local/pcore/bin:$PATH" \
-    PERL5LIB="/var/local/pcore/lib"
 
-ENV PATH="/usr/perlbrew/perls/perl-$PERL_VERSION/bin:$PATH"
+ENV PATH="$DIST_PATH/bin:/usr/perlbrew/perls/perl-$PERL_VERSION/bin:$PATH" \
+    PERL5LIB="$DIST_PATH/lib"
 
 ADD . $DIST_PATH
 
