@@ -9,7 +9,7 @@ ENV TZ=UTC \
     PERL_CPANM_OPT="--metacpan --from https://cpan.metacpan.org/" \
     PERL_CPANM_HOME=/tmp/.cpanm \
     PCORE_LIB="/var/local" \
-    DIST_PATH="/var/local/pcore" \
+    DIST_PATH="/var/local/pcore"
 
 ENV PATH="$DIST_PATH/bin:/usr/perlbrew/perls/perl-$PERL_VERSION/bin:$PATH" \
     PERL5LIB="$DIST_PATH/lib"
