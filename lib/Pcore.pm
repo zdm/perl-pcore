@@ -216,9 +216,6 @@ sub import {
 
             # reconfigure warnings, after Moo exported
             common::header->import;
-
-            # apply default roles
-            # _apply_roles( $caller, qw[Pcore::Core::Autoload::Role] );
         }
 
         # export types
@@ -323,19 +320,6 @@ sub _import_types ($caller) {
     Types::Common::Numeric->import( { into => $caller }, ':types' );
 
     Pcore::Core::Types->import( { into => $caller }, ':types' );
-
-    return;
-}
-
-sub _apply_roles ( $caller, @roles ) {
-    Moo::Role->apply_roles_to_package( $caller, @roles );
-
-    if ( Moo::Role->is_role($caller) ) {
-        Moo::Role->_maybe_reset_handlemoose($caller);    ## no critic qw[Subroutines::ProtectPrivateSubs]
-    }
-    else {
-        Moo->_maybe_reset_handlemoose($caller);          ## no critic qw[Subroutines::ProtectPrivateSubs]
-    }
 
     return;
 }
@@ -647,21 +631,19 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 255                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 252                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 330                  | * Private subroutine/method '_apply_roles' declared but not used                                               |
-## |      | 447                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |    3 | 346, 375, 378, 382,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 413, 416, 421, 424,  |                                                                                                                |
+## |      | 449, 475, 611        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 362, 391, 394, 398,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 429, 432, 437, 440,  |                                                                                                                |
-## |      | 465, 491, 627        |                                                                                                                |
+## |    3 | 431                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 553                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 537                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 265                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 262                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 366                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 350                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
