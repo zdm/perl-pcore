@@ -1,9 +1,9 @@
 package Pcore::Core::CLI::Opt::Daemonize;
 
-use Pcore -role;
+use Pcore -class1;
 
-around CLI => sub ( $orig, $self ) {
-    my $cli = $self->$orig // {};
+sub CLI ( $self ) {
+    my $cli = $self->SUPER::CLI // {};
 
     if ( !$MSWIN ) {
         $cli->{opt}->{daemonize} = {
@@ -13,16 +13,16 @@ around CLI => sub ( $orig, $self ) {
     }
 
     return $cli;
-};
+}
 
 # TODO daemonize at runtime
-around CLI_RUN => sub ( $orig, $self, $opt, @args ) {
+sub CLI_RUN ( $self, $opt, @args ) {
 
     # set daemonize flag
     $ENV->{DAEMONIZE} = 1 if $opt->{daemonize};
 
-    return $self->$orig( $opt, @args );
-};
+    return $self->SUPER::CLI_RUN( $opt, @args );
+}
 
 1;
 __END__
