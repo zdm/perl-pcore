@@ -5,9 +5,8 @@ use Pcore::Util::Scalar qw[is_ref is_coderef];
 use Class::XSAccessor qw[];
 use Role::Tiny qw[];
 
-our $BASE    = {};
-our $ATTRS   = {};
-our $DESTROY = {};
+our ( %BASE, %DESTROY );
+our $ATTRS = {};
 
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
@@ -35,12 +34,12 @@ sub extends (@superclasses) {
     my $caller = caller;
 
     for my $base (@superclasses) {
-        if ( !exists $BASE->{$base} ) {
+        if ( !exists $BASE{$base} ) {
             my $name = $base =~ s[::][/]smgr . '.pm';
 
             require $name if !exists $INC{$name};
 
-            $BASE->{$base} = undef;
+            $BASE{$base} = undef;
         }
 
         no strict qw[refs];
@@ -60,10 +59,10 @@ sub extends (@superclasses) {
             {
                 no strict qw[refs];
 
-                die qq[Class "$caller" do not use DESTROY and DEMOLISH methods together] if !exists $DESTROY->{$caller} && *{"$caller\::DESTROY"}{CODE};
+                die qq[Class "$caller" do not use DESTROY and DEMOLISH methods together] if !exists $DESTROY{$caller} && *{"$caller\::DESTROY"}{CODE};
             }
 
-            $DESTROY->{$caller} = undef;
+            $DESTROY{$caller} = undef;
 
             no warnings qw[redefine];
 
@@ -94,6 +93,7 @@ sub with (@roles) {
     return;
 }
 
+# TODO warnings on use "is" property
 sub has ( $attr, @spec ) {
     my $caller = caller;
 
@@ -172,6 +172,7 @@ PERL
     return;
 }
 
+# TODO init_arg => undef
 sub _new ( $self, @args ) {
     my $default  = q[];
     my $required = q[];
@@ -255,11 +256,11 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15, 70, 157, 228     | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 14, 69, 157, 229     | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 175                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 176                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 216                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 217                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
