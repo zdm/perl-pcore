@@ -20,7 +20,6 @@ PERL
         no strict qw[refs];
 
         *{"$caller\::extends"} = \&extends;
-        *{"$caller\::with"}    = \&with;
         *{"$caller\::has"}     = \&has;
     }
 
@@ -82,6 +81,7 @@ PERL
 }
 
 # TODO warnings on use "is" property
+# TODO do not allow to redefine "is"
 sub has ( $attr, @spec ) {
     my $caller = caller;
 
@@ -282,7 +282,7 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13, 66, 153, 166,    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 13, 65, 153, 166,    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |      | 180, 253             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 200                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
