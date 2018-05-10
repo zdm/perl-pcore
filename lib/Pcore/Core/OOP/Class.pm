@@ -59,7 +59,7 @@ sub has ( $attr, $spec = undef ) {
     }
 
     # check default value
-    die qq[Class "$caller" attribute "$attr" deefault value can be "Scalar" or "CodeRef"] if exists $spec->{default} && !( !is_ref $spec->{default} || is_coderef $spec->{default} );
+    die qq[Class "$caller" attribute "$attr" default value can be "Scalar" or "CodeRef"] if exists $spec->{default} && !( !is_ref $spec->{default} || is_coderef $spec->{default} );
 
     # find parent attr spec
     my ( undef, @isa ) = mro::get_linear_isa($caller)->@*;
@@ -68,7 +68,7 @@ sub has ( $attr, $spec = undef ) {
         if ( exists $ATTRS{$class}->{$attr} ) {
             my $parent_spec = $ATTRS{$class}->{$attr};
 
-            if ( ( $spec->{is} // q[] ) ne ( $parent_spec->{is} // q[] ) ) {
+            if ( $spec->{is} and $spec->{is} ne $parent_spec->{is} ) {
                 die qq[Class "$caller" attribute "$attr" not allowed to redefine parent attribute "is" property];
             }
 
@@ -159,23 +159,30 @@ sub _new ( $self, @args ) {
     my $default1 = q[];
     my $default2 = q[];
     my $required = q[];
-    my $attrs    = $ATTRS{$self};
     my @attr_default_coderef;
+    my $isa = mro::get_linear_isa($self);
+    my $procesed_attrs;
 
-    if ($attrs) {
-        while ( my ( $attr, $spec ) = each $attrs->%* ) {
-            if ( $spec->{required} ) {
-                $required .= qq[die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};\n];
-            }
+    for my $class ( $isa->@* ) {
+        if ( my $attrs = $ATTRS{$class} ) {
+            while ( my ( $attr, $spec ) = each $attrs->%* ) {
+                next if exists $procesed_attrs->{$attr};
 
-            if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
-                if ( !is_ref $spec->{default} ) {
-                    $default1 .= qq[\$args->{$attr} = qq[$attrs->{$attr}->{default}] if !exists \$args->{$attr};\n];
+                $procesed_attrs->{$attr} = undef;
+
+                if ( $spec->{required} ) {
+                    $required .= qq[die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};\n];
                 }
-                else {
-                    push @attr_default_coderef, $attrs->{$attr}->{default};
 
-                    $default2 .= qq[\$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]}(\$self) if !exists \$args->{$attr};\n];
+                if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
+                    if ( !is_ref $spec->{default} ) {
+                        $default1 .= qq[\$args->{$attr} = qq[$attrs->{$attr}->{default}] if !exists \$args->{$attr};\n];
+                    }
+                    else {
+                        push @attr_default_coderef, $attrs->{$attr}->{default};
+
+                        $default2 .= qq[\$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]}(\$self) if !exists \$args->{$attr};\n];
+                    }
                 }
             }
         }
@@ -203,7 +210,7 @@ PERL
     my $build = do {
         no strict qw[refs];
 
-        join q[ ], map {qq[\$self->$_\::BUILD(\$args);]} grep { *{"$_\::BUILD"}{CODE} } reverse mro::get_linear_isa($self)->@*;
+        join q[ ], map {qq[\$self->$_\::BUILD(\$args);]} grep { *{"$_\::BUILD"}{CODE} } reverse $isa->@*;
     };
 
     no warnings qw[redefine];
@@ -241,11 +248,11 @@ PERL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 12, 112, 125, 139,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 211                  |                                                                                                                |
+## |      | 218                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 158                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 199                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 206                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

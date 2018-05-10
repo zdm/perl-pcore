@@ -1,12 +1,16 @@
 package Pcore::App::Controller;
 
-use Pcore -role;
+use Pcore -class1;
 
-has app  => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
-has host => ( is => 'ro', isa => Str,                       required => 1 );    # HTTP controller host
-has path => ( is => 'ro', isa => Str,                       required => 1 );    # HTTP controller url path, always finished with "/"
+has app  => { isa => q[ConsumerOf ['Pcore::App']], required => 1 };
+has host => { is  => 'ro',                         isa      => 'Str', required => 1 };    # HTTP controller host
+has path => { is  => 'ro',                         isa      => 'Str', required => 1 };    # HTTP controller url path, always finished with "/"
 
-requires qw[run];
+sub run ( $self, $req ) {
+    $req->(404)->finish;
+
+    return;
+}
 
 sub get_nginx_cfg ($self) {
     return;

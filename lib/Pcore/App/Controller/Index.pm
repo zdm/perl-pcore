@@ -1,21 +1,21 @@
 package Pcore::App::Controller::Index;
 
-use Pcore -role;
+use Pcore -class1;
 
-with qw[Pcore::App::Controller];
+extends qw[Pcore::App::Controller];
 
 eval { require Pcore::Share::WWW };
 
-around run => sub ( $orig, $self, $req ) {
+sub run ( $self, $req ) {
     if ( $req->{path_tail}->is_file ) {
         $self->return_static($req);
 
         return;
     }
     else {
-        return $self->$orig($req);
+        return $self->SUPER::run($req);
     }
-};
+}
 
 sub get_nginx_cfg ($self) {
     my @buf;

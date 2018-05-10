@@ -1,8 +1,8 @@
 package Pcore::App::Controller::Static;
 
-use Pcore -role;
+use Pcore -class1;
 
-with qw[Pcore::App::Controller];
+extends qw[Pcore::App::Controller];
 
 sub run ( $self, $req ) {
     $self->return_static($req);
