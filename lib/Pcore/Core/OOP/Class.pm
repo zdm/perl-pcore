@@ -186,7 +186,7 @@ sub _new ( $self, @args ) {
                 $required .= qq[die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};\n];
             }
 
-            if ( exists $spec->{default} && ( !$spec->{isa} || $spec->{isa} ne 'lazy' ) ) {
+            if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
                 if ( is_coderef $spec->{default} ) {
                     push @attr_default_coderef, $attrs->{$attr}->{default};
 
