@@ -21,7 +21,11 @@ our $EXPORT_PRAGMA = {
     role     => 0,    # package is a Moo role
     rpc      => 0,    # run class as RPC server
     sql      => 0,    # export Pcore::Handle::DBI::Const qw[:TYPES]
-    types    => 0,    # export types
+
+    # TODO remove
+    types  => 0,      # export types
+    class1 => 0,      #
+    role1  => 0,      #
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
@@ -82,6 +86,8 @@ sub import {
         require EV;
         require AnyEvent;
         require Coro;
+        require Pcore::Core::OOP::Class;
+        require Pcore::Core::OOP::Role;
 
         # install run-time hook to caller package
         B::Hooks::AtRuntime::at_runtime( \&Pcore::_CORE_RUN );
@@ -216,6 +222,34 @@ sub import {
 
             # reconfigure warnings, after Moo exported
             common::header->import;
+        }
+
+        # re-export OOP
+        if ( $import->{pragma}->{class1} || $import->{pragma}->{role1} ) {
+
+            # install universal serializer methods
+            B::Hooks::EndOfScope::XS::on_scope_end( sub {
+                _namespace_clean($caller);
+
+                no strict qw[refs];
+
+                if ( my $ref = $caller->can('TO_DATA') ) {
+                    *{"$caller\::TO_JSON"} = $ref unless $caller->can('TO_JSON');
+
+                    *{"$caller\::TO_CBOR"} = $ref unless $caller->can('TO_CBOR');
+                }
+
+                return;
+            } );
+
+            $import->{pragma}->{types} = 1;
+
+            if ( $import->{pragma}->{class1} ) {
+                Pcore::Core::OOP::Class->import($caller);
+            }
+            elsif ( $import->{pragma}->{role1} ) {
+                Pcore::Core::OOP::Role->import($caller);
+            }
         }
 
         # export types
@@ -627,23 +661,23 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (23)                    |
+## |    3 | 69                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (30)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 93                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 252                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 286                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 346, 375, 378, 382,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 413, 416, 421, 424,  |                                                                                                                |
-## |      | 449, 475, 611        |                                                                                                                |
+## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 447, 450, 455, 458,  |                                                                                                                |
+## |      | 483, 509, 645        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 431                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 465                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 537                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 571                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 262                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 296                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 350                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 384                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
