@@ -1,10 +1,10 @@
 package Pcore::Dist::CLI::Create;
 
-use Pcore -class;
+use Pcore -class1;
 use Pcore::Dist;
 use Pcore::API::SCM::Const qw[:ALL];
 
-with qw[Pcore::Core::CLI::Cmd];
+extends qw[Pcore::Core::CLI::Cmd];
 
 # CLI
 sub CLI ($self) {

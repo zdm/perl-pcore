@@ -1,9 +1,9 @@
 package Pcore::Dist::CLI::Wiki;
 
-use Pcore -class;
+use Pcore -class1;
 use Pcore::API::SCM::Const qw[:ALL];
 
-with qw[Pcore::Dist::CLI];
+extends qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
     return { abstract => 'generate wiki pages', };

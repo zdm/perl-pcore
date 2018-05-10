@@ -1,8 +1,8 @@
 package Pcore::Dist::CLI::Setup;
 
-use Pcore -class;
+use Pcore -class1;
 
-with qw[Pcore::Core::CLI::Cmd];
+extends qw[Pcore::Core::CLI::Cmd];
 
 sub CLI ($self) {
     return { abstract => 'setup ~/.pcore/pcore.ini', };

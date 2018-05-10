@@ -1,8 +1,8 @@
 package Pcore::Dist::CLI::Clean;
 
-use Pcore -class;
+use Pcore -class1;
 
-with qw[Pcore::Dist::CLI];
+extends qw[Pcore::Dist::CLI];
 
 sub CLI ($self) {
     return { abstract => 'clean dist directory from known build garbage', };
