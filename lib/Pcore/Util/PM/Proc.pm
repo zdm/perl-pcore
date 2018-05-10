@@ -59,7 +59,7 @@ sub DESTROY ( $self ) {
         }
     }
 
-    $self->_on_exit( 128 + 9 ) if !$global;
+    $self->_on_exit( 128 + 9 ) if ${^GLOBAL_PHASE} ne 'DESTRUCT';
 
     return;
 }
