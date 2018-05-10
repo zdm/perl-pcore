@@ -159,7 +159,24 @@ sub _new ( $self, @args ) {
         }
     }
 
-    my $buildargs = $self->can('BUILDARGS') ? q[\$args = \$self->BUILDARGS(\$args);] : q[];
+    my $buildargs = do {
+        if ( $self->can('BUILDARGS') ) {
+            <<'PERL';
+my $args = $self->BUILDARGS(@_);
+
+if (!defined $args) {
+    $args = {};
+}
+elsif (!Pcore::Util::Scalar::is_plain_hashref $args) {
+    die qq["$self\::BUILDARGS" method didn't returned HashRef];
+}
+
+PERL
+        }
+        else {
+            q[my $args = Pcore::Util::Scalar::is_plain_hashref $_[0] ? {$_[0]->%*} : @_ ? {@_} : {};];
+        }
+    };
 
     my $build = do {
         no strict qw[refs];
@@ -174,8 +191,6 @@ package $self;
 
 sub new {
     my \$self = !Pcore::Util::Scalar::is_ref \$_[0] ? CORE::shift : Pcore::Util::Scalar::is_blessed_ref \$_[0] ? CORE::ref CORE::shift : die qq[Invalid invoker for "$self\::new" constructor];
-
-    my \$args = Pcore::Util::Scalar::is_plain_hashref \$_[0] ? {\$_[0]->%*} : \@_ ? {\@_} : {};
 
     $buildargs
 
@@ -199,11 +214,11 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15, 123, 172         | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 15, 123, 189         | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 141                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 162                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 177                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
