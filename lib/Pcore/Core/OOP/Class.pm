@@ -4,7 +4,7 @@ use Pcore;
 use Pcore::Util::Scalar qw[is_ref is_plain_hashref is_coderef];
 use Class::XSAccessor qw[];
 
-our ( %EXTENDS, $ATTRS );
+our ( %EXTENDS, %ATTRS );
 
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
@@ -65,8 +65,8 @@ sub has ( $attr, $spec = undef ) {
     my ( undef, @isa ) = mro::get_linear_isa($caller)->@*;
 
     for my $class (@isa) {
-        if ( exists $ATTRS->{$class}->{$attr} ) {
-            my $parent_spec = $ATTRS->{$class}->{$attr};
+        if ( exists $ATTRS{$class}->{$attr} ) {
+            my $parent_spec = $ATTRS{$class}->{$attr};
 
             if ( ( $spec->{is} // q[] ) ne ( $parent_spec->{is} // q[] ) ) {
                 die qq[Class "$caller" attribute "$attr" not allowed to redefine parent attribute "is" property];
@@ -78,7 +78,7 @@ sub has ( $attr, $spec = undef ) {
         }
     }
 
-    $ATTRS->{$caller}->{$attr} = $spec;
+    $ATTRS{$caller}->{$attr} = $spec;
 
     # install accessors
     if ( $spec->{is} ) {
@@ -155,12 +155,11 @@ PERL
     return;
 }
 
-# TODO init_arg => undef
 sub _new ( $self, @args ) {
     my $default1 = q[];
     my $default2 = q[];
     my $required = q[];
-    my $attrs    = $ATTRS->{$self};
+    my $attrs    = $ATTRS{$self};
     my @attr_default_coderef;
 
     if ($attrs) {
@@ -242,11 +241,11 @@ PERL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 12, 112, 125, 139,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 212                  |                                                                                                                |
+## |      | 211                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 159                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 158                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 200                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 199                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
