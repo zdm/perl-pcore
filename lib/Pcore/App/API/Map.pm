@@ -73,7 +73,7 @@ sub init ($self) {
 
         P->class->load($class_name);
 
-        die qq["$class_name" must be a consumer of "Pcore::App::API::Role"] if !$class_name->does('Pcore::App::API::Role');
+        die qq["$class_name" must be an instance of "Pcore::App::API::Role"] if !$class_name->isa('Pcore::App::API::Role');
 
         # prepare API object route
         $class_path =~ s/\AV/v/sm;
