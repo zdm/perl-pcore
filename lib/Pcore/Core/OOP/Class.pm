@@ -154,7 +154,42 @@ sub has ( $attr, @spec ) {
 
         # "lazy" accessor
         elsif ( $spec->{is} eq 'lazy' ) {
-            eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+
+            # attr has default property
+            if ( exists $spec->{default} ) {
+
+                # default is a coderef
+                if ( is_coderef $spec->{default} ) {
+                    my $sub = $spec->{default};
+
+                    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+package $caller;
+
+sub $attr {
+    \$_[0]->{$attr} = &{\$sub}(\$_[0]) if !exists \$_[0]->{$attr};
+
+    return \$_[0]->{$attr};
+}
+PERL
+                }
+
+                # default is a plain scalar
+                else {
+                    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+package $caller;
+
+sub $attr {
+    \$_[0]->{$attr} = qq[$spec->{default}] if !exists \$_[0]->{$attr};
+
+    return \$_[0]->{$attr};
+}
+PERL
+                }
+            }
+
+            # use attr builder
+            else {
+                eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 package $caller;
 
 sub $attr {
@@ -163,6 +198,7 @@ sub $attr {
     return \$_[0]->{$attr};
 }
 PERL
+            }
         }
         else {
             die qq[Invalid "is" type for attribute "$attr" in class "$caller"];
@@ -174,10 +210,10 @@ PERL
 
 # TODO init_arg => undef
 sub _new ( $self, @args ) {
-    my $default  = q[];
+    my $default1 = q[];
+    my $default2 = q[];
     my $required = q[];
-
-    my $attrs = $ATTRS->{$self};
+    my $attrs    = $ATTRS->{$self};
     my @attr_default_coderef;
 
     if ($attrs) {
@@ -187,13 +223,13 @@ sub _new ( $self, @args ) {
             }
 
             if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
-                if ( is_coderef $spec->{default} ) {
-                    push @attr_default_coderef, $attrs->{$attr}->{default};
-
-                    $default .= qq[\$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]} if !exists \$args->{$attr};\n];
+                if ( !is_ref $spec->{default} ) {
+                    $default1 .= qq[\$args->{$attr} = qq[$attrs->{$attr}->{default}] if !exists \$args->{$attr};\n];
                 }
                 else {
-                    $default .= qq[\$args->{$attr} = qq[$attrs->{$attr}->{default}] if !exists \$args->{$attr};\n];
+                    push @attr_default_coderef, $attrs->{$attr}->{default};
+
+                    $default2 .= qq[\$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]}(\$self) if !exists \$args->{$attr};\n];
                 }
             }
         }
@@ -236,9 +272,11 @@ sub new {
 
     $required
 
-    $default
+    $default1
 
     \$self = bless \$args, \$self;
+
+    $default2
 
     $build
 
@@ -256,11 +294,12 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14, 69, 157, 229     | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 14, 69, 165, 178,    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 192, 265             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 176                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 212                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 217                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 253                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
