@@ -1,11 +1,10 @@
 package Pcore::Core::OOP::Class;
 
 use Pcore;
-use Pcore::Util::Scalar qw[is_ref is_coderef];
+use Pcore::Util::Scalar qw[is_ref is_plain_hashref is_coderef];
 use Class::XSAccessor qw[];
 
-our (%EXTENDS);
-our $ATTRS = {};
+our ( %EXTENDS, $ATTRS );
 
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
@@ -46,50 +45,43 @@ sub extends (@superclasses) {
     return;
 }
 
-# TODO warnings on use "is" property
-# TODO do not allow to redefine "is"
-# TODO do not install accessor, if default value wasn't changed;
-sub has ( $attr, @spec ) {
+sub has ( $attr, $spec = undef ) {
     my $caller = caller;
 
-    my $spec;
-
-    if ( substr( $attr, 0, 1 ) eq '+' ) {
-        substr $attr, 0, 1, q[];
-
-        # find parent attr spec
-        my ( undef, @isa ) = mro::get_linear_isa($caller)->@*;
-
-        for my $class (@isa) {
-            if ( exists $ATTRS->{$class}->{$attr} ) {
-                $spec = { $ATTRS->{$class}->{$attr}->%* };
-
-                last;
-            }
-        }
-
-        die qq[Class "$caller" attribute "$attr" was not found in superclasses] if !defined $spec;
+    if ( !defined $spec ) {
+        $spec = { is => q[] };
+    }
+    elsif ( !is_plain_hashref $spec) {
+        $spec = { is => q[], default => $spec };
     }
     else {
-        $spec = {};
-    }
-
-    if ( @spec == 1 ) {
-        $spec->{default} = $spec[0];
-    }
-    else {
-        my %spec = @spec;
-
-        $spec->@{ keys %spec } = values %spec;
+        $spec->{is} //= q[];
     }
 
     # check default value
     die qq[Class "$caller" attribute "$attr" deefault value can be "Scalar" or "CodeRef"] if exists $spec->{default} && !( !is_ref $spec->{default} || is_coderef $spec->{default} );
 
+    # find parent attr spec
+    my ( undef, @isa ) = mro::get_linear_isa($caller)->@*;
+
+    for my $class (@isa) {
+        if ( exists $ATTRS->{$class}->{$attr} ) {
+            my $parent_spec = $ATTRS->{$class}->{$attr};
+
+            if ( ( $spec->{is} // q[] ) ne ( $parent_spec->{is} // q[] ) ) {
+                die qq[Class "$caller" attribute "$attr" not allowed to redefine parent attribute "is" property];
+            }
+
+            $spec = { $parent_spec->%*, $spec->%* };
+
+            last;
+        }
+    }
+
     $ATTRS->{$caller}->{$attr} = $spec;
 
     # install accessors
-    if ( exists $spec->{is} ) {
+    if ( $spec->{is} ) {
 
         # "ro" accessor
         if ( $spec->{is} eq 'ro' ) {
@@ -249,12 +241,12 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13, 120, 133, 147,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 220                  |                                                                                                                |
+## |    3 | 12, 112, 125, 139,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 212                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 167                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 159                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 208                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 200                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
