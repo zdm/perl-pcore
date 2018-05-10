@@ -139,13 +139,18 @@ PERL
 }
 
 sub _new ( $self, @args ) {
-    my $default = q[];
+    my $default  = q[];
+    my $required = q[];
 
     my $attrs = $ATTRS->{$self};
     my @attr_default_coderef;
 
     if ($attrs) {
         while ( my ( $attr, $spec ) = each $attrs->%* ) {
+            if ( $spec->{required} ) {
+                $required .= qq[die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};\n];
+            }
+
             if ( exists $spec->{default} ) {
                 if ( is_coderef $spec->{default} ) {
                     push @attr_default_coderef, $attrs->{$attr}->{default};
@@ -194,6 +199,8 @@ sub new {
 
     $buildargs
 
+    $required
+
     $default
 
     \$self = bless \$args, \$self;
@@ -214,11 +221,11 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15, 123, 189         | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 15, 123, 194         | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 141                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 177                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 182                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
