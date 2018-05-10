@@ -5,10 +5,10 @@ use Pcore::Util::Scalar qw[is_ref is_coderef];
 use Class::XSAccessor qw[];
 use Role::Tiny qw[];
 
-our $BASE  = {};
-our $ATTRS = {};
+our $BASE    = {};
+our $ATTRS   = {};
+our $DESTROY = {};
 
-# TODO DEMOLISH, install DESTROY automatically
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
 
@@ -46,6 +46,40 @@ sub extends (@superclasses) {
         no strict qw[refs];
 
         push @{"$caller\::ISA"}, $base;
+    }
+
+    # DEMOLISH handler
+    {
+        my @demolish = do {
+            no strict qw[refs];
+
+            grep { *{"$_\::DEMOLISH"}{CODE} } mro::get_linear_isa($caller)->@*;
+        };
+
+        if (@demolish) {
+            {
+                no strict qw[refs];
+
+                die qq[Class "$caller" do not use DESTROY and DEMOLISH methods together] if !exists $DESTROY->{$caller} && *{"$caller\::DESTROY"}{CODE};
+            }
+
+            $DESTROY->{$caller} = undef;
+
+            no warnings qw[redefine];
+
+            eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+package $caller;
+
+sub DESTROY {
+    my \$global = \${^GLOBAL_PHASE} eq 'DESTRUCT';
+
+    @{[ map { qq[\$_[0]->$_\::DEMOLISH(\$global);\n] } @demolish ]}
+
+    return;
+}
+
+PERL
+        }
     }
 
     return;
@@ -221,11 +255,11 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15, 123, 194         | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 15, 70, 157, 228     | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 141                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 175                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 182                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 216                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
