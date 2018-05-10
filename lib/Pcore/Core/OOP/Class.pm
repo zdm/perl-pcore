@@ -4,7 +4,7 @@ use Pcore;
 use Pcore::Util::Scalar qw[is_ref is_coderef];
 use Class::XSAccessor qw[];
 
-our ( %BASE, %DESTROY );
+our ( %EXTENDS, %DESTROY );
 our $ATTRS = {};
 
 sub import ( $self, $caller = undef ) {
@@ -31,12 +31,12 @@ sub extends (@superclasses) {
     my $caller = caller;
 
     for my $base (@superclasses) {
-        if ( !exists $BASE{$base} ) {
+        if ( !exists $EXTENDS{$base} ) {
             my $name = $base =~ s[::][/]smgr . '.pm';
 
             require $name if !exists $INC{$name};
 
-            $BASE{$base} = undef;
+            $EXTENDS{$base} = undef;
         }
 
         no strict qw[refs];
