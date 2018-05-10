@@ -4,7 +4,7 @@ use Pcore -class;
 
 has dir => ( is => 'ro', isa => Str, required => 1 );
 
-sub DEMOLISH ( $self, $global ) {
+sub DESTROY ( $self ) {
     chdir $self->dir or die;
 
     return;

@@ -32,7 +32,7 @@ has _sigchild => ( is => 'ro', isa => Object, init_arg => undef );
 
 our $CACHE = {};
 
-sub DEMOLISH ( $self, $global ) {
+sub DESTROY ( $self ) {
     if ( $self->{pid} ) {
 
         if ($MSWIN) {

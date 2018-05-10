@@ -549,31 +549,6 @@ PERL
     goto &{$util};
 }
 
-sub init_demolish ( $self, $class ) {
-    state $init = do {
-        require Method::Generate::DemolishAll;
-
-        # avoid to call Method::Generate::DemolishAll->generate_method again from Moo ->new method
-        my $generate_method = \&Method::Generate::DemolishAll::generate_method;
-
-        no warnings qw[redefine];
-
-        *Method::Generate::DemolishAll::generate_method = sub {
-            my ( $self, $into ) = @_;
-
-            return if *{ Moo::_Utils::_getglob("$into\::DEMOLISHALL") }{CODE};
-
-            return $generate_method->(@_);
-        };
-    };
-
-    # install DEMOLISH to make it works, when object is instantiated with direct "bless" call
-    # https://rt.cpan.org/Ticket/Display.html?id=116590
-    Method::Generate::DemolishAll->new->generate_method($class) if $class->can('DEMOLISH') && $class->isa('Moo::Object');
-
-    return;
-}
-
 # EVENT
 sub _init_ev {
     state $broker = do {
@@ -662,11 +637,9 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 373, 402, 405, 409,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
 ## |      | 440, 443, 448, 451,  |                                                                                                                |
-## |      | 476, 502, 638        |                                                                                                                |
+## |      | 476, 502, 613        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 458                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 564                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 289                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|

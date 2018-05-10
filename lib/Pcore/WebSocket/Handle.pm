@@ -65,8 +65,8 @@ const our $WEBSOCKET_STATUS_REASON => {
     1015 => 'TLS handshake',
 };
 
-sub DEMOLISH ( $self, $global ) {
-    if ( !$global ) {
+sub DESTROY ( $self ) {
+    if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
         $self->disconnect( res [ 1001, $WEBSOCKET_STATUS_REASON ] );
     }
 

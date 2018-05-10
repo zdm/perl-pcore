@@ -41,10 +41,8 @@ const our $HTTP_SERVER_RESPONSE_FINISHED => 2;    # body written
 #     $CONTENT_TYPE_CSV        => 'text/csv; charset=UTF-8; header=present',    # http://www.iana.org/assignments/media-types/text/csv
 # };
 
-P->init_demolish(__PACKAGE__);
-
-sub DEMOLISH ( $self, $global ) {
-    if ( !$global && $self->{_response_status} != $HTTP_SERVER_RESPONSE_FINISHED ) {
+sub DESTROY ( $self ) {
+    if ( ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) && $self->{_response_status} != $HTTP_SERVER_RESPONSE_FINISHED ) {
 
         # request is destroyed without ->finish call, possible unhandled error in AE callback
         $self->return_xxx(500);
