@@ -3,7 +3,6 @@ package Pcore::Core::OOP::Class;
 use Pcore;
 use Pcore::Util::Scalar qw[is_ref is_coderef];
 use Class::XSAccessor qw[];
-use Role::Tiny qw[];
 
 our ( %BASE, %DESTROY );
 our $ATTRS = {};
@@ -27,8 +26,6 @@ PERL
 
     return;
 }
-
-# TODO around
 
 sub extends (@superclasses) {
     my $caller = caller;
@@ -80,15 +77,6 @@ sub DESTROY {
 PERL
         }
     }
-
-    return;
-}
-
-# TODO role attributes
-sub with (@roles) {
-    my $caller = caller;
-
-    Role::Tiny->apply_roles_to_package( $caller, @roles );
 
     return;
 }
@@ -294,12 +282,12 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14, 69, 165, 178,    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 192, 265             |                                                                                                                |
+## |    3 | 13, 66, 153, 166,    | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 180, 253             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 212                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 200                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 253                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 241                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
