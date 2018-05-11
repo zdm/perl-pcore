@@ -25,6 +25,7 @@ our $EXPORT_PRAGMA = {
     # TODO remove
     types  => 0,      # export types
     class1 => 0,      #
+    role1  => 0,      #
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
@@ -86,6 +87,7 @@ sub import {
         require AnyEvent;
         require Coro;
         require Pcore::Core::OOP::Class;
+        require Pcore::Core::OOP::Role;
 
         # install run-time hook to caller package
         B::Hooks::AtRuntime::at_runtime( \&Pcore::_CORE_RUN );
@@ -223,7 +225,7 @@ sub import {
         }
 
         # re-export OOP
-        if ( $import->{pragma}->{class1} ) {
+        if ( $import->{pragma}->{class1} || $import->{pragma}->{role1} ) {
 
             # install universal serializer methods
             B::Hooks::EndOfScope::XS::on_scope_end( sub {
@@ -242,7 +244,12 @@ sub import {
 
             $import->{pragma}->{types} = 1;
 
-            Pcore::Core::OOP::Class->import($caller);
+            if ( $import->{pragma}->{class1} ) {
+                Pcore::Core::OOP::Class->import($caller);
+            }
+            else {
+                Pcore::Core::OOP::Role->import($caller);
+            }
         }
 
         # export types
@@ -629,21 +636,21 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 68                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (27)                    |
+## |    3 | 69                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (30)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 91                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 93                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 279                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 286                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 373, 402, 405, 409,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 440, 443, 448, 451,  |                                                                                                                |
-## |      | 476, 502, 613        |                                                                                                                |
+## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 447, 450, 455, 458,  |                                                                                                                |
+## |      | 483, 509, 620        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 458                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 465                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 289                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 296                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 377                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 384                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
