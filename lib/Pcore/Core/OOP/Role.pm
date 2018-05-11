@@ -27,16 +27,18 @@ PERL
     return;
 }
 
+# TODO
 sub _with (@roles) {
     my $caller = caller;
 
     for my $role (@roles) {
-        die qq[Class "$caller" is not a role] if !$Pcore::Core::OOP::Class::REG{$caller}{is_role};
 
-        # TODO ???
+        # TODO skip, if role is already applied???
         next if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
 
         Pcore::Core::OOP::Class::load_class($role);
+
+        die qq[Class "$caller" is not a role] if !$Pcore::Core::OOP::Class::REG{$role}{is_role};
 
         # merge does
         $Pcore::Core::OOP::Class::REG{$caller}{does}->@{ $role, keys $Pcore::Core::OOP::Class::REG{$role}{does}->%* } = ();    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]

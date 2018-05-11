@@ -17,10 +17,12 @@ sub does { Pcore::Core::OOP::Class::_does(\@_) };
 PERL
 
     {
-        no strict qw[refs];
+        no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 
         *{"$caller\::extends"} = \&_extends;
+        *{"$caller\::with"}    = \&_with;
         *{"$caller\::has"}     = \&_has;
+        *{"$caller\::around"}  = \&_around;
     }
 
     return;
@@ -61,10 +63,47 @@ sub _extends (@superclasses) {
     return;
 }
 
+# TODO
+sub _with (@roles) {
+    my $caller = caller;
+
+    for my $role (@roles) {
+
+        # TODO skip, if role is already applied???
+        next if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
+
+        Pcore::Core::OOP::Class::load_class($role);
+
+        die qq[Class "$caller" is not a role] if !$Pcore::Core::OOP::Class::REG{$role}{is_role};
+
+        # merge does
+        $Pcore::Core::OOP::Class::REG{$caller}{does}->@{ $role, keys $Pcore::Core::OOP::Class::REG{$role}{does}->%* } = ();    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+
+        # merge attributes
+        while ( my ( $attr, $spec ) = each $Pcore::Core::OOP::Class::REG{$role}{attr}->%* ) {
+            Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 1 );
+        }
+
+        # TODO merge around
+        # push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
+
+        # TODO merge methods
+    }
+
+    return;
+}
+
 sub _has ( $attr, $spec = undef ) {
     my $caller = caller;
 
     add_attribute( $caller, $attr, $spec, 0, 1 );
+
+    return;
+}
+
+# TODO
+sub _around ( $self, $name, $code ) {
+    my $caller = caller;
 
     return;
 }
@@ -259,18 +298,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 132, 145, 159,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 230                  |                                                                                                                |
+## |    3 | 12, 171, 184, 198,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 269                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 37                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 178                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
+## |      | 217                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 72                   | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 111                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 72                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 111                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 218                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 257                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
