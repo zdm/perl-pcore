@@ -4,7 +4,7 @@ use Pcore;
 use Pcore::Util::Scalar qw[is_ref is_plain_hashref is_coderef];
 use Class::XSAccessor qw[];
 
-our ( %EXTENDS, %ATTRS );
+our %REG;
 
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
@@ -25,17 +25,19 @@ PERL
     return;
 }
 
+sub load_class ($class) {
+    my $name = $class =~ s[::][/]smgr . '.pm';
+
+    require $name if !exists $INC{$name};
+
+    return;
+}
+
 sub _extends (@superclasses) {
     my $caller = caller;
 
     for my $base (@superclasses) {
-        if ( !exists $EXTENDS{$base} ) {
-            my $name = $base =~ s[::][/]smgr . '.pm';
-
-            require $name if !exists $INC{$name};
-
-            $EXTENDS{$base} = undef;
-        }
+        load_class($base);
 
         no strict qw[refs];
 
@@ -44,8 +46,8 @@ sub _extends (@superclasses) {
         die qq[Class "$caller" multiple inheritance is disabled] if @{"$caller\::ISA"} > 1;
 
         # merge attributes
-        while ( my ( $attr, $spec ) = each $ATTRS{$base}->%* ) {
-            die qq[Impossible to redefine attribute "$attr"] if exists $ATTRS{$caller}{$attr};
+        while ( my ( $attr, $spec ) = each $REG{$base}{attr}->%* ) {
+            die qq[Impossible to redefine attribute "$attr"] if exists $REG{$caller}{attr}{$attr};
 
             add_attribute( $caller, $attr, $spec );
         }
@@ -77,7 +79,7 @@ sub add_attribute ( $caller, $attr, $spec = undef ) {
     die qq[Class "$caller" attribute "$attr" default value can be "Scalar" or "CodeRef"] if exists $spec->{default} && !( !is_ref $spec->{default} || is_coderef $spec->{default} );
 
     # redefine attribute
-    if ( my $current_spec = $ATTRS{$caller}{$attr} ) {
+    if ( my $current_spec = $REG{$caller}{attr}{$attr} ) {
         if ( $spec->{is} and $spec->{is} ne $current_spec->{is} ) {
             die qq[Class "$caller" attribute "$attr" not allowed to redefine parent attribute "is" property];
         }
@@ -86,7 +88,7 @@ sub add_attribute ( $caller, $attr, $spec = undef ) {
         $spec = { $current_spec->%*, $spec->%* };
     }
 
-    $ATTRS{$caller}{$attr} = $spec;
+    $REG{$caller}{attr}{$attr} = $spec;
 
     # install accessors
     if ( $spec->{is} ) {
@@ -171,21 +173,19 @@ sub _new ( $self, @args ) {
     my $required = q[];
     my @attr_default_coderef;
 
-    if ( my $attrs = $ATTRS{$self} ) {
-        while ( my ( $attr, $spec ) = each $attrs->%* ) {
-            if ( $spec->{required} ) {
-                $required .= qq[die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};\n];
+    while ( my ( $attr, $spec ) = each $REG{$self}{attr}->%* ) {
+        if ( $spec->{required} ) {
+            $required .= qq[die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};\n];
+        }
+
+        if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
+            if ( !is_ref $spec->{default} ) {
+                $default1 .= qq[\$args->{$attr} = qq[$spec->{default}] if !exists \$args->{$attr};\n];
             }
+            else {
+                push @attr_default_coderef, $spec->{default};
 
-            if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
-                if ( !is_ref $spec->{default} ) {
-                    $default1 .= qq[\$args->{$attr} = qq[$attrs->{$attr}->{default}] if !exists \$args->{$attr};\n];
-                }
-                else {
-                    push @attr_default_coderef, $attrs->{$attr}->{default};
-
-                    $default2 .= qq[\$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]}(\$self) if !exists \$args->{$attr};\n];
-                }
+                $default2 .= qq[\$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]}(\$self) if !exists \$args->{$attr};\n];
             }
         }
     }
@@ -249,10 +249,10 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 120, 133, 147,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 12, 122, 135, 149,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |      | 220                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 168                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 208                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

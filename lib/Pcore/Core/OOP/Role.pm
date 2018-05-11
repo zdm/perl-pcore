@@ -46,8 +46,11 @@ sub _with (@roles) {
             has( $caller, $attr, $spec );
         }
 
-        # merge modifiers
+        # TODO merge modifiers
         # push $REG{$caller}{around}->@*, $REG{$role}{around}->@*;
+
+        # TODO
+        # merge methods
     }
 
     return;
