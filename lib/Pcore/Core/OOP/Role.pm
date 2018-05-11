@@ -48,11 +48,11 @@ sub _with (@roles) {
             Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 0 );
         }
 
+        # merge methods
+        Pcore::Core::OOP::Class::export_methods( $role, $caller );
+
         # TODO merge around
         push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
-
-        # TODO
-        # merge methods
     }
 
     return;

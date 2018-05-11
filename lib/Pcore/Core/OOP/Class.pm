@@ -52,7 +52,7 @@ sub _extends (@superclasses) {
 
         push @{"$caller\::ISA"}, $base;
 
-        die qq[Class "$caller" multiple inheritance is disabled] if @{"$caller\::ISA"} > 1;
+        die qq[Class "$caller" multiple inheritance is disabled. Use roles or redesign your classes] if @{"$caller\::ISA"} > 1;
 
         # merge attributes
         while ( my ( $attr, $spec ) = each $REG{$base}{attr}->%* ) {
@@ -84,10 +84,31 @@ sub _with (@roles) {
             Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 1 );
         }
 
+        # merge methods
+        export_methods( $role, $caller );
+
         # TODO merge around
         # push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
+    }
 
-        # TODO merge methods
+    return;
+}
+
+sub export_methods ( $from, $to ) {
+    no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
+
+    my %to_stash = %{"$to\::"};
+
+    my %to_methods = map { $_ => 1 } grep { *{ $to_stash{$_} }{CODE} } keys %to_stash;
+
+    my %from_stash = %{"$from\::"};
+
+    for my $name ( grep { !exists $to_methods{$_} && *{ $from_stash{$_} }{CODE} } keys %from_stash ) {
+        $to_methods{$name} = 1;
+
+        *{"$to\::$name"} = *{ $from_stash{$name} }{CODE};
+
+        say qq[import "$from" -> "$to": "$name"];
     }
 
     return;
@@ -298,18 +319,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 171, 184, 198,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 269                  |                                                                                                                |
+## |    3 | 12, 192, 205, 219,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 290                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 217                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 238                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 111                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 132                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 111                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 132                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 257                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 278                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
