@@ -13,6 +13,7 @@ sub import ( $self, $caller = undef ) {
 package $caller;
 
 sub new { Pcore::Core::OOP::Class::_new(\@_) };
+sub does { Pcore::Core::OOP::Class::_does(\@_) };
 PERL
 
     {
@@ -33,6 +34,12 @@ sub load_class ($class) {
     return;
 }
 
+sub _does ( $self, $role ) {
+    $self = ref $self if is_ref $self;
+
+    return exists $REG{$self}{does}{$role};
+}
+
 sub _extends (@superclasses) {
     my $caller = caller;
 
@@ -47,7 +54,7 @@ sub _extends (@superclasses) {
 
         # merge attributes
         while ( my ( $attr, $spec ) = each $REG{$base}{attr}->%* ) {
-            add_attribute( $caller, $attr, $spec, 1 );
+            add_attribute( $caller, $attr, $spec, 1, 1 );
         }
     }
 
@@ -57,12 +64,12 @@ sub _extends (@superclasses) {
 sub _has ( $attr, $spec = undef ) {
     my $caller = caller;
 
-    add_attribute( $caller, $attr, $spec, 0 );
+    add_attribute( $caller, $attr, $spec, 0, 1 );
 
     return;
 }
 
-sub add_attribute ( $caller, $attr, $spec, $is_base ) {
+sub add_attribute ( $caller, $attr, $spec, $is_base, $install_accessors ) {
     if ( !defined $spec ) {
         $spec = { is => q[] };
     }
@@ -94,7 +101,7 @@ sub add_attribute ( $caller, $attr, $spec, $is_base ) {
     $REG{$caller}{attr}{$attr} = $spec;
 
     # install accessors
-    if ( $spec->{is} ) {
+    if ( $install_accessors && $spec->{is} ) {
 
         # "ro" accessor
         if ( $spec->{is} eq 'ro' ) {
@@ -252,14 +259,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 125, 138, 152,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 223                  |                                                                                                                |
+## |    3 | 12, 132, 145, 159,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 230                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (21)             |
+## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
+## |      | 37                   | * Private subroutine/method '_does' declared but not used                                                      |
+## |      | 178                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 171                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 72                   | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 211                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    3 | 72                   | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 218                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

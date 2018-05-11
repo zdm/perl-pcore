@@ -4,10 +4,17 @@ use Pcore;
 use Pcore::Core::OOP::Class qw[];
 use Pcore::Util::Scalar qw[is_ref is_plain_hashref is_coderef];
 
-our ( %BASE, %REG );
-
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
+
+    # register role
+    $Pcore::Core::OOP::Class::REG{$caller}{is_role} = 1;
+
+    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+package $caller;
+
+sub does { Pcore::Core::OOP::Class::_does(\@_) };
+PERL
 
     {
         no strict qw[refs];
@@ -24,31 +31,23 @@ sub _with (@roles) {
     my $caller = caller;
 
     for my $role (@roles) {
-        next if $REG{$caller}{does}{$role};
+        die qq[Class "$caller" is not a role] if !$Pcore::Core::OOP::Class::REG{$caller}{is_role};
 
-        if ( !exists $BASE{$role} ) {
-            my $name = $role =~ s[::][/]smgr . '.pm';
+        # TODO ???
+        next if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
 
-            require $name if !exists $INC{$name};
-
-            $BASE{$role} = undef;
-        }
-
-        # register does
-        $REG{$caller}{does}{$role} = 1;
+        Pcore::Core::OOP::Class::load_class($role);
 
         # merge does
-        $REG{$caller}{does}->@{ keys $REG{$role}{does}->%* } = values $REG{$role}{does}->%*;
+        $Pcore::Core::OOP::Class::REG{$caller}{does}->@{ $role, keys $Pcore::Core::OOP::Class::REG{$role}{does}->%* } = ();    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
         # merge attributes
-        while ( my ( $attr, $spec ) = each $REG{$role}{attr}->%* ) {
-            die qq[Impossible to redefine attribute "$attr"] if exists $REG{$caller}{attr}{$attr};
-
-            has( $caller, $attr, $spec );
+        while ( my ( $attr, $spec ) = each $Pcore::Core::OOP::Class::REG{$role}{attr}->%* ) {
+            Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 0 );
         }
 
-        # TODO merge modifiers
-        # push $REG{$caller}{around}->@*, $REG{$role}{around}->@*;
+        # TODO merge around
+        push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
 
         # TODO
         # merge methods
@@ -60,49 +59,30 @@ sub _with (@roles) {
 sub _has ( $attr, $spec = undef ) {
     my $caller = caller;
 
-    has( $caller, $attr, $spec );
+    Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 0 );
 
     return;
 }
 
-sub has ( $caller, $attr, $spec = undef ) {
-    if ( !defined $spec ) {
-        $spec = { is => q[] };
-    }
-    elsif ( !is_plain_hashref $spec) {
-        $spec = { is => q[], default => $spec };
-    }
-    else {
-        $spec->{is} //= q[];
-    }
-
-    # check default value
-    die qq[Class "$caller" attribute "$attr" default value can be "Scalar" or "CodeRef"] if exists $spec->{default} && !( !is_ref $spec->{default} || is_coderef $spec->{default} );
-
-    if ( my $current_spec = $REG{$caller}{attr}{$attr} ) {
-        if ( $spec->{is} and $spec->{is} ne $current_spec->{is} ) {
-            die qq[Class "$caller" attribute "$attr" not allowed to redefine parent attribute "is" property];
-        }
-
-        # redefine attr
-        $REG{$caller}{attr}{$attr} = { $current_spec->%*, $spec->%* };
-    }
-    else {
-        $REG{$caller}{attr}{$attr} = $spec;
-    }
-
-    return;
-}
-
-sub _around ( $sub, $code ) {
+sub _around ( $name, $code ) {
     my $caller = caller;
 
-    push $REG{$caller}{around}{$sub}->@*, $code;
+    push $Pcore::Core::OOP::Class::REG{$caller}{around}{$name}->@*, $code;
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 | 13                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
