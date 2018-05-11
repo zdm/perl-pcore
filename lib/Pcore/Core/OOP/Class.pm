@@ -47,9 +47,7 @@ sub _extends (@superclasses) {
 
         # merge attributes
         while ( my ( $attr, $spec ) = each $REG{$base}{attr}->%* ) {
-            die qq[Impossible to redefine attribute "$attr"] if exists $REG{$caller}{attr}{$attr};
-
-            add_attribute( $caller, $attr, $spec );
+            add_attribute( $caller, $attr, $spec, 1 );
         }
     }
 
@@ -59,12 +57,12 @@ sub _extends (@superclasses) {
 sub _has ( $attr, $spec = undef ) {
     my $caller = caller;
 
-    add_attribute( $caller, $attr, $spec );
+    add_attribute( $caller, $attr, $spec, 0 );
 
     return;
 }
 
-sub add_attribute ( $caller, $attr, $spec = undef ) {
+sub add_attribute ( $caller, $attr, $spec, $is_base ) {
     if ( !defined $spec ) {
         $spec = { is => q[] };
     }
@@ -85,7 +83,12 @@ sub add_attribute ( $caller, $attr, $spec = undef ) {
         }
 
         # merge attribute spec
-        $spec = { $current_spec->%*, $spec->%* };
+        if ($is_base) {
+            $spec = { $spec->%*, $current_spec->%* };
+        }
+        else {
+            $spec = { $current_spec->%*, $spec->%* };
+        }
     }
 
     $REG{$caller}{attr}{$attr} = $spec;
@@ -249,12 +252,14 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 122, 135, 149,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 220                  |                                                                                                                |
+## |    3 | 12, 125, 138, 152,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 223                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 168                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |    3 | 65                   | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (21)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 208                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    3 | 171                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_new' declared but not used         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 211                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

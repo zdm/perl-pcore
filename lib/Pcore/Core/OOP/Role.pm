@@ -1,6 +1,7 @@
 package Pcore::Core::OOP::Role;
 
 use Pcore;
+use Pcore::Core::OOP::Class qw[];
 use Pcore::Util::Scalar qw[is_ref is_plain_hashref is_coderef];
 
 our ( %BASE, %REG );
