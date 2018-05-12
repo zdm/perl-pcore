@@ -7,7 +7,7 @@ has root         => ( is => 'ro', isa => Maybe [Str], required => 1 );    # abso
 has is_cpan_dist => ( is => 'ro', isa => Bool,        required => 1 );    # dist is installed as CPAN module, root is undefined
 has share_dir    => ( is => 'ro', isa => Str,         required => 1 );    # absolute path to the dist share dir
 
-has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'], predicate => 1 );
+has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'] );
 
 has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );    # dist cfg
 has docker_cfg => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );    # docker.json
@@ -284,7 +284,7 @@ sub _build_releases ($self) {
 sub clear ($self) {
 
     # clear version
-    $self->module->clear if $self->has_module;
+    $self->module->clear if exists $self->{module};
 
     $self->clear_version;
 
