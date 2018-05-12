@@ -83,7 +83,7 @@ sub _get_host_map ( $self, $host, $ns ) {
     for my $module ( sort keys $modules->%* ) {
         my $class = P->class->load($module);
 
-        die qq["$class" is not a instance of "Pcore::App::Controller"] if !$class->isa('Pcore::App::Controller');
+        die qq["$class" is not a consumer of "Pcore::App::Controller"] if !$class->can('does') || !$class->does('Pcore::App::Controller');
 
         # generate route path
         my $route = lc( ( $class . '::' ) =~ s[\A$index_class:*][/]smr );
@@ -105,7 +105,7 @@ sub _get_host_map ( $self, $host, $ns ) {
 
         $self->{_class_instance_cache}->{$class} = $self->{_path_class_cache}->{$host}->{$route} = $obj;
 
-        if ( $class->isa('Pcore::App::Controller::API') ) {
+        if ( $class->does('Pcore::App::Controller::API') ) {
 
             # api controller
             $self->{host_api_path}->{$host} = $obj->{path};

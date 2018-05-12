@@ -1,8 +1,8 @@
 package Pcore::App::Controller::Index;
 
-use Pcore -class1;
+use Pcore -role1;
 
-extends qw[Pcore::App::Controller];
+with qw[Pcore::App::Controller];
 
 eval { require Pcore::Share::WWW };
 

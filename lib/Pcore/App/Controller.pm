@@ -1,6 +1,6 @@
 package Pcore::App::Controller;
 
-use Pcore -class1;
+use Pcore -role1;
 
 has app  => { isa => q[ConsumerOf ['Pcore::App']], required => 1 };
 has host => { is  => 'ro',                         isa      => 'Str', required => 1 };    # HTTP controller host

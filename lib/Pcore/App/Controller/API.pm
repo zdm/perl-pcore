@@ -1,11 +1,11 @@
 package Pcore::App::Controller::API;
 
-use Pcore -class1, -const;
+use Pcore -role1, -const;
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_uri_query];
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 use Pcore::WebSocket;
 
-extends qw[Pcore::App::Controller];
+with qw[Pcore::App::Controller];
 
 const our $WS_MAX_MESSAGE_SIZE => 1_024 * 1_024 * 100;    # 100 Mb
 const our $WS_PONG_INTERVAL    => 50;
