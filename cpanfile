@@ -21,10 +21,6 @@ requires 'Sort::Naturally';
 
 # OOP
 requires 'Class::XSAccessor';
-
-# TODO remove
-requires 'Moo';
-requires 'MooX::TypeTiny';
 requires 'Type::Tiny';
 requires 'Type::Tiny::XS';
 
