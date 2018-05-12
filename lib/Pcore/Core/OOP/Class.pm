@@ -87,8 +87,14 @@ sub _with (@roles) {
     # merge methods
     export_methods( \@roles, $caller );
 
-    # install around
+    #check requires,  install around
     for my $role (@roles) {
+        if ( $REG{$role}{requires} ) {
+            my @missed_methods = grep { !$caller->can($_) } $REG{$role}{requires}->@*;
+
+            die qq[Class "$caller" required methods are missed: ] . join q[, ], map {qq["$_"]} @missed_methods if @missed_methods;
+        }
+
         _install_around( $caller, $REG{$role}{around} ) if $REG{$role}{around};
     }
 
@@ -121,8 +127,6 @@ sub export_methods ( $roles, $to ) {
             $to_methods->{$name} = 1;
 
             *{"$to\::$name"} = *{ $role_stash{$name} }{CODE};
-
-            # say qq[import "$role" -> "$to": "$name"];
         }
     }
 
@@ -350,18 +354,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 156, 223, 236,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 250, 321             |                                                                                                                |
+## |    3 | 12, 160, 227, 240,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 254, 325             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 269                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 273                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 163                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 167                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 163                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 167                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 309                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 313                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

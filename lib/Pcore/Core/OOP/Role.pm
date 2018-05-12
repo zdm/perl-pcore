@@ -17,12 +17,21 @@ sub does { Pcore::Core::OOP::Class::_does(\@_) };
 PERL
 
     {
-        no strict qw[refs];
+        no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 
-        *{"$caller\::with"}   = \&_with;
-        *{"$caller\::has"}    = \&_has;
-        *{"$caller\::around"} = \&_around;
+        *{"$caller\::requires"} = \&_requires;
+        *{"$caller\::with"}     = \&_with;
+        *{"$caller\::has"}      = \&_has;
+        *{"$caller\::around"}   = \&_around;
     }
+
+    return;
+}
+
+sub _requires ( @args ) {
+    my $caller = caller;
+
+    push $Pcore::Core::OOP::Class::REG{$caller}{requires}->@*, @args;
 
     return;
 }
@@ -53,6 +62,9 @@ sub _with (@roles) {
                 push $Pcore::Core::OOP::Class::REG{$caller}{around}{$name}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}{$name}->@*;
             }
         }
+
+        # merge requires
+        push $Pcore::Core::OOP::Class::REG{$caller}{requires}->@*, $Pcore::Core::OOP::Class::REG{$role}{requires}->@* if $Pcore::Core::OOP::Class::REG{$role}{requires};
     }
 
     # merge methods
