@@ -70,25 +70,25 @@ sub _with (@roles) {
     for my $role (@roles) {
 
         # role is already applied
-        die if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
+        die if $REG{$caller}{does}{$role};
 
-        Pcore::Core::OOP::Class::load_class($role);
+        load_class($role);
 
-        die qq[Class "$caller" is not a role] if !$Pcore::Core::OOP::Class::REG{$role}{is_role};
+        die qq[Class "$caller" is not a role] if !$REG{$role}{is_role};
 
         # merge does
-        $Pcore::Core::OOP::Class::REG{$caller}{does}->@{ $role, keys $Pcore::Core::OOP::Class::REG{$role}{does}->%* } = ();    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+        $REG{$caller}{does}->@{ $role, keys $REG{$role}{does}->%* } = ();    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
 
         # merge attributes
-        while ( my ( $attr, $spec ) = each $Pcore::Core::OOP::Class::REG{$role}{attr}->%* ) {
-            Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 1 );
+        while ( my ( $attr, $spec ) = each $REG{$role}{attr}->%* ) {
+            add_attribute( $caller, $attr, $spec, 0, 1 );
         }
     }
 
     # merge methods
     export_methods( \@roles, $caller );
 
-    # TODO merge around
+    # TODO install around
     # push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
 
     return;
