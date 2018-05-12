@@ -193,8 +193,8 @@ sub import {
             Pcore::Handle::DBI::Const->import( -caller => $caller, qw[:TYPES :QUERY] );
         }
 
-        # $import->{pragma}->{class1} = delete $import->{pragma}->{class};
-        # $import->{pragma}->{role11} = delete $import->{pragma}->{role};
+        # $import->{pragma}->{class1} = 1 if delete $import->{pragma}->{class};
+        # $import->{pragma}->{role11} = 1 if delete $import->{pragma}->{role};
 
         # re-export Moo
         if ( $import->{pragma}->{class} || $import->{pragma}->{role} ) {
