@@ -69,8 +69,8 @@ sub _with (@roles) {
 
     for my $role (@roles) {
 
-        # TODO skip, if role is already applied???
-        next if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
+        # role is already applied
+        die if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
 
         Pcore::Core::OOP::Class::load_class($role);
 
@@ -83,32 +83,46 @@ sub _with (@roles) {
         while ( my ( $attr, $spec ) = each $Pcore::Core::OOP::Class::REG{$role}{attr}->%* ) {
             Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 1 );
         }
-
-        # merge methods
-        export_methods( $role, $caller );
-
-        # TODO merge around
-        # push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
     }
+
+    # merge methods
+    export_methods( \@roles, $caller );
+
+    # TODO merge around
+    # push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
 
     return;
 }
 
-sub export_methods ( $from, $to ) {
-    no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
+sub export_methods ( $roles, $to ) {
+    no strict qw[refs];
 
-    my %to_stash = %{"$to\::"};
+    my $to_methods = $REG{$to}{method} //= do {
+        my %stash = %{"$to\::"};
 
-    my %to_methods = map { $_ => 1 } grep { *{ $to_stash{$_} }{CODE} } keys %to_stash;
+        my $methods = { map { $_ => 1 } grep { *{ $stash{$_} }{CODE} } keys %stash };
 
-    my %from_stash = %{"$from\::"};
+        $methods;
+    };
 
-    for my $name ( grep { !exists $to_methods{$_} && *{ $from_stash{$_} }{CODE} } keys %from_stash ) {
-        $to_methods{$name} = 1;
+    for my $role ( $roles->@* ) {
+        my %role_stash = %{"$role\::"};
 
-        *{"$to\::$name"} = *{ $from_stash{$name} }{CODE};
+        my $role_methods = $REG{$role}{method} //= do {
+            my %stash = %{"$role\::"};
 
-        say qq[import "$from" -> "$to": "$name"];
+            my $methods = { map { $_ => 1 } grep { *{ $stash{$_} }{CODE} } keys %stash };
+
+            $methods;
+        };
+
+        for my $name ( grep { !exists $to_methods->{$_} } keys $role_methods->%* ) {
+            $to_methods->{$name} = 1;
+
+            *{"$to\::$name"} = *{ $role_stash{$name} }{CODE};
+
+            # say qq[import "$role" -> "$to": "$name"];
+        }
     }
 
     return;
@@ -319,18 +333,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 192, 205, 219,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 290                  |                                                                                                                |
+## |    3 | 12, 206, 219, 233,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 304                  |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 238                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 252                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 132                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 146                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 132                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 146                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 278                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 292                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

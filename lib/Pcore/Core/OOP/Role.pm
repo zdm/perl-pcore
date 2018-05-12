@@ -27,14 +27,13 @@ PERL
     return;
 }
 
-# TODO
 sub _with (@roles) {
     my $caller = caller;
 
     for my $role (@roles) {
 
-        # TODO skip, if role is already applied???
-        next if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
+        # role is already applied
+        die if $Pcore::Core::OOP::Class::REG{$caller}{does}{$role};
 
         Pcore::Core::OOP::Class::load_class($role);
 
@@ -48,12 +47,12 @@ sub _with (@roles) {
             Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 0 );
         }
 
-        # merge methods
-        Pcore::Core::OOP::Class::export_methods( $role, $caller );
-
-        # TODO merge around
+        # merge around
         push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
     }
+
+    # merge methods
+    Pcore::Core::OOP::Class::export_methods( \@roles, $caller );
 
     return;
 }
