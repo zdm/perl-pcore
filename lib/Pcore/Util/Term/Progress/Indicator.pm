@@ -38,10 +38,10 @@ has _format_time => ( is => 'lazy', isa => CodeRef, init_arg => undef );
 has size => ( is => 'ro', isa => PositiveInt );
 
 has is_finished => ( is => 'rwp',  isa => Bool,              default => 0,          init_arg => undef );
-has start_time  => ( is => 'rwp',  isa => Int,               default => 0,          clearer  => '_clear_start_time', init_arg => undef );
-has end_time    => ( is => 'rwp',  isa => Int,               default => 0,          clearer  => '_clear_end_time', init_arg => undef );
-has total_time  => ( is => 'rwp',  isa => Int,               default => 0,          clearer  => '_clear_total_time', init_arg => undef );
-has eta         => ( is => 'lazy', isa => PositiveOrZeroNum, writer  => '_set_eta', default  => 0, init_arg => undef );                     # seconds, left to complete, 0 - unknown
+has start_time  => ( is => 'rwp',  isa => Int,               default => 0,          init_arg => undef );
+has end_time    => ( is => 'rwp',  isa => Int,               default => 0,          init_arg => undef );
+has total_time  => ( is => 'rwp',  isa => Int,               default => 0,          init_arg => undef );
+has eta         => ( is => 'lazy', isa => PositiveOrZeroNum, writer  => '_set_eta', default  => 0, init_arg => undef );    # seconds, left to complete, 0 - unknown
 has speed => ( is => 'rwp', isa => PositiveOrZeroNum, init_arg => undef );
 
 my $TERM_WIDTH = P->term->width;
@@ -171,9 +171,9 @@ sub _format_network_unit ( $self, $value ) {
 sub start ($self) {
     $self->_set_start_time(time);
 
-    $self->_clear_end_time;
+    delete $self->{end_time};
 
-    $self->_clear_total_time;
+    delete $self->{total_time};
 
     $self->_set_is_finished(0);
 

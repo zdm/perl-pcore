@@ -9,19 +9,19 @@ has share_dir    => ( is => 'ro', isa => Str,         required => 1 );    # abso
 
 has module => ( is => 'lazy', isa => InstanceOf ['Pcore::Util::Perl::Module'] );
 
-has cfg => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );    # dist cfg
-has docker_cfg => ( is => 'lazy', isa => Maybe [HashRef], clearer => 1, init_arg => undef );    # docker.json
-has par_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );                     # par.ini
-has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                               # Dist-Name
+has cfg => ( is => 'lazy', isa => HashRef, init_arg => undef );           # dist cfg
+has docker_cfg => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );    # docker.json
+has par_cfg    => ( is => 'lazy', isa => Maybe [HashRef], init_arg => undef );    # par.ini
+has name     => ( is => 'lazy', isa => Str,  init_arg => undef );                 # Dist-Name
 has is_pcore => ( is => 'lazy', isa => Bool, init_arg => undef );
-has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );                # main process dist
+has is_main  => ( is => 'ro',   isa => Bool, default  => 0, init_arg => undef );  # main process dist
 has scm => ( is => 'lazy', isa => Maybe [ ConsumerOf ['Pcore::API::SCM'] ], init_arg => undef );
 has build => ( is => 'lazy', isa => InstanceOf ['Pcore::Dist::Build'], init_arg => undef );
-has id      => ( is => 'lazy', isa => HashRef, clearer => 1, init_arg => undef );
-has version => ( is => 'lazy', isa => Object,  clearer => 1, init_arg => undef );
+has id      => ( is => 'lazy', isa => HashRef, init_arg => undef );
+has version => ( is => 'lazy', isa => Object,  init_arg => undef );
 has is_commited => ( is => 'lazy', isa => Maybe [Bool],     init_arg => undef );
 has releases    => ( is => 'lazy', isa => Maybe [ArrayRef], init_arg => undef );
-has docker      => ( is => 'lazy', isa => Maybe [HashRef],  clearer  => 1, init_arg => undef );
+has docker      => ( is => 'lazy', isa => Maybe [HashRef],  init_arg => undef );
 
 around new => sub ( $orig, $self, $dist ) {
 
@@ -286,15 +286,15 @@ sub clear ($self) {
     # clear version
     $self->module->clear if exists $self->{module};
 
-    $self->clear_version;
+    delete $self->{version};
 
-    $self->clear_id;
+    delete $self->{id};
 
-    $self->clear_cfg;
+    delete $self->{cfg};
 
-    $self->clear_docker_cfg;
+    delete $self->{docker_cfg};
 
-    $self->clear_docker;
+    delete $self->{docker};
 
     return;
 }
