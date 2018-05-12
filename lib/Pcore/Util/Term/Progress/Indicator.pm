@@ -11,15 +11,15 @@ has id => ( is => 'lazy', isa => Int, required => 1 );
 
 has network => ( is => 'ro', isa => Bool, default => 0 );
 
-has message => ( is => 'lazy', isa => Str, writer => '_set_message', default => q[] );
+has message => ( is => 'lazy', isa => Str, default => q[] );
 
 has show_state => ( is => 'lazy', isa => Bool, default => 1 );    # show value/total/percent
 
-has value => ( is => 'lazy', isa => PositiveOrZeroNum, writer => '_set_value', default => 0 );
+has value => ( is => 'lazy', isa => PositiveOrZeroNum, default => 0 );
 has value_format => ( is => 'ro', isa => Str | CodeRef, default => q[%.0f] );
 has _format_value => ( is => 'lazy', isa => CodeRef, init_arg => undef );
 
-has total => ( is => 'lazy', isa => PositiveOrZeroNum, writer => '_set_total', default => 0 );
+has total => ( is => 'lazy', isa => PositiveOrZeroNum, default => 0 );
 has total_format => ( is => 'ro', isa => Str | CodeRef, default => q[%.0f] );
 has _format_total => ( is => 'lazy', isa => CodeRef, init_arg => undef );
 
@@ -37,11 +37,11 @@ has _format_time => ( is => 'lazy', isa => CodeRef, init_arg => undef );
 
 has size => ( is => 'ro', isa => PositiveInt );
 
-has is_finished => ( is => 'rwp',  isa => Bool,              default => 0,          init_arg => undef );
-has start_time  => ( is => 'rwp',  isa => Int,               default => 0,          init_arg => undef );
-has end_time    => ( is => 'rwp',  isa => Int,               default => 0,          init_arg => undef );
-has total_time  => ( is => 'rwp',  isa => Int,               default => 0,          init_arg => undef );
-has eta         => ( is => 'lazy', isa => PositiveOrZeroNum, writer  => '_set_eta', default  => 0, init_arg => undef );    # seconds, left to complete, 0 - unknown
+has is_finished => ( is => 'rwp',  isa => Bool,              default => 0, init_arg => undef );
+has start_time  => ( is => 'rwp',  isa => Int,               default => 0, init_arg => undef );
+has end_time    => ( is => 'rwp',  isa => Int,               default => 0, init_arg => undef );
+has total_time  => ( is => 'rwp',  isa => Int,               default => 0, init_arg => undef );
+has eta         => ( is => 'lazy', isa => PositiveOrZeroNum, default => 0, init_arg => undef );    # seconds, left to complete, 0 - unknown
 has speed => ( is => 'rwp', isa => PositiveOrZeroNum, init_arg => undef );
 
 my $TERM_WIDTH = P->term->width;
@@ -195,14 +195,14 @@ sub finish ($self) {
 sub update ( $self, %args ) {
     my $time = time;
 
-    $self->_set_message( $args{message} ) if defined $args{message};
+    $self->{message} = $args{message} if defined $args{message};
 
-    $self->_set_total( $args{total} ) if defined $args{total};
+    $self->{total} = $args{total} if defined $args{total};
 
     # do not allow value to be larger than total
     $args{value} = $self->total if $self->total && $args{value} && $args{value} > $self->total;
 
-    $self->_set_value( $args{value} ) if defined $args{value};
+    $self->{value} = $args{value} if defined $args{value};
 
     # automatically finish
     if ( $self->value == $self->total ) {
@@ -223,10 +223,10 @@ sub update ( $self, %args ) {
     # calculate ETA
     if ( $self->total ) {
         if ( !$self->speed ) {
-            $self->_set_eta(0);
+            $self->{eta} = 0;
         }
         else {
-            $self->_set_eta( int( ( $self->total - $args{value} ) / $self->speed ) || 1 );
+            $self->eta = int( ( $self->total - $args{value} ) / $self->speed ) || 1;
         }
     }
 
