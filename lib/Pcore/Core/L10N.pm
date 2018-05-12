@@ -151,7 +151,7 @@ sub l10np_ ( $msgid, $msgid_plural, $domain = undef ) : prototype($$;$) {
 }
 
 package Pcore::Core::L10N::_deferred {
-    use Pcore -class1;
+    use Pcore -class;
     use overload    #
       q[""] => sub {
         return &Pcore::Core::L10N::l10n( $_[0] );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
@@ -161,10 +161,10 @@ package Pcore::Core::L10N::_deferred {
       },
       fallback => undef;
 
-    has is_plural => { isa => 'Bool', required => 1 };
-    has msgid     => { isa => 'Str',  required => 1 };
-    has domain    => { isa => 'Str',  required => 1 };
-    has msgid_plural => { isa => 'Maybe [Str]' };
+    has is_plural => ( isa => 'Bool', required => 1 );
+    has msgid     => ( isa => 'Str',  required => 1 );
+    has domain    => ( isa => 'Str',  required => 1 );
+    has msgid_plural => ( isa => 'Maybe [Str]' );
 }
 
 package Pcore::Core::L10N::_l10n {
