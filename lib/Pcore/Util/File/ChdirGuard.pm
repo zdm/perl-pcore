@@ -1,6 +1,6 @@
 package Pcore::Util::File::ChdirGuard;
 
-use Pcore -class1;
+use Pcore -class;
 
 has dir => ( isa => 'Str', required => 1 );
 

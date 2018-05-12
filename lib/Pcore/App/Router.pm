@@ -1,6 +1,6 @@
 package Pcore::App::Router;
 
-use Pcore -class1;
+use Pcore -class;
 
 use overload    #
   q[&{}] => sub ( $self, @ ) {

@@ -1,6 +1,6 @@
 package Pcore::App::Controller::Index;
 
-use Pcore -role1;
+use Pcore -role;
 
 with qw[Pcore::App::Controller];
 

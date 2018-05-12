@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Arg;
 
-use Pcore -class1;
+use Pcore -class;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 with qw[Pcore::Core::CLI::Type];

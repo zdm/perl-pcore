@@ -1,6 +1,6 @@
 package Pcore::App::API::Role;
 
-use Pcore -class1;
+use Pcore -class;
 use Pcore::Util::Scalar qw[is_plain_arrayref];
 
 has app => ( isa => q[ConsumerOf ['Pcore::App']], required => 1 );

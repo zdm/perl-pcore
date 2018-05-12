@@ -1,6 +1,6 @@
 package Pcore::Dist::CLI::Docker::Status;
 
-use Pcore -class1;
+use Pcore -class;
 
 extends qw[Pcore::Dist::CLI];
 

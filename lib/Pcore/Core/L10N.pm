@@ -151,7 +151,7 @@ sub l10np_ ( $msgid, $msgid_plural, $domain = undef ) : prototype($$;$) {
 }
 
 package Pcore::Core::L10N::_deferred {
-    use Pcore -class1;
+    use Pcore -class;
     use overload    #
       q[""] => sub {
         return &Pcore::Core::L10N::l10n( $_[0] );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]

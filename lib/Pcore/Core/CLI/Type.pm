@@ -1,6 +1,6 @@
 package Pcore::Core::CLI::Type;
 
-use Pcore -role1, -const;
+use Pcore -role, -const;
 use Pcore::Util::Scalar qw[is_plain_arrayref is_plain_hashref];
 
 const our $TYPE => {

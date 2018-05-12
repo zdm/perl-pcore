@@ -1,6 +1,6 @@
 package Pcore::App::Controller::Static;
 
-use Pcore -role11;
+use Pcore -role1;
 
 with qw[Pcore::App::Controller];
 

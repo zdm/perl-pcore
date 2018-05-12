@@ -1,6 +1,6 @@
 package Pcore::Util::URI::file;
 
-use Pcore -class1;
+use Pcore -class;
 
 extends qw[Pcore::Util::URI];
 

@@ -1,6 +1,6 @@
 package Pcore::Core::Event::Listener::Pipe::file;
 
-use Pcore -class1, -ansi, -const;
+use Pcore -class, -ansi, -const;
 use Pcore::Util::Data qw[to_json];
 use Pcore::Util::Scalar qw[is_ref];
 use Fcntl qw[:flock];

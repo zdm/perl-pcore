@@ -1,6 +1,6 @@
 package Pcore::Dist::CLI::Wiki;
 
-use Pcore -class1;
+use Pcore -class;
 use Pcore::API::SCM::Const qw[:ALL];
 
 extends qw[Pcore::Dist::CLI];

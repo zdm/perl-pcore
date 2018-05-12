@@ -1,6 +1,6 @@
 package Pcore::Dist::CLI::Create;
 
-use Pcore -class1;
+use Pcore -class;
 use Pcore::Dist;
 use Pcore::API::SCM::Const qw[:ALL];
 

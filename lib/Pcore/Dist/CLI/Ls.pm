@@ -1,6 +1,6 @@
 package Pcore::Dist::CLI::Ls;
 
-use Pcore -class1, -ansi;
+use Pcore -class, -ansi;
 
 extends qw[Pcore::Dist::CLI];
 
