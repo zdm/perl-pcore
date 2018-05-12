@@ -1,6 +1,6 @@
 package Pcore::Core::Dump::Dumper;
 
-use Pcore -class, -ansi;
+use Pcore -class1, -ansi;
 use Pcore::Util::Scalar qw[refaddr isweak reftype blessed looks_like_number tainted];
 use Pcore::Util::Text qw[escape_scalar remove_ansi add_num_sep];
 use re qw[];

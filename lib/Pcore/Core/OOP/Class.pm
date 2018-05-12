@@ -322,7 +322,9 @@ PERL
     my $build = do {
         no strict qw[refs];
 
-        join q[ ], map {qq[\$self->$_\::BUILD(\$args);]} grep { *{"$_\::BUILD"}{CODE} } reverse mro::get_linear_isa($self)->@*;
+        join q[ ], map {qq[\$self->$_\::BUILD(\$args);]}
+          grep { defined *{"$_\::BUILD"} && *{"$_\::BUILD"}{CODE} }
+          reverse mro::get_linear_isa($self)->@*;
     };
 
     no warnings qw[redefine];
@@ -360,7 +362,7 @@ PERL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 13, 161, 229, 242,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 256, 330             |                                                                                                                |
+## |      | 256, 332             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 40                   | * Private subroutine/method '_does' declared but not used                                                      |

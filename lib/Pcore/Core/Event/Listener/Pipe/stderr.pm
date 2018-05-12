@@ -1,6 +1,6 @@
 package Pcore::Core::Event::Listener::Pipe::stderr;
 
-use Pcore -class, -ansi, -const;
+use Pcore -class1, -ansi, -const;
 use Pcore::Util::Text qw[remove_ansi];
 use Pcore::Util::Data qw[to_json];
 use Pcore::Util::Scalar qw[is_ref];

@@ -1,6 +1,6 @@
 package Pcore::Core::Event::Listener;
 
-use Pcore -class;
+use Pcore -class1;
 use Pcore::Util::UUID qw[uuid_v1mc_str];
 
 has broker => ( is => 'ro', isa => InstanceOf ['Pcore::Core::Event'], required => 1 );

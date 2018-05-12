@@ -1,6 +1,6 @@
 package Pcore::Core::Exception::Object;
 
-use Pcore -class;
+use Pcore -class1;
 use Pcore::Util::Scalar qw[blessed];
 use Time::HiRes qw[];
 

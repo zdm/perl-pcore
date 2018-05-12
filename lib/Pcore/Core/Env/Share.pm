@@ -1,6 +1,6 @@
 package Pcore::Core::Env::Share;
 
-use Pcore -class;
+use Pcore -class1;
 use Pcore::Util::Scalar qw[is_plain_scalarref is_plain_arrayref is_plain_hashref];
 
 has _lib_idx  => ( is => 'ro', isa => HashRef,  init_arg => undef );
