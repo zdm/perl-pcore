@@ -13,9 +13,10 @@ sub import ( $self, $caller = undef ) {
     eval <<"PERL";        ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 package $caller;
 
-sub new { Pcore::Core::OOP::Class::_new(\@_) };
 sub does { Pcore::Core::OOP::Class::_does(\@_) };
 PERL
+
+    _defer_sub( $caller, new => sub { return _build_constructor($caller) } );
 
     {
         no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
@@ -167,7 +168,7 @@ sub _install_around ( $to, $spec ) {
 
 sub add_attribute ( $caller, $attr, $spec, $is_base, $install_accessors ) {
     if ( is_plain_arrayref $spec) {
-        if ( $spec % 2 ) {
+        if ( $spec->@* % 2 ) {
             $spec = { default => shift $spec->@*, $spec->@* };
         }
         else {
@@ -272,9 +273,37 @@ PERL
     return;
 }
 
-sub _new ( $self, @args ) {
-    $self = ref $self if is_ref $self;
+sub _defer_sub ( $caller, $name, $code ) {
+    my $defer = [];
 
+    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+package $caller;
+
+sub $name {
+    if ( !defined \$defer->[1] ) {
+
+        # undefer sub
+        \$defer->[1] = \$code->();
+
+        # install, if wasn't changed
+        no strict qw[refs];
+        no warnings qw[redefine];
+
+        *{'$caller\::$name'} = \$defer->[1] if *{'$caller\::$name'}{CODE} eq \$defer->[0];
+    }
+
+    goto &{\$defer->[1]};
+};
+PERL
+
+    no strict qw[refs];
+
+    $defer->[0] = *{"$caller\::$name"}{CODE};
+
+    return;
+}
+
+sub _build_constructor ( $self ) {
     my $default1 = q[];
     my $default2 = q[];
     my $required = q[];
@@ -329,10 +358,10 @@ PERL
 
     no warnings qw[redefine];
 
-    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+    return eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 package $self;
 
-sub new {
+sub {
     my \$self = !Pcore::Util::Scalar::is_ref \$_[0] ? CORE::shift : Pcore::Util::Scalar::is_blessed_ref \$_[0] ? CORE::ref CORE::shift : die qq[Invalid invoker for "$self\::new" constructor];
 
     $buildargs
@@ -348,10 +377,8 @@ sub new {
     $build
 
     return \$self;
-}
+};
 PERL
-
-    return $self->new(@args);
 }
 
 1;
@@ -361,18 +388,16 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13, 161, 229, 242,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 256, 332             |                                                                                                                |
+## |    3 | 13, 162, 230, 243,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 257, 279, 361        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 40                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 275                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |    3 | 41                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_does' declared but not used        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 168                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 169                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 168                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 169                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 318                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 347                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
