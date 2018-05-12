@@ -78,7 +78,6 @@ sub import {
         # store -embedded pragma
         $EMBEDDED = 1 if $import->{pragma}->{embedded};
 
-        require Import::Into;
         require B::Hooks::AtRuntime;
         require B::Hooks::EndOfScope::XS;
         require EV;
@@ -167,7 +166,11 @@ sub import {
         $ENV->register_dist($caller) if $import->{pragma}->{dist};
 
         # process -const pragma
-        Const::Fast->import::into( $caller, 'const' ) if $import->{pragma}->{const};
+        if ( $import->{pragma}->{const} ) {
+            no strict qw[refs];
+
+            *{"$caller\::const"} = \&Const::Fast::const;
+        }
 
         # process -ansi pragma
         if ( $import->{pragma}->{ansi} ) {
@@ -262,37 +265,6 @@ sub _namespace_clean ($class) {
 
             $stash->add_symbol( $_->@* ) for @symbols;
         }
-    }
-
-    return;
-}
-
-sub _import_moo ( $caller, $role ) {
-    if ($role) {
-        Moo::Role->import::into($caller);
-    }
-    else {
-        Moo->import::into($caller);
-
-        MooX::TypeTiny->import::into($caller);
-    }
-
-    # install "has" hook
-    {
-        no strict qw[refs];
-
-        my $has = *{"$caller\::has"}{CODE};
-
-        no warnings qw[redefine];
-
-        *{"$caller\::has"} = sub {
-            my ( $name_proto, %spec ) = @_;
-
-            # auto add builder if lazy and builder or default is not specified
-            $spec{builder} = 1 if $spec{lazy} && !exists $spec{default} && !exists $spec{builder};
-
-            $has->( $name_proto, %spec );
-        };
     }
 
     return;
@@ -605,21 +577,19 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 67                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (23)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 91                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 90                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 253                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 256                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 270                  | * Private subroutine/method '_import_moo' declared but not used                                                |
-## |      | 432                  | * Private subroutine/method '_CORE_RUN' declared but not used                                                  |
+## |    3 | 319, 348, 351, 355,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 386, 389, 394, 397,  |                                                                                                                |
+## |      | 422, 448, 559        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 347, 376, 379, 383,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 414, 417, 422, 425,  |                                                                                                                |
-## |      | 450, 476, 587        |                                                                                                                |
+## |    3 | 404                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 263                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 266                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 351                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 323                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

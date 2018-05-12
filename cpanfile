@@ -6,7 +6,6 @@ feature windows => sub {
     requires 'Win32::Console::ANSI';
 };
 
-requires 'Import::Into';
 requires 'Variable::Magic';
 requires 'B::Hooks::AtRuntime';
 requires 'B::Hooks::EndOfScope::XS';
