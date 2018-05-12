@@ -3,13 +3,14 @@ package Pcore::Core::OOP::Class;
 use Pcore;
 use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref is_coderef];
 use Class::XSAccessor qw[];
+use Data::Dumper qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our %REG;
 
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
 
-    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+    eval <<"PERL";        ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 package $caller;
 
 sub new { Pcore::Core::OOP::Class::_new(\@_) };
@@ -286,7 +287,10 @@ sub _new ( $self, @args ) {
 
         if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
             if ( !is_ref $spec->{default} ) {
-                $default1 .= qq[\$args->{$attr} = qq[$spec->{default}] if !exists \$args->{$attr};\n];
+                local $Data::Dumper::Useqq = 1;
+                local $Data::Dumper::Terse = 1;
+
+                $default1 .= qq[\$args->{$attr} = @{[ Data::Dumper::Dumper $spec->{default} ]} if !exists \$args->{$attr};\n];
             }
             else {
                 push @attr_default_coderef, $spec->{default};
@@ -355,18 +359,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 160, 228, 241,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 255, 326             |                                                                                                                |
+## |    3 | 13, 161, 229, 242,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 256, 330             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
-## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 274                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 40                   | * Private subroutine/method '_does' declared but not used                                                      |
+## |      | 275                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 167                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 168                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 167                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 168                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 314                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 318                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
