@@ -145,8 +145,19 @@ sub _around ( $self, $name, $code ) {
     return;
 }
 
-# TODO
-sub _install_around ( $caller, $spec ) {
+# TODO order of modifiers
+sub _install_around ( $to, $spec ) {
+    for my $name ( keys $spec->%* ) {
+        for my $code ( $spec->{$name}->@* ) {
+            my $wrapped = $to->can($name);
+
+            die qq[Class "$to" method modifier "around" requires method "$name"] if !$wrapped;
+
+            no warnings qw[redefine];
+            eval qq[package $to; sub $name { \$code->( \$wrapped, \@_ ) }];    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
+        }
+    }
+
     return;
 }
 
@@ -340,18 +351,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 213, 226, 240,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 311                  |                                                                                                                |
+## |    3 | 12, 157, 224, 237,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 251, 322             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 259                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 270                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 153                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 164                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 153                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 164                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 299                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 310                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
