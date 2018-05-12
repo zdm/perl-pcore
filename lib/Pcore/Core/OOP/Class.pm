@@ -104,26 +104,14 @@ sub _with (@roles) {
 }
 
 sub export_methods ( $roles, $to ) {
-    no strict qw[refs];
-
-    my $to_methods = $REG{$to}{method} //= do {
-        my %stash = %{"$to\::"};
-
-        my $methods = { map { $_ => 1 } grep { *{ $stash{$_} }{CODE} } keys %stash };
-
-        $methods;
-    };
+    my $to_methods = $REG{$to}{method} //= { map { $_ => 1 } Package::Stash::XS->new($to)->list_all_symbols('CODE') };
 
     for my $role ( $roles->@* ) {
+        no strict qw[refs];
+
         my %role_stash = %{"$role\::"};
 
-        my $role_methods = $REG{$role}{method} //= do {
-            my %stash = %{"$role\::"};
-
-            my $methods = { map { $_ => 1 } grep { *{ $stash{$_} }{CODE} } keys %stash };
-
-            $methods;
-        };
+        my $role_methods = $REG{$role}{method} //= { map { $_ => 1 } Package::Stash::XS->new($role)->list_all_symbols('CODE') };
 
         for my $name ( grep { !exists $to_methods->{$_} } keys $role_methods->%* ) {
             $to_methods->{$name} = 1;
@@ -388,16 +376,16 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13, 162, 230, 243,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 257, 279, 361        |                                                                                                                |
+## |    3 | 13, 150, 218, 231,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 245, 267, 349        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 41                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_does' declared but not used        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 169                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 157                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 169                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 157                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 347                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 335                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

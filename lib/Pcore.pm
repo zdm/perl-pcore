@@ -240,14 +240,14 @@ sub import {
 sub _namespace_clean ($class) {
     state $EXCEPT = do {
         require Sub::Util;
-        require Package::Stash;
+        require Package::Stash::XS;
 
         {   import   => 1,
             AUTOLOAD => 1,
         };
     };
 
-    my $stash = Package::Stash->new($class);
+    my $stash = Package::Stash::XS->new($class);
 
     for my $subname ( $stash->list_all_symbols('CODE') ) {
         my $fullname = Sub::Util::subname( $stash->get_symbol("&$subname") );
