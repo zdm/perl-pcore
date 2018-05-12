@@ -1,9 +1,9 @@
 package Pcore::Core::CLI::Opt::Perms;
 
-use Pcore -class1;
+use Pcore -role;
 
-sub CLI ( $self ) {
-    my $cli = $self->SUPER::CLI // {};
+around CLI => sub ( $orig, $self ) {
+    my $cli = $self->$orig // {};
 
     if ( !$MSWIN ) {
         $cli->{opt}->{UID} = {
@@ -18,17 +18,17 @@ sub CLI ( $self ) {
     }
 
     return $cli;
-}
+};
 
-sub CLI_RUN ( $self, $opt, @args ) {
+around CLI_RUN => sub ( $orig, $self, $opt, @args ) {
 
     # store uid and gid
     $ENV->{UID} = $opt->{UID} if $opt->{UID};
 
     $ENV->{GID} = $opt->{GID} if $opt->{GID};
 
-    return $self->SUPER::CLI_RUN( $opt, @args );
-}
+    return $self->$orig( $opt, @args );
+};
 
 1;
 __END__
