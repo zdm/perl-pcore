@@ -352,7 +352,7 @@ sub _read_headers ( $args, $runtime, $cb ) {
                 if ( my $cl = delete $res->{headers}->{CONTENT_LENGTH} ) {
                     $cl->[0] =~ s/\s//smg;
 
-                    eval { $runtime->{res}->_set_content_length( $cl->[0] ) } if $cl->[0];
+                    $runtime->{res}->{content_length} = $cl->[0] if $cl->[0];
                 }
 
                 # fill response object with HTTP response headers data
@@ -481,7 +481,7 @@ sub _read_body ( $args, $runtime, $cb ) {
 
                 # process callbacks
                 if ( defined $content_ref ) {
-                    $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
+                    $runtime->{res}->{content_length} = $total_decoded_bytes_readed;
 
                     return 1;    # continue reading
                 }
@@ -522,7 +522,7 @@ sub _read_body ( $args, $runtime, $cb ) {
 
                 # process callbacks
                 if ( defined $content_ref ) {
-                    $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
+                    $runtime->{res}->{content_length} = $total_decoded_bytes_readed;
 
                     $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
 
@@ -601,7 +601,7 @@ sub _read_body ( $args, $runtime, $cb ) {
                         }
                     }
 
-                    $runtime->{res}->_set_content_length($total_decoded_bytes_readed);
+                    $runtime->{res}->{content_length} = $total_decoded_bytes_readed;
 
                     $args->{on_progress}->( $runtime->{res}, $runtime->{content_length}, $total_bytes_readed ) if $args->{on_progress};
 
@@ -648,8 +648,6 @@ sub _read_body ( $args, $runtime, $cb ) {
 ## |      | 26                   | * Subroutine "http_request" with high complexity score (26)                                                    |
 ## |      | 251                  | * Subroutine "_write_request" with high complexity score (28)                                                  |
 ## |      | 375                  | * Subroutine "_read_body" with high complexity score (67)                                                      |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 355                  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 587                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

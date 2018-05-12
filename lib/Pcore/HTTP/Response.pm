@@ -14,7 +14,7 @@ has headers => ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Headers'], init_ar
 has body    => ( is => 'ro', isa => Ref,                                 init_arg => undef );
 has path    => ( is => 'ro', isa => Str,                                 init_arg => undef );
 
-has content_length => ( is => 'rwp', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
+has content_length => ( is => 'ro', isa => PositiveOrZeroInt, default => 0, init_arg => undef );
 
 has redirect => ( is => 'ro', isa => ArrayRef, init_arg => undef );
 has decoded_body => ( is => 'lazy', isa => Maybe [ScalarRef], init_arg => undef );
