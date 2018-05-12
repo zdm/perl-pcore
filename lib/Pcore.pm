@@ -193,6 +193,9 @@ sub import {
             Pcore::Handle::DBI::Const->import( -caller => $caller, qw[:TYPES :QUERY] );
         }
 
+        # $import->{pragma}->{class1} = delete $import->{pragma}->{class};
+        # $import->{pragma}->{role11} = delete $import->{pragma}->{role};
+
         # re-export Moo
         if ( $import->{pragma}->{class} || $import->{pragma}->{role} ) {
 
@@ -640,17 +643,17 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 93                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 286                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 289                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 380, 409, 412, 416,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 447, 450, 455, 458,  |                                                                                                                |
-## |      | 483, 509, 620        |                                                                                                                |
+## |    3 | 383, 412, 415, 419,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 450, 453, 458, 461,  |                                                                                                                |
+## |      | 486, 512, 623        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 465                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 468                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 296                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
+## |    2 | 299                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 384                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 387                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

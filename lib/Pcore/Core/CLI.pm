@@ -1,6 +1,6 @@
 package Pcore::Core::CLI;
 
-use Pcore -class;
+use Pcore -class1;
 use Pcore::Util::Scalar qw[is_ref is_plain_arrayref];
 use Getopt::Long qw[];
 use Pcore::Core::CLI::Opt;
