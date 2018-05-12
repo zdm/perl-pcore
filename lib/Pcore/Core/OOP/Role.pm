@@ -73,10 +73,10 @@ sub _with (@roles) {
     return;
 }
 
-sub _has ( $attr, $spec = undef ) {
+sub _has ( $attr, @spec ) {
     my $caller = caller;
 
-    Pcore::Core::OOP::Class::add_attribute( $caller, $attr, $spec, 0, 0 );
+    Pcore::Core::OOP::Class::add_attribute( $caller, $attr, \@spec, 0, 0 );
 
     return;
 }

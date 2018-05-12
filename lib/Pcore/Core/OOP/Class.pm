@@ -1,7 +1,7 @@
 package Pcore::Core::OOP::Class;
 
 use Pcore;
-use Pcore::Util::Scalar qw[is_ref is_plain_hashref is_coderef];
+use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref is_coderef];
 use Class::XSAccessor qw[];
 
 our %REG;
@@ -133,10 +133,10 @@ sub export_methods ( $roles, $to ) {
     return;
 }
 
-sub _has ( $attr, $spec = undef ) {
+sub _has ( $attr, @spec ) {
     my $caller = caller;
 
-    add_attribute( $caller, $attr, $spec, 0, 1 );
+    add_attribute( $caller, $attr, \@spec, 0, 1 );
 
     return;
 }
@@ -165,13 +165,14 @@ sub _install_around ( $to, $spec ) {
 }
 
 sub add_attribute ( $caller, $attr, $spec, $is_base, $install_accessors ) {
-    if ( !defined $spec ) {
-        $spec = { is => q[] };
-    }
-    elsif ( !is_plain_hashref $spec) {
-        $spec = { is => q[], default => $spec };
-    }
-    else {
+    if ( is_plain_arrayref $spec) {
+        if ( $spec % 2 ) {
+            $spec = { default => shift $spec->@*, $spec->@* };
+        }
+        else {
+            $spec = { $spec->@* };
+        }
+
         $spec->{is} //= q[];
     }
 
@@ -354,18 +355,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 160, 227, 240,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 254, 325             |                                                                                                                |
+## |    3 | 12, 160, 228, 241,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 255, 326             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 273                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 274                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 167                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 167                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 313                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 314                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
