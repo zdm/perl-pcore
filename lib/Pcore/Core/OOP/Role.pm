@@ -48,7 +48,11 @@ sub _with (@roles) {
         }
 
         # merge around
-        push $Pcore::Core::OOP::Class::REG{$caller}{around}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}->@* if $Pcore::Core::OOP::Class::REG{$role}{around};
+        if ( $Pcore::Core::OOP::Class::REG{$role}{around} ) {
+            for my $name ( keys $Pcore::Core::OOP::Class::REG{$role}{around}->%* ) {
+                push $Pcore::Core::OOP::Class::REG{$caller}{around}{$name}->@*, $Pcore::Core::OOP::Class::REG{$role}{around}{$name}->@*;
+            }
+        }
     }
 
     # merge methods
