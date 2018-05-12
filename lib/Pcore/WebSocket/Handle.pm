@@ -19,9 +19,9 @@ requires qw[protocol before_connect_server before_connect_client on_connect_serv
 has max_message_size => ( is => 'ro', isa => PositiveOrZeroInt, default => 1_024 * 1_024 * 100 );    # 0 - do not check message size
 has pong_interval    => ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );                      # 0 - do not pong automatically
 has compression      => ( is => 'ro', isa => Bool,              default => 0 );                      # use permessage_deflate compression
-has on_disconnect => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );                        # ($ws, $status)
-has on_ping       => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );                        # ($ws, $status)
-has on_pong       => ( is => 'ro', isa => Maybe [CodeRef], reader => undef );                        # ($ws, $status)
+has on_disconnect => ( isa => Maybe [CodeRef] );                                                     # ($ws, $status)
+has on_ping       => ( isa => Maybe [CodeRef] );                                                     # ($ws, $status)
+has on_pong       => ( isa => Maybe [CodeRef] );                                                     # ($ws, $status)
 
 has h => ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'], init_arg => undef );
 has is_connected => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );
