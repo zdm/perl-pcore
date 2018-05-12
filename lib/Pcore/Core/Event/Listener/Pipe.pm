@@ -1,6 +1,6 @@
 package Pcore::Core::Event::Listener::Pipe;
 
-use Pcore -role;
+use Pcore -role1;
 use overload    #
   q[&{}] => sub ( $self, @ ) {
     return sub { return $self->sendlog(@_) };
