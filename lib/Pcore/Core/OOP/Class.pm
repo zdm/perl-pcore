@@ -137,7 +137,7 @@ sub _has ( $attr, $spec = undef ) {
     return;
 }
 
-sub _around ( $self, $name, $code ) {
+sub _around ( $name, $code ) {
     my $caller = caller;
 
     _install_around( $caller, { $name => [$code] } );
@@ -145,7 +145,6 @@ sub _around ( $self, $name, $code ) {
     return;
 }
 
-# TODO order of modifiers
 sub _install_around ( $to, $spec ) {
     for my $name ( keys $spec->%* ) {
         for my $code ( $spec->{$name}->@* ) {
@@ -351,18 +350,18 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 12, 157, 224, 237,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 251, 322             |                                                                                                                |
+## |    3 | 12, 156, 223, 236,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 250, 321             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
 ## |      | 39                   | * Private subroutine/method '_does' declared but not used                                                      |
-## |      | 270                  | * Private subroutine/method '_new' declared but not used                                                       |
+## |      | 269                  | * Private subroutine/method '_new' declared but not used                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 164                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 163                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 164                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 163                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 310                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 309                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
