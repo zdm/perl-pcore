@@ -13,16 +13,14 @@ our $EXPORT_PRAGMA = {
     const    => 0,    # export "const" keyword
     dist     => 0,    # mark package aas Pcore dist main module
     embedded => 0,    # run in embedded mode
-    export   => 1,    # install standart import method
+    export   => 0,    # install standart import method
     inline   => 0,    # package use Inline
     l10n     => 1,    # register package L10N domain
     res      => 0,    # export Pcore::Util::Result qw[res]
     role     => 0,    # package is a Moo role
     rpc      => 0,    # run class as RPC server
     sql      => 0,    # export Pcore::Handle::DBI::Const qw[:TYPES]
-
-    # TODO
-    types => 0,       # export types
+    types    => 0,    # export types
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
@@ -154,7 +152,7 @@ sub import {
         Pcore::Core::Dump->import( -caller => $caller );
 
         # process -export pragma
-        Pcore::Core::Exporter->import( -caller => $caller, -export => $import->{pragma}->{export} ) if $import->{pragma}->{export};
+        Pcore::Core::Exporter->import( -caller => $caller ) if $import->{pragma}->{export};
 
         # process -inline pragma
         if ( $import->{pragma}->{inline} ) {
@@ -531,17 +529,17 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (22)                    |
+## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (22)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 89                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 275, 304, 307, 311,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 342, 345, 350, 353,  |                                                                                                                |
-## |      | 378, 404, 515        |                                                                                                                |
+## |    3 | 273, 302, 305, 309,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 340, 343, 348, 351,  |                                                                                                                |
+## |      | 376, 402, 513        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 360                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 358                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 279                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 277                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
