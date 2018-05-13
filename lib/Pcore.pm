@@ -8,7 +8,6 @@ use Pcore::Core::Const qw[:CORE];
 # define %EXPORT_PRAGMA for exporter
 our $EXPORT_PRAGMA = {
     ansi     => 0,    # export ANSI color variables
-    autoload => 0,    # export AUTOLOAD
     class    => 0,    # package is a Moo class
     config   => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
     const    => 0,    # export "const" keyword
@@ -222,14 +221,6 @@ sub import {
 
         # export types
         _import_types($caller) if $import->{pragma}->{types};
-
-        # process -autoload pragma, should be after the -role to support AUTOLOAD in Moo roles
-        # NOTE !!!WARNING!!! AUTOLOAD should be exported after Moo::Role, so Moo::Role can re-export this method
-        if ( $import->{pragma}->{autoload} ) {
-            state $init = !!require Pcore::Core::Autoload;
-
-            Pcore::Core::Autoload->import( -caller => $caller );
-        }
     }
 
     return;
@@ -540,17 +531,17 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 67                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (23)                    |
+## |    3 | 66                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (22)                    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 90                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 89                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 284, 313, 316, 320,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 351, 354, 359, 362,  |                                                                                                                |
-## |      | 387, 413, 524        |                                                                                                                |
+## |    3 | 275, 304, 307, 311,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 342, 345, 350, 353,  |                                                                                                                |
+## |      | 378, 404, 515        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 369                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 360                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 288                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 279                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
