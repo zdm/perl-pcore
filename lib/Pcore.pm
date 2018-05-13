@@ -199,8 +199,6 @@ sub import {
 
             # install universal serializer methods
             B::Hooks::EndOfScope::XS::on_scope_end( sub {
-                _namespace_clean($caller);
-
                 no strict qw[refs];
 
                 if ( my $ref = $caller->can('TO_DATA') ) {
@@ -231,39 +229,6 @@ sub import {
             state $init = !!require Pcore::Core::Autoload;
 
             Pcore::Core::Autoload->import( -caller => $caller );
-        }
-    }
-
-    return;
-}
-
-sub _namespace_clean ($class) {
-    state $EXCEPT = do {
-        require Sub::Util;
-        require Package::Stash::XS;
-
-        {   import   => 1,
-            AUTOLOAD => 1,
-        };
-    };
-
-    my $stash = Package::Stash::XS->new($class);
-
-    for my $subname ( $stash->list_all_symbols('CODE') ) {
-        my $fullname = Sub::Util::subname( $stash->get_symbol("&$subname") );
-
-        if ( "$class\::$subname" ne $fullname && !exists $EXCEPT->{$subname} && substr( $subname, 0, 1 ) ne q[(] ) {
-            my @symbols = map {
-                my $name = $_ . $subname;
-
-                my $def = $stash->get_symbol($name);
-
-                defined($def) ? [ $name, $def ] : ()
-            } qw[$ @ %], q[];
-
-            $stash->remove_glob($subname);
-
-            $stash->add_symbol( $_->@* ) for @symbols;
         }
     }
 
@@ -579,17 +544,13 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 90                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 256                  | BuiltinFunctions::ProhibitComplexMappings - Map blocks should have a single statement                          |
+## |    3 | 284, 313, 316, 320,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 351, 354, 359, 362,  |                                                                                                                |
+## |      | 387, 413, 524        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 319, 348, 351, 355,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 386, 389, 394, 397,  |                                                                                                                |
-## |      | 422, 448, 559        |                                                                                                                |
+## |    3 | 369                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 404                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 266                  | ControlStructures::ProhibitPostfixControls - Postfix control "for" used                                        |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 323                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 288                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -3,6 +3,7 @@ package Pcore::Core::OOP::Class;
 use Pcore;
 use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref is_coderef];
 use Class::XSAccessor qw[];
+use Package::Stash::XS qw[];
 use Data::Dumper qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our %REG;
@@ -376,16 +377,16 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13, 150, 218, 231,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 245, 267, 349        |                                                                                                                |
+## |    3 | 14, 151, 219, 232,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 246, 268, 350        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 41                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_does' declared but not used        |
+## |    3 | 42                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_does' declared but not used        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 157                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 158                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 157                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 158                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 335                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 336                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
