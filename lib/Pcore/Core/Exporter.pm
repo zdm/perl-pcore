@@ -61,33 +61,33 @@ sub parse_import {
 }
 
 sub _import {
-    my $self = shift;
+    my $from = shift;
 
     # parse tags and pragmas
-    my $import = parse_import( $self, @_ );
+    my $import = parse_import( $from, @_ );
 
     # find caller
-    my $caller = $import->{pragma}->{caller} // caller( $import->{pragma}->{level} // 0 );
+    my $to = $import->{pragma}->{caller} // caller( $import->{pragma}->{level} // 0 );
 
     # protection from re-export to myself
-    return if $caller eq $self;
+    return if $to eq $from;
 
-    if ( !exists $CACHE->{$caller} ) {
+    if ( !exists $CACHE->{$to} ) {
         my $export = do {
             no strict qw[refs];
 
-            ${"$self\::EXPORT"};
+            ${"$from\::EXPORT"};
         };
 
-        $CACHE->{$self} = defined $export ? _parse_export( $self, $export ) : undef;
+        $CACHE->{$from} = defined $export ? _parse_export( $from, $export ) : undef;
     }
 
-    _export_tags( $self, $caller, $import->{import} ) if defined $CACHE->{$self};
+    _export_tags( $from, $to, $import->{import} ) if defined $CACHE->{$from};
 
     return;
 }
 
-sub _parse_export ( $self, $export ) {
+sub _parse_export ( $from, $export ) {
     my $res;
 
     $export = { ALL => $export } if ref $export eq 'ARRAY';
@@ -116,7 +116,7 @@ sub _parse_export ( $self, $export ) {
                 $res->{ALL}->{ $type . $sym } = [ $sym, $type ];
             }
             else {
-                die qq["ALL" export tag can not contain references to the other tags in package "$self"] if $tag eq 'ALL';
+                die qq["ALL" export tag can not contain references to the other tags in package "$from"] if $tag eq 'ALL';
 
                 __SUB__->($sym);
 
@@ -137,8 +137,8 @@ sub _parse_export ( $self, $export ) {
     return $res;
 }
 
-sub _export_tags ( $self, $caller, $import ) {
-    my $export = $CACHE->{$self};
+sub _export_tags ( $from, $to, $import ) {
+    my $export = $CACHE->{$from};
 
     if ( !$import ) {
         if ( !exists $export->{DEFAULT} ) {
@@ -149,7 +149,7 @@ sub _export_tags ( $self, $caller, $import ) {
         }
     }
     else {
-        die qq[Package "$self" doesn't export anything] if !$export;
+        die qq[Package "$from" doesn't export anything] if !$export;
     }
 
     # gather symbols to export
@@ -172,7 +172,7 @@ sub _export_tags ( $self, $caller, $import ) {
         }
 
         if ($is_tag) {
-            die qq[Unknown tag ":$sym" to import from "$self"] if !exists $export->{$sym};
+            die qq[Unknown tag ":$sym" to import from "$from"] if !exists $export->{$sym};
 
             if ($no_export) {
                 delete $symbols->@{ keys $export->{$sym}->%* };
@@ -190,7 +190,7 @@ sub _export_tags ( $self, $caller, $import ) {
 
             ( $sym, $alias ) = $sym =~ /(.+)=(.+)/sm if index( $sym, q[=] ) > 0;
 
-            die qq[Unknown symbol "$sym" to import from package "$self"] if !exists $export->{ALL}->{$sym};
+            die qq[Unknown symbol "$sym" to import from package "$from"] if !exists $export->{ALL}->{$sym};
 
             if ($no_export) {
                 delete $symbols->{$sym};
@@ -208,7 +208,7 @@ sub _export_tags ( $self, $caller, $import ) {
         for my $sym ( keys $symbols->%* ) {
 
             # skip symbol if it is not exists in symbol table
-            next if !defined *{"$self\::$export_all->{$sym}->[0]"};
+            next if !defined *{"$from\::$export_all->{$sym}->[0]"};
 
             my $type = $export_all->{$sym}->[1];
 
@@ -219,12 +219,12 @@ sub _export_tags ( $self, $caller, $import ) {
 
                 no warnings qw[once];
 
-                *{"$caller\::$alias"}
-                  = $type eq q[]  ? \&{"$self\::$export_all->{$sym}->[0]"}
-                  : $type eq q[$] ? \${"$self\::$export_all->{$sym}->[0]"}
-                  : $type eq q[@] ? \@{"$self\::$export_all->{$sym}->[0]"}
-                  : $type eq q[%] ? \%{"$self\::$export_all->{$sym}->[0]"}
-                  : $type eq q[*] ? *{"$self\::$export_all->{$sym}->[0]"}
+                *{"$to\::$alias"}
+                  = $type eq q[]  ? \&{"$from\::$export_all->{$sym}->[0]"}
+                  : $type eq q[$] ? \${"$from\::$export_all->{$sym}->[0]"}
+                  : $type eq q[@] ? \@{"$from\::$export_all->{$sym}->[0]"}
+                  : $type eq q[%] ? \%{"$from\::$export_all->{$sym}->[0]"}
+                  : $type eq q[*] ? *{"$from\::$export_all->{$sym}->[0]"}
                   :                 die;
             }
         }
