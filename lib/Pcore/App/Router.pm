@@ -97,7 +97,7 @@ sub _get_host_map ( $self, $host, $ns ) {
         } );
 
         # get obj route
-        $route = $obj->path;
+        $route = $obj->{path};
 
         die qq[Route "$route" is not unique] if exists $self->{_path_class_cache}->{$host}->{$route};
 

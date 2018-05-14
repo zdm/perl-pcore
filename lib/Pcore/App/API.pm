@@ -10,12 +10,12 @@ use Pcore::App::API::Auth;
 
 our $EXPORT = { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 
-has app => ( is => 'ro', isa => ConsumerOf ['Pcore::App'], required => 1 );
+has app => ( required => 1, isa => ConsumerOf ['Pcore::App'] );
 
-has map => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
+has map => ( isa => InstanceOf ['Pcore::App::API::Map'], init_arg => undef );
 
-has _auth_cb_queue => ( is => 'ro', isa => HashRef, init_arg => undef );
-has _auth_cache    => ( is => 'ro', isa => HashRef, init_arg => undef );
+has _auth_cb_queue => ( isa => HashRef, init_arg => undef );
+has _auth_cache    => ( isa => HashRef, init_arg => undef );
 
 const our $TOKEN_TYPE_USER_PASSWORD => 1;
 const our $TOKEN_TYPE_USER_TOKEN    => 3;
