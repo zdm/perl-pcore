@@ -2,11 +2,11 @@ package Pcore::App::API;
 
 use Pcore -role, -const, -export;
 use Pcore::App::API::Map;
-use Pcore::App::API::Auth;
 use Pcore::Util::Data qw[from_b64 from_b64_url];
 use Pcore::Util::Digest qw[sha3_512];
 use Pcore::Util::Text qw[encode_utf8];
 use Pcore::Util::UUID qw[uuid_from_bin];
+use Pcore::App::API::Auth;
 
 our $EXPORT = { CONST => [qw[$TOKEN_TYPE $TOKEN_TYPE_USER_PASSWORD $TOKEN_TYPE_USER_TOKEN $TOKEN_TYPE_USER_SESSION]] };
 
