@@ -101,9 +101,9 @@ sub _with (@roles) {
 }
 
 sub export_methods ( $roles, $to ) {
-    my $to_role_methods;
+    no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 
-    no strict qw[refs];
+    my $to_role_methods;
 
     if ( $REG{$to}{is_role} ) {
         $to_role_methods = $REG{$to}{method} //= {
