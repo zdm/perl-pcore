@@ -103,11 +103,13 @@ sub _with (@roles) {
 sub export_methods ( $roles, $to ) {
     no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 
+    my $is_role = $REG{$to}{is_role};
+
     my $to_role_methods;
 
-    if ( $REG{$to}{is_role} ) {
+    if ($is_role) {
         $to_role_methods = $REG{$to}{method} //= {
-            map { $_ => 1 }
+            map { $_ => undef }
               grep {
                 my $fullname = Sub::Util::subname( *{"$to\::$_"}{CODE} );
 
@@ -118,7 +120,7 @@ sub export_methods ( $roles, $to ) {
 
     for my $role ( $roles->@* ) {
         my $role_methods = $REG{$role}{method} //= {
-            map { $_ => 1 }
+            map { $_ => undef }
               grep {
                 my $fullname = Sub::Util::subname( *{"$role\::$_"}{CODE} );
 
@@ -127,7 +129,7 @@ sub export_methods ( $roles, $to ) {
         };
 
         for my $name ( grep { !defined *{"$to\::$_"}{CODE} } keys $role_methods->%* ) {
-            $to_role_methods->{$name} = 1 if $to_role_methods;
+            $to_role_methods->{$name} = undef if $is_role;
 
             *{"$to\::$name"} = *{"$role\::$name"}{CODE};
         }
@@ -389,14 +391,14 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 163, 231, 244, 258,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 280, 362             |                                                                                                                |
+## |    3 | 165, 233, 246, 260,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 282, 364             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 172                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 170                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 172                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 348                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 350                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
