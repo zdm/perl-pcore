@@ -4,6 +4,7 @@ use Pcore;
 use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_hashref is_coderef];
 use Class::XSAccessor qw[];
 use Package::Stash::XS qw[];
+use Sub::Util qw[];       ## no critic qw[Modules::ProhibitEvilModules]
 use Data::Dumper qw[];    ## no critic qw[Modules::ProhibitEvilModules]
 
 our %REG;
@@ -105,19 +106,35 @@ sub _with (@roles) {
 }
 
 sub export_methods ( $roles, $to ) {
-    my $to_methods = $REG{$to}{method} //= { map { $_ => 1 } Package::Stash::XS->new($to)->list_all_symbols('CODE') };
+    my $to_role_methods;
+
+    if ( $REG{$to}{is_role} ) {
+        $to_role_methods = $REG{$to}{method} //= {
+            map { $_ => 1 }
+              grep {
+                my $fullname = Sub::Util::subname( *{"$to\::$_"}{CODE} );
+
+                "$to\::$_" eq $fullname || substr( $_, 0, 1 ) eq '(';
+              } Package::Stash::XS->new($to)->list_all_symbols('CODE')
+        };
+    }
 
     for my $role ( $roles->@* ) {
         no strict qw[refs];
 
-        my %role_stash = %{"$role\::"};
+        my $role_methods = $REG{$role}{method} //= {
+            map { $_ => 1 }
+              grep {
+                my $fullname = Sub::Util::subname( *{"$role\::$_"}{CODE} );
 
-        my $role_methods = $REG{$role}{method} //= { map { $_ => 1 } Package::Stash::XS->new($role)->list_all_symbols('CODE') };
+                "$role\::$_" eq $fullname || substr( $_, 0, 1 ) eq '(';
+              } Package::Stash::XS->new($role)->list_all_symbols('CODE')
+        };
 
-        for my $name ( grep { !exists $to_methods->{$_} } keys $role_methods->%* ) {
-            $to_methods->{$name} = 1;
+        for my $name ( grep { !defined *{"$to\::$_"}{CODE} } keys $role_methods->%* ) {
+            $to_role_methods->{$name} = 1 if $to_role_methods;
 
-            *{"$to\::$name"} = *{ $role_stash{$name} }{CODE};
+            *{"$to\::$name"} = *{"$role\::$name"}{CODE};
         }
     }
 
@@ -377,16 +394,16 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 14, 151, 219, 232,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 246, 268, 350        |                                                                                                                |
+## |    3 | 15, 168, 236, 249,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 263, 285, 367        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 42                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_does' declared but not used        |
+## |    3 | 43                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_does' declared but not used        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 158                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 175                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 158                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 175                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 336                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 353                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
