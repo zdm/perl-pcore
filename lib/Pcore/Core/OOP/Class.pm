@@ -103,6 +103,8 @@ sub _with (@roles) {
 sub export_methods ( $roles, $to ) {
     my $to_role_methods;
 
+    no strict qw[refs];
+
     if ( $REG{$to}{is_role} ) {
         $to_role_methods = $REG{$to}{method} //= {
             map { $_ => 1 }
@@ -115,8 +117,6 @@ sub export_methods ( $roles, $to ) {
     }
 
     for my $role ( $roles->@* ) {
-        no strict qw[refs];
-
         my $role_methods = $REG{$role}{method} //= {
             map { $_ => 1 }
               grep {
