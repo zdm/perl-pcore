@@ -13,7 +13,7 @@ sub import ( $self, $caller = undef ) {
     {
         no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 
-        *{"$caller\::dows"}     = \&Pcore::Core::OOP::Class::_does;
+        *{"$caller\::does"}     = \&Pcore::Core::OOP::Class::_does;
         *{"$caller\::requires"} = \&_requires;
         *{"$caller\::with"}     = \&_with;
         *{"$caller\::has"}      = \&_has;
