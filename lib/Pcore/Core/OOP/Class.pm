@@ -12,17 +12,12 @@ our %REG;
 sub import ( $self, $caller = undef ) {
     $caller //= caller;
 
-    eval <<"PERL";        ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
-package $caller;
-
-sub does { Pcore::Core::OOP::Class::_does(\@_) };
-PERL
-
     _defer_sub( $caller, new => sub { return _build_constructor($caller) } );
 
     {
         no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 
+        *{"$caller\::dows"}    = \&_does;
         *{"$caller\::extends"} = \&_extends;
         *{"$caller\::with"}    = \&_with;
         *{"$caller\::has"}     = \&_has;
@@ -394,16 +389,14 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 15, 168, 236, 249,   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 263, 285, 367        |                                                                                                                |
+## |    3 | 163, 231, 244, 258,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 280, 362             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 43                   | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_does' declared but not used        |
+## |    3 | 170                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 175                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 170                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 175                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 353                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
+## |    1 | 348                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

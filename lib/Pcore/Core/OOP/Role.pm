@@ -10,15 +10,10 @@ sub import ( $self, $caller = undef ) {
     # register role
     $Pcore::Core::OOP::Class::REG{$caller}{is_role} = 1;
 
-    eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
-package $caller;
-
-sub does { Pcore::Core::OOP::Class::_does(\@_) };
-PERL
-
     {
         no strict qw[refs];    ## no critic qw[TestingAndDebugging::ProhibitProlongedStrictureOverride]
 
+        *{"$caller\::dows"}     = \&Pcore::Core::OOP::Class::_does;
         *{"$caller\::requires"} = \&_requires;
         *{"$caller\::with"}     = \&_with;
         *{"$caller\::has"}      = \&_has;
@@ -96,7 +91,7 @@ sub _around ( $name, $code ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |    3 | 16                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
