@@ -192,10 +192,10 @@ sub add_attribute ( $caller, $attr, $spec, $is_base, $install_accessors ) {
 
         # merge attribute spec
         if ($is_base) {
-            $spec = { $spec->%*, $current_spec->%* };
+            $spec = { $spec->%*, $current_spec->%*, is => $spec->{is} };
         }
         else {
-            $spec = { $current_spec->%*, $spec->%* };
+            $spec = { $current_spec->%*, $spec->%*, is => $current_spec->{is} };
         }
     }
 
@@ -222,6 +222,7 @@ sub add_attribute ( $caller, $attr, $spec, $is_base, $install_accessors ) {
 
         # "lazy" accessor
         elsif ( $spec->{is} eq 'lazy' ) {
+            no warnings qw[redefine];
 
             # attr has default property
             if ( exists $spec->{default} ) {
@@ -432,8 +433,8 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 165, 233, 246, 260,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 282, 425             |                                                                                                                |
+## |    3 | 165, 234, 247, 261,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 283, 426             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 172                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
