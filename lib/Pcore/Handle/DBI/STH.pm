@@ -2,10 +2,9 @@ package Pcore::Handle::DBI::STH;
 
 use Pcore -class;
 
-has id    => ( is => 'ro', isa => Str, required => 1 );
-has query => ( is => 'ro', isa => Str, required => 1 );
-
-has dbh => ( is => 'ro', isa => ArrayRef, init_arg => undef );
+has id    => ();    # ( is => 'ro', isa => Str, required => 1 );
+has query => ();    # ( is => 'ro', isa => Str, required => 1 );
+has dbh   => ();    # ( is => 'ro', isa => ArrayRef, init_arg => undef );
 
 sub DESTROY ( $self ) {
     if ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) {
