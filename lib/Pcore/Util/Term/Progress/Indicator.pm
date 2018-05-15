@@ -226,7 +226,7 @@ sub update ( $self, %args ) {
             $self->{eta} = 0;
         }
         else {
-            $self->eta = int( ( $self->total - $args{value} ) / $self->{speed} ) || 1;
+            $self->{eta} = int( ( $self->total - $args{value} ) / $self->{speed} ) || 1;
         }
     }
 
