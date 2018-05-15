@@ -2,9 +2,9 @@ package Pcore::App::Controller;
 
 use Pcore -role;
 
-has app  => ( isa => q[ConsumerOf ['Pcore::App']] );
-has host => ( isa => 'Str' );                          # HTTP controller host
-has path => ( isa => 'Str' );                          # HTTP controller url path, always finished with "/"
+has app  => ( required => 1, isa => q[ConsumerOf ['Pcore::App']] );
+has host => ( required => 1, isa => 'Str' );                          # HTTP controller host
+has path => ( required => 1, isa => 'Str' );                          # HTTP controller url path, always finished with "/"
 
 sub run ( $self, $req ) {
     $req->(404)->finish;
