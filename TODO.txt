@@ -23,10 +23,6 @@ https://metacpan.org/pod/Tie::Hash::LRU
 - Pcore::AE::Handle2:
     - handle should return errors using standard result object;
 
-- redesign HTTP ua;
-    - http_timeout works incorrectly, should be timeout for whole request, currently only timeout between read operation;
-    - use common connection status + reason errors registry, read headers error, connet error, proxy errors, etc ...;
-
 - api protocol:
     - runas => [ $token_type, $token_id, $private_token ];
 
