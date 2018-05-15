@@ -9,10 +9,9 @@ use overload    #
   },
   fallback => 1;
 
-has auth => ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );
-has _cb => ( is => 'ro', isa => Maybe [CodeRef] );
-
-has _responded => ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
+has auth       => ();    # ( is => 'ro', isa => InstanceOf ['Pcore::App::API::Auth'], required => 1 );
+has _cb        => ();    # ( is => 'ro', isa => Maybe [CodeRef] );
+has _responded => 0;     # ( is => 'ro', isa => Bool, default => 0, init_arg => undef );    # already responded
 
 sub DESTROY ( $self ) {
     if ( ( ${^GLOBAL_PHASE} ne 'DESTRUCT' ) && !$self->{_responded} && $self->{_cb} ) {
