@@ -339,11 +339,13 @@ PERL
 
     # attributes
     my $init_arg;
+    my $required;
     my $default;
     my @attr_default_coderef;
-    my $required;
 
     while ( my ( $attr, $spec ) = each $REG{$self}{attr}->%* ) {
+
+        # attr init_arg
         if ( exists $spec->{init_arg} ) {
             if ( !defined $spec->{init_arg} ) {
                 $init_arg .= <<"PERL";
@@ -359,6 +361,15 @@ PERL
             }
         }
 
+        # attr required
+        if ( $spec->{required} && !exists $spec->{default} ) {
+            $required .= <<"PERL";
+    die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};
+
+PERL
+        }
+
+        # attr default
         if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
             if ( !is_ref $spec->{default} ) {
                 local $Data::Dumper::Useqq = 1;
@@ -378,16 +389,11 @@ PERL
 PERL
             }
         }
-
-        if ( $spec->{required} && !exists $spec->{default} ) {
-            $required .= <<"PERL";
-    die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};
-
-PERL
-        }
     }
 
     $new .= $init_arg if $init_arg;
+
+    $new .= $required if $required;
 
     # bless
     $new .= <<'PERL';
@@ -396,8 +402,6 @@ PERL
 PERL
 
     $new .= $default if $default;
-
-    $new .= $required if $required;
 
     # build
     {
@@ -429,7 +433,7 @@ PERL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 165, 233, 246, 260,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 282, 421             |                                                                                                                |
+## |      | 282, 425             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 172                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
