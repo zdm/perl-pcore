@@ -177,38 +177,48 @@ sub add_attribute ( $caller, $attr, $spec, $is_base, $install_accessors ) {
         else {
             $spec = { $spec->@* };
         }
-
-        $spec->{is} //= q[];
     }
 
     # check default value
     die qq[Class "$caller" attribute "$attr" default value can be "Scalar" or "CodeRef"] if exists $spec->{default} && !( !is_ref $spec->{default} || is_coderef $spec->{default} );
 
+    my $override;
+
     # redefine attribute
     if ( my $current_spec = $REG{$caller}{attr}{$attr} ) {
-        if ( $spec->{is} and $spec->{is} ne $current_spec->{is} ) {
+        $override = 1;
+
+        if ( $spec->{is} and ( $spec->{is} // q[] ) ne ( $current_spec->{is} // q[] ) ) {
             die qq[Class "$caller" attribute "$attr" not allowed to redefine parent attribute "is" property];
         }
 
         # merge attribute spec
         if ($is_base) {
-            $spec = { $spec->%*, $current_spec->%*, is => $spec->{is} };
+
+            # current spec overrides base spec (from base class)
+            $spec = { $spec->%*, $current_spec->%* };
         }
         else {
-            $spec = { $current_spec->%*, $spec->%*, is => $current_spec->{is} };
+
+            # new spec overrides current spec (self or from role)
+            $spec = { $current_spec->%*, $spec->%* };
         }
     }
 
     $REG{$caller}{attr}{$attr} = $spec;
 
-    # install accessors
+    # install accessors, do not create accessor, inherited from the base class
     if ( $install_accessors && $spec->{is} ) {
+
+        # do not allow override method with accessor
+        die qq[Class "$caller" attribute "$attr" attempt to override method with accessor] if !$override && defined &{"$caller\::$attr"};
 
         # "ro" accessor
         if ( $spec->{is} eq 'ro' ) {
             Class::XSAccessor->import(
                 getters => [$attr],
                 class   => $caller,
+                replace => 1,
             );
         }
 
@@ -217,6 +227,7 @@ sub add_attribute ( $caller, $attr, $spec, $is_base, $install_accessors ) {
             Class::XSAccessor->import(
                 accessors => [$attr],
                 class     => $caller,
+                replace   => 1,
             );
         }
 
@@ -433,10 +444,10 @@ PERL
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 165, 234, 247, 261,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 283, 426             |                                                                                                                |
+## |    3 | 165, 245, 258, 272,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
+## |      | 294, 437             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 172                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
+## |    3 | 172                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (24)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 172                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
