@@ -20,14 +20,15 @@ has is_connect_error => 0;                   # ( is => 'ro', isa => Bool, defaul
 has decoded_body     => ( is => 'lazy' );    # , isa => Maybe [ScalarRef], init_arg => undef );
 has tree             => ( is => 'lazy' );    # , isa => Maybe [ InstanceOf ['HTML::TreeBuilder::LibXML'] ], init_arg => undef );
 
-sub BUILD ( $self, $args ) {
-    $self->{headers} = Pcore::HTTP::Headers->new;
+sub BUILDARGS ( $self, $args ) {
+    if ( $args->{headers} ) {
+        $args->{headers} = Pcore::HTTP::Headers->new( $args->{headers} );
+    }
+    else {
+        $args->{headers} = Pcore::HTTP::Headers->new;
+    }
 
-    $self->{headers}->add( $args->{headers} ) if $args->{headers};
-
-    $self->{body} = $args->{body} if $args->{body};
-
-    return;
+    return $args;
 }
 
 sub _build_decoded_body ($self) {
