@@ -20,9 +20,9 @@ has user_name        => ();    # ( isa => Maybe [Str] );
 has permissions      => ();    # ( isa => Maybe [HashRef] );
 has depends_on       => ();    # ( isa => Maybe [ArrayRef] );
 
-sub TO_DATA ($self) {
+*TO_JSON = *TO_CBOR = sub ($self) {
     die q[Direct auth object serialization is impossible for security reasons];
-}
+};
 
 sub TO_DUMP ( $self, $dumper, @ ) {
     my %args = (

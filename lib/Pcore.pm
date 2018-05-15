@@ -193,20 +193,6 @@ sub import {
 
         # re-export OOP
         if ( $import->{pragma}->{class} || $import->{pragma}->{role} ) {
-
-            # install universal serializer methods
-            B::Hooks::EndOfScope::XS::on_scope_end( sub {
-                no strict qw[refs];
-
-                if ( my $ref = $caller->can('TO_DATA') ) {
-                    *{"$caller\::TO_JSON"} = $ref unless $caller->can('TO_JSON');
-
-                    *{"$caller\::TO_CBOR"} = $ref unless $caller->can('TO_CBOR');
-                }
-
-                return;
-            } );
-
             $import->{pragma}->{types} = 1;
 
             if ( $import->{pragma}->{class} ) {
@@ -529,17 +515,15 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 64                   | Subroutines::ProhibitExcessComplexity - Subroutine "import" with high complexity score (22)                    |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 273, 302, 305, 309,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 340, 343, 348, 351,  |                                                                                                                |
-## |      | 376, 402, 513        |                                                                                                                |
+## |    3 | 259, 288, 291, 295,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 326, 329, 334, 337,  |                                                                                                                |
+## |      | 362, 388, 499        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 358                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 344                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 277                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 263                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
