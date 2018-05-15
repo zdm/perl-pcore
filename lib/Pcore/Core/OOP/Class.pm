@@ -307,14 +307,63 @@ PERL
 }
 
 sub _build_constructor ( $self ) {
-    my $default1 = q[];
-    my $default2 = q[];
-    my $required = q[];
+
+    # header
+    my $new = <<"PERL";
+package $self;
+
+sub {
+    my \$self = !Pcore::Util::Scalar::is_ref \$_[0] ? CORE::shift : Pcore::Util::Scalar::is_blessed_ref \$_[0] ? CORE::ref CORE::shift : die qq[Invalid invoker for "$self\::new" constructor];
+
+PERL
+
+    # buildargs
+    if ( $self->can('BUILDARGS') ) {
+        $new .= <<'PERL';
+    my $args = $self->BUILDARGS(@_);
+
+    if (!defined $args) {
+        $args = {};
+    }
+    elsif (!Pcore::Util::Scalar::is_plain_hashref $args) {
+        die qq["$self\::BUILDARGS" method didn't returned HashRef];
+    }
+
+PERL
+    }
+    else {
+        $new .= <<'PERL';
+    my $args = Pcore::Util::Scalar::is_plain_hashref $_[0] ? {$_[0]->%*} : @_ ? {@_} : {};
+PERL
+    }
+
+    # attributes
+    my $init_arg;
+    my $required;
+    my $default;
     my @attr_default_coderef;
 
     while ( my ( $attr, $spec ) = each $REG{$self}{attr}->%* ) {
+        if ( exists $spec->{init_arg} ) {
+            if ( !defined $spec->{init_arg} ) {
+                $init_arg .= <<"PERL";
+    delete \$args->{$attr};
+
+PERL
+            }
+            else {
+                $init_arg .= <<"PERL";
+    \$args->{$attr} = delete \$args->{$spec->{init_arg}};
+
+PERL
+            }
+        }
+
         if ( $spec->{required} ) {
-            $required .= qq[die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};\n];
+            $required .= <<"PERL";
+    die qq[Class "\$self" attribute "$attr" is required] if !exists \$args->{$attr};
+
+PERL
         }
 
         if ( exists $spec->{default} && ( !$spec->{is} || $spec->{is} ne 'lazy' ) ) {
@@ -322,66 +371,53 @@ sub _build_constructor ( $self ) {
                 local $Data::Dumper::Useqq = 1;
                 local $Data::Dumper::Terse = 1;
 
-                $default1 .= qq[\$args->{$attr} = @{[ Data::Dumper::Dumper $spec->{default} ]} if !exists \$args->{$attr};\n];
+                $default .= <<"PERL";
+    \$args->{$attr} = @{[ Data::Dumper::Dumper $spec->{default} ]} if !exists \$args->{$attr};
+
+PERL
             }
             else {
                 push @attr_default_coderef, $spec->{default};
 
-                $default2 .= qq[\$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]}(\$self) if !exists \$args->{$attr};\n];
+                $default .= <<"PERL";
+    \$args->{$attr} = &{\$attr_default_coderef[$#attr_default_coderef]}(\$self) if !exists \$args->{$attr};
+
+PERL
             }
         }
     }
 
-    my $buildargs = do {
-        if ( $self->can('BUILDARGS') ) {
-            <<'PERL';
-my $args = $self->BUILDARGS(@_);
+    $new .= $init_arg if $init_arg;
+    $new .= $required if $required;
 
-if (!defined $args) {
-    $args = {};
-}
-elsif (!Pcore::Util::Scalar::is_plain_hashref $args) {
-    die qq["$self\::BUILDARGS" method didn't returned HashRef];
-}
+    # bless
+    $new .= <<'PERL';
+    $self = bless $args, $self;
 
 PERL
-        }
-        else {
-            q[my $args = Pcore::Util::Scalar::is_plain_hashref $_[0] ? {$_[0]->%*} : @_ ? {@_} : {};];
-        }
-    };
 
-    my $build = do {
+    $new .= $default if $default;
+
+    # build
+    {
         no strict qw[refs];
 
-        join q[ ], map {qq[\$self->$_\::BUILD(\$args);]}
-          grep { defined *{"$_\::BUILD"} && *{"$_\::BUILD"}{CODE} }
-          reverse mro::get_linear_isa($self)->@*;
-    };
+        for ( grep { defined *{"$_\::BUILD"} && *{"$_\::BUILD"}{CODE} } reverse mro::get_linear_isa($self)->@* ) {
+            $new .= <<"PERL";
+    \$self->$_\::BUILD(\$args);
+
+PERL
+        }
+    }
+
+    # footer
+    $new .= <<'PERL';
+    return $self;
+}
+PERL
 
     no warnings qw[redefine];
-
-    return eval <<"PERL";    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
-package $self;
-
-sub {
-    my \$self = !Pcore::Util::Scalar::is_ref \$_[0] ? CORE::shift : Pcore::Util::Scalar::is_blessed_ref \$_[0] ? CORE::ref CORE::shift : die qq[Invalid invoker for "$self\::new" constructor];
-
-    $buildargs
-
-    $required
-
-    $default1
-
-    \$self = bless \$args, \$self;
-
-    $default2
-
-    $build
-
-    return \$self;
-};
-PERL
+    return eval $new;    ## no critic qw[BuiltinFunctions::ProhibitStringyEval]
 }
 
 1;
@@ -392,13 +428,11 @@ PERL
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 | 165, 233, 246, 260,  | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
-## |      | 282, 364             |                                                                                                                |
+## |      | 282, 420             |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 172                  | Subroutines::ProhibitExcessComplexity - Subroutine "add_attribute" with high complexity score (22)             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 | 172                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 350                  | ValuesAndExpressions::RequireInterpolationOfMetachars - String *may* require interpolation                     |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
