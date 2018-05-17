@@ -20,26 +20,26 @@ WORKDIR $DIST_PATH
 
 # --develop
 RUN /bin/bash -c ' \
-
+    \
     # install prereqs
     dnf -y install ca-certificates wget \
-
+    \
     # setup host
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
-
+    \
     # setup perl build env
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
-
+    \
     # install && update perl
     && dnf -y install perl-$PERL_VERSION \
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh || echo false ) \
     && cpanm App::cpanoutdated \
     && cpan-outdated | cpanm \
-
+    \
     # deploy pcore
     && perl bin/pcore deploy --recommends --suggests \
     && pcore test -j $(nproc) \
-
+    \
     # cleanup perl build env
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) cleanup \
 '
