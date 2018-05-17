@@ -1,4 +1,4 @@
-FROM centos:latest
+FROM fedora:latest
 
 LABEL maintainer="zdm <zdm@softvisio.net>"
 
@@ -22,7 +22,7 @@ WORKDIR $DIST_PATH
 RUN /bin/bash -c ' \
 
     # install prereqs
-    yum -y install ca-certificates wget \
+    dnf -y install ca-certificates wget \
 
     # setup host
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/setup-host.sh || echo false ) \
@@ -31,7 +31,7 @@ RUN /bin/bash -c ' \
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-build-env.sh || echo false ) setup \
 
     # install && update perl
-    && yum -y install perl-$PERL_VERSION \
+    && dnf -y install perl-$PERL_VERSION \
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh || echo false ) \
     && cpanm App::cpanoutdated \
     && cpan-outdated | cpanm \
