@@ -1,3 +1,6 @@
+v0.65.1 2018-05-17T18:20:35Z
+ - docker moved to dnf
+
 v0.65.0 2018-05-17T15:50:41Z
  - cpanfile
  - switched to fedora
