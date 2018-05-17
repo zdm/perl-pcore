@@ -1,3 +1,7 @@
+v0.65.0 2018-05-17T15:50:41Z
+ - cpanfile
+ - switched to fedora
+
 v0.64.0 2018-05-16T07:18:18Z
  - Pcore::AE::Handle::Cache2 removed
  - apply_roles removed
