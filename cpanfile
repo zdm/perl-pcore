@@ -59,7 +59,7 @@ on develop => sub {
 
     # PAR
     requires 'PAR::Packer';
-    requires 'Filter::Crypto';
+    suggests 'Filter::Crypto';    # TODO make requires, after it will build undef FC28
 };
 
 # Pcore::HTTP
