@@ -14,7 +14,7 @@ has _client_node  => ();    # client nodes
 has _service_node => ();    # service nodes
 
 sub run ($self) {
-    $self->{listen} = Pcore::Swarm::Const::create_listen( $self->{listen} );
+    $self->{listen} = P->net->resolve_listen( $self->{listen} );
 
     $self->{http_server} = Pcore::HTTP::Server->new( {
         listen => $self->{listen},

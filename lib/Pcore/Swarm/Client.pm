@@ -40,7 +40,7 @@ sub run ($self) {
     $self->{is_online} = $self->{_require}->%* ? 0 : 1;
 
     if ( $self->{is_service} ) {
-        $self->{listen} = Pcore::Swarm::Const::create_listen( $self->{listen} );
+        $self->{listen} = P->net->resolve_listen( $self->{listen} );
 
         $self->{_http_svr} = Pcore::HTTP::Server->new( {
             listen => $self->{listen},

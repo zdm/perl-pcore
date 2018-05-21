@@ -47,6 +47,7 @@ our $UTIL = {
     host     => 'Pcore::Util::URI::Host',
     http     => 'Pcore::HTTP',
     list     => 'Pcore::Util::List',
+    net      => 'Pcore::Util::Net',
     path     => 'Pcore::Util::Path',
     perl     => 'Pcore::Util::Perl',
     pm       => 'Pcore::Util::PM',
@@ -515,15 +516,15 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 88                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 259, 288, 291, 295,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 326, 329, 334, 337,  |                                                                                                                |
-## |      | 362, 388, 499        |                                                                                                                |
+## |    3 | 260, 289, 292, 296,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 327, 330, 335, 338,  |                                                                                                                |
+## |      | 363, 389, 500        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 344                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 345                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 263                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 264                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
