@@ -36,10 +36,10 @@ my $sess = $api->create_user_session('root');
 ok( $sess, 'create_user_session' );
 
 my $auth;
-$api->authenticate( undef, $sess->{data}->{token}, sub { ($auth) = @_ } );
+$api->authenticate( $sess->{data}->{token}, sub { ($auth) = @_ } );
 ok( $auth->{is_authenticated}, 'authenticate_session_token_1' );
 
-$api->authenticate( 'root', 'fake_password', sub { ($auth) = @_ } );
+$api->authenticate( [ 'root', 'fake_password' ], sub { ($auth) = @_ } );
 ok( !$auth->{is_authenticated}, 'authenticate_password_1' );
 
 done_testing $TESTS;

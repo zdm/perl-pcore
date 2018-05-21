@@ -249,8 +249,7 @@ sub authenticate ( $self, $cb ) {
         }
 
         $self->{app}->{api}->authenticate(
-            $user_name,
-            $token,
+            defined $user_name ? [ $user_name, $token ] : $token,
             sub ($auth) {
                 $cb->( $self->{_auth} = $auth );
             }
