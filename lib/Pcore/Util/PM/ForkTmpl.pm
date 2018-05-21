@@ -50,8 +50,6 @@ sub run_rpc ( $type, $args ) {
 
     syswrite $CHILD_FH, pack( 'L', length $msg->$* ) . $msg->$* or die $!;
 
-    use IO::FDPass;
-
     IO::FDPass::send fileno $CHILD_FH, $args->{fh};
 
     return;
@@ -120,7 +118,7 @@ sub _forked_proc ( $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 23, 98               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 23, 96               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
