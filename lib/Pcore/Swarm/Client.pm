@@ -37,6 +37,8 @@ has _wait_for_queue        => ();                   # HashRef
 sub run ($self) {
     $self->{_require} = { map { $_ => 0 } ( $self->{require} ? $self->{require}->@* : () ) };
 
+    $self->{is_online} = $self->{_require}->%* ? 0 : 1;
+
     if ( $self->{is_service} ) {
         $self->{listen} = Pcore::Swarm::Const::create_listen( $self->{listen} );
 
@@ -121,7 +123,7 @@ sub _on_connect_to_swarm ($self) {
             token      => $self->{is_service} && $self->{token},
             is_service => $self->{is_service},
             listen     => $self->{is_service} && $self->{listen},
-            status     => $self->{_require}->%* ? $STATUS_OFFLINE : $STATUS_ONLINE,
+            status     => $self->{is_online} ? $STATUS_ONLINE : $STATUS_OFFLINE,
         } ],
         sub ($res) {
             $self->_on_nodes_update( $res->{data} ) if $res;
@@ -346,7 +348,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 214                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 216                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
