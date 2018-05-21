@@ -70,7 +70,7 @@ sub run ($self) {
 
     $self->{http_server}->run;
 
-    return;
+    return $self;
 }
 
 sub _on_rpc ( $self, $node_id, $req, $tx ) {

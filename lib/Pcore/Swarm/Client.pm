@@ -7,14 +7,12 @@ use Pcore::Websocket::Protocol::pcore;
 use Pcore::Swarm::Const qw[:ALL];
 use Pcore::HTTP::Server;
 
-has swarm_addr  => ( required => 1 );    # swarm service discovery addr
-has swarm_token => ( required => 1 );    # swarm token
+has swarm => ( required => 1 );    # [$addr, $token], swarm service discovery credentials
 
-has is_service       => 0;                    # this node provides services
-has token            => sub {uuid_v4_str};    # this node token
-has listen           => ();                   # mandatory for service
 has type             => ( required => 1 );    # node type, can be undef for client-only nodes
-has require          => ();                   # ArrayRef, list of nodes types, required by this node to start
+has is_service       => 0;                    # this node provides services
+has listen           => ();                   # will be set automatically for service
+has requires         => ();                   # ArrayRef, list of nodes types, required by this node to start
 has forward_events   => ();
 has subscribe_events => ();
 has on_subscribe     => ();                   # CodeRef
@@ -23,8 +21,9 @@ has on_rpc           => ();                   # CodeRef
 
 has id                     => sub {uuid_v4_str};    # this node id
 has is_online              => 0;                    # Bool, online status
+has _token                 => sub {uuid_v4_str};    # this node token
 has _swarm                 => ();                   # connection to the swarm
-has _require               => ();                   # HashRef, type => $num_of_connecetions
+has _requires              => ();                   # HashRef, type => $num_of_connecetions
 has _node_by_id            => ();                   # HashRef, index of nodes connections by node id
 has _node_by_type          => ();                   # HashRef[ArrayRef], index of nodes connections by node type
 has _http_svr              => ();                   # HTTP server object
@@ -35,9 +34,9 @@ has _wait_for_queue        => ();                   # HashRef
 # TODO reconnect to swarn on timeout
 
 sub run ($self) {
-    $self->{_require} = { map { $_ => 0 } ( $self->{require} ? $self->{require}->@* : () ) };
+    $self->{_requires} = $self->{requires} ? { map { $_ => 0 } $self->{requires}->@* } : {};
 
-    $self->{is_online} = $self->{_require}->%* ? 0 : 1;
+    $self->{is_online} = $self->{_requires}->%* ? 0 : 1;
 
     if ( $self->{is_service} ) {
         $self->{listen} = P->net->resolve_listen( $self->{listen} );
@@ -53,7 +52,7 @@ sub run ($self) {
                         on_auth     => sub ( $h, $token, $cb ) {
 
                             # compare tokens
-                            if ( $self->{token} && ( $token // q[] ) ne $self->{token} ) {
+                            if ( ( $token // q[] ) ne $self->{_token} ) {
                                 $h->disconnect( res [401] );
 
                                 return;
@@ -83,7 +82,7 @@ sub run ($self) {
     # connect to swarm
     $self->{_swarm} = Pcore::WebSocket::Protocol::pcore->new(
         compression => 1,
-        token       => [ $self->{id}, $self->{swarm_token} ],
+        token       => [ $self->{id}, $self->{swarm}->[1] ],
 
         # TODO reconnect to swarm on timeout
         on_disconnect => sub ( $h, $status ) {
@@ -108,9 +107,9 @@ sub run ($self) {
     );
 
     # TODO swarm addr format??
-    $self->{_swarm}->connect( 'ws://' . $self->{swarm_addr} );
+    $self->{_swarm}->connect("ws://$self->{swarm}->[0]/");
 
-    return;
+    return $self;
 }
 
 sub _on_connect_to_swarm ($self) {
@@ -120,7 +119,7 @@ sub _on_connect_to_swarm ($self) {
         'register',
         [ { id         => $self->{id},
             type       => $self->{type},
-            token      => $self->{is_service} && $self->{token},
+            token      => $self->{is_service} && $self->{_token},
             is_service => $self->{is_service},
             listen     => $self->{is_service} && $self->{listen},
             status     => $self->{is_online} ? $STATUS_ONLINE : $STATUS_OFFLINE,
@@ -145,7 +144,7 @@ sub _on_nodes_update ( $self, $nodes ) {
     for my $node ( $nodes->@* ) {
 
         # next, if this node type is not required
-        next if !exists $self->{_require}->{ $node->{type} };
+        next if !exists $self->{_requires}->{ $node->{type} };
 
         # node is available
         if ( $node->{status} == $STATUS_ONLINE ) {
@@ -178,7 +177,7 @@ sub _on_nodes_update ( $self, $nodes ) {
                     push $self->{_node_by_type}->{ $h->{node_type} }->@*, $h;
 
                     # increase number of connections to this node type
-                    $self->{_require}->{ $h->{node_type} }++;
+                    $self->{_requires}->{ $h->{node_type} }++;
 
                     $self->_check_status;
 
@@ -222,7 +221,7 @@ sub _on_node_disconnect ( $self, $node_id ) {
         }
 
         # decrease number of connections to this node type
-        $self->{_require}->{ $node->{type} }--;
+        $self->{_requires}->{ $node->{type} }--;
 
         $self->_check_status;
     }
@@ -232,7 +231,7 @@ sub _on_node_disconnect ( $self, $node_id ) {
 
 sub _check_status ( $self ) {
     my $is_online = 1;
-    my $require   = $self->{_require};
+    my $require   = $self->{_requires};
 
     for my $require ( values $require->%* ) {
         if ( !$require ) {
@@ -286,7 +285,7 @@ sub wait_for ( $self, @types ) {
     my $is_true = 1;
 
     for my $type (@types) {
-        if ( !$self->{_require}->{$type} ) {
+        if ( !$self->{_requires}->{$type} ) {
             $is_true = 0;
 
             last;
@@ -348,7 +347,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 216                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 215                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
