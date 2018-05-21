@@ -35,7 +35,7 @@ sub run ( $type, $rpc_boot_args ) {
 
         # for windows use TCP loopback
         if ($MSWIN) {
-            $listen = '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
+            $listen = '127.0.0.1:' . P->net->get_free_port('127.0.0.1');
         }
 
         # for linux use abstract UDS
@@ -47,7 +47,7 @@ sub run ( $type, $rpc_boot_args ) {
 
         # host without port
         if ( $rpc_boot_args->{listen} !~ /:/sm ) {
-            $listen = "$rpc_boot_args->{listen}:" . P->sys->get_free_port( $rpc_boot_args->{listen} eq '*' ? () : $rpc_boot_args->{listen} );
+            $listen = "$rpc_boot_args->{listen}:" . P->net->get_free_port( $rpc_boot_args->{listen} eq '*' ? () : $rpc_boot_args->{listen} );
         }
 
         # unix socket or fully qualified host:port

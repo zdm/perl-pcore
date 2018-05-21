@@ -3,12 +3,22 @@ package Pcore::Util::Net;
 use Pcore;
 use Pcore::Util::UUID qw[uuid_v4_str];
 
+sub hostname {
+    state $hostname = do {
+        require Sys::Hostname;    ## no critic qw[Modules::ProhibitEvilModules]
+
+        Sys::Hostname::hostname();
+    };
+
+    return $hostname;
+}
+
 sub resolve_listen ($listen) {
     if ( !$listen ) {
 
         # for windows use TCP loopback
         if ($MSWIN) {
-            $listen = '127.0.0.1:' . P->sys->get_free_port('127.0.0.1');
+            $listen = '127.0.0.1:' . get_free_port('127.0.0.1');
         }
 
         # for linux use abstract UDS
@@ -20,11 +30,36 @@ sub resolve_listen ($listen) {
 
         # host without port
         if ( $listen !~ /:/sm ) {
-            $listen = "$listen:" . P->sys->get_free_port( $listen eq '*' ? () : $listen );
+            $listen = "$listen:" . get_free_port( $listen eq '*' ? () : $listen );
         }
     }
 
     return $listen;
+}
+
+sub get_free_port ($ip = undef) {
+    state $init = !!require Socket;
+
+    if ($ip) {
+        $ip = Socket::inet_aton $ip;
+    }
+    else {
+        $ip = "\x7f\x00\x00\x01";    # 127.0.0.1
+    }
+
+    for ( 1 .. 10 ) {
+        socket my $socket, Socket::AF_INET(), Socket::SOCK_STREAM(), 0 or next;
+
+        bind $socket, Socket::pack_sockaddr_in 0, $ip or next;
+
+        my $sockname = getsockname $socket or next;
+
+        my ( $bind_port, $bind_ip ) = Socket::sockaddr_in($sockname);
+
+        return $bind_port;
+    }
+
+    return;
 }
 
 1;
@@ -34,7 +69,7 @@ sub resolve_listen ($listen) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 16                   | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 26, 47               | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
