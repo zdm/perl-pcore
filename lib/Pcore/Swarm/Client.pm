@@ -271,6 +271,10 @@ sub _check_status ( $self ) {
     return;
 }
 
+sub is_online ($self) {
+    return $self->{is_online};
+}
+
 sub wait_for_online ($self) {
     return if $self->{is_online};
 
