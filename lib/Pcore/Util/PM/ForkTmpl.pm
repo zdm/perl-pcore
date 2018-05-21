@@ -29,6 +29,7 @@ sub _fork_tmpl {
 
     # child
     else {
+        undef $CHILD_PID;
 
         # run process in own PGRP
         # setpgrp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
@@ -118,7 +119,7 @@ sub _forked_proc ( $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 23, 96               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 23, 97               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
