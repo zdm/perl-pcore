@@ -2,12 +2,12 @@ package Pcore::Node;
 
 use Pcore -class, -res;
 use Pcore::Util::UUID qw[uuid_v4_str];
-use Pcore::Util::Scalar qw[refaddr weaken is_blessed_ref is_plain_coderef];
+use Pcore::Util::Scalar qw[refaddr weaken is_ref is_blessed_ref is_plain_coderef];
 use Pcore::Websocket::Protocol::pcore;
 use Pcore::Node::Const qw[:ALL];
 use Pcore::HTTP::Server;
 
-has server => ( required => 1 );    # [$addr, $token], node service discovery credentials
+has server => ();    # [$addr, $token], node service discovery credentials
 
 has type             => ( required => 1 );    # node type, can be undef for client-only nodes
 has is_service       => 0;                    # this node provides services
@@ -35,6 +35,16 @@ has _node_proc             => ();                   # HashRef
 # TODO reconnect to swarn on timeout
 
 sub run ($self) {
+
+    # run local node server
+    if ( !is_ref $self->{server} ) {
+        require Pcore::Node::Server;
+
+        $self->{_svr} = Pcore::Node::Server->new( listen => $self->{server} )->run;
+
+        $self->{server} = [ $self->{_svr}->{listen}, $self->{_svr}->{token} ];
+    }
+
     $self->{_requires} = $self->{requires} ? { map { $_ => 0 } $self->{requires}->@* } : {};
 
     $self->{is_online} = $self->{_requires}->%* ? 0 : 1;
@@ -414,7 +424,7 @@ sub run_node ( $self, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 216                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 226                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
