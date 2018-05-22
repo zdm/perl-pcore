@@ -6,13 +6,9 @@ use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_pipe];
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::Data qw[to_cbor from_cbor];
-use Pcore::Util::Scalar qw[weaken];
+use Pcore::Util::PM::Proc;
 
-has on_finish => ();    # ( is => 'rw', isa => Maybe [CodeRef] );
-
-has _proc => ();        # ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Proc'], init_arg => undef );
-
-# TODO on_finish - not works
+# TODO on_finish is not called, because we can't get SIGCHLD for non-direct child
 
 around new => sub ( $orig, $self, $type, % ) {
     my %args = (
@@ -23,9 +19,6 @@ around new => sub ( $orig, $self, $type, % ) {
         on_finish => undef,
         @_[ 3 .. $#_ ],
     );
-
-    # create self instance
-    $self = $self->$orig( { on_finish => $args{on_finish} } );
 
     # create handles
     my ( $fh_r, $fh_w ) = portable_pipe();
@@ -54,9 +47,15 @@ around new => sub ( $orig, $self, $type, % ) {
         $self->_handshake(
             $fh_r,
             sub ($res) {
-                $self->{_proc} = bless { pid => $res->{pid} }, 'Pcore::Util::PM::Proc';
 
-                $args{on_ready}->($self);
+                # TODO on_finish is not called, because we can't get SIGCHLD for non-direct child
+                my $proc = bless {
+                    pid        => $res->{pid},
+                    _on_finish => $args{on_finish},
+                  },
+                  'Pcore::Util::PM::Proc';
+
+                $args{on_ready}->($proc);
 
                 return;
             }
@@ -81,16 +80,11 @@ around new => sub ( $orig, $self, $type, % ) {
             push $cmd->@*, $perl, "-MPcore::Node=$type";
         }
 
-        my $weaken_self = $self;
-
-        weaken $weaken_self;
-
         # create proc
         P->pm->run_proc(
             $cmd,
             stdin    => 1,
             on_ready => sub ($proc) {
-                $self->{_proc} = $proc;
 
                 # send configuration to proc STDIN
                 $proc->stdin->push_write( unpack( 'H*', to_cbor($boot_args)->$* ) . $LF );
@@ -98,7 +92,7 @@ around new => sub ( $orig, $self, $type, % ) {
                 $self->_handshake(
                     $fh_r,
                     sub ($res) {
-                        $args{on_ready}->($self);
+                        $args{on_ready}->($proc);
 
                         return;
                     }
@@ -106,11 +100,7 @@ around new => sub ( $orig, $self, $type, % ) {
 
                 return;
             },
-            on_finish => sub ($proc) {
-                $weaken_self->{on_finish}->($weaken_self) if $weaken_self && $weaken_self->{on_finish};
-
-                return;
-            }
+            on_finish => $args{on_finish}
         );
     }
 
@@ -133,7 +123,7 @@ sub _handshake ( $self, $fh, $cb ) {
                     my $res = eval { from_cbor pack 'H*', $line };
 
                     if ($@) {
-                        die 'Node handshake error';
+                        die 'Node handshake error' . $@;
                     }
                     else {
                         $cb->($res);
