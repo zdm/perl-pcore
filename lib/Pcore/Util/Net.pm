@@ -23,7 +23,7 @@ sub resolve_listen ($listen) {
 
         # for linux use abstract UDS
         else {
-            $listen = "unix:\x00pcore-rpc-" . uuid_v4_str;
+            $listen = "unix:\x00pcore-" . uuid_v4_str;
         }
     }
     else {

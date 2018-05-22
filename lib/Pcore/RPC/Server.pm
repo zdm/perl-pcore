@@ -40,7 +40,7 @@ sub run ( $type, $rpc_boot_args ) {
 
         # for linux use abstract UDS
         else {
-            $listen = "unix:\x00pcore-rpc-$$";
+            $listen = "unix:\x00pcore-node-$$";
         }
     }
     else {

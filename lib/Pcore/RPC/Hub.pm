@@ -244,7 +244,7 @@ Pcore::RPC::Hub
     # server
     package RPC;
 
-    use Pcore -rpc, -const, -class;
+    use Pcore -node, -const, -class;
 
     const our $RPC_LISTEN_EVENTS  => ['APP.EV2'];
     const our $RPC_FORWARD_EVENTS => ['APP.EV1'];

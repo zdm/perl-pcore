@@ -1,6 +1,6 @@
 package <: $module_name ~ "::RPC::Worker" :>;
 
-use Pcore -rpc, -class, -const;
+use Pcore -node, -class, -const;
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 
 with qw[<: $module_name ~ "::RPC" :>];
