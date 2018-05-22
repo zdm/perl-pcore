@@ -100,13 +100,13 @@ sub _forked_proc ( $data ) {
     $SIG->{TERM} = AE::signal TERM => sub { exit 128 + 15 };
 
     if ( $data->{cmd} == $FORK_CMD_RUN_RPC ) {
-        require Pcore::RPC::Server;
+        require Pcore::Node::Node;
 
         $0 = $data->{type};    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
         P->class->load( $data->{type} );
 
-        Pcore::RPC::Server::run( $data->{type}, $data->{args} );
+        Pcore::Node::Node::run( $data->{type}, $data->{args} );
     }
 
     exit;
