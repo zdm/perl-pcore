@@ -1,7 +1,7 @@
-package Pcore::WebSocket::Protocol::pcore;
+package Pcore::WebSocket::pcore;
 
 use Pcore -class, -const, -res;
-use Pcore::WebSocket::Protocol::pcore::Request;
+use Pcore::WebSocket::pcore::Request;
 use Pcore::Util::Data qw[to_b64];
 use Pcore::Util::UUID qw[uuid_v1mc_str];
 use Pcore::Util::Scalar qw[weaken is_plain_arrayref];
@@ -198,7 +198,7 @@ sub _on_message ( $self, $msg ) {
 
                 # RPC call
                 else {
-                    my $req = bless {}, 'Pcore::WebSocket::Protocol::pcore::Request';
+                    my $req = bless {}, 'Pcore::WebSocket::pcore::Request';
 
                     # callback is required
                     if ( my $tid = $tx->{tid} ) {
@@ -411,7 +411,7 @@ __END__
 
 =head1 NAME
 
-Pcore::WebSocket::Protocol::pcore
+Pcore::WebSocket::pcore
 
 =head1 SYNOPSIS
 

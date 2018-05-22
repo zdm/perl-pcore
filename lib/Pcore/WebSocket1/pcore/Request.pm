@@ -1,4 +1,4 @@
-package Pcore::WebSocket::Protocol::pcore::Request;
+package Pcore::WebSocket::pcore::Request;
 
 use Pcore -class, -res;
 use Pcore::Util::Scalar qw[is_blessed_ref];
@@ -50,7 +50,7 @@ __END__
 
 =head1 NAME
 
-Pcore::WebSocket::Protocol::pcore::Request
+Pcore::WebSocket::pcore::Request
 
 =head1 SYNOPSIS
 

@@ -1,4 +1,4 @@
-package Pcore::WebSocket::Protocol::raw;
+package Pcore::WebSocket::raw;
 
 use Pcore -class;
 
@@ -55,7 +55,7 @@ __END__
 
 =head1 NAME
 
-Pcore::WebSocket::Protocol::raw
+Pcore::WebSocket::raw
 
 =head1 SYNOPSIS
 
