@@ -105,9 +105,9 @@ sub import {
                 $main::VERSION = version->new( $RPC_BOOT_ARGS->{version} );
 
                 B::Hooks::AtRuntime::after_runtime( sub {
-                    require Pcore::RPC::Server;
+                    require Pcore::Node::Node;
 
-                    Pcore::RPC::Server::run( $caller, $RPC_BOOT_ARGS );
+                    Pcore::Node::Node::run( $caller, $RPC_BOOT_ARGS );
 
                     exit;
                 } );

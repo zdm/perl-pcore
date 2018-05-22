@@ -2,7 +2,7 @@ package Pcore::Node;
 
 use Pcore -class, -res;
 use Pcore::Util::UUID qw[uuid_v4_str];
-use Pcore::Util::Scalar qw[weaken is_blessed_ref is_plain_coderef];
+use Pcore::Util::Scalar qw[refaddr weaken is_blessed_ref is_plain_coderef];
 use Pcore::Websocket::Protocol::pcore;
 use Pcore::Node::Const qw[:ALL];
 use Pcore::HTTP::Server;
@@ -29,6 +29,7 @@ has _node_by_type          => ();                   # HashRef[ArrayRef], index o
 has _http_svr              => ();                   # HTTP server object
 has _wait_for_online_queue => ();                   # ArrayRef, wait_for_onliine callbacks
 has _wait_for_queue        => ();                   # HashRef
+has _node_proc             => ();                   # HashRef
 
 # TODO pass swarm as object - use local method calls
 # TODO reconnect to swarn on timeout
@@ -344,6 +345,67 @@ sub rpc_call ( $self, $type, $method, @args ) {
     }
 }
 
+sub run_node ( $self, @args ) {
+    use Pcore::Node::Proc;
+
+    my $rouse_cb = Coro::rouse_cb;
+
+    my $cv = AE::cv sub { $rouse_cb->() };
+
+    $cv->begin;
+
+    weaken $self;
+
+    my $cpus_num = P->sys->cpus_num;
+
+    for my $rpc (@args) {
+
+        # resolve number of the workers
+        if ( !$rpc->{workers} ) {
+            $rpc->{workers} = $cpus_num;
+        }
+        elsif ( $rpc->{workers} < 0 ) {
+            $rpc->{workers} = P->sys->cpus_num - $rpc->{workers};
+
+            $rpc->{workers} = 1 if $rpc->{workers} <= 0;
+        }
+
+        # run workers
+        for ( 1 .. $rpc->{workers} ) {
+            $cv->begin;
+
+            Pcore::Node::Proc->new(
+                $rpc->{type},
+                swarm     => $self->{swarm},
+                listen    => $rpc->{listen},
+                buildargs => $rpc->{buildargs},
+                on_ready  => sub ($proc) {
+                    return if !$self;
+
+                    $self->{_node_proc}->{ refaddr $proc } = $proc;
+
+                    $cv->end;
+
+                    return;
+                },
+                on_finish => sub ($proc) {
+                    return if !$self;
+
+                    delete $self->{_node_proc}->{ refaddr $proc };
+
+                    return;
+                }
+            );
+        }
+    }
+
+    $cv->end;
+
+    Coro::rouse_wait $rouse_cb;
+
+    return res 200;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
@@ -351,7 +413,7 @@ sub rpc_call ( $self, $type, $method, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 215                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 216                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
