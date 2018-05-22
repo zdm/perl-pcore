@@ -1,10 +1,10 @@
-package Pcore::Swarm::Client;
+package Pcore::Node;
 
 use Pcore -class, -res;
 use Pcore::Util::UUID qw[uuid_v4_str];
 use Pcore::Util::Scalar qw[weaken is_blessed_ref is_plain_coderef];
 use Pcore::Websocket::Protocol::pcore;
-use Pcore::Swarm::Const qw[:ALL];
+use Pcore::Node::Const qw[:ALL];
 use Pcore::HTTP::Server;
 
 has swarm => ( required => 1 );    # [$addr, $token], swarm service discovery credentials
@@ -362,7 +362,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Swarm::Client
+Pcore::Node
 
 =head1 SYNOPSIS
 

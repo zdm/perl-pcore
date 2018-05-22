@@ -1,4 +1,4 @@
-package Pcore::Swarm::Const;
+package Pcore::Node::Const;
 
 use Pcore -export, -const;
 
@@ -15,7 +15,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Swarm::Const
+Pcore::Node::Const
 
 =head1 SYNOPSIS
 

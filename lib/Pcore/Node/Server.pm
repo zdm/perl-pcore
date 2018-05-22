@@ -1,10 +1,10 @@
-package Pcore::Swarm::Server;
+package Pcore::Node::Server;
 
 use Pcore -class, -res;
 use Pcore::Util::UUID qw[uuid_v4_str];
 use Pcore::Websocket::Protocol::pcore;
 use Pcore::HTTP::Server;
-use Pcore::Swarm::Const qw[:ALL];
+use Pcore::Node::Const qw[:ALL];
 
 has token => sub {uuid_v4_str};
 has listen => ();
@@ -141,7 +141,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Swarm::Server
+Pcore::Node::Server
 
 =head1 SYNOPSIS
 
