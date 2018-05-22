@@ -92,8 +92,8 @@ sub run ($self) {
             app    => sub ($req) {
                 if ( $req->is_websocket_connect_request ) {
 
-                    # create connection
-                    my $c = Pcore::WebSocket::pcore->new(
+                    # create connection, accept websocket connect request
+                    Pcore::WebSocket::pcore->new(
                         compression => 0,
                         on_auth     => sub ( $h, $token, $cb ) {
 
@@ -111,10 +111,7 @@ sub run ($self) {
                         on_subscribe => $self->{on_subscribe},
                         on_event     => $self->{on_event},
                         on_rpc       => $self->{on_rpc},
-                    );
-
-                    # accept websocket connect request
-                    $c->accept($req);
+                    )->accept($req);
                 }
                 else {
                     $req->return_xxx(400);
@@ -460,7 +457,7 @@ sub run_node ( $self, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 261                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 258                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

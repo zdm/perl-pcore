@@ -23,7 +23,7 @@ sub run ( $self, $req ) {
     if ( $req->is_websocket_connect_request ) {
 
         # create connection and accept websocket connect request
-        my $c = Pcore::WebSocket::pcore->new(
+        Pcore::WebSocket::pcore->new(
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
             on_auth          => sub ( $self, $token, $cb ) {

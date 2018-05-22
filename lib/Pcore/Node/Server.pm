@@ -21,8 +21,8 @@ sub run ($self) {
         app    => sub ($req) {
             if ( $req->is_websocket_connect_request ) {
 
-                # create connection
-                my $c = Pcore::WebSocket::pcore->new(
+                # create connection, accept websocket connect request
+                Pcore::WebSocket::pcore->new(
                     compression   => 0,
                     on_disconnect => sub ( $h, $status ) {
                         $self->_on_node_disconnect( $h->{_node_id} );
@@ -55,10 +55,7 @@ sub run ($self) {
 
                         return;
                     },
-                );
-
-                # accept websocket connect request
-                $c->accept($req);
+                )->accept($req);
             }
             else {
                 $req->return_xxx(400);
