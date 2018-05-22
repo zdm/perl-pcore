@@ -36,6 +36,12 @@ has _node_proc             => ();                   # HashRef
 
 sub import {
     if ( $0 eq '-' ) {
+        state $done;
+
+        return if $done;
+
+        $done = 1;
+
         my ( $self, $type ) = @_;
 
         # read and unpack boot args from STDIN
@@ -454,7 +460,7 @@ sub run_node ( $self, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 255                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 261                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
