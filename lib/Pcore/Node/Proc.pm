@@ -17,7 +17,7 @@ has _proc => ();        # ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Pr
 around new => sub ( $orig, $self, $type, % ) {
     my %args = (
         server    => undef,    # node server credentials
-        listen    => undef,    # RPC server listen
+        listen    => undef,    # Node listen
         buildargs => undef,    # class constructor arguments
         on_ready  => undef,
         on_finish => undef,
@@ -49,7 +49,7 @@ around new => sub ( $orig, $self, $type, % ) {
     }
 
     if ($Pcore::Util::PM::ForkTmpl::CHILD_PID) {
-        Pcore::Util::PM::ForkTmpl::run_rpc( $type, $boot_args );
+        Pcore::Util::PM::ForkTmpl::run_node( $type, $boot_args );
 
         $self->_handshake(
             $fh_r,
@@ -92,7 +92,7 @@ around new => sub ( $orig, $self, $type, % ) {
             on_ready => sub ($proc) {
                 $self->{_proc} = $proc;
 
-                # send configuration to RPC STDIN
+                # send configuration to proc STDIN
                 $proc->stdin->push_write( unpack( 'H*', to_cbor($boot_args)->$* ) . $LF );
 
                 $self->_handshake(
@@ -133,7 +133,7 @@ sub _handshake ( $self, $fh, $cb ) {
                     my $res = eval { from_cbor pack 'H*', $line };
 
                     if ($@) {
-                        die 'RPC handshake error';
+                        die 'Node handshake error';
                     }
                     else {
                         $cb->($res);
