@@ -281,6 +281,7 @@ sub _check_status ( $self ) {
         }
     }
 
+    # online status was changed
     if ( $self->{is_online} != $is_online ) {
         $self->{is_online} = $is_online;
 
@@ -294,19 +295,19 @@ sub _check_status ( $self ) {
                 $cb->();
             }
         }
+    }
 
-        # process wait_for queue
-      CONDITION: for my $cond ( values $self->{_wait_for_queue}->%* ) {
-            for ( $cond->{type}->@* ) {
-                next CONDITION if !$require->{$_};
-            }
-
-            for my $cb ( $cond->{cb}->@* ) {
-                $cb->();
-            }
-
-            delete $self->{_wait_for_queue}->{ $cond->{key} };
+    # process wait_for queue
+  CONDITION: for my $cond ( values $self->{_wait_for_queue}->%* ) {
+        for ( $cond->{type}->@* ) {
+            next CONDITION if !$require->{$_};
         }
+
+        for my $cb ( $cond->{cb}->@* ) {
+            $cb->();
+        }
+
+        delete $self->{_wait_for_queue}->{ $cond->{key} };
     }
 
     return;
