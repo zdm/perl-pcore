@@ -1,29 +1,58 @@
 package Pcore::WebSocket::Protocol::pcore;
 
-use Pcore -class, -res, -const;
-use Pcore::Util::Data;
-use Pcore::Util::UUID qw[uuid_v1mc_str];
-use Pcore::Util::Text qw[trim];
-use Pcore::Util::Scalar qw[is_blessed_ref is_plain_arrayref weaken is_plain_coderef];
+use Pcore -class, -const, -res;
 use Pcore::WebSocket::Protocol::pcore::Request;
-
-has protocol => ( is => 'ro', isa => Str, default => 'pcore', init_arg => undef );
-
-has on_rpc          => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $req, $tx)
-has on_listen_event => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $mask), should return true if operation is allowed
-has on_fire_event   => ( is => 'ro', isa => Maybe [CodeRef] );    # ($ws, $key), should return true if operation is allowed
-
-has _listeners => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
-has _callbacks => ( is => 'ro', isa => HashRef, default => sub { {} }, init_arg => undef );
+use Pcore::Util::Data qw[to_b64];
+use Pcore::Util::UUID qw[uuid_v1mc_str];
+use Pcore::Util::Scalar qw[weaken is_plain_arrayref];
+use Clone qw[];
 
 with qw[Pcore::WebSocket::Handle];
 
-const our $TX_TYPE_LISTEN => 'listen';
-const our $TX_TYPE_EVENT  => 'event';
-const our $TX_TYPE_RPC    => 'rpc';
+# client attributes
+has token            => ();    # authentication token
+has forward_events   => ();    # Str or ArrayRef[Str]
+has subscribe_events => ();    # Str or ArrayRef[Str]
+
+# callbacks
+has on_connect    => ();       # Maybe [CodeRef], ($self)
+has on_disconnect => ();       # Maybe [CodeRef], ($self, $status)
+has on_auth       => ();       # Maybe [CodeRef], server: ($self, $token, $cb), client: ($self, $auth)
+has on_subscribe  => ();       # Maybe [CodeRef], ($self, $mask), must return true for subscribe to event
+has on_event      => ();       # Maybe [CodeRef], ($self, $ev)
+has on_rpc        => ();       # Maybe [CodeRef], ($self, $req, $tx)
+
+has _peer_is_text => ();            # remote peer message serialization protocol
+has _req_cb       => sub { {} };    # HashRef, tid => $cb
+has _listeners    => ();            # HashRef, events listeners
+has _conn_ver     => 0;             # increased on each reset call
+has _auth_ver     => ();            # increased on each auth call on server
+
+const our $PROTOCOL => 'pcore';
+
+const our $TX_TYPE_AUTH        => 'auth';
+const our $TX_TYPE_SUBSCRIBE   => 'subscribe';
+const our $TX_TYPE_UNSUBSCRIBE => 'unsubscribe';
+const our $TX_TYPE_EVENT       => 'event';
+const our $TX_TYPE_RPC         => 'rpc';
 
 my $CBOR = Pcore::Util::Data::get_cbor();
 my $JSON = Pcore::Util::Data::get_json( utf8 => 1 );
+
+sub auth ( $self, $token, %events ) {
+    $self->{token} = $token;
+
+    $self->{forward_events}   = $events{forward};
+    $self->{subscribe_events} = $events{subscribe};
+
+    $self->_send_msg( {
+        type   => $TX_TYPE_AUTH,
+        token  => $token,
+        events => $self->{subscribe_events},
+    } );
+
+    return;
+}
 
 sub rpc_call ( $self, $method, $args, $cb ) {
     my $msg = {
@@ -36,255 +65,161 @@ sub rpc_call ( $self, $method, $args, $cb ) {
     if ($cb) {
         $msg->{tid} = uuid_v1mc_str;
 
-        $self->{_callbacks}->{ $msg->{tid} } = $cb;
+        $self->{_req_cb}->{ $msg->{tid} } = $cb;
     }
 
-    $self->send_binary( \$CBOR->encode($msg) );
+    $self->_send_msg($msg);
 
     return;
 }
 
-sub forward_events ( $self, $masks ) {
-    $self->_set_listeners($masks);
-
-    return;
-}
-
-sub listen_remote_events ( $self, $events ) {
-    my $msg = {
-        type   => $TX_TYPE_LISTEN,
+# listen for remote events
+sub subscribe ( $self, $events ) {
+    $self->_send_msg( {
+        type   => $TX_TYPE_SUBSCRIBE,
         events => $events,
-    };
-
-    $self->send_binary( \$CBOR->encode($msg) );
+    } );
 
     return;
 }
 
-sub fire_remote_event ( $self, $key, $data = undef ) {
-    my $msg = {
-        type  => $TX_TYPE_EVENT,
-        event => {                 #
-            key  => $key,
-            data => $data,
-        },
-    };
-
-    $self->send_binary( \$CBOR->encode($msg) );
+# remove remote events subscription
+sub unsubscribe ( $self, $events ) {
+    $self->_send_msg( {
+        type   => $TX_TYPE_UNSUBSCRIBE,
+        events => $events,
+    } );
 
     return;
 }
 
-# TODO not quite correct, need to set listeners AFTER connection will be established
-sub forward_remote_event ( $self, $ev ) {
+sub _on_connect ($self) {
+    $self->{on_connect}->($self) if $self->{on_connect};
 
-    # TODO workaround for not quite correct, need to set listeners AFTER connection will be established
-    return if !defined $self->{h};
-
-    my $msg = {
-        type  => $TX_TYPE_EVENT,
-        event => $ev,
-    };
-
-    $self->send_binary( \$CBOR->encode($msg) );
-
-    return;
-}
-
-# TODO not quite correct, need to set listeners AFTER connection will be established
-sub before_connect_server ( $self, $env, $args ) {
-    if ( $env->{HTTP_PCORE_LISTEN_EVENTS} ) {
-        my $masks = [ map { trim $_} split /,/sm, $env->{HTTP_PCORE_LISTEN_EVENTS} ];
-
-        $self->_set_listeners($masks) if $masks->@*;
-    }
-
-    if ( $args->{forward_events} ) {
-        $self->_set_listeners( $args->{forward_events} );
-    }
-
-    my $headers;
-
-    if ( $args->{headers} ) {
-        push $headers->@*, $args->{headers}->@*;
-    }
-
-    if ( $args->{listen_events} ) {
-        push $headers->@*, 'Pcore-Listen-Events', join ',', ( is_plain_arrayref $args->{listen_events} ? $args->{listen_events}->@* : $args->{listen_events} );
-    }
-
-    return $headers;
-}
-
-sub before_connect_client ( $self, $args ) {
-    if ( $args->{forward_events} ) {
-        $self->_set_listeners( $args->{forward_events} );
-    }
-
-    my $headers;
-
-    if ( $args->{headers} ) {
-        push $headers->@*, $args->{headers}->@*;
-    }
-
-    if ( $args->{listen_events} ) {
-        push $headers->@*, 'Pcore-Listen-Events:' . join ',', ( is_plain_arrayref $args->{listen_events} ? $args->{listen_events}->@* : $args->{listen_events} );
-    }
-
-    if ( $args->{token} ) {
-        push $headers->@*, "Authorization:Token $args->{token}";
-    }
-
-    return $headers;
-}
-
-sub on_connect_server ( $self ) {
-    return;
-}
-
-sub on_connect_client ( $self, $headers ) {
-    if ( $headers->{PCORE_LISTEN_EVENTS} ) {
-        my $masks = [ map { trim $_} split /,/sm, $headers->{PCORE_LISTEN_EVENTS} ];
-
-        $self->_set_listeners($masks) if $masks->@*;
+    if ( $self->{_is_client} ) {
+        $self->_send_msg( {
+            type   => $TX_TYPE_AUTH,
+            token  => $self->{token},
+            events => $self->{subscribe_events},
+        } );
     }
 
     return;
 }
 
-sub on_disconnect ( $self, $status ) {
+sub _on_disconnect ( $self, $status ) {
+    $self->_reset($status);
 
-    # clear listeners
-    $self->{_listeners} = {};
-
-    # call pending callback
-    for my $tid ( keys $self->{_callbacks}->%* ) {
-        my $cb = delete $self->{_callbacks}->{$tid};
-
-        $cb->( res [ $status->{status}, $status->{reason} ] );
-    }
+    $self->{on_disconnect}->( $self, $status ) if $self->{on_disconnect};
 
     return;
 }
 
-sub on_text ( $self, $data_ref ) {
+sub _on_text ( $self, $data_ref ) {
     my $msg = eval { $JSON->decode( $data_ref->$* ) };
 
-    if ($@) {
-        return;
-    }
+    return if $@;
 
-    $self->_on_message( $msg, 1 );
+    $self->{_peer_is_text} //= 1;
+
+    $self->_on_message($msg);
 
     return;
 }
 
-sub on_binary ( $self, $data_ref ) {
+sub _on_binary ( $self, $data_ref ) {
     my $msg = eval { $CBOR->decode( $data_ref->$* ) };
 
-    if ($@) {
-        return;
-    }
+    return if $@;
 
-    $self->_on_message( $msg, 0 );
+    $self->{_peer_is_text} //= 0;
 
-    return;
-}
-
-sub _set_listeners ( $self, $masks ) {
-    weaken $self;
-
-    for my $mask ( is_plain_arrayref $masks ? $masks->@* : $masks ) {
-        next if exists $self->{_listeners}->{$mask};
-
-        # do not set event listener, if not authorized
-        next if $self->{on_listen_event} && !$self->{on_listen_event}->( $self, $mask );
-
-        $self->{_listeners}->{$mask} = P->listen_events(
-            $mask,
-            sub ( $ev ) {
-                $self->forward_remote_event($ev) if defined $self;
-
-                return;
-            }
-        );
-    }
+    $self->_on_message($msg);
 
     return;
 }
 
-sub _on_message ( $self, $msg, $is_json ) {
+sub _on_message ( $self, $msg ) {
     for my $tx ( is_plain_arrayref $msg ? $msg->@* : $msg ) {
         next if !$tx->{type};
 
-        # forward local events to remote peer
-        if ( $tx->{type} eq $TX_TYPE_LISTEN ) {
-            $self->_set_listeners( $tx->{events} );
+        # AUTH
+        if ( $tx->{type} eq $TX_TYPE_AUTH ) {
 
-            next;
+            # auth response, processed on client only
+            if ( $tx->{auth} ) {
+                $self->_on_auth_response($tx) if $self->{_is_client};
+            }
+
+            # auth request, processed on server only
+            else {
+                $self->_on_auth_request($tx) if !$self->{_is_client};
+            }
         }
 
-        # fire local event from remote call
-        if ( $tx->{type} eq $TX_TYPE_EVENT ) {
+        # SUBSCRIBE
+        elsif ( $tx->{type} eq $TX_TYPE_SUBSCRIBE ) {
+            $self->_on_subscribe( $tx->{events} ) if $tx->{events};
+        }
 
-            # ignore event, if not authorized
-            next if $self->{on_fire_event} && !$self->{on_fire_event}->( $self, $tx->{event}->{key} );
+        # UNSUBSCRIBE
+        elsif ( $tx->{type} eq $TX_TYPE_UNSUBSCRIBE ) {
+            if ( $tx->{events} ) {
+                for my $event ( is_plain_arrayref $tx->{events} ? $tx->{events}->@* : $tx->{events} ) {
+                    delete $self->{_listeners}->{$event};
+                }
+            }
+        }
 
-            P->forward_event( $tx->{event} );
-
-            next;
+        # EVENT
+        elsif ( $tx->{type} eq $TX_TYPE_EVENT ) {
+            $self->{on_event}->( $self, $tx->{event} ) if $self->{on_event};
         }
 
         # RPC
-        if ( $tx->{type} eq $TX_TYPE_RPC ) {
+        elsif ( $tx->{type} eq $TX_TYPE_RPC ) {
 
             # method is specified, this is rpc call
             if ( $tx->{method} ) {
 
-                # RPC calls are not supported be this peer
+                # RPC calls are not supported by this peer
                 if ( !$self->{on_rpc} ) {
                     if ( $tx->{tid} ) {
-                        my $result = {
+                        $self->_send_msg( {
                             type   => $TX_TYPE_RPC,
                             tid    => $tx->{tid},
                             result => {
                                 status => 400,
                                 reason => 'RPC calls are not supported',
                             }
-                        };
-
-                        if ($is_json) {
-                            $self->send_text( \$JSON->encode($result) );
-                        }
-                        else {
-                            $self->send_binary( \$CBOR->encode($result) );
-                        }
+                        } );
                     }
                 }
+
+                # RPC call
                 else {
                     my $req = bless {}, 'Pcore::WebSocket::Protocol::pcore::Request';
 
                     # callback is required
-                    if ( $tx->{tid} ) {
+                    if ( my $tid = $tx->{tid} ) {
                         my $weak_self = $self;
 
                         weaken $weak_self;
 
+                        # store current _conn_ver
+                        my $conn_ver = $self->{_conn_ver};
+
                         $req->{_cb} = sub ($res) {
                             return if !defined $weak_self;
 
-                            my $result = {
-                                type   => $TX_TYPE_RPC,
-                                tid    => $tx->{tid},
-                                result => $res,
-                            };
+                            # check _conn_ver, skip, if connection was reset during rpc call
+                            return if $conn_ver != $self->{_conn_ver};
 
-                            if ($is_json) {
-                                $weak_self->send_text( \$JSON->encode($result) );
-                            }
-                            else {
-                                $weak_self->send_binary( \$CBOR->encode($result) );
-                            }
+                            $self->_send_msg( {
+                                type   => $TX_TYPE_RPC,
+                                tid    => $tid,
+                                result => $res,
+                            } );
 
                             return;
                         };
@@ -296,13 +231,157 @@ sub _on_message ( $self, $msg, $is_json ) {
 
             # method is not specified, this is callback, tid is required
             elsif ( $tx->{tid} ) {
-                if ( my $cb = delete $self->{_callbacks}->{ $tx->{tid} } ) {
+                if ( my $cb = delete $self->{_req_cb}->{ $tx->{tid} } ) {
 
                     # convert result to response object
                     $cb->( bless $tx->{result}, 'Pcore::Util::Result' );
                 }
             }
         }
+    }
+
+    return;
+}
+
+# auth request, processed on server only
+sub _on_auth_request ( $self, $tx ) {
+    my $auth_ver = ++$self->{_auth_ver};
+
+    if ( $self->{on_auth} ) {
+        weaken $self;
+
+        $self->{on_auth}->(
+            $self,
+            $tx->{token},
+            sub ( $auth, %events ) {
+                return if !$self;
+
+                # skip, if other auth requests was received during authentication
+                return if $self->{_auth_ver} != $auth_ver;
+
+                $self->_reset;
+
+                $self->{auth} = $auth;
+
+                # subscribe client to the server events
+                $self->_set_listeners( $events{forward} ) if $events{forward};
+
+                # subscribe client to the server events from client request
+                $self->_on_subscribe( $tx->{events} ) if $tx->{events};
+
+                $self->_send_msg( {
+                    type   => $TX_TYPE_AUTH,
+                    auth   => $auth,
+                    events => $events{subscribe},
+                } );
+
+                return;
+            }
+        );
+    }
+
+    # auth is not supported, reject
+    else {
+        $self->_reset;
+
+        $self->{auth} = undef;
+
+        $self->_send_msg( {
+            type => $TX_TYPE_AUTH,
+            auth => {
+                status => 401,
+                reason => 'Unauthorized',
+            }
+        } );
+    }
+
+    return;
+}
+
+# auth response, processed on client only
+sub _on_auth_response ( $self, $tx ) {
+    $self->_reset;
+
+    # create auth object
+    $self->{auth} = bless $tx->{auth}, 'Pcore::Util::Result';
+
+    # set forward events
+    $self->_set_listeners( $self->{forward_events} ) if $self->{forward_events};
+
+    # set events listeners
+    $self->_on_subscribe( $tx->{events} ) if $tx->{events};
+
+    # call on_auth
+    $self->{on_auth}->( $self, $self->{auth} ) if $self->{on_auth};
+
+    return;
+}
+
+sub _on_subscribe ( $self, $events ) {
+    if ( my $cb = $self->{on_subscribe} ) {
+        for my $event ( is_plain_arrayref $events ? $events->@* : $events ) {
+            next if !$event;
+
+            next if exists $self->{_listeners}->{$event};
+
+            $self->_set_listeners($event) if ( $cb->( $self, $event ) );
+        }
+    }
+
+    return;
+}
+
+sub _set_listeners ( $self, $events ) {
+    weaken $self;
+
+    for my $event ( is_plain_arrayref $events ? $events->@* : $events ) {
+        next if exists $self->{_listeners}->{$event};
+
+        $self->{_listeners}->{$event} = P->listen_events(
+            $event,
+            sub ( $ev ) {
+                if ( defined $self ) {
+                    $self->_send_msg( {
+                        type  => $TX_TYPE_EVENT,
+                        event => $ev,
+                    } );
+                }
+
+                return;
+            }
+        );
+    }
+
+    return;
+}
+
+sub _reset ( $self, $status = undef ) {
+    delete $self->{auth};
+
+    delete $self->{_listeners};
+
+    $self->{_conn_ver}++;
+
+    # call pending callbacks
+    if ( $self->{_req_cb}->%* ) {
+        $status = res [ 1012, $Pcore::WebSocket::Handle::WEBSOCKET_STATUS_REASON ] if !defined $status;
+
+        for my $tid ( keys $self->{_req_cb}->%* ) {
+            my $cb = delete $self->{_req_cb}->{$tid};
+
+            $cb->( Clone::clone($status) );
+        }
+    }
+
+    return;
+}
+
+sub _send_msg ( $self, $msg ) {
+    if ( $self->{_peer_is_text} ) {
+        $self->send_text( \$JSON->encode($msg) );
+    }
+    else {
+        $self->send_binary( \$CBOR->encode($msg) );
     }
 
     return;
@@ -315,9 +394,13 @@ sub _on_message ( $self, $msg, $is_json ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 216                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (21)               |
+## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
+## |      | 96                   | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 110                  | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 118                  | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 130                  | * Private subroutine/method '_on_binary' declared but not used                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 256, 282             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 142                  | Subroutines::ProhibitExcessComplexity - Subroutine "_on_message" with high complexity score (27)               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

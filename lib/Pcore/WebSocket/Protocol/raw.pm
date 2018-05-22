@@ -2,58 +2,52 @@ package Pcore::WebSocket::Protocol::raw;
 
 use Pcore -class;
 
-has protocol => ( is => 'ro', isa => Str, default => q[], init_arg => undef );
-
-has on_text   => ( isa => Maybe [CodeRef] );
-has on_binary => ( isa => Maybe [CodeRef] );
-
 with qw[Pcore::WebSocket::Handle];
 
-sub before_connect_server ( $self, $env, $args ) {
-    my $headers;
+has on_connect    => ();    # Maybe [CodeRef], ($self)
+has on_disconnect => ();    # Maybe [CodeRef], ($self, $status)
+has on_text       => ();    # Maybe [CodeRef], ($self, \$payload)
+has on_binary     => ();    # Maybe [CodeRef], ($self, \$payload)
 
-    if ( $args->{headers} ) {
-        push $headers->@*, $args->{headers}->@*;
-    }
-
-    return $headers;
-}
-
-sub before_connect_client ( $self, $args ) {
-    my $headers;
-
-    if ( $args->{headers} ) {
-        push $headers->@*, $args->{headers}->@*;
-    }
-
-    return $headers;
-}
-
-sub on_connect_server ( $self ) {
-    return;
-}
-
-sub on_connect_client ( $self, $headers ) {
-    return;
-}
-
-sub on_disconnect ( $self, $status ) {
-    return;
-}
-
-sub on_text ( $self, $data_ref ) {
-    $self->{on_text}->($data_ref) if $self->{on_text};
+sub _on_connect ( $self, $status ) {
+    $self->{on_connect}->( $self, $status ) if $self->{on_connect};
 
     return;
 }
 
-sub on_binary ( $self, $data_ref ) {
-    $self->{on_binary}->($data_ref) if $self->{on_binary};
+sub _on_disconnect ( $self, $status ) {
+    $self->{on_disconnect}->( $self, $status ) if $self->{on_disconnect};
+
+    return;
+}
+
+sub _on_text ( $self, $data_ref ) {
+    $self->{on_text}->( $self, $data_ref ) if $self->{on_text};
+
+    return;
+}
+
+sub _on_binary ( $self, $data_ref ) {
+    $self->{on_binary}->( $self, $data_ref ) if $self->{on_binary};
 
     return;
 }
 
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    3 |                      | Subroutines::ProhibitUnusedPrivateSubroutines                                                                  |
+## |      | 12                   | * Private subroutine/method '_on_connect' declared but not used                                                |
+## |      | 18                   | * Private subroutine/method '_on_disconnect' declared but not used                                             |
+## |      | 24                   | * Private subroutine/method '_on_text' declared but not used                                                   |
+## |      | 30                   | * Private subroutine/method '_on_binary' declared but not used                                                 |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
