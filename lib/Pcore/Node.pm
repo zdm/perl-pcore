@@ -3,7 +3,7 @@ package Pcore::Node;
 use Pcore -class, -res;
 use Pcore::Util::UUID qw[uuid_v4_str];
 use Pcore::Util::Scalar qw[refaddr weaken is_ref is_blessed_ref is_plain_coderef];
-use Pcore::Websocket::Protocol::pcore;
+use Pcore::WebSocket::pcore;
 use Pcore::Node::Const qw[:ALL];
 use Pcore::HTTP::Server;
 
@@ -93,7 +93,7 @@ sub run ($self) {
                 if ( $req->is_websocket_connect_request ) {
 
                     # create connection
-                    my $c = Pcore::WebSocket::Protocol::pcore->new(
+                    my $c = Pcore::WebSocket::pcore->new(
                         compression => 0,
                         on_auth     => sub ( $h, $token, $cb ) {
 
@@ -126,7 +126,7 @@ sub run ($self) {
     }
 
     # connect to node server
-    $self->{_server} = Pcore::WebSocket::Protocol::pcore->new(
+    $self->{_server} = Pcore::WebSocket::pcore->new(
         compression => 1,
         token       => [ $self->{id}, $self->{server}->[1] ],
 
@@ -203,7 +203,7 @@ sub _on_nodes_update ( $self, $nodes ) {
             weaken $self;
 
             # establish connection to this node
-            $node->{h} = Pcore::WebSocket::Protocol::pcore->new(
+            $node->{h} = Pcore::WebSocket::pcore->new(
                 token            => $node->{token},
                 forward_events   => $self->{forward_events},
                 subscribe_events => $self->{subscribe_events},

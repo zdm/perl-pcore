@@ -2,7 +2,7 @@ package Pcore::Node::Server;
 
 use Pcore -class, -res;
 use Pcore::Util::UUID qw[uuid_v4_str];
-use Pcore::Websocket::Protocol::pcore;
+use Pcore::WebSocket::pcore;
 use Pcore::HTTP::Server;
 use Pcore::Node::Const qw[:ALL];
 
@@ -22,7 +22,7 @@ sub run ($self) {
             if ( $req->is_websocket_connect_request ) {
 
                 # create connection
-                my $c = Pcore::WebSocket::Protocol::pcore->new(
+                my $c = Pcore::WebSocket::pcore->new(
                     compression   => 0,
                     on_disconnect => sub ( $h, $status ) {
                         $self->_on_node_disconnect( $h->{_node_id} );

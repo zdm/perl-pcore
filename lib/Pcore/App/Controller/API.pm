@@ -3,7 +3,7 @@ package Pcore::App::Controller::API;
 use Pcore -role, -const;
 use Pcore::Util::Data qw[from_json to_json from_cbor to_cbor from_uri_query];
 use Pcore::Util::Scalar qw[is_plain_arrayref];
-use Pcore::WebSocket::Protocol::pcore;
+use Pcore::WebSocket::pcore;
 
 with qw[Pcore::App::Controller];
 
@@ -23,7 +23,7 @@ sub run ( $self, $req ) {
     if ( $req->is_websocket_connect_request ) {
 
         # create connection and accept websocket connect request
-        my $c = Pcore::WebSocket::Protocol::pcore->new(
+        my $c = Pcore::WebSocket::pcore->new(
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
             on_auth          => sub ( $self, $token, $cb ) {
