@@ -17,7 +17,6 @@ our $EXPORT_PRAGMA = {
     forktmpl => 0,    # run fork template on startup
     inline   => 0,    # package use Inline
     l10n     => 1,    # register package L10N domain
-    node     => 0,    # run Node
     res      => 0,    # export Pcore::Util::Result qw[res]
     role     => 0,    # package is a Moo role
     sql      => 0,    # export Pcore::Handle::DBI::Const qw[:TYPES]
@@ -86,33 +85,6 @@ sub import {
 
         # install run-time hook to caller package
         B::Hooks::AtRuntime::at_runtime( \&Pcore::_CORE_RUN );
-
-        # process -node pragma
-        if ( $import->{pragma}->{node} ) {
-            if ( $0 eq '-' ) {
-
-                # read and unpack boot args from STDIN
-                my $RPC_BOOT_ARGS = <>;
-
-                chomp $RPC_BOOT_ARGS;
-
-                require CBOR::XS;
-
-                $RPC_BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $RPC_BOOT_ARGS );
-
-                # init RPC environment
-                $SCRIPT_PATH   = $RPC_BOOT_ARGS->{script_path};
-                $main::VERSION = version->new( $RPC_BOOT_ARGS->{version} );
-
-                B::Hooks::AtRuntime::after_runtime( sub {
-                    require Pcore::Node::Node;
-
-                    Pcore::Node::Node::run( $caller, $RPC_BOOT_ARGS );
-
-                    exit;
-                } );
-            }
-        }
 
         _CORE_INIT($import);
 
@@ -514,15 +486,15 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 88                   | Variables::ProtectPrivateVars - Private variable used                                                          |
+## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 257, 286, 289, 293,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 325, 328, 333, 336,  |                                                                                                                |
-## |      | 361, 387, 498        |                                                                                                                |
+## |    3 | 229, 258, 261, 265,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 297, 300, 305, 308,  |                                                                                                                |
+## |      | 333, 359, 470        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 343                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 315                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 261                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 233                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

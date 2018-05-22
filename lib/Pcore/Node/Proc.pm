@@ -75,10 +75,10 @@ around new => sub ( $orig, $self, $type, % ) {
         my $cmd = [];
 
         if ($MSWIN) {
-            push $cmd->@*, $perl, "-M$type";
+            push $cmd->@*, $perl, "-MPcore::Node=$type";
         }
         else {
-            push $cmd->@*, $perl, "-M$type";
+            push $cmd->@*, $perl, "-MPcore::Node=$type";
         }
 
         my $weaken_self = $self;

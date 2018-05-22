@@ -34,6 +34,35 @@ has _node_proc             => ();                   # HashRef
 # TODO pass server as object - use local method calls
 # TODO reconnect to swarn on timeout
 
+sub import {
+    if ( $0 eq '-' ) {
+        my ( $self, $type ) = @_;
+
+        # read and unpack boot args from STDIN
+        my $RPC_BOOT_ARGS = <>;
+
+        chomp $RPC_BOOT_ARGS;
+
+        require CBOR::XS;
+
+        $RPC_BOOT_ARGS = CBOR::XS::decode_cbor( pack 'H*', $RPC_BOOT_ARGS );
+
+        # init RPC environment
+        $Pcore::SCRIPT_PATH = $RPC_BOOT_ARGS->{script_path};
+        $main::VERSION      = version->new( $RPC_BOOT_ARGS->{version} );
+
+        require Pcore::Node::Node;
+
+        require $type =~ s[::][/]smgr . '.pm';
+
+        Pcore::Node::Node::run( $type, $RPC_BOOT_ARGS );
+
+        exit;
+    }
+
+    return;
+}
+
 sub run ($self) {
 
     # run local node server
@@ -424,7 +453,7 @@ sub run_node ( $self, @args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 226                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 255                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

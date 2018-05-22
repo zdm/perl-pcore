@@ -1,6 +1,6 @@
 package <: $module_name ~ "::RPC::Log" :>;
 
-use Pcore -node, -class, -const, -sql;
+use Pcore -class, -const, -sql;
 use Pcore::Util::Data qw[to_json];
 use <: $module_name ~ "::Const qw[:CONST]" :>;
 
