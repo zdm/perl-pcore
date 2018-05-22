@@ -14,17 +14,17 @@ our $EXPORT_PRAGMA = {
     dist     => 0,    # mark package aas Pcore dist main module
     embedded => 0,    # run in embedded mode
     export   => 0,    # install standart import method
+    forktmpl => 0,    # run fork template on startup
     inline   => 0,    # package use Inline
     l10n     => 1,    # register package L10N domain
+    node     => 0,    # run Node
     res      => 0,    # export Pcore::Util::Result qw[res]
     role     => 0,    # package is a Moo role
-    rpc      => 0,    # run class as RPC server
     sql      => 0,    # export Pcore::Handle::DBI::Const qw[:TYPES]
     types    => 0,    # export types
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
-our $FORK        = 0;       # fork template proc
 our $SCRIPT_PATH = $0;
 our $WIN_ENC     = undef;
 our $CON_ENC     = undef;
@@ -87,8 +87,8 @@ sub import {
         # install run-time hook to caller package
         B::Hooks::AtRuntime::at_runtime( \&Pcore::_CORE_RUN );
 
-        # detect RPC server
-        if ( $import->{pragma}->{rpc} ) {
+        # process -node pragma
+        if ( $import->{pragma}->{node} ) {
             if ( $0 eq '-' ) {
 
                 # read and unpack boot args from STDIN
@@ -112,12 +112,9 @@ sub import {
                     exit;
                 } );
             }
-            else {
-                $FORK = 1;
-            }
         }
 
-        _CORE_INIT();
+        _CORE_INIT($import);
 
         1;
     };
@@ -238,7 +235,7 @@ sub _import_types ($caller) {
     return;
 }
 
-sub _CORE_INIT {
+sub _CORE_INIT ($import) {
     require Pcore::Core::Dump;
     Pcore::Core::Dump->import(':CORE');
 
@@ -305,7 +302,8 @@ sub _CORE_INIT {
 
     require Pcore::Core::Exception;    # set $SIG{__DIE__}, $SIG{__WARN__}, $SIG->{INT}, $SIG->{TERM} handlers
 
-    require Pcore::Util::PM::ForkTmpl if $FORK && !$MSWIN;
+    # process -forktmpl pragma
+    require Pcore::Util::PM::ForkTmpl if !$MSWIN && $import->{pragma}->{forktmpl};
 
     _CORE_INIT_AFTER_FORK();
 
@@ -518,13 +516,13 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 88                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 260, 289, 292, 296,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 327, 330, 335, 338,  |                                                                                                                |
-## |      | 363, 389, 500        |                                                                                                                |
+## |    3 | 257, 286, 289, 293,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 325, 328, 333, 336,  |                                                                                                                |
+## |      | 361, 387, 498        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 345                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 343                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 264                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 261                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
