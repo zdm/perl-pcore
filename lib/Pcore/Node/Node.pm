@@ -15,7 +15,7 @@ sub run ( $type, $args ) {
     my $rpc = $type->new( $args->{buildargs} // () );
 
     $rpc->{node} = Pcore::Node->new(
-        swarm      => $args->{swarm},
+        server     => $args->{server},
         is_service => 1,
         listen     => $args->{listen},
         type       => $type,

@@ -16,7 +16,7 @@ has _proc => ();        # ( is => 'ro', isa =>, InstanceOf ['Pcore::Util::PM::Pr
 
 around new => sub ( $orig, $self, $type, % ) {
     my %args = (
-        swarm     => undef,    # swarm server credentials
+        server    => undef,    # node server credentials
         listen    => undef,    # RPC server listen
         buildargs => undef,    # class constructor arguments
         on_ready  => undef,
@@ -34,7 +34,7 @@ around new => sub ( $orig, $self, $type, % ) {
         script_path => $ENV->{SCRIPT_PATH},
         version     => $main::VERSION->normal,
         scandeps    => $ENV->{SCAN_DEPS} ? 1 : undef,
-        swarm       => $args{swarm},
+        server      => $args{server},
         listen      => $args{listen},
         buildargs   => $args{buildargs},
     };

@@ -7,7 +7,7 @@ use Pcore::Websocket::Protocol::pcore;
 use Pcore::Node::Const qw[:ALL];
 use Pcore::HTTP::Server;
 
-has swarm => ( required => 1 );    # [$addr, $token], swarm service discovery credentials
+has server => ( required => 1 );    # [$addr, $token], node service discovery credentials
 
 has type             => ( required => 1 );    # node type, can be undef for client-only nodes
 has is_service       => 0;                    # this node provides services
@@ -22,7 +22,7 @@ has on_rpc           => ();                   # CodeRef
 has id                     => sub {uuid_v4_str};    # this node id
 has is_online              => 0;                    # Bool, online status
 has _token                 => sub {uuid_v4_str};    # this node token
-has _swarm                 => ();                   # connection to the swarm
+has _server                => ();                   # connection to the server
 has _requires              => ();                   # HashRef, type => $num_of_connecetions
 has _node_by_id            => ();                   # HashRef, index of nodes connections by node id
 has _node_by_type          => ();                   # HashRef[ArrayRef], index of nodes connections by node type
@@ -31,7 +31,7 @@ has _wait_for_online_queue => ();                   # ArrayRef, wait_for_onliine
 has _wait_for_queue        => ();                   # HashRef
 has _node_proc             => ();                   # HashRef
 
-# TODO pass swarm as object - use local method calls
+# TODO pass server as object - use local method calls
 # TODO reconnect to swarn on timeout
 
 sub run ($self) {
@@ -80,17 +80,17 @@ sub run ($self) {
         } )->run;
     }
 
-    # connect to swarm
-    $self->{_swarm} = Pcore::WebSocket::Protocol::pcore->new(
+    # connect to node server
+    $self->{_server} = Pcore::WebSocket::Protocol::pcore->new(
         compression => 1,
-        token       => [ $self->{id}, $self->{swarm}->[1] ],
+        token       => [ $self->{id}, $self->{server}->[1] ],
 
-        # TODO reconnect to swarm on timeout
+        # TODO reconnect to server on timeout
         on_disconnect => sub ( $h, $status ) {
             return;
         },
         on_auth => sub ( $h, $auth ) {
-            $self->_on_connect_to_swarm;
+            $self->_on_connect_to_server;
 
             return;
         },
@@ -98,7 +98,7 @@ sub run ($self) {
             return;
         },
         on_event => sub ( $h, $ev ) {
-            $self->_on_swarm_event($ev);
+            $self->_on_server_event($ev);
 
             return;
         },
@@ -107,16 +107,16 @@ sub run ($self) {
         },
     );
 
-    # TODO swarm addr format??
-    $self->{_swarm}->connect("ws://$self->{swarm}->[0]/");
+    # TODO server addr format??
+    $self->{_server}->connect("ws://$self->{server}->[0]/");
 
     return $self;
 }
 
-sub _on_connect_to_swarm ($self) {
+sub _on_connect_to_server ($self) {
 
-    # register on swarm
-    $self->{_swarm}->rpc_call(
+    # register on server
+    $self->{_server}->rpc_call(
         'register',
         [ { id         => $self->{id},
             type       => $self->{type},
@@ -135,7 +135,7 @@ sub _on_connect_to_swarm ($self) {
     return;
 }
 
-sub _on_swarm_event ( $self, $ev ) {
+sub _on_server_event ( $self, $ev ) {
     $self->_on_nodes_update( [ $ev->{data} ] );
 
     return;
@@ -245,7 +245,8 @@ sub _check_status ( $self ) {
     if ( $self->{is_online} != $is_online ) {
         $self->{is_online} = $is_online;
 
-        $self->{_swarm}->rpc_call( 'update', [ { status => $is_online ? $STATUS_ONLINE : $STATUS_OFFLINE } ], undef );
+        # update status on server
+        $self->{_server}->rpc_call( 'update', [ { status => $is_online ? $STATUS_ONLINE : $STATUS_OFFLINE } ], undef );
 
         if ($is_online) {
 
@@ -376,7 +377,7 @@ sub run_node ( $self, @args ) {
 
             Pcore::Node::Proc->new(
                 $rpc->{type},
-                swarm     => $self->{swarm},
+                server    => $self->{server},
                 listen    => $rpc->{listen},
                 buildargs => $rpc->{buildargs},
                 on_ready  => sub ($proc) {
