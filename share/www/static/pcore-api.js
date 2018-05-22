@@ -3,12 +3,14 @@
     function onPcoreLoad() {
         API = new PCORE({
             url: '//centos/api/',
+            token: 'your-api-token',
             version: 'v1',
-            listenEvents: null,
+            subscribeEvents: null,
             onConnect: function(api) {},
             onDisconnect: function(api, status, reason) {},
+            onAuth: sunction(api, auth) {},
+            onSubscribe: function(api, event) {},
             onEvent: function(api, ev) {},
-            onListen: function(api, events) {},
             onRpc: function(api, req, method, args) {
                 req(200);
 
@@ -33,10 +35,12 @@
 */
 
 PCORE = function (obj) {
+    this.token = obj.token;
     this.version = obj.version;
-    this.listenEvents = obj.listenEvents;
+    this.subscribeEvents = obj.subscribeEvents;
     this.onConnect = obj.onConnect;
     this.onDisconnect = obj.onDisconnect;
+    this.onAuth = obj.onAuth;
     this.onEvent = obj.onEvent;
     this.onListen = obj.onListen;
     this.onRpc = obj.onRpc;
@@ -58,12 +62,14 @@ PCORE = function (obj) {
 
 var pcoreApi = {
     url: null,
+    token: null,
     version: null,
-    listenEvents: null,
+    subscribeEvents: null,
     onConnect: null,
     onDisconnect: null,
+    onAuth: null,
+    onSubscribe: null,
     onEvent: null,
-    onListen: null,
     onRpc: null,
 
     _ws: null,
@@ -71,6 +77,14 @@ var pcoreApi = {
     _tid: 0,
     _sendQueue: [],
     _tidCallbacks: {},
+
+    setToken: function (token) {
+        if (this.token != token) {
+            this.token = token;
+
+            this.disconnect();
+        }
+    },
 
     connect: function () {
         if (!this._ws) {
@@ -168,9 +182,20 @@ var pcoreApi = {
         this._send();
     },
 
-    listenRemoteEvents: function (events) {
+    subscribe: function (events) {
         var msg = {
-            type: 'listen',
+            type: 'subscribe',
+            events: events
+        };
+
+        this._sendQueue.push([msg, null]);
+
+        this._send();
+    },
+
+    unSubscribe: function (events) {
+        var msg = {
+            type: 'unsubscribe',
             events: events
         };
 
@@ -199,20 +224,38 @@ var pcoreApi = {
     },
 
     _onConnect: function (e) {
-        if (this.listenEvents) {
-            var msg = {
-                type: 'listen',
-                events: this.listenEvents
-            };
+        var me = this;
 
-            this._ws.send(JSON.stringify(msg));
-        }
+        // send auth message
+        var msg = {
+            type: 'auth',
+            token: this.token,
+            events: this.subscribeEvents
+        };
 
-        this._send();
+        this._ws.onmessage = function (e) {
+            var tx = JSON.parse(e.data);
 
-        if (this.onConnect) {
-            this.onConnect(this);
-        }
+            if (tx.type == 'auth') {
+                if (me.onAuth) {
+                    me.onAuth(this, tx.auth);
+                }
+
+                me._ws.onmessage = function (e) {
+                    me._onMessage(e);
+                };
+
+                // send queued requests
+                me._send();
+
+                // call onConnect callback, if defined
+                if (this.onConnect) {
+                    this.onConnect(this);
+                }
+            }
+        };
+
+        this._ws.send(JSON.stringify(msg));
     },
 
     _onDisconnect: function (e) {
