@@ -22,17 +22,17 @@ sub run ( $type, $args ) {
         requires   => do {
             no strict qw[refs];
 
-            ${"$type\::RPC_REQUIRES"};
+            ${"$type\::NODE_REQUIRES"};
         },
         forward_events => do {
             no strict qw[refs];
 
-            ${"$type\::RPC_FORWARD_EVENTS"};
+            ${"$type\::NODE_FORWARD_EVENTS"};
         },
         subscribe_events => do {
             no strict qw[refs];
 
-            ${"$type\::RPC_SUBSCRIBE_EVENTS"};
+            ${"$type\::NODE_SUBSCRIBE_EVENTS"};
         },
         on_subscribe => sub ( $h, $event ) {
             if ( !$h->{auth} ) {
@@ -41,7 +41,7 @@ sub run ( $type, $args ) {
                 return;
             }
 
-            state $sub = $rpc->can('RPC_ON_SUBSCRIBE');
+            state $sub = $rpc->can('NODE_ON_SUBSCRIBE');
 
             return $rpc->$sub($event) if $sub;
 
@@ -55,7 +55,7 @@ sub run ( $type, $args ) {
                 return;
             }
 
-            state $sub = $rpc->can('RPC_ON_EVENT');
+            state $sub = $rpc->can('NODE_ON_EVENT');
 
             return $rpc->$sub($ev) if $sub;
 
