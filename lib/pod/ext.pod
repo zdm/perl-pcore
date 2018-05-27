@@ -4,20 +4,6 @@
 
 =head1 EXTJS
 
-=head2 Font Awesome 5 Free glyphs
-
-    # Font Awesome 5 Free, solid font weight (default)
-    glyph => 0xf2f9,
-
-    # Font Awesome 5 Free, solid font weight
-    glyph => 'xf2f9@&quot;Font Awesome 5 Free&quot;;font-weight:900',
-
-    # Font Awesome 5 Brands
-    glyph => 'xf1f4@&quot;Font Awesome 5 Brands&quot;',
-
-    # Font Awesome 5 Free, regular font weight
-    glyph => 'xf2bb@&quot;Font Awesome 5 Free&quot;;font-weight:400',
-
 =head2 BufferedStore
 
 =over
