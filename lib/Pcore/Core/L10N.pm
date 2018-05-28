@@ -4,20 +4,20 @@ use Pcore -export;
 use Pcore::Util::Scalar qw[is_plain_hashref];
 
 our $EXPORT = {    #
-    DEFAULT => [qw[l10n l10np l10n_ l10np_ $l10n]],
+    DEFAULT => [qw[l10n $l10n]],
 };
 
 our $PACKAGE_DOMAIN     = {};
-our $DEFAULT_LOCALE     = undef;
+our $LOCALE             = undef;
 our $MESSAGES           = {};
 our $LOCALE_PLURAL_FORM = {};
 
 tie our $l10n->%*, 'Pcore::Core::L10N::_l10n';
 
 sub set_locale ($locale = undef) {
-    $DEFAULT_LOCALE = $locale if @_;
+    $LOCALE = $locale if @_;
 
-    return $DEFAULT_LOCALE;
+    return $LOCALE;
 }
 
 sub register_package_domain ( $package, $domain ) {
@@ -87,114 +87,84 @@ sub load_domain_locale ( $domain, $locale ) : prototype($$) {
     return;
 }
 
-sub l10n ( $msgid, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($;$$) {
-    if ( ref $msgid eq 'Pcore::Core::L10N::_deferred' ) {
-        ( $msgid, $domain ) = ( $msgid->{msgid}, $msgid->{domain} );
-    }
-    else {
-        $domain //= $PACKAGE_DOMAIN->{ caller() };
-    }
-
-    return $msgid if !defined $locale;
-
-    load_domain_locale $domain, $locale if !exists $MESSAGES->{$domain}->{$locale};
-
-    return $MESSAGES->{$domain}->{$locale}->{$msgid}->[0] // $msgid;
-}
-
-sub l10np ( $msgid, $msgid_plural, $num = undef, $locale = $DEFAULT_LOCALE, $domain = undef ) : prototype($$;$$$) {
-    if ( ref $msgid eq 'Pcore::Core::L10N::_deferred' ) {
-        ( $msgid, $msgid_plural, $num, $locale, $domain ) = ( $msgid->{msgid}, $msgid->{msgid_plural}, $msgid_plural, $num // $DEFAULT_LOCALE, $msgid->{domain} );
-    }
-    else {
-        $domain //= $PACKAGE_DOMAIN->{ caller() };
-    }
-
-    $num //= 1;
-
-    goto ENGLISH if !defined $locale;
-
-    load_domain_locale $domain, $locale if !exists $MESSAGES->{$domain}->{$locale};
-
-    goto ENGLISH if !defined $LOCALE_PLURAL_FORM->{$locale}->{code};
-
-    my $idx = $LOCALE_PLURAL_FORM->{$locale}->{code}->($num);
-
-    return $MESSAGES->{$domain}->{$locale}->{$msgid}->[$idx] if defined $MESSAGES->{$domain}->{$locale}->{$msgid}->[$idx];
-
-  ENGLISH:
-    if ( $num == 1 ) {
-        return $msgid;
-    }
-    else {
-        return $msgid_plural;
-    }
-
-    return;
-}
-
-sub l10n_ ( $msgid, $domain = undef ) : prototype($;$) {
+# TODO get domain from caller
+sub l10n ( $msgid, $msgid_plural = undef, $num = undef ) : prototype($;$$) {
     return bless {
-        is_plural => 0,
-        msgid     => $msgid,
-        domain    => $domain // $PACKAGE_DOMAIN->{ caller() },
-      },
-      'Pcore::Core::L10N::_deferred';
-}
-
-sub l10np_ ( $msgid, $msgid_plural, $domain = undef ) : prototype($$;$) {
-    return bless {
-        is_plural    => 1,
+        domain       => $PACKAGE_DOMAIN->{ caller() },
         msgid        => $msgid,
         msgid_plural => $msgid_plural,
-        domain       => $domain // $PACKAGE_DOMAIN->{ caller() },
+        num          => $num // 1,
       },
       'Pcore::Core::L10N::_deferred';
 }
 
-package Pcore::Core::L10N::_deferred {
-    use Pcore -class;
-    use overload    #
-      q[""] => sub {
-        return &Pcore::Core::L10N::l10n( $_[0] );    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
-      },
-      bool => sub {
-        return 1;
-      },
-      fallback => undef;
+package Pcore::Core::L10N::_deferred;
 
-    has is_plural => ( isa => 'Bool', required => 1 );
-    has msgid     => ( isa => 'Str',  required => 1 );
-    has domain    => ( isa => 'Str',  required => 1 );
-    has msgid_plural => ( isa => 'Maybe [Str]' );
-}
+use Pcore -class;
 
-package Pcore::Core::L10N::_l10n {
-    use Pcore::Util::Scalar qw[is_plain_arrayref];
+use overload    #
+  q[""] => sub {
+    return $_[0]->to_string;
+  },
+  q[&{}] => sub {
+    my $self = $_[0];
 
-    sub TIEHASH ( $self, @args ) {
-        return bless {}, $self;
+    return sub { $self->to_string(@_) };
+  },
+  bool => sub {
+    return 1;
+  },
+  fallback => undef;
+
+has domain       => ();
+has msgid        => ();
+has msgid_plural => ();
+has num          => ();
+
+sub to_string ( $self, $num = undef ) {
+    if ( !$self->{msgid_plural} ) {
+        return $self->{msgid} if !defined $LOCALE;
+
+        Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE ) if !exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE};
+
+        return $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE}->{ $self->{msgid} }->[0] // $self->{msgid};
     }
+    else {
+        $num //= $self->{num};
 
-    sub FETCH {
+        goto ENGLISH if !defined $LOCALE;
 
-        ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+        Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE ) if !exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE};
 
-        if ( is_plain_arrayref $_[1] ) {
-            if ( $_[1]->[0]->{is_plural} ) {
-                return &Pcore::Core::L10N::l10np( $_[1]->[0], $_[1]->[1], $_[1]->[2] );
-            }
-            else {
-                return &Pcore::Core::L10N::l10n( $_[1]->[0], $_[1]->[1] );
-            }
-        }
-        elsif ( ref $_[1] eq 'Pcore::Core::L10N::_deferred' ) {
-            return &Pcore::Core::L10N::l10n( $_[1] );
+        goto ENGLISH if !defined $LOCALE_PLURAL_FORM->{$LOCALE}->{code};
+
+        my $idx = $LOCALE_PLURAL_FORM->{$LOCALE}->{code}->($num);
+
+        return $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE}->{ $self->{msgid} }->[$idx] if defined $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE}->{ $self->{msgid} }->[$idx];
+
+      ENGLISH:
+        if ( $num == 1 ) {
+            return $self->{msgid};
         }
         else {
-            return &Pcore::Core::L10N::l10n( $_[1], undef, $PACKAGE_DOMAIN->{ caller() } );
+            return $self->{msgid_plural} // $self->{msgid};
         }
     }
+}
+
+package Pcore::Core::L10N::_l10n;
+
+sub TIEHASH ( $self, @args ) {
+    return bless {}, $self;
+}
+
+# TODO domain
+sub FETCH {
+    return bless {
+        domain => $PACKAGE_DOMAIN->{ caller() },
+        msgid  => $_[1],
+      },
+      'Pcore::Core::L10N::_deferred';
 }
 
 1;
@@ -204,12 +174,9 @@ package Pcore::Core::L10N::_l10n {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 105                  | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 15                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 95, 110, 140, 150,   | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
-## |      | 195                  |                                                                                                                |
+## |    1 | 93, 164              | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
@@ -224,31 +191,14 @@ Pcore::Core::L10N - localization subsystem.
 
 =head1 SYNOPSIS
 
-    use Pcore -l10n => 'Domain';
+    use Pcore -l10n;
 
-    say l10n 'text';
-    say l10n 'text', 'en';
+    P->set_locale('ru');
 
-    say l10np 'text', 'text plural', 3;
-    say l10np 'text', 'text plural', 3, 'en';
-
-    my $const = l10n_ 'text';
-    say const;
-    say l10n $const;
-
-    my $const_plural = l10np_ 'text', 'text_plural';
-    say $const_plural;
-    say l10n $const_plural;
-    say l10n $const_plural, 'en';
-    say l10np $const_plural, 3;
-    say l10np $const_plural, 3, 'en';
-
-    say $l10n->{'text'};
-    say $l10n->{$const};
-    say $l10n->{[$const, 'en']};
-
-    say $l10n->{[ $const_plural, 3 ]};
-    say $l10n->{[ $const_plural, 3, 'en' ]};
+    say l10n('single');
+    say l10n( 'single', 'plural', 1 );
+    say l10n( 'single', 'plural' )->(5);
+    say $l10n->{'single'};
 
 =head1 DESCRIPTION
 
