@@ -1,8 +1,6 @@
 package Lcom::Index::ConfirmEmail;
 
-use Pcore -const, -class, -l10n;
-
-const our $L10N_DOMAIN => 'Dist-Name';
+use Pcore -class, -l10n;
 
 with qw[Pcore::App::Controller];
 

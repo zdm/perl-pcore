@@ -7,8 +7,7 @@ our $EXPORT = {    #
     DEFAULT => [qw[l10n $l10n]],
 };
 
-our $CALLER_DOMAIN      = {};
-our $LOCALE             = undef;
+our $LOCALE             = undef;    # current locale
 our $MESSAGES           = {};
 our $LOCALE_PLURAL_FORM = {};
 
@@ -20,48 +19,68 @@ sub set_locale ($locale = undef) {
     return $LOCALE;
 }
 
-sub get_caller_domain ($caller) {
-    no strict qw[refs];
+sub load_locale ( $locale ) : prototype($) {
+    my $messages = $MESSAGES->{$locale} //= {};
 
-    return ( ${"$caller\::L10N_DOMAIN"} || die qq[\$L10N_DOMAIN is not defined for "$caller"] );
-}
+    my ( $plural_form, $domains, $msgid );
 
-sub load_domain_locale ( $domain, $locale ) : prototype($$) {
-    my $dist = $ENV->{_dist_idx}->{$domain};
+    for my $dist ( values $ENV->{_dist_idx}->%* ) {
+        my $po_path = "$dist->{share_dir}l10n/$locale.po";
 
-    die qq[l10n domain "$domain" is not registered] if !$domain;
+        next if !-f $po_path;
 
-    my $po_path = "$dist->{share_dir}l10n/$locale.po";
+        for my $line ( P->file->read_lines($po_path)->@* ) {
+            if ( $line =~ /\A#/sm ) {
+                if ( $line =~ /\A#:\s*(.+)/sm ) {
+                    undef $domains;
 
-    if ( !-f $po_path ) {
-        $MESSAGES->{$domain}->{$locale} = {};
+                    my $references = $1;
 
-        return;
-    }
+                    while ( $references =~ /\s*([^:]+):\d+/smg ) {
+                        my $domain = $1;
 
-    my ( $messages, $plural_form, $msgid );
+                        $domain =~ s/[.]pm\z//sm;
+                        $domain =~ s[\Alib/][]sm;
+                        $domain =~ s[/][::]smg;
 
-    for my $line ( P->file->read_lines($po_path)->@* ) {
+                        $domains->{$domain} = 1;
+                    }
+                }
 
-        # skip comments
-        next if substr( $line, 0, 1 ) eq '#';
+                # skip comments
+                else {
+                    next;
+                }
+            }
 
-        if ( $line =~ /\Amsgid\s"(.+?)"/sm ) {
-            $msgid = $1;
+            # msgid
+            elsif ( $line =~ /\Amsgid\s"(.+?)"/sm ) {
+                $msgid = $1;
+            }
 
-            $messages->{$msgid} = [];
-        }
-        elsif ( $line =~ /\Amsgid_plural\s/sm ) {
-            next;
-        }
-        elsif ( $line =~ /\Amsgstr\s"(.+?)"/sm ) {
-            $messages->{$msgid}->[0] = $1;
-        }
-        elsif ( $line =~ /\Amsgstr\[(\d+)\]\s"(.+?)"/sm ) {
-            $messages->{$msgid}->[$1] = $2;
-        }
-        elsif ( $line =~ /"(.+?):\s(.+?)\\n"/sm ) {
-            $plural_form = $2 if $1 eq 'Plural-Forms';
+            # skip msgid_plural
+            elsif ( $line =~ /\Amsgid_plural\s/sm ) {
+                next;
+            }
+
+            # message
+            elsif ( $line =~ /\Amsgstr\s"(.+?)"/sm ) {
+                for my $domain ( keys $domains->%* ) {
+                    $messages->{$domain}->{$msgid}->[0] = $1;
+                }
+            }
+
+            # message plural forms
+            elsif ( $line =~ /\Amsgstr\[(\d+)\]\s"(.+?)"/sm ) {
+                for my $domain ( keys $domains->%* ) {
+                    $messages->{$domain}->{$msgid}->[$1] = $2;
+                }
+            }
+
+            # plural form expression
+            elsif ( $line =~ /"(.+?):\s(.+?)\\n"/sm ) {
+                $plural_form = $2 if $1 eq 'Plural-Forms';
+            }
         }
     }
 
@@ -82,14 +101,12 @@ sub load_domain_locale ( $domain, $locale ) : prototype($$) {
         }
     }
 
-    $MESSAGES->{$domain}->{$locale} = $messages;
-
     return;
 }
 
 sub l10n ( $msgid, $msgid_plural = undef, $num = undef ) : prototype($;$$) {
     return bless {
-        domain       => &get_caller_domain( scalar caller ),                        ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+        domain       => caller,
         msgid        => $msgid,
         msgid_plural => $msgid_plural,
         num          => $num // 1,
@@ -121,39 +138,31 @@ has msgid_plural => ();
 has num          => ();
 
 sub to_string ( $self, $num = undef ) {
-    if ( !$self->{msgid_plural} ) {
-        return $self->{msgid} if !defined $LOCALE;
+    goto DEFAULT if !defined $LOCALE;
 
-        # load domain messages, if not loaded
-        if ( !exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE} ) {
-            Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE );
+    # load locale, if not loaded
+    Pcore::Core::L10N::load_locale($LOCALE) if !exists $Pcore::Core::L10N::MESSAGES->{$LOCALE};
+
+    if ( my $domain = $Pcore::Core::L10N::MESSAGES->{$LOCALE}->{ $self->{domain} } ) {
+        if ( my $msg = $domain->{ $self->{msgid} } ) {
+            my $idx = 0;
+
+            if ( $self->{msgid_plural} ) {
+                goto DEFAULT if !defined $LOCALE_PLURAL_FORM->{$LOCALE}->{code};
+
+                $idx = $LOCALE_PLURAL_FORM->{$LOCALE}->{code}->( $num // $self->{num} // 1 );
+            }
+
+            return $msg->[$idx] if defined $msg->[$idx];
         }
+    }
 
-        return $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE}->{ $self->{msgid} }->[0] // $self->{msgid};
+  DEFAULT:
+    if ( !defined $num || $num == 1 ) {
+        return $self->{msgid};
     }
     else {
-        $num //= $self->{num};
-
-        goto ENGLISH if !defined $LOCALE;
-
-        # load domain messages, if not loaded
-        if ( !!exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE} ) {
-            Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE );
-        }
-
-        goto ENGLISH if !defined $LOCALE_PLURAL_FORM->{$LOCALE}->{code};
-
-        my $idx = $LOCALE_PLURAL_FORM->{$LOCALE}->{code}->($num);
-
-        return $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE}->{ $self->{msgid} }->[$idx] if defined $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE}->{ $self->{msgid} }->[$idx];
-
-      ENGLISH:
-        if ( $num == 1 ) {
-            return $self->{msgid};
-        }
-        else {
-            return $self->{msgid_plural} // $self->{msgid};
-        }
+        return $self->{msgid_plural} // $self->{msgid};
     }
 }
 
@@ -165,7 +174,7 @@ sub TIEHASH ( $self, @args ) {
 
 sub FETCH {
     return bless {
-        domain => &Pcore::Core::L10N::get_caller_domain( scalar caller ),    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
+        domain => caller,
         msgid  => $_[1],
       },
       'Pcore::Core::L10N::_deferred';
@@ -178,7 +187,9 @@ sub FETCH {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    2 | 15                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
+## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "load_locale" with high complexity score (21)               |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 14                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
