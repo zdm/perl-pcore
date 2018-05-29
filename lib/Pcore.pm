@@ -7,20 +7,20 @@ use Pcore::Core::Const qw[:CORE];
 
 # define %EXPORT_PRAGMA for exporter
 our $EXPORT_PRAGMA = {
-    ansi     => 0,    # export ANSI color variables
-    class    => 0,    # package is a Moo class
-    config   => 0,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
-    const    => 0,    # export "const" keyword
-    dist     => 0,    # mark package aas Pcore dist main module
-    embedded => 0,    # run in embedded mode
-    export   => 0,    # install standart import method
-    forktmpl => 0,    # run fork template on startup
-    inline   => 0,    # package use Inline
-    l10n     => 1,    # register package L10N domain
-    res      => 0,    # export Pcore::Util::Result qw[res]
-    role     => 0,    # package is a Moo role
-    sql      => 0,    # export Pcore::Handle::DBI::Const qw[:TYPES]
-    types    => 0,    # export types
+    ansi     => undef,    # export ANSI color variables
+    class    => undef,    # package is a Moo class
+    config   => undef,    # mark package as perl config, used automatically during .perl config evaluation, do not use directly!!!
+    const    => undef,    # export "const" keyword
+    dist     => undef,    # mark package aas Pcore dist main module
+    embedded => undef,    # run in embedded mode
+    export   => undef,    # install standart import method
+    forktmpl => undef,    # run fork template on startup
+    inline   => undef,    # package use Inline
+    l10n     => undef,    # register package L10N domain
+    res      => undef,    # export Pcore::Util::Result qw[res]
+    role     => undef,    # package is a Moo role
+    sql      => undef,    # export Pcore::Handle::DBI::Const qw[:TYPES]
+    types    => undef,    # export types
 };
 
 our $EMBEDDED    = 0;       # Pcore::Core used in embedded mode
@@ -114,8 +114,6 @@ sub import {
             state $L10N_INIT = !!require Pcore::Core::L10N;
 
             Pcore::Core::L10N->import( -caller => $caller );
-
-            Pcore::Core::L10N::register_package_domain( $caller, $import->{pragma}->{l10n} );
         }
 
         # export "dump"
@@ -488,13 +486,13 @@ sub sendlog ( $self, $key, $title, $data = undef ) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 87                   | Variables::ProtectPrivateVars - Private variable used                                                          |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 229, 258, 261, 265,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
-## |      | 297, 300, 305, 308,  |                                                                                                                |
-## |      | 333, 359, 470        |                                                                                                                |
+## |    3 | 227, 256, 259, 263,  | ErrorHandling::RequireCarping - "die" used instead of "croak"                                                  |
+## |      | 295, 298, 303, 306,  |                                                                                                                |
+## |      | 331, 357, 468        |                                                                                                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 315                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
+## |    3 | 313                  | Subroutines::ProhibitUnusedPrivateSubroutines - Private subroutine/method '_CORE_RUN' declared but not used    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 233                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
+## |    1 | 231                  | InputOutput::RequireCheckedSyscalls - Return value of flagged function ignored - say                           |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

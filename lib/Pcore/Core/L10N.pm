@@ -7,7 +7,7 @@ our $EXPORT = {    #
     DEFAULT => [qw[l10n $l10n]],
 };
 
-our $PACKAGE_DOMAIN     = {};
+our $CALLER_DOMAIN      = {};
 our $LOCALE             = undef;
 our $MESSAGES           = {};
 our $LOCALE_PLURAL_FORM = {};
@@ -20,10 +20,10 @@ sub set_locale ($locale = undef) {
     return $LOCALE;
 }
 
-sub register_package_domain ( $package, $domain ) {
-    $PACKAGE_DOMAIN->{$package} = $domain;
+sub get_caller_domain ($caller) {
+    no strict qw[refs];
 
-    return;
+    return ( ${"$caller\::L10N_DOMAIN"} || die qq[\$L10N_DOMAIN is not defined for "$caller"] );
 }
 
 sub load_domain_locale ( $domain, $locale ) : prototype($$) {
@@ -87,10 +87,9 @@ sub load_domain_locale ( $domain, $locale ) : prototype($$) {
     return;
 }
 
-# TODO get domain from caller
 sub l10n ( $msgid, $msgid_plural = undef, $num = undef ) : prototype($;$$) {
     return bless {
-        domain       => $PACKAGE_DOMAIN->{ caller() },
+        domain       => &get_caller_domain( scalar caller ),                        ## no critic qw[Subroutines::ProhibitAmpersandSigils]
         msgid        => $msgid,
         msgid_plural => $msgid_plural,
         num          => $num // 1,
@@ -125,7 +124,10 @@ sub to_string ( $self, $num = undef ) {
     if ( !$self->{msgid_plural} ) {
         return $self->{msgid} if !defined $LOCALE;
 
-        Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE ) if !exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE};
+        # load domain messages, if not loaded
+        if ( !exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE} ) {
+            Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE );
+        }
 
         return $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE}->{ $self->{msgid} }->[0] // $self->{msgid};
     }
@@ -134,7 +136,10 @@ sub to_string ( $self, $num = undef ) {
 
         goto ENGLISH if !defined $LOCALE;
 
-        Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE ) if !exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE};
+        # load domain messages, if not loaded
+        if ( !!exists $Pcore::Core::L10N::MESSAGES->{ $self->{domain} }->{$LOCALE} ) {
+            Pcore::Core::L10N::load_domain_locale( $self->{domain}, $LOCALE );
+        }
 
         goto ENGLISH if !defined $LOCALE_PLURAL_FORM->{$LOCALE}->{code};
 
@@ -158,10 +163,9 @@ sub TIEHASH ( $self, @args ) {
     return bless {}, $self;
 }
 
-# TODO domain
 sub FETCH {
     return bless {
-        domain => $PACKAGE_DOMAIN->{ caller() },
+        domain => &Pcore::Core::L10N::get_caller_domain( scalar caller ),    ## no critic qw[Subroutines::ProhibitAmpersandSigils]
         msgid  => $_[1],
       },
       'Pcore::Core::L10N::_deferred';
@@ -175,8 +179,6 @@ sub FETCH {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    2 | 15                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
-## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 93, 164              | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

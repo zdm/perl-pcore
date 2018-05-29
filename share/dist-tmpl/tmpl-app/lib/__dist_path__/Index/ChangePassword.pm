@@ -1,6 +1,8 @@
 package Lcom::Index::ChangePassword;
 
-use Pcore -class, -l10n => 'Lcom';
+use Pcore -const, -class, -l10n;
+
+const our $L10N_DOMAIN => 'Dist-Name';
 
 with qw[Pcore::App::Controller::Ext];
 
