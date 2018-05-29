@@ -4,10 +4,10 @@ use Pcore -class, -l10n => 'Lcom';
 
 with qw[Pcore::App::Controller::Ext];
 
-has ext_app       => 'ChangePassword';
-has ext_app_title => l10n('Change Password');
-has ext_locale    => 'en';
-has path          => '/change-password/', init_arg => undef;
+has ext_app    => 'ChangePassword';
+has ext_title  => l10n('Change Password');
+has ext_locale => ();
+has path       => '/change-password/', init_arg => undef;
 
 1;
 __END__
