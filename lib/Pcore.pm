@@ -333,7 +333,7 @@ sub _CORE_RUN {
             }
 
             # change priv
-            Pcore->pm->change_priv( gid => $ENV->{GID}, uid => $ENV->{UID} );
+            Pcore->sys->change_priv( gid => $ENV->{GID}, uid => $ENV->{UID} );
 
             P->sys->daemonize if $ENV->{DAEMONIZE};
         }
