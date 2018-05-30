@@ -6,7 +6,7 @@ use Pcore::AE::Handle;
 use AnyEvent::Util qw[portable_pipe];
 use if $MSWIN, 'Win32API::File';
 use Pcore::Util::Data qw[to_cbor from_cbor];
-use Pcore::Util::PM::Proc;
+use Pcore::Util::Sys::Proc;
 
 # TODO on_finish is not called, because we can't get SIGCHLD for non-direct child
 
@@ -41,8 +41,8 @@ around new => sub ( $orig, $self, $type, % ) {
         $boot_args->{fh} = fileno $fh_w;
     }
 
-    if ($Pcore::Util::PM::ForkTmpl::CHILD_PID) {
-        Pcore::Util::PM::ForkTmpl::run_node( $type, $boot_args );
+    if ($Pcore::Util::Sys::ForkTmpl::CHILD_PID) {
+        Pcore::Util::Sys::ForkTmpl::run_node( $type, $boot_args );
 
         $self->_handshake(
             $fh_r,
@@ -53,7 +53,7 @@ around new => sub ( $orig, $self, $type, % ) {
                     pid        => $res->{pid},
                     _on_finish => $args{on_finish},
                   },
-                  'Pcore::Util::PM::Proc';
+                  'Pcore::Util::Sys::Proc';
 
                 $args{on_ready}->($proc);
 
@@ -81,7 +81,7 @@ around new => sub ( $orig, $self, $type, % ) {
         }
 
         # create proc
-        P->pm->run_proc(
+        P->sys->run_proc(
             $cmd,
             stdin    => 1,
             on_ready => sub ($proc) {

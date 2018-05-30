@@ -1,4 +1,4 @@
-package Pcore::Util::PM::Proc;
+package Pcore::Util::Sys::Proc;
 
 use Pcore -class;
 use Config;
@@ -372,7 +372,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::PM::Proc
+Pcore::Util::Sys::Proc
 
 =head1 SYNOPSIS
 

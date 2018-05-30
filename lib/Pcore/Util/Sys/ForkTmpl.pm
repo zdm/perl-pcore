@@ -1,4 +1,4 @@
-package Pcore::Util::PM::ForkTmpl;
+package Pcore::Util::Sys::ForkTmpl;
 
 use Pcore -const;
 use AnyEvent::Util;
@@ -60,7 +60,7 @@ sub run_node ( $type, $args ) {
 sub _tmpl_proc ( $fh ) {
 
     # child
-    $0 = 'Pcore::Util::PM::ForkTmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
+    $0 = 'Pcore::Util::Sys::ForkTmpl';    ## no critic qw[Variables::RequireLocalizedPunctuationVars]
 
     local $SIG{TERM} = sub { exit 128 + 15 };
 
@@ -130,7 +130,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::PM::ForkTmpl
+Pcore::Util::Sys::ForkTmpl
 
 =head1 SYNOPSIS
 
