@@ -75,8 +75,14 @@ sub _tmpl_proc ( $fh ) {
             $data->{args}->{fh} = IO::FDPass::recv fileno $fh;
         }
 
+        # parent
+        if (fork) {
+            open my $fh1, '>&=', $data->{args}->{fh} or die $!;
+            close $fh1 or die $!;
+        }
+
         # child
-        if ( !fork ) {
+        else {
 
             # run process in own PGRP
             # setpgrp;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
@@ -119,7 +125,7 @@ sub _forked_proc ( $data ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 23, 97               | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 23, 103              | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
