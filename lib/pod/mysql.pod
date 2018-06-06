@@ -15,10 +15,10 @@
         qq[DBI:MariaDB:database=$db;host=$host;port=$port],
         $username,
         $password,
-        {   RaiseError              => 1,
-            PrintWarn               => 0,
-            ShowErrorStatement      => 1,
-            mariadb_auto_reconnect  => 1,
+        {   RaiseError               => 1,
+            PrintWarn                => 0,
+            ShowErrorStatement       => 1,
+            mariadb_auto_reconnect   => 1,
             mariadb_multi_statements => 1,
         }
     );
