@@ -18,7 +18,7 @@ sub init ($self) {
         do {
             no strict qw[refs];
 
-            map { $_ => 1 } ${ ref( $self->{app} ) . '::APP_API_ROLES' }->@*;
+            map { $_ => 1 } ${ ref( $self->{app} ) . '::API_ROLES' }->@*;
           }
     };
 

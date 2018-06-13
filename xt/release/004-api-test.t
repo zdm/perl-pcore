@@ -17,7 +17,7 @@ package App {
 
     with qw[Pcore::App];
 
-    our $APP_API_ROLES = [ 'admin', 'user' ];
+    our $API_ROLES = [ 'admin', 'user' ];
 
     sub run { }
 
