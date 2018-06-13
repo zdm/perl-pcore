@@ -131,7 +131,7 @@ sub init ($self) {
 
                 my $ref = *{"$class_name\::$method_name"}{CODE};
 
-                $attrs->{$ref}->{perms};
+                $attrs->{$ref}->{perms} // ${"$class_name\::PERMISSIONS"};
             };
 
             my $local_method_name = $method_name;
@@ -152,6 +152,9 @@ sub init ($self) {
 
             # check method permissions
             if ( $method->{$method_id}->{permissions} ) {
+
+                # convert to ArrayRef
+                $method->{$method_id}->{permissions} = [ $method->{$method_id}->{permissions} ] if !is_plain_arrayref $method->{$method_id}->{permissions};
 
                 # methods permissions are empty
                 if ( !$method->{$method_id}->{permissions}->@* ) {
@@ -194,9 +197,9 @@ sub get_method ( $self, $method_id ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 13                   | Subroutines::ProhibitExcessComplexity - Subroutine "init" with high complexity score (21)                      |
+## |    3 | 13                   | Subroutines::ProhibitExcessComplexity - Subroutine "init" with high complexity score (22)                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 166, 172             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 169, 175             | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
