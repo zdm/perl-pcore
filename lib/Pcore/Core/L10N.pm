@@ -22,7 +22,7 @@ sub set_locale ($locale = undef) {
 sub load_locale ( $locale ) : prototype($) {
     my $messages = $MESSAGES->{$locale} //= {};
 
-    my ( $plural_form, $domains, $msgid );
+    my ( $plural_form, $domains, $msgid, $drop_domains );
 
     for my $dist ( values $ENV->{_dist_idx}->%* ) {
         my $po_path = "$dist->{share_dir}l10n/$locale.po";
@@ -30,9 +30,17 @@ sub load_locale ( $locale ) : prototype($) {
         next if !-f $po_path;
 
         for my $line ( P->file->read_lines($po_path)->@* ) {
+
+            # comment
             if ( $line =~ /\A#/sm ) {
+
+                # domain
                 if ( $line =~ /\A#:\s*(.+)/sm ) {
-                    undef $domains;
+                    if ($drop_domains) {
+                        undef $domains;
+
+                        $drop_domains = 0;
+                    }
 
                     my $references = $1;
 
@@ -47,7 +55,7 @@ sub load_locale ( $locale ) : prototype($) {
                     }
                 }
 
-                # skip comments
+                # skip other comments
                 else {
                     next;
                 }
@@ -56,6 +64,8 @@ sub load_locale ( $locale ) : prototype($) {
             # msgid
             elsif ( $line =~ /\Amsgid\s"(.+?)"/sm ) {
                 $msgid = $1;
+
+                $drop_domains = 1;
             }
 
             # skip msgid_plural
@@ -187,7 +197,7 @@ sub FETCH {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "load_locale" with high complexity score (21)               |
+## |    3 | 22                   | Subroutines::ProhibitExcessComplexity - Subroutine "load_locale" with high complexity score (22)               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 14                   | Miscellanea::ProhibitTies - Tied variable used                                                                 |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
