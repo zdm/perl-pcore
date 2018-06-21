@@ -1,3 +1,10 @@
+v0.67.2 2018-06-21T03:12:40Z
+ - websocket pcore ready state
+ - API attrs
+ - api namespace permissions:
+ - ext loader
+ - l10n .po parser fixed
+
 v0.67.1 2018-06-09T00:18:19Z
  - pause api fixed
  - invalid deref fixed
