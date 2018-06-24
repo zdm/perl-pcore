@@ -19,7 +19,7 @@ sub set_locale ($locale = undef) {
     return $LOCALE;
 }
 
-sub load_locale ( $locale ) : prototype($) {
+sub load_locale : prototype($) ($locale) {
     my $messages = $MESSAGES->{$locale} //= {};
 
     my ( $plural_form, $domains, $msgid, $drop_domains );
@@ -114,7 +114,7 @@ sub load_locale ( $locale ) : prototype($) {
     return;
 }
 
-sub l10n ( $msgid, $msgid_plural = undef, $num = undef ) : prototype($;$$) {
+sub l10n : prototype($;$$) ( $msgid, $msgid_plural = undef, $num = undef ) {
     return bless {
         domain       => caller,
         msgid        => $msgid,
