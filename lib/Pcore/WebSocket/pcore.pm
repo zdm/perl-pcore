@@ -248,7 +248,7 @@ sub _on_message ( $self, $msg ) {
                             };
                         }
 
-                        $self->{on_rpc}->( $self, $req, $tx );
+                        Coro::async_pool { $self->{on_rpc}->( $self, $req, $tx ) }->cede_to;
                     }
                 }
 
@@ -276,33 +276,36 @@ sub _on_auth_request ( $self, $tx ) {
     if ( $self->{on_auth} ) {
         weaken $self;
 
-        $self->{on_auth}->(
-            $self,
-            $tx->{token},
-            sub ( $auth, %events ) {
-                return if !$self;
+        Coro::async_pool {
+            $self->{on_auth}->(
+                $self,
+                $tx->{token},
+                sub ( $auth, %events ) {
+                    return if !$self;
 
-                return if $conn_ver != $self->{_conn_ver};
+                    return if $conn_ver != $self->{_conn_ver};
 
-                $self->{is_ready} = 1;
+                    $self->{is_ready} = 1;
 
-                $self->{auth} = $auth;
+                    $self->{auth} = $auth;
 
-                # subscribe client to the server events
-                $self->_set_listeners( $events{forward} ) if $events{forward};
+                    # subscribe client to the server events
+                    $self->_set_listeners( $events{forward} ) if $events{forward};
 
-                # subscribe client to the server events from client request
-                $self->_on_subscribe( $tx->{events} ) if $tx->{events};
+                    # subscribe client to the server events from client request
+                    $self->_on_subscribe( $tx->{events} ) if $tx->{events};
 
-                $self->_send_msg( {
-                    type   => $TX_TYPE_AUTH,
-                    auth   => $auth,
-                    events => $events{subscribe},
-                } );
+                    $self->_send_msg( {
+                        type   => $TX_TYPE_AUTH,
+                        auth   => $auth,
+                        events => $events{subscribe},
+                    } );
 
-                return;
-            }
-        );
+                    return;
+                }
+              )
+        }
+        ->cede_to;
     }
 
     # auth is not supported, reject

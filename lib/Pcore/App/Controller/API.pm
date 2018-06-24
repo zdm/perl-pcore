@@ -26,33 +26,29 @@ sub run ( $self, $req ) {
         Pcore::WebSocket::pcore->new(
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
-            on_auth          => Coro::unblock_sub(
-                sub ( $h, $token, $cb ) {
-                    $self->{app}->{api}->authenticate(
-                        $token,
-                        sub ($auth) {
-                            $cb->($auth);
+            on_auth          => sub ( $h, $token, $cb ) {
+                $self->{app}->{api}->authenticate(
+                    $token,
+                    sub ($auth) {
+                        $cb->($auth);
 
-                            return;
-                        }
-                    );
+                        return;
+                    }
+                );
 
-                    return;
-                }
-            ),
+                return;
+            },
             on_subscribe => sub ( $h, $event ) {
                 return $self->on_subscribe_event( $h, $event );
             },
             on_event => sub ( $h, $ev ) {
                 return $self->on_event( $h, $ev );
             },
-            on_rpc => Coro::unblock_sub(
-                sub ( $h, $req, $tx ) {
-                    $h->{auth}->api_call_arrayref( $tx->{method}, $tx->{args}, $req );
+            on_rpc => sub ( $h, $req, $tx ) {
+                $h->{auth}->api_call_arrayref( $tx->{method}, $tx->{args}, $req );
 
-                    return;
-                }
-            ),
+                return;
+            }
         )->accept($req);
     }
 
