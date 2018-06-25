@@ -1,3 +1,12 @@
+v0.68.0 2018-06-25T21:19:15Z
+ - var renamed
+ - app get_default_locale method added
+ - perl-5.28
+ - Coro::unblock_sub reviewed
+ - api auth blocking
+ - server on_auth callback blocking
+ - l10n domains removed
+
 v0.67.2 2018-06-21T03:12:40Z
  - websocket pcore ready state
  - API attrs
