@@ -26,12 +26,8 @@ sub run ( $self, $req ) {
         Pcore::WebSocket::pcore->new(
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
-            on_auth          => sub ( $h, $token, $cb ) {
-                my $auth = $self->{app}->{api}->authenticate($token);
-
-                $cb->($auth);
-
-                return;
+            on_auth          => sub ( $h, $token ) {
+                return $self->{app}->{api}->authenticate($token);
             },
             on_subscribe => sub ( $h, $event ) {
                 return $self->on_subscribe_event( $h, $event );
