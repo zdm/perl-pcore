@@ -27,14 +27,9 @@ sub run ( $self, $req ) {
             max_message_size => $WS_MAX_MESSAGE_SIZE,
             compression      => $WS_COMPRESSION,
             on_auth          => sub ( $h, $token, $cb ) {
-                $self->{app}->{api}->authenticate(
-                    $token,
-                    sub ($auth) {
-                        $cb->($auth);
+                my $auth = $self->{app}->{api}->authenticate($token);
 
-                        return;
-                    }
-                );
+                $cb->($auth);
 
                 return;
             },
@@ -93,30 +88,27 @@ sub run ( $self, $req ) {
         }
 
         # authenticate request
-        $req->authenticate( sub ( $auth ) {
-            $self->_http_api_router(
-                $auth, $msg,
-                sub ($res) {
-                    if ($CBOR) {
+        my $auth = $req->authenticate;
 
-                        # write HTTP response
-                        $req->( 200, [ 'Content-Type' => 'application/cbor' ], to_cbor $res )->finish;
-                    }
-                    else {
+        $self->_http_api_router(
+            $auth, $msg,
+            sub ($res) {
+                if ($CBOR) {
 
-                        # write HTTP response
-                        $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $res)->finish;
-                    }
-
-                    # free HTTP request object
-                    undef $req;
-
-                    return;
+                    # write HTTP response
+                    $req->( 200, [ 'Content-Type' => 'application/cbor' ], to_cbor $res )->finish;
                 }
-            );
+                else {
 
-            return;
-        } );
+                    # write HTTP response
+                    $req->( 200, [ 'Content-Type' => 'application/json' ], to_json $res)->finish;
+                }
+
+                return;
+            }
+        );
+
+        return;
     }
 
     return;
