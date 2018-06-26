@@ -33,7 +33,6 @@ RUN /bin/bash -c ' \
     # install && update perl
     && dnf -y install perl-$PERL_VERSION \
     && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh || echo false ) \
-    && cpanm App::cpanoutdated \
     && cpan-outdated | cpanm \
     \
     # deploy pcore
