@@ -1,3 +1,7 @@
+v0.69.0 2018-06-26T00:52:29Z
+ - Dockerfile cleaned
+ - Dockerfile from centos
+
 v0.68.0 2018-06-25T21:19:15Z
  - var renamed
  - app get_default_locale method added
