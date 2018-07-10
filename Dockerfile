@@ -32,7 +32,7 @@ RUN /bin/bash -c ' \
     \
     # install && update perl
     && yum -y install perl-$PERL_VERSION \
-    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-exclusions-install.sh || echo false ) \
+    && source <( wget -q -O - https://bitbucket.org/softvisio/scripts/raw/tip/perl-modules.sh || echo false ) \
     && cpan-outdated | cpanm \
     \
     # deploy pcore
