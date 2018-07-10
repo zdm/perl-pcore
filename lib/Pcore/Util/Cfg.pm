@@ -1,4 +1,4 @@
-package Pcore::Util::Config;
+package Pcore::Util::Cfg;
 
 use Pcore -const;
 use Pcore::Util::Text qw[encode_utf8];
@@ -73,7 +73,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::Config
+Pcore::Util::Cfg
 
 =head1 SYNOPSIS
 

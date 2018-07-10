@@ -17,7 +17,7 @@ has subscribe_events => ();    # Str or ArrayRef[Str]
 # callbacks
 has on_connect    => ();       # Maybe [CodeRef], ($self)
 has on_disconnect => ();       # Maybe [CodeRef], ($self, $status)
-has on_auth       => ();       # Maybe [CodeRef], server: ($self, $token, $cb), client: ($self, $auth)
+has on_auth       => ();       # Maybe [CodeRef], server: ($self, $token), client: ($self, $auth)
 has on_subscribe  => ();       # Maybe [CodeRef], ($self, $mask), must return true for subscribe to event
 has on_event      => ();       # Maybe [CodeRef], ($self, $ev)
 has on_rpc        => ();       # Maybe [CodeRef], ($self, $req, $tx)
@@ -248,7 +248,7 @@ sub _on_message ( $self, $msg ) {
                             };
                         }
 
-                        $self->{on_rpc}->( $self, $req, $tx );
+                        Coro::async_pool { $self->{on_rpc}->( $self, $req, $tx ) }->cede_to;
                     }
                 }
 
@@ -276,33 +276,32 @@ sub _on_auth_request ( $self, $tx ) {
     if ( $self->{on_auth} ) {
         weaken $self;
 
-        $self->{on_auth}->(
-            $self,
-            $tx->{token},
-            sub ( $auth, %events ) {
-                return if !$self;
+        Coro::async_pool {
+            my ( $auth, %events ) = $self->{on_auth}->( $self, $tx->{token} );
 
-                return if $conn_ver != $self->{_conn_ver};
+            return if !$self;
 
-                $self->{is_ready} = 1;
+            return if $conn_ver != $self->{_conn_ver};
 
-                $self->{auth} = $auth;
+            $self->{is_ready} = 1;
 
-                # subscribe client to the server events
-                $self->_set_listeners( $events{forward} ) if $events{forward};
+            $self->{auth} = $auth;
 
-                # subscribe client to the server events from client request
-                $self->_on_subscribe( $tx->{events} ) if $tx->{events};
+            # subscribe client to the server events
+            $self->_set_listeners( $events{forward} ) if $events{forward};
 
-                $self->_send_msg( {
-                    type   => $TX_TYPE_AUTH,
-                    auth   => $auth,
-                    events => $events{subscribe},
-                } );
+            # subscribe client to the server events from client request
+            $self->_on_subscribe( $tx->{events} ) if $tx->{events};
 
-                return;
-            }
-        );
+            $self->_send_msg( {
+                type   => $TX_TYPE_AUTH,
+                auth   => $auth,
+                events => $events{subscribe},
+            } );
+
+            return;
+        }
+        ->cede_to;
     }
 
     # auth is not supported, reject

@@ -1,4 +1,4 @@
-package Pcore::Util::URI::Host;
+package Pcore::Util::Host;
 
 use Pcore -class;
 use Pcore::Util::Text qw[decode_utf8 encode_utf8];
@@ -401,7 +401,7 @@ __END__
 
 =head1 NAME
 
-Pcore::Util::URI::Host
+Pcore::Util::Host
 
 =head1 SYNOPSIS
 

@@ -1,4 +1,4 @@
-package Pcore::Util::Template;
+package Pcore::Util::Tmpl;
 
 use Pcore -class;
 use Text::Xslate qw[];
@@ -100,7 +100,7 @@ FILTERS => {
 
 =head1 NAME
 
-Pcore::Util::Template - Text::Xslate wrapper
+Pcore::Util::Tmpl - Text::Xslate wrapper
 
 =head1 SYNOPSIS
 
