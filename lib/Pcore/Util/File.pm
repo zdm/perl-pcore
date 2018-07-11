@@ -665,8 +665,6 @@ sub copy ( $from, $to, @ ) {
     else {
         die qq[Source "$from" not exists];
     }
-
-    return;
 }
 
 sub move ( $from, $to, @ ) {
@@ -857,7 +855,7 @@ sub untar ( $tar, $target, @ ) {
 ## |      | 124                  | * Subroutine "calc_chmod" with high complexity score (25)                                                      |
 ## |      | 250                  | * Subroutine "read_lines" with high complexity score (27)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 827                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 825                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
