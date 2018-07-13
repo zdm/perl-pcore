@@ -645,7 +645,7 @@ sub copy ( $from, $to, @ ) {
 
     state $init = do {
 
-        # required under MSWin to handle Time::HiRes::utimw import
+        # redefine $Coro::State::DIEHOOK, required under MSWin to handle Time::HiRes::utime import
         local $SIG{__DIE__} = undef;
 
         !!require File::Copy::Recursive;
