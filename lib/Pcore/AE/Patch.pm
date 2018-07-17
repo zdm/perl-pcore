@@ -108,6 +108,25 @@ sub _tcp_bind : prototype($$$;$) ( $host, $service, $done, $prepare = undef ) {
     return AnyEvent::Socket::_tcp_bind_orig(@_);
 }
 
+# Coro::Handle patch
+if ($MSWIN) {
+
+    package AnyEvent::Util::WSAEWOULDBLOCK {
+        use overload    #
+          qw[==] => sub {
+            return $_[1] == Errno::EWOULDBLOCK() || $_[1] == Errno::WSAEWOULDBLOCK();
+          },
+          qw[!=] => sub {
+            return $_[1] != Errno::EWOULDBLOCK() && $_[1] != Errno::WSAEWOULDBLOCK();
+          };
+    }
+
+    no warnings qw[redefine];
+    local *AnyEvent::Util::WSAEWOULDBLOCK = sub : const { bless {}, 'AnyEvent::Util::WSAEWOULDBLOCK' };
+
+    require Coro::Handle;
+}
+
 1;
 ## -----SOURCE FILTER LOG BEGIN-----
 ##
