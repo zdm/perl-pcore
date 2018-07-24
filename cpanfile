@@ -26,6 +26,7 @@ requires 'Type::Tiny::XS';
 requires 'EV';
 requires 'AnyEvent';
 requires 'Coro';
+requires 'IO::Socket::SSL';
 requires 'Net::DNS::Resolver';
 requires 'Guard';
 requires 'IO::FDPass';
