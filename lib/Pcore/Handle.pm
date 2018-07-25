@@ -2,7 +2,7 @@ package Pcore::Handle;
 
 use Pcore -const, -class, -export;
 use Pcore::Util::CA;
-use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref is_blessed];
+use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref];
 use AnyEvent::Socket qw[];
 use Errno qw[EAGAIN EWOULDBLOCK EINTR];
 use AnyEvent::Util qw[WSAEWOULDBLOCK];
