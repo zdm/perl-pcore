@@ -112,7 +112,7 @@ around new => sub ( $orig, $self, $connect, @args ) {
 
         if ($scheme) {
             if ( !exists $SCHEME_CACHE->{$scheme} ) {
-                my $class = eval { P->class->load( $uri->scheme, ns => 'Pcore::Handle' ) };
+                my $class = eval { P->class->load( $scheme, ns => 'Pcore::Handle' ) };
 
                 $SCHEME_CACHE->{$scheme} = $class;
             }
