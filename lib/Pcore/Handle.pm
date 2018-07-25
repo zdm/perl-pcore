@@ -247,29 +247,29 @@ sub _read ( $self, $timeout = undef ) {
     return $bytes;
 }
 
-# returns: undef or buffer
+# returns: undef or buffer ref
 sub read ( $self, $timeout = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return if !$self;
 
-    return delete $self->{rbuf} if length $self->{rbuf};
+    return \delete $self->{rbuf} if length $self->{rbuf};
 
     $self->_read($timeout);
 
-    return delete $self->{rbuf} if length $self->{rbuf};
+    return \delete $self->{rbuf} if length $self->{rbuf};
 
     return;
 }
 
-# returns: undef or buffer
+# returns: undef or buffer ref
 sub readline ( $self, $term, $timeout = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     while () {
         my $idx = defined $self->{rbuf} ? index $self->{rbuf}, $term, 0 : -1;
 
         if ( $idx == 0 ) {
-            return substr $self->{rbuf}, 0, length $term, q[];
+            return \substr $self->{rbuf}, 0, length $term, q[];
         }
         elsif ( $idx > 0 ) {
-            return substr $self->{rbuf}, 0, $idx + length $term, q[];
+            return \substr $self->{rbuf}, 0, $idx + length $term, q[];
         }
 
         # pattern not found
@@ -283,15 +283,15 @@ sub readline ( $self, $term, $timeout = undef ) {    ## no critic qw[Subroutines
     return;
 }
 
-# returns: undef or buffer
+# returns: undef or buffer ref
 sub readchunk ( $self, $len, $timeout = undef ) {
     while () {
         if ( defined $self->{rbuf} ) {
             if ( length $self->{rbuf} == $len ) {
-                return delete $self->{rbuf};
+                return \delete $self->{rbuf};
             }
             elsif ( length $self->{rbuf} > $len ) {
-                return substr $self->{rbuf}, 0, $len, q[];
+                return \substr $self->{rbuf}, 0, $len, q[];
             }
         }
 
