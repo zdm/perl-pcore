@@ -2,6 +2,7 @@ package Pcore::Handle;
 
 use Pcore -const, -class, -export;
 use Pcore::Util::CA;
+use HTTP::Parser::XS qw[];
 use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref];
 use AnyEvent::Socket qw[];
 use Errno qw[EAGAIN EWOULDBLOCK EINTR];
@@ -251,11 +252,11 @@ sub _read ( $self, $timeout = undef ) {
 sub read ( $self, $timeout = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return if !$self;
 
-    return \delete $self->{rbuf} if length $self->{rbuf};
+    return \delete( $self->{rbuf} ) if length $self->{rbuf};
 
     $self->_read($timeout);
 
-    return \delete $self->{rbuf} if length $self->{rbuf};
+    return \delete( $self->{rbuf} ) if length $self->{rbuf};
 
     return;
 }
@@ -266,10 +267,10 @@ sub readline ( $self, $term, $timeout = undef ) {    ## no critic qw[Subroutines
         my $idx = defined $self->{rbuf} ? index $self->{rbuf}, $term, 0 : -1;
 
         if ( $idx == 0 ) {
-            return \substr $self->{rbuf}, 0, length $term, q[];
+            return \substr( $self->{rbuf}, 0, length $term, q[] );
         }
         elsif ( $idx > 0 ) {
-            return \substr $self->{rbuf}, 0, $idx + length $term, q[];
+            return \substr( $self->{rbuf}, 0, $idx + length $term, q[] );
         }
 
         # pattern not found
@@ -288,10 +289,10 @@ sub readchunk ( $self, $len, $timeout = undef ) {
     while () {
         if ( defined $self->{rbuf} ) {
             if ( length $self->{rbuf} == $len ) {
-                return \delete $self->{rbuf};
+                return \delete( $self->{rbuf} );
             }
             elsif ( length $self->{rbuf} > $len ) {
-                return \substr $self->{rbuf}, 0, $len, q[];
+                return \substr( $self->{rbuf}, 0, $len, q[] );
             }
         }
 
@@ -399,7 +400,101 @@ sub _set_status ( $self, $status, $reason = undef ) {
     return;
 }
 
+# HTTP headers methods
+sub read_http_res_headers ( $self, $timeout = undef ) {
+    my $buf_ref = $self->readline( $CRLF x 2, $timeout );
+
+    # read headers error
+    return if !$buf_ref;
+
+    my $res;
+
+    # $len = -1 - incomplete headers, -2 - errors, >= 0 - headers length
+    # ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf_ref->$*, HEADERS_AS_ARRAYREF );
+
+    ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf_ref->$*, HTTP::Parser::XS::HEADERS_AS_HASHREF );
+
+    # fallback to pure-perl parser in case of errors
+    # TODO can be removed after this issue will be fixed - https://github.com/kazuho/p5-http-parser-xs/issues/10
+    # NOTE http://www.bizcoder.com/everything-you-need-to-know-about-http-header-syntax-but-were-afraid-to-ask
+    # if ( $len == -1 ) {
+    #     $len = length $headers;
+
+    #     my @lines = split /\x0D\x0A/sm, $headers;
+
+    #     if ( my $proto = shift @lines ) {
+    #         if ( $proto =~ m[\AHTTP/\d[.](\d)\s(\d\d\d)\s(.+)]sm ) {
+    #             $res->{minor_version} = $1;
+
+    #             $res->{status} = $2;
+
+    #             $res->{reason} = $3;
+
+    #             while ( my $header = shift @lines ) {
+    #                 if ( substr( $header, 0, 1 ) eq q[ ] ) {
+    #                     if ($parsed_headers) {
+    #                         $parsed_headers->[-1] .= $header;
+    #                     }
+    #                     else {
+    #                         $len = -2;
+
+    #                         last;
+    #                     }
+    #                 }
+    #                 elsif ( $header =~ /(.+?)\s*:\s*(.+)/sm ) {
+
+    #                     # TODO remove trailing spaces from the value
+    #                     push $parsed_headers->@*, $1, $2;
+    #                 }
+    #             }
+    #         }
+    #         else {
+    #             $len = -2;
+    #         }
+    #     }
+    #     else {
+    #         $len = -1;
+    #     }
+    # }
+
+    # headers are incomplete
+    if ( $len == -1 ) {
+        return;
+    }
+
+    # headers are corrupted
+    elsif ( $len == -2 ) {
+        return;
+    }
+    else {
+
+        # repack headers
+        # TODO update HTTP::Parser::XS
+        $res->{headers} = { map { uc s/-/_/smgr, $res->{headers}->{$_} } keys $res->{headers}->%* };    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
+
+        return $res;
+    }
+}
+
+sub read_http_trailing_heades ( $self, $timeout = undef ) {
+
+    # TODO trailing headers can be empty, this is not an error
+    # my $headers = $args{trailing} ? 'HTTP/1.1 200 OK' . $CRLF . $_[1] : $_[1];
+
+    return;
+}
+
 1;
+## -----SOURCE FILTER LOG BEGIN-----
+##
+## PerlCritic profile "pcore-script" policy violations:
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+## | Sev. | Lines                | Policy                                                                                                         |
+## |======+======================+================================================================================================================|
+## |    1 | 270, 273, 295        | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
+##
+## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
