@@ -15,7 +15,10 @@ use overload    #
   q[""]    => sub { return $_[0]->{status} . q[ ] . $_[0]->{reason} },
   fallback => 1;
 
-our $EXPORT = { TLS_CTX => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]] };
+our $EXPORT = {
+    TLS_CTX => [qw[$TLS_CTX_HIGH $TLS_CTX_LOW]],
+    ALL     => [qw[$HANDLE_STATUS_PROTOCOL_ERROR]],
+};
 
 const our $TLS_CTX_LOW  => 0;
 const our $TLS_CTX_HIGH => 1;
@@ -38,22 +41,24 @@ const our $DH_PARAM => {
     8192 => q[MIIECAKCBAEA/SAEbRSSLenVxoInHiltm/ztSwehGOhOiUKfzDcKlRBZHlCC9jBl|S/aeklM6Ucg8E6J2bnfoh6CAdnE/glQOn6CifhZr8X/rnlL9/eP+r9m+aiAw4l0D|MBd8BondbEqwTZthMmLtx0SslnevsFAZ1Cj8WgmUNaSPOukvJ1N7aQ98U+E99Pw3|VG8ANBydXqLqW2sogS8FtZoMbVywcQuaGmC7M6i3Akxe3CCSIpR/JkEZIytREBSC|CH+x3oW/w+wHzq3w8DGB9hqz1iMXqDMiPIMSdXC0DaIPokLnd7X8u6N14yCAco2h|P0gspD3J8pS2FpUY8ZTVjzbVCjhNNmTryBZAxHSWBuX4xYcCHUtfGlUe/IGLSVE1|xIdFpZUfvlvAJjVq0/TtDMg3r2JSXrhQVlr8MPJwSApDVr5kOBHT/uABio4z+5yR|PAvundznfyo9GGAWhIA36GQqsxSQfoRTjWssFoR/cu+9aomRwwOLkvObu8nCVVLH|nLdKDk5cIR0TvNs9HZ6ZmkzL7ah7cPzEKl7U6eE6yZLVYMNecnPLS6PSAIG4gxcq|CVQrrZjQLfTDrJn0OGgpShX85RaDsuiRtp2bpDZ23YDqdwr4wRjvIargjqc2zcF+|jIb7dUS6ci7bVG/CGOQUuiMWAiXZ3a1f343SMf9A05/sf1xwnMeco6STBLZ3X+PA|4urU+grtpWaFtS/fPD2ILn8nrJ3WuSKKUeSnVM46mmJQsOkyn7z8l3jNLB17GYKo|qc+0UuU/2PM9qtZdZElSM/ACLV2vdCuaibop4B9UIP9z3F8kfZ72+zKxpGiE+Bo1|x8SfG8FQw90mYIx+qZzJ8MCvc2wh+l4wDX5KxrhwvcouE2tHQlwfDgv/DiIXp173|hAmUCV0+bPRW8IIJvBODdAWtJe9hNwxj1FFYmPA7l4wa3gXV4I6tb+iO1MbwVjZ/|116tD5MdCo3JuSisgPYCHfkQccwEO0FHEuBbmfN+fQimQ8H0dePP8XctwbkplsB+|aLT5hYKmva/j9smEswgyHglPwc3WvZ+2DgKk7A7DHi7a2gDwCRQlHaXtNWx3992R|dfNgkSeB1CvGSQoo95WpC9ZoqGmcSlVqdetDU8iglPmfYTKO8aIPA6TuTQ/lQ0IW|90LQmqP23FwnNFiyqX8+rztLq4KVkTyeHIQwig6vFxgD8N+SbZCW2PPiB72TVF2U|WePU8MRTv1OIGBUBajF49k28HnZPSGlILHtFEkYkbPvomcE5ENnoejwzjktOTS5d|/R3SIOvCauOzadtzwTYOXT78ORaR1KI1cm8DzkkwJTd/Rrk07Q5vnvnSJQMwFUeH|PwJIgWBQf/GZ/OsDHmkbYR2ZWDClbKw2mwIBAg==],
 };
 
-const our $HANDLE_STATUS_OK            => 200;
-const our $HANDLE_STATUS_TIMEOUT       => 201;
-const our $HANDLE_STATUS_CONNECT_ERROR => 590;
-const our $HANDLE_STATUS_TLS_ERROR     => 591;
-const our $HANDLE_STATUS_TIMEOUT_ERROR => 597;
-const our $HANDLE_STATUS_ERROR         => 598;
-const our $HANDLE_STATUS_EOF           => 599;
+const our $HANDLE_STATUS_OK             => 200;
+const our $HANDLE_STATUS_TIMEOUT        => 201;
+const our $HANDLE_STATUS_CONNECT_ERROR  => 590;
+const our $HANDLE_STATUS_TLS_ERROR      => 591;
+const our $HANDLE_STATUS_PROTOCOL_ERROR => 596;
+const our $HANDLE_STATUS_TIMEOUT_ERROR  => 597;
+const our $HANDLE_STATUS_SOCKET_ERROR   => 598;
+const our $HANDLE_STATUS_EOF            => 599;
 
 const our $STATUS_REASON => {
-    $HANDLE_STATUS_OK            => 'OK',
-    $HANDLE_STATUS_TIMEOUT       => 'Timeout',
-    $HANDLE_STATUS_CONNECT_ERROR => 'Connect error',
-    $HANDLE_STATUS_TLS_ERROR     => 'TLS handshake error',
-    $HANDLE_STATUS_TIMEOUT_ERROR => 'Disconnected on timeout',
-    $HANDLE_STATUS_ERROR         => 'Disconnected',
-    $HANDLE_STATUS_EOF           => 'EOF',
+    $HANDLE_STATUS_OK             => 'OK',
+    $HANDLE_STATUS_TIMEOUT        => 'Timeout',
+    $HANDLE_STATUS_CONNECT_ERROR  => 'Connect error',
+    $HANDLE_STATUS_TLS_ERROR      => 'TLS handshake error',
+    $HANDLE_STATUS_PROTOCOL_ERROR => 'Protocol error',
+    $HANDLE_STATUS_TIMEOUT_ERROR  => 'Disconnected on timeout',
+    $HANDLE_STATUS_SOCKET_ERROR   => 'Socket error',
+    $HANDLE_STATUS_EOF            => 'EOF',
 };
 
 our $SCHEME_CACHE = {};
@@ -217,7 +222,7 @@ sub can_write ( $self, $timeout = undef ) {
     return;
 }
 
-# TODO use ->pending in TLS mode and read_size < 16K
+# TODO use ->pending in TLS mode if read_size < 16K
 # returns: undef or total bytes read
 sub _read ( $self, $timeout = undef ) {
     return if !$self;
@@ -237,7 +242,7 @@ sub _read ( $self, $timeout = undef ) {
 
         # error
         elsif ( $! != EAGAIN && $! != EINTR && $! != WSAEWOULDBLOCK && $! != EWOULDBLOCK ) {
-            $self->_set_status( $HANDLE_STATUS_ERROR, $! );
+            $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, $! );
 
             last;
         }
@@ -330,7 +335,7 @@ sub write ( $self, $buf, $timeout = undef ) {    ## no critic qw[Subroutines::Pr
 
         # error
         elsif ( $! != EAGAIN && $! != EINTR && $! != WSAEWOULDBLOCK && $! != EWOULDBLOCK ) {
-            $self->_set_status( $HANDLE_STATUS_ERROR, $! );
+            $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, $! );
 
             last;
         }
@@ -385,10 +390,12 @@ sub starttls ( $self, $timeout = undef ) {
 }
 
 # STATUS METHODS
-sub is_connect_error ($self) { return $self->{status} == $HANDLE_STATUS_CONNECT_ERROR }
-sub is_tls_error ($self)     { return $self->{status} == $HANDLE_STATUS_TLS_ERROR }
-sub is_eof ($self)           { return $self->{status} == $HANDLE_STATUS_EOF }
-sub is_timeoout ($self)      { return $self->{status} == $HANDLE_STATUS_TIMEOUT || $self->{status} == $HANDLE_STATUS_TIMEOUT_ERROR }
+sub is_connect_error ($self)  { return $self->{status} == $HANDLE_STATUS_CONNECT_ERROR }
+sub is_tls_error ($self)      { return $self->{status} == $HANDLE_STATUS_TLS_ERROR }
+sub is_protocol_error ($self) { return $self->{status} == $HANDLE_STATUS_PROTOCOL_ERROR }
+sub is_socket_error ($self)   { return $self->{status} == $HANDLE_STATUS_SOCKET_ERROR }
+sub is_eof ($self)            { return $self->{status} == $HANDLE_STATUS_EOF }
+sub is_timeoout ($self)       { return $self->{status} == $HANDLE_STATUS_TIMEOUT || $self->{status} == $HANDLE_STATUS_TIMEOUT_ERROR }
 
 sub _set_status ( $self, $status, $reason = undef ) {
     $self->{status} = $status;
@@ -400,7 +407,22 @@ sub _set_status ( $self, $status, $reason = undef ) {
     return;
 }
 
+sub set_protocol_error ( $self, $reason = undef ) {
+    $self->{status} = $HANDLE_STATUS_PROTOCOL_ERROR;
+
+    $self->{reason} = $reason // $STATUS_REASON->{$HANDLE_STATUS_PROTOCOL_ERROR};
+
+    delete $self->{fh};
+
+    return;
+}
+
 # HTTP headers methods
+# TODO
+sub read_http_req_headers ( $self, $timeout = undef ) {
+    return;
+}
+
 sub read_http_res_headers ( $self, $timeout = undef ) {
     my $buf_ref = $self->readline( $CRLF x 2, $timeout );
 
@@ -408,9 +430,6 @@ sub read_http_res_headers ( $self, $timeout = undef ) {
     return if !$buf_ref;
 
     my $res;
-
-    # $len = -1 - incomplete headers, -2 - errors, >= 0 - headers length
-    # ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf_ref->$*, HEADERS_AS_ARRAYREF );
 
     ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf_ref->$*, HTTP::Parser::XS::HEADERS_AS_HASHREF );
 
@@ -459,11 +478,15 @@ sub read_http_res_headers ( $self, $timeout = undef ) {
 
     # headers are incomplete
     if ( $len == -1 ) {
+        $self->set_protocol_error('HTTP headers are incomplete');
+
         return;
     }
 
     # headers are corrupted
     elsif ( $len == -2 ) {
+        $self->set_protocol_error('HTTP headers are corrupted');
+
         return;
     }
     else {
@@ -476,11 +499,21 @@ sub read_http_res_headers ( $self, $timeout = undef ) {
     }
 }
 
+# TODO
 sub read_http_trailing_heades ( $self, $timeout = undef ) {
 
     # TODO trailing headers can be empty, this is not an error
     # my $headers = $args{trailing} ? 'HTTP/1.1 200 OK' . $CRLF . $_[1] : $_[1];
 
+    return;
+}
+
+# HTTP body methods
+sub read_http_chunked_body ($self) {
+    return;
+}
+
+sub read_http_body ($self) {
     return;
 }
 
@@ -491,7 +524,7 @@ sub read_http_trailing_heades ( $self, $timeout = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 270, 273, 295        | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 275, 278, 300        | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
