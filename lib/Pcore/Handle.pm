@@ -224,13 +224,13 @@ sub can_write ( $self, $timeout = undef ) {
 
 # TODO use ->pending in TLS mode if read_size < 16K
 # returns: undef or total bytes read
-sub _read ( $self, $timeout = undef ) {
+sub _read ( $self, $read_size = undef, $timeout = undef ) {
     return if !$self;
 
     my $bytes;
 
     while () {
-        $bytes = sysread $self->{fh}, $self->{rbuf}, $self->{read_size}, length $self->{rbuf} // 0;
+        $bytes = sysread $self->{fh}, $self->{rbuf}, $read_size || $self->{read_size}, length $self->{rbuf} // 0;
 
         if ( defined $bytes ) {
 
@@ -254,35 +254,38 @@ sub _read ( $self, $timeout = undef ) {
 }
 
 # returns: undef or buffer ref
-sub read ( $self, $timeout = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+# $args{timeout}
+# $args{read_size}
+sub read ( $self, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     return if !$self;
 
     return \delete( $self->{rbuf} ) if length $self->{rbuf};
 
-    $self->_read($timeout);
+    $self->_read( $args{read_size}, $args{timeout} ) || return;
 
-    return \delete( $self->{rbuf} ) if length $self->{rbuf};
-
-    return;
+    return \delete( $self->{rbuf} );
 }
 
 # returns: undef or buffer ref
-sub readline ( $self, $term, $timeout = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+# $args{timeout}
+# $args{read_size}
+# TODO on_read???
+sub readline ( $self, $eol, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     while () {
-        my $idx = defined $self->{rbuf} ? index $self->{rbuf}, $term, 0 : -1;
+        my $idx = defined $self->{rbuf} ? index $self->{rbuf}, $eol, 0 : -1;
 
         if ( $idx == 0 ) {
-            return \substr( $self->{rbuf}, 0, length $term, q[] );
+            return \substr( $self->{rbuf}, 0, length $eol, q[] );
         }
         elsif ( $idx > 0 ) {
-            return \substr( $self->{rbuf}, 0, $idx + length $term, q[] );
+            return \substr( $self->{rbuf}, 0, $idx + length $eol, q[] );
         }
 
         # pattern not found
         else {
             return if !$self;
 
-            $self->_read($timeout) || last;
+            $self->_read( $args{read_size}, $args{timeout} ) || last;
         }
     }
 
@@ -290,23 +293,51 @@ sub readline ( $self, $term, $timeout = undef ) {    ## no critic qw[Subroutines
 }
 
 # returns: undef or buffer ref
-sub readchunk ( $self, $len, $timeout = undef ) {
-    while () {
-        if ( defined $self->{rbuf} ) {
-            if ( length $self->{rbuf} == $len ) {
-                return \delete( $self->{rbuf} );
+# $args{timeout}
+# $args{read_size}
+# $args{on_read}->($buf_ref, $total_bytes_read), returns total bytes or undef if error
+sub readchunk ( $self, $length, %args ) {
+    if ( $args{on_read} ) {
+        my $total_bytes = 0;
+
+        while () {
+            if ( my $rlen = length $self->{rbuf} ) {
+                my $buf = substr $self->{rbuf}, 0, $length, q[];
+
+                $total_bytes += my $blen = length $buf;
+
+                return if !$args{on_read}->( \$buf, $total_bytes );
+
+                $length -= $blen;
+
+                return $total_bytes if !$length;
             }
-            elsif ( length $self->{rbuf} > $len ) {
-                return \substr( $self->{rbuf}, 0, $len, q[] );
-            }
+
+            return if !$self;
+
+            $self->_read( $args{read_size}, $args{timeout} ) || last;
         }
 
-        return if !$self;
-
-        $self->_read($timeout) || last;
+        return;
     }
+    else {
+        while () {
+            if ( my $rlen = length $self->{rbuf} ) {
+                if ( $rlen == $length ) {
+                    return \delete( $self->{rbuf} );
+                }
+                elsif ( $rlen > $length ) {
+                    return \substr( $self->{rbuf}, 0, $length, q[] );
+                }
+            }
 
-    return;
+            return if !$self;
+
+            $self->_read( $args{read_size}, $args{timeout} ) || last;
+        }
+
+        return;
+    }
 }
 
 # returns: undef or total bytes written
@@ -423,8 +454,9 @@ sub read_http_req_headers ( $self, $timeout = undef ) {
     return;
 }
 
-sub read_http_res_headers ( $self, $timeout = undef ) {
-    my $buf_ref = $self->readline( $CRLF x 2, $timeout );
+# $args{timeout}
+sub read_http_res_headers ( $self, %args ) {
+    my $buf_ref = $self->readline( $CRLF x 2, timeout => $args{timeout} );
 
     # read headers error
     return if !$buf_ref;
@@ -509,11 +541,11 @@ sub read_http_trailing_heades ( $self, $timeout = undef ) {
 }
 
 # HTTP body methods
-sub read_http_chunked_body ($self) {
-    return;
-}
-
-sub read_http_body ($self) {
+# TODO
+# $args{timeout}
+# $args{read_size}
+# $args{on_read}
+sub read_http_chunked_data ( $self, %args ) {
     return;
 }
 
@@ -524,7 +556,7 @@ sub read_http_body ($self) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 275, 278, 300        | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 278, 281, 330        | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
