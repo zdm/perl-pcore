@@ -459,7 +459,7 @@ sub set_protocol_error ( $self, $reason = undef ) {
 # HTTP headers methods
 # $args{timeout}
 # $args{read_size}
-sub read_http_req_headers ( $self, $timeout = undef ) {
+sub read_http_req_headers ( $self, %args ) {
     my $buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
     my $env = {};
