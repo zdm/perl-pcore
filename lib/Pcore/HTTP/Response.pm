@@ -13,7 +13,7 @@ has data    => ();
 
 has content_length => 0;
 has is_redirect    => ();
-has decoded_body   => ( is => 'lazy' );
+has decoded_data   => ( is => 'lazy' );
 has tree           => ( is => 'lazy' );
 has redirects      => ();                 # ArrayRef of intermadiate redirects
 
@@ -21,7 +21,7 @@ sub BUILDARGS ( $self, $args ) {
     return $args;
 }
 
-sub _build_decoded_body ($self) {
+sub _build_decoded_data ($self) {
     return if !$self->{data};
 
     return if !is_plain_scalarref $self->{data};
