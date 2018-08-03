@@ -457,34 +457,31 @@ sub set_protocol_error ( $self, $reason = undef ) {
 }
 
 # HTTP headers methods
-# TODO
+# $args{timeout}
+# $args{read_size}
 sub read_http_req_headers ( $self, $timeout = undef ) {
-    $self->unshift_read(
-        http_headers => sub ( $h, @ ) {
-            if ( $_[1] ) {
-                $env //= {};
+    my $buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
-                my $res = HTTP::Parser::XS::parse_http_request( $_[1], $env );
+    my $env = {};
 
-                if ( $res == -1 ) {
-                    $cb->( $h, undef, 'Request is corrupt' );
-                }
-                elsif ( $res == -2 ) {
-                    $cb->( $h, undef, 'Request is incomplete' );
-                }
-                else {
-                    $cb->( $h, $env, undef );
-                }
-            }
-            else {
-                $cb->( $h, undef, 'No headers' );
-            }
+    my $res = HTTP::Parser::XS::parse_http_request( $buf_ref->$*, $env );
 
-            return;
-        }
-    );
+    # headers are corrupted
+    if ( $res == -1 ) {
+        $self->set_protocol_error('HTTP headers are corrupted');
 
-    return;
+        return;
+    }
+
+    # headers are incomplete
+    elsif ( $res == -2 ) {
+        $self->set_protocol_error('HTTP headers are incomplete');
+
+        return;
+    }
+    else {
+        return $env;
+    }
 }
 
 # $args{timeout}
@@ -673,9 +670,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 582                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
+## |    3 | 579                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 636                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 633                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 338                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
