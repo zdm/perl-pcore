@@ -275,10 +275,18 @@ sub readline ( $self, $eol, %args ) {    ## no critic qw[Subroutines::ProhibitBu
         my $idx = defined $self->{rbuf} ? index $self->{rbuf}, $eol, 0 : -1;
 
         if ( $idx == 0 ) {
-            return \substr( $self->{rbuf}, 0, length $eol, q[] );
+            substr $self->{rbuf}, 0, length $eol, q[];
+
+            my $buf = q[];
+
+            return \$buf;
         }
         elsif ( $idx > 0 ) {
-            return \substr( $self->{rbuf}, 0, $idx + length $eol, q[] );
+            my $buf = substr $self->{rbuf}, 0, $idx, q[];
+
+            substr $self->{rbuf}, 0, length $eol, q[];
+
+            return \$buf;
         }
 
         # pattern not found
@@ -451,19 +459,66 @@ sub set_protocol_error ( $self, $reason = undef ) {
 # HTTP headers methods
 # TODO
 sub read_http_req_headers ( $self, $timeout = undef ) {
+    $self->unshift_read(
+        http_headers => sub ( $h, @ ) {
+            if ( $_[1] ) {
+                $env //= {};
+
+                my $res = HTTP::Parser::XS::parse_http_request( $_[1], $env );
+
+                if ( $res == -1 ) {
+                    $cb->( $h, undef, 'Request is corrupt' );
+                }
+                elsif ( $res == -2 ) {
+                    $cb->( $h, undef, 'Request is incomplete' );
+                }
+                else {
+                    $cb->( $h, $env, undef );
+                }
+            }
+            else {
+                $cb->( $h, undef, 'No headers' );
+            }
+
+            return;
+        }
+    );
+
     return;
 }
 
 # $args{timeout}
+# $args{read_size}
 sub read_http_res_headers ( $self, %args ) {
-    my $buf_ref = $self->readline( $CRLF x 2, timeout => $args{timeout} );
+    my $buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
-    # read headers error
-    return if !$buf_ref;
+    $buf_ref->$* .= $CRLF x 2;
 
+    my $res = $self->_parse_http_headers($buf_ref);
+
+    # headers are incomplete
+    if ( $res->{len} == -1 ) {
+        $self->set_protocol_error('HTTP headers are incomplete');
+
+        return;
+    }
+
+    # headers are corrupted
+    elsif ( $res->{len} == -2 ) {
+        $self->set_protocol_error('HTTP headers are corrupted');
+
+        return;
+    }
+    else {
+        return $res;
+    }
+}
+
+# TODO update HTTP::Parser::XS
+sub _parse_http_headers ( $self, $buf_ref ) {
     my $res;
 
-    ( my $len, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf_ref->$*, HTTP::Parser::XS::HEADERS_AS_HASHREF );
+    ( $res->{len}, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf_ref->$*, HTTP::Parser::XS::HEADERS_AS_HASHREF );
 
     # fallback to pure-perl parser in case of errors
     # TODO can be removed after this issue will be fixed - https://github.com/kazuho/p5-http-parser-xs/issues/10
@@ -508,44 +563,106 @@ sub read_http_res_headers ( $self, %args ) {
     #     }
     # }
 
-    # headers are incomplete
-    if ( $len == -1 ) {
-        $self->set_protocol_error('HTTP headers are incomplete');
-
-        return;
-    }
-
-    # headers are corrupted
-    elsif ( $len == -2 ) {
-        $self->set_protocol_error('HTTP headers are corrupted');
-
-        return;
-    }
-    else {
+    if ( $res->{len} > 0 ) {
 
         # repack headers
         # TODO update HTTP::Parser::XS
         $res->{headers} = { map { uc s/-/_/smgr, $res->{headers}->{$_} } keys $res->{headers}->%* };    ## no critic qw[ValuesAndExpressions::ProhibitCommaSeparatedStatements]
-
-        return $res;
     }
+
+    return $res;
 }
 
-# TODO
-sub read_http_trailing_heades ( $self, $timeout = undef ) {
-
-    # TODO trailing headers can be empty, this is not an error
-    # my $headers = $args{trailing} ? 'HTTP/1.1 200 OK' . $CRLF . $_[1] : $_[1];
-
-    return;
-}
-
-# HTTP body methods
-# TODO
+# returns: undef or buffer ref
 # $args{timeout}
 # $args{read_size}
 # $args{on_read}
+# $args{headers}
+# $args{on_read}->($buf_ref, $total_bytes_read), returns total bytes or undef if error
 sub read_http_chunked_data ( $self, %args ) {
+    my $res;
+
+    while () {
+        my $length = $self->readline( $CRLF, read_size => $args{read_size}, timeout => $args{timeout} ) // last;
+
+        # invalid chunk length
+        if ( $length->$* =~ /([^[:xdigit:]])/sm ) {
+            $self->set_protocol_error('Invalid chunk length');
+
+            last;
+        }
+        else {
+            $length = hex $length->$*;
+        }
+
+        # last chunk
+        if ( !$length ) {
+
+            # read more data if rbuf is empty
+            $self->_read( $args{read_size}, $args{timeout} ) || last if !length $self->{rbuf};
+
+            # empty trailing headers
+            if ( index( $self->{rbuf}, $CRLF, 0 ) == 0 ) {
+                substr $self->{rbuf}, 0, 2, q[];
+
+                return $res;
+            }
+
+            my $headers_buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // last;
+
+            # parse and update trailing headers
+            if ( $args{headers} ) {
+                $headers_buf_ref->$* .= 'HTTP/1.1 200 OK' . $CRLF . $headers_buf_ref->$* . $CRLF . $CRLF;
+
+                my $headers = $self->_parse_http_headers($headers_buf_ref);
+
+                # headers are incomplete
+                if ( $res->{len} == -1 ) {
+                    $self->set_protocol_error('HTTP trailing headers are incomplete');
+
+                    return;
+                }
+
+                # headers are corrupted
+                elsif ( $res->{len} == -2 ) {
+                    $self->set_protocol_error('HTTP trailing headers are corrupted');
+
+                    return;
+                }
+                else {
+
+                    # merge headers
+                    while ( my ( $k, $v ) = each $headers->{headers}->%* ) {
+                        if ( exists $args{headers}->{$k} ) {
+                            $args{headers}->{$k} = [ $args{headers}->{$k} ] if !is_plain_arrayref $args{headers}->{$k};
+
+                            push $args{headers}->{$k}->@*, is_plain_arrayref $v ? $v->@* : $v;
+                        }
+                        else {
+                            $args{headers}->{$k} = $v;
+                        }
+                    }
+                }
+            }
+
+            return $res;
+        }
+        else {
+            my $chunk = $self->readchunk( $length + 2, read_size => $args{read_size}, timeout => $args{timeout} ) // last;
+
+            substr $chunk->$*, -2, 2, q[];
+
+            if ( $args{on_read} ) {
+                $res += length $chunk->$*;
+
+                return if !$args{on_read}->( $chunk, $res );
+            }
+            else {
+                $res->$* .= $chunk->$*;
+            }
+        }
+    }
+
     return;
 }
 
@@ -556,7 +673,11 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    1 | 278, 281, 330        | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    3 | 582                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 636                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 338                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
