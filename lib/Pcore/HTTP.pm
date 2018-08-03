@@ -88,6 +88,53 @@ const our $ENCODE_GZIP_DEFLATE => eval { require Compress::Raw::Zlib }    ? 1 : 
 const our $ENCODE_BROTLI       => eval { require IO::Uncompress::Brotli } ? 1 : 0;
 const our $ACCEPT_ENCODING => join ',', $ENCODE_GZIP_DEFLATE ? ( 'gzip', 'deflate' ) : (), $ENCODE_BROTLI ? 'br' : ();
 
+# mirror($target_path, $url, $params) or mirror($target_path, $url, $args)
+# additional params supported:
+# no_cache => 1;
+# TODO implement
+sub mirror ( $target, $url, @args ) {
+    ...;
+
+    my ( $on_finish, %args );
+
+    if ( @args % 2 ) {
+        $on_finish = pop @args;
+
+        %args = @args;
+    }
+    else {
+        %args = @args;
+
+        $on_finish = delete $args{on_finish};
+    }
+
+    $args{url} = $url;
+
+    $args{method} ||= 'GET';
+
+    $args{buf_size} = 1;
+
+    $args{headers}->{IF_MODIFIED_SINCE} = P->date->from_epoch( [ stat $target ]->[9] )->to_http_date if !$args{no_cache} && -f $target;
+
+    $args{on_finish} = sub ($res) {
+        if ( $res->{status} == 200 ) {
+            P->file->move( $res->{body}->path, $target );
+
+            if ( my $last_modified = $res->headers->{LAST_MODIFIED} ) {
+                my $mtime = P->date->parse($last_modified)->at_utc->epoch;
+
+                utime $mtime, $mtime, $target or die;
+            }
+        }
+
+        $on_finish->($res) if $on_finish;
+
+        return;
+    };
+
+    return request(%args);
+}
+
 sub request {
     my $cb = @_ % 2 ? pop : ();
 
@@ -654,14 +701,18 @@ sub _get_on_progress_cb (%args) {
 ## |======+======================+================================================================================================================|
 ## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 96                   | ControlStructures::ProhibitYadaOperator - yada operator (...) used                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 91                   | * Subroutine "request" with high complexity score (22)                                                         |
-## |      | 204                  | * Subroutine "_request" with high complexity score (21)                                                        |
-## |      | 429                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
+## |      | 138                  | * Subroutine "request" with high complexity score (22)                                                         |
+## |      | 251                  | * Subroutine "_request" with high complexity score (21)                                                        |
+## |      | 476                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 | 89                   | CodeLayout::ProhibitQuotedWordLists - List of quoted literal words                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 164                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
+## |    2 | 124                  | ValuesAndExpressions::ProhibitLongChainsOfMethodCalls - Found method-call chain of length 4                    |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 211                  | ControlStructures::ProhibitCStyleForLoops - C-style "for" loop used                                            |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
