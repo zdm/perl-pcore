@@ -89,7 +89,7 @@ const our $ENCODE_BROTLI       => eval { require IO::Uncompress::Brotli } ? 1 : 
 const our $ACCEPT_ENCODING => join ',', $ENCODE_GZIP_DEFLATE ? ( 'gzip', 'deflate' ) : (), $ENCODE_BROTLI ? 'br' : ();
 
 sub request {
-    my $cb = @_ % 2 && is_plain_coderef $_[-1] ? pop : ();
+    my $cb = @_ % 2 ? pop : ();
 
     my %args = (
         method => undef,
@@ -655,7 +655,7 @@ sub _get_on_progress_cb (%args) {
 ## |    3 | 75                   | ErrorHandling::RequireCheckingReturnValueOfEval - Return value of eval not tested                              |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 91                   | * Subroutine "request" with high complexity score (23)                                                         |
+## |      | 91                   | * Subroutine "request" with high complexity score (22)                                                         |
 ## |      | 204                  | * Subroutine "_request" with high complexity score (21)                                                        |
 ## |      | 429                  | * Subroutine "_read_data" with high complexity score (47)                                                      |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
