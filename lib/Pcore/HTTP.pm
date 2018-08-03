@@ -168,13 +168,13 @@ sub request {
     }
 
     # add "User-Agent" header
-    $headers .= 'User-Agent:' . $UA_PCORE . $CRLF if !exists $norm_headers->{user_agent};
+    $headers .= 'User-Agent:' . $UA_PCORE . $CRLF if !$norm_headers->{user_agent};
 
     # add "Referer" header
-    $headers .= 'Referer:' . $args{url}->to_string . $CRLF if !exists $norm_headers->{referer};
+    $headers .= 'Referer:' . $args{url}->to_string . $CRLF if !$norm_headers->{referer};
 
     # add "Accept-Encoding" header
-    $headers .= 'Accept-Encoding:' . $ACCEPT_ENCODING . $CRLF if !exists $norm_headers->{accept_encoding} && $args{accept_compressed};
+    $headers .= 'Accept-Encoding:' . $ACCEPT_ENCODING . $CRLF if !$norm_headers->{accept_encoding} && $args{accept_compressed};
 
     $args{headers}      = $headers;
     $args{norm_headers} = $norm_headers;
@@ -322,7 +322,7 @@ sub _write_headers ( $h, $args, $res ) {
     #     $headers .= 'Proxy-Authorization:Basic ' . $runtime->{h}->{proxy}->{uri}->userinfo_b64 . $CRLF;
     # }
 
-    if ( exists $args->{cookies} && ( my $cookies = $args->{cookies}->get_cookies( $res->{url} ) ) ) {
+    if ( $args->{cookies} && ( my $cookies = $args->{cookies}->get_cookies( $res->{url} ) ) ) {
         $headers .= 'Cookie:' . join( ';', $cookies->@* ) . $CRLF;
     }
 
@@ -392,7 +392,7 @@ sub _read_headers ( $h, $args, $res ) {
     }
 
     # parse SET_COOKIE header, add cookies
-    $args->{cookies}->parse_cookies( $res->{url}, $headers->{headers}->{SET_COOKIE} ) if exists $args->{cookies} && exists $headers->{headers}->{SET_COOKIE};
+    $args->{cookies}->parse_cookies( $res->{url}, $headers->{headers}->{SET_COOKIE} ) if $args->{cookies} && exists $headers->{headers}->{SET_COOKIE};
 
     # this is a redirect
     $res->{is_redirect} = 1 if exists $headers->{headers}->{LOCATION} && exists $REDIRECT->{ $headers->{status} };
