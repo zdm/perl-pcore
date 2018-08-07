@@ -446,12 +446,13 @@ sub get_connect ($connect) {
 
     # parse connect attribute
     if ( !is_plain_arrayref $connect ) {
-        if ( !is_ref $connect ) {    # parse uri string
-            $connect = P->uri( $connect, authority => 1 )->connect;
-        }
-        else {                       # already uri object
-            $connect = $connect->connect;
-        }
+
+        # parse uri string
+        $connect = P->uri( $connect, authority => 1 ) if !is_ref $connect;
+
+        my $scheme = $connect->scheme eq q[] ? 'tcp' : $connect->scheme;
+
+        $connect = [ $connect->host->name, $connect->connect_port, $scheme, $scheme . q[_] . $connect->connect_port ];
     }
     else {
 
@@ -479,13 +480,13 @@ sub get_connect ($connect) {
 ## |    2 | 163                  | ValuesAndExpressions::ProhibitEmptyQuotes - Quotes used with a string containing no non-whitespace characters  |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    2 |                      | Documentation::RequirePodLinksIncludeText                                                                      |
-## |      | 495                  | * Link L<AnyEvent::Handle> on line 501 does not specify text                                                   |
-## |      | 495                  | * Link L<AnyEvent::Handle> on line 509 does not specify text                                                   |
-## |      | 495                  | * Link L<AnyEvent::Handle> on line 537 does not specify text                                                   |
-## |      | 495                  | * Link L<AnyEvent::Handle> on line 553 does not specify text                                                   |
-## |      | 495                  | * Link L<AnyEvent::Socket> on line 553 does not specify text                                                   |
-## |      | 495, 495             | * Link L<Pcore::Proxy> on line 519 does not specify text                                                       |
-## |      | 495                  | * Link L<Pcore::Proxy> on line 553 does not specify text                                                       |
+## |      | 496                  | * Link L<AnyEvent::Handle> on line 502 does not specify text                                                   |
+## |      | 496                  | * Link L<AnyEvent::Handle> on line 510 does not specify text                                                   |
+## |      | 496                  | * Link L<AnyEvent::Handle> on line 538 does not specify text                                                   |
+## |      | 496                  | * Link L<AnyEvent::Handle> on line 554 does not specify text                                                   |
+## |      | 496                  | * Link L<AnyEvent::Socket> on line 554 does not specify text                                                   |
+## |      | 496, 496             | * Link L<Pcore::Proxy> on line 520 does not specify text                                                       |
+## |      | 496                  | * Link L<Pcore::Proxy> on line 554 does not specify text                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 47, 52               | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
