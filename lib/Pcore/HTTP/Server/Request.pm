@@ -14,6 +14,7 @@ use overload    #
 
 has _server   => ();    # ( is => 'ro', isa => InstanceOf ['Pcore::HTTP::Server'], required => 1 );
 has _h        => ();    # ( is => 'ro', isa => InstanceOf ['Pcore::AE::Handle'],   required => 1 );
+has _cb       => ();    # rouse callback
 has env       => ();    # ( is => 'ro', isa => HashRef, required => 1 );
 has data      => ();
 has keepalive => ();

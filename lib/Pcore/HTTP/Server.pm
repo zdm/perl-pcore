@@ -54,7 +54,6 @@ sub _on_prepare ( $self, $fh, $host, $port ) {
     return $self->{backlog} // 0;
 }
 
-# TODO error handling
 # TODO max body size
 sub _on_accept ( $self, $fh, $host, $port ) {
     my $h = P->handle(
@@ -67,9 +66,13 @@ sub _on_accept ( $self, $fh, $host, $port ) {
   READ_HEADERS: my $env = $h->read_http_req_headers( timeout => $self->{client_header_timeout} );
 
     # HTTP headers read error
-    # TODO 408 on timeout, 400 - on read error
     if ( !$env ) {
-        $self->return_xxx( $h, 400 );
+        if ( $h->is_timeout ) {
+            $self->return_xxx( $h, 408 );
+        }
+        else {
+            $self->return_xxx( $h, 400 );
+        }
 
         return;
     }
@@ -80,7 +83,6 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
     my $data;
 
-    # TODO 408 on timeout, 400 on other error
     # TODO check $self->{client_max_body_size}, return 413 - payload too large
 
     # chunked body
@@ -89,7 +91,12 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
         # HTTP body read error
         if ( !$data ) {
-            $self->return_xxx( $h, 400 );
+            if ( $h->is_timeout ) {
+                $self->return_xxx( $h, 408 );
+            }
+            else {
+                $self->return_xxx( $h, 400 );
+            }
 
             return;
         }
@@ -101,7 +108,12 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
         # HTTP body read error
         if ( !$data ) {
-            $self->return_xxx( $h, 400 );
+            if ( $h->is_timeout ) {
+                $self->return_xxx( $h, 408 );
+            }
+            else {
+                $self->return_xxx( $h, 400 );
+            }
 
             return;
         }
@@ -186,7 +198,7 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 59                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (22)                |
+## |    3 | 58                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (28)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
