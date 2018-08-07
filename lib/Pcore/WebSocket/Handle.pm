@@ -221,15 +221,25 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
             $h->push_write( join( $CRLF, @headers ) . $CRLF . $CRLF );
 
             # read response headers
-            $h->read_http_res_headers(
-                headers => 1,
-                sub ( $h1, $headers, $error_reason ) {
+            $h->unshift_read(
+                http_headers => sub ( $h1, @ ) {
+                    my $headers;
 
-                    # headers parsing error
-                    if ($error_reason) {
-                        $on_connect_error->( res [ 596, $error_reason ] );
+                    if ( !$_[1] ) {
+                        $on_connect_error->( res [ 596, 'HTTP headers error' ] );
 
                         return;
+                    }
+                    else {
+                        use Pcore::Handle;
+
+                        $headers = Pcore::Handle->_parse_http_headers( \$_[1] );
+
+                        if ( $headers->{len} <= 0 ) {
+                            $on_connect_error->( res [ 596, 'HTTP headers error' ] );
+
+                            return;
+                        }
                     }
 
                     my $res_headers = $headers->{headers};
@@ -678,15 +688,19 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 153                  | * Subroutine "connect" with high complexity score (26)                                                         |
-## |      | 353                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
-## |      | 464                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 153                  | * Subroutine "connect" with high complexity score (28)                                                         |
+## |      | 363                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
+## |      | 474                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 310, 316, 550        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 234                  | Modules::ProhibitConditionalUseStatements - Conditional "use" statement                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 611, 613             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 236                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 480              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    3 | 320, 326, 560        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    3 | 621, 623             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    2 | 41, 490              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
