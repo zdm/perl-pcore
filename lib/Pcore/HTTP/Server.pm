@@ -21,7 +21,7 @@ has server_tokens         => "Pcore-HTTP-Server/$Pcore::VERSION";    # ( is => '
 has keepalive_timeout     => 60;                                     # ( is => 'ro', isa => PositiveOrZeroInt, default => 60 ); # 0 - disable keepalive
 has client_header_timeout => 60;                                     # ( is => 'ro', isa => PositiveOrZeroInt, default => 60 ); # 0 - do not use
 has client_body_timeout   => 60;                                     # ( is => 'ro', isa => PositiveOrZeroInt, default => 60 ); # 0 - do not use
-has client_max_body_size  => 0;                                      # ( is => 'ro', isa => PositiveOrZeroInt, default => 0 );  # 0 - do not check
+has client_max_body_size  => 0;                                      # 0 - do not check
 
 has _listen_socket => ();                                            # ( is => 'ro', isa => Object, init_arg => undef );
 
@@ -54,7 +54,7 @@ sub _on_prepare ( $self, $fh, $host, $port ) {
     return $self->{backlog} // 0;
 }
 
-# TODO max body size
+# TODO check $self->{client_max_body_size} for chunked data
 sub _on_accept ( $self, $fh, $host, $port ) {
     my $h = P->handle(
         $fh,
@@ -83,47 +83,41 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
     my $data;
 
-    # TODO check $self->{client_max_body_size}, return 413 - payload too large
-
     # chunked body
+    # TODO check $self->{client_max_body_size}, return 413 - payload too large
     if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
         $data = $h->read_http_chunked_data( timeout => $self->{client_body_timeout} );
 
         # HTTP body read error
         if ( !$data ) {
             if ( $h->is_timeout ) {
-                $self->return_xxx( $h, 408 );
+                return $self->return_xxx( $h, 408 );
             }
             else {
-                $self->return_xxx( $h, 400 );
+                return $self->return_xxx( $h, 400 );
             }
-
-            return;
         }
+
+        $env->{CONTENT_LENGTH} = length $data->$*;
     }
 
     # fixed body size
     elsif ( $env->{CONTENT_LENGTH} ) {
+
+        # payload too large
+        return $self->return_xxx( $h, 413 ) if $self->{client_max_body_size} && $self->{client_max_body_size} > $env->{CONTENT_LENGTH};
+
         $data = $h->readchunk( $env->{CONTENT_LENGTH}, timeout => $self->{client_body_timeout} );
 
         # HTTP body read error
         if ( !$data ) {
             if ( $h->is_timeout ) {
-                $self->return_xxx( $h, 408 );
+                return $self->return_xxx( $h, 408 );
             }
             else {
-                $self->return_xxx( $h, 400 );
+                return $self->return_xxx( $h, 400 );
             }
-
-            return;
         }
-    }
-
-    if ( defined $data ) {
-        $env->{CONTENT_LENGTH} = length $data->$*;
-    }
-    else {
-        $env->{CONTENT_LENGTH} = 0;
     }
 
     my $keepalive = do {
