@@ -95,6 +95,8 @@ around new => sub ( $orig, $self, $connect, @args ) {
         $self = $self->$orig(@args);
 
         $self->{fh} = $connect;
+
+        $self->_set_status($HANDLE_STATUS_OK);
     }
 
     # connect
@@ -471,7 +473,7 @@ sub read_http_req_headers ( $self, %args ) {
 
     my $env = {};
 
-    my $res = HTTP::Parser::XS::parse_http_request( $buf_ref->$*, $env );
+    my $res = HTTP::Parser::XS::parse_http_request( $buf_ref->$* . $CRLF . $CRLF, $env );
 
     # headers are corrupted
     if ( $res == -1 ) {
@@ -677,11 +679,11 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 586                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
+## |    3 | 588                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 640                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 642                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 340                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 342                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
