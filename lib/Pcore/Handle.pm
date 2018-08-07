@@ -5,8 +5,7 @@ use Pcore::Util::CA;
 use HTTP::Parser::XS qw[];
 use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref];
 use AnyEvent::Socket qw[];
-use Errno qw[EAGAIN EWOULDBLOCK EINTR];
-use AnyEvent::Util qw[WSAEWOULDBLOCK];
+use Errno qw[];
 use IO::Socket::SSL qw[$SSL_ERROR SSL_WANT_READ SSL_WANT_WRITE SSL_VERIFY_NONE SSL_VERIFY_PEER];
 use Coro::EV qw[];
 use overload    #
@@ -240,14 +239,17 @@ sub _read ( $self, $read_size = undef, $timeout = undef ) {
             last;
         }
 
-        # error
-        elsif ( $! != EAGAIN && $! != EINTR && $! != WSAEWOULDBLOCK && $! != EWOULDBLOCK ) {
+        # wait for socket
+        if ( $!{EAGAIN} || $!{EINTR} || $!{WSAEWOULDBLOCK} || $!{EWOULDBLOCK} ) {
+            $self->can_read($timeout) || last;
+        }
+
+        # read error
+        else {
             $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, $! );
 
             last;
         }
-
-        $self->can_read($timeout) || last;
     }
 
     return $bytes;
@@ -372,14 +374,17 @@ sub write ( $self, $buf, $timeout = undef ) {    ## no critic qw[Subroutines::Pr
             next;
         }
 
-        # error
-        elsif ( $! != EAGAIN && $! != EINTR && $! != WSAEWOULDBLOCK && $! != EWOULDBLOCK ) {
+        # wait for socket
+        if ( $!{EAGAIN} || $!{EINTR} || $!{WSAEWOULDBLOCK} || $!{EWOULDBLOCK} ) {
+            $self->can_write($timeout) || last;
+        }
+
+        # write error
+        else {
             $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, $! );
 
             last;
         }
-
-        $self->can_write($timeout) || last;
     }
 
     return $total_bytes;
@@ -411,7 +416,8 @@ sub starttls ( $self, $timeout = undef ) {
     while () {
         $self->{fh}->connect_SSL && last;
 
-        if ( $! == EAGAIN || $! == EINTR || $! == WSAEWOULDBLOCK || $! == EWOULDBLOCK ) {
+        # NOTE under windows $!{ENOENT} can be returned
+        if ( $!{ENOENT} || $!{EAGAIN} || $!{EINTR} || $!{WSAEWOULDBLOCK} || $!{EWOULDBLOCK} ) {
             if ( $SSL_ERROR == SSL_WANT_READ ) {
                 $self->can_read($timeout) && next;
             }
@@ -420,6 +426,7 @@ sub starttls ( $self, $timeout = undef ) {
             }
         }
 
+        # TLS error
         $self->_set_status($HANDLE_STATUS_TLS_ERROR);
 
         last;
@@ -670,11 +677,11 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 579                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
+## |    3 | 586                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 633                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 640                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 338                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    1 | 340                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
