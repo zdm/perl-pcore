@@ -1,3 +1,7 @@
+v0.72.1 2018-08-07T18:14:27Z
+ - uri ->connect method removed
+ - Pcore::Handle TLS windows fix
+
 v0.72.0 2018-08-07T11:48:41Z
  - Coro::Handle patch
  - Coro::Handle patch removed
