@@ -104,7 +104,7 @@ around new => sub ( $orig, $self, $connect, @args ) {
 
         # parse connect
         if ( !is_ref $connect) {
-            $uri = P->uri( $connect, authority => 1 );
+            $uri    = P->uri($connect);
             $scheme = $uri->scheme;
 
             $connect = [ $uri->host, $uri->port || $uri->default_port ];
