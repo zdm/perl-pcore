@@ -140,6 +140,16 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
     # accept websocket connection
     my $h = $req->accept_websocket( \@headers );
 
+    # convert to Pcore::AE::Handle
+    Pcore::AE::Handle->new(
+        fh         => delete $h->{fh},
+        on_connect => sub ( $h1, @ ) {
+            $h = $h1;
+
+            return;
+        }
+    );
+
     # store connestion
     $SERVER_CONN->{ $self->{id} } = $self;
 
@@ -688,19 +698,19 @@ sub _parse_frame_header ( $self, $buf_ref ) {
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
 ## |    3 |                      | Subroutines::ProhibitExcessComplexity                                                                          |
-## |      | 153                  | * Subroutine "connect" with high complexity score (28)                                                         |
-## |      | 363                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
-## |      | 474                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
+## |      | 163                  | * Subroutine "connect" with high complexity score (28)                                                         |
+## |      | 373                  | * Subroutine "__on_connect" with high complexity score (23)                                                    |
+## |      | 484                  | * Subroutine "_on_frame" with high complexity score (29)                                                       |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 234                  | Modules::ProhibitConditionalUseStatements - Conditional "use" statement                                        |
+## |    3 | 244                  | Modules::ProhibitConditionalUseStatements - Conditional "use" statement                                        |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 236                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
+## |    3 | 246                  | Subroutines::ProtectPrivateSubs - Private subroutine/method used                                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 320, 326, 560        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
+## |    3 | 330, 336, 570        | Subroutines::ProhibitManyArgs - Too many arguments                                                             |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 621, 623             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
+## |    3 | 631, 633             | NamingConventions::ProhibitAmbiguousNames - Ambiguously named variable "second"                                |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    2 | 41, 490              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
+## |    2 | 41, 500              | ValuesAndExpressions::ProhibitEscapedCharacters - Numeric escapes in interpolated string                       |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
