@@ -470,7 +470,7 @@ sub is_eof ($self)            { return $self->{status} == $HANDLE_STATUS_EOF }
 sub is_timeout ($self)        { return $self->{status} == $HANDLE_STATUS_TIMEOUT || $self->{status} == $HANDLE_STATUS_TIMEOUT_ERROR }
 
 sub _set_status ( $self, $status, $reason = undef ) {
-    return if !$self;
+    return if $self->{status} && substr( $self->{status}, 0, 1 ) != 2;
 
     $self->{status} = $status;
 
