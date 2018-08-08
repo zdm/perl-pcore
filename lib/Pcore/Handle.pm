@@ -450,13 +450,13 @@ sub starttls ( $self, %args ) {
 sub disconnect ( $self ) {
     undef $self->{fh};
 
-    $self->_set_status($HANDLE_STATUS_SOCKET_ERROR);
+    $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, 'Disconnected' );
 
     return;
 }
 
 sub shutdown ( $self ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    $self->_set_status($HANDLE_STATUS_SOCKET_ERROR);
+    $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, 'Disconnected' );
 
     return;
 }
@@ -531,7 +531,7 @@ sub read_http_res_headers ( $self, %args ) {
 
     $buf_ref->$* .= $CRLF x 2;
 
-    my $res = $self->_parse_http_headers($buf_ref);
+    my $res = $self->_parse_http_headers( $buf_ref->$* );
 
     # headers are incomplete
     if ( $res->{len} == -1 ) {
@@ -552,10 +552,10 @@ sub read_http_res_headers ( $self, %args ) {
 }
 
 # TODO update HTTP::Parser::XS
-sub _parse_http_headers ( $self, $buf_ref ) {
+sub _parse_http_headers ( $self, $buf ) {
     my $res;
 
-    ( $res->{len}, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf_ref->$*, HTTP::Parser::XS::HEADERS_AS_HASHREF );
+    ( $res->{len}, $res->{minor_version}, $res->{status}, $res->{reason}, $res->{headers} ) = HTTP::Parser::XS::parse_http_response( $buf, HTTP::Parser::XS::HEADERS_AS_HASHREF );
 
     # fallback to pure-perl parser in case of errors
     # TODO can be removed after this issue will be fixed - https://github.com/kazuho/p5-http-parser-xs/issues/10
@@ -614,21 +614,24 @@ sub _parse_http_headers ( $self, $buf_ref ) {
 # $args{timeout}
 # $args{read_size}
 # $args{on_read}
+# $args{on_read_len}
 # $args{headers}
 # $args{on_read}->($buf_ref, $total_bytes_read), returns total bytes or undef if error
+# TODO implement chunk length reader - on_read_len, use it to control overall buffer length
 sub read_http_chunked_data ( $self, %args ) {
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
-    my $res;
+    my $buf;
+    my $total_bytes_read = 0;
 
     while () {
-        my $length = $self->readline( $CRLF, read_size => $args{read_size}, timeout => $args{timeout} ) // last;
+        my $length = $self->readline( $CRLF, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
         # invalid chunk length
         if ( $length->$* =~ /([^[:xdigit:]])/sm ) {
             $self->set_protocol_error('Invalid chunk length');
 
-            last;
+            return;
         }
         else {
             $length = hex $length->$*;
@@ -638,32 +641,36 @@ sub read_http_chunked_data ( $self, %args ) {
         if ( !$length ) {
 
             # read more data if rbuf is empty
-            $self->_read( $args{read_size}, $args{timeout} ) || last if !length $self->{rbuf};
+            $self->_read( $args{read_size}, $args{timeout} ) || return if !length $self->{rbuf};
 
-            # empty trailing headers
+            # no headers
+            # 0\r\n\r\n
+
+            # has headers
+            # 0\r\nheader1\r\nheader2\r\n\r\n
+
+            # no trailing headers
             if ( index( $self->{rbuf}, $CRLF, 0 ) == 0 ) {
                 substr $self->{rbuf}, 0, 2, q[];
 
-                return $res;
+                return $args{on_read} ? $total_bytes_read : \$buf;
             }
 
-            my $headers_buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // last;
+            my $headers_buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
             # parse and update trailing headers
             if ( $args{headers} ) {
-                $headers_buf_ref->$* .= 'HTTP/1.1 200 OK' . $CRLF . $headers_buf_ref->$* . $CRLF . $CRLF;
-
-                my $headers = $self->_parse_http_headers($headers_buf_ref);
+                my $headers = $self->_parse_http_headers( 'HTTP/1.1 200 OK' . $CRLF . $headers_buf_ref->$* . $CRLF . $CRLF );
 
                 # headers are incomplete
-                if ( $res->{len} == -1 ) {
+                if ( $headers->{len} == -1 ) {
                     $self->set_protocol_error('HTTP trailing headers are incomplete');
 
                     return;
                 }
 
                 # headers are corrupted
-                elsif ( $res->{len} == -2 ) {
+                elsif ( $headers->{len} == -2 ) {
                     $self->set_protocol_error('HTTP trailing headers are corrupted');
 
                     return;
@@ -684,20 +691,26 @@ sub read_http_chunked_data ( $self, %args ) {
                 }
             }
 
-            return $res;
+            return $args{on_read} ? $total_bytes_read : \$buf;
         }
+
+        # not last chunk
         else {
-            my $chunk = $self->readchunk( $length + 2, read_size => $args{read_size}, timeout => $args{timeout} ) // last;
+            if ( $args{on_read_len} ) {
+                return if !$args{on_read_len}->( $length, $total_bytes_read + $length );
+            }
+
+            my $chunk = $self->readchunk( $length + 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
             substr $chunk->$*, -2, 2, q[];
 
-            if ( $args{on_read} ) {
-                $res += length $chunk->$*;
+            $total_bytes_read += length $chunk->$*;
 
-                return if !$args{on_read}->( $chunk, $res );
+            if ( $args{on_read} ) {
+                return if !$args{on_read}->( $chunk, $total_bytes_read );
             }
             else {
-                $res->$* .= $chunk->$*;
+                $buf .= $chunk->$*;
             }
         }
     }
@@ -712,9 +725,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 619                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (22)    |
+## |    3 | 621                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 675                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 682                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 348                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+

@@ -233,7 +233,7 @@ sub connect ( $self, $uri, %args ) {    ## no critic qw[Subroutines::ProhibitBui
                     else {
                         use Pcore::Handle;
 
-                        $headers = Pcore::Handle->_parse_http_headers( \$_[1] );
+                        $headers = Pcore::Handle->_parse_http_headers( $_[1] );
 
                         if ( $headers->{len} <= 0 ) {
                             $on_connect_error->( res [ 596, 'HTTP headers error' ] );
