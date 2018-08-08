@@ -226,11 +226,11 @@ sub can_write ( $self, $timeout = undef ) {
 # TODO use ->pending in TLS mode if read_size < 16K
 # returns: undef or total bytes read
 sub _read ( $self, $read_size = undef, $timeout = undef ) {
-    return if !$self;
-
     my $bytes;
 
     while () {
+        return if !$self;
+
         $bytes = sysread $self->{fh}, $self->{rbuf}, $read_size || $self->{read_size}, length $self->{rbuf} // 0;
 
         if ( defined $bytes ) {
@@ -354,13 +354,13 @@ sub readchunk ( $self, $length, %args ) {
 
 # returns: undef or total bytes written
 sub write ( $self, $buf, $timeout = undef ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
-    return if !$self;
-
     my $total_bytes;
     my $size = length $buf;
     my $ofs  = 0;
 
     while () {
+        return if !$self;
+
         my $bytes = syswrite $self->{fh}, $buf, $size, $ofs;
 
         if ( defined $bytes ) {
@@ -437,30 +437,36 @@ sub starttls ( $self, $timeout = undef ) {
     return;
 }
 
+sub disconnect ( $self ) {
+    $self->_set_status($HANDLE_STATUS_EOF);
+
+    return;
+}
+
 # STATUS METHODS
 sub is_connect_error ($self)  { return $self->{status} == $HANDLE_STATUS_CONNECT_ERROR }
 sub is_tls_error ($self)      { return $self->{status} == $HANDLE_STATUS_TLS_ERROR }
 sub is_protocol_error ($self) { return $self->{status} == $HANDLE_STATUS_PROTOCOL_ERROR }
 sub is_socket_error ($self)   { return $self->{status} == $HANDLE_STATUS_SOCKET_ERROR }
 sub is_eof ($self)            { return $self->{status} == $HANDLE_STATUS_EOF }
-sub is_timeoout ($self)       { return $self->{status} == $HANDLE_STATUS_TIMEOUT || $self->{status} == $HANDLE_STATUS_TIMEOUT_ERROR }
+sub is_timeout ($self)        { return $self->{status} == $HANDLE_STATUS_TIMEOUT || $self->{status} == $HANDLE_STATUS_TIMEOUT_ERROR }
 
 sub _set_status ( $self, $status, $reason = undef ) {
     $self->{status} = $status;
 
     $self->{reason} = $reason // $STATUS_REASON->{$status};
 
-    delete $self->{fh} if substr( $status, 0, 1 ) != 2;
+    if ( substr( $status, 0, 1 ) != 2 ) {
+        shutdown $self->{fh}, 2;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+
+        delete $self->{fh};
+    }
 
     return;
 }
 
 sub set_protocol_error ( $self, $reason = undef ) {
-    $self->{status} = $HANDLE_STATUS_PROTOCOL_ERROR;
-
-    $self->{reason} = $reason // $STATUS_REASON->{$HANDLE_STATUS_PROTOCOL_ERROR};
-
-    delete $self->{fh};
+    $self->_set_status( $HANDLE_STATUS_PROTOCOL_ERROR, $reason );
 
     return;
 }
@@ -679,9 +685,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 588                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
+## |    3 | 594                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (21)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 642                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 648                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 342                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
