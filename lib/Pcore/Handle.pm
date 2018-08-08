@@ -478,7 +478,7 @@ sub _set_status ( $self, $status, $reason = undef ) {
 
     # fatal error
     if ( $self->{fh} && substr( $status, 0, 1 ) != 2 ) {
-        shutdown $self->{fh}, 2;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
+        CORE::shutdown $self->{fh}, 2;
 
         undef $self->{fh};
     }
