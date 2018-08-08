@@ -447,9 +447,16 @@ sub starttls ( $self, %args ) {
     return;
 }
 
-# TODO
 sub disconnect ( $self ) {
-    $self->_set_status($HANDLE_STATUS_EOF);
+    undef $self->{fh};
+
+    $self->_set_status($HANDLE_STATUS_SOCKET_ERROR);
+
+    return;
+}
+
+sub shutdown ( $self ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    $self->_set_status($HANDLE_STATUS_SOCKET_ERROR);
 
     return;
 }
@@ -462,16 +469,18 @@ sub is_socket_error ($self)   { return $self->{status} == $HANDLE_STATUS_SOCKET_
 sub is_eof ($self)            { return $self->{status} == $HANDLE_STATUS_EOF }
 sub is_timeout ($self)        { return $self->{status} == $HANDLE_STATUS_TIMEOUT || $self->{status} == $HANDLE_STATUS_TIMEOUT_ERROR }
 
-# TODO
 sub _set_status ( $self, $status, $reason = undef ) {
+    return if !$self;
+
     $self->{status} = $status;
 
     $self->{reason} = $reason // $STATUS_REASON->{$status};
 
-    if ( substr( $status, 0, 1 ) != 2 ) {
+    # fatal error
+    if ( $self->{fh} && substr( $status, 0, 1 ) != 2 ) {
         shutdown $self->{fh}, 2;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
-        delete $self->{fh};
+        undef $self->{fh};
     }
 
     return;
@@ -703,9 +712,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 610                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (22)    |
+## |    3 | 619                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (22)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 666                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 675                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 348                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
