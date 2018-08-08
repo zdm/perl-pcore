@@ -54,7 +54,6 @@ sub _on_prepare ( $self, $fh, $host, $port ) {
     return $self->{backlog} // 0;
 }
 
-# TODO check $self->{client_max_body_size} for chunked data
 sub _on_accept ( $self, $fh, $host, $port ) {
     my $h = P->handle(
         $fh,
@@ -84,15 +83,43 @@ sub _on_accept ( $self, $fh, $host, $port ) {
     my $data;
 
     # chunked body
-    # TODO check $self->{client_max_body_size}, return 413 - payload too large
     if ( $env->{TRANSFER_ENCODING} && $env->{TRANSFER_ENCODING} =~ /\bchunked\b/smi ) {
-        $data = $h->read_http_chunked_data( timeout => $self->{client_body_timeout} );
+        my $payload_too_large;
+
+        my $on_read_len = do {
+            if ( $self->{client_max_body_size} ) {
+                sub ( $len, $total_bytes ) {
+                    if ( $total_bytes > $self->{client_max_body_size} ) {
+                        $payload_too_large = 1;
+
+                        return;
+                    }
+                    else {
+                        return 1;
+                    }
+                };
+            }
+            else {
+                undef;
+            }
+        };
+
+        $data = $h->read_http_chunked_data( timeout => $self->{client_body_timeout}, on_read_len => $on_read_len );
 
         # HTTP body read error
         if ( !$data ) {
-            if ( $h->is_timeout ) {
+
+            # payload too large
+            if ($payload_too_large) {
+                return $self->return_xxx( $h, 413 );
+            }
+
+            # timeout
+            elsif ( $h->is_timeout ) {
                 return $self->return_xxx( $h, 408 );
             }
+
+            # read error
             else {
                 return $self->return_xxx( $h, 400 );
             }
@@ -111,9 +138,13 @@ sub _on_accept ( $self, $fh, $host, $port ) {
 
         # HTTP body read error
         if ( !$data ) {
+
+            # timeout
             if ( $h->is_timeout ) {
                 return $self->return_xxx( $h, 408 );
             }
+
+            # read error
             else {
                 return $self->return_xxx( $h, 400 );
             }
@@ -192,7 +223,7 @@ sub return_xxx ( $self, $h, $status, $close_connection = 1 ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 58                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (28)                |
+## |    3 | 57                   | Subroutines::ProhibitExcessComplexity - Subroutine "_on_accept" with high complexity score (33)                |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----

@@ -617,7 +617,6 @@ sub _parse_http_headers ( $self, $buf ) {
 # $args{on_read_len}
 # $args{headers}
 # $args{on_read}->($buf_ref, $total_bytes_read), returns total bytes or undef if error
-# TODO implement chunk length reader - on_read_len, use it to control overall buffer length
 sub read_http_chunked_data ( $self, %args ) {
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
@@ -725,9 +724,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 621                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 620                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 682                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 681                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 348                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
