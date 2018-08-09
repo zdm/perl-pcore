@@ -215,13 +215,13 @@ sub request {
     }
 
     # add "User-Agent" header
-    $headers .= 'User-Agent:' . $UA_PCORE . $CRLF if !$norm_headers->{user_agent};
+    $headers .= 'User-Agent:' . $UA_PCORE . $CRLF if !$norm_headers->{'user-agent'};
 
     # add "Referer" header
     $headers .= 'Referer:' . $args{url}->to_string . $CRLF if !$norm_headers->{referer};
 
     # add "Accept-Encoding" header
-    $headers .= 'Accept-Encoding:' . $ACCEPT_ENCODING . $CRLF if !$norm_headers->{accept_encoding} && $args{accept_compressed};
+    $headers .= 'Accept-Encoding:' . $ACCEPT_ENCODING . $CRLF if !$norm_headers->{'accept-encoding'} && $args{accept_compressed};
 
     $args{headers}      = $headers;
     $args{norm_headers} = $norm_headers;
