@@ -1,6 +1,6 @@
 package Pcore::API::S3;
 
-use Pcore -class;
+use Pcore -class, -res;
 use Pcore::Util::Digest qw[sha256_hex hmac_sha256 hmac_sha256_hex];
 
 has key      => ();
@@ -29,7 +29,6 @@ sub _request ( $self, $method, @args ) {
     my $data_hash     = sha256_hex( $args{data} ? $args{data}->$* : q[] );
 
     $args{headers}->{'Host'}                 = $host;
-    $args{headers}->{'Date'}                 = $date->to_http_date;
     $args{headers}->{'X-Amz-Date'}           = $date_iso08601;
     $args{headers}->{'X-Amz-Content-Sha256'} = $data_hash if $data_hash;
 
@@ -57,7 +56,7 @@ sub _request ( $self, $method, @args ) {
 
     return P->http->request(
         method  => $method,
-        url     => 'https://' . $host . ( $params ? "?$params" : q[] ),
+        url     => 'https://' . $host . ( $args{path} || '/' ) . ( $params ? "?$params" : q[] ),
         headers => [
             $args{headers}->%*,
             Referer       => undef,
@@ -65,9 +64,14 @@ sub _request ( $self, $method, @args ) {
         ],
         data => $args{data},
         sub ($res) {
-            $res->{data} = P->data->from_xml( $res->{data} ) if $res;
+            $res->{data} = P->data->from_xml( $res->{data} ) if $res && $res->{data};
 
-            return $res;
+            if ( $args{cb} ) {
+                return $args{cb}->($res);
+            }
+            else {
+                return $res;
+            }
         }
     );
 }
@@ -78,30 +82,96 @@ sub get_buckets ( $self, @args ) {
         @args
     );
 
-    return $self->_request( 'GET', bucket => undef, %args );
+    return $self->_request(
+        'GET', %args,
+        bucket => undef,
+        cb     => sub ($res) {
+            if ($res) {
+                my ( $data, $meta );
+
+                for my $key ( keys $res->{data}->{ListAllMyBucketsResult}->%* ) {
+                    if ( $key eq 'Buckets' ) {
+                        for my $item ( $res->{data}->{ListAllMyBucketsResult}->{$key}->[0]->{Bucket}->@* ) {
+                            $data->{ $item->{Name}->[0]->{content} } = {
+                                name          => $item->{Name}->[0]->{content},
+                                creation_date => $item->{CreationDate}->[0]->{content},
+                            };
+                        }
+                    }
+                    else {
+                        $meta->{$key} = $res->{data}->{ListBucketResult}->{$key}->[0]->{content};
+                    }
+                }
+
+                return res 200, $data, meta => $meta;
+            }
+
+            return $res;
+        }
+    );
 }
 
 sub get_bucket_content ( $self, @args ) {
     my %args = (
         bucket => $self->{bucket},
         region => $self->{region},
-        @args
+        @args,
     );
 
-    return $self->_request( 'GET', bucket => undef, %args );
+    return $self->_request(
+        'GET', %args,
+        cb => sub ($res) {
+            if ($res) {
+                my ( $data, $meta );
+
+                for my $key ( keys $res->{data}->{ListBucketResult}->%* ) {
+                    if ( $key eq 'Contents' ) {
+                        for my $item ( $res->{data}->{ListBucketResult}->{$key}->@* ) {
+                            $data->{ $item->{Key}->[0]->{content} } = {
+                                path          => $item->{Key}->[0]->{content},
+                                etag          => $item->{ETag}->[0]->{content} =~ s/"//smgr,
+                                last_modified => $item->{LastModified}->[0]->{content},
+                                size          => $item->{Size}->[0]->{content},
+                                is_folder     => substr( $item->{Key}->[0]->{content}, -1, 1 ) eq '/',
+                            };
+                        }
+                    }
+                    else {
+                        $meta->{$key} = $res->{data}->{ListBucketResult}->{$key}->[0]->{content};
+                    }
+                }
+
+                return res 200, $data, meta => $meta;
+            }
+
+            return $res;
+        }
+    );
+}
+
+sub upload ( $self, $path, $data, @args ) {
+    my %args = (
+        bucket => $self->{bucket},
+        region => $self->{region},
+        @args,
+    );
+
+    return $self->_request(
+        'PUT', %args,
+        path    => "/$path",
+        data    => $data,
+        headers => { 'Content-Length' => length $data->$*, },
+        cb      => sub ($res) {
+            if ($res) {
+                return res 200;
+            }
+
+            return $res;
+        }
+    );
 }
 
 1;
-## -----SOURCE FILTER LOG BEGIN-----
-##
-## PerlCritic profile "pcore-script" policy violations:
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-## | Sev. | Lines                | Policy                                                                                                         |
-## |======+======================+================================================================================================================|
-## |    1 | 85                   | CodeLayout::RequireTrailingCommas - List declaration without trailing comma                                    |
-## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
-##
-## -----SOURCE FILTER LOG END-----
 __END__
 =pod
 
