@@ -3,7 +3,7 @@ package Pcore::Handle;
 use Pcore -const, -class, -export;
 use Pcore::Util::CA;
 use HTTP::Parser::XS qw[];
-use Pcore::Util::Scalar qw[is_ref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref];
+use Pcore::Util::Scalar qw[is_ref is_plain_scalarref is_plain_arrayref is_plain_coderef is_glob is_plain_hashref];
 use AnyEvent::Socket qw[];
 use Errno qw[];
 use IO::Socket::SSL qw[$SSL_ERROR SSL_WANT_READ SSL_WANT_WRITE SSL_VERIFY_NONE SSL_VERIFY_PEER];
@@ -362,14 +362,41 @@ sub readchunk ( $self, $length, %args ) {
 sub write ( $self, $buf, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
+    my $buf_ref;
+
+    if ( is_plain_scalarref $buf) {
+        if ( utf8::is_utf8 $buf->$* ) {
+            my $tmp_buf = $buf->$*;
+
+            utf8::encode $tmp_buf;
+
+            $buf_ref = \$tmp_buf;
+        }
+        else {
+            $buf_ref = $buf;
+        }
+    }
+    else {
+        if ( utf8::is_utf8 $buf ) {
+            my $tmp_buf = $buf;
+
+            utf8::encode $tmp_buf;
+
+            $buf_ref = \$tmp_buf;
+        }
+        else {
+            $buf_ref = \$buf;
+        }
+    }
+
     my $total_bytes;
-    my $size = length $buf;
     my $ofs  = 0;
+    my $size = length $buf_ref->$*;
 
     while () {
         return if !$self;
 
-        my $bytes = syswrite $self->{fh}, $buf, $size, $ofs;
+        my $bytes = syswrite $self->{fh}, $buf_ref->$*, $size, $ofs;
 
         if ( defined $bytes ) {
             $total_bytes += $bytes;
@@ -724,9 +751,9 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 620                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 647                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 681                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 708                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
 ## |    1 | 348                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
