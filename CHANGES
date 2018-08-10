@@ -1,3 +1,10 @@
+v0.72.3 2018-08-10T03:43:27Z
+ - vim rpc ported to the Pcore::Handle
+ - S3 api added
+ - Pcore::AE::Handle removed
+ - Pcore::HTTP::Server version token fixed for use with PAUSE indexer
+ - Pcore::CDN prototype
+
 v0.72.2 2018-08-08T07:22:24Z
  - syntax
  - Pcore::Handle fix
