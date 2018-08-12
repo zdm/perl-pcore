@@ -73,7 +73,7 @@ around new => sub ( $orig, $self, $cmd, %args ) {
 
     if ($MSWIN) {
         $self->{win32_alive_timeout} = $args{win32_alive_timeout} if defined $args{win32_alive_timeout};
-        $args{win32_cflags} //= 0;    # NOTE handles redirect not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
+        $args{win32_cflags} //= $args{win32_create_no_window} ? Win32::Process::CREATE_NO_WINDOW() : 0;    # NOTE handles redirect not works if not 0, Win32::Process::CREATE_NO_WINDOW(),
     }
 
     my ( $child_stdin,  $child_stdout,  $child_stderr );
@@ -336,7 +336,7 @@ sub _set_exit_code ( $self, $exit_code, $reason = undef ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (26)                               |
+## |    3 | 1                    | Modules::ProhibitExcessMainComplexity - Main code has high complexity score (27)                               |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
