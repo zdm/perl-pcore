@@ -255,10 +255,10 @@ sub wait ($self) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
 
 sub capture ( $self, %args ) {
     undef $self->{child_stdout};
-    $self->{stdout} = $self->{stdout}->readeof( timeout => $args{timeout} ) if $self->{stdout};
+    $self->{stdout} = $self->{stdout}->read_eof( timeout => $args{timeout} ) if $self->{stdout};
 
     undef $self->{child_stderr};
-    $self->{stderr} = $self->{stderr}->readeof( timeout => $args{timeout} ) if $self->{stderr};
+    $self->{stderr} = $self->{stderr}->read_eof( timeout => $args{timeout} ) if $self->{stderr};
 
     return $self;
 }

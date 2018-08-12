@@ -274,7 +274,7 @@ sub read ( $self, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomon
 
 # $args{timeout}
 # $args{read_size}
-sub readeof ( $self, %args ) {
+sub read_eof ( $self, %args ) {
     if ($self) {
         while ( $self->_read( $args{read_size}, $args{timeout} ) ) { }
     }
