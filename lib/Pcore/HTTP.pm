@@ -539,7 +539,7 @@ sub _read_data ( $h, $args, $res ) {
             $data = $h->read_http_chunked_data( headers => $res->{headers} );
         }
         else {
-            $data = $h->readchunk( $res->{content_length} );
+            $data = $h->read_chunk( $res->{content_length} );
         }
 
         # read error
@@ -648,7 +648,7 @@ sub _read_data ( $h, $args, $res ) {
             $bytes = $h->read_http_chunked_data( on_read => $on_read, headers => $res->{headers} );
         }
         else {
-            $bytes = $h->readchunk( $res->{content_length}, on_read => $on_read );
+            $bytes = $h->read_chunk( $res->{content_length}, on_read => $on_read );
         }
 
         # data read error

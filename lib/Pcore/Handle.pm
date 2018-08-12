@@ -322,7 +322,7 @@ sub readline ( $self, $eol, %args ) {    ## no critic qw[Subroutines::ProhibitBu
 # $args{timeout}
 # $args{read_size}
 # $args{on_read}->($buf_ref, $total_bytes_read), returns total bytes or undef if error
-sub readchunk ( $self, $length, %args ) {
+sub read_chunk ( $self, $length, %args ) {
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
     if ( $args{on_read} ) {
@@ -742,7 +742,7 @@ sub read_http_chunked_data ( $self, %args ) {
                 return if !$args{on_read_len}->( $length, $total_bytes_read + $length );
             }
 
-            my $chunk = $self->readchunk( $length + 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
+            my $chunk = $self->read_chunk( $length + 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
             substr $chunk->$*, -2, 2, q[];
 

@@ -134,7 +134,7 @@ sub _on_accept ( $self, $fh, $host, $port ) {
         # payload too large
         return $self->return_xxx( $h, 413 ) if $self->{client_max_body_size} && $self->{client_max_body_size} > $env->{CONTENT_LENGTH};
 
-        $data = $h->readchunk( $env->{CONTENT_LENGTH}, timeout => $self->{client_body_timeout} );
+        $data = $h->read_chunk( $env->{CONTENT_LENGTH}, timeout => $self->{client_body_timeout} );
 
         # HTTP body read error
         if ( !$data ) {
