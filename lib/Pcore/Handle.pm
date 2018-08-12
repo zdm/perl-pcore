@@ -182,7 +182,7 @@ around new => sub ( $orig, $self, $connect, @args ) {
 sub so_no_delay ( $self, $val ) {
     $self->{so_no_delay} = $val;
 
-    setsockopt $self->{fh}, Socket::IPPROTO_TCP(), Socket::TCP_NODELAY(), int $val or die $!;
+    setsockopt $self->{fh}, Socket::IPPROTO_TCP(), Socket::TCP_NODELAY(), $val;    ## no critic qw[InputOutput::RequireCheckedSyscalls]
 
     return;
 }
@@ -190,7 +190,7 @@ sub so_no_delay ( $self, $val ) {
 sub so_oobinline ( $self, $val ) {
     $self->{so_oobinline} = $val;
 
-    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_OOBINLINE(), int $val or die $!;
+    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_OOBINLINE(), $val or die $!;
 
     return;
 }
@@ -198,7 +198,7 @@ sub so_oobinline ( $self, $val ) {
 sub so_keepalive ( $self, $val ) {
     $self->{so_keepalive} = $val;
 
-    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_KEEPALIVE(), int $val or die $!;
+    setsockopt $self->{fh}, Socket::SOL_SOCKET(), Socket::SO_KEEPALIVE(), $val or die $!;
 
     return;
 }
@@ -268,6 +268,16 @@ sub read ( $self, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomon
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
     $self->_read( $args{read_size}, $args{timeout} ) || return;
+
+    return \delete( $self->{rbuf} );
+}
+
+# $args{timeout}
+# $args{read_size}
+sub readeof ( $self, %args ) {
+    if ($self) {
+        while ( $self->_read( $args{read_size}, $args{timeout} ) ) { }
+    }
 
     return \delete( $self->{rbuf} );
 }
@@ -474,7 +484,9 @@ sub starttls ( $self, %args ) {
     return;
 }
 
-sub disconnect ( $self ) {
+sub close ( $self ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    CORE::close $self->{fh};
+
     undef $self->{fh};
 
     $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, 'Disconnected' );
@@ -482,7 +494,11 @@ sub disconnect ( $self ) {
     return;
 }
 
-sub shutdown ( $self ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub shutdown ( $self, $type = 2 ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+    CORE::shutdown $self->{fh}, $type;
+
+    undef $self->{fh};
+
     $self->_set_status( $HANDLE_STATUS_SOCKET_ERROR, 'Disconnected' );
 
     return;
@@ -751,11 +767,13 @@ sub read_http_chunked_data ( $self, %args ) {
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ## | Sev. | Lines                | Policy                                                                                                         |
 ## |======+======================+================================================================================================================|
-## |    3 | 647                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
+## |    3 | 487                  | NamingConventions::ProhibitAmbiguousNames - Ambiguously named subroutine "close"                               |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    3 | 708                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |    3 | 663                  | Subroutines::ProhibitExcessComplexity - Subroutine "read_http_chunked_data" with high complexity score (26)    |
 ## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
-## |    1 | 348                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
+## |    3 | 724                  | ControlStructures::ProhibitDeepNests - Code structure is deeply nested                                         |
+## |------+----------------------+----------------------------------------------------------------------------------------------------------------|
+## |    1 | 358                  | CodeLayout::ProhibitParensWithBuiltins - Builtin function called with parentheses                              |
 ## +------+----------------------+----------------------------------------------------------------------------------------------------------------+
 ##
 ## -----SOURCE FILTER LOG END-----
