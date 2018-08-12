@@ -17,7 +17,7 @@ sub on_accept ( $fh, $host, $port ) {
     my $h = P->handle($fh);
 
     while () {
-        my $msg = $h->readline($LF);
+        my $msg = $h->read_line($LF);
 
         last if !$msg;
 

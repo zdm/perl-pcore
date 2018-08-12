@@ -286,7 +286,7 @@ sub read_eof ( $self, %args ) {
 # $args{timeout}
 # $args{read_size}
 # TODO on_read???
-sub readline ( $self, $eol, %args ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomonyms]
+sub read_line ( $self, $eol, %args ) {
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
     while () {
@@ -541,7 +541,7 @@ sub set_protocol_error ( $self, $reason = undef ) {
 sub read_http_req_headers ( $self, %args ) {
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
-    my $buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
+    my $buf_ref = $self->read_line( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
     my $env = {};
 
@@ -570,7 +570,7 @@ sub read_http_req_headers ( $self, %args ) {
 sub read_http_res_headers ( $self, %args ) {
     $args{timeout} = $self->{timeout} if !exists $args{timeout};
 
-    my $buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
+    my $buf_ref = $self->read_line( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
     $buf_ref->$* .= $CRLF x 2;
 
@@ -667,7 +667,7 @@ sub read_http_chunked_data ( $self, %args ) {
     my $total_bytes_read = 0;
 
     while () {
-        my $length = $self->readline( $CRLF, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
+        my $length = $self->read_line( $CRLF, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
         # invalid chunk length
         if ( $length->$* =~ /([^[:xdigit:]])/sm ) {
@@ -698,7 +698,7 @@ sub read_http_chunked_data ( $self, %args ) {
                 return $args{on_read} ? $total_bytes_read : \$buf;
             }
 
-            my $headers_buf_ref = $self->readline( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
+            my $headers_buf_ref = $self->read_line( $CRLF x 2, read_size => $args{read_size}, timeout => $args{timeout} ) // return;
 
             # parse and update trailing headers
             if ( $args{headers} ) {

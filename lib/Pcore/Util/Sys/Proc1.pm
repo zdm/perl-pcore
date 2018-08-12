@@ -206,7 +206,7 @@ sub _create_process ( $self, $cmd, $win32_cflags ) {
 
             my $h = P->handle($r);
 
-            if ( my $err = $h->readline("\n") ) {
+            if ( my $err = $h->read_line("\n") ) {
                 $self->_set_exit_code( -1, $err->$* );
 
                 return;
