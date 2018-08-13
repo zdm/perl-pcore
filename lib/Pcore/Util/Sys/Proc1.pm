@@ -133,18 +133,24 @@ around new => sub ( $orig, $self, $cmd, %args ) {
     }
 
     # create process
-    $self->_create_process( $cmd, $args{win32_cflags} );
+    $self->_create_process(
+        $cmd,
+        $args{win32_cflags},
+        sub {
+            # restore old STD* handles
+            open *STDIN,  '<&', $backup_stdin  or die $! if defined $backup_stdin;
+            open *STDOUT, '>&', $backup_stdout or die $! if defined $backup_stdout;
+            open *STDERR, '>&', $backup_stderr or die $! if defined $backup_stderr;
 
-    # restore old STD* handles
-    open *STDIN,  '<&', $backup_stdin  or die $! if defined $backup_stdin;
-    open *STDOUT, '>&', $backup_stdout or die $! if defined $backup_stdout;
-    open *STDERR, '>&', $backup_stderr or die $! if defined $backup_stderr;
+            return;
+        }
+    );
 
     return $self;
 };
 
 # TODO under windows run directly and handle process creation error
-sub _create_process ( $self, $cmd, $win32_cflags ) {
+sub _create_process ( $self, $cmd, $win32_cflags, $restore ) {
 
     # prepare environment
     local $ENV{PERL5LIB} = join $Config{path_sep}, grep { !ref } @INC;
@@ -163,6 +169,8 @@ sub _create_process ( $self, $cmd, $win32_cflags ) {
             $win32_cflags,
             q[.]
         );
+
+        $restore->();
 
         if ($win32_proc) {
             $self->{_win32_proc} = $win32_proc;
@@ -202,6 +210,8 @@ sub _create_process ( $self, $cmd, $win32_cflags ) {
             };
         }
         else {
+            $restore->();
+
             close $w or die $!;
 
             my $h = P->handle($r);
@@ -263,7 +273,7 @@ sub capture ( $self, %args ) {
     return $self;
 }
 
-sub is_running ($self) {
+sub is_active ($self) {
     return if $self->{status} != $PROC_STATUS_ACTIVE;
 
     # TRUE - terminated, -1 under linux, PID under windows
