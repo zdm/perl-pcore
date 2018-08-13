@@ -82,14 +82,14 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
 
     # websocket version is not specified or not supported
     if ( !$env->{HTTP_SEC_WEBSOCKET_VERSION} || $env->{HTTP_SEC_WEBSOCKET_VERSION} ne $WEBSOCKET_VERSION ) {
-        $req->return_xxx( [ 400, q[Unsupported WebSocket version] ] );
+        $req->return_xxx(400);
 
         return;
     }
 
     # websocket key is not specified
     if ( !$env->{HTTP_SEC_WEBSOCKET_KEY} ) {
-        $req->return_xxx( [ 400, q[WebSocket SEC_WEBSOCKET_KEY header is required] ] );
+        $req->return_xxx(400);
 
         return;
     }
@@ -103,13 +103,13 @@ sub accept ( $self, $req ) {    ## no critic qw[Subroutines::ProhibitBuiltinHomo
     # check websocket protocol
     if ($protocol) {
         if ( !$env->{HTTP_SEC_WEBSOCKET_PROTOCOL} || $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} !~ /\b$protocol\b/smi ) {
-            $req->return_xxx( [ 400, q[Unsupported WebSocket protocol] ] );
+            $req->return_xxx(400);
 
             return;
         }
     }
     elsif ( $env->{HTTP_SEC_WEBSOCKET_PROTOCOL} ) {
-        $req->return_xxx( [ 400, q[Unsupported WebSocket protocol] ] );
+        $req->return_xxx(400);
 
         return;
     }
